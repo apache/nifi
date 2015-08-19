@@ -99,6 +99,7 @@ public class NiFiProperties extends Properties {
     public static final String PROVENANCE_ROLLOVER_TIME = "nifi.provenance.repository.rollover.time";
     public static final String PROVENANCE_ROLLOVER_SIZE = "nifi.provenance.repository.rollover.size";
     public static final String PROVENANCE_QUERY_THREAD_POOL_SIZE = "nifi.provenance.repository.query.threads";
+    public static final String PROVENANCE_INDEX_THREAD_POOL_SIZE = "nifi.provenance.repository.index.threads";
     public static final String PROVENANCE_COMPRESS_ON_ROLLOVER = "nifi.provenance.repository.compress.on.rollover";
     public static final String PROVENANCE_INDEXED_FIELDS = "nifi.provenance.repository.indexed.fields";
     public static final String PROVENANCE_INDEXED_ATTRIBUTES = "nifi.provenance.repository.indexed.attributes";

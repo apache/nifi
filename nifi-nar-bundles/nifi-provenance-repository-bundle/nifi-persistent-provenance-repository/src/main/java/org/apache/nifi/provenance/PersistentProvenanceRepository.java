@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -45,6 +46,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -95,6 +97,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -279,6 +282,8 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         final String rolloverSize = properties.getProperty(NiFiProperties.PROVENANCE_ROLLOVER_SIZE, "100 MB");
         final String shardSize = properties.getProperty(NiFiProperties.PROVENANCE_INDEX_SHARD_SIZE, "500 MB");
         final int queryThreads = properties.getIntegerProperty(NiFiProperties.PROVENANCE_QUERY_THREAD_POOL_SIZE, 2);
+        final int indexThreads = properties.getIntegerProperty(
+                NiFiProperties.PROVENANCE_INDEX_THREAD_POOL_SIZE, 1);
         final int journalCount = properties.getIntegerProperty(NiFiProperties.PROVENANCE_JOURNAL_COUNT, 16);
 
         final long storageMillis = FormatUtils.getTimeDuration(storageTime, TimeUnit.MILLISECONDS);
@@ -327,6 +332,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         config.setMaxRecordLife(storageMillis, TimeUnit.MILLISECONDS);
         config.setMaxStorageCapacity(maxStorageBytes);
         config.setQueryThreadPoolSize(queryThreads);
+        config.setIndexThreadPoolSize(indexThreads);
         config.setJournalCount(journalCount);
         config.setMaxAttributeChars(maxAttrChars);
 
@@ -801,7 +807,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
      *
      * @throws IOException if unable to purge old events due to an I/O problem
      */
-    void purgeOldEvents() throws IOException {
+    synchronized void purgeOldEvents() throws IOException {
         while (!recoveryFinished.get()) {
             try {
                 Thread.sleep(100L);
@@ -1030,6 +1036,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                         }
 
                         if (fileRolledOver == null) {
+                            logger.debug("Couldn't merge journals. Will try again in 10 seconds. journalsToMerge: {}, storageDir: {}", journalsToMerge, storageDir);
                             return;
                         }
                         final File file = fileRolledOver;
@@ -1091,19 +1098,31 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             // that is no longer the case.
             if (journalFileCount > journalCountThreshold || repoSize > sizeThreshold) {
                 logger.warn("The rate of the dataflow is exceeding the provenance recording rate. "
-                        + "Slowing down flow to accomodate. Currently, there are {} journal files ({} bytes) and "
+                        + "Slowing down flow to accommodate. Currently, there are {} journal files ({} bytes) and "
                         + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
                 eventReporter.reportEvent(Severity.WARNING, "Provenance Repository", "The rate of the dataflow is "
-                        + "exceeding the provenance recording rate. Slowing down flow to accomodate");
+                        + "exceeding the provenance recording rate. Slowing down flow to accommodate");
 
                 while (journalFileCount > journalCountThreshold || repoSize > sizeThreshold) {
-                    try {
-                        Thread.sleep(1000L);
-                    } catch (final InterruptedException ie) {
+                    if (repoSize > sizeThreshold) {
+                        logger.debug("Provenance Repository has exceeded its size threshold; will trigger purging of oldest events");
+                        purgeOldEvents();
+
+                        journalFileCount = getJournalCount();
+                        repoSize = getSize(getLogFiles(), 0L);
+                        continue;
+                    } else {
+                        // if we are constrained by the number of journal files rather than the size of the repo,
+                        // then we will just sleep a bit because another thread is already actively merging the journals,
+                        // due to the runnable that we scheduled above
+                        try {
+                            Thread.sleep(100L);
+                        } catch (final InterruptedException ie) {
+                        }
                     }
 
                     logger.debug("Provenance Repository is still behind. Keeping flow slowed down "
-                            + "to accomodate. Currently, there are {} journal files ({} bytes) and "
+                            + "to accommodate. Currently, there are {} journal files ({} bytes) and "
                             + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
 
                     journalFileCount = getJournalCount();
@@ -1219,6 +1238,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         }
 
         if (journalFiles.isEmpty()) {
+            logger.debug("Couldn't merge journals: Journal Files is empty; won't merge journals");
             return null;
         }
 
@@ -1380,11 +1400,51 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 final IndexingAction indexingAction = new IndexingAction(this);
 
                 final File indexingDirectory = indexConfig.getWritableIndexDirectory(writerFile, earliestTimestamp);
+                long maxId = 0L;
+
+                final BlockingQueue<Tuple<StandardProvenanceEventRecord, Integer>> eventQueue = new LinkedBlockingQueue<>(100);
+                final AtomicBoolean finishedAdding = new AtomicBoolean(false);
+                final List<Future<?>> futures = new ArrayList<>();
+
                 final IndexWriter indexWriter = indexManager.borrowIndexWriter(indexingDirectory);
                 try {
-                    long maxId = 0L;
+                    final ExecutorService exec = Executors.newFixedThreadPool(configuration.getIndexThreadPoolSize(), new ThreadFactory() {
+                        @Override
+                        public Thread newThread(final Runnable r) {
+                            final Thread t = Executors.defaultThreadFactory().newThread(r);
+                            t.setName("Index Provenance Events");
+                            return t;
+                        }
+                    });
 
                     try {
+                        for (int i = 0; i < configuration.getIndexThreadPoolSize(); i++) {
+                            final Callable<Object> callable = new Callable<Object>() {
+                                @Override
+                                public Object call() throws IOException {
+                                    while (!eventQueue.isEmpty() || !finishedAdding.get()) {
+                                        final Tuple<StandardProvenanceEventRecord, Integer> tuple;
+                                        try {
+                                            tuple = eventQueue.poll(10, TimeUnit.MILLISECONDS);
+                                        } catch (final InterruptedException ie) {
+                                            continue;
+                                        }
+
+                                        if (tuple == null) {
+                                            continue;
+                                        }
+
+                                        indexingAction.index(tuple.getKey(), indexWriter, tuple.getValue());
+                                    }
+
+                                    return null;
+                                }
+                            };
+
+                            final Future<?> future = exec.submit(callable);
+                            futures.add(future);
+                        }
+
                         while (!recordToReaderMap.isEmpty()) {
                             final Map.Entry<StandardProvenanceEventRecord, RecordReader> entry = recordToReaderMap.entrySet().iterator().next();
                             final StandardProvenanceEventRecord record = entry.getKey();
@@ -1393,7 +1453,13 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                             writer.writeRecord(record, record.getEventId());
                             final int blockIndex = writer.getTocWriter().getCurrentBlockIndex();
 
-                            indexingAction.index(record, indexWriter, blockIndex);
+                            boolean accepted = false;
+                            while (!accepted) {
+                                try {
+                                    accepted = eventQueue.offer(new Tuple<>(record, blockIndex), 10, TimeUnit.MILLISECONDS);
+                                } catch (final InterruptedException ie) {
+                                }
+                            }
                             maxId = record.getEventId();
 
                             latestRecords.add(truncateAttributes(record));
@@ -1414,16 +1480,30 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                                 recordToReaderMap.put(nextRecord, reader);
                             }
                         }
-                        indexWriter.commit();
-                    } catch (final Throwable t) {
-                        indexWriter.rollback();
-                        throw t;
+                    } finally {
+                        finishedAdding.set(true);
+                        exec.shutdown();
                     }
 
-                    indexConfig.setMaxIdIndexed(maxId);
+                    for (final Future<?> future : futures) {
+                        try {
+                            future.get();
+                        } catch (final ExecutionException ee) {
+                            final Throwable t = ee.getCause();
+                            if (t instanceof RuntimeException) {
+                                throw (RuntimeException) t;
+                            }
+
+                            throw new RuntimeException(t);
+                        } catch (final InterruptedException e) {
+                            throw new RuntimeException("Thread interrupted");
+                        }
+                    }
                 } finally {
                     indexManager.returnIndexWriter(indexingDirectory, indexWriter);
                 }
+
+                indexConfig.setMaxIdIndexed(maxId);
             }
 
             // record should now be available in the repository. We can copy the values from latestRecords to ringBuffer.
@@ -1468,6 +1548,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
         if (records == 0) {
             writerFile.delete();
+            logger.debug("Couldn't merge journals: No Records to merge");
             return null;
         } else {
             final long nanos = System.nanoTime() - startNanos;

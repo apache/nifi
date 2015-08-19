@@ -513,7 +513,11 @@ Providing three total locations, including  _nifi.provenance.repository.director
 |nifi.provenance.repository.max.storage.size|The maximum amount of data provenance information to store at a time. The default is 1 GB.
 |nifi.provenance.repository.rollover.time|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is 5 mins. 
 |nifi.provenance.repository.rollover.size|The amount of information to roll over at a time. The default value is 100 MB.
-|nifi.provenance.repository.query.threads|The number of threads to use for Provenance Repository queries. The default value is 2. 
+|nifi.provenance.repository.query.threads|The number of threads to use for Provenance Repository queries. The default value is 2.
+|nifi.provenance.repository.index.threads|The number of threads to use for indexing Provenance events so that they are searchable. The default value is 1.
+	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
+	"The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
+	may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput. 
 |nifi.provenance.repository.compress.on.rollover|Indicates whether to compress the provenance information when rolling it over. The default value is _true_.
 |nifi.provenance.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
 |nifi.provenance.repository.journal.count|The number of journal files that should be used to serialize Provenance Event data. Increasing this value will allow more tasks to simultaneously update the repository but will result in more expensive merging of the journal files later. This value should ideally be equal to the number of threads that are expected to update the repository simultaneously, but 16 tends to work well in must environments. The default value is 16.

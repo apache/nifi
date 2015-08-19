@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.provenance;
 
-import org.apache.nifi.provenance.search.SearchableField;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.nifi.provenance.search.SearchableField;
 
 public class RepositoryConfiguration {
 
@@ -40,7 +40,8 @@ public class RepositoryConfiguration {
     private List<SearchableField> searchableAttributes = new ArrayList<>();
     private boolean compress = true;
     private boolean alwaysSync = false;
-    private int queryThreadPoolSize = 1;
+    private int queryThreadPoolSize = 2;
+    private int indexThreadPoolSize = 1;
     private boolean allowRollover = true;
 
     public void setAllowRollover(final boolean allow) {
@@ -204,6 +205,20 @@ public class RepositoryConfiguration {
     }
 
     /**
+     * @return the number of threads to use to index provenance events
+     */
+    public int getIndexThreadPoolSize() {
+        return indexThreadPoolSize;
+    }
+
+    public void setIndexThreadPoolSize(final int indexThreadPoolSize) {
+        if (indexThreadPoolSize < 1) {
+            throw new IllegalArgumentException();
+        }
+        this.indexThreadPoolSize = indexThreadPoolSize;
+    }
+
+    /**
      * <p>
      * Specifies the desired size of each Provenance Event index shard, in
      * bytes. We shard the index for a few reasons:
@@ -213,22 +228,21 @@ public class RepositoryConfiguration {
      * <li>
      * A very large index requires a significant amount of Java heap space to
      * search. As the size of the shard increases, the required Java heap space
-     * also increases.
-     * </li>
+     * also increases.</li>
      * <li>
      * By having multiple shards, we have the ability to use multiple concurrent
      * threads to search the individual shards, resulting in far less latency
-     * when performing a search across millions or billions of records.
-     * </li>
+     * when performing a search across millions or billions of records.</li>
      * <li>
      * We keep track of which time ranges each index shard spans. As a result,
      * we are able to determine which shards need to be searched if a search
      * provides a date range. This can greatly increase the speed of a search
-     * and reduce resource utilization.
-     * </li>
+     * and reduce resource utilization.</li>
      * </ol>
      *
-     * @param bytes the number of bytes to write to an index before beginning a new shard
+     * @param bytes
+     *            the number of bytes to write to an index before beginning a
+     *            new shard
      */
     public void setDesiredIndexSize(final long bytes) {
         this.desiredIndexBytes = bytes;

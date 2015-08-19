@@ -285,6 +285,7 @@ language governing permissions and limitations under the License. -->
         <nifi.provenance.repository.rollover.time>30 secs</nifi.provenance.repository.rollover.time>
         <nifi.provenance.repository.rollover.size>100 MB</nifi.provenance.repository.rollover.size>
         <nifi.provenance.repository.query.threads>2</nifi.provenance.repository.query.threads>
+        <nifi.provenance.repository.index.threads>1</nifi.provenance.repository.index.threads>
         <nifi.provenance.repository.compress.on.rollover>true</nifi.provenance.repository.compress.on.rollover>
         <nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID, Filename, ProcessorID, Relationship</nifi.provenance.repository.indexed.fields> 
         <nifi.provenance.repository.indexed.attributes />
