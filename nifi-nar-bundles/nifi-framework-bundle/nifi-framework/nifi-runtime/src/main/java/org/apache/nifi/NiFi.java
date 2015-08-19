@@ -120,8 +120,6 @@ public class NiFi {
         ExtensionManager.discoverExtensions();
         ExtensionManager.logClassLoaderMapping();
 
-        DocGenerator.generate(properties);
-
         // load the server from the framework classloader
         Thread.currentThread().setContextClassLoader(frameworkClassLoader);
         Class<?> jettyServer = Class.forName("org.apache.nifi.web.server.JettyServer", true, frameworkClassLoader);
