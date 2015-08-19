@@ -612,9 +612,15 @@ public class SocketFlowFileServerProtocol implements ServerProtocol {
 
         final NiFiProperties properties = NiFiProperties.getInstance();
 
+        String remoteInputHost = properties.getRemoteInputHost();
+        if (remoteInputHost == null) {
+            remoteInputHost = InetAddress.getLocalHost().getHostName();
+        }
+        logger.debug("{} Advertising Remote Input host name {}", this, peer);
+
         // we have only 1 peer: ourselves.
         dos.writeInt(1);
-        dos.writeUTF(InetAddress.getLocalHost().getHostName());
+        dos.writeUTF(remoteInputHost);
         dos.writeInt(properties.getRemoteInputPort());
         dos.writeBoolean(properties.isSiteToSiteSecure());
         dos.writeInt(0);    // doesn't matter how many FlowFiles we have, because we're the only host.

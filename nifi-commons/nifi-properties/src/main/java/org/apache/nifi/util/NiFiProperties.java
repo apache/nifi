@@ -59,6 +59,7 @@ public class NiFiProperties extends Properties {
     public static final String SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
     public static final String SENSITIVE_PROPS_PROVIDER = "nifi.sensitive.props.provider";
     public static final String H2_URL_APPEND = "nifi.h2.url.append";
+    public static final String REMOTE_INPUT_HOST = "nifi.remote.input.socket.host";
     public static final String REMOTE_INPUT_PORT = "nifi.remote.input.socket.port";
     public static final String SITE_TO_SITE_SECURE = "nifi.remote.input.secure";
     public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
@@ -365,6 +366,16 @@ public class NiFiProperties extends Properties {
 
     public String getAdministrativeYieldDuration() {
         return getProperty(ADMINISTRATIVE_YIELD_DURATION, DEFAULT_ADMINISTRATIVE_YIELD_DURATION);
+    }
+
+    /**
+     * The host name that will be given out to clients to connect to the Remote Input Port.
+     *
+     * @return the remote input host name or null if not configured
+     */
+    public String getRemoteInputHost() {
+        final String value = getProperty(REMOTE_INPUT_HOST);
+        return StringUtils.isBlank(value) ? null : value;
     }
 
     /**
