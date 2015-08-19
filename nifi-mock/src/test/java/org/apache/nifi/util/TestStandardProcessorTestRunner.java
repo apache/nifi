@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.util;
 
+import static org.junit.Assert.assertEquals;
+
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -23,25 +26,47 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods, which should happen in 0.1.0")
 public class TestStandardProcessorTestRunner {
 
+    @Test
+    public void testProcessContextPassedToOnStoppedMethods() {
+        final ProcessorWithOnStop proc = new ProcessorWithOnStop();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+
+        assertEquals(0, proc.getOnStoppedCallsWithContext());
+        assertEquals(0, proc.getOnStoppedCallsWithoutContext());
+
+        runner.run(1, false);
+
+        assertEquals(0, proc.getOnStoppedCallsWithContext());
+        assertEquals(0, proc.getOnStoppedCallsWithoutContext());
+
+        runner.run(1, true);
+
+        assertEquals(1, proc.getOnStoppedCallsWithContext());
+        assertEquals(1, proc.getOnStoppedCallsWithoutContext());
+    }
+
     @Test(expected = AssertionError.class)
+    @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testFailOnDeprecatedTypeAnnotation() {
         new StandardProcessorTestRunner(new DeprecatedAnnotation());
     }
 
     @Test
+    @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testDoesNotFailOnNonDeprecatedTypeAnnotation() {
         new StandardProcessorTestRunner(new NewAnnotation());
     }
 
     @Test(expected = AssertionError.class)
+    @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testFailOnDeprecatedMethodAnnotation() {
         new StandardProcessorTestRunner(new DeprecatedMethodAnnotation());
     }
 
     @Test
+    @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testDoesNotFailOnNonDeprecatedMethodAnnotation() {
         new StandardProcessorTestRunner(new NewMethodAnnotation());
     }
@@ -86,5 +111,34 @@ public class TestStandardProcessorTestRunner {
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         }
+    }
+
+    private static class ProcessorWithOnStop extends AbstractProcessor {
+
+        private int callsWithContext = 0;
+        private int callsWithoutContext = 0;
+
+        @OnStopped
+        public void onStoppedWithContext(final ProcessContext procContext) {
+            callsWithContext++;
+        }
+
+        @OnStopped
+        public void onStoppedWithoutContext() {
+            callsWithoutContext++;
+        }
+
+        public int getOnStoppedCallsWithContext() {
+            return callsWithContext;
+        }
+
+        public int getOnStoppedCallsWithoutContext() {
+            return callsWithoutContext;
+        }
+
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        }
+
     }
 }

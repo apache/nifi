@@ -487,8 +487,11 @@ and all threads have returned from the `onTrigger` method. If such a
 method throws an Exception,
 a log message will be generated, and the Exception will otherwise be
 ignored; other methods with
-this annotation will still be invoked. Methods with this annotation
-must take zero arguments.
+this annotation will still be invoked.
+Methods with this annotation are permitted to take either 0 or 1 argument. If
+an argument is used, it must be of type ConfigurationContext if the
+component is a ReportingTask or of type ProcessContext if the
+component is a Processor.
 
 
 ==== @OnShutdown

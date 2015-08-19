@@ -249,7 +249,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
             if (stopOnFinish) {
                 try {
-                    ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor);
+                    ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor, context);
                 } catch (final Exception e) {
                     Assert.fail("Could not invoke methods annotated with @OnStopped annotation due to: " + e);
                 }
