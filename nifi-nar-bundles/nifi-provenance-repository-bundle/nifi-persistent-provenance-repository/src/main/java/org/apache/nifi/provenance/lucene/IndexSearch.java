@@ -48,7 +48,7 @@ public class IndexSearch {
         this.maxAttributeChars = maxAttributeChars;
     }
 
-    public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final AtomicInteger retrievedCount) throws IOException {
+    public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final AtomicInteger retrievedCount, final long firstEventTimestamp) throws IOException {
         if (!indexDirectory.exists() && !indexDirectory.mkdirs()) {
             throw new IOException("Unable to create Indexing Directory " + indexDirectory);
         }
@@ -58,6 +58,12 @@ public class IndexSearch {
 
         final StandardQueryResult sqr = new StandardQueryResult(provenanceQuery, 1);
         final Set<ProvenanceEventRecord> matchingRecords;
+
+        // we need to set the start date because if we do not, the first index may still have events that have aged off from
+        // the repository, and we don't want those events to count toward the total number of matches.
+        if (provenanceQuery.getStartDate() == null || provenanceQuery.getStartDate().getTime() < firstEventTimestamp) {
+            provenanceQuery.setStartDate(new Date(firstEventTimestamp));
+        }
 
         if (provenanceQuery.getEndDate() == null) {
             provenanceQuery.setEndDate(new Date());

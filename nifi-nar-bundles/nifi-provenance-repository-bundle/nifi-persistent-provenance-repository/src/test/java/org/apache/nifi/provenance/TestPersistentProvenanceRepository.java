@@ -934,11 +934,12 @@ public class TestPersistentProvenanceRepository {
     @Test
     public void testIndexDirectoryRemoved() throws InterruptedException, IOException, ParseException {
         final RepositoryConfiguration config = createConfiguration();
-        config.setMaxRecordLife(3, TimeUnit.SECONDS);
+        config.setMaxRecordLife(5, TimeUnit.MINUTES);
         config.setMaxStorageCapacity(1024L * 1024L);
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
+        config.setDesiredIndexSize(10);  // force new index to be created for each rollover
 
         repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
@@ -960,11 +961,27 @@ public class TestPersistentProvenanceRepository {
         for (int i = 0; i < 10; i++) {
             attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + i);
             builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
+            builder.setEventTime(10L);  // make sure the events are destroyed when we call purge
             repo.registerEvent(builder.build());
         }
 
         repo.waitForRollover();
 
+        Thread.sleep(2000L);
+
+        // add more records so that we will create a new index
+        final long secondBatchStartTime = System.currentTimeMillis();
+        for (int i = 0; i < 10; i++) {
+            attributes.put("uuid", "00000000-0000-0000-0000-00000000001" + i);
+            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
+            builder.setEventTime(System.currentTimeMillis());
+            repo.registerEvent(builder.build());
+        }
+
+        // wait for indexing to happen
+        repo.waitForRollover();
+
+        // verify we get the results expected
         final Query query = new Query(UUID.randomUUID().toString());
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
@@ -972,31 +989,30 @@ public class TestPersistentProvenanceRepository {
         query.setMaxResults(100);
 
         final QueryResult result = repo.queryEvents(query);
-        assertEquals(10, result.getMatchingEvents().size());
+        assertEquals(20, result.getMatchingEvents().size());
 
-        Thread.sleep(2000L);
-
-        // Ensure index directory exists
+        // Ensure index directories exists
         final FileFilter indexFileFilter = new FileFilter() {
             @Override
             public boolean accept(File pathname) {
                 return pathname.getName().startsWith("index");
             }
         };
-        File[] storageDirFiles = config.getStorageDirectories().get(0).listFiles(indexFileFilter);
-        assertEquals(1, storageDirFiles.length);
+        File[] indexDirs = config.getStorageDirectories().get(0).listFiles(indexFileFilter);
+        assertEquals(2, indexDirs.length);
 
-        config.setMaxStorageCapacity(100L);
-        config.setMaxRecordLife(500, TimeUnit.MILLISECONDS);
+        // expire old events and indexes
+        final long timeSinceSecondBatch = System.currentTimeMillis() - secondBatchStartTime;
+        config.setMaxRecordLife(timeSinceSecondBatch + 1000L, TimeUnit.MILLISECONDS);
         repo.purgeOldEvents();
         Thread.sleep(2000L);
 
         final QueryResult newRecordSet = repo.queryEvents(query);
-        assertTrue(newRecordSet.getMatchingEvents().isEmpty());
+        assertEquals(10, newRecordSet.getMatchingEvents().size());
 
-        // Ensure index directory is gone
-        storageDirFiles = config.getStorageDirectories().get(0).listFiles(indexFileFilter);
-        assertEquals(0, storageDirFiles.length);
+        // Ensure that one index directory is gone
+        indexDirs = config.getStorageDirectories().get(0).listFiles(indexFileFilter);
+        assertEquals(1, indexDirs.length);
     }
 
 
@@ -1124,8 +1140,7 @@ public class TestPersistentProvenanceRepository {
             final TopDocs topDocs = searcher.search(luceneQuery, 1000);
 
             final List<Document> docs = new ArrayList<>();
-            for (int i = 0; i < topDocs.scoreDocs.length; i++) {
-                final ScoreDoc scoreDoc = topDocs.scoreDocs[i];
+            for (final ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 final int docId = scoreDoc.doc;
                 final Document d = directoryReader.document(docId);
                 docs.add(d);

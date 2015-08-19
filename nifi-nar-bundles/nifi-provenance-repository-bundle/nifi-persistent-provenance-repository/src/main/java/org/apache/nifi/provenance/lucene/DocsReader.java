@@ -124,6 +124,7 @@ public class DocsReader {
         int logFileCount = 0;
 
         final Set<String> storageFilesToSkip = new HashSet<>();
+        int eventsReadThisFile = 0;
 
         try {
             for (final Document d : docs) {
@@ -135,6 +136,7 @@ public class DocsReader {
                 try {
                     if (reader != null && storageFilename.equals(lastStorageFilename)) {
                         matchingRecords.add(getRecord(d, reader));
+                        eventsReadThisFile++;
 
                         if ( retrievalCount.incrementAndGet() >= maxResults ) {
                             break;
@@ -162,8 +164,13 @@ public class DocsReader {
 
                         for (final File file : potentialFiles) {
                             try {
+                                if (reader != null) {
+                                    logger.debug("Read {} records from previous file", eventsReadThisFile);
+                                }
+
                                 reader = RecordReaders.newRecordReader(file, allProvenanceLogFiles, maxAttributeChars);
                                 matchingRecords.add(getRecord(d, reader));
+                                eventsReadThisFile = 1;
 
                                 if ( retrievalCount.incrementAndGet() >= maxResults ) {
                                     break;
@@ -183,6 +190,7 @@ public class DocsReader {
             }
         }
 
+        logger.debug("Read {} records from previous file", eventsReadThisFile);
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         logger.debug("Took {} ms to read {} events from {} prov log files", millis, matchingRecords.size(), logFileCount);
 
