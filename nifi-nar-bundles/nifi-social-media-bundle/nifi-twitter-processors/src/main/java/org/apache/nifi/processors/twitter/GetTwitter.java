@@ -124,9 +124,11 @@ public class GetTwitter extends AbstractProcessor {
             .addValidator(new FollowingValidator())
             .build();
     public static final PropertyDescriptor LOCATIONS = new PropertyDescriptor.Builder()
-            .name("Location to Filter")
-            .description(" Bounding box for filtering tweets. Enter SW and NE corners in field (longitude, latitude, longitude, latitude). Example" +
-                    "-77.55661, 39.25831, -77.14325, 39.5374")
+            .name("Locations to Filter On")
+            .description("A comma-separated list of coordinates specifying one or more bounding boxes to filter on."
+                    + "Each bounding box is specified by a pair of coordinates in the format: swLon,swLat,neLon,neLat. "
+                    + "Multiple bounding boxes can be specified as such: swLon1,swLat1,neLon1,neLat1,swLon2,swLat2,neLon2,neLat2."
+                    + "Ignored unless Endpoint is set to 'Filter Endpoint'.")
             .addValidator(new LocationValidator() )
             .required(false)
             .build();
@@ -299,28 +301,15 @@ public class GetTwitter extends AbstractProcessor {
             }
 
             final String locationString = context.getProperty(LOCATIONS).getValue();
-            final String[] corSplit = locationString.split(",");
-
-            final List<Location> locationIds ;
-
-            double swLon = Double.parseDouble( corSplit[0] ) ;
-            double neLon = Double.parseDouble( corSplit[2] ) ;
-            double swLat = Double.parseDouble( corSplit[1] ) ;
-            double neLat = Double.parseDouble( corSplit[3] ) ;
-
-            Coordinate sw = new Coordinate( swLon, swLat ) ;
-            Coordinate ne = new Coordinate( neLon, neLat ) ;
-            Location bbox = new Location ( sw, ne ) ;
-
-            if ( locationString == null ) {
-                locationIds = Collections.emptyList();
+            final List<Location> locations;
+            if (locationString == null) {
+                locations = Collections.emptyList();
             } else {
-                locationIds = new ArrayList<>();
-                locationIds.add( bbox );
+                locations = LocationUtil.parseLocations(locationString);
             }
 
-            if ( !locationIds.isEmpty() ) {
-                filterEndpoint.locations(locationIds);
+            if (!locations.isEmpty()) {
+                filterEndpoint.locations(locations);
             }
 
             streamingEndpoint = filterEndpoint ;
@@ -402,42 +391,47 @@ public class GetTwitter extends AbstractProcessor {
 
     private static class LocationValidator implements Validator {
 
-        private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
-
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            final String[] splits = input.split(",");
-            if ( splits.length != 4 ) {
+            try {
+                final List<Location> locations = LocationUtil.parseLocations(input);
+                for (final Location location : locations) {
+                    final Coordinate sw = location.southwestCoordinate();
+                    final Coordinate ne = location.northeastCoordinate();
 
-                return new ValidationResult.Builder().input(input).subject(subject).valid(false).explanation("Must be comma-separated list of coordinates, SW and NE corners of your bounding box.").build();
-
-            } else {
-
-                try {
-                    // Validate longitude coordinates
-                    double swLon = Double.parseDouble(splits[0]);
-                    double neLon = Double.parseDouble(splits[2]);
-                    if (swLon < neLon) {
-
-                        // Validate latitude coordinates
-                        double swLat = Double.parseDouble(splits[1]);
-                        double neLat = Double.parseDouble(splits[3]);
-                        if (swLat < neLat) {
-                            return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-
-                        } else {
-                            return new ValidationResult.Builder().input(input).subject(subject).valid(false).explanation("SW Latitude must be less than NE Latitude.").build();
-                        }
-
-                    } else {
-                        return new ValidationResult.Builder().input(input).subject(subject).valid(false).explanation("SW Longitude must be less than NE Longitude.").build();
+                    if (sw.longitude() > ne.longitude()) {
+                        return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                                .explanation("SW Longitude (" + sw.longitude() + ") must be less than NE Longitude ("
+                                        + ne.longitude() + ").").build();
                     }
-                } catch ( Exception e ) {
-                    return new ValidationResult.Builder().input(input).subject(subject).valid(false).explanation("Bounding box location parse failure.").build();
+
+                    if (sw.longitude() == ne.longitude()) {
+                        return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                                .explanation("SW Longitude (" + sw.longitude() + ") can not be equal to NE Longitude ("
+                                        + ne.longitude() + ").").build();
+                    }
+
+                    if (sw.latitude() > ne.latitude()) {
+                        return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                                .explanation("SW Latitude (" + sw.latitude() + ") must be less than NE Latitude ("
+                                        + ne.latitude() + ").").build();
+                    }
+
+                    if (sw.latitude() == ne.latitude()) {
+                        return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                                .explanation("SW Latitude (" + sw.latitude() + ") can not be equal to NE Latitude ("
+                                        + ne.latitude() + ").").build();
+                    }
                 }
 
-            }
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
 
+            } catch (IllegalStateException e) {
+                return new ValidationResult.Builder()
+                        .input(input).subject(subject).valid(false)
+                        .explanation("Must be a comma-separated list of longitude,latitude pairs specifying one or more bounding boxes.")
+                        .build();
+            }
         }
 
     }
