@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -61,8 +60,8 @@ import java.util.HashMap;
 @SupportsBatching
 public class ExtractImageMetadata extends AbstractProcessor {
 
-    public static final PropertyDescriptor MaxAttributes = new PropertyDescriptor.Builder()
-        .name("Max number of attributes")
+    public static final PropertyDescriptor MAX_NUMBER_OF_ATTRIBUTES = new PropertyDescriptor.Builder()
+        .name("Max Number of Attributes")
         .description("Specify the max number of attributes to add to the flowfile. There is no guarantee in what order"
                 + " the tags will be processed. By default it will process all of them.")
         .required(false)
@@ -86,7 +85,7 @@ public class ExtractImageMetadata extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(MaxAttributes);
+        properties.add(MAX_NUMBER_OF_ATTRIBUTES);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -107,16 +106,14 @@ public class ExtractImageMetadata extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final ProcessorLog logger = this.getLogger();
         FlowFile flowfile = session.get();
-
         if (flowfile == null) {
             return;
         }
 
+        final ProcessorLog logger = this.getLogger();
         final ObjectHolder<Metadata> value = new ObjectHolder<>(null);
-        String propertyValue = context.getProperty(MaxAttributes).getValue();
-        final int max = propertyValue!=null ? Integer.parseInt(propertyValue) : -1;
+        final Integer max = context.getProperty(MAX_NUMBER_OF_ATTRIBUTES).asInteger();
 
         try {
             session.read(flowfile, new InputStreamCallback() {
@@ -132,7 +129,7 @@ public class ExtractImageMetadata extends AbstractProcessor {
             });
 
             Metadata metadata = value.get();
-            Map<String, String> results = max == -1 ? getTags(metadata) : getTags(max, metadata);
+            Map<String, String> results = getTags(max, metadata);
 
             // Write the results to an attribute
             if (!results.isEmpty()) {
@@ -146,19 +143,7 @@ public class ExtractImageMetadata extends AbstractProcessor {
         }
     }
 
-    private Map<String, String> getTags(Metadata metadata) {
-        Map<String, String> results = new HashMap<>();
-
-        for (Directory directory : metadata.getDirectories()) {
-            for (Tag tag : directory.getTags()) {
-                results.put(directory.getName() + "." + tag.getTagName(), tag.getDescription());
-            }
-        }
-
-        return results;
-    }
-
-    private Map<String, String> getTags(int max, Metadata metadata) {
+    private Map<String, String> getTags(Integer max, Metadata metadata) {
         Map<String, String> results = new HashMap<>();
         int i =0;
 
@@ -166,9 +151,11 @@ public class ExtractImageMetadata extends AbstractProcessor {
             for (Tag tag : directory.getTags()) {
                 results.put(directory.getName() + "." + tag.getTagName(), tag.getDescription());
 
-                i++;
-                if(i>=max) {
-                    return results;
+                if(max!=null) {
+                    i++;
+                    if (i >= max) {
+                        return results;
+                    }
                 }
             }
         }

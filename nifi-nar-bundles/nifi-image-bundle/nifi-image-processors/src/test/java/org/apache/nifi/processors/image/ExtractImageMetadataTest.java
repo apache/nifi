@@ -139,7 +139,7 @@ public class ExtractImageMetadataTest {
         Path path = Paths.get(pathStr);
         testRunner.enqueue(path);
         if(max != null) {
-            testRunner.setProperty(ExtractImageMetadata.MaxAttributes, max);
+            testRunner.setProperty(ExtractImageMetadata.MAX_NUMBER_OF_ATTRIBUTES, max);
         }
 
         testRunner.run();
