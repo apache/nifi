@@ -88,26 +88,28 @@ public class GetTwitter extends AbstractProcessor {
             .description("The Consumer Key provided by Twitter")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor CONSUMER_SECRET = new PropertyDescriptor.Builder()
             .name("Consumer Secret")
             .description("The Consumer Secret provided by Twitter")
             .required(true)
-            .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
             .name("Access Token")
             .description("The Acces Token provided by Twitter")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor ACCESS_TOKEN_SECRET = new PropertyDescriptor.Builder()
             .name("Access Token Secret")
             .description("The Access Token Secret provided by Twitter")
             .required(true)
-            .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor LANGUAGES = new PropertyDescriptor.Builder()
             .name("Languages")
@@ -207,10 +209,10 @@ public class GetTwitter extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws MalformedURLException {
         final String endpointName = context.getProperty(ENDPOINT).getValue();
-        final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).getValue(),
-                context.getProperty(CONSUMER_SECRET).getValue(),
-                context.getProperty(ACCESS_TOKEN).getValue(),
-                context.getProperty(ACCESS_TOKEN_SECRET).getValue());
+        final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).evaluateAttributeExpressions().getValue(),
+                context.getProperty(CONSUMER_SECRET).evaluateAttributeExpressions().getValue(),
+                context.getProperty(ACCESS_TOKEN).evaluateAttributeExpressions().getValue(),
+                context.getProperty(ACCESS_TOKEN_SECRET).evaluateAttributeExpressions().getValue());
 
         final ClientBuilder clientBuilder = new ClientBuilder();
         clientBuilder.name("GetTwitter[id=" + getIdentifier() + "]")

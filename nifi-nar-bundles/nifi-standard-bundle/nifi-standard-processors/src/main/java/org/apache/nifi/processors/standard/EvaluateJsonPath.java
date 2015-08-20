@@ -16,10 +16,20 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.InvalidJsonException;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -28,6 +38,8 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -42,19 +54,10 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.ObjectHolder;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.PathNotFoundException;
 
 @EventDriven
 @SideEffectFree
@@ -226,6 +229,28 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         }
     }
 
+    private final Map<String, JsonPath> attributeToJsonPathMap = new HashMap<>();
+
+    @OnScheduled
+    public void compileJsonPaths(ProcessContext processContext) {
+    	/* 
+    	 * Build the JsonPath expressions from attributes before processing the
+    	 * FlowFiles so that we can quickly and efficiently read the JSON path results
+    	 */
+        for (final Map.Entry<PropertyDescriptor, String> entry : processContext.getProperties().entrySet()) {
+            if (!entry.getKey().isDynamic()) {
+                continue;
+            }
+            final JsonPath jsonPath = JsonPath.compile(entry.getValue());
+            attributeToJsonPathMap.put(entry.getKey().getName(), jsonPath);
+        }
+    }
+
+    @OnStopped
+    public void clearJsonPaths() {
+    	attributeToJsonPathMap.clear();
+    }
+
     @Override
     public void onTrigger(final ProcessContext processContext, final ProcessSession processSession) throws ProcessException {
 
@@ -238,17 +263,6 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         String representationOption = processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
         final String nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
-
-        /* Build the JsonPath expressions from attributes */
-        final Map<String, JsonPath> attributeToJsonPathMap = new HashMap<>();
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : processContext.getProperties().entrySet()) {
-            if (!entry.getKey().isDynamic()) {
-                continue;
-            }
-            final JsonPath jsonPath = JsonPath.compile(entry.getValue());
-            attributeToJsonPathMap.put(entry.getKey().getName(), jsonPath);
-        }
 
         final String destination = processContext.getProperty(DESTINATION).getValue();
         String returnType = processContext.getProperty(RETURN_TYPE).getValue();

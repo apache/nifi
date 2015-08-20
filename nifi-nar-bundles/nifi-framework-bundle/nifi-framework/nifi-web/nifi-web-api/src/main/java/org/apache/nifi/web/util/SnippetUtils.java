@@ -88,13 +88,24 @@ public final class SnippetUtils {
         // add any processors
         if (!snippet.getProcessors().isEmpty()) {
             final Set<ProcessorDTO> processors = new LinkedHashSet<>();
+
+            List<ProcessorNode> list = new ArrayList<>();
+
             for (String processorId : snippet.getProcessors()) {
                 final ProcessorNode processor = processGroup.getProcessor(processorId);
                 if (processor == null) {
                     throw new IllegalStateException("A processor in this snippet could not be found.");
                 }
-                processors.add(dtoFactory.createProcessorDto(processor));
+                list.add(processor);
             }
+
+            list = Sorters.sortProcessorNodes(list);
+
+            // Add to the linked hash set in order determined by the list
+            for (ProcessorNode processorNode : list) {
+            	processors.add(dtoFactory.createProcessorDto(processorNode));
+            }
+
             snippetDto.setProcessors(processors);
         }
 
@@ -127,32 +138,55 @@ public final class SnippetUtils {
         // add any input ports
         if (!snippet.getInputPorts().isEmpty()) {
             final Set<PortDTO> inputPorts = new LinkedHashSet<>();
+
+            List<Port> list = new ArrayList<>();
+
             for (String inputPortId : snippet.getInputPorts()) {
                 final Port inputPort = processGroup.getInputPort(inputPortId);
                 if (inputPort == null) {
                     throw new IllegalStateException("An input port in this snippet could not be found.");
                 }
-                inputPorts.add(dtoFactory.createPortDto(inputPort));
+                list.add(inputPort);
             }
+
+            list = Sorters.sortPorts(list);
+
+            for (Port port : list) {
+            	inputPorts.add(dtoFactory.createPortDto(port));
+            }
+
             snippetDto.setInputPorts(inputPorts);
         }
 
         // add any labels
         if (!snippet.getLabels().isEmpty()) {
             final Set<LabelDTO> labels = new LinkedHashSet<>();
+
+            List<Label> list = new ArrayList<>();
+
             for (String labelId : snippet.getLabels()) {
                 final Label label = processGroup.getLabel(labelId);
                 if (label == null) {
                     throw new IllegalStateException("A label in this snippet could not be found.");
                 }
-                labels.add(dtoFactory.createLabelDto(label));
+                list.add(label);
             }
+
+            list = Sorters.sortLabels(list);
+
+            for (Label label : list) {
+            	labels.add(dtoFactory.createLabelDto(label));
+            }
+
             snippetDto.setLabels(labels);
         }
 
         // add any output ports
         if (!snippet.getOutputPorts().isEmpty()) {
             final Set<PortDTO> outputPorts = new LinkedHashSet<>();
+
+            List<Port> list = new ArrayList<>();
+
             for (String outputPortId : snippet.getOutputPorts()) {
                 final Port outputPort = processGroup.getOutputPort(outputPortId);
                 if (outputPort == null) {
@@ -160,31 +194,58 @@ public final class SnippetUtils {
                 }
                 outputPorts.add(dtoFactory.createPortDto(outputPort));
             }
+
+            list = Sorters.sortPorts(list);
+
+            for (Port port : list) {
+            	outputPorts.add(dtoFactory.createPortDto(port));
+            }
+
             snippetDto.setOutputPorts(outputPorts);
         }
 
         // add any process groups
         if (!snippet.getProcessGroups().isEmpty()) {
             final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
+
+            List<ProcessGroup> list = new ArrayList<>();
+
             for (String childGroupId : snippet.getProcessGroups()) {
                 final ProcessGroup childGroup = processGroup.getProcessGroup(childGroupId);
                 if (childGroup == null) {
                     throw new IllegalStateException("A process group in this snippet could not be found.");
                 }
-                processGroups.add(dtoFactory.createProcessGroupDto(childGroup, recurse));
+                list.add(childGroup);
             }
+
+            list = Sorters.sortProcessGroups(list);
+
+            // TODO: look at this call
+            for (ProcessGroup pg : list) {
+            	processGroups.add(dtoFactory.createProcessGroupDto(pg, recurse));
+            }
+
             snippetDto.setProcessGroups(processGroups);
         }
 
         // add any remote process groups
         if (!snippet.getRemoteProcessGroups().isEmpty()) {
             final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
+
+            List<RemoteProcessGroup> list = new ArrayList<>();
+
             for (String remoteProcessGroupId : snippet.getRemoteProcessGroups()) {
                 final RemoteProcessGroup remoteProcessGroup = processGroup.getRemoteProcessGroup(remoteProcessGroupId);
                 if (remoteProcessGroup == null) {
                     throw new IllegalStateException("A remote process group in this snippet could not be found.");
                 }
-                remoteProcessGroups.add(dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
+                list.add(remoteProcessGroup);
+            }
+            
+            list = Sorters.sortRemoteProcessGroups(list);
+            
+            for (RemoteProcessGroup remoteProcessGroup : list) {
+            	remoteProcessGroups.add(dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
             }
             snippetDto.setRemoteProcessGroups(remoteProcessGroups);
         }
@@ -605,5 +666,4 @@ public final class SnippetUtils {
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
     }
-
 }

@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
@@ -108,8 +107,8 @@ public class PutKafka extends AbstractProcessor {
         .name("Known Brokers")
         .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
         .required(true)
-        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile(BROKER_REGEX)))
-        .expressionLanguageSupported(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(true)
         .build();
     public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
         .name("Topic Name")
@@ -306,7 +305,8 @@ public class PutKafka extends AbstractProcessor {
     }
 
     protected ProducerConfig createConfig(final ProcessContext context) {
-        final String brokers = context.getProperty(SEED_BROKERS).getValue();
+
+        final String brokers = context.getProperty(SEED_BROKERS).evaluateAttributeExpressions().getValue();
 
         final Properties properties = new Properties();
         properties.setProperty("metadata.broker.list", brokers);
