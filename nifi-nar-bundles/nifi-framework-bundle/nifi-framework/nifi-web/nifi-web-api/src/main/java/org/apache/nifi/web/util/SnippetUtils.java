@@ -190,17 +190,23 @@ public final class SnippetUtils {
         }
 
         if (includeControllerServices) {
-            addControllerServicesToSnippet(snippetDto);
+            Set<ControllerServiceDTO> controllerServices = snippetDto.getControllerServices();
+            if (controllerServices == null) {
+                controllerServices = new HashSet<>();
+                snippetDto.setControllerServices(controllerServices);
+            }
+
+            addControllerServicesToSnippet(snippetDto, controllerServices);
         }
 
         return snippetDto;
     }
 
-    private void addControllerServicesToSnippet(final FlowSnippetDTO snippetDto) {
+    private void addControllerServicesToSnippet(final FlowSnippetDTO snippetDto, final Set<ControllerServiceDTO> destinationSet) {
         final Set<ProcessorDTO> processors = snippetDto.getProcessors();
         if (processors != null) {
             for (final ProcessorDTO processorDto : processors) {
-                addControllerServicesToSnippet(snippetDto, processorDto);
+                addControllerServicesToSnippet(snippetDto, processorDto, destinationSet);
             }
         }
 
@@ -209,13 +215,13 @@ public final class SnippetUtils {
             for (final ProcessGroupDTO processGroupDto : childGroups) {
                 final FlowSnippetDTO childGroupDto = processGroupDto.getContents();
                 if (childGroupDto != null) {
-                    addControllerServicesToSnippet(childGroupDto);
+                    addControllerServicesToSnippet(childGroupDto, destinationSet);
                 }
             }
         }
     }
 
-    private void addControllerServicesToSnippet(final FlowSnippetDTO snippet, final ProcessorDTO processorDto) {
+    private void addControllerServicesToSnippet(final FlowSnippetDTO snippet, final ProcessorDTO processorDto, final Set<ControllerServiceDTO> destinationSet) {
         final ProcessorConfigDTO configDto = processorDto.getConfig();
         if (configDto == null) {
             return;
@@ -236,25 +242,20 @@ public final class SnippetUtils {
                 if (propertyDescriptorDto != null && propertyDescriptorDto.getIdentifiesControllerService() != null) {
                     final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(propValue);
                     if (serviceNode != null) {
-                        addControllerServicesToSnippet(snippet, serviceNode);
+                        addControllerServicesToSnippet(snippet, serviceNode, destinationSet);
                     }
                 }
             }
         }
     }
 
-    private void addControllerServicesToSnippet(final FlowSnippetDTO snippet, final ControllerServiceNode serviceNode) {
+    private void addControllerServicesToSnippet(final FlowSnippetDTO snippet, final ControllerServiceNode serviceNode, final Set<ControllerServiceDTO> destinationSet) {
         if (isServicePresent(serviceNode.getIdentifier(), snippet.getControllerServices())) {
             return;
         }
 
         final ControllerServiceDTO serviceNodeDto = dtoFactory.createControllerServiceDto(serviceNode);
-        Set<ControllerServiceDTO> existingServiceDtos = snippet.getControllerServices();
-        if (existingServiceDtos == null) {
-            existingServiceDtos = new HashSet<>();
-            snippet.setControllerServices(existingServiceDtos);
-        }
-        existingServiceDtos.add(serviceNodeDto);
+        destinationSet.add(serviceNodeDto);
 
         for (final Map.Entry<PropertyDescriptor, String> entry : serviceNode.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
@@ -270,7 +271,7 @@ public final class SnippetUtils {
 
                 final boolean alreadyPresent = isServicePresent(referencedNodeId, snippet.getControllerServices());
                 if (!alreadyPresent) {
-                    addControllerServicesToSnippet(snippet, referencedNode);
+                    addControllerServicesToSnippet(snippet, referencedNode, destinationSet);
                 }
             }
         }
