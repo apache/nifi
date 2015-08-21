@@ -558,11 +558,45 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
             toRemove.verifyCanDelete();
 
+            removeComponents(group);
             processGroups.remove(group.getIdentifier());
-
             LOG.info("{} removed from flow", group);
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    private void removeComponents(final ProcessGroup group) {
+        for (final Connection connection : new ArrayList<>(group.getConnections())) {
+            group.removeConnection(connection);
+        }
+
+        for (final Port port : new ArrayList<>(group.getInputPorts())) {
+            group.removeInputPort(port);
+        }
+
+        for (final Port port : new ArrayList<>(group.getOutputPorts())) {
+            group.removeOutputPort(port);
+        }
+
+        for (final Funnel funnel : new ArrayList<>(group.getFunnels())) {
+            group.removeFunnel(funnel);
+        }
+
+        for (final ProcessorNode processor : new ArrayList<>(group.getProcessors())) {
+            group.removeProcessor(processor);
+        }
+
+        for (final RemoteProcessGroup rpg : new ArrayList<>(group.getRemoteProcessGroups())) {
+            group.removeRemoteProcessGroup(rpg);
+        }
+
+        for (final Label label : new ArrayList<>(group.getLabels())) {
+            group.removeLabel(label);
+        }
+
+        for (final ProcessGroup childGroup : new ArrayList<>(group.getProcessGroups())) {
+            group.removeProcessGroup(childGroup);
         }
     }
 
