@@ -704,6 +704,11 @@ The following binary components are provided under the Apache Software License v
         Google Guice - Extensions - Servlet
         Copyright 2006-2011 Google, Inc.
 
+    (ASLv2) Metadata-Extractor
+      The following NOTICE information applies:
+        Metadata-Extractor
+        Copyright 2002-2015 Drew Noakes
+
 ************************
 Common Development and Distribution License 1.1
 ************************

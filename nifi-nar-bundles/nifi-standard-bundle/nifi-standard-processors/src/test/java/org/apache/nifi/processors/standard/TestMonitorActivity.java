@@ -31,7 +31,7 @@ public class TestMonitorActivity {
 
     @Test
     public void testFirstMessage() throws InterruptedException, IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(1000L));
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
 
@@ -101,7 +101,7 @@ public class TestMonitorActivity {
 
     @Test
     public void testFirstMessageWithInherit() throws InterruptedException, IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(1000L));
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
@@ -187,5 +187,40 @@ public class TestMonitorActivity {
         Assert.assertTrue(
                 String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
                         originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
+    }
+
+    @Test
+    public void testFirstRunNoMessages() throws InterruptedException, IOException {
+        // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
+
+        Thread.sleep(1000L);
+
+        // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer
+        runner.run();
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.clearTransferState();
+    }
+
+    /**
+     * Since each call to run() will call @OnScheduled methods which will set the lastSuccessfulTransfer to the
+     * current time, we need a way to create an artificial time difference between calls to run.
+     */
+    private class TestableProcessor extends MonitorActivity {
+
+        private final long timestampDifference;
+
+        public TestableProcessor(final long timestampDifference) {
+            this.timestampDifference = timestampDifference;
+        }
+
+        @Override
+        public void resetLastSuccessfulTransfer() {
+            setLastSuccessfulTransfer(System.currentTimeMillis() - timestampDifference);
+        }
     }
 }
