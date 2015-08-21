@@ -1,19 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-      http://www.apache.org/licenses/LICENSE-2.0
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+    license agreements. See the NOTICE file distributed with this work for additional 
+    information regarding copyright ownership. The ASF licenses this file to 
+    You under the Apache License, Version 2.0 (the "License"); you may not use 
+    this file except in compliance with the License. You may obtain a copy of 
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+    by applicable law or agreed to in writing, software distributed under the 
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+    OF ANY KIND, either express or implied. See the License for the specific 
+    language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
@@ -83,7 +80,7 @@
     <issueManagement>
         <system>JIRA</system>
         <url>https://issues.apache.org/jira/browse/NIFI</url>
-    </issueManagement>    
+    </issueManagement>
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
@@ -188,7 +185,7 @@
                 <groupId>com.wordnik</groupId>
                 <artifactId>swagger-annotations</artifactId>
                 <version>1.5.3-M1</version>
-            </dependency> 
+            </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
@@ -254,10 +251,9 @@
                 <artifactId>quartz</artifactId>
                 <version>2.2.1</version>
                 <exclusions>
-                    <!--
-                    | Exclude the quartz 2.2.1 bundled version of c3p0 because it is lgpl licensed
-                    | We also don't use the JDBC related features of quartz for which the dependency would matter
-                    -->
+                    <!-- | Exclude the quartz 2.2.1 bundled version of c3p0 because it is 
+                        lgpl licensed | We also don't use the JDBC related features of quartz for 
+                        which the dependency would matter -->
                     <exclusion>
                         <groupId>c3p0</groupId>
                         <artifactId>c3p0</artifactId>
@@ -326,8 +322,8 @@
                 <artifactId>spring-core</artifactId>
                 <version>${spring.version}</version>
                 <exclusions>
-                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used in dependencies
-                    section -->
+                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used in dependencies 
+                        section -->
                     <exclusion>
                         <groupId>commons-logging</groupId>
                         <artifactId>commons-logging</artifactId>
@@ -670,11 +666,16 @@
                 <artifactId>jasypt</artifactId>
                 <version>1.9.2</version>
             </dependency>
-			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-mapper-asl</artifactId>
-				<version>1.9.13</version>
-			</dependency>
+            <dependency>
+                <groupId>org.codehaus.jackson</groupId>
+                <artifactId>jackson-mapper-asl</artifactId>
+                <version>1.9.13</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.6.1</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-streaming_2.10</artifactId>
@@ -896,6 +897,18 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-avro-nar</artifactId>
+                <version>0.3.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-image-nar</artifactId>
+                <version>0.3.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
                 <version>0.3.0-SNAPSHOT</version>
             </dependency>
@@ -1101,7 +1114,7 @@
                         </dependency>
                     </dependencies>
                 </plugin>
-            </plugins>                
+            </plugins>
         </pluginManagement>
         <plugins>
             <plugin>
@@ -1141,7 +1154,7 @@
                                 <requireMavenVersion>
                                     <version>${maven.min-version}</version>
                                 </requireMavenVersion>
-                            </rules>    
+                            </rules>
                         </configuration>
                     </execution>
                 </executions>
@@ -1154,7 +1167,7 @@
                         <module name="Checker">
                             <property name="charset" value="UTF-8" />
                             <property name="severity" value="warning" />
-                            <!-- Checks for whitespace                              -->
+                            <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
                                 <property name="eachLine" value="true" />
@@ -1166,13 +1179,16 @@
                                 </module>
                                 <module name="RegexpSinglelineJava">
                                     <property name="format" value="[@]see\s+[{][@]link" />
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
+                                    <property name="message"
+                                        value="Javadoc @see does not need @link: pick one or the other." />
                                 </module>
                                 <module name="OuterTypeFilename" />
                                 <module name="LineLength">
-                                    <!-- needs extra, because Eclipse formatter ignores the ending left brace -->
+                                    <!-- needs extra, because Eclipse formatter ignores the ending left 
+                                        brace -->
                                     <property name="max" value="200" />
-                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
+                                    <property name="ignorePattern"
+                                        value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                                 </module>
                                 <module name="AvoidStarImport" />
                                 <module name="UnusedImports">
@@ -1185,7 +1201,8 @@
                                 <module name="RightCurly" />
                                 <module name="RightCurly">
                                     <property name="option" value="alone" />
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
+                                    <property name="tokens"
+                                        value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
                                 </module>
                                 <module name="SeparatorWrap">
                                     <property name="tokens" value="DOT" />
@@ -1199,19 +1216,23 @@
                                     <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
                                 </module>
                                 <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
+                                    <property name="format"
+                                        value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                                 </module>
                                 <module name="MethodParamPad" />
                                 <module name="OperatorWrap">
                                     <property name="option" value="NL" />
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
+                                    <property name="tokens"
+                                        value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
+                                    <property name="tokens"
+                                        value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
                                 </module>
                                 <module name="AnnotationLocation">
                                     <property name="tokens" value="VARIABLE_DEF" />
-                                    <property name="allowSamelineMultipleAnnotations" value="true" />
+                                    <property name="allowSamelineMultipleAnnotations"
+                                        value="true" />
                                 </module>
                                 <module name="NonEmptyAtclauseDescription" />
                                 <module name="JavadocMethod">
@@ -1219,7 +1240,8 @@
                                     <property name="allowMissingParamTags" value="true" />
                                     <property name="allowMissingThrowsTags" value="true" />
                                     <property name="allowMissingReturnTag" value="true" />
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
+                                    <property name="allowedAnnotations"
+                                        value="Override,Test,BeforeClass,AfterClass,Before,After" />
                                     <property name="allowThrowsTagsForSubclasses" value="true" />
                                 </module>
                                 <module name="SingleLineJavadoc" />
@@ -1229,7 +1251,7 @@
                     <violationSeverity>warning</violationSeverity>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
-            </plugin>      
+            </plugin>
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
@@ -1254,19 +1276,17 @@
                         </exclusions>
                     </dependency>
                 </dependencies>
-            </plugin>            
+            </plugin>
         </plugins>
     </build>
     <profiles>
         <profile>
-            <!-- 
-            Checks style and licensing requirements.  This is a good idea to 
-            run for contributions and for the release process.  While it 
-            would be nice to run always these plugins can considerably slow
-            the build and have proven to create unstable builds in our
-            multi-module project and when building using multiple threads.
-            The stability issues seen with Checkstyle in multi-module builds
-            include false-positives and false negatives.-->
+            <!-- Checks style and licensing requirements. This is a good idea to run 
+                for contributions and for the release process. While it would be nice to 
+                run always these plugins can considerably slow the build and have proven 
+                to create unstable builds in our multi-module project and when building using 
+                multiple threads. The stability issues seen with Checkstyle in multi-module 
+                builds include false-positives and false negatives. -->
             <id>contrib-check</id>
             <build>
                 <plugins>
@@ -1292,10 +1312,10 @@
                                     <goal>check</goal>
                                 </goals>
                             </execution>
-                        </executions>                
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
         </profile>
-    </profiles>    
+    </profiles>
 </project>

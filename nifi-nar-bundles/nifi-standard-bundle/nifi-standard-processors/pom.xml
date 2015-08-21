@@ -190,8 +190,8 @@ language governing permissions and limitations under the License. -->
             <artifactId>derby</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
+    
     <build>
         <plugins>
             <plugin>
