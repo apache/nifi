@@ -1090,25 +1090,9 @@ public class TestStandardProcessSession {
         }
 
         @Override
-        public long importFrom(Path content, ContentClaim claim, boolean append) throws IOException {
-            if (append) {
-                throw new UnsupportedOperationException();
-            }
-            return importFrom(content, claim);
-        }
-
-        @Override
         public long importFrom(InputStream content, ContentClaim claim) throws IOException {
             Files.copy(content, getPath(claim));
             return Files.size(getPath(claim));
-        }
-
-        @Override
-        public long importFrom(InputStream content, ContentClaim claim, boolean append) throws IOException {
-            if (append) {
-                throw new UnsupportedOperationException();
-            }
-            return importFrom(content, claim);
         }
 
         @Override

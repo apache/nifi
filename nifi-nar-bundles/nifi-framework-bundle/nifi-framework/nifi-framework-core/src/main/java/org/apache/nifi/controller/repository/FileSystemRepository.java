@@ -66,8 +66,8 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.NiFiProperties;
@@ -94,7 +94,18 @@ public class FileSystemRepository implements ContentRepository {
     private final ScheduledExecutorService executor = new FlowEngine(4, "FileSystemRepository Workers", true);
     private final ConcurrentMap<String, BlockingQueue<ResourceClaim>> reclaimable = new ConcurrentHashMap<>();
     private final Map<String, ContainerState> containerStateMap = new HashMap<>();
-    private final long maxAppendClaimLength = 1024L * 1024L; // 1 MB
+    // 1 MB. This could be adjusted but 1 MB seems reasonable, as it means that we won't continually write to one
+    // file that keeps growing but gives us a chance to bunch together a lot of small files. Before, we had issues
+    // with creating and deleting too many files, as we had to delete 100's of thousands of files every 2 minutes
+    // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
+    // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
+    private final long maxAppendClaimLength = 1024L * 1024L;
+
+    // Queue for claims that are kept open for writing. Size of 100 is pretty arbitrary. Ideally, this will be at
+    // least as large as the number of threads that will be updating the repository simultaneously but we don't want
+    // to get too large because it will hold open up to this many FileOutputStreams.
+    // The queue is used to determine which claim to write to and then the corresponding Map can be used to obtain
+    // the OutputStream that we can use for writing to the claim.
     private final BlockingQueue<ClaimLengthPair> writableClaimQueue = new LinkedBlockingQueue<>(100);
     private final ConcurrentMap<ResourceClaim, ByteCountingOutputStream> writableClaimStreams = new ConcurrentHashMap<>(100);
 
@@ -235,6 +246,13 @@ public class FileSystemRepository implements ContentRepository {
         executor.shutdown();
         containerCleanupExecutor.shutdown();
 
+        // Close any of the writable claim streams that are currently open.
+        // Other threads may be writing to these streams, and that's okay.
+        // If that happens, we will simply close the stream, resulting in an
+        // IOException that will roll back the session. Since this is called
+        // only on shutdown of the application, we don't have to worry about
+        // partially written files - on restart, we will simply start writing
+        // to new files and leave those trailing bytes alone.
         for (final OutputStream out : writableClaimStreams.values()) {
             try {
                 out.close();
@@ -482,7 +500,13 @@ public class FileSystemRepository implements ContentRepository {
         // the queue and incrementing the associated claimant count MUST be done atomically.
         // This way, if the claimant count is decremented to 0, we can ensure that the
         // claim is not then pulled from the queue and used as another thread is destroying/archiving
-        // the claim.
+        // the claim. The logic in the remove() method dictates that the underlying file can be
+        // deleted (or archived) only if the claimant count becomes <= 0 AND there is no other claim on
+        // the queue that references that file. As a result, we need to ensure that those two conditions
+        // can be evaluated atomically. In order for that to be the case, we need to also treat the
+        // removal of a claim from the queue and the incrementing of its claimant count as an atomic
+        // action to ensure that the comparison of those two conditions is atomic also. As a result,
+        // we will synchronize on the queue while performing those actions.
         final long resourceOffset;
         synchronized (writableClaimQueue) {
             final ClaimLengthPair pair = writableClaimQueue.poll();
@@ -571,7 +595,9 @@ public class FileSystemRepository implements ContentRepository {
         // we synchronize on the queue here because if the claimant count is 0,
         // we need to be able to remove any instance of that resource claim from the
         // queue atomically (i.e., the checking of the claimant count plus removal from the queue
-        // must be atomic)
+        // must be atomic). The create() method also synchronizes on the queue whenever it
+        // polls from the queue and increments a claimant count in order to ensure that these
+        // two conditions can be checked atomically.
         synchronized (writableClaimQueue) {
             final int claimantCount = resourceClaimManager.getClaimantCount(claim);
             if (claimantCount > 0 || writableClaimQueue.contains(new ClaimLengthPair(claim, null))) {
@@ -647,24 +673,14 @@ public class FileSystemRepository implements ContentRepository {
 
     @Override
     public long importFrom(final Path content, final ContentClaim claim) throws IOException {
-        return importFrom(content, claim, false);
-    }
-
-    @Override
-    public long importFrom(final Path content, final ContentClaim claim, final boolean append) throws IOException {
         try (final InputStream in = Files.newInputStream(content, StandardOpenOption.READ)) {
-            return importFrom(in, claim, append);
+            return importFrom(in, claim);
         }
     }
 
     @Override
     public long importFrom(final InputStream content, final ContentClaim claim) throws IOException {
-        return importFrom(content, claim, false);
-    }
-
-    @Override
-    public long importFrom(final InputStream content, final ContentClaim claim, final boolean append) throws IOException {
-        try (final OutputStream out = write(claim, append)) {
+        try (final OutputStream out = write(claim, false)) {
             return StreamUtils.copy(content, out);
         }
     }

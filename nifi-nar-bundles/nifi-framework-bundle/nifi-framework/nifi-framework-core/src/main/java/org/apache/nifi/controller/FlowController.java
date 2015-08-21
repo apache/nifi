@@ -3318,6 +3318,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         lineageIdentifiers.add(parentUUID);
 
         final String newFlowFileUUID = UUID.randomUUID().toString();
+
+        // We need to create a new FlowFile by populating it with information from the
+        // Provenance Event. Particularly of note here is that we are setting the FlowFile's
+        // contentClaimOffset to 0. This is done for backward compatibility reasons. ContentClaim
+        // used to not have a concept of an offset, and the offset was tied only to the FlowFile. This
+        // was later refactored, so that the offset was part of the ContentClaim. If we set the offset
+        // in both places, we'll end up skipping over that many bytes twice instead of once (once to get
+        // to the beginning of the Content Claim and again to get to the offset within that Content Claim).
+        // To avoid this, we just always set the offset in the Content Claim itself and set the
+        // FlowFileRecord's contentClaimOffset to 0.
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             // Copy relevant info from source FlowFile
             .addAttributes(event.getPreviousAttributes())

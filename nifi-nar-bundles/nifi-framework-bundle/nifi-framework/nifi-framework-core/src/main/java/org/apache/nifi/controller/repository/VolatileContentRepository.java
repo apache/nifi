@@ -352,33 +352,21 @@ public class VolatileContentRepository implements ContentRepository {
 
     @Override
     public long importFrom(final Path content, final ContentClaim claim) throws IOException {
-        return importFrom(content, claim, false);
-    }
-
-    @Override
-    public long importFrom(final Path content, final ContentClaim claim, boolean append) throws IOException {
         try (final InputStream in = new FileInputStream(content.toFile())) {
-            return importFrom(in, claim, append);
+            return importFrom(in, claim);
         }
     }
 
     @Override
-    public long importFrom(final InputStream content, final ContentClaim claim) throws IOException {
-        return importFrom(content, claim, false);
-    }
-
-    @Override
-    public long importFrom(final InputStream in, final ContentClaim claim, final boolean append) throws IOException {
+    public long importFrom(final InputStream in, final ContentClaim claim) throws IOException {
         final ContentClaim backupClaim = getBackupClaim(claim);
         if (backupClaim == null) {
             final ContentBlock content = getContent(claim);
-            if (!append) {
-                content.reset();
-            }
+            content.reset();
 
             return StreamUtils.copy(in, content.write());
         } else {
-            return getBackupRepository().importFrom(in, claim, append);
+            return getBackupRepository().importFrom(in, claim);
         }
     }
 

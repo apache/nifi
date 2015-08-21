@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.nifi.controller.FileSystemSwapManager;
 import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedInputStream;
