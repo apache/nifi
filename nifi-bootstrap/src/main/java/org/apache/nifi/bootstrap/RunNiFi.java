@@ -499,11 +499,6 @@ public class RunNiFi {
         final Properties nifiProps = loadProperties(logger);
         final String secretKey = nifiProps.getProperty("secret.key");
 
-        final File statusFile = getStatusFile(logger);
-        if (statusFile.exists() && !statusFile.delete()) {
-            logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
-        }
-
         try (final Socket socket = new Socket()) {
             logger.debug("Connecting to NiFi instance");
             socket.setSoTimeout(60000);
@@ -568,6 +563,10 @@ public class RunNiFi {
                         }
                     }
 
+                    final File statusFile = getStatusFile(logger);
+                    if (statusFile.exists() && !statusFile.delete()) {
+                        logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
+                    }
                     logger.info("NiFi has finished shutting down.");
                 }
             } else {
