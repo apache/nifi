@@ -62,8 +62,7 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
 
     public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
 
-    public OpenPGPKeyBasedEncryptor(final String algorithm, final String provider, final String keyring, final String userId,
-            final char[] passphrase, final String filename) {
+    public OpenPGPKeyBasedEncryptor(final String algorithm, final String provider, final String keyring, final String userId, final char[] passphrase, final String filename) {
         this.algorithm = algorithm;
         this.provider = provider;
         this.keyring = keyring;
@@ -85,59 +84,49 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
     /*
      * Validate secret keyring passphrase
      */
-    public static boolean validateKeyring(String provider,
-            String secretKeyringFile, char[] passphrase) throws IOException,
-            PGPException, NoSuchProviderException {
-        try (InputStream fin = Files.newInputStream(Paths
-                .get(secretKeyringFile))) {
-            try (InputStream pin = PGPUtil.getDecoderStream(fin)) {
-                PGPSecretKeyRingCollection pgpsec = new PGPSecretKeyRingCollection(
-                        pin);
-                Iterator ringit = pgpsec.getKeyRings();
-                while (ringit.hasNext()) {
-                    PGPSecretKeyRing secretkeyring = (PGPSecretKeyRing) ringit
-                            .next();
-                    PGPSecretKey secretkey = secretkeyring.getSecretKey();
-                    secretkey.extractPrivateKey(passphrase, provider);
-                    return true;
-                }
-                return false;
+    public static boolean validateKeyring(String provider, String secretKeyringFile, char[] passphrase) throws IOException, PGPException, NoSuchProviderException {
+        try (InputStream fin = Files.newInputStream(Paths.get(secretKeyringFile)); InputStream pin = PGPUtil.getDecoderStream(fin)) {
+            PGPSecretKeyRingCollection pgpsec = new PGPSecretKeyRingCollection(pin);
+            Iterator ringit = pgpsec.getKeyRings();
+            while (ringit.hasNext()) {
+                PGPSecretKeyRing secretkeyring = (PGPSecretKeyRing) ringit.next();
+                PGPSecretKey secretkey = secretkeyring.getSecretKey();
+                secretkey.extractPrivateKey(passphrase, provider);
+                return true;
             }
+            return false;
         }
+
     }
 
     /*
      * Get the public key for a specific user id from a keyring.
      */
     @SuppressWarnings("rawtypes")
-    public static PGPPublicKey getPublicKey(String userId, String publicKeyring)
-            throws IOException, PGPException {
+    public static PGPPublicKey getPublicKey(String userId, String publicKeyring) throws IOException, PGPException {
         PGPPublicKey pubkey = null;
-        try (InputStream fin = Files.newInputStream(Paths.get(publicKeyring))) {
-            try (InputStream pin = PGPUtil.getDecoderStream(fin)) {
-                PGPPublicKeyRingCollection pgppub = new PGPPublicKeyRingCollection(
-                        pin);
+        try (InputStream fin = Files.newInputStream(Paths.get(publicKeyring)); InputStream pin = PGPUtil.getDecoderStream(fin)) {
+            PGPPublicKeyRingCollection pgppub = new PGPPublicKeyRingCollection(pin);
 
-                Iterator ringit = pgppub.getKeyRings();
-                while (ringit.hasNext()) {
-                    PGPPublicKeyRing kring = (PGPPublicKeyRing) ringit.next();
+            Iterator ringit = pgppub.getKeyRings();
+            while (ringit.hasNext()) {
+                PGPPublicKeyRing kring = (PGPPublicKeyRing) ringit.next();
 
-                    Iterator keyit = kring.getPublicKeys();
-                    while (keyit.hasNext()) {
-                        pubkey = (PGPPublicKey) keyit.next();
-                        boolean userIdMatch = false;
+                Iterator keyit = kring.getPublicKeys();
+                while (keyit.hasNext()) {
+                    pubkey = (PGPPublicKey) keyit.next();
+                    boolean userIdMatch = false;
 
-                        Iterator userit = pubkey.getUserIDs();
-                        while (userit.hasNext()) {
-                            String id = userit.next().toString();
-                            if (id.contains(userId)) {
-                                userIdMatch = true;
-                                break;
-                            }
+                    Iterator userit = pubkey.getUserIDs();
+                    while (userit.hasNext()) {
+                        String id = userit.next().toString();
+                        if (id.contains(userId)) {
+                            userIdMatch = true;
+                            break;
                         }
-                        if (pubkey.isEncryptionKey() && userIdMatch) {
-                            return pubkey;
-                        }
+                    }
+                    if (pubkey.isEncryptionKey() && userIdMatch) {
+                        return pubkey;
                     }
                 }
             }
@@ -151,16 +140,14 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
         private String secretKeyring;
         private char[] passphrase;
 
-        OpenPGPDecryptCallback(final String provider, final String keyring,
-                final char[] passphrase) {
+        OpenPGPDecryptCallback(final String provider, final String keyring, final char[] passphrase) {
             this.provider = provider;
             this.secretKeyring = keyring;
             this.passphrase = passphrase;
         }
 
         @Override
-        public void process(InputStream in, OutputStream out)
-                throws IOException {
+        public void process(InputStream in, OutputStream out) throws IOException {
             try (InputStream pgpin = PGPUtil.getDecoderStream(in)) {
                 PGPObjectFactory pgpFactory = new PGPObjectFactory(pgpin);
 
@@ -174,14 +161,11 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
                 PGPEncryptedDataList encList = (PGPEncryptedDataList) obj;
 
                 PGPSecretKeyRingCollection pgpSecretKeyring;
-                try {
+                try (InputStream secretKeyringIS = Files.newInputStream(Paths.get(secretKeyring)); InputStream pgpIS = PGPUtil.getDecoderStream(secretKeyringIS)) {
                     // open secret keyring file
-                    pgpSecretKeyring = new PGPSecretKeyRingCollection(
-                            PGPUtil.getDecoderStream(Files.newInputStream(Paths
-                                    .get(secretKeyring))));
+                    pgpSecretKeyring = new PGPSecretKeyRingCollection(pgpIS);
                 } catch (Exception e) {
-                    throw new ProcessException("Invalid secret keyring - "
-                            + e.getMessage());
+                    throw new ProcessException("Invalid secret keyring - " + e.getMessage());
                 }
 
                 try {
@@ -196,28 +180,22 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
                             throw new ProcessException("Invalid OpenPGP data");
                         }
                         encData = (PGPPublicKeyEncryptedData) obj;
-                        PGPSecretKey secretkey = pgpSecretKeyring
-                                .getSecretKey(encData.getKeyID());
+                        PGPSecretKey secretkey = pgpSecretKeyring.getSecretKey(encData.getKeyID());
                         if (secretkey != null) {
-                            privateKey = secretkey.extractPrivateKey(
-                                    passphrase, provider);
+                            privateKey = secretkey.extractPrivateKey(passphrase, provider);
                         }
                     }
                     if (privateKey == null) {
-                        throw new ProcessException(
-                                "Secret keyring does not contain the key required to decrypt");
+                        throw new ProcessException("Secret keyring does not contain the key required to decrypt");
                     }
 
-                    try (InputStream clearData = encData.getDataStream(
-                            privateKey, provider)) {
-                        PGPObjectFactory clearFactory = new PGPObjectFactory(
-                                clearData);
+                    try (InputStream clearData = encData.getDataStream(privateKey, provider)) {
+                        PGPObjectFactory clearFactory = new PGPObjectFactory(clearData);
 
                         obj = clearFactory.nextObject();
                         if (obj instanceof PGPCompressedData) {
                             PGPCompressedData compData = (PGPCompressedData) obj;
-                            clearFactory = new PGPObjectFactory(
-                                    compData.getDataStream());
+                            clearFactory = new PGPObjectFactory(compData.getDataStream());
                             obj = clearFactory.nextObject();
                         }
                         PGPLiteralData literal = (PGPLiteralData) obj;
@@ -246,8 +224,7 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
         private String userId;
         private String filename;
 
-        OpenPGPEncryptCallback(final String algorithm, final String provider, final String keyring, final String userId,
-                final String filename) {
+        OpenPGPEncryptCallback(final String algorithm, final String provider, final String keyring, final String userId, final String filename) {
             this.algorithm = algorithm;
             this.provider = provider;
             this.publicKeyring = keyring;
@@ -256,52 +233,46 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
         }
 
         @Override
-        public void process(InputStream in, OutputStream out)
-                throws IOException {
+        public void process(InputStream in, OutputStream out) throws IOException {
             PGPPublicKey publicKey;
             try {
                 publicKey = getPublicKey(userId, publicKeyring);
             } catch (Exception e) {
-                throw new ProcessException("Invalid public keyring - "
-                        + e.getMessage());
+                throw new ProcessException("Invalid public keyring - " + e.getMessage());
             }
 
             try {
-                SecureRandom secureRandom = SecureRandom
-                        .getInstance(SECURE_RANDOM_ALGORITHM);
+                SecureRandom secureRandom = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM);
 
                 OutputStream output = out;
                 if (EncryptContent.isPGPArmoredAlgorithm(algorithm)) {
                     output = new ArmoredOutputStream(out);
                 }
 
-                PGPEncryptedDataGenerator encGenerator = new PGPEncryptedDataGenerator(
-                        PGPEncryptedData.CAST5, false, secureRandom, provider);
-                encGenerator.addMethod(publicKey);
-                try (OutputStream encOut = encGenerator.open(output,
-                        new byte[65536])) {
+                try {
+                    PGPEncryptedDataGenerator encGenerator = new PGPEncryptedDataGenerator(PGPEncryptedData.CAST5, false, secureRandom, provider);
+                    encGenerator.addMethod(publicKey);
+                    try (OutputStream encOut = encGenerator.open(output, new byte[65536])) {
 
-                    PGPCompressedDataGenerator compData = new PGPCompressedDataGenerator(
-                            PGPCompressedData.ZIP, Deflater.BEST_SPEED);
-                    try (OutputStream compOut = compData.open(encOut,
-                            new byte[65536])) {
+                        PGPCompressedDataGenerator compData = new PGPCompressedDataGenerator(PGPCompressedData.ZIP, Deflater.BEST_SPEED);
+                        try (OutputStream compOut = compData.open(encOut, new byte[65536])) {
 
-                        PGPLiteralDataGenerator literal = new PGPLiteralDataGenerator();
-                        try (OutputStream literalOut = literal.open(compOut,
-                                PGPLiteralData.BINARY, filename, new Date(),
-                                new byte[65536])) {
+                            PGPLiteralDataGenerator literal = new PGPLiteralDataGenerator();
+                            try (OutputStream literalOut = literal.open(compOut, PGPLiteralData.BINARY, filename, new Date(), new byte[65536])) {
 
-                            final byte[] buffer = new byte[4096];
-                            int len;
-                            while ((len = in.read(buffer)) >= 0) {
-                                literalOut.write(buffer, 0, len);
+                                final byte[] buffer = new byte[4096];
+                                int len;
+                                while ((len = in.read(buffer)) >= 0) {
+                                    literalOut.write(buffer, 0, len);
+                                }
+
                             }
-
                         }
                     }
-                }
-                if (EncryptContent.isPGPArmoredAlgorithm(algorithm)) {
-                    output.close();
+                } finally {
+                    if (EncryptContent.isPGPArmoredAlgorithm(algorithm)) {
+                        output.close();
+                    }
                 }
             } catch (Exception e) {
                 throw new ProcessException(e.getMessage());
