@@ -92,7 +92,9 @@ public class RunNiFi {
     private volatile long nifiPid = -1L;
     private volatile String secretKey;
     private volatile ShutdownHook shutdownHook;
+    private volatile boolean nifiStarted;
 
+    private final Lock startedLock = new ReentrantLock();
     private final Lock lock = new ReentrantLock();
     private final Condition startupCondition = lock.newCondition();
 
@@ -799,8 +801,16 @@ public class RunNiFi {
                 if (autoRestartNiFi) {
                     final File statusFile = getStatusFile(defaultLogger);
                     if (!statusFile.exists()) {
-                        defaultLogger.debug("Status File no longer exists. Will not restart NiFi");
+                        defaultLogger.info("Status File no longer exists. Will not restart NiFi");
                         return;
+                    }
+
+                    final boolean previouslyStarted = getNifiStarted();
+                    if (!previouslyStarted) {
+                        defaultLogger.info("NiFi never started. Will not restart NiFi");
+                        return;
+                    } else {
+                        setNiFiStarted(false);
                     }
 
                     defaultLogger.warn("Apache NiFi appears to have died. Restarting...");
@@ -971,6 +981,24 @@ public class RunNiFi {
 
     int getNiFiCommandControlPort() {
         return this.ccPort;
+    }
+
+    void setNiFiStarted(final boolean nifiStarted) {
+        startedLock.lock();
+        try {
+            this.nifiStarted = nifiStarted;
+        } finally {
+            startedLock.unlock();
+        }
+    }
+
+    boolean getNifiStarted() {
+        startedLock.lock();
+        try {
+            return nifiStarted;
+        } finally {
+            startedLock.unlock();
+        }
     }
 
     private static class Status {
