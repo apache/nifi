@@ -180,6 +180,9 @@ public class NiFiProperties extends Properties {
     public static final String CLUSTER_MANAGER_PROTOCOL_THREADS = "nifi.cluster.manager.protocol.threads";
     public static final String CLUSTER_MANAGER_SAFEMODE_DURATION = "nifi.cluster.manager.safemode.duration";
 
+    // kerberos properties
+    public static final String KERBEROS_KRB5_FILE = "nifi.kerberos.krb5.file";
+
     // defaults
     public static final String DEFAULT_TITLE = "NiFi";
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
@@ -796,6 +799,14 @@ public class NiFiProperties extends Properties {
             return "https";
         } else {
             return "http";
+        }
+    }
+
+    public File getKerberosConfigurationFile() {
+        if (getProperty(KERBEROS_KRB5_FILE).trim().length() > 0) {
+            return new File(getProperty(KERBEROS_KRB5_FILE));
+        } else {
+            return null;
         }
     }
 
