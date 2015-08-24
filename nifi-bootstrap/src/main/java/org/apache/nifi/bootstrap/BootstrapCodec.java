@@ -87,6 +87,22 @@ public class BootstrapCodec {
                 writer.flush();
             }
             break;
+            case "STARTED": {
+                if (args.length != 1) {
+                    throw new InvalidCommandException("STARTED command must contain a status argument");
+                }
+
+                if (!"true".equals(args[0]) && !"false".equals(args[0])) {
+                    throw new InvalidCommandException("Invalid status for STARTED command; should be true or false, but was '" + args[0] + "'");
+                }
+
+                final boolean started = Boolean.parseBoolean(args[0]);
+                runner.setNiFiStarted(started);
+                writer.write("OK");
+                writer.newLine();
+                writer.flush();
+            }
+            break;
         }
     }
 }

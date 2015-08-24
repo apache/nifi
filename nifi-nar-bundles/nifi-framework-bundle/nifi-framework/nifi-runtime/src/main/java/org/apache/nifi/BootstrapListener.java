@@ -80,13 +80,37 @@ public class BootstrapListener {
         listenThread.start();
 
         logger.debug("Notifying Bootstrap that local port is {}", localPort);
+        sendCommand("PORT", new String[] { String.valueOf(localPort), secretKey});
+    }
+
+    public void stop() {
+        if (listener != null) {
+            listener.stop();
+        }
+    }
+
+    public void sendStartedStatus(boolean status) throws IOException {
+        logger.debug("Notifying Bootstrap that the status of starting NiFi is {}", status);
+        sendCommand("STARTED", new String[]{ String.valueOf(status) });
+    }
+
+    private void sendCommand(final String command, final String[] args) throws IOException {
         try (final Socket socket = new Socket()) {
             socket.setSoTimeout(60000);
             socket.connect(new InetSocketAddress("localhost", bootstrapPort));
             socket.setSoTimeout(60000);
 
+            final StringBuilder commandBuilder = new StringBuilder(command);
+            for (final String arg : args) {
+                commandBuilder.append(" ").append(arg);
+            }
+            commandBuilder.append("\n");
+
+            final String commandWithArgs = commandBuilder.toString();
+            logger.debug("Sending command to Bootstrap: " + commandWithArgs);
+
             final OutputStream out = socket.getOutputStream();
-            out.write(("PORT " + localPort + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
+            out.write((commandWithArgs).getBytes(StandardCharsets.UTF_8));
             out.flush();
 
             logger.debug("Awaiting response from Bootstrap...");
@@ -97,12 +121,6 @@ public class BootstrapListener {
             } else {
                 logger.error("Failed to communicate with Bootstrap. Bootstrap may be unable to issue or receive commands from NiFi");
             }
-        }
-    }
-
-    public void stop() {
-        if (listener != null) {
-            listener.stop();
         }
     }
 
