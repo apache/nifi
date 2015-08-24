@@ -130,6 +130,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             throw new IllegalArgumentException("Paths must be non-empty");
         }
 
+        int resolvedPartitionCount = partitionCount;
         int existingPartitions = 0;
         for (final Path path : paths) {
             if (!Files.exists(path)) {
@@ -162,6 +163,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                     logger.warn("Constructing MinimalLockingWriteAheadLog with partitionCount={}, but the repository currently has "
                             + "{} partitions; ignoring argument and proceeding with {} partitions",
                             new Object[]{partitionCount, existingPartitions, existingPartitions});
+                    resolvedPartitionCount = existingPartitions;
                 }
             }
         }
@@ -175,10 +177,10 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         lockChannel = new FileOutputStream(lockPath.toFile()).getChannel();
         lockChannel.lock();
 
-        partitions = new Partition[partitionCount];
+        partitions = new Partition[resolvedPartitionCount];
 
         Iterator<Path> pathIterator = paths.iterator();
-        for (int i = 0; i < partitionCount; i++) {
+        for (int i = 0; i < resolvedPartitionCount; i++) {
             // If we're out of paths, create a new iterator to start over.
             if (!pathIterator.hasNext()) {
                 pathIterator = paths.iterator();
