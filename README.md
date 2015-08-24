@@ -53,11 +53,11 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 
 ## Getting Started
 
-- Read through the [quickstart guide for development](http://nifi.incubator.apache.org/quickstart.html).
+- Read through the [quickstart guide for development](http://nifi.apache.org/quickstart.html).
   It will include information on getting a local copy of the source, give pointers on issue
   tracking, and provide some warnings about common problems with development environments.
 - For a more comprehensive guide to development and information about contributing to the project
-  read through the [NiFi Developer's Guide](http://nifi.incubator.apache.org/developer-guide.html).
+  read through the [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
 
 To build:
 - Execute `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`. On a
