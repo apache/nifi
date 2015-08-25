@@ -23,7 +23,6 @@ org.apache.nifi.processors.standard.DistributeLoad
 org.apache.nifi.processors.standard.DuplicateFlowFile
 org.apache.nifi.processors.standard.EncryptContent
 org.apache.nifi.processors.standard.EvaluateJsonPath
-org.apache.nifi.processors.standard.EvaluateRegularExpression
 org.apache.nifi.processors.standard.EvaluateXPath
 org.apache.nifi.processors.standard.EvaluateXQuery
 org.apache.nifi.processors.standard.ExecuteStreamCommand
