@@ -337,9 +337,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 final Collection<StandardRepositoryRecord> repoRecords = checkpoint.records.values();
                 context.getFlowFileRepository().updateRepository((Collection) repoRecords);
             } catch (final IOException ioe) {
-                rollback();
+                // if we fail to commit the session, we need to roll back
+                // the checkpoints as well because none of the checkpoints
+                // were ever committed.
+                rollback(false, true);
                 throw new ProcessException("FlowFile Repository failed to update", ioe);
             }
+
             final long flowFileRepoUpdateFinishNanos = System.nanoTime();
             final long flowFileRepoUpdateNanos = flowFileRepoUpdateFinishNanos - claimRemovalFinishNanos;
 
@@ -422,7 +426,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         } catch (final Exception e) {
             try {
-                rollback();
+                // if we fail to commit the session, we need to roll back
+                // the checkpoints as well because none of the checkpoints
+                // were ever committed.
+                rollback(false, true);
             } catch (final Exception e1) {
                 e.addSuppressed(e1);
             }
@@ -849,8 +856,23 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     @Override
     public void rollback(final boolean penalize) {
+        rollback(penalize, false);
+    }
+
+    private void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
         deleteOnCommit.clear();
-        if (records.isEmpty()) {
+
+        final Set<StandardRepositoryRecord> recordsToHandle = new HashSet<>();
+        recordsToHandle.addAll(records.values());
+        if (rollbackCheckpoint) {
+            final Checkpoint existingCheckpoint = this.checkpoint;
+            this.checkpoint = null;
+            if (existingCheckpoint != null && existingCheckpoint.records != null) {
+                recordsToHandle.addAll(existingCheckpoint.records.values());
+            }
+        }
+
+        if (recordsToHandle.isEmpty()) {
             LOG.trace("{} was rolled back, but no events were performed by this ProcessSession", this);
             acknowledgeRecords();
             return;
@@ -859,14 +881,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         resetWriteClaims();
         resetReadClaim();
 
-        for (final StandardRepositoryRecord record : records.values()) {
-            // remove the working claim if it's different than the original.
+        for (final StandardRepositoryRecord record : recordsToHandle) {
+            // remove the working claims if they are different than the originals.
             removeTemporaryClaim(record);
         }
 
         final Set<RepositoryRecord> abortedRecords = new HashSet<>();
         final Set<StandardRepositoryRecord> transferRecords = new HashSet<>();
-        for (final StandardRepositoryRecord record : records.values()) {
+        for (final StandardRepositoryRecord record : recordsToHandle) {
             if (record.isMarkedForAbort()) {
                 removeContent(record.getWorkingClaim());
                 if (record.getCurrentClaim() != null && !record.getCurrentClaim().equals(record.getWorkingClaim())) {
