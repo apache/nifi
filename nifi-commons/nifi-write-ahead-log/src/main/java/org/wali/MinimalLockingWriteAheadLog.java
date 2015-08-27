@@ -722,19 +722,41 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             try {
                 final DataOutputStream out = dataOut;
                 if (out != null) {
-                    out.close();
+                    try {
+                        out.close();
+                    } catch (final IOException ioe) {
+                        dataOut = null;
+                        fileOut = null;
+
+                        blackList();
+                        throw ioe;
+                    }
                 }
 
                 final Path editPath = getNewEditPath();
                 final FileOutputStream fos = new FileOutputStream(editPath.toFile());
-                final DataOutputStream outStream = new DataOutputStream(new BufferedOutputStream(fos));
-                outStream.writeUTF(MinimalLockingWriteAheadLog.class.getName());
-                outStream.writeInt(writeAheadLogVersion);
-                outStream.writeUTF(serde.getClass().getName());
-                outStream.writeInt(serde.getVersion());
-                outStream.flush();
-                dataOut = outStream;
-                fileOut = fos;
+                try {
+                    final DataOutputStream outStream = new DataOutputStream(new BufferedOutputStream(fos));
+                    outStream.writeUTF(MinimalLockingWriteAheadLog.class.getName());
+                    outStream.writeInt(writeAheadLogVersion);
+                    outStream.writeUTF(serde.getClass().getName());
+                    outStream.writeInt(serde.getVersion());
+                    outStream.flush();
+                    dataOut = outStream;
+                    fileOut = fos;
+                } catch (final IOException ioe) {
+                    logger.error("Failed to create new journal for {} due to {}", new Object[] {this, ioe.toString()}, ioe);
+                    try {
+                        fos.close();
+                    } catch (final IOException innerIOE) {
+                    }
+
+                    dataOut = null;
+                    fileOut = null;
+                    blackList();
+
+                    throw ioe;
+                }
 
                 currentJournalFilename = editPath.toFile().getName();
 

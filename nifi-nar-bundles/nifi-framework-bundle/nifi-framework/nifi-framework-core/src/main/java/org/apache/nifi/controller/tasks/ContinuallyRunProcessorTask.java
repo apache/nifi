@@ -159,7 +159,18 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         } finally {
             try {
                 if (batch) {
-                    rawSession.commit();
+                    try {
+                        rawSession.commit();
+                    } catch (final Exception e) {
+                        final ProcessorLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
+                        procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, e.toString() }, e);
+
+                        try {
+                            rawSession.rollback(true);
+                        } catch (final Exception e1) {
+                            procLog.error("Failed to roll back session {} due to {}", new Object[] { rawSession, e.toString() }, e);
+                        }
+                    }
                 }
 
                 final long processingNanos = System.nanoTime() - startNanos;
