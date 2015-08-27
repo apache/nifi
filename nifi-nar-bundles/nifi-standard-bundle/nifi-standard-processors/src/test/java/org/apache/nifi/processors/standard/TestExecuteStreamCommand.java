@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -229,4 +231,24 @@ public class TestExecuteStreamCommand {
         assertTrue("NIFI_TEST_1 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"));
         assertTrue("NIFI_TEST_2 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"));
     }
+
+    @Test
+    public void testQuotedArguments() throws Exception {
+        List<String> args = ArgumentUtils.splitArgs("echo -n \"arg1 arg2 arg3\"", ' ');
+        assertEquals(3, args.size());
+        args = ArgumentUtils.splitArgs("echo;-n;\"arg1 arg2 arg3\"", ';');
+        assertEquals(3, args.size());
+    }
+
+    @Test
+    public void testInvalidDelimiter() throws Exception {
+        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "echo");
+        controller.assertValid();
+        controller.setProperty(ExecuteStreamCommand.ARG_DELIMITER, "foo");
+        controller.assertNotValid();
+        controller.setProperty(ExecuteStreamCommand.ARG_DELIMITER, "f");
+        controller.assertValid();
+    }
+
 }

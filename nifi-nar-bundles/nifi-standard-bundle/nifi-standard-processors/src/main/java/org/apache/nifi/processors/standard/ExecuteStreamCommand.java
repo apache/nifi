@@ -56,6 +56,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -163,7 +164,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
                     ValidationResult result = new ValidationResult.Builder()
                     .subject(subject).valid(true).input(input).build();
-                    String[] args = input.split(";");
+                    List<String> args = ArgumentUtils.splitArgs(input, context.getProperty(ARG_DELIMITER).getValue().charAt(0));
                     for (String arg : args) {
                         ValidationResult valResult = ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR.validate(subject, arg, context);
                         if (!valResult.isValid()) {
@@ -191,6 +192,17 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    private static final Validator characterValidator = new StandardValidators.StringLengthValidator(1, 1);
+
+    static final PropertyDescriptor ARG_DELIMITER = new PropertyDescriptor.Builder()
+            .name("Argument Delimiter")
+            .description("Delimiter to use to separate arguments for a command [default: ;]. Must be a single character")
+            .addValidator(Validator.VALID)
+            .addValidator(characterValidator)
+            .required(true)
+            .defaultValue(";")
+            .build();
+
 
     private static final List<PropertyDescriptor> PROPERTIES;
 
@@ -200,6 +212,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         props.add(EXECUTION_COMMAND);
         props.add(IGNORE_STDIN);
         props.add(WORKING_DIR);
+        props.add(ARG_DELIMITER);
         PROPERTIES = Collections.unmodifiableList(props);
     }
 
@@ -243,7 +256,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         final String commandArguments = context.getProperty(EXECUTION_ARGUMENTS).getValue();
         final boolean ignoreStdin = Boolean.parseBoolean(context.getProperty(IGNORE_STDIN).getValue());
         if (!StringUtils.isBlank(commandArguments)) {
-            for (String arg : commandArguments.split(";")) {
+            for (String arg : ArgumentUtils.splitArgs(commandArguments, context.getProperty(ARG_DELIMITER).getValue().charAt(0))) {
                 args.add(context.newPropertyValue(arg).evaluateAttributeExpressions(inputFlowFile).getValue());
             }
         }
