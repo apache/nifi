@@ -534,6 +534,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         final ComponentLog logger = new MockProcessorLog(identifier, service);
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger);
+        initContext.addControllerServices(context);
         service.initialize(initContext);
 
         final Map<PropertyDescriptor, String> resolvedProps = new HashMap<>();
