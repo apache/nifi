@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.nifi.controller.FlowFileQueue;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 /**
  * Implementations must be thread safe
@@ -38,7 +38,7 @@ public interface FlowFileRepository extends Closeable {
      * @param claimManager for handling claims
      * @throws java.io.IOException if unable to initialize repository
      */
-    void initialize(ContentClaimManager claimManager) throws IOException;
+    void initialize(ResourceClaimManager claimManager) throws IOException;
 
     /**
      * @return the maximum number of bytes that can be stored in the underlying

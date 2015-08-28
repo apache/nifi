@@ -94,6 +94,7 @@ public class ExecuteSQL extends AbstractProcessor {
     public ExecuteSQL() {
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
+        r.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(r);
 
         final List<PropertyDescriptor> pds = new ArrayList<>();

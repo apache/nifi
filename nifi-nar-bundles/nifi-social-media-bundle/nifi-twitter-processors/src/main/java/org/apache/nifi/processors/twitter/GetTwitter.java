@@ -57,6 +57,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import com.twitter.hbc.ClientBuilder;
 import com.twitter.hbc.core.Client;
 import com.twitter.hbc.core.Constants;
+import com.twitter.hbc.core.endpoint.Location.Coordinate ;
+import com.twitter.hbc.core.endpoint.Location ;
 import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.endpoint.StatusesFirehoseEndpoint;
 import com.twitter.hbc.core.endpoint.StatusesSampleEndpoint;
@@ -99,7 +101,7 @@ public class GetTwitter extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
             .name("Access Token")
-            .description("The Acces Token provided by Twitter")
+            .description("The Access Token provided by Twitter")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -122,6 +124,15 @@ public class GetTwitter extends AbstractProcessor {
             .description("A comma-separated list of Twitter User ID's to follow. Ignored unless Endpoint is set to 'Filter Endpoint'.")
             .required(false)
             .addValidator(new FollowingValidator())
+            .build();
+    public static final PropertyDescriptor LOCATIONS = new PropertyDescriptor.Builder()
+            .name("Locations to Filter On")
+            .description("A comma-separated list of coordinates specifying one or more bounding boxes to filter on."
+                    + "Each bounding box is specified by a pair of coordinates in the format: swLon,swLat,neLon,neLat. "
+                    + "Multiple bounding boxes can be specified as such: swLon1,swLat1,neLon1,neLat1,swLon2,swLat2,neLon2,neLat2."
+                    + "Ignored unless Endpoint is set to 'Filter Endpoint'.")
+            .addValidator(new LocationValidator() )
+            .required(false)
             .build();
     public static final PropertyDescriptor TERMS = new PropertyDescriptor.Builder()
             .name("Terms to Filter On")
@@ -157,6 +168,7 @@ public class GetTwitter extends AbstractProcessor {
         descriptors.add(LANGUAGES);
         descriptors.add(TERMS);
         descriptors.add(FOLLOWING);
+        descriptors.add(LOCATIONS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -191,9 +203,10 @@ public class GetTwitter extends AbstractProcessor {
         final String endpointName = validationContext.getProperty(ENDPOINT).getValue();
 
         if (ENDPOINT_FILTER.getValue().equals(endpointName)) {
-            if (!validationContext.getProperty(TERMS).isSet() && !validationContext.getProperty(FOLLOWING).isSet()) {
+            if (!validationContext.getProperty(TERMS).isSet() && !validationContext.getProperty(FOLLOWING).isSet() && !validationContext.getProperty(LOCATIONS).isSet()) {
                 results.add(new ValidationResult.Builder().input("").subject(FOLLOWING.getName())
-                        .valid(false).explanation("When using the 'Filter Endpoint', at least one of '" + TERMS.getName() + "' or '" + FOLLOWING.getName() + "' must be set").build());
+                        .valid(false).explanation("When using the 'Filter Endpoint', at least one of '" + TERMS.getName() + "' or '" + FOLLOWING.getName() + "'" +
+                                "' or '" + LOCATIONS.getName() + " must be set").build());
             }
         }
 
@@ -208,6 +221,8 @@ public class GetTwitter extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws MalformedURLException {
+        messageQueue = new LinkedBlockingQueue<>(100000);
+
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).evaluateAttributeExpressions().getValue(),
                 context.getProperty(CONSUMER_SECRET).evaluateAttributeExpressions().getValue(),
@@ -286,7 +301,21 @@ public class GetTwitter extends AbstractProcessor {
             if (languages != null) {
                 filterEndpoint.languages(languages);
             }
-            streamingEndpoint = filterEndpoint;
+
+            final String locationString = context.getProperty(LOCATIONS).getValue();
+            final List<Location> locations;
+            if (locationString == null) {
+                locations = Collections.emptyList();
+            } else {
+                locations = LocationUtil.parseLocations(locationString);
+            }
+
+            if (!locations.isEmpty()) {
+                filterEndpoint.locations(locations);
+            }
+
+            streamingEndpoint = filterEndpoint ;
+
         } else {
             throw new AssertionError("Endpoint was invalid value: " + endpointName);
         }
@@ -361,4 +390,52 @@ public class GetTwitter extends AbstractProcessor {
         }
 
     }
+
+    private static class LocationValidator implements Validator {
+
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            try {
+                final List<Location> locations = LocationUtil.parseLocations(input);
+                for (final Location location : locations) {
+                    final Coordinate sw = location.southwestCoordinate();
+                    final Coordinate ne = location.northeastCoordinate();
+
+                    if (sw.longitude() > ne.longitude()) {
+                        return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                                .explanation("SW Longitude (" + sw.longitude() + ") must be less than NE Longitude ("
+                                        + ne.longitude() + ").").build();
+                    }
+
+                    if (sw.longitude() == ne.longitude()) {
+                        return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                                .explanation("SW Longitude (" + sw.longitude() + ") can not be equal to NE Longitude ("
+                                        + ne.longitude() + ").").build();
+                    }
+
+                    if (sw.latitude() > ne.latitude()) {
+                        return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                                .explanation("SW Latitude (" + sw.latitude() + ") must be less than NE Latitude ("
+                                        + ne.latitude() + ").").build();
+                    }
+
+                    if (sw.latitude() == ne.latitude()) {
+                        return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                                .explanation("SW Latitude (" + sw.latitude() + ") can not be equal to NE Latitude ("
+                                        + ne.latitude() + ").").build();
+                    }
+                }
+
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+
+            } catch (IllegalStateException e) {
+                return new ValidationResult.Builder()
+                        .input(input).subject(subject).valid(false)
+                        .explanation("Must be a comma-separated list of longitude,latitude pairs specifying one or more bounding boxes.")
+                        .build();
+            }
+        }
+
+    }
+
 }

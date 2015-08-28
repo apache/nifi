@@ -20,12 +20,12 @@ import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Responsible for managing all ContentClaims that are used in the application
+ * Responsible for managing all ResourceClaims that are used in the application
  */
-public interface ContentClaimManager {
+public interface ResourceClaimManager {
 
     /**
-     * Creates a new Content Claim with the given id, container, section, and
+     * Creates a new Resource Claim with the given id, container, section, and
      * loss tolerance.
      *
      * @param id of claim
@@ -34,14 +34,14 @@ public interface ContentClaimManager {
      * @param lossTolerant of claim
      * @return new claim
      */
-    ContentClaim newContentClaim(String container, String section, String id, boolean lossTolerant);
+    ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant);
 
     /**
      * @param claim to obtain reference count for
      * @return the number of FlowFiles that hold a claim to a particular piece
      * of FlowFile content
      */
-    int getClaimantCount(ContentClaim claim);
+    int getClaimantCount(ResourceClaim claim);
 
     /**
      * Decreases by 1 the count of how many FlowFiles hold a claim to a
@@ -50,7 +50,7 @@ public interface ContentClaimManager {
      * @param claim to decrement claimants on
      * @return new claimaint count
      */
-    int decrementClaimantCount(ContentClaim claim);
+    int decrementClaimantCount(ResourceClaim claim);
 
     /**
      * Increases by 1 the count of how many FlowFiles hold a claim to a
@@ -59,54 +59,47 @@ public interface ContentClaimManager {
      * @param claim to increment claims on
      * @return new claimant count
      */
-    int incrementClaimantCount(ContentClaim claim);
+    int incrementClaimantCount(ResourceClaim claim);
 
     /**
      * Increases by 1 the count of how many FlowFiles hold a claim to a
      * particular piece of FlowFile content and returns the new count.
      *
      * If it is known that the Content Claim whose count is being incremented is
-     * a newly created ContentClaim, this method should be called with a value
+     * a newly created ResourceClaim, this method should be called with a value
      * of {@code true} as the second argument, as it may allow the manager to
      * optimize its tasks, knowing that the Content Claim cannot be referenced
      * by any other component
      *
      * @param claim to increment
      * @param newClaim provides a hint that no other process can have access to this
-     * claim right now
+     *            claim right now
      * @return new claim count
      */
-    int incrementClaimantCount(ContentClaim claim, boolean newClaim);
+    int incrementClaimantCount(ResourceClaim claim, boolean newClaim);
 
     /**
-     * Indicates that the given ContentClaim can now be destroyed by the
+     * Indicates that the given ResourceClaim can now be destroyed by the
      * appropriate Content Repository. This should be done only after it is
      * guaranteed that the FlowFile Repository has been synchronized with its
      * underlying storage component. This way, we avoid the following sequence
      * of events:
      * <ul>
-     * <li>FlowFile Repository is updated to indicate that FlowFile F no longer
-     * depends on ContentClaim C</li>
-     * <li>ContentClaim C is no longer needed and is destroyed</li>
+     * <li>FlowFile Repository is updated to indicate that FlowFile F no longer depends on ResourceClaim C</li>
+     * <li>ResourceClaim C is no longer needed and is destroyed</li>
      * <li>The Operating System crashes or there is a power failure</li>
-     * <li>Upon restart, the FlowFile Repository was not synchronized with its
-     * underlying storage mechanism and as such indicates that FlowFile F needs
-     * ContentClaim C.</li>
-     * <li>Since ContentClaim C has already been destroyed, it is inaccessible,
-     * and FlowFile F's Content is not found, so the FlowFile is removed,
-     * resulting in data loss.</li>
+     * <li>Upon restart, the FlowFile Repository was not synchronized with its underlying storage mechanism and as such indicates that FlowFile F needs ResourceClaim C.</li>
+     * <li>Since ResourceClaim C has already been destroyed, it is inaccessible, and FlowFile F's Content is not found, so the FlowFile is removed, resulting in data loss.</li>
      * </ul>
      *
      * <p>
-     * Using this method of marking the ContentClaim as destructable only when
-     * the FlowFile repository has been synced with the underlying storage
-     * mechanism, we can ensure that on restart, we will not point to this
-     * unneeded claim. As such, it is now safe to destroy the contents.
+     * Using this method of marking the ResourceClaim as destructable only when the FlowFile repository has been synced with the underlying storage mechanism, we can ensure that on restart, we will
+     * not point to this unneeded claim. As such, it is now safe to destroy the contents.
      * </p>
      *
      * @param claim to mark as now destructable
      */
-    void markDestructable(ContentClaim claim);
+    void markDestructable(ResourceClaim claim);
 
     /**
      * Drains up to {@code maxElements} Content Claims from the internal queue
@@ -116,14 +109,14 @@ public interface ContentClaimManager {
      * @param destination to drain to
      * @param maxElements max items to drain
      */
-    void drainDestructableClaims(Collection<ContentClaim> destination, int maxElements);
+    void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements);
 
     /**
      * Drains up to {@code maxElements} Content Claims from the internal queue
      * of destructable content claims to the given {@code destination} so that
-     * they can be destroyed. If no ContentClaim is ready to be destroyed at
+     * they can be destroyed. If no ResourceClaim is ready to be destroyed at
      * this time, will wait up to the specified amount of time before returning.
-     * If, after the specified amount of time, there is still no ContentClaim
+     * If, after the specified amount of time, there is still no ResourceClaim
      * ready to be destroyed, the method will return without having added
      * anything to the given {@code destination}.
      *
@@ -132,10 +125,10 @@ public interface ContentClaimManager {
      * @param timeout maximum time to wait
      * @param unit unit of time to wait
      */
-    void drainDestructableClaims(Collection<ContentClaim> destination, int maxElements, long timeout, TimeUnit unit);
+    void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements, long timeout, TimeUnit unit);
 
     /**
-     * Clears the manager's memory of any and all ContentClaims that it knows
+     * Clears the manager's memory of any and all ResourceClaims that it knows
      * about
      */
     void purge();

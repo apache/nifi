@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 /**
  * Defines the capabilities of a content repository. Append options are not
@@ -42,7 +42,7 @@ public interface ContentRepository {
      * @param claimManager to handle claims
      * @throws java.io.IOException if unable to init
      */
-    void initialize(ContentClaimManager claimManager) throws IOException;
+    void initialize(ResourceClaimManager claimManager) throws IOException;
 
     /**
      * Shuts down the Content Repository, freeing any resources that may be
@@ -165,20 +165,6 @@ public interface ContentRepository {
     long importFrom(Path content, ContentClaim claim) throws IOException;
 
     /**
-     * Imports content from the given path to the specified claim, appending or
-     * replacing the current claim, according to the value of the append
-     * argument
-     *
-     * @return the size of the claim
-     * @param content to import from
-     * @param claim the claim to write imported content to
-     * @param append if true, the content will be appended to the claim; if
-     * false, the content will replace the contents of the claim
-     * @throws IOException if unable to read content
-     */
-    long importFrom(Path content, ContentClaim claim, boolean append) throws IOException;
-
-    /**
      * Imports content from the given stream creating a new content object and
      * claim within the repository.
      *
@@ -188,18 +174,6 @@ public interface ContentRepository {
      * @throws IOException if unable to read content
      */
     long importFrom(InputStream content, ContentClaim claim) throws IOException;
-
-    /**
-     * Imports content from the given stream, appending or replacing the current
-     * claim, according to the value of the appen dargument
-     *
-     * @param content to import from
-     * @param claim to write to
-     * @param append whether to append or replace
-     * @return length of data imported in bytes
-     * @throws IOException if failure to read or write stream
-     */
-    long importFrom(InputStream content, ContentClaim claim, boolean append) throws IOException;
 
     /**
      * Exports the content of the given claim to the given destination.

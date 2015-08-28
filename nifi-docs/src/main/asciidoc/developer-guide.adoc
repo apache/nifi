@@ -2011,7 +2011,7 @@ This is included by adding the following snippet to the NAR's pom.xml:
         <plugin>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-maven-plugin</artifactId>
-            <version>1.0.0-incubating</version>
+            <version>1.1.0</version>
             <extensions>true</extensions>
         </plugin>
     </plugins>

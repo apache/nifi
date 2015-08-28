@@ -165,6 +165,7 @@ public class ExecuteFlumeSource extends AbstractFlumeProcessor {
             if (old != sessionFactory) {
                 if (runnerRef.get() != null) {
                     stopped();
+                    sessionFactoryRef.set(sessionFactory);
                 }
 
                 runnerRef.set(new EventDrivenSourceRunner());

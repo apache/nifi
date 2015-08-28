@@ -417,6 +417,40 @@ public class TestMinimalLockingWriteAheadLog {
 
     }
 
+
+    @Test
+    public void testDecreaseNumberOfPartitions() throws IOException {
+        final Path path = Paths.get("target/minimal-locking-repo-decrease-partitions");
+        deleteRecursively(path.toFile());
+        Files.createDirectories(path);
+
+        final DummyRecordSerde serde = new DummyRecordSerde();
+        final WriteAheadRepository<DummyRecord> writeRepo = new MinimalLockingWriteAheadLog<>(path, 256, serde, null);
+        final Collection<DummyRecord> initialRecs = writeRepo.recoverRecords();
+        assertTrue(initialRecs.isEmpty());
+
+        final DummyRecord record1 = new DummyRecord("1", UpdateType.CREATE);
+        writeRepo.update(Collections.singleton(record1), false);
+
+        for (int i=0; i < 8; i++) {
+            final DummyRecord r = new DummyRecord("1", UpdateType.UPDATE);
+            r.setProperty("i", String.valueOf(i));
+            writeRepo.update(Collections.singleton(r), false);
+        }
+
+        writeRepo.shutdown();
+
+        final WriteAheadRepository<DummyRecord> recoverRepo = new MinimalLockingWriteAheadLog<>(path, 6, serde, null);
+        final Collection<DummyRecord> records = recoverRepo.recoverRecords();
+        final List<DummyRecord> list = new ArrayList<>(records);
+        assertEquals(1, list.size());
+
+        final DummyRecord recoveredRecord = list.get(0);
+        assertEquals("1", recoveredRecord.getId());
+        assertEquals("7",recoveredRecord.getProperty("i"));
+    }
+
+
     private static class InsertThread extends Thread {
 
         private final List<List<DummyRecord>> records;

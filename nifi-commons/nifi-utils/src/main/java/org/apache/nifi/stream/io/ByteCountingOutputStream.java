@@ -63,4 +63,8 @@ public class ByteCountingOutputStream extends OutputStream {
     public void close() throws IOException {
         out.close();
     }
+
+    public OutputStream getWrappedStream() {
+        return out;
+    }
 }

@@ -201,4 +201,31 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     public void setValidationErrors(Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
+
+    @Override
+    public int hashCode() {
+        final String id = getId();
+        return 37 + 3 * ((id == null) ? 0 : id.hashCode());
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+
+        if (obj.getClass() != ControllerServiceDTO.class) {
+            return false;
+        }
+
+        final ControllerServiceDTO other = (ControllerServiceDTO) obj;
+        if (getId() == null || other.getId() == null) {
+            return false;
+        }
+
+        return getId().equals(other.getId());
+    }
 }

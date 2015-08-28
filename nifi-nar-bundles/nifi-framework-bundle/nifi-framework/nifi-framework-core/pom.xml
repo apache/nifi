@@ -135,6 +135,7 @@
                         <exclude>src/test/resources/conf/0bytes.xml</exclude>
                         <exclude>src/test/resources/conf/termination-only.xml</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
+                        <exclude>src/test/resources/bye.txt</exclude>
                         <exclude>src/test/resources/old-swap-file.swap</exclude>
                     </excludes>
                 </configuration>

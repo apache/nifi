@@ -136,6 +136,10 @@ public class NiFi {
         } else {
             nifiServer.start();
 
+            if (bootstrapListener != null) {
+                bootstrapListener.sendStartedStatus(true);
+            }
+
             final long endTime = System.nanoTime();
             logger.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
         }

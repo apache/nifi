@@ -61,7 +61,9 @@ import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.QueueProvider;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.BufferedOutputStream;
@@ -83,7 +85,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap");
     private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap\\.part");
 
-    public static final int SWAP_ENCODING_VERSION = 6;
+    public static final int SWAP_ENCODING_VERSION = 7;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
 
     private final ScheduledExecutorService swapQueueIdentifierExecutor;
@@ -98,7 +100,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private final long swapOutMillis;
     private final int swapOutThreadCount;
 
-    private ContentClaimManager claimManager; // effectively final
+    private ResourceClaimManager claimManager; // effectively final
 
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
 
@@ -138,7 +140,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    public synchronized void start(final FlowFileRepository flowFileRepository, final QueueProvider connectionProvider, final ContentClaimManager claimManager, final EventReporter eventReporter) {
+    public synchronized void start(final FlowFileRepository flowFileRepository, final QueueProvider connectionProvider, final ResourceClaimManager claimManager, final EventReporter eventReporter) {
         this.claimManager = claimManager;
         this.flowFileRepository = flowFileRepository;
         this.eventReporter = eventReporter;
@@ -184,11 +186,14 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                     out.writeBoolean(false);
                 } else {
                     out.writeBoolean(true);
-                    out.writeUTF(claim.getId());
-                    out.writeUTF(claim.getContainer());
-                    out.writeUTF(claim.getSection());
+                    final ResourceClaim resourceClaim = claim.getResourceClaim();
+                    out.writeUTF(resourceClaim.getId());
+                    out.writeUTF(resourceClaim.getContainer());
+                    out.writeUTF(resourceClaim.getSection());
+                    out.writeLong(claim.getOffset());
+                    out.writeLong(claim.getLength());
                     out.writeLong(flowFile.getContentClaimOffset());
-                    out.writeBoolean(claim.isLossTolerant());
+                    out.writeBoolean(resourceClaim.isLossTolerant());
                 }
 
                 final Map<String, String> attributes = flowFile.getAttributes();
@@ -226,7 +231,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-    static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final FlowFileQueue queue, final ContentClaimManager claimManager) throws IOException {
+    static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final FlowFileQueue queue, final ResourceClaimManager claimManager) throws IOException {
         final int swapEncodingVersion = in.readInt();
         if (swapEncodingVersion > SWAP_ENCODING_VERSION) {
             throw new IOException("Cannot swap FlowFiles in from SwapFile because the encoding version is "
@@ -245,7 +250,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final int numFlowFiles, final FlowFileQueue queue,
-            final int serializationVersion, final boolean incrementContentClaims, final ContentClaimManager claimManager) throws IOException {
+            final int serializationVersion, final boolean incrementContentClaims, final ResourceClaimManager claimManager) throws IOException {
         final List<FlowFileRecord> flowFiles = new ArrayList<>();
         for (int i = 0; i < numFlowFiles; i++) {
             // legacy encoding had an "action" because it used to be couple with FlowFile Repository code
@@ -292,6 +297,17 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
                 final String container = in.readUTF();
                 final String section = in.readUTF();
+
+                final long resourceOffset;
+                final long resourceLength;
+                if (serializationVersion < 6) {
+                    resourceOffset = 0L;
+                    resourceLength = -1L;
+                } else {
+                    resourceOffset = in.readLong();
+                    resourceLength = in.readLong();
+                }
+
                 final long claimOffset = in.readLong();
 
                 final boolean lossTolerant;
@@ -301,10 +317,12 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                     lossTolerant = false;
                 }
 
-                final ContentClaim claim = claimManager.newContentClaim(container, section, claimId, lossTolerant);
+                final ResourceClaim resourceClaim = claimManager.newResourceClaim(container, section, claimId, lossTolerant);
+                final StandardContentClaim claim = new StandardContentClaim(resourceClaim, resourceOffset);
+                claim.setLength(resourceLength);
 
                 if (incrementContentClaims) {
-                    claimManager.incrementClaimantCount(claim);
+                    claimManager.incrementClaimantCount(resourceClaim);
                 }
 
                 ffBuilder.contentClaim(claim);
@@ -353,16 +371,16 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             throw new EOFException();
         }
         if (firstValue == 0xff && secondValue == 0xff) {
-            int ch1 = in.read();
-            int ch2 = in.read();
-            int ch3 = in.read();
-            int ch4 = in.read();
+            final int ch1 = in.read();
+            final int ch2 = in.read();
+            final int ch3 = in.read();
+            final int ch4 = in.read();
             if ((ch1 | ch2 | ch3 | ch4) < 0) {
                 throw new EOFException();
             }
-            return ((ch1 << 24) + (ch2 << 16) + (ch3 << 8) + (ch4));
+            return (ch1 << 24) + (ch2 << 16) + (ch3 << 8) + ch4;
         } else {
-            return ((firstValue << 8) + (secondValue));
+            return (firstValue << 8) + secondValue;
         }
     }
 
@@ -422,7 +440,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                 final FlowFileQueue flowFileQueue = entry.getKey();
 
                 // if queue is more than 60% of its swap threshold, don't swap flowfiles in
-                if (flowFileQueue.unswappedSize() >= ((float) flowFileQueue.getSwapThreshold() * 0.6F)) {
+                if (flowFileQueue.unswappedSize() >= flowFileQueue.getSwapThreshold() * 0.6F) {
                     continue;
                 }
 
@@ -432,7 +450,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                         final Queue<File> queue = queueLockWrapper.getQueue();
 
                         // Swap FlowFiles in until we hit 90% of the threshold, or until we're out of files.
-                        while (flowFileQueue.unswappedSize() < ((float) flowFileQueue.getSwapThreshold() * 0.9F)) {
+                        while (flowFileQueue.unswappedSize() < flowFileQueue.getSwapThreshold() * 0.9F) {
                             File swapFile = null;
                             try {
                                 swapFile = queue.poll();
@@ -545,7 +563,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                         QueueLockWrapper swapQueue = swapMap.get(flowFileQueue);
                         if (swapQueue == null) {
                             swapQueue = new QueueLockWrapper(new LinkedBlockingQueue<File>());
-                            QueueLockWrapper oldQueue = swapMap.putIfAbsent(flowFileQueue, swapQueue);
+                            final QueueLockWrapper oldQueue = swapMap.putIfAbsent(flowFileQueue, swapQueue);
                             if (oldQueue != null) {
                                 swapQueue = oldQueue;
                             }
@@ -567,7 +585,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
      * @return the largest FlowFile ID that was recovered
      */
     @Override
-    public long recoverSwappedFlowFiles(final QueueProvider queueProvider, final ContentClaimManager claimManager) {
+    public long recoverSwappedFlowFiles(final QueueProvider queueProvider, final ResourceClaimManager claimManager) {
         final File[] swapFiles = storageDirectory.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(final File dir, final String name) {
@@ -680,6 +698,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
+    @Override
     public void shutdown() {
         swapQueueIdentifierExecutor.shutdownNow();
         swapInExecutor.shutdownNow();

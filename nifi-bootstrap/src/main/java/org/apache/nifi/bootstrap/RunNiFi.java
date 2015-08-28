@@ -92,7 +92,9 @@ public class RunNiFi {
     private volatile long nifiPid = -1L;
     private volatile String secretKey;
     private volatile ShutdownHook shutdownHook;
+    private volatile boolean nifiStarted;
 
+    private final Lock startedLock = new ReentrantLock();
     private final Lock lock = new ReentrantLock();
     private final Condition startupCondition = lock.newCondition();
 
@@ -231,6 +233,16 @@ public class RunNiFi {
         logger.debug("Status File: {}", statusFile);
 
         return statusFile;
+    }
+
+    public File getLockFile(final Logger logger) {
+        final File confDir = bootstrapConfigFile.getParentFile();
+        final File nifiHome = confDir.getParentFile();
+        final File bin = new File(nifiHome, "bin");
+        final File lockFile = new File(bin, "nifi.lock");
+
+        logger.debug("Lock File: {}", lockFile);
+        return lockFile;
     }
 
     private Properties loadProperties(final Logger logger) throws IOException {
@@ -496,13 +508,14 @@ public class RunNiFi {
             return;
         }
 
+        // indicate that a stop command is in progress
+        final File lockFile = getLockFile(logger);
+        if (!lockFile.exists()) {
+            lockFile.createNewFile();
+        }
+
         final Properties nifiProps = loadProperties(logger);
         final String secretKey = nifiProps.getProperty("secret.key");
-
-        final File statusFile = getStatusFile(logger);
-        if (statusFile.exists() && !statusFile.delete()) {
-            logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
-        }
 
         try (final Socket socket = new Socket()) {
             logger.debug("Connecting to NiFi instance");
@@ -568,6 +581,10 @@ public class RunNiFi {
                         }
                     }
 
+                    final File statusFile = getStatusFile(logger);
+                    if (statusFile.exists() && !statusFile.delete()) {
+                        logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
+                    }
                     logger.info("NiFi has finished shutting down.");
                 }
             } else {
@@ -575,6 +592,10 @@ public class RunNiFi {
             }
         } catch (final IOException ioe) {
             logger.error("Failed to send shutdown command to port {} due to {}", new Object[]{port, ioe.toString(), ioe});
+        } finally {
+            if (lockFile.exists() && !lockFile.delete()) {
+                logger.error("Failed to delete lock file {}; this file should be cleaned up manually", lockFile);
+            }
         }
     }
 
@@ -621,6 +642,11 @@ public class RunNiFi {
         if (port != null) {
             cmdLogger.info("Apache NiFi is already running, listening to Bootstrap on port " + port);
             return;
+        }
+
+        final File prevLockFile = getLockFile(cmdLogger);
+        if (prevLockFile.exists() && !prevLockFile.delete()){
+            cmdLogger.warn("Failed to delete previous lock file {}; this file should be cleaned up manually", prevLockFile);
         }
 
         final ProcessBuilder builder = new ProcessBuilder();
@@ -800,8 +826,22 @@ public class RunNiFi {
                 if (autoRestartNiFi) {
                     final File statusFile = getStatusFile(defaultLogger);
                     if (!statusFile.exists()) {
-                        defaultLogger.debug("Status File no longer exists. Will not restart NiFi");
+                        defaultLogger.info("Status File no longer exists. Will not restart NiFi");
                         return;
+                    }
+
+                    final File  lockFile = getLockFile(defaultLogger);
+                    if (lockFile.exists()) {
+                        defaultLogger.info("A shutdown was initiated. Will not restart NiFi");
+                        return;
+                    }
+
+                    final boolean previouslyStarted = getNifiStarted();
+                    if (!previouslyStarted) {
+                        defaultLogger.info("NiFi never started. Will not restart NiFi");
+                        return;
+                    } else {
+                        setNiFiStarted(false);
                     }
 
                     defaultLogger.warn("Apache NiFi appears to have died. Restarting...");
@@ -972,6 +1012,24 @@ public class RunNiFi {
 
     int getNiFiCommandControlPort() {
         return this.ccPort;
+    }
+
+    void setNiFiStarted(final boolean nifiStarted) {
+        startedLock.lock();
+        try {
+            this.nifiStarted = nifiStarted;
+        } finally {
+            startedLock.unlock();
+        }
+    }
+
+    boolean getNifiStarted() {
+        startedLock.lock();
+        try {
+            return nifiStarted;
+        } finally {
+            startedLock.unlock();
+        }
     }
 
     private static class Status {

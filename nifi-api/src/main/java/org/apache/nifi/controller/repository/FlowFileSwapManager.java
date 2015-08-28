@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 
 /**
@@ -38,7 +38,7 @@ public interface FlowFileSwapManager {
      * @param reporter the EventReporter that can be used for notifying users of
      * important events
      */
-    void start(FlowFileRepository flowFileRepository, QueueProvider queueProvider, ContentClaimManager claimManager, EventReporter reporter);
+    void start(FlowFileRepository flowFileRepository, QueueProvider queueProvider, ResourceClaimManager claimManager, EventReporter reporter);
 
     /**
      * Shuts down the manager
@@ -59,5 +59,5 @@ public interface FlowFileSwapManager {
      * @param claimManager manager
      * @return how many flowfiles have been recovered
      */
-    long recoverSwappedFlowFiles(QueueProvider connectionProvider, ContentClaimManager claimManager);
+    long recoverSwappedFlowFiles(QueueProvider connectionProvider, ResourceClaimManager claimManager);
 }

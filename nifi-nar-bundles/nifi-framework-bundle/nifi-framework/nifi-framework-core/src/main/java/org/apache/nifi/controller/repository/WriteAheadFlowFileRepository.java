@@ -43,11 +43,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.controller.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.MinimalLockingWriteAheadLog;
@@ -86,7 +87,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     // effectively final
     private WriteAheadRepository<RepositoryRecord> wal;
     private WriteAheadRecordSerde serde;
-    private ContentClaimManager claimManager;
+    private ResourceClaimManager claimManager;
 
     // WALI Provides the ability to register callbacks for when a Partition or the entire Repository is sync'ed with the underlying disk.
     // We keep track of this because we need to ensure that the ContentClaims are destroyed only after the FlowFile Repository has been
@@ -125,7 +126,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     @Override
-    public void initialize(final ContentClaimManager claimManager) throws IOException {
+    public void initialize(final ResourceClaimManager claimManager) throws IOException {
         this.claimManager = claimManager;
 
         Files.createDirectories(flowFileRepositoryPath);
@@ -168,6 +169,32 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         updateRepository(records, alwaysSync);
     }
 
+    private void markDestructable(final ContentClaim contentClaim) {
+        if (contentClaim == null) {
+            return;
+        }
+
+        final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+        if (resourceClaim == null) {
+            return;
+        }
+
+        claimManager.markDestructable(resourceClaim);
+    }
+
+    private int getClaimantCount(final ContentClaim claim) {
+        if (claim == null) {
+            return 0;
+        }
+
+        final ResourceClaim resourceClaim = claim.getResourceClaim();
+        if (resourceClaim == null) {
+            return 0;
+        }
+
+        return claimManager.getClaimantCount(resourceClaim);
+    }
+
     private void updateRepository(final Collection<RepositoryRecord> records, final boolean sync) throws IOException {
         for (final RepositoryRecord record : records) {
             if (record.getType() != RepositoryRecordType.DELETE && record.getType() != RepositoryRecordType.CONTENTMISSING && record.getDestination() == null) {
@@ -190,17 +217,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         for (final RepositoryRecord record : records) {
             if (record.getType() == RepositoryRecordType.DELETE) {
                 // For any DELETE record that we have, if current claim's claimant count <= 0, mark it as destructable
-                if (record.getCurrentClaim() != null && claimManager.getClaimantCount(record.getCurrentClaim()) <= 0) {
+                if (record.getCurrentClaim() != null && getClaimantCount(record.getCurrentClaim()) <= 0) {
                     claimsToAdd.add(record.getCurrentClaim());
                 }
 
                 // If the original claim is different than the current claim and the original claim has a claimant count <= 0, mark it as destructable.
-                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && claimManager.getClaimantCount(record.getOriginalClaim()) <= 0) {
+                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && getClaimantCount(record.getOriginalClaim()) <= 0) {
                     claimsToAdd.add(record.getOriginalClaim());
                 }
             } else if (record.getType() == RepositoryRecordType.UPDATE) {
                 // if we have an update, and the original is no longer needed, mark original as destructable
-                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && claimManager.getClaimantCount(record.getOriginalClaim()) <= 0) {
+                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && getClaimantCount(record.getOriginalClaim()) <= 0) {
                     claimsToAdd.add(record.getOriginalClaim());
                 }
             }
@@ -212,7 +239,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             BlockingQueue<ContentClaim> claimQueue = claimsAwaitingDestruction.get(partitionKey);
             if (claimQueue == null) {
                 claimQueue = new LinkedBlockingQueue<>();
-                BlockingQueue<ContentClaim> existingClaimQueue = claimsAwaitingDestruction.putIfAbsent(partitionKey, claimQueue);
+                final BlockingQueue<ContentClaim> existingClaimQueue = claimsAwaitingDestruction.putIfAbsent(partitionKey, claimQueue);
                 if (existingClaimQueue != null) {
                     claimQueue = existingClaimQueue;
                 }
@@ -222,9 +249,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
     }
 
-    private void markDestructable(final ContentClaim claim) {
-        claimManager.markDestructable(claim);
-    }
 
     @Override
     public void onSync(final int partitionIndex) {
@@ -307,7 +331,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         for (final RepositoryRecord record : recordList) {
             final ContentClaim claim = record.getCurrentClaim();
             if (claim != null) {
-                claimManager.incrementClaimantCount(claim);
+                claimManager.incrementClaimantCount(claim.getResourceClaim());
             }
         }
 
@@ -339,7 +363,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                     final long start = System.nanoTime();
                     final int numRecordsCheckpointed = checkpoint();
                     final long end = System.nanoTime();
-                    final long millis = TimeUnit.MILLISECONDS.convert((end - start), TimeUnit.NANOSECONDS);
+                    final long millis = TimeUnit.MILLISECONDS.convert(end - start, TimeUnit.NANOSECONDS);
                     logger.info("Successfully checkpointed FlowFile Repository with {} records in {} milliseconds",
                             new Object[]{numRecordsCheckpointed, millis});
                 } catch (final IOException e) {
@@ -378,9 +402,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         private Map<String, FlowFileQueue> flowFileQueueMap = null;
         private long recordsRestored = 0L;
-        private final ContentClaimManager claimManager;
+        private final ResourceClaimManager claimManager;
 
-        public WriteAheadRecordSerde(final ContentClaimManager claimManager) {
+        public WriteAheadRecordSerde(final ResourceClaimManager claimManager) {
             this.claimManager = claimManager;
         }
 
@@ -518,7 +542,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             }
 
             final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
-            RepositoryRecord record = currentRecordStates.get(recordId);
+            final RepositoryRecord record = currentRecordStates.get(recordId);
             ffBuilder.id(recordId);
             if (record != null) {
                 ffBuilder.fromFlowFile(record.getCurrent());
@@ -705,11 +729,16 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 out.write(0);
             } else {
                 out.write(1);
-                writeString(claim.getId(), out);
-                writeString(claim.getContainer(), out);
-                writeString(claim.getSection(), out);
+
+                final ResourceClaim resourceClaim = claim.getResourceClaim();
+                writeString(resourceClaim.getId(), out);
+                writeString(resourceClaim.getContainer(), out);
+                writeString(resourceClaim.getSection(), out);
+                out.writeLong(claim.getOffset());
+                out.writeLong(claim.getLength());
+
                 out.writeLong(offset);
-                out.writeBoolean(claim.isLossTolerant());
+                out.writeBoolean(resourceClaim.isLossTolerant());
             }
         }
 
@@ -726,6 +755,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
                 final String container = readString(in);
                 final String section = readString(in);
+
+                final long resourceOffset;
+                final long resourceLength;
+                if (serializationVersion < 7) {
+                    resourceOffset = 0L;
+                    resourceLength = -1L;
+                } else {
+                    resourceOffset = in.readLong();
+                    resourceLength = in.readLong();
+                }
+
                 final long claimOffset = in.readLong();
 
                 final boolean lossTolerant;
@@ -735,8 +775,11 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                     lossTolerant = false;
                 }
 
-                final ContentClaim existingClaim = claimManager.newContentClaim(container, section, claimId, lossTolerant);
-                ffBuilder.contentClaim(existingClaim);
+                final ResourceClaim resourceClaim = claimManager.newResourceClaim(container, section, claimId, lossTolerant);
+                final StandardContentClaim contentClaim = new StandardContentClaim(resourceClaim, resourceOffset);
+                contentClaim.setLength(resourceLength);
+
+                ffBuilder.contentClaim(contentClaim);
                 ffBuilder.contentClaimOffset(claimOffset);
             } else if (claimExists == -1) {
                 throw new EOFException();
@@ -785,16 +828,16 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 throw new EOFException();
             }
             if (firstValue == 0xff && secondValue == 0xff) {
-                int ch1 = in.read();
-                int ch2 = in.read();
-                int ch3 = in.read();
-                int ch4 = in.read();
+                final int ch1 = in.read();
+                final int ch2 = in.read();
+                final int ch3 = in.read();
+                final int ch4 = in.read();
                 if ((ch1 | ch2 | ch3 | ch4) < 0) {
                     throw new EOFException();
                 }
-                return ((ch1 << 24) + (ch2 << 16) + (ch3 << 8) + (ch4));
+                return (ch1 << 24) + (ch2 << 16) + (ch3 << 8) + ch4;
             } else {
-                return ((firstValue << 8) + (secondValue));
+                return (firstValue << 8) + secondValue;
             }
         }
 
@@ -834,7 +877,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         @Override
         public int getVersion() {
-            return 6;
+            return 7;
         }
 
         @Override
