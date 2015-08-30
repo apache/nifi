@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -720,21 +721,69 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         public void rollover() throws IOException {
             lock.lock();
             try {
-                final DataOutputStream out = dataOut;
+                // Note that here we are closing fileOut and NOT dataOut.
+                // This is very much intentional, not an oversight. This is done because of
+                // the way that the OutputStreams are structured. dataOut wraps a BufferedOutputStream,
+                // which then wraps the FileOutputStream. If we close 'dataOut', then this will call
+                // the flush() method of BufferedOutputStream. Under normal conditions, this is fine.
+                // However, there is a very important corner case to consider:
+                //
+                //      If we are writing to the DataOutputStream in the update() method and that
+                //      call to write() then results in the BufferedOutputStream calling flushBuffer() -
+                //      or if we finish the call to update() and call flush() ourselves - it is possible
+                //      that the internal buffer of the BufferedOutputStream can get partially written to
+                //      to the FileOutputStream and then an IOException occurs. If this occurs, we have
+                //      written a partial record to disk. This still is okay, as we have logic to handle
+                //      the condition where we have a partial record and then an unexpected End-of-File.
+                //      But if we then call close() on 'dataOut', this will call the flush() method of the
+                //      underlying BufferedOutputStream. As a result, we will end up again writing the internal
+                //      buffer of the BufferedOutputStream to the underlying file. At this point, we are left
+                //      not with an unexpected/premature End-of-File but instead a bunch of seemingly random
+                //      bytes that happened to be residing in that internal buffer, and this will result in
+                //      a corrupt and unrecoverable Write-Ahead Log.
+                //
+                // Additionally, we are okay not ever calling close on the wrapping BufferedOutputStream and
+                // DataOutputStream because they don't actually hold any resources that need to be reclaimed,
+                // and after each update to the Write-Ahead Log, we call flush() ourselves to ensure that we don't
+                // leave arbitrary data in the BufferedOutputStream that hasn't been flushed to the underlying
+                // FileOutputStream.
+                final OutputStream out = fileOut;
                 if (out != null) {
-                    out.close();
+                    try {
+                        out.close();
+                    } catch (final IOException ioe) {
+                        dataOut = null;
+                        fileOut = null;
+
+                        blackList();
+                        throw ioe;
+                    }
                 }
 
                 final Path editPath = getNewEditPath();
                 final FileOutputStream fos = new FileOutputStream(editPath.toFile());
-                final DataOutputStream outStream = new DataOutputStream(new BufferedOutputStream(fos));
-                outStream.writeUTF(MinimalLockingWriteAheadLog.class.getName());
-                outStream.writeInt(writeAheadLogVersion);
-                outStream.writeUTF(serde.getClass().getName());
-                outStream.writeInt(serde.getVersion());
-                outStream.flush();
-                dataOut = outStream;
-                fileOut = fos;
+                try {
+                    final DataOutputStream outStream = new DataOutputStream(new BufferedOutputStream(fos));
+                    outStream.writeUTF(MinimalLockingWriteAheadLog.class.getName());
+                    outStream.writeInt(writeAheadLogVersion);
+                    outStream.writeUTF(serde.getClass().getName());
+                    outStream.writeInt(serde.getVersion());
+                    outStream.flush();
+                    dataOut = outStream;
+                    fileOut = fos;
+                } catch (final IOException ioe) {
+                    logger.error("Failed to create new journal for {} due to {}", new Object[] {this, ioe.toString()}, ioe);
+                    try {
+                        fos.close();
+                    } catch (final IOException innerIOE) {
+                    }
+
+                    dataOut = null;
+                    fileOut = null;
+                    blackList();
+
+                    throw ioe;
+                }
 
                 currentJournalFilename = editPath.toFile().getName();
 

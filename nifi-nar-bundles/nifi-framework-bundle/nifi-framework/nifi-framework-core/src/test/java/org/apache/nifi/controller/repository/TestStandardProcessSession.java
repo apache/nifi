@@ -829,6 +829,106 @@ public class TestStandardProcessSession {
         }
     }
 
+
+    @Test
+    public void testCommitFailureRequeuesFlowFiles() {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+
+        .contentClaimOffset(0L).size(0L).build();
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile originalFlowFile = session.get();
+        assertTrue(flowFileQueue.isActiveQueueEmpty());
+        assertEquals(1, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+
+        final FlowFile modified = session.write(originalFlowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes());
+            }
+        });
+
+        session.transfer(modified);
+
+        // instruct flowfile repo to throw IOException on update
+        flowFileRepo.setFailOnUpdate(true);
+
+        try {
+            session.commit();
+            Assert.fail("Session commit completed, even though FlowFile Repo threw IOException");
+        } catch (final ProcessException pe) {
+            // expected behavior because FlowFile Repo will throw IOException
+        }
+
+        assertFalse(flowFileQueue.isActiveQueueEmpty());
+        assertEquals(1, flowFileQueue.size().getObjectCount());
+        assertEquals(0, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void testRollbackAfterCheckpoint() {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+
+        .contentClaimOffset(0L).size(0L).build();
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile originalFlowFile = session.get();
+        assertTrue(flowFileQueue.isActiveQueueEmpty());
+        assertEquals(1, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+
+        final FlowFile modified = session.write(originalFlowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes());
+            }
+        });
+
+        session.transfer(modified);
+
+        session.checkpoint();
+        assertTrue(flowFileQueue.isActiveQueueEmpty());
+
+        session.rollback();
+        assertTrue(flowFileQueue.isActiveQueueEmpty());
+        assertEquals(0, flowFileQueue.size().getObjectCount());
+        assertEquals(0, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+
+        session.rollback();
+
+        flowFileQueue.put(flowFileRecord);
+        assertFalse(flowFileQueue.isActiveQueueEmpty());
+
+        final FlowFile originalRound2 = session.get();
+        assertTrue(flowFileQueue.isActiveQueueEmpty());
+        assertEquals(1, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+
+        final FlowFile modifiedRound2 = session.write(originalRound2, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes());
+            }
+        });
+
+        session.transfer(modifiedRound2);
+
+        session.checkpoint();
+        assertTrue(flowFileQueue.isActiveQueueEmpty());
+        assertEquals(1, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+
+        session.commit();
+
+        // FlowFile transferred back to queue
+        assertEquals(1, flowFileQueue.size().getObjectCount());
+        assertEquals(0, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+        assertFalse(flowFileQueue.isActiveQueueEmpty());
+    }
+
     @Test
     public void testCreateEmitted() throws IOException {
         final FlowFile newFlowFile = session.create();
@@ -910,8 +1010,12 @@ public class TestStandardProcessSession {
     }
 
     private static class MockFlowFileRepository implements FlowFileRepository {
-
+        private boolean failOnUpdate = false;
         private final AtomicLong idGenerator = new AtomicLong(0L);
+
+        public void setFailOnUpdate(final boolean fail) {
+            this.failOnUpdate = fail;
+        }
 
         @Override
         public void close() throws IOException {
@@ -929,6 +1033,9 @@ public class TestStandardProcessSession {
 
         @Override
         public void updateRepository(Collection<RepositoryRecord> records) throws IOException {
+            if (failOnUpdate) {
+                throw new IOException("FlowFile Repository told to fail on update for unit test");
+            }
         }
 
         @Override

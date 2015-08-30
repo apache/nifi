@@ -32,11 +32,14 @@ import org.apache.nifi.controller.scheduling.ProcessContextFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.util.FormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This task runs through all Connectable Components and goes through its incoming queues, polling for FlowFiles and accepting none. This causes the desired side effect of expiring old FlowFiles.
  */
 public class ExpireFlowFiles implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(ExpireFlowFiles.class);
 
     private final FlowController flowController;
     private final ProcessContextFactory contextFactory;
@@ -49,7 +52,11 @@ public class ExpireFlowFiles implements Runnable {
     @Override
     public void run() {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        expireFlowFiles(rootGroup);
+        try {
+            expireFlowFiles(rootGroup);
+        } catch (final Exception e) {
+            logger.error("Failed to expire FlowFiles due to {}", e.toString(), e);
+        }
     }
 
     private StandardProcessSession createSession(final Connectable connectable) {
