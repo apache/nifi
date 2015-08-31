@@ -16,21 +16,19 @@
  */
 package org.apache.nifi.processors.avro;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.avro.Schema;
-import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
-import org.apache.nifi.processors.avro.ConvertAvroToJSON;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 public class TestConvertAvroToJSON {
 
@@ -44,7 +42,7 @@ public class TestConvertAvroToJSON {
         user1.put("favorite_number", 256);
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
-        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, datumWriter, user1);
+        final ByteArrayOutputStream out1 = AvroTestUtil.serializeAvroRecord(schema, datumWriter, user1);
         runner.enqueue(out1.toByteArray());
 
         runner.run();
@@ -69,7 +67,7 @@ public class TestConvertAvroToJSON {
         user2.put("favorite_color", "red");
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
-        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, datumWriter, user1, user2);
+        final ByteArrayOutputStream out1 = AvroTestUtil.serializeAvroRecord(schema, datumWriter, user1, user2);
         runner.enqueue(out1.toByteArray());
 
         runner.run();
@@ -85,18 +83,6 @@ public class TestConvertAvroToJSON {
         runner.enqueue("hello".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(ConvertAvroToJSON.REL_FAILURE, 1);
-    }
-
-    private ByteArrayOutputStream serializeAvroRecord(final Schema schema, final DatumWriter<GenericRecord> datumWriter, final GenericRecord... users) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<GenericRecord>(datumWriter);
-        dataFileWriter.create(schema, out);
-        for (final GenericRecord user : users) {
-            dataFileWriter.append(user);
-        }
-
-        dataFileWriter.close();
-        return out;
     }
 
 }
