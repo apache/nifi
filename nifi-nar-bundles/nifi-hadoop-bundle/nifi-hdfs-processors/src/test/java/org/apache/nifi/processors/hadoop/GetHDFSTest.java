@@ -33,8 +33,6 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.GzipCodec;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -108,19 +106,6 @@ public class GetHDFSTest {
         for (ValidationResult vr : results) {
             Assert.assertTrue(vr.toString().contains("is invalid because Minimum File Age cannot be greater than Maximum File Age"));
         }
-
-        results = new HashSet<>();
-        runner.setProperty(GetHDFS.DIRECTORY, "/target");
-        runner.setProperty(GetHDFS.COMPRESSION_CODEC, CompressionCodec.class.getName());
-        runner.enqueue(new byte[0]);
-        pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
-        }
-        Assert.assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("is invalid because Given value not found in allowed set"));
-        }
     }
 
     @Test
@@ -138,18 +123,56 @@ public class GetHDFSTest {
     }
 
     @Test
-    public void testGetFilesWithCompression() throws IOException {
+    public void testAutomaticDecompression() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(GetHDFS.class);
         runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
-        runner.setProperty(GetHDFS.COMPRESSION_CODEC, GzipCodec.class.getName());
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
         runner.run();
+
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
+
         MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).startsWith("randombytes-1.gz"));
+        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("randombytes-1"));
         InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1");
+        flowFile.assertContentEquals(expected);
+    }
+
+    @Test
+    public void testInferCompressionCodecDisabled() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(GetHDFS.class);
+        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.setProperty(GetHDFS.COMPRESSION_CODEC, "NONE");
+        runner.run();
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("randombytes-1.gz"));
+        InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1.gz");
+        flowFile.assertContentEquals(expected);
+    }
+
+    @Test
+    public void testFileExtensionNotACompressionCodec() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(GetHDFS.class);
+        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
+        runner.run();
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("13545423550275052.zip"));
+        InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
     }
 }
