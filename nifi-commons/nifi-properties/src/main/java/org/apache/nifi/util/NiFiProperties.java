@@ -803,8 +803,9 @@ public class NiFiProperties extends Properties {
     }
 
     public File getKerberosConfigurationFile() {
-        if (getProperty(KERBEROS_KRB5_FILE).trim().length() > 0) {
-            return new File(getProperty(KERBEROS_KRB5_FILE));
+        final String krb5File = getProperty(KERBEROS_KRB5_FILE);
+        if (krb5File != null && krb5File.trim().length() > 0) {
+            return new File(krb5File.trim());
         } else {
             return null;
         }
