@@ -71,6 +71,9 @@ public class ReplaceText extends AbstractProcessor {
     public static final String ENTIRE_TEXT = "Entire text";
     private final Pattern backReferencePattern = Pattern.compile("\\$(\\d+)");
     private static final byte[] ZERO_BYTE_BUFFER = new byte[0];
+    private static final String DEFAULT_REGEX = "(?s:^.*$)";
+    private static final String DEFAULT_REPLACEMENT_VALUE = "$1";
+
     // Properties
     public static final PropertyDescriptor REGEX = new PropertyDescriptor.Builder()
             .name("Regular Expression")
@@ -78,14 +81,14 @@ public class ReplaceText extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .expressionLanguageSupported(true)
-            .defaultValue("(.*)")
+            .defaultValue(DEFAULT_REGEX)
             .build();
     public static final PropertyDescriptor REPLACEMENT_VALUE = new PropertyDescriptor.Builder()
             .name("Replacement Value")
             .description("The value to replace the regular expression with. Back-references to Regular Expression capturing groups are supported, but "
                     + "back-references that reference capturing groups that do not exist in the regular expression will be treated as literal value.")
             .required(true)
-            .defaultValue("$1")
+            .defaultValue(DEFAULT_REPLACEMENT_VALUE)
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(true)
             .build();
@@ -166,7 +169,7 @@ public class ReplaceText extends AbstractProcessor {
         final ProcessorLog logger = getLogger();
         final String unsubstitutedRegex = context.getProperty(REGEX).getValue();
         String unsubstitutedReplacement = context.getProperty(REPLACEMENT_VALUE).getValue();
-        if (unsubstitutedRegex.equals("(.*)") && unsubstitutedReplacement.equals("$1")) {
+        if (unsubstitutedRegex.equals(DEFAULT_REGEX) && unsubstitutedReplacement.equals(DEFAULT_REPLACEMENT_VALUE)) {
             // This pattern says replace content with itself. We can highly optimize this process by simply transferring
             // all FlowFiles to the 'success' relationship
             session.transfer(flowFiles, REL_SUCCESS);
