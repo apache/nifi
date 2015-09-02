@@ -94,7 +94,7 @@ public class DeleteS3Object extends AbstractS3Processor {
         try {
           s3.getObjectMetadata(bucket, key);
         } catch (final AmazonServiceException ase) {
-            getLogger().error("Not found sucha a file and folder on Amazon S3 {}", new Object[]{flowFile, ase});
+            getLogger().error("Not found such a S3 object for {}; routing to not found", new Object[]{flowFile, ase});
             session.transfer(flowFile, REL_NOT_FOUND);
             return;
         }
