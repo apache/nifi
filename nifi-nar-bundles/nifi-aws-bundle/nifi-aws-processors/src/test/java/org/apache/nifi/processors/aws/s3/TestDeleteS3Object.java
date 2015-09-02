@@ -22,15 +22,21 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.*;
-
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.amazonaws.services.s3.model.DeleteBucketRequest;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
@@ -122,7 +128,14 @@ public class TestDeleteS3Object {
         runner.enqueue(new byte[0], attrs);
         runner.run(1);
 
-        runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_NOT_FOUND, 1);
+    }
+
+    @Test
+    public void testGetRelationships() {
+        DeleteS3Object deleter = new DeleteS3Object();
+        Set<Relationship> relationships = deleter.getRelationships();
+        assertEquals(relationships.size(), 3);
     }
 
     // Uploads a test file
