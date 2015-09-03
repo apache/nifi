@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.avro.ConvertAvroToJSON
 org.apache.nifi.processors.avro.ExtractAvroMetadata
+org.apache.nifi.processors.avro.SplitAvro
