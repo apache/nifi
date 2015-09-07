@@ -56,7 +56,7 @@ public class TestDeleteS3Object {
             CreateBucketRequest request = new CreateBucketRequest(TEST_BUCKET, TEST_REGION);
             client.createBucket(request);
         } catch (final AmazonS3Exception e) {
-            System.out.println(TEST_BUCKET + " already exists.");
+            System.out.println("Can't create the key " + TEST_BUCKET + ":" + e.toString());
         } catch (final IOException e) {
             System.out.println(CREDENTIALS_FILE + " doesn't exist.");
         }
