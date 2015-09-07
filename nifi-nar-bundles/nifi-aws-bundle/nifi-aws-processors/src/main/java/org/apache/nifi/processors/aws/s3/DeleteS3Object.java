@@ -65,11 +65,6 @@ public class DeleteS3Object extends AbstractS3Processor {
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_NOT_FOUND)));
 
     @Override
-    public Set<Relationship> getRelationships() {
-        return relationships;
-    }
-
-    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
@@ -88,16 +83,6 @@ public class DeleteS3Object extends AbstractS3Processor {
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 
         final AmazonS3 s3 = getClient();
-
-        // Checks if the key exists or not
-        // If there is no such a key, then throws a exception
-        try {
-          s3.getObjectMetadata(bucket, key);
-        } catch (final AmazonServiceException ase) {
-            getLogger().error("Not found such a S3 object for {}; routing to not found", new Object[]{flowFile, ase});
-            session.transfer(flowFile, REL_NOT_FOUND);
-            return;
-        }
 
         // Deletes a key on Amazon S3
         try {
