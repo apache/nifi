@@ -274,8 +274,13 @@ public class StandardRecordWriter implements RecordWriter {
         lock();
         try {
             try {
-                out.flush();
-                out.close();
+                if (out != null) {
+                    try {
+                        out.flush();
+                    } finally {
+                        out.close();
+                    }
+                }
             } finally {
                 rawOutStream.close();
 

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ReplaceText;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -386,4 +385,41 @@ public class TestReplaceText {
         out.assertContentEquals("{ abc.txt }");
     }
 
+    @Test
+    public void testDefaultReplacement() throws Exception {
+        final String defaultValue = "default-replacement-value";
+
+        // leave the default regex settings
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, defaultValue);
+
+        final Map<String, String> attributes = new HashMap<>();
+        runner.enqueue("original-text".getBytes(StandardCharsets.UTF_8), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(defaultValue);
+    }
+
+    @Test
+    public void testDefaultMultilineReplacement() throws Exception {
+        final String defaultValue = "default-replacement-value";
+
+        // leave the default regex settings
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, defaultValue);
+
+        final Map<String, String> attributes = new HashMap<>();
+        runner.enqueue(("original-text-line-1" + System.lineSeparator() + "original-text-line-2").getBytes(StandardCharsets.UTF_8), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(defaultValue);
+    }
 }

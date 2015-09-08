@@ -170,18 +170,7 @@ public class NiFiReceiver extends Receiver<NiFiDataPacket> {
                             StreamUtils.fillBuffer(inStream, data);
 
                             final Map<String, String> attributes = dataPacket.getAttributes();
-                            final NiFiDataPacket NiFiDataPacket = new NiFiDataPacket() {
-                                @Override
-                                public byte[] getContent() {
-                                    return data;
-                                }
-
-                                @Override
-                                public Map<String, String> getAttributes() {
-                                    return attributes;
-                                }
-                            };
-
+                            final NiFiDataPacket NiFiDataPacket = new StandardNiFiDataPacket(data, attributes);
                             dataPackets.add(NiFiDataPacket);
                             dataPacket = transaction.receive();
                         } while (dataPacket != null);
