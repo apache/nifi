@@ -38,7 +38,8 @@ a local file system, the FlowFile would have an attribute called `filename` that
 reflected the name of the file on the file system. Additionally, the FlowFile will
 have a `path` attribute that reflects the directory on the file system that this
 file lived in. The FlowFile will also have an attribute named `uuid`, which is a
-unique identifier for this FlowFile.
+unique identifier for this FlowFile. For complete listing of the core attributes
+check out the FlowFile section of the link:developer-guide.html#flow[Developer's Guide]
 
 However, placing these attributes on a FlowFile do not provide much benefit
 if the user is unable to make use of them. The NiFi Expression Language provides
