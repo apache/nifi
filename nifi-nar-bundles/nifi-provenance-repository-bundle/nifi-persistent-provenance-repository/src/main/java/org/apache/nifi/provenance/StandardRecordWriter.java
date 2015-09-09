@@ -67,6 +67,191 @@ public class StandardRecordWriter implements RecordWriter {
         this.tocWriter = writer;
     }
 
+    @Override
+    public synchronized File getFile() {
+        return file;
+    }
+
+    @Override
+    public synchronized void writeHeader(final long firstEventId) throws IOException {
+        if (isDirty()) {
+            throw new IOException("Cannot update Provenance Repository because this Record Writer has already failed to write to the Repository");
+        }
+
+        try {
+            lastBlockOffset = rawOutStream.getBytesWritten();
+            resetWriteStream(firstEventId);
+
+            out.writeUTF(PersistentProvenanceRepository.class.getName());
+            out.writeInt(PersistentProvenanceRepository.SERIALIZATION_VERSION);
+            out.flush();
+        } catch (final IOException ioe) {
+            markDirty();
+            throw ioe;
+        }
+    }
+
+
+    /**
+     * Resets the streams to prepare for a new block
+     * @param eventId the first id that will be written to the new block
+     * @throws IOException if unable to flush/close the current streams properly
+     */
+    private void resetWriteStream(final long eventId) throws IOException {
+        try {
+            if (out != null) {
+                out.flush();
+            }
+
+            final long byteOffset = (byteCountingOut == null) ? rawOutStream.getBytesWritten() : byteCountingOut.getBytesWritten();
+
+            final OutputStream writableStream;
+            if ( compressed ) {
+                // because of the way that GZIPOutputStream works, we need to call close() on it in order for it
+                // to write its trailing bytes. But we don't want to close the underlying OutputStream, so we wrap
+                // the underlying OutputStream in a NonCloseableOutputStream
+                // We don't have to check if the writer is dirty because we will have already checked before calling this method.
+                if ( out != null ) {
+                    out.close();
+                }
+
+                if ( tocWriter != null ) {
+                    tocWriter.addBlockOffset(rawOutStream.getBytesWritten(), eventId);
+                }
+
+                writableStream = new BufferedOutputStream(new GZIPOutputStream(new NonCloseableOutputStream(rawOutStream), 1), 65536);
+            } else {
+                if ( tocWriter != null ) {
+                    tocWriter.addBlockOffset(rawOutStream.getBytesWritten(), eventId);
+                }
+
+                writableStream = new BufferedOutputStream(rawOutStream, 65536);
+            }
+
+            this.byteCountingOut = new ByteCountingOutputStream(writableStream, byteOffset);
+            this.out = new DataOutputStream(byteCountingOut);
+            dirtyFlag.set(false);
+        } catch (final IOException ioe) {
+            markDirty();
+            throw ioe;
+        }
+    }
+
+    @Override
+    public synchronized long writeRecord(final ProvenanceEventRecord record, final long recordIdentifier) throws IOException {
+        if (isDirty()) {
+            throw new IOException("Cannot update Provenance Repository because this Record Writer has already failed to write to the Repository");
+        }
+
+        try {
+            final ProvenanceEventType recordType = record.getEventType();
+            final long startBytes = byteCountingOut.getBytesWritten();
+
+            // add a new block to the TOC if needed.
+            if ( tocWriter != null && (startBytes - lastBlockOffset >= uncompressedBlockSize) ) {
+                lastBlockOffset = startBytes;
+
+                if ( compressed ) {
+                    // because of the way that GZIPOutputStream works, we need to call close() on it in order for it
+                    // to write its trailing bytes. But we don't want to close the underlying OutputStream, so we wrap
+                    // the underlying OutputStream in a NonCloseableOutputStream
+                    resetWriteStream(recordIdentifier);
+                }
+            }
+
+            out.writeLong(recordIdentifier);
+            out.writeUTF(record.getEventType().name());
+            out.writeLong(record.getEventTime());
+            out.writeLong(record.getFlowFileEntryDate());
+            out.writeLong(record.getEventDuration());
+
+            writeUUIDs(out, record.getLineageIdentifiers());
+            out.writeLong(record.getLineageStartDate());
+
+            writeNullableString(out, record.getComponentId());
+            writeNullableString(out, record.getComponentType());
+            writeUUID(out, record.getFlowFileUuid());
+            writeNullableString(out, record.getDetails());
+
+            // Write FlowFile attributes
+            final Map<String, String> attrs = record.getPreviousAttributes();
+            out.writeInt(attrs.size());
+            for (final Map.Entry<String, String> entry : attrs.entrySet()) {
+                writeLongString(out, entry.getKey());
+                writeLongString(out, entry.getValue());
+            }
+
+            final Map<String, String> attrUpdates = record.getUpdatedAttributes();
+            out.writeInt(attrUpdates.size());
+            for (final Map.Entry<String, String> entry : attrUpdates.entrySet()) {
+                writeLongString(out, entry.getKey());
+                writeLongNullableString(out, entry.getValue());
+            }
+
+            // If Content Claim Info is present, write out a 'TRUE' followed by claim info. Else, write out 'false'.
+            if (record.getContentClaimSection() != null && record.getContentClaimContainer() != null && record.getContentClaimIdentifier() != null) {
+                out.writeBoolean(true);
+                out.writeUTF(record.getContentClaimContainer());
+                out.writeUTF(record.getContentClaimSection());
+                out.writeUTF(record.getContentClaimIdentifier());
+                if (record.getContentClaimOffset() == null) {
+                    out.writeLong(0L);
+                } else {
+                    out.writeLong(record.getContentClaimOffset());
+                }
+                out.writeLong(record.getFileSize());
+            } else {
+                out.writeBoolean(false);
+            }
+
+            // If Previous Content Claim Info is present, write out a 'TRUE' followed by claim info. Else, write out 'false'.
+            if (record.getPreviousContentClaimSection() != null && record.getPreviousContentClaimContainer() != null && record.getPreviousContentClaimIdentifier() != null) {
+                out.writeBoolean(true);
+                out.writeUTF(record.getPreviousContentClaimContainer());
+                out.writeUTF(record.getPreviousContentClaimSection());
+                out.writeUTF(record.getPreviousContentClaimIdentifier());
+                if (record.getPreviousContentClaimOffset() == null) {
+                    out.writeLong(0L);
+                } else {
+                    out.writeLong(record.getPreviousContentClaimOffset());
+                }
+
+                if (record.getPreviousFileSize() == null) {
+                    out.writeLong(0L);
+                } else {
+                    out.writeLong(record.getPreviousFileSize());
+                }
+            } else {
+                out.writeBoolean(false);
+            }
+
+            // write out the identifier of the destination queue.
+            writeNullableString(out, record.getSourceQueueIdentifier());
+
+            // Write type-specific info
+            if (recordType == ProvenanceEventType.FORK || recordType == ProvenanceEventType.JOIN || recordType == ProvenanceEventType.CLONE || recordType == ProvenanceEventType.REPLAY) {
+                writeUUIDs(out, record.getParentUuids());
+                writeUUIDs(out, record.getChildUuids());
+            } else if (recordType == ProvenanceEventType.RECEIVE) {
+                writeNullableString(out, record.getTransitUri());
+                writeNullableString(out, record.getSourceSystemFlowFileIdentifier());
+            } else if (recordType == ProvenanceEventType.SEND) {
+                writeNullableString(out, record.getTransitUri());
+            } else if (recordType == ProvenanceEventType.ADDINFO) {
+                writeNullableString(out, record.getAlternateIdentifierUri());
+            } else if (recordType == ProvenanceEventType.ROUTE) {
+                writeNullableString(out, record.getRelationship());
+            }
+
+            out.flush();
+            recordCount++;
+            return byteCountingOut.getBytesWritten() - startBytes;
+        } catch (final IOException ioe) {
+            markDirty();
+            throw ioe;
+        }
+    }
+
     protected void writeUUID(final DataOutputStream out, final String uuid) throws IOException {
         out.writeUTF(uuid);
     }
@@ -80,167 +265,6 @@ public class StandardRecordWriter implements RecordWriter {
                 writeUUID(out, value);
             }
         }
-    }
-
-    @Override
-    public synchronized File getFile() {
-        return file;
-    }
-
-    @Override
-    public synchronized void writeHeader(final long firstEventId) throws IOException {
-        lastBlockOffset = rawOutStream.getBytesWritten();
-        resetWriteStream(firstEventId);
-
-        out.writeUTF(PersistentProvenanceRepository.class.getName());
-        out.writeInt(PersistentProvenanceRepository.SERIALIZATION_VERSION);
-        out.flush();
-    }
-
-
-    /**
-     * Resets the streams to prepare for a new block
-     * @param eventId the first id that will be written to the new block
-     * @throws IOException if unable to flush/close the current streams properly
-     */
-    private void resetWriteStream(final long eventId) throws IOException {
-        if ( out != null ) {
-            out.flush();
-        }
-
-        final long byteOffset = (byteCountingOut == null) ? rawOutStream.getBytesWritten() : byteCountingOut.getBytesWritten();
-
-        final OutputStream writableStream;
-        if ( compressed ) {
-            // because of the way that GZIPOutputStream works, we need to call close() on it in order for it
-            // to write its trailing bytes. But we don't want to close the underlying OutputStream, so we wrap
-            // the underlying OutputStream in a NonCloseableOutputStream
-            if ( out != null ) {
-                out.close();
-            }
-
-            if ( tocWriter != null ) {
-                tocWriter.addBlockOffset(rawOutStream.getBytesWritten(), eventId);
-            }
-
-            writableStream = new BufferedOutputStream(new GZIPOutputStream(new NonCloseableOutputStream(rawOutStream), 1), 65536);
-        } else {
-            if ( tocWriter != null ) {
-                tocWriter.addBlockOffset(rawOutStream.getBytesWritten(), eventId);
-            }
-
-            writableStream = new BufferedOutputStream(rawOutStream, 65536);
-        }
-
-        this.byteCountingOut = new ByteCountingOutputStream(writableStream, byteOffset);
-        this.out = new DataOutputStream(byteCountingOut);
-    }
-
-
-    @Override
-    public synchronized long writeRecord(final ProvenanceEventRecord record, final long recordIdentifier) throws IOException {
-        final ProvenanceEventType recordType = record.getEventType();
-        final long startBytes = byteCountingOut.getBytesWritten();
-
-        // add a new block to the TOC if needed.
-        if ( tocWriter != null && (startBytes - lastBlockOffset >= uncompressedBlockSize) ) {
-            lastBlockOffset = startBytes;
-
-            if ( compressed ) {
-                // because of the way that GZIPOutputStream works, we need to call close() on it in order for it
-                // to write its trailing bytes. But we don't want to close the underlying OutputStream, so we wrap
-                // the underlying OutputStream in a NonCloseableOutputStream
-                resetWriteStream(recordIdentifier);
-            }
-        }
-
-        out.writeLong(recordIdentifier);
-        out.writeUTF(record.getEventType().name());
-        out.writeLong(record.getEventTime());
-        out.writeLong(record.getFlowFileEntryDate());
-        out.writeLong(record.getEventDuration());
-
-        writeUUIDs(out, record.getLineageIdentifiers());
-        out.writeLong(record.getLineageStartDate());
-
-        writeNullableString(out, record.getComponentId());
-        writeNullableString(out, record.getComponentType());
-        writeUUID(out, record.getFlowFileUuid());
-        writeNullableString(out, record.getDetails());
-
-        // Write FlowFile attributes
-        final Map<String, String> attrs = record.getPreviousAttributes();
-        out.writeInt(attrs.size());
-        for (final Map.Entry<String, String> entry : attrs.entrySet()) {
-            writeLongString(out, entry.getKey());
-            writeLongString(out, entry.getValue());
-        }
-
-        final Map<String, String> attrUpdates = record.getUpdatedAttributes();
-        out.writeInt(attrUpdates.size());
-        for (final Map.Entry<String, String> entry : attrUpdates.entrySet()) {
-            writeLongString(out, entry.getKey());
-            writeLongNullableString(out, entry.getValue());
-        }
-
-        // If Content Claim Info is present, write out a 'TRUE' followed by claim info. Else, write out 'false'.
-        if (record.getContentClaimSection() != null && record.getContentClaimContainer() != null && record.getContentClaimIdentifier() != null) {
-            out.writeBoolean(true);
-            out.writeUTF(record.getContentClaimContainer());
-            out.writeUTF(record.getContentClaimSection());
-            out.writeUTF(record.getContentClaimIdentifier());
-            if (record.getContentClaimOffset() == null) {
-                out.writeLong(0L);
-            } else {
-                out.writeLong(record.getContentClaimOffset());
-            }
-            out.writeLong(record.getFileSize());
-        } else {
-            out.writeBoolean(false);
-        }
-
-        // If Previous Content Claim Info is present, write out a 'TRUE' followed by claim info. Else, write out 'false'.
-        if (record.getPreviousContentClaimSection() != null && record.getPreviousContentClaimContainer() != null && record.getPreviousContentClaimIdentifier() != null) {
-            out.writeBoolean(true);
-            out.writeUTF(record.getPreviousContentClaimContainer());
-            out.writeUTF(record.getPreviousContentClaimSection());
-            out.writeUTF(record.getPreviousContentClaimIdentifier());
-            if (record.getPreviousContentClaimOffset() == null) {
-                out.writeLong(0L);
-            } else {
-                out.writeLong(record.getPreviousContentClaimOffset());
-            }
-
-            if (record.getPreviousFileSize() == null) {
-                out.writeLong(0L);
-            } else {
-                out.writeLong(record.getPreviousFileSize());
-            }
-        } else {
-            out.writeBoolean(false);
-        }
-
-        // write out the identifier of the destination queue.
-        writeNullableString(out, record.getSourceQueueIdentifier());
-
-        // Write type-specific info
-        if (recordType == ProvenanceEventType.FORK || recordType == ProvenanceEventType.JOIN || recordType == ProvenanceEventType.CLONE || recordType == ProvenanceEventType.REPLAY) {
-            writeUUIDs(out, record.getParentUuids());
-            writeUUIDs(out, record.getChildUuids());
-        } else if (recordType == ProvenanceEventType.RECEIVE) {
-            writeNullableString(out, record.getTransitUri());
-            writeNullableString(out, record.getSourceSystemFlowFileIdentifier());
-        } else if (recordType == ProvenanceEventType.SEND) {
-            writeNullableString(out, record.getTransitUri());
-        } else if (recordType == ProvenanceEventType.ADDINFO) {
-            writeNullableString(out, record.getAlternateIdentifierUri());
-        } else if (recordType == ProvenanceEventType.ROUTE) {
-            writeNullableString(out, record.getRelationship());
-        }
-
-        out.flush();
-        recordCount++;
-        return byteCountingOut.getBytesWritten() - startBytes;
     }
 
     protected void writeNullableString(final DataOutputStream out, final String toWrite) throws IOException {
@@ -274,20 +298,33 @@ public class StandardRecordWriter implements RecordWriter {
         lock();
         try {
             try {
-                if (out != null) {
-                    try {
-                        out.flush();
-                    } finally {
-                        out.close();
-                    }
+                // We want to close 'out' only if the writer is not 'dirty'.
+                // If the writer is dirty, then there was a failure to write
+                // to disk, which means that we likely have a partial record written
+                // to disk.
+                //
+                // If we call close() on out, it will in turn call flush() on the underlying
+                // output stream, which is a BufferedOutputStream. As a result, we will end
+                // up flushing the buffer after a partially written record, which results in
+                // essentially random bytes being written to the repository, which causes
+                // corruption and un-recoverability. Since we will close the underlying 'rawOutStream'
+                // below, we will still appropriately clean up the resources help by this writer, so
+                // we are still OK in terms of closing all resources held by the writer.
+                if (out != null && !isDirty()) {
+                    out.close();
                 }
             } finally {
-                rawOutStream.close();
-
-                if ( tocWriter != null ) {
-                    tocWriter.close();
+                try {
+                    rawOutStream.close();
+                } finally {
+                    if (tocWriter != null) {
+                        tocWriter.close();
+                    }
                 }
             }
+        } catch (final IOException ioe) {
+            markDirty();
+            throw ioe;
         } finally {
             unlock();
         }
@@ -330,10 +367,15 @@ public class StandardRecordWriter implements RecordWriter {
 
     @Override
     public void sync() throws IOException {
-        if ( tocWriter != null ) {
-            tocWriter.sync();
+        try {
+            if ( tocWriter != null ) {
+                tocWriter.sync();
+            }
+            fos.getFD().sync();
+        } catch (final IOException ioe) {
+            markDirty();
+            throw ioe;
         }
-        fos.getFD().sync();
     }
 
     @Override
@@ -344,5 +386,9 @@ public class StandardRecordWriter implements RecordWriter {
     @Override
     public void markDirty() {
         dirtyFlag.set(true);
+    }
+
+    public boolean isDirty() {
+        return dirtyFlag.get();
     }
 }
