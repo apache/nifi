@@ -132,17 +132,17 @@ attribute within the `CoreAttributes` enum.
 
 - Filename ("filename"): The filename of the FlowFile. The filename should not contain any directory structure.
 
-- UUID ("uuid"): A unique universally unique identifier (UUID) assigned to this FlowFile
+- UUID ("uuid"): A unique universally unique identifier (UUID) assigned to this FlowFile.
 
-- Path ("path"): The FlowFile's path indicates the relative directory to which a FlowFile belongs and does not contain the filename
+- Path ("path"): The FlowFile's path indicates the relative directory to which a FlowFile belongs and does not contain the filename.
 
-- Absolute Path ("absolute.path"): The FlowFile's absolute path indicates the absolute directory to which a FlowFile belongs and does not contain the filename
+- Absolute Path ("absolute.path"): The FlowFile's absolute path indicates the absolute directory to which a FlowFile belongs and does not contain the filename.
 
-- Priority ("priority"): A numeric value indicating the FlowFile priority
+- Priority ("priority"): A numeric value indicating the FlowFile priority.
 
-- MIME Type ("mime.type"): The MIME Type of this FlowFile
+- MIME Type ("mime.type"): The MIME Type of this FlowFile.
 
-- Discard Reason ("discard.reason"): Specifies the reason that a FlowFile is being discarded
+- Discard Reason ("discard.reason"): Specifies the reason that a FlowFile is being discarded.
 
 - Alternative Identifier ("alternate.identifier"): Indicates an identifier other than the FlowFile's UUID that is known to refer to this FlowFile.
 
