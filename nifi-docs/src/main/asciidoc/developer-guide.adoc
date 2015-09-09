@@ -127,23 +127,24 @@ can change, the FlowFile object is
 immutable. Modifications to a FlowFile are made possible by the ProcessSession.
 
 The core attributes for FlowFiles are defined in the `org.apache.nifi.flowfile.attributes.CoreAttributes` enum.
-The most common attributes you'll see are filename, path and uuid.
+The most common attributes you'll see are filename, path and uuid. The string in quotes is the value of the
+attribute within the `CoreAttributes` enum.
 
-- Filename: The filename of the FlowFile. The filename should not contain any directory structure.
+- Filename ("filename"): The filename of the FlowFile. The filename should not contain any directory structure.
 
-- UUID: A unique universally unique identifier (UUID) assigned to this FlowFile
+- UUID ("uuid"): A unique universally unique identifier (UUID) assigned to this FlowFile
 
-- Path: The FlowFile's path indicates the relative directory to which a FlowFile belongs and does not contain the filename
+- Path ("path"): The FlowFile's path indicates the relative directory to which a FlowFile belongs and does not contain the filename
 
-- Absolute Path: The FlowFile's absolute path indicates the absolute directory to which a FlowFile belongs and does not contain the filename
+- Absolute Path ("absolute.path"): The FlowFile's absolute path indicates the absolute directory to which a FlowFile belongs and does not contain the filename
 
-- Priority: A numeric value indicating the FlowFile priority
+- Priority ("priority"): A numeric value indicating the FlowFile priority
 
-- MIME Type: The MIME Type of this FlowFile
+- MIME Type ("mime.type"): The MIME Type of this FlowFile
 
-- Discard Reason: Specifies the reason that a FlowFile is being discarded
+- Discard Reason ("discard.reason"): Specifies the reason that a FlowFile is being discarded
 
-- Alternative Identifier: Indicates an identifier other than the FlowFile's UUID that is known to refer to this FlowFile.
+- Alternative Identifier ("alternate.identifier"): Indicates an identifier other than the FlowFile's UUID that is known to refer to this FlowFile.
 
 [[process_session]]
 ==== ProcessSession
