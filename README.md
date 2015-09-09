@@ -105,7 +105,7 @@ To run NiFi:
 - Direct your browser to http://localhost:8080/nifi/ and you should see a screen like this screenshot:
   ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
 
-- For help building your first data flow see the [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/user-guide.html)
+- For help building your first data flow see the [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/html/user-guide.html)
 
 - If you are testing ongoing development, you will likely want to stop your instance.
 
