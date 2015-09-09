@@ -71,7 +71,7 @@ public enum ProvenanceEventType {
     ATTRIBUTES_MODIFIED,
     /**
      * ROUTE is used to show that a FlowFile was routed to a specified
-     * {@link nifi.processor.Relationship Relationship} and should provide
+     * {@link org.apache.nifi.processor.Relationship Relationship} and should provide
      * information about why the FlowFile was routed to this relationship.
      */
     ROUTE,

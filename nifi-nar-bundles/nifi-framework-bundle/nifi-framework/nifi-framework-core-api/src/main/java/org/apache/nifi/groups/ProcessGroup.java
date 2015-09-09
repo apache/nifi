@@ -328,7 +328,7 @@ public interface ProcessGroup {
      * Removes the given processor from this group, destroying the Processor.
      * The Processor is removed from the ProcessorRegistry, and any method in
      * the Processor that is annotated with the
-     * {@link nifi.processor.annotation.OnRemoved OnRemoved} annotation will be
+     * {@link org.apache.nifi.processor.annotation.OnRemoved OnRemoved} annotation will be
      * invoked. All outgoing connections will also be destroyed
      *
      * @param processor the Processor to remove

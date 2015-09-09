@@ -205,7 +205,7 @@ public interface ProvenanceReporter {
      * correlate the SEND and RECEIVE events.
      * @param force if <code>true</code>, this event will be added to the
      * Provenance Repository immediately and will still be persisted if the
-     * {@link nifi.processor.ProcessSession ProcessSession} to which this
+     * {@link org.apache.nifi.processor.ProcessSession ProcessSession} to which this
      * ProvenanceReporter is associated is rolled back. Otherwise, the Event
      * will be recorded only on a successful session commit.
      */
@@ -227,7 +227,7 @@ public interface ProvenanceReporter {
      * remote system's Distinguished Name
      * @param force if <code>true</code>, this event will be added to the
      * Provenance Repository immediately and will still be persisted if the
-     * {@link nifi.processor.ProcessSession ProcessSession} to which this
+     * {@link org.apache.nifi.processor.ProcessSession ProcessSession} to which this
      * ProvenanceReporter is associated is rolled back. Otherwise, the Event
      * will be recorded only on a successful session commit.
      */
@@ -249,7 +249,7 @@ public interface ProvenanceReporter {
      * data to the remote system
      * @param force if <code>true</code>, this event will be added to the
      * Provenance Repository immediately and will still be persisted if the
-     * {@link nifi.processor.ProcessSession ProcessSession} to which this
+     * {@link org.apache.nifi.processor.ProcessSession ProcessSession} to which this
      * ProvenanceReporter is associated is rolled back. Otherwise, the Event
      * will be recorded only on a successful session commit.
      */
@@ -273,7 +273,7 @@ public interface ProvenanceReporter {
      * data to the remote system
      * @param force if <code>true</code>, this event will be added to the
      * Provenance Repository immediately and will still be persisted if the
-     * {@link nifi.processor.ProcessSession ProcessSession} to which this
+     * {@link org.apache.nifi.processor.ProcessSession ProcessSession} to which this
      * ProvenanceReporter is associated is rolled back. Otherwise, the Event
      * will be recorded only on a successful session commit.
      */

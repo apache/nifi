@@ -144,7 +144,7 @@ public interface Connectable extends Triggerable {
 
     /**
      * @return If true,
-     * {@link #onTrigger(nifi.processor.ProcessContext, nifi.processor.ProcessSessionFactory)}
+     * {@link #onTrigger(org.apache.nifi.processor.ProcessContext, org.apache.nifi.processor.ProcessSessionFactory)}
      * should be called even when this Connectable has no FlowFiles queued for
      * processing
      */
@@ -196,13 +196,13 @@ public interface Connectable extends Triggerable {
     /**
      * @param timeUnit unit over which to interpret the duration
      * @return the amount of time for which a FlowFile should be penalized when
-     * {@link ProcessSession#penalize(nifi.flowfile.FlowFile)} is called
+     * {@link ProcessSession#penalize(org.apache.nifi.flowfile.FlowFile)} is called
      */
     long getPenalizationPeriod(final TimeUnit timeUnit);
 
     /**
      * @return a string representation for which a FlowFile should be penalized
-     * when {@link ProcessSession#penalize(nifi.flowfile.FlowFile)} is called
+     * when {@link ProcessSession#penalize(org.apache.nifi.flowfile.FlowFile)} is called
      */
     String getPenalizationPeriod();
 
@@ -222,7 +222,7 @@ public interface Connectable extends Triggerable {
     /**
      * Updates the amount of time that this Connectable should avoid being
      * scheduled when the processor calls
-     * {@link nifi.processor.ProcessContext#yield() ProcessContext.yield()}
+     * {@link org.apache.nifi.processor.ProcessContext#yield() ProcessContext.yield()}
      *
      * @param yieldPeriod new yield period
      */
@@ -230,7 +230,7 @@ public interface Connectable extends Triggerable {
 
     /**
      * Updates the amount of time that this Connectable will penalize FlowFiles
-     * when {@link ProcessSession#penalize(nifi.flowfile.FlowFile)} is called
+     * when {@link ProcessSession#penalize(org.apache.nifi.flowfile.FlowFile)} is called
      *
      * @param penalizationPeriod new period
      */
@@ -240,7 +240,7 @@ public interface Connectable extends Triggerable {
      * Causes the processor not to be scheduled for some period of time. This
      * duration can be obtained and set via the
      * {@link #getYieldPeriod(TimeUnit)} and
-     * {@link #setYieldPeriod(long, TimeUnit)} methods.
+     * {@link #setYieldPeriod(String yieldPeriod)} methods.
      */
     void yield();
 

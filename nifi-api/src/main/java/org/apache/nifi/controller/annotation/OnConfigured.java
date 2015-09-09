@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
  * method should be called after all of the properties have been set for the
  * Controller Service. Methods using this annotation must take either 0
  * arguments or a single argument of type
- * {@link nifi.controller.ConfigurationContext ConfigurationContext}.
+ * {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
  *
  *
  * @deprecated This annotation has been replaced by those in the

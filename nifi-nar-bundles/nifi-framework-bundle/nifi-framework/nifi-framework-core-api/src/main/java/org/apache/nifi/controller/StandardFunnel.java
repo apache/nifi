@@ -401,7 +401,7 @@ public class StandardFunnel implements Funnel {
     /**
      * Updates the amount of time that this processor should avoid being
      * scheduled when the processor calls
-     * {@link nifi.processor.ProcessContext#yield() ProcessContext.yield()}
+     * {@link org.apache.nifi.processor.ProcessContext#yield() ProcessContext.yield()}
      *
      * @param yieldPeriod new period
      */
@@ -439,7 +439,7 @@ public class StandardFunnel implements Funnel {
      * Causes the processor not to be scheduled for some period of time. This
      * duration can be obtained and set via the
      * {@link #getYieldPeriod(TimeUnit)} and
-     * {@link #setYieldPeriod(long, TimeUnit)} methods.
+     * {@link #setYieldPeriod(String)} methods.
      */
     @Override
     public void yield() {

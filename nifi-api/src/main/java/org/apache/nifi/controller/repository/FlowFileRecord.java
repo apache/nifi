@@ -42,7 +42,7 @@ public interface FlowFileRecord extends FlowFile {
      * FlowFile's content occurs. This mechanism allows multiple FlowFiles to
      * have the same ContentClaim, which can be significantly more efficient for
      * some implementations of
-     * {@link nifi.controller.repository.ContentRepository ContentRepository}
+     * {@link org.apache.nifi.controller.repository.ContentRepository ContentRepository}
      */
     long getContentClaimOffset();
 }
