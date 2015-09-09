@@ -46,7 +46,6 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
         final int prime = 31;
         int result = 1;
         result = prime * result;
-        result = prime * result + (int) (length ^ length >>> 32);
         result = prime * result + (int) (offset ^ offset >>> 32);
         result = prime * result + (resourceClaim == null ? 0 : resourceClaim.hashCode());
         return result;
@@ -67,10 +66,6 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
         }
 
         final ContentClaim other = (ContentClaim) obj;
-        if (length != other.getLength()) {
-            return false;
-        }
-
         if (offset != other.getOffset()) {
             return false;
         }
@@ -101,5 +96,10 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
     @Override
     public long getLength() {
         return length;
+    }
+
+    @Override
+    public String toString() {
+        return "StandardContentClaim [resourceClaim=" + resourceClaim + ", offset=" + offset + ", length=" + length + "]";
     }
 }
