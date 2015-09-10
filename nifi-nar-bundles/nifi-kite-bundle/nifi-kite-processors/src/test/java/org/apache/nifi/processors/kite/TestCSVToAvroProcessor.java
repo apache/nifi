@@ -48,8 +48,48 @@ public class TestCSVToAvroProcessor {
     public static final String FAILURE_CONTENT = ""
             + ",blue,\n"; // invalid, ID is missing
 
+    public static final String TSV_CONTENT = ""
+            + "1\tgreen\n"
+            + "\tblue\t\n" + // invalid, ID is missing
+            "2\tgrey\t12.95";
+
     public static final String FAILURE_SUMMARY = "" +
             "Field id: cannot make \"long\" value: '': Field id type:LONG pos:0 not set and has no default value";
+
+    /**
+     * Basic test for tab separated files, similar to #test
+     * @throws IOException
+     */
+    @Test
+    public void testTabSeparatedConversion() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
+        runner.assertNotValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, SCHEMA.toString());
+        runner.setProperty(ConvertCSVToAvro.DELIMITER, "\\t");
+        runner.assertValid();
+
+        runner.enqueue(streamFor(TSV_CONTENT));
+        runner.run();
+
+        long converted = runner.getCounterValue("Converted records");
+        long errors = runner.getCounterValue("Conversion errors");
+        Assert.assertEquals("Should convert 2 rows", 2, converted);
+        Assert.assertEquals("Should reject 1 row", 1, errors);
+
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("failure", 0);
+        runner.assertTransferCount("incompatible", 1);
+
+        MockFlowFile incompatible = runner.getFlowFilesForRelationship("incompatible").get(0);
+        String failureContent = new String(runner.getContentAsByteArray(incompatible),
+                StandardCharsets.UTF_8);
+
+        Assert.assertEquals("Should reject an invalid string and double",
+                TSV_CONTENT, failureContent);
+        Assert.assertEquals("Should accumulate error messages",
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+    }
+
 
     @Test
     public void testBasicConversion() throws IOException {
