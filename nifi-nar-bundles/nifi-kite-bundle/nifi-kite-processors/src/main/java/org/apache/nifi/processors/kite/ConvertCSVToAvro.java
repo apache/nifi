@@ -30,6 +30,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData.Record;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -53,6 +54,7 @@ import org.kitesdk.data.spi.DefaultConfiguration;
 import org.kitesdk.data.spi.filesystem.CSVFileReader;
 import org.kitesdk.data.spi.filesystem.CSVProperties;
 
+
 import static org.apache.nifi.processor.util.StandardValidators.createLongValidator;
 
 @Tags({"kite", "csv", "avro"})
@@ -66,6 +68,10 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         @Override
         public ValidationResult validate(String subject, String input,
                 ValidationContext context) {
+            // Allows special, escaped characters as input, which is then unescaped and converted to a single character.
+            // Examples for special characters: \t, \f, \n, \r.
+            input = unescapeString(input);
+
             return new ValidationResult.Builder()
                     .subject(subject)
                     .input(input)
@@ -142,6 +148,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
             .name("Use CSV header line")
             .description("Whether to use the first line as a header")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
             .defaultValue(String.valueOf(DEFAULTS.useHeader))
             .build();
 
@@ -294,5 +301,12 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
             getLogger().error("Failed to read FlowFile", e);
             session.transfer(incomingCSV, FAILURE);
         }
+    }
+
+    private static String unescapeString(String input) {
+        if (input.length() > 1) {
+            input = StringEscapeUtils.unescapeJava(input);
+        }
+        return input;
     }
 }
