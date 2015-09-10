@@ -127,6 +127,8 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                         while (reader.hasNext()) {
                             if (wrapAsArray) {
                                 out.write(',');
+                            } else {
+                                out.write(System.lineSeparator().getBytes());
                             }
 
                             final GenericRecord nextRecord = reader.next(record);
