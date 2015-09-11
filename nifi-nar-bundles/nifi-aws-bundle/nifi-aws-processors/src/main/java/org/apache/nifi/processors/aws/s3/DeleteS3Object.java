@@ -18,15 +18,14 @@ package org.apache.nifi.processors.aws.s3;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
+
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -35,7 +34,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
 
@@ -45,9 +43,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Deletes FlowFiles on an Amazon S3 Bucket. " +
         "And the FlowFiles are checked if exists or not before deleting.")
 public class DeleteS3Object extends AbstractS3Processor {
-
-    public static final Relationship REL_NOT_FOUND = new Relationship.Builder().name("not found")
-            .description("FlowFiles are routed to 'not found' if it doesn't exist on Amazon S3").build();
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
             .name("Version")
@@ -60,9 +55,6 @@ public class DeleteS3Object extends AbstractS3Processor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, REGION, TIMEOUT, VERSION_ID,
                     FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER));
-
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_NOT_FOUND)));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
