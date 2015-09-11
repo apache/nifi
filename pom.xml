@@ -1317,5 +1317,30 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <!-- This profile will disable DocLint which performs strict JavaDoc
+            processing which was introduced in JDK 8. These are technically errors
+            in the JavaDoc which we need to eventually address. However, if a release
+            is performed using JDK 8, the JavaDoc generation would fail. By activating
+            this profile when running on JDK 8 we can ensure the JavaDocs continue
+            to generate successfully -->
+            <id>disable-doclint</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-javadoc-plugin</artifactId>
+                            <configuration>
+                                <additionalparam>-Xdoclint:none</additionalparam>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
     </profiles>
 </project>
