@@ -28,11 +28,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -50,6 +52,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +80,14 @@ public class RunNiFi {
 
     public static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
     public static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
+
+    public static final String NOTIFICATION_SERVICES_FILE_PROP = "notification.services.file";
+    public static final String DEFAULT_NOTIFICATION_SERVICES_FILE = "./conf/bootstrap-notification-services.xml";
+    public static final String NOTIFICATION_ATTEMPTS_PROP = "notification.max.attempts";
+
+    public static final String NIFI_START_NOTIFICATION_SERVICE_IDS_PROP = "nifi.start.notification.services";
+    public static final String NIFI_STOP_NOTIFICATION_SERVICE_IDS_PROP = "nifi.stop.notification.services";
+    public static final String NIFI_DEAD_NOTIFICATION_SERVICE_IDS_PROP = "nifi.dead.notification.services";
 
     public static final String RUN_AS_PROP = "run.as";
 
@@ -108,8 +119,9 @@ public class RunNiFi {
 
     private final ExecutorService loggingExecutor;
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
+    private final NotificationServiceManager serviceManager;
 
-    public RunNiFi(final File bootstrapConfigFile, final boolean verbose) {
+    public RunNiFi(final File bootstrapConfigFile, final boolean verbose) throws IOException {
         this.bootstrapConfigFile = bootstrapConfigFile;
 
         loggingExecutor = Executors.newFixedThreadPool(2, new ThreadFactory() {
@@ -121,6 +133,8 @@ public class RunNiFi {
                 return t;
             }
         });
+
+        serviceManager = loadServices();
     }
 
     private static void printUsage() {
@@ -178,23 +192,7 @@ public class RunNiFi {
                 return;
         }
 
-        String configFilename = System.getProperty("org.apache.nifi.bootstrap.config.file");
-
-        if (configFilename == null) {
-            final String nifiHome = System.getenv("NIFI_HOME");
-            if (nifiHome != null) {
-                final File nifiHomeFile = new File(nifiHome.trim());
-                final File configFile = new File(nifiHomeFile, DEFAULT_CONFIG_FILE);
-                configFilename = configFile.getAbsolutePath();
-            }
-        }
-
-        if (configFilename == null) {
-            configFilename = DEFAULT_CONFIG_FILE;
-        }
-
-        final File configFile = new File(configFilename);
-
+        final File configFile = getBootstrapConfFile();
         final RunNiFi runNiFi = new RunNiFi(configFile, verbose);
 
         switch (cmd.toLowerCase()) {
@@ -218,6 +216,106 @@ public class RunNiFi {
                 runNiFi.dump(dumpFile);
                 break;
         }
+    }
+
+    private static File getBootstrapConfFile() {
+        String configFilename = System.getProperty("org.apache.nifi.bootstrap.config.file");
+
+        if (configFilename == null) {
+            final String nifiHome = System.getenv("NIFI_HOME");
+            if (nifiHome != null) {
+                final File nifiHomeFile = new File(nifiHome.trim());
+                final File configFile = new File(nifiHomeFile, DEFAULT_CONFIG_FILE);
+                configFilename = configFile.getAbsolutePath();
+            }
+        }
+
+        if (configFilename == null) {
+            configFilename = DEFAULT_CONFIG_FILE;
+        }
+
+        final File configFile = new File(configFilename);
+        return configFile;
+    }
+
+    private NotificationServiceManager loadServices() throws IOException {
+        final File bootstrapConfFile = getBootstrapConfFile();
+        final Properties properties = new Properties();
+        try (final FileInputStream fis = new FileInputStream(bootstrapConfFile)) {
+            properties.load(fis);
+        }
+
+        final NotificationServiceManager manager = new NotificationServiceManager();
+        final String attemptProp = properties.getProperty(NOTIFICATION_ATTEMPTS_PROP);
+        if (attemptProp != null) {
+            try {
+                final int maxAttempts = Integer.parseInt(attemptProp.trim());
+                if (maxAttempts >= 0) {
+                    manager.setMaxNotificationAttempts(maxAttempts);
+                }
+            } catch (final NumberFormatException nfe) {
+                defaultLogger.error("Maximum number of attempts to send notification email is set to an invalid value of {}; will use default value", attemptProp);
+            }
+        }
+
+        final String notificationServicesXmlFilename = properties.getProperty(NOTIFICATION_SERVICES_FILE_PROP);
+        if (notificationServicesXmlFilename == null) {
+            defaultLogger.info("No Bootstrap Notification Services configured.");
+            return manager;
+        }
+
+        final File xmlFile = new File(notificationServicesXmlFilename);
+        final File servicesFile;
+
+        if (xmlFile.isAbsolute()) {
+            servicesFile = xmlFile;
+        } else {
+            final File confDir = bootstrapConfigFile.getParentFile();
+            final File nifiHome = confDir.getParentFile();
+            servicesFile = new File(nifiHome, notificationServicesXmlFilename);
+        }
+
+        if (!servicesFile.exists()) {
+            defaultLogger.error("Bootstrap Notification Services file configured as " + servicesFile + " but could not find file; will not load notification services");
+            return manager;
+        }
+
+        try {
+            manager.loadNotificationServices(servicesFile);
+        } catch (final Exception e) {
+            defaultLogger.error("Bootstrap Notification Services file configured as " + servicesFile + " but failed to load notification services", e);
+        }
+
+        registerNotificationServices(manager, NotificationType.NIFI_STARTED, properties.getProperty(NIFI_START_NOTIFICATION_SERVICE_IDS_PROP));
+        registerNotificationServices(manager, NotificationType.NIFI_STOPPED, properties.getProperty(NIFI_STOP_NOTIFICATION_SERVICE_IDS_PROP));
+        registerNotificationServices(manager, NotificationType.NIFI_DIED, properties.getProperty(NIFI_DEAD_NOTIFICATION_SERVICE_IDS_PROP));
+
+        return manager;
+    }
+
+    private void registerNotificationServices(final NotificationServiceManager manager, final NotificationType type, final String serviceIds) {
+        if (serviceIds == null) {
+            defaultLogger.info("Registered no Notification Services for Notification Type {}", type);
+            return;
+        }
+
+        int registered = 0;
+        for (final String id : serviceIds.split(",")) {
+            final String trimmed = id.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+
+            try {
+                manager.registerNotificationService(type, trimmed);
+                registered++;
+            } catch (final Exception e) {
+                defaultLogger.warn("Failed to register Notification Service with ID {} for Notifications of type {} due to {}", trimmed, type, e.toString());
+                defaultLogger.error("", e);
+            }
+        }
+
+        defaultLogger.info("Registered {} Notification Services for Notification Type {}", registered, type);
     }
 
     File getStatusFile() {
@@ -500,6 +598,19 @@ public class RunNiFi {
         }
     }
 
+    public void notifyStop() {
+        final String hostname = getHostname();
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
+        final String now = sdf.format(System.currentTimeMillis());
+        String user = System.getProperty("user.name");
+        if (user == null || user.trim().isEmpty()) {
+            user = "Unknown User";
+        }
+
+        serviceManager.notify(NotificationType.NIFI_STOPPED, "NiFi Stopped on Host " + hostname,
+            "Hello,\n\nApache NiFi has been told to initiate a shutdown on host " + hostname + " at " + now + " by user " + user);
+    }
+
     public void stop() throws IOException {
         final Logger logger = cmdLogger;
         final Integer port = getCurrentPort(logger);
@@ -558,6 +669,7 @@ public class RunNiFi {
                         gracefulShutdownSeconds = Integer.parseInt(DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
                     }
 
+                    notifyStop();
                     final long startWait = System.nanoTime();
                     while (isProcessRunning(pid, logger)) {
                         logger.info("Waiting for Apache NiFi to finish shutting down...");
@@ -634,6 +746,20 @@ public class RunNiFi {
         } catch (final IllegalStateException | IllegalThreadStateException itse) {
             return true;
         }
+    }
+
+    private String getHostname() {
+        String hostname = "Unknown Host";
+        String ip = "Unknown IP Address";
+        try {
+            final InetAddress localhost = InetAddress.getLocalHost();
+            hostname = localhost.getHostName();
+            ip = localhost.getHostAddress();
+        } catch (final Exception e) {
+            defaultLogger.warn("Failed to obtain hostname for notification due to:", e);
+        }
+
+        return hostname + " (" + ip + ")";
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -808,6 +934,15 @@ public class RunNiFi {
         final Runtime runtime = Runtime.getRuntime();
         runtime.addShutdownHook(shutdownHook);
 
+        final String hostname = getHostname();
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
+        String now = sdf.format(System.currentTimeMillis());
+        String user = System.getProperty("user.name");
+        if (user == null || user.trim().isEmpty()) {
+            user = "Unknown User";
+        }
+        serviceManager.notify(NotificationType.NIFI_STARTED, "NiFi Started on Host " + hostname, "Hello,\n\nApache NiFi has been started on host " + hostname + " at " + now + " by user " + user);
+
         while (true) {
             final boolean alive = isAlive(process);
 
@@ -823,6 +958,7 @@ public class RunNiFi {
                     // happens when already shutting down
                 }
 
+                now = sdf.format(System.currentTimeMillis());
                 if (autoRestartNiFi) {
                     final File statusFile = getStatusFile(defaultLogger);
                     if (!statusFile.exists()) {
@@ -863,8 +999,17 @@ public class RunNiFi {
 
                     if (started) {
                         defaultLogger.info("Successfully started Apache NiFi{}", (pid == null ? "" : " with PID " + pid));
+                        // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
+                        // then this means that we are intentionally stopping the service.
+                        serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
+                            "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
                     } else {
                         defaultLogger.error("Apache NiFi does not appear to have started");
+                        // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
+                        // then this means that we are intentionally stopping the service.
+                        serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
+                            "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
+                                ". Attempted to restart NiFi but the services does not appear to have restarted!");
                     }
                 } else {
                     return;

@@ -375,10 +375,119 @@ additivity="false">
 
 
 
+[[bootstrap_properties]]
+Bootstrap Properties
+--------------------
+The _bootstrap.conf_ file in the _conf_ directory allows users to configure settings for how NiFi should be started.
+This includes parameters, such as the size of the Java Heap, what Java command to run, and Java System Properties.
+
+Here, we will address the different properties that are made available in the file. Any chances to this file will
+take affect only after NiFi has been stopped and restarted.
+
+|====
+|*Property*|*Description*
+|java|Specifies the fully qualified java command to run. By default, it is simply `java` but could be changed to an absolute path or a reference an environment variable, such as `$JAVA_HOME/bin/java`
+|run.as|The username to run NiFi as. For instance, if NiFi should be run as the 'nifi' user, setting this value to 'nifi' will cause the NiFi Process to be run as the 'nifi' user. 
+        This property is ignored on Windows. For Linux, the specified user may require sudo permissions.
+|lib.dir|The _lib_ directory to use for NiFi. By default, this is set to `./lib`
+|conf.dir|The _conf_ directory to use for NiFi. By default, this is set to `./conf`
+|graceful.shutdown.seconds|When NiFi is instructed to shutdown, the Bootstrap will wait this number of seconds for the process to shutdown cleanly. At this amount of time,
+                           if the service is still running, the Bootstrap will "kill" the process, or terminate it abruptly.
+|java.arg.N|Any number of JVM arguments can be passed to the NiFi JVM when the process is started. These arguments are defined by adding properties to _bootstrap.conf_ that
+            begin with `java.arg.`. The rest of the property name is not relevant, other than to different property names, and will be ignored. The default includes
+            properties for minimum and maximum Java Heap size, the garbage collector to use, etc.
+|notification.services.file|When NiFi is started, or stopped, or when the Bootstrap detects that NiFi has died, the Bootstrap is able to send notifications of these events
+                            to interested parties. This is configured by specifying an XML file that defines which notification services can be used. More about this
+                            file can be found in the <<notification_services>> section.
+|notification.max.attempts|If a notification service is configured but is unable to perform its function, it will try again up to a maximum number of attempts. This property
+                           configures what that maximum number of attempts is. The default is `5`.
+|nifi.start.notification.services|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
+                                  defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
+                                  configured recipients whenever NiFi is started.
+|nifi.stop.notification.services|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
+                                 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
+                                 configured recipients whenever NiFi is stopped.
+|nifi.died.notification.services|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
+                                 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
+                                 configured recipients if the bootstrap determines that NiFi has unexpectedly died. 
+|====
+
+
+
+[[notification_services]]
+Notification Services
+---------------------
+When the NiFi bootstrap starts or stops NiFi, or detects that it has died unexpectedly, it is able to notify configured recipients. At this point
+(version 0.3.0 of Apache NiFi), the only mechanism supplied is to send an e-mail notification. The notification services configuration file, however,
+is a configurable XML file so that as new notification capabilities are developed, they will be configured similarly.
+
+The default location of the XML file is _conf/bootstrap-notification-services.xml_, but this value can be changed in the _conf/bootstrap.conf_ file.
+
+The syntax of the XML file is as follows:
+
+....
+<services>
+    <!-- any number of service elements can be defined. -->
+    <service>
+        <id>some-identifier</id>
+        <!-- The fully-qualified class name of the Notification Service. -->
+        <class>org.apache.nifi.bootstrap.notification.email.EmailNotificationService</class>
+        
+        <!-- Any number of properties can be set using this syntax. 
+             The properties available depend on the Notification Service. -->
+        <property name="Property Name 1">Property Value</property>
+        <property name="Another Property Name">Property Value 2</property>
+    </service>
+</services>
+....
+
+Once the desired services have been configured, they can then be referenced in the _bootstrap.conf_ file.
+Currently, the only implementation is the `org.apache.nifi.bootstrap.notification.email.EmailNotificationService` implementation.
+It has the following properties available:
+
+|====
+|*Property*|*Required*|*Description*
+|SMTP Hostname|true|The hostname of the SMTP Server that is used to send Email Notifications
+|SMTP Port|true|The Port used for SMTP communications
+|SMTP Username|true|Username for the SMTP account
+|SMTP Password||Password for the SMTP account
+|SMTP Auth||Flag indicating whether authentication should be used
+|SMTP TLS||Flag indicating whether TLS should be enabled
+|SMTP Socket Factory||javax.net.ssl.SSLSocketFactory
+|SMTP X-Mailer Header||X-Mailer used in the header of the outgoing email
+|Content Type||Mime Type used to interpret the contents of the email, such as text/plain or text/html
+|From|true|Specifies the Email address to use as the sender. Otherwise, a "friendly name" can be used as the From address, but the value
+           must be enclosed in double-quotes.
+|To||The recipients to include in the To-Line of the email
+|CC||The recipients to include in the CC-Line of the email
+|BCC||The recipients to include in the BCC-Line of the email
+|====
+
+
+In addition to the properties above that are marked as required, at least one of the `To`, `CC`, or `BCC` properties
+must be set.
+
+A complete example of configuring the Email service would look like the following:
+
+....
+     <service>
+        <id>email-notification</id>
+        <class>org.apache.nifi.bootstrap.notification.email.EmailNotificationService</class>
+        <property name="SMTP Hostname">smtp.gmail.com</property>
+        <property name="SMTP Port">587</property>
+        <property name="SMTP Username">username@gmail.com</property>
+        <property name="SMTP Password">super-secret-password</property>
+        <property name="SMTP TLS">true</property>
+        <property name="From">"NiFi Service Notifier"</property>
+        <property name="To">username@gmail.com</property>
+     </service>
+....
+
+
 [[system_properties]]
 System Properties
 -----------------
-The _nifi.properties_ file in the conf directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
+The _nifi.properties_ file in the _conf_ directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
 for the changes to take effect.*
 
 NOTE: The contents of this file are relatively stable but do change from time to time. It is always a good idea to 

@@ -65,6 +65,7 @@ public class ShutdownHook extends Thread {
             }
         }
 
+        runner.notifyStop();
         System.out.println("Waiting for Apache NiFi to finish shutting down...");
         final long startWait = System.nanoTime();
         while (RunNiFi.isAlive(nifiProcess)) {
