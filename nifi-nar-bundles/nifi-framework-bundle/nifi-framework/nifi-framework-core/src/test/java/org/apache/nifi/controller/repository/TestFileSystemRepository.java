@@ -348,6 +348,29 @@ public class TestFileSystemRepository {
     }
 
     @Test
+    public void testRemoveWhileWritingToClaim() throws IOException {
+        final ContentClaim claim = repository.create(false);
+        final OutputStream out = repository.write(claim);
+
+        // write at least 1 MB to the output stream so that when we close the output stream
+        // the repo won't keep the stream open.
+        final byte[] buff = new byte[1024 * 1024];
+        out.write(buff);
+        out.write(buff);
+
+        // true because claimant count is still 1.
+        assertTrue(repository.remove(claim));
+
+        assertEquals(0, repository.decrementClaimantCount(claim));
+
+        // false because claimant count is 0 but there is an 'active' stream for the claim
+        assertFalse(repository.remove(claim));
+
+        out.close();
+        assertTrue(repository.remove(claim));
+    }
+
+    @Test
     public void testMergeWithHeaderFooterDemarcator() throws IOException {
         testMerge("HEADER", "FOOTER", "DEMARCATOR");
     }

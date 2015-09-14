@@ -108,6 +108,7 @@ public class FileSystemRepository implements ContentRepository {
     // the OutputStream that we can use for writing to the claim.
     private final BlockingQueue<ClaimLengthPair> writableClaimQueue = new LinkedBlockingQueue<>(100);
     private final ConcurrentMap<ResourceClaim, ByteCountingOutputStream> writableClaimStreams = new ConcurrentHashMap<>(100);
+    private final Set<ResourceClaim> activeResourceClaims = Collections.synchronizedSet(new HashSet<ResourceClaim>());
 
     private final boolean archiveData;
     private final long maxArchiveMillis;
@@ -600,10 +601,14 @@ public class FileSystemRepository implements ContentRepository {
         // two conditions can be checked atomically.
         synchronized (writableClaimQueue) {
             final int claimantCount = resourceClaimManager.getClaimantCount(claim);
-            if (claimantCount > 0 || writableClaimQueue.contains(new ClaimLengthPair(claim, null))) {
+            if (claimantCount > 0) {
                 // if other content claims are claiming the same resource, we have nothing to destroy,
                 // so just consider the destruction successful.
                 return true;
+            }
+            if (activeResourceClaims.contains(claim) || writableClaimQueue.contains(new ClaimLengthPair(claim, null))) {
+                // If we have an open OutputStream for the claim, we will not destroy the claim.
+                return false;
             }
         }
 
@@ -827,6 +832,8 @@ public class FileSystemRepository implements ContentRepository {
             throw new IllegalArgumentException("Cannot write to " + claim + " because it has already been written to.");
         }
 
+        final ResourceClaim resourceClaim = claim.getResourceClaim();
+
         // we always append because there may be another ContentClaim using the same resource claim.
         // However, we know that we will never write to the same claim from two different threads
         // at the same time because we will call create() to get the claim before we write to it,
@@ -847,6 +854,7 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
 
+        activeResourceClaims.add(resourceClaim);
         final ByteCountingOutputStream bcos = claimStream;
         final OutputStream out = new OutputStream() {
             private long bytesWritten = 0L;
@@ -921,6 +929,7 @@ public class FileSystemRepository implements ContentRepository {
             @Override
             public synchronized void close() throws IOException {
                 closed = true;
+                activeResourceClaims.remove(resourceClaim);
 
                 if (alwaysSync) {
                     ((FileOutputStream) bcos.getWrappedStream()).getFD().sync();
