@@ -99,4 +99,31 @@ public class TestConvertAvroToJSON {
         return out;
     }
 
+    @Test
+    public void testMultipleAvroMessagesNoWrapArray() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertAvroToJSON());
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
+
+        runner.setProperty(ConvertAvroToJSON.WRAP_AS_ARRAY, "false");
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "George");
+        user2.put("favorite_number", 1024);
+        user2.put("favorite_color", "red");
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, datumWriter, user1, user2);
+        runner.enqueue(out1.toByteArray());
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToJSON.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertAvroToJSON.REL_SUCCESS).get(0);
+        out.assertContentEquals("{\"name\": \"Alyssa\", \"favorite_number\": 256, \"favorite_color\": null}\n{\"name\": \"George\", \"favorite_number\": 1024, \"favorite_color\": \"red\"}");
+    }
+
 }
