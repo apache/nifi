@@ -161,7 +161,7 @@ public class PutSolrContentStream extends SolrProcessor {
         final ObjectHolder<Exception> connectionError = new ObjectHolder<>(null);
 
         final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
-        final String collection = context.getProperty(COLLECTION_PARAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFile).getValue();
         final Long commitWithin = context.getProperty(COMMIT_WITHIN).evaluateAttributeExpressions(flowFile).asLong();
 
         final MultiMapSolrParams requestParams = new MultiMapSolrParams(getRequestParams(context, flowFile));
