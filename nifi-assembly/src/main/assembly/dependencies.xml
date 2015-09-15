@@ -51,6 +51,7 @@
             	<include>nifi-bootstrap</include>
             	<include>slf4j-api</include>
             	<include>logback-classic</include>
+            	<include>nifi-api</include>
             </includes>
         </dependencySet>
         

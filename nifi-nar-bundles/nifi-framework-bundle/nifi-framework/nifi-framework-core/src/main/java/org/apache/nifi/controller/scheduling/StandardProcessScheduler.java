@@ -278,7 +278,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Starts scheduling the given processor to run after invoking all methods on the underlying {@link nifi.processor.Processor
+     * Starts scheduling the given processor to run after invoking all methods on the underlying {@link org.apache.nifi.processor.Processor
      * FlowFileProcessor} that are annotated with the {@link OnScheduled} annotation.
      */
     @Override
@@ -406,8 +406,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Stops scheduling the given processor to run and invokes all methods on the underlying {@link nifi.processor.Processor FlowFileProcessor} that are annotated with the {@link OnUnscheduled}
-     * annotation.
+     * Stops scheduling the given processor to run and invokes all methods on the underlying {@link org.apache.nifi.processor.Processor FlowFileProcessor} that are annotated with the
+     * {@link OnUnscheduled} annotation.
      */
     @Override
     public synchronized void stopProcessor(final ProcessorNode procNode) {

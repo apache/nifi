@@ -126,6 +126,26 @@ flow-specific values. While the contents and attributes of a FlowFile
 can change, the FlowFile object is
 immutable. Modifications to a FlowFile are made possible by the ProcessSession.
 
+The core attributes for FlowFiles are defined in the `org.apache.nifi.flowfile.attributes.CoreAttributes` enum.
+The most common attributes you'll see are filename, path and uuid. The string in quotes is the value of the
+attribute within the `CoreAttributes` enum.
+
+- Filename ("filename"): The filename of the FlowFile. The filename should not contain any directory structure.
+
+- UUID ("uuid"): A unique universally unique identifier (UUID) assigned to this FlowFile.
+
+- Path ("path"): The FlowFile's path indicates the relative directory to which a FlowFile belongs and does not contain the filename.
+
+- Absolute Path ("absolute.path"): The FlowFile's absolute path indicates the absolute directory to which a FlowFile belongs and does not contain the filename.
+
+- Priority ("priority"): A numeric value indicating the FlowFile priority.
+
+- MIME Type ("mime.type"): The MIME Type of this FlowFile.
+
+- Discard Reason ("discard.reason"): Specifies the reason that a FlowFile is being discarded.
+
+- Alternative Identifier ("alternate.identifier"): Indicates an identifier other than the FlowFile's UUID that is known to refer to this FlowFile.
+
 [[process_session]]
 ==== ProcessSession
 The ProcessSession, often referred to as simply a "session," provides
@@ -429,6 +449,30 @@ Annotation will not be invoked. This method will be called only once
 for the lifetime of a component.
 Methods with this Annotation must take zero arguments.
 
+==== @OnEnabled
+
+The `@OnEnabled` annotation can be used to indicate a method should be called
+whenever the Controller Service is enabled. Any method that has this annotation will be
+called every time a user enables the service. Additionally, each time that NiFi
+is restarted, if NiFi is configured to "auto-resume state" and the service
+is enabled, the method will be invoked.
+
+If a method with this annotation throws a Throwable, a log message and
+bulletin will be issued for the component. In this event, the service will
+remain in an 'ENABLING' state and will not be usable. All methods with this
+annotation will then be called again after a delay. The service will not be
+made available for use until all methods with this annotation have returned
+without throwing anything.
+
+Methods using this annotation must take either 0 arguments or a single argument
+of type `org.apache.nifi.controller.ConfigurationContext`.
+
+Note that this annotation will be ignored if applied to a ReportingTask or
+Processor. For a Controller Service, enabling and disabling are considered
+lifecycle events, as the action makes them usable or unusable by other
+components. However, for a Processor and a Reporting Task, these are not
+lifecycle events but rather a mechanism to allow a component to be excluded
+when starting or stopping a group of components.
 
 ==== @OnRemoved
 

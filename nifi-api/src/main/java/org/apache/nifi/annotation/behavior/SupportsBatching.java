@@ -27,14 +27,14 @@ import java.lang.annotation.Target;
  * Marker annotation a Processor implementation can use to indicate that users
  * should be able to supply a Batch Duration for the Processor. If a Processor
  * uses this annotation, it is allowing the Framework to batch
- * {@link nifi.processor.ProcessSession ProcessSession}s' commits, as well as
+ * {@link org.apache.nifi.processor.ProcessSession ProcessSession}s' commits, as well as
  * allowing the Framework to return the same ProcessSession multiple times from
  * subsequent calls to
- * {@link nifi.processor.ProcessSessionFactory ProcessSessionFactory}.
- * {@link nifi.processor.ProcessSessionFactory#createSession() createSession()}.
+ * {@link org.apache.nifi.processor.ProcessSessionFactory ProcessSessionFactory}.
+ * {@link org.apache.nifi.processor.ProcessSessionFactory#createSession() createSession()}.
  *
  * When this Annotation is used, it is important to note that calls to
- * {@link nifi.processor.ProcessSession#commit() ProcessSession.commit()} may
+ * {@link org.apache.nifi.processor.ProcessSession#commit() ProcessSession.commit()} may
  * not provide a guarantee that the data has been safely stored in NiFi's
  * Content Repository or FlowFile Repository. Therefore, it is not appropriate,
  * for instance, to use this annotation if the Processor will call

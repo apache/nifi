@@ -33,8 +33,8 @@ public interface ProcessScheduler {
 
     /**
      * Starts scheduling the given processor to run after invoking all methods
-     * on the underlying {@link nifi.processor.Processor FlowFileProcessor} that
-     * are annotated with the {@link OnScheduled} annotation. If the Processor
+     * on the underlying {@link org.apache.nifi.processor.Processor FlowFileProcessor} that
+     * are annotated with the {@link org.apache.nifi.annotation.lifecycle.OnScheduled} annotation. If the Processor
      * is already scheduled to run, does nothing.
      *
      * @param procNode to start
@@ -44,8 +44,8 @@ public interface ProcessScheduler {
 
     /**
      * Stops scheduling the given processor to run and invokes all methods on
-     * the underlying {@link nifi.processor.Processor FlowFileProcessor} that
-     * are annotated with the {@link OnUnscheduled} annotation. This does not
+     * the underlying {@link org.apache.nifi.processor.Processor FlowFileProcessor} that
+     * are annotated with the {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled} annotation. This does not
      * interrupt any threads that are currently running within the given
      * Processor. If the Processor is not scheduled to run, does nothing.
      *

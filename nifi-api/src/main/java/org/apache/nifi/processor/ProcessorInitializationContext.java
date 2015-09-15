@@ -22,7 +22,7 @@ import org.apache.nifi.logging.ProcessorLog;
 /**
  * <p>
  * The <code>ProcessorInitializationContext</code> provides
- * {@link nifi.processor.Processor Processor}s access to objects that may be of
+ * {@link org.apache.nifi.processor.Processor Processor}s access to objects that may be of
  * use throughout the life of the Processor.
  * </p>
  */

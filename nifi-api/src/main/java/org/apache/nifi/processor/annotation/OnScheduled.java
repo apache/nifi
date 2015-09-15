@@ -29,7 +29,7 @@ import java.lang.annotation.Target;
  * will be called before any 'onTrigger' calls and will be called once each time
  * a processor instance is scheduled to run. Methods using this annotation must
  * take either 0 arguments or a single argument of type
- * {@link nifi.processor.SchedulingContext SchedulingContext}.
+ * {@link org.apache.nifi.processor.SchedulingContext SchedulingContext}.
  *
  * If any method annotated with this annotation throws, the processor will not
  * be scheduled to run.
