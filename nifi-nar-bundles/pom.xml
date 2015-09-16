@@ -45,7 +45,8 @@
         <module>nifi-ambari-bundle</module>
         <module>nifi-image-bundle</module>
         <module>nifi-avro-bundle</module>
-    </modules>
+        <module>nifi-pcap-bundle</module>
+  </modules>
     <dependencyManagement>
         <dependencies>
             <dependency>
