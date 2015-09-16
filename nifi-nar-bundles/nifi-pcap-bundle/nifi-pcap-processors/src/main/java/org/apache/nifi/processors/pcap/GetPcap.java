@@ -90,7 +90,6 @@ public class GetPcap extends AbstractProcessor {
             .Builder().name("Read Timeout")
             .description("The read timeout in milliseconds. Must be non-negative. May be ignored by some OSs. " +
                     "0 means disable buffering on Solaris. 0 means infinite on the other OSs. 1 through 9 means infinite on Solaris.")
-            .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 ms")
             .build();
@@ -151,7 +150,8 @@ public class GetPcap extends AbstractProcessor {
         final String filter = context.getProperty(BPF_EXPRESSION).getValue();
         final String mode = context.getProperty(CAPTURE_MODE).getValue();
         final int snapLen = context.getProperty(SNAPSHOT_LENGTH).asDataSize(DataUnit.B).intValue();
-        final int readTimeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final Long timePeriod = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        final int readTimeout = (timePeriod == null ? 0 : timePeriod.intValue());
 
         final PcapNetworkInterface nif = Pcaps.getDevByName(interfaceName);
         if (nif == null) {
