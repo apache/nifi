@@ -217,20 +217,28 @@ public class GetPcap extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final Packet packet = packetQueue.poll();
-        if (packet == null) {
+        if (packet == null || (packet.getPayload() == null && packet.getHeader() == null)) {
             return;
         }
 
         try {
             FlowFile flowFile = session.create();
-            flowFile = session.putAttribute(flowFile, PACKET_HEADER_ATTR, packet.getHeader().toString());
-            flowFile = session.write(flowFile, new OutputStreamCallback() {
-                @Override
-                public void process(OutputStream out) throws IOException {
-                    out.write(packet.getRawData());
-                    out.flush();
-                }
-            });
+
+            final Packet.Header header = packet.getHeader();
+            if (header != null) {
+                flowFile = session.putAttribute(flowFile, PACKET_HEADER_ATTR, packet.getHeader().toString());
+            }
+
+            final Packet payload = packet.getPayload();
+            if (payload != null) {
+                flowFile = session.write(flowFile, new OutputStreamCallback() {
+                    @Override
+                    public void process(OutputStream out) throws IOException {
+                        out.write(payload.getRawData());
+                        out.flush();
+                    }
+                });
+            }
 
             getLogger().info("Transferring {} to success", new Object[]{flowFile});
             session.transfer(flowFile, SUCCESS);
