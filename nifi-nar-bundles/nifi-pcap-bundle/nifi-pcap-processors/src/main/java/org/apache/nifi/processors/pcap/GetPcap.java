@@ -153,12 +153,12 @@ public class GetPcap extends AbstractProcessor {
         final Long timePeriod = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
         final int readTimeout = (timePeriod == null ? 0 : timePeriod.intValue());
 
-        final PcapNetworkInterface nif = Pcaps.getDevByName(interfaceName);
+        final PcapNetworkInterface nif = getDevByName(interfaceName);
         if (nif == null) {
             throw new IllegalStateException("Unable to locate Network Interface " + interfaceName);
         }
 
-        final PcapHandle handle = nif.openLive(snapLen, PcapNetworkInterface.PromiscuousMode.valueOf(mode), readTimeout);
+        final PcapHandle handle = getPcapHandle(mode, snapLen, readTimeout, nif);
         if (filter != null && filter.length() > 0) {
             handle.setFilter(filter, BpfProgram.BpfCompileMode.OPTIMIZE);
         }
@@ -167,12 +167,7 @@ public class GetPcap extends AbstractProcessor {
             @Override
             public void run() {
                 try {
-                    handle.loop(-1, new PacketListener() {
-                        @Override
-                        public void gotPacket(Packet packet) {
-                            packetQueue.offer(packet);
-                        }
-                    });
+                    handle.loop(-1, createPacketListener(packetQueue));
                     getLogger().info("PcapListener shutting down...");
                 } catch (PcapNativeException e) {
                     getLogger().error("Error calling pcap native libraries", e);
@@ -191,6 +186,24 @@ public class GetPcap extends AbstractProcessor {
 
         pcapNetworkInterface.set(nif);
         pcapHandle.set(handle);
+    }
+
+    protected PcapNetworkInterface getDevByName(final String interfaceName) throws PcapNativeException {
+        return Pcaps.getDevByName(interfaceName);
+    }
+
+    protected PcapHandle getPcapHandle(final String mode, final int snapLen, final int readTimeout, final PcapNetworkInterface nif)
+            throws PcapNativeException {
+        return nif.openLive(snapLen, PcapNetworkInterface.PromiscuousMode.valueOf(mode), readTimeout);
+    }
+
+    protected PacketListener createPacketListener(final BlockingQueue<Packet> packetQueue) {
+        return new PacketListener() {
+            @Override
+            public void gotPacket(Packet packet) {
+                packetQueue.offer(packet);
+            }
+        };
     }
 
     @OnUnscheduled
@@ -221,9 +234,8 @@ public class GetPcap extends AbstractProcessor {
             return;
         }
 
+        FlowFile flowFile = session.create();
         try {
-            FlowFile flowFile = session.create();
-
             final Packet.Header header = packet.getHeader();
             if (header != null) {
                 flowFile = session.putAttribute(flowFile, PACKET_HEADER_ATTR, packet.getHeader().toString());
@@ -245,6 +257,7 @@ public class GetPcap extends AbstractProcessor {
         } catch (ProcessException pe) {
             getLogger().error("Error processing packet", pe);
             packetQueue.offer(packet); // requeue the packet so we try again
+            session.remove(flowFile);
         }
     }
 
