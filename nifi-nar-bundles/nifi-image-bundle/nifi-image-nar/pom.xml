@@ -32,6 +32,12 @@
             <artifactId>nifi-image-processors</artifactId>
             <version>0.3.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-image-viewer</artifactId>
+            <version>0.3.1-SNAPSHOT</version>
+            <type>war</type>
+        </dependency>
     </dependencies>
 
 </project>
