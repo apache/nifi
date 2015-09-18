@@ -95,4 +95,5 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
      * @param ignoredReferences to ignore
      */
     public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
+
 }

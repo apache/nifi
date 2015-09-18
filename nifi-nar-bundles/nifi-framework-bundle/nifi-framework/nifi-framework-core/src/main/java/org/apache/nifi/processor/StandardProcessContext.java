@@ -179,4 +179,15 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         return controllerServiceProvider.getControllerServiceName(serviceIdentifier);
     }
 
+    @Override
+    public boolean hasIncomingConnection() {
+        return procNode.hasIncomingConnection();
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        Set<Connection> connections = procNode.getConnections(relationship);
+        return connections != null && !connections.isEmpty();
+    }
+
 }

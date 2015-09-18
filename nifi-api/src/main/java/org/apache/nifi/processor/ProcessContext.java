@@ -126,4 +126,17 @@ public interface ProcessContext {
      */
     Set<Relationship> getAvailableRelationships();
 
+    /**
+     * @return true if the processor has one or more incoming connections,
+     * false otherwise
+     */
+    boolean hasIncomingConnection();
+
+    /**
+     * @param relationship a relationship to check for connections
+     * @return true if the relationship has one or more outbound connections,
+     * false otherwise
+     */
+    boolean hasConnection(Relationship relationship);
+
 }

@@ -41,6 +41,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.fusesource.hawtbuf.ByteArrayInputStream;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -61,32 +62,69 @@ public class TestExecuteSQL {
 
     final static String DB_LOCATION = "target/db";
 
+    final static String QUERY_WITH_EL = "select "
+            + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
+            + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
+            + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
+            + ", ROW_NUMBER() OVER () as rownr "
+            + " from persons PER, products PRD, relationships REL"
+            + " where PER.ID = ${person.id}";
+
+    final static String QUERY_WITHOUT_EL = "select "
+            + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
+            + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
+            + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
+            + ", ROW_NUMBER() OVER () as rownr "
+            + " from persons PER, products PRD, relationships REL"
+            + " where PER.ID = 10";
+
+
     @BeforeClass
-    public static void setup() {
+    public static void setupClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
+    }
+
+    private TestRunner runner;
+
+    @Before
+    public void setup() throws InitializationException {
+        final DBCPService dbcp = new DBCPServiceSimpleImpl();
+        final Map<String, String> dbcpProperties = new HashMap<>();
+
+        runner = TestRunners.newTestRunner(ExecuteSQL.class);
+        runner.addControllerService("dbcp", dbcp, dbcpProperties);
+        runner.enableControllerService(dbcp);
+        runner.setProperty(ExecuteSQL.DBCP_SERVICE, "dbcp");
+    }
+
+    @Test
+    public void testIncomingConnectionWithNoFlowFile() throws InitializationException {
+        runner.setIncomingConnection(true);
+        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM persons");
+        runner.run();
+        runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
+        runner.assertTransferCount(ExecuteSQL.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testNoIncomingConnection() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+        runner.setIncomingConnection(false);
+        invokeOnTrigger(null, QUERY_WITHOUT_EL, false);
     }
 
     @Test
     public void testNoTimeLimit() throws InitializationException, ClassNotFoundException, SQLException, IOException {
-        invokeOnTrigger(null);
+        invokeOnTrigger(null, QUERY_WITH_EL, true);
     }
 
     @Test
     public void testQueryTimeout() throws InitializationException, ClassNotFoundException, SQLException, IOException {
         // Does to seem to have any effect when using embedded Derby
-        invokeOnTrigger(1); // 1 second max time
+        invokeOnTrigger(1, QUERY_WITH_EL, true); // 1 second max time
     }
 
-    public void invokeOnTrigger(final Integer queryTimeout) throws InitializationException, ClassNotFoundException, SQLException, IOException {
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteSQL.class);
-
-        final DBCPService dbcp = new DBCPServiceSimpleImpl();
-        final Map<String, String> dbcpProperties = new HashMap<>();
-
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
-
-        runner.enableControllerService(dbcp);
-        runner.setProperty(ExecuteSQL.DBCP_SERVICE, "dbcp");
+    public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile)
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
         if (queryTimeout != null) {
             runner.setProperty(ExecuteSQL.QUERY_TIMEOUT, queryTimeout.toString() + " secs");
@@ -97,27 +135,21 @@ public class TestExecuteSQL {
         dbLocation.delete();
 
         // load test data to database
-        final Connection con = dbcp.getConnection();
+        final Connection con = ((DBCPService)runner.getControllerService("dbcp")).getConnection();
         TestJdbcHugeStream.loadTestData2Database(con, 100, 2000, 1000);
         LOGGER.info("test data loaded");
 
         // ResultSet size will be 1x2000x1000 = 2 000 000 rows
         // because of where PER.ID = ${person.id}
         final int nrOfRows = 2000000;
-        final String query = "select "
-            + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
-            + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
-            + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
-            + ", ROW_NUMBER() OVER () as rownr "
-            + " from persons PER, products PRD, relationships REL"
-            + " where PER.ID = ${person.id}";
-
         runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, query);
 
-        // incoming FlowFile content is not used, but attributes are used
-        final Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put("person.id", "10");
-        runner.enqueue("Hello".getBytes(), attributes);
+        if (incomingFlowFile) {
+            // incoming FlowFile content is not used, but attributes are used
+            final Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put("person.id", "10");
+            runner.enqueue("Hello".getBytes(), attributes);
+        }
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);

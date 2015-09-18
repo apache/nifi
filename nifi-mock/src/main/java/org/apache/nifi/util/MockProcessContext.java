@@ -48,7 +48,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private boolean yieldCalled = false;
     private boolean enableExpressionValidation = false;
     private boolean allowExpressionValidation = true;
+    private boolean incomingConnection = true;
 
+    private volatile Set<Relationship> connections = new HashSet<>();
     private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
 
     /**
@@ -288,4 +290,35 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     public Set<Relationship> getUnavailableRelationships() {
         return unavailableRelationships;
     }
+
+    @Override
+    public boolean hasIncomingConnection() {
+        return incomingConnection;
+    }
+
+    public void setIncomingConnection(final boolean hasIncomingConnection) {
+        this.incomingConnection = hasIncomingConnection;
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        return this.connections.contains(relationship);
+    }
+
+    public void addConnection(final Relationship relationship) {
+        this.connections.add(relationship);
+    }
+
+    public void removeConnection(final Relationship relationship) {
+        this.connections.remove(relationship);
+    }
+
+    public void setConnections(final Set<Relationship> connections) {
+        if (connections == null) {
+            this.connections = Collections.emptySet();
+        } else {
+            this.connections = Collections.unmodifiableSet(connections);
+        }
+    }
+
 }

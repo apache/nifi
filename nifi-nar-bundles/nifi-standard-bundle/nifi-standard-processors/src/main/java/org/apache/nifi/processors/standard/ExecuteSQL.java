@@ -50,7 +50,10 @@ import org.apache.nifi.util.StopWatch;
 @EventDriven
 @Tags({ "sql", "select", "jdbc", "query", "database" })
 @CapabilityDescription("Execute provided SQL select query. Query result will be converted to Avro format."
-    + " Streaming is used so arbitrarily large result sets are supported.")
+    + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on " +
+        "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. " +
+        "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the " +
+        "select query.")
 public class ExecuteSQL extends AbstractProcessor {
 
     // Relationships
@@ -116,9 +119,12 @@ public class ExecuteSQL extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final FlowFile incoming = session.get();
-        if (incoming == null) {
-            return;
+        FlowFile incoming = null;
+        if (context.hasIncomingConnection()) {
+            incoming = session.get();
+            if (incoming == null) {
+                return;
+            }
         }
 
         final ProcessorLog logger = getLogger();
@@ -133,7 +139,8 @@ public class ExecuteSQL extends AbstractProcessor {
             final Statement st = con.createStatement()) {
             st.setQueryTimeout(queryTimeout); // timeout in seconds
             final LongHolder nrOfRows = new LongHolder(0L);
-            final FlowFile outgoing = session.write(incoming, new OutputStreamCallback() {
+            FlowFile outgoing = (incoming == null ? session.create() : incoming);
+            outgoing = session.write(outgoing, new OutputStreamCallback() {
                 @Override
                 public void process(final OutputStream out) throws IOException {
                     try {
