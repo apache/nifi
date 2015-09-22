@@ -84,6 +84,7 @@ public class LogAttribute extends AbstractProcessor {
             .required(false)
             .description("Log prefix appended to the log lines. It helps to distinguish the output of multiple LogAttribute processors.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final String FIFTY_DASHES = "--------------------------------------------------";
