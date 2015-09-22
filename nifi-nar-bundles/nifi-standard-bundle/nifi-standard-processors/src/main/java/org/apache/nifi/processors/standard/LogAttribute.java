@@ -79,6 +79,13 @@ public class LogAttribute extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor LOG_PREFIX = new PropertyDescriptor.Builder()
+            .name("Log prefix")
+            .required(false)
+            .description("Log prefix appended to the log lines. It helps to distinguish the output of multiple LogAttribute processors.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final String FIFTY_DASHES = "--------------------------------------------------";
 
     public static enum DebugLevels {
@@ -107,6 +114,7 @@ public class LogAttribute extends AbstractProcessor {
         supDescriptors.add(LOG_PAYLOAD);
         supDescriptors.add(ATTRIBUTES_TO_LOG_CSV);
         supDescriptors.add(ATTRIBUTES_TO_IGNORE_CSV);
+        supDescriptors.add(LOG_PREFIX);
         supportedDescriptors = Collections.unmodifiableList(supDescriptors);
     }
 
@@ -123,11 +131,15 @@ public class LogAttribute extends AbstractProcessor {
     protected String processFlowFile(final ProcessorLog logger, final DebugLevels logLevel, final FlowFile flowFile, final ProcessSession session, final ProcessContext context) {
         final Set<String> attributeKeys = getAttributesToLog(flowFile.getAttributes().keySet(), context);
         final ProcessorLog LOG = getLogger();
-
+        String logPrefix = context.getProperty(LOG_PREFIX).getValue();
         // Pretty print metadata
         final StringBuilder message = new StringBuilder();
         message.append("logging for flow file ").append(flowFile);
         message.append("\n");
+        if (logPrefix != null) {
+            message.append(logPrefix);
+            message.append(" ");
+        }
         message.append(FIFTY_DASHES);
         message.append("\nStandard FlowFile Attributes");
         message.append(String.format("\nKey: '%1$s'\n\tValue: '%2$s'", "entryDate", new Date(flowFile.getEntryDate())));
@@ -138,6 +150,10 @@ public class LogAttribute extends AbstractProcessor {
             message.append(String.format("\nKey: '%1$s'\n\tValue: '%2$s'", key, flowFile.getAttribute(key)));
         }
         message.append("\n");
+        if (logPrefix != null) {
+            message.append(logPrefix);
+            message.append(" ");
+        }
         message.append(FIFTY_DASHES);
 
         // The user can request to log the payload
