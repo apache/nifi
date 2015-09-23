@@ -489,6 +489,43 @@ public interface TestRunner {
     void setRelationshipUnavailable(String relationshipName);
 
     /**
+     * Indicates to the framework that the configured processor has one or more
+     * incoming connections.
+     *
+     * @param hasIncomingConnection whether or not the configured processor has an incoming connection
+     */
+    void setIncomingConnection(boolean hasIncomingConnection);
+
+    /**
+     * Indicates to the Framework that the configured processor has a connection for the given Relationship.
+     *
+     * @param relationship that has a connection
+     */
+    void addConnection(Relationship relationship);
+
+    /**
+     * Indicates to the Framework that the configured processor has a connection for the
+     * Relationship with the given name.
+     *
+     * @param relationshipName name of relationship that has a connection
+     */
+    void addConnection(String relationshipName);
+
+    /**
+     * Removes the connection for the given Relationship from the configured processor.
+     *
+     * @param relationship to remove
+     */
+    void removeConnection(Relationship relationship);
+
+    /**
+     * Removes the connection for the relationship with the given name from the configured processor.
+     *
+     * @param relationshipName name of the relationship to remove
+     */
+    void removeConnection(String relationshipName);
+
+    /**
      * Adds the given {@link ControllerService} to this TestRunner so that the
      * configured Processor can access it using the given
      * <code>identifier</code>. The ControllerService is not expected to be

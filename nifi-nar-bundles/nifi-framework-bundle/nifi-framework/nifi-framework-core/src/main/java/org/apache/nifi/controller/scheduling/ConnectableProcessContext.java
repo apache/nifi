@@ -190,4 +190,17 @@ public class ConnectableProcessContext implements ProcessContext {
         }
         return new HashSet<>(connectable.getRelationships());
     }
+
+    @Override
+    public boolean hasIncomingConnection() {
+        return connectable.hasIncomingConnection();
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        Set<Connection> connections = connectable.getConnections(relationship);
+        return connections != null && !connections.isEmpty();
+    }
+
+
 }

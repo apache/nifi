@@ -641,7 +641,10 @@ public class MergeContent extends BinFiles {
                 if (wrapper != null) {
                     final FlowFile flowFile = wrapper.getFlowFile();
                     if (flowFile != null) {
-                        property = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue().getBytes();
+                        final String value = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+                        if (value != null) {
+                            property = value.getBytes();
+                        }
                     }
                 }
             }

@@ -52,7 +52,7 @@ public class TestDetectDuplicate {
         System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DetectDuplicate", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDetectDuplicate", "debug");
-        LOGGER = LoggerFactory.getLogger(TestListenUDP.class);
+        LOGGER = LoggerFactory.getLogger(TestDetectDuplicate.class);
     }
 
     @Test

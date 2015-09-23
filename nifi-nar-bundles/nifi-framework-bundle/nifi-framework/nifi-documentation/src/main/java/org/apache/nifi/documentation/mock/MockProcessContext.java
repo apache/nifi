@@ -82,4 +82,16 @@ public class MockProcessContext implements ProcessContext {
     public Set<Relationship> getAvailableRelationships() {
         return Collections.emptySet();
     }
+
+    @Override
+    public boolean hasIncomingConnection() {
+        return true;
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        return false;
+    }
+
+
 }

@@ -519,6 +519,31 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void setIncomingConnection(boolean hasIncomingConnection) {
+        context.setIncomingConnection(hasIncomingConnection);
+    }
+
+    @Override
+    public void addConnection(Relationship relationship) {
+        context.addConnection(relationship);
+    }
+
+    @Override
+    public void addConnection(String relationshipName) {
+        addConnection(new Relationship.Builder().name(relationshipName).build());
+    }
+
+    @Override
+    public void removeConnection(Relationship relationship) {
+        context.removeConnection(relationship);
+    }
+
+    @Override
+    public void removeConnection(String relationshipName) {
+        removeConnection(new Relationship.Builder().name(relationshipName).build());
+    }
+
+    @Override
     public void addControllerService(final String identifier, final ControllerService service) throws InitializationException {
         addControllerService(identifier, service, new HashMap<String, String>());
     }

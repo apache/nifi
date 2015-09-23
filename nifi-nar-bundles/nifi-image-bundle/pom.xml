@@ -29,6 +29,7 @@
     <modules>
         <module>nifi-image-processors</module>
         <module>nifi-image-nar</module>
+        <module>nifi-image-viewer</module>
     </modules>
 
 </project>

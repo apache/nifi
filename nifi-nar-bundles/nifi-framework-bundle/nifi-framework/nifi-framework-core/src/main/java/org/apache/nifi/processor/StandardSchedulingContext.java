@@ -111,4 +111,14 @@ public class StandardSchedulingContext implements SchedulingContext {
     public Set<Relationship> getAvailableRelationships() {
         return processContext.getAvailableRelationships();
     }
+
+    @Override
+    public boolean hasIncomingConnection() {
+        return processContext.hasIncomingConnection();
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        return processContext.hasConnection(relationship);
+    }
 }
