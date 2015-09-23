@@ -91,6 +91,7 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 })
 public class ConvertJSONToSQL extends AbstractProcessor {
     private static final String UPDATE_TYPE = "UPDATE";
+    private static final String UPSERT_TYPE = "UPSERT";
     private static final String INSERT_TYPE = "INSERT";
 
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
@@ -109,7 +110,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .name("Statement Type")
             .description("Specifies the type of SQL Statement to generate")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE)
+            .allowableValues(UPDATE_TYPE, UPSERT_TYPE, INSERT_TYPE)
             .build();
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("Table Name")
@@ -140,8 +141,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         .build();
     static final PropertyDescriptor UPDATE_KEY = new PropertyDescriptor.Builder()
             .name("Update Keys")
-            .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
-                    + "If the Statement Type is UPDATE and this property is not set, the table's Primary Keys are used. "
+            .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE or UPSERT statements. "
+                    + "If the Statement Type is UPDATE or UPSERT and this property is not set, the table's Primary Keys are used. "
                     + "In this case, if no Primary Key exists, the conversion to SQL will fail. "
                     + "This property is ignored if the Statement Type is INSERT")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -288,7 +289,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 if (INSERT_TYPE.equals(statementType)) {
                     sql = generateInsert(jsonNode, attributes, tableName, schema, translateFieldNames, ignoreUnmappedFields);
                 } else {
-                    sql = generateUpdate(jsonNode, attributes, tableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields);
+                    sql = generateUpdate(statementType, jsonNode, attributes, tableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields);
                 }
             } catch (final ProcessException pe) {
                 getLogger().error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
@@ -402,7 +403,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         return sqlBuilder.toString();
     }
 
-    private String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
+    private String generateUpdate(final String updateVerb, final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields) {
 
         final Set<String> updateKeyNames;
@@ -421,7 +422,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         final StringBuilder sqlBuilder = new StringBuilder();
         int fieldCount = 0;
-        sqlBuilder.append("UPDATE ").append(tableName).append(" SET ");
+        sqlBuilder.append(updateVerb + " ").append(tableName).append(" SET ");
 
 
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the JSON
