@@ -153,8 +153,8 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
                 sequenceFileWriter = new SequenceFileWriterImpl();
         }
         String value = context.getProperty(COMPRESSION_TYPE).getValue();
-        SequenceFile.CompressionType compressionType = value == null ?
-          SequenceFile.CompressionType.valueOf(DEFAULT_COMPRESSION_TYPE) : SequenceFile.CompressionType.valueOf(value);
+        SequenceFile.CompressionType compressionType = value == null
+            ? SequenceFile.CompressionType.valueOf(DEFAULT_COMPRESSION_TYPE) : SequenceFile.CompressionType.valueOf(value);
         final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key()) + ".sf";
         flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), fileName);
         try {
