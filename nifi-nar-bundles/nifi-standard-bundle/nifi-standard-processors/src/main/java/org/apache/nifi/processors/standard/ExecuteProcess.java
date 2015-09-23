@@ -48,6 +48,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -57,6 +58,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.ArgumentUtils;
 
 @Tags({"command", "process", "source", "external", "invoke", "script"})
 @CapabilityDescription("Runs an operating system command specified by the user and writes the output of that command to a FlowFile. If the command is expected "
@@ -110,6 +112,18 @@ public class ExecuteProcess extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    private static final Validator characterValidator = new StandardValidators.StringLengthValidator(1, 1);
+
+    static final PropertyDescriptor ARG_DELIMITER = new PropertyDescriptor.Builder()
+      .name("Argument Delimiter")
+      .description("Delimiter to use to separate arguments for a command [default: space]. Must be a single character.")
+      .addValidator(Validator.VALID)
+      .addValidator(characterValidator)
+      .required(true)
+      .defaultValue(" ")
+      .build();
+
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
     .name("success")
     .description("All created FlowFiles are routed to this relationship")
@@ -132,6 +146,7 @@ public class ExecuteProcess extends AbstractProcessor {
         properties.add(COMMAND_ARGUMENTS);
         properties.add(BATCH_DURATION);
         properties.add(REDIRECT_ERROR_STREAM);
+        properties.add(ARG_DELIMITER);
         return properties;
     }
 
@@ -145,51 +160,7 @@ public class ExecuteProcess extends AbstractProcessor {
         .build();
     }
 
-    static List<String> splitArgs(final String input) {
-        if (input == null) {
-            return Collections.emptyList();
-        }
 
-        final List<String> args = new ArrayList<>();
-
-        final String trimmed = input.trim();
-        boolean inQuotes = false;
-
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < trimmed.length(); i++) {
-            final char c = trimmed.charAt(i);
-            switch (c) {
-                case ' ':
-                case '\t':
-                case '\r':
-                case '\n': {
-                    if (inQuotes) {
-                        sb.append(c);
-                    } else {
-                        final String arg = sb.toString().trim();
-                        if (!arg.isEmpty()) {
-                            args.add(arg);
-                        }
-                        sb.setLength(0);
-                    }
-                    break;
-                }
-                case '"':
-                    inQuotes = !inQuotes;
-                    break;
-                default:
-                    sb.append(c);
-                    break;
-            }
-        }
-
-        final String finalArg = sb.toString().trim();
-        if (!finalArg.isEmpty()) {
-            args.add(finalArg);
-        }
-
-        return args;
-    }
 
     @OnScheduled
     public void setupExecutor(final ProcessContext context) {
@@ -293,7 +264,8 @@ public class ExecuteProcess extends AbstractProcessor {
 
     protected List<String> createCommandStrings(final ProcessContext context) {
         final String command = context.getProperty(COMMAND).getValue();
-        final List<String> args = splitArgs(context.getProperty(COMMAND_ARGUMENTS).getValue());
+        final List<String> args = ArgumentUtils.splitArgs(context.getProperty(COMMAND_ARGUMENTS).getValue(),
+          context.getProperty(ARG_DELIMITER).getValue().charAt(0));
 
         final List<String> commandStrings = new ArrayList<>(args.size() + 1);
         commandStrings.add(command);

@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.List;
 
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -34,28 +35,28 @@ public class TestExecuteProcess {
 
     @Test
     public void testSplitArgs() {
-        final List<String> nullArgs = ExecuteProcess.splitArgs(null);
+        final List<String> nullArgs = ArgumentUtils.splitArgs(null, ' ');
         assertNotNull(nullArgs);
         assertTrue(nullArgs.isEmpty());
 
-        final List<String> zeroArgs = ExecuteProcess.splitArgs("  ");
+        final List<String> zeroArgs = ArgumentUtils.splitArgs("  ", ' ');
         assertNotNull(zeroArgs);
         assertTrue(zeroArgs.isEmpty());
 
-        final List<String> singleArg = ExecuteProcess.splitArgs("    hello   ");
+        final List<String> singleArg = ArgumentUtils.splitArgs("    hello   ", ' ');
         assertEquals(1, singleArg.size());
         assertEquals("hello", singleArg.get(0));
 
-        final List<String> twoArg = ExecuteProcess.splitArgs("   hello    good-bye   ");
+        final List<String> twoArg = ArgumentUtils.splitArgs("   hello    good-bye   ", ' ');
         assertEquals(2, twoArg.size());
         assertEquals("hello", twoArg.get(0));
         assertEquals("good-bye", twoArg.get(1));
 
-        final List<String> singleQuotedArg = ExecuteProcess.splitArgs("  \"hello\" ");
+        final List<String> singleQuotedArg = ArgumentUtils.splitArgs("  \"hello\" ", ' ');
         assertEquals(1, singleQuotedArg.size());
         assertEquals("hello", singleQuotedArg.get(0));
 
-        final List<String> twoQuotedArg = ExecuteProcess.splitArgs("   hello \"good   bye\"");
+        final List<String> twoQuotedArg = ArgumentUtils.splitArgs("   hello \"good   bye\"", ' ');
         assertEquals(2, twoQuotedArg.size());
         assertEquals("hello", twoQuotedArg.get(0));
         assertEquals("good   bye", twoQuotedArg.get(1));

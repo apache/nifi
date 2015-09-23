@@ -602,6 +602,34 @@ public class StandardValidators {
         }
     }
 
+    public static class StringLengthValidator implements Validator {
+        private final int minimum;
+        private final int maximum;
+
+        public StringLengthValidator(int minimum, int maximum) {
+            this.minimum = minimum;
+            this.maximum = maximum;
+        }
+
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if (value.length() < minimum || value.length() > maximum) {
+                return new ValidationResult.Builder()
+                  .subject(subject)
+                  .valid(false)
+                  .input(value)
+                  .explanation(String.format("String length invalid [min: %d, max: %d]", minimum, maximum))
+                  .build();
+            } else {
+                return new ValidationResult.Builder()
+                  .valid(true)
+                  .input(value)
+                  .subject(subject)
+                  .build();
+            }
+        }
+    }
+
     public static class DirectoryExistsValidator implements Validator {
 
         private final boolean allowEL;
