@@ -34,7 +34,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.BZip2Codec;
-import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
@@ -59,6 +58,34 @@ import org.apache.nifi.util.Tuple;
  * This is a base class that is helpful when building processors interacting with HDFS.
  */
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
+    /**
+     * Compression Type Enum
+     */
+    public enum CompressionType {
+        NONE,
+        DEFAULT,
+        BZIP,
+        GZIP,
+        LZ4,
+        SNAPPY,
+        AUTOMATIC;
+
+        @Override
+        public String toString() {
+            switch (this) {
+                case NONE: return "NONE";
+                case DEFAULT: return DefaultCodec.class.getName();
+                case BZIP: return BZip2Codec.class.getName();
+                case GZIP: return GzipCodec.class.getName();
+                case LZ4: return Lz4Codec.class.getName();
+                case SNAPPY: return SnappyCodec.class.getName();
+                case AUTOMATIC: return "Automatically Detected";
+            }
+            return null;
+        }
+    }
+
+
     private static final Validator KERBEROS_CONFIG_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
@@ -94,8 +121,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     public static final String DIRECTORY_PROP_NAME = "Directory";
 
-    public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder().name("Compression codec").required(false)
-            .allowableValues(BZip2Codec.class.getName(), DefaultCodec.class.getName(), GzipCodec.class.getName(), Lz4Codec.class.getName(), SnappyCodec.class.getName()).build();
+    public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder().name("Compression codec").required(true)
+            .allowableValues(CompressionType.values()).defaultValue(CompressionType.NONE.toString()).build();
 
     public static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder().name("Kerberos Principal").required(false)
             .description("Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set " + "in your nifi.properties").addValidator(Validator.VALID)
@@ -324,10 +351,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
      *            the Hadoop Configuration
      * @return CompressionCodec or null
      */
-    protected CompressionCodec getCompressionCodec(ProcessContext context, Configuration configuration) {
-        CompressionCodec codec = null;
+    protected org.apache.hadoop.io.compress.CompressionCodec getCompressionCodec(ProcessContext context, Configuration configuration) {
+        org.apache.hadoop.io.compress.CompressionCodec codec = null;
         if (context.getProperty(COMPRESSION_CODEC).isSet()) {
-            String compressionClassname = context.getProperty(COMPRESSION_CODEC).getValue();
+            String compressionClassname = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).getValue()).toString();
             CompressionCodecFactory ccf = new CompressionCodecFactory(configuration);
             codec = ccf.getCodecByClassName(compressionClassname);
         }
