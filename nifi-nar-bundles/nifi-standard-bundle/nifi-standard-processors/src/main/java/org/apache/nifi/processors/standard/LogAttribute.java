@@ -135,7 +135,7 @@ public class LogAttribute extends AbstractProcessor {
         final ProcessorLog LOG = getLogger();
         final String dashedLine;
 
-        String logPrefix = context.getProperty(LOG_PREFIX).getValue();
+        String logPrefix = context.getProperty(LOG_PREFIX).evaluateAttributeExpressions().getValue();
 
         if (StringUtil.isBlank(logPrefix)) {
             dashedLine = StringUtils.repeat('-', 50);
