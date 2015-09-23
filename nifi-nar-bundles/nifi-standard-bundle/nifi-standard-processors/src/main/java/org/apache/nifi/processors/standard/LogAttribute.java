@@ -45,7 +45,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.util.Strings;
 import org.eclipse.jetty.util.StringUtil;
 
 @EventDriven
