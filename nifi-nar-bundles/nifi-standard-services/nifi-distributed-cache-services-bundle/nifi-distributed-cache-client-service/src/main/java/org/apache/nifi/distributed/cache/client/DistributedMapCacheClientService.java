@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
 @CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This can be used in order to share a Map "
     + "between nodes in a NiFi cluster")
-public class DistributedMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
+public class DistributedMapCacheClientService extends AbstractControllerService implements ExtendedDistributedMapCacheClient {
 
     private static final Logger logger = LoggerFactory.getLogger(DistributedMapCacheClientService.class);
 
@@ -179,6 +179,22 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     @Override
+    public int size() throws IOException {
+        return withCommsSession(new CommsAction<Integer>() {
+            @Override
+            public Integer execute(final CommsSession session) throws IOException {
+                final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+                dos.writeUTF("size");
+                dos.flush();
+
+                // read response
+                final DataInputStream dis = new DataInputStream(session.getInputStream());
+                return dis.readInt();
+            }
+        });
+    }
+
+    @Override
     public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         return withCommsSession(new CommsAction<V>() {
             @Override
@@ -196,7 +212,6 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
             }
         });
     }
-
     @Override
     public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
         return withCommsSession(new CommsAction<Boolean>() {
