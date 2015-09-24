@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.update.attributes;
 
-import org.apache.nifi.update.attributes.FlowFilePolicy;
-import org.apache.nifi.update.attributes.Criteria;
-import org.apache.nifi.update.attributes.Condition;
-import org.apache.nifi.update.attributes.Action;
-import org.apache.nifi.update.attributes.Rule;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,8 +51,7 @@ public class TestUpdateAttribute {
     }
 
     private Criteria getCriteria() {
-        final Criteria criteria = new Criteria();
-        return criteria;
+        return new Criteria();
     }
 
     private void addRule(final Criteria criteria, final String name, final Collection<String> conditions, final Map<String, String> actions) {
@@ -205,8 +199,8 @@ public class TestUpdateAttribute {
         addRule(criteria, "rule", Arrays.asList(
                 // conditions
                 "${attribute.1:equals('value.1')}"), getMap(
-                        // actions
-                        "attribute.2", "value.2"));
+                // actions
+                "attribute.2", "value.2"));
 
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setAnnotationData(serialize(criteria));
@@ -230,8 +224,8 @@ public class TestUpdateAttribute {
         addRule(criteria, "rule", Arrays.asList(
                 // conditions
                 "${attribute.1:equals('value.1')}"), getMap(
-                        // actions
-                        "attribute.2", "value.2"));
+                // actions
+                "attribute.2", "value.2"));
 
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setAnnotationData(serialize(criteria));
@@ -358,8 +352,8 @@ public class TestUpdateAttribute {
         addRule(criteria, "rule 3", Arrays.asList(
                 // conditions
                 "${attribute.1:equals('value.1')}"), getMap(
-                        // actions
-                        "attribute.2", "value.3"));
+                // actions
+                "attribute.2", "value.3"));
 
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setAnnotationData(serialize(criteria));
@@ -421,5 +415,89 @@ public class TestUpdateAttribute {
 
         // ensure the attributes are as expected
         flowfile.assertAttributeEquals("default.attr", "-more-stuff");
+    }
+
+    @Test
+    public void testSimpleDelete() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "attribute.2");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "value.1");
+        attributes.put("attribute.2", "value.2");
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("attribute.1", "value.1");
+        result.get(0).assertAttributeNotExists("attribute.2");
+    }
+
+    @Test
+    public void testRegexDotDelete() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "attribute.2");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "value.1");
+        attributes.put("attribute.2", "value.2");
+        attributes.put("attributex2", "valuex2");
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("attribute.1", "value.1");
+        result.get(0).assertAttributeNotExists("attribute.2");
+        result.get(0).assertAttributeNotExists("attributex2");
+    }
+
+    @Test
+    public void testRegexLiteralDotDelete() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "attribute\\.2");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "value.1");
+        attributes.put("attribute.2", "value.2");
+        attributes.put("attributex2", "valuex2");
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("attribute.1", "value.1");
+        result.get(0).assertAttributeNotExists("attribute.2");
+        result.get(0).assertAttributeExists("attributex2");
+    }
+
+    @Test
+    public void testRegexGroupDelete() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "(attribute\\.[2-5]|sample.*)");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "value.1");
+        attributes.put("attribute.2", "value.2");
+        attributes.put("attribute.6", "value.6");
+        attributes.put("sampleSize", "value.size");
+        attributes.put("sample.1", "value.sample.1");
+        attributes.put("simple.1", "value.simple.1");
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("attribute.1", "value.1");
+        result.get(0).assertAttributeNotExists("attribute.2");
+        result.get(0).assertAttributeExists("attribute.6");
+        result.get(0).assertAttributeNotExists("sampleSize");
+        result.get(0).assertAttributeNotExists("sample.1");
+        result.get(0).assertAttributeExists("simple.1");
     }
 }
