@@ -50,6 +50,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.Tuple;
@@ -136,6 +137,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     private static final Object RESOURCES_LOCK = new Object();
 
+    private static final long TICKET_RENEWAL_THRESHOLD_SEC = 4 * 3600;   // renew Kerberos ticket after 4 hours
+    private long lastTicketRenewal;
+
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONFIGURATION_RESOURCES);
@@ -154,12 +158,12 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     // variables shared by all threads of this processor
-    // Hadoop Configuration and FileSystem
-    private final AtomicReference<Tuple<Configuration, FileSystem>> hdfsResources = new AtomicReference<>();
+    // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
+    private final AtomicReference<Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>>> hdfsResources = new AtomicReference<>();
 
     @Override
     protected void init(ProcessorInitializationContext context) {
-        hdfsResources.set(new Tuple<Configuration, FileSystem>(null, null));
+        hdfsResources.set(new Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>>(null, null));
     }
 
     @Override
@@ -173,7 +177,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     @OnScheduled
     public final void abstractOnScheduled(ProcessContext context) throws IOException {
         try {
-            Tuple<Configuration, FileSystem> resources = hdfsResources.get();
+            Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>> resources = hdfsResources.get();
             if (resources.getKey() == null || resources.getValue() == null) {
                 String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
                 String dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
@@ -183,14 +187,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             }
         } catch (IOException ex) {
             getLogger().error("HDFS Configuration error - {}", new Object[] { ex });
-            hdfsResources.set(new Tuple<Configuration, FileSystem>(null, null));
+            hdfsResources.set(new Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>>(null, null));
             throw ex;
         }
     }
 
     @OnStopped
     public final void abstractOnStopped() {
-        hdfsResources.set(new Tuple<Configuration, FileSystem>(null, null));
+        hdfsResources.set(new Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>>(null, null));
     }
 
     private static Configuration getConfigurationFromResources(String configResources) throws IOException {
@@ -224,7 +228,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
-    Tuple<Configuration, FileSystem> resetHDFSResources(String configResources, String dir, ProcessContext context) throws IOException {
+    Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>> resetHDFSResources(String configResources, String dir, ProcessContext context) throws IOException {
         // org.apache.hadoop.conf.Configuration saves its current thread context class loader to use for threads that it creates
         // later to do I/O. We need this class loader to be the NarClassLoader instead of the magical
         // NarThreadContextClassLoader.
@@ -244,13 +248,15 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // If kerberos is enabled, create the file system as the kerberos principal
             // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
             FileSystem fs = null;
+            UserGroupInformation ugi = null;
             synchronized (RESOURCES_LOCK) {
                 if (config.get("hadoop.security.authentication").equalsIgnoreCase("kerberos")) {
                     String principal = context.getProperty(KERBEROS_PRINCIPAL).getValue();
                     String keyTab = context.getProperty(KERBEROS_KEYTAB).getValue();
                     UserGroupInformation.setConfiguration(config);
-                    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keyTab);
+                    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keyTab);
                     fs = getFileSystemAsUser(config, ugi);
+                    lastTicketRenewal = System.currentTimeMillis() / 1000;
                 } else {
                     config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
                     config.set("hadoop.security.authentication", "simple");
@@ -260,7 +266,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             config.set(disableCacheName, "true");
             getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
                     new Object[] { fs.getWorkingDirectory(), fs.getDefaultBlockSize(new Path(dir)), fs.getDefaultReplication(new Path(dir)), config.toString() });
-            return new Tuple<>(config, fs);
+            return new Tuple<>(config, new Tuple<>(fs, ugi));
 
         } finally {
             Thread.currentThread().setContextClassLoader(savedClassLoader);
@@ -396,6 +402,32 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected FileSystem getFileSystem() {
-        return hdfsResources.get().getValue();
+        // if kerberos is enabled, check if the ticket should be renewed before returning the FS
+        if (getUserGroupInformation() != null && isTicketOld()) {
+            renewKerberosTicket(hdfsResources.get().getValue().getValue());
+        }
+        return hdfsResources.get().getValue().getKey();
+    }
+
+    protected UserGroupInformation getUserGroupInformation() {
+        return hdfsResources.get().getValue().getValue();
+    }
+
+    protected void renewKerberosTicket(UserGroupInformation ugi) {
+        try {
+            getLogger().info(String.format("Kerberos ticket age exceeds threshold [%d seconds], " +
+                "attempting to renew ticket for user [%s]",
+              TICKET_RENEWAL_THRESHOLD_SEC, ugi.getUserName()));
+            ugi.checkTGTAndReloginFromKeytab();
+            lastTicketRenewal = System.currentTimeMillis() / 1000;
+            getLogger().info("Kerberos ticket successfully renewed!");
+        } catch (IOException e) {
+            getLogger().error("Failed to renew Kerberos ticket\n" + e.getMessage());
+            throw new ProcessException("Unable to renew kerberos ticket\n" + e.getMessage());
+        }
+    }
+
+    protected boolean isTicketOld() {
+        return (System.currentTimeMillis() / 1000 - lastTicketRenewal) > TICKET_RENEWAL_THRESHOLD_SEC;
     }
 }
