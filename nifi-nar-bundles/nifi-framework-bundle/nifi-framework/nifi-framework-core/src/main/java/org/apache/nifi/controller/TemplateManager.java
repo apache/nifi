@@ -320,6 +320,7 @@ public class TemplateManager {
 
             // remove validation errors
             processorDTO.setValidationErrors(null);
+            processorDTO.setInputRequirement(null);
         }
     }
 

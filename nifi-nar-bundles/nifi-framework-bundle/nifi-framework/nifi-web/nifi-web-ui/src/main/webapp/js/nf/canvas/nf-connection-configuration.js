@@ -870,7 +870,9 @@ nf.ConnectionConfiguration = (function () {
                 }
 
                 // update the destination component accordingly
-                if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
+                if (nf.CanvasUtils.isProcessor(destination)) {
+                    nf.Processor.reload(destinationData.component);
+                } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
                     nf.RemoteProcessGroup.reload(destinationData.component);
                 }
 
@@ -958,7 +960,9 @@ nf.ConnectionConfiguration = (function () {
                     }
 
                     // update the destination component accordingly
-                    if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
+                    if (nf.CanvasUtils.isProcessor(destination)) {
+                        nf.Processor.reload(destinationData.component);
+                    } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
                         nf.RemoteProcessGroup.reload(destinationData.component);
                     }
                 }
