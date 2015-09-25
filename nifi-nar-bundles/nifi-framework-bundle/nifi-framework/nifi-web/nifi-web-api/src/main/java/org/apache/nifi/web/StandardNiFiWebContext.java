@@ -34,9 +34,10 @@ import javax.ws.rs.core.Response;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.ExtensionDetails;
-import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
@@ -94,21 +95,21 @@ public class StandardNiFiWebContext implements NiFiWebContext {
         final Date now = new Date();
         final Collection<Action> actions = new HashSet<>(processorActions.size());
         for (final ProcessorConfigurationAction processorAction : processorActions) {
-            final ExtensionDetails processorDetails = new ExtensionDetails();
+            final FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
             processorDetails.setType(processorAction.getProcessorType());
 
-            final ConfigureDetails configureDetails = new ConfigureDetails();
+            final FlowChangeConfigureDetails configureDetails = new FlowChangeConfigureDetails();
             configureDetails.setName(processorAction.getName());
             configureDetails.setPreviousValue(processorAction.getPreviousValue());
             configureDetails.setValue(processorAction.getValue());
 
-            final Action action = new Action();
+            final FlowChangeAction action = new FlowChangeAction();
             action.setTimestamp(now);
             action.setSourceId(processorAction.getProcessorId());
             action.setSourceName(processorAction.getProcessorName());
             action.setSourceType(Component.Processor);
             action.setOperation(Operation.Configure);
-            action.setUserDn(getCurrentUserDn());
+            action.setUserIdentity(getCurrentUserDn());
             action.setUserName(getCurrentUserName());
             action.setComponentDetails(processorDetails);
             action.setActionDetails(configureDetails);

@@ -14,36 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
+package org.apache.nifi.action.details;
 
-import org.apache.nifi.action.Action;
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.authorization.AuthorityProvider;
-
-import java.util.Collection;
+import java.io.Serializable;
 
 /**
- * Adds the specified actions.
+ * Provides additional details about a given action.
  */
-public class AddActionsAction implements AdministrationAction<Void> {
-
-    private final Collection<Action> actions;
-
-    public AddActionsAction(Collection<Action> actions) {
-        this.actions = actions;
-    }
-
-    @Override
-    public Void execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
-        ActionDAO actionDao = daoFactory.getActionDAO();
-
-        // add each action
-        for (Action action : actions) {
-            actionDao.createAction(action);
-        }
-
-        return null;
-    }
+public interface ActionDetails extends Serializable {
 
 }

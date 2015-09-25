@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.action.component.details;
 
-import java.io.Serializable;
-
 /**
- *
+ * Provides details of an extension on an Action.
  */
-public abstract class ComponentDetails implements Serializable {
+public interface ExtensionDetails extends ComponentDetails {
+
+    String getType();
 
 }

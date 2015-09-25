@@ -24,9 +24,10 @@ import java.util.Set;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
-import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ScheduledState;
@@ -115,7 +116,7 @@ public class PortAuditor extends NiFiAuditor {
             // see if the name has changed
             if (name != null && portDTO.getName() != null && !name.equals(updatedPort.getName())) {
                 // create the config details
-                ConfigureDetails configDetails = new ConfigureDetails();
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Name");
                 configDetails.setValue(updatedPort.getName());
                 configDetails.setPreviousValue(name);
@@ -126,7 +127,7 @@ public class PortAuditor extends NiFiAuditor {
             // see if the comments has changed
             if (comments != null && portDTO.getComments() != null && !comments.equals(updatedPort.getComments())) {
                 // create the config details
-                ConfigureDetails configDetails = new ConfigureDetails();
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Comments");
                 configDetails.setValue(updatedPort.getComments());
                 configDetails.setPreviousValue(comments);
@@ -138,7 +139,7 @@ public class PortAuditor extends NiFiAuditor {
             if (isRootGroupPort) {
                 if (portDTO.getConcurrentlySchedulableTaskCount() != null && updatedPort.getMaxConcurrentTasks() != maxConcurrentTasks) {
                     // create the config details
-                    ConfigureDetails configDetails = new ConfigureDetails();
+                    FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                     configDetails.setName("Concurrent Tasks");
                     configDetails.setValue(String.valueOf(updatedPort.getMaxConcurrentTasks()));
                     configDetails.setPreviousValue(String.valueOf(maxConcurrentTasks));
@@ -157,7 +158,7 @@ public class PortAuditor extends NiFiAuditor {
                     // if users were added/removed
                     if (newUsers.size() > 0 || removedUsers.size() > 0) {
                         // create the config details
-                        ConfigureDetails configDetails = new ConfigureDetails();
+                        FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                         configDetails.setName("User Access Control");
                         configDetails.setValue(StringUtils.join(portDTO.getUserAccessControl(), ", "));
                         configDetails.setPreviousValue(StringUtils.join(existingUsers, ", "));
@@ -177,7 +178,7 @@ public class PortAuditor extends NiFiAuditor {
                     // if groups were added/removed
                     if (newGroups.size() > 0 || removedGroups.size() > 0) {
                         // create the config details
-                        ConfigureDetails configDetails = new ConfigureDetails();
+                        FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                         configDetails.setName("Group Access Control");
                         configDetails.setValue(StringUtils.join(portDTO.getGroupAccessControl(), ", "));
                         configDetails.setPreviousValue(StringUtils.join(existingGroups, ", "));
@@ -203,8 +204,8 @@ public class PortAuditor extends NiFiAuditor {
                 // create the actions
                 for (ActionDetails detail : configurationDetails) {
                     // create the port action for updating the name
-                    Action portAction = new Action();
-                    portAction.setUserDn(user.getDn());
+                    FlowChangeAction portAction = new FlowChangeAction();
+                    portAction.setUserIdentity(user.getDn());
                     portAction.setUserName(user.getUserName());
                     portAction.setOperation(Operation.Configure);
                     portAction.setTimestamp(timestamp);
@@ -223,8 +224,8 @@ public class PortAuditor extends NiFiAuditor {
             // determine if the running state has changed
             if (scheduledState != updatedScheduledState) {
                 // create a processor action
-                Action processorAction = new Action();
-                processorAction.setUserDn(user.getDn());
+                FlowChangeAction processorAction = new FlowChangeAction();
+                processorAction.setUserIdentity(user.getDn());
                 processorAction.setUserName(user.getUserName());
                 processorAction.setTimestamp(new Date());
                 processorAction.setSourceId(updatedPort.getIdentifier());
@@ -307,7 +308,7 @@ public class PortAuditor extends NiFiAuditor {
      * @return action
      */
     public Action generateAuditRecord(Port port, Operation operation, ActionDetails actionDetails) {
-        Action action = null;
+        FlowChangeAction action = null;
 
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -321,8 +322,8 @@ public class PortAuditor extends NiFiAuditor {
             }
 
             // create the port action for adding this processor
-            action = new Action();
-            action.setUserDn(user.getDn());
+            action = new FlowChangeAction();
+            action.setUserIdentity(user.getDn());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());

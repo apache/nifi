@@ -25,10 +25,11 @@ import java.util.Set;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.ExtensionDetails;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
-import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -114,7 +115,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
             Map<String, String> updatedValues = extractConfiguredPropertyValues(reportingTask, reportingTaskDTO);
 
             // create the reporting task details
-            ExtensionDetails taskDetails = new ExtensionDetails();
+            FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
             taskDetails.setType(reportingTask.getReportingTask().getClass().getSimpleName());
 
             // create a reporting task action
@@ -152,14 +153,14 @@ public class ReportingTaskAuditor extends NiFiAuditor {
                         }
                     }
 
-                    final ConfigureDetails actionDetails = new ConfigureDetails();
+                    final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
                     actionDetails.setName(property);
                     actionDetails.setValue(newValue);
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    Action configurationAction = new Action();
-                    configurationAction.setUserDn(user.getDn());
+                    FlowChangeAction configurationAction = new FlowChangeAction();
+                    configurationAction.setUserIdentity(user.getDn());
                     configurationAction.setUserName(user.getUserName());
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
@@ -178,8 +179,8 @@ public class ReportingTaskAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (scheduledState != updatedScheduledState) {
                 // create a reporting task action
-                Action taskAction = new Action();
-                taskAction.setUserDn(user.getDn());
+                FlowChangeAction taskAction = new FlowChangeAction();
+                taskAction.setUserIdentity(user.getDn());
                 taskAction.setUserName(user.getUserName());
                 taskAction.setTimestamp(new Date());
                 taskAction.setSourceId(reportingTask.getIdentifier());
@@ -262,7 +263,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
      * @return action
      */
     public Action generateAuditRecord(ReportingTaskNode reportingTask, Operation operation, ActionDetails actionDetails) {
-        Action action = null;
+        FlowChangeAction action = null;
 
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -270,12 +271,12 @@ public class ReportingTaskAuditor extends NiFiAuditor {
         // ensure the user was found
         if (user != null) {
             // create the reporting task details
-            ExtensionDetails taskDetails = new ExtensionDetails();
+            FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
             taskDetails.setType(reportingTask.getReportingTask().getClass().getSimpleName());
 
             // create the reporting task action for adding this reporting task
-            action = new Action();
-            action.setUserDn(user.getDn());
+            action = new FlowChangeAction();
+            action.setUserIdentity(user.getDn());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());

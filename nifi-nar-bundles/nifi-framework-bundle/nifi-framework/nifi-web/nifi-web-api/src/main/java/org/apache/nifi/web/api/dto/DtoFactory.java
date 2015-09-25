@@ -40,10 +40,16 @@ import javax.ws.rs.WebApplicationException;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.action.component.details.FlowChangeRemoteProcessGroupDetails;
 import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.action.details.ConnectDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConnectDetails;
+import org.apache.nifi.action.details.FlowChangeMoveDetails;
+import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -156,7 +162,7 @@ public final class DtoFactory {
         actionDto.setSourceName(action.getSourceName());
         actionDto.setSourceType(action.getSourceType().name());
         actionDto.setTimestamp(action.getTimestamp());
-        actionDto.setUserDn(action.getUserDn());
+        actionDto.setUserDn(action.getUserIdentity());
         actionDto.setUserName(action.getUserName());
         actionDto.setOperation(action.getOperation().name());
         actionDto.setActionDetails(createActionDetailsDto(action.getActionDetails()));
@@ -176,13 +182,13 @@ public final class DtoFactory {
             return null;
         }
 
-        if (actionDetails instanceof ConfigureDetails) {
+        if (actionDetails instanceof FlowChangeConfigureDetails) {
             final ConfigureDetailsDTO configureDetails = new ConfigureDetailsDTO();
             configureDetails.setName(((ConfigureDetails) actionDetails).getName());
             configureDetails.setPreviousValue(((ConfigureDetails) actionDetails).getPreviousValue());
             configureDetails.setValue(((ConfigureDetails) actionDetails).getValue());
             return configureDetails;
-        } else if (actionDetails instanceof ConnectDetails) {
+        } else if (actionDetails instanceof FlowChangeConnectDetails) {
             final ConnectDetailsDTO connectDetails = new ConnectDetailsDTO();
             connectDetails.setSourceId(((ConnectDetails) actionDetails).getSourceId());
             connectDetails.setSourceName(((ConnectDetails) actionDetails).getSourceName());
@@ -192,14 +198,14 @@ public final class DtoFactory {
             connectDetails.setDestinationName(((ConnectDetails) actionDetails).getDestinationName());
             connectDetails.setDestinationType(((ConnectDetails) actionDetails).getDestinationType().toString());
             return connectDetails;
-        } else if (actionDetails instanceof MoveDetails) {
+        } else if (actionDetails instanceof FlowChangeMoveDetails) {
             final MoveDetailsDTO moveDetails = new MoveDetailsDTO();
             moveDetails.setPreviousGroup(((MoveDetails) actionDetails).getPreviousGroup());
             moveDetails.setPreviousGroupId(((MoveDetails) actionDetails).getPreviousGroupId());
             moveDetails.setGroup(((MoveDetails) actionDetails).getGroup());
             moveDetails.setGroupId(((MoveDetails) actionDetails).getGroupId());
             return moveDetails;
-        } else if (actionDetails instanceof PurgeDetails) {
+        } else if (actionDetails instanceof FlowChangePurgeDetails) {
             final PurgeDetailsDTO purgeDetails = new PurgeDetailsDTO();
             purgeDetails.setEndDate(((PurgeDetails) actionDetails).getEndDate());
             return purgeDetails;
@@ -219,11 +225,11 @@ public final class DtoFactory {
             return null;
         }
 
-        if (componentDetails instanceof ExtensionDetails) {
+        if (componentDetails instanceof FlowChangeExtensionDetails) {
             final ExtensionDetailsDTO processorDetails = new ExtensionDetailsDTO();
             processorDetails.setType(((ExtensionDetails) componentDetails).getType());
             return processorDetails;
-        } else if (componentDetails instanceof RemoteProcessGroupDetails) {
+        } else if (componentDetails instanceof FlowChangeRemoteProcessGroupDetails) {
             final RemoteProcessGroupDetailsDTO remoteProcessGroupDetails = new RemoteProcessGroupDetailsDTO();
             remoteProcessGroupDetails.setUri(((RemoteProcessGroupDetails) componentDetails).getUri());
             return remoteProcessGroupDetails;

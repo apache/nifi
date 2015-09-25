@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.nifi.action.Action;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
@@ -29,6 +30,7 @@ public class MockEventAccess implements EventAccess {
 
     private ProcessGroupStatus processGroupStatus;
     private final List<ProvenanceEventRecord> provenanceRecords = new ArrayList<>();
+    private final List<Action> flowChanges = new ArrayList<>();
 
     public void setProcessGroupStatus(final ProcessGroupStatus status) {
         this.processGroupStatus = status;
@@ -67,4 +69,29 @@ public class MockEventAccess implements EventAccess {
     public ProvenanceEventRepository getProvenanceRepository() {
         return null;
     }
+
+    @Override
+    public List<Action> getFlowChanges(int firstActionId, int maxActions) {
+        if (firstActionId < 0 || maxActions < 1) {
+            throw new IllegalArgumentException();
+        }
+
+        final List<Action> actions = new ArrayList<>();
+
+        for (final Action action : flowChanges) {
+            if (action.getId() >= firstActionId) {
+                actions.add(action);
+                if (actions.size() >= maxActions) {
+                    return actions;
+                }
+            }
+        }
+
+        return actions;
+    }
+
+    public void addFlowChange(final Action action) {
+        this.flowChanges.add(action);
+    }
+
 }

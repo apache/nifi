@@ -14,13 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action.details;
+package org.apache.nifi.action;
+
+import org.apache.nifi.action.component.details.ComponentDetails;
+import org.apache.nifi.action.details.ActionDetails;
 
 import java.io.Serializable;
+import java.util.Date;
 
 /**
- *
+ * An action taken on the flow by a user.
  */
-public abstract class ActionDetails implements Serializable {
+public interface Action extends Serializable {
+
+    Integer getId();
+
+    Date getTimestamp();
+
+    String getUserIdentity();
+
+    String getUserName();
+
+    String getSourceId();
+
+    String getSourceName();
+
+    Component getSourceType();
+
+    ComponentDetails getComponentDetails();
+
+    Operation getOperation();
+
+    ActionDetails getActionDetails();
 
 }
