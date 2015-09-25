@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -41,6 +43,7 @@ import com.amazonaws.services.sns.model.PublishRequest;
 
 @SupportsBatching
 @SeeAlso({GetSQS.class, PutSQS.class})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "sns", "topic", "put", "publish", "pubsub"})
 @CapabilityDescription("Sends the content of a FlowFile as a notification to the Amazon Simple Notification Service")
 public class PutSNS extends AbstractSNSProcessor {

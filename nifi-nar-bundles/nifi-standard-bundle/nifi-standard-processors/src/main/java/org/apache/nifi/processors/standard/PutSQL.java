@@ -45,6 +45,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -68,6 +70,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 
 @SupportsBatching
 @SeeAlso(ConvertJSONToSQL.class)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"sql", "put", "rdbms", "database", "update", "insert", "relational"})
 @CapabilityDescription("Executes a SQL UPDATE or INSERT command. The content of an incoming FlowFile is expected to be the SQL command "
         + "to execute. The SQL command may use the ? to escape parameters. In this case, the parameters to use must exist as FlowFile attributes "

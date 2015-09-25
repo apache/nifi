@@ -1633,6 +1633,17 @@ will handle your Processor:
 		not there is any data on an input queue. This is useful, for example, if the Processor needs to be triggered to run
 		periodically to time out a network connection.
 
+    - `InputRequirement`: By default, all Processors will allow users to create incoming connections for the Processor, but
+        if the user does not create an incoming connection, the Processor is still valid and can be scheduled to run. For Processors
+        that are expected to be used as a "Source Processor," though, this can be confusing to the user, and the user may attempt to
+        send FlowFiles to that Processor, only for the FlowFiles to queue up without being processed. Conversely, if the Processor
+        expects incoming FlowFiles but does not have an input queue, the Processor will be scheduled to run but will perform no work,
+        as it will receive no FlowFile, and this leads to confusion as well. As a result, we can use the `@InputRequirement` annotation
+        and provide it a value of `INPUT_REQUIRED`, `INPUT_ALLOWED`, or `INPUT_FORBIDDEN`. This provides information to the framework
+        about when the Processor should be made invalid, or whether or not the user should even be able to draw a Connection to the
+        Processor. For instance, if a Processor is annotated with `InputRequirement(Requirement.INPUT_FORBIDDEN)`, then the user will
+        not even be able to create a Connection with that Processor as the destination.
+
 
 === Data Buffering
 

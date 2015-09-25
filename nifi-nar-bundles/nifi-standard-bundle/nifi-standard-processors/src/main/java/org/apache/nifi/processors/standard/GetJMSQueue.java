@@ -21,6 +21,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.jms.JMSException;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -34,6 +36,7 @@ import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 
 @TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"jms", "queue", "listen", "get", "pull", "source", "consume", "consumer"})
 @CapabilityDescription("Pulls messages from a JMS Queue, creating a FlowFile for each JMS Message or bundle of messages, as configured")
 @SeeAlso(PutJMS.class)

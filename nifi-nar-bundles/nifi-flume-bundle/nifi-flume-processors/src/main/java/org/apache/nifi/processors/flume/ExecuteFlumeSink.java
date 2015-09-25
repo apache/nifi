@@ -16,20 +16,19 @@
  */
 package org.apache.nifi.processors.flume;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
+
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.Sink;
 import org.apache.flume.conf.Configurables;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.ProcessContext;
@@ -40,12 +39,17 @@ import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 /**
  * This processor runs a Flume sink
  */
-@Tags({"flume", "hadoop", "put", "sink"})
-@CapabilityDescription("Execute a Flume sink. Each input FlowFile is converted into a Flume Event for processing by the sink.")
 @TriggerSerially
+@Tags({"flume", "hadoop", "put", "sink"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
+@CapabilityDescription("Execute a Flume sink. Each input FlowFile is converted into a Flume Event for processing by the sink.")
 public class ExecuteFlumeSink extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SINK_TYPE = new PropertyDescriptor.Builder()

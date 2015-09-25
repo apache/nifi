@@ -82,6 +82,8 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -121,6 +123,7 @@ import org.apache.nifi.util.StopWatch;
 import com.sun.jersey.api.client.ClientResponse.Status;
 
 @SupportsBatching
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "remote", "copy", "archive"})
 @CapabilityDescription("Performs an HTTP Post with the content of the FlowFile")
 @ReadsAttribute(attribute = "mime.type", description = "If not sending data as a FlowFile, the mime.type attribute will be used to set the HTTP Header for Content-Type")

@@ -33,6 +33,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -59,6 +61,7 @@ import org.apache.nifi.util.StopWatch;
 /**
  * This processor copies FlowFiles to HDFS.
  */
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "HDFS", "put", "copy", "filesystem"})
 @CapabilityDescription("Write FlowFile data to Hadoop Distributed File System (HDFS)")
 @WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")

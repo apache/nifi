@@ -21,6 +21,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -37,6 +39,7 @@ import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 
 @SupportsBatching
 @SeeAlso({GetSQS.class, PutSQS.class})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "AWS", "SQS", "Queue", "Delete"})
 @CapabilityDescription("Deletes a message from an Amazon Simple Queuing Service Queue")
 public class DeleteSQS extends AbstractSQSProcessor {

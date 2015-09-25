@@ -33,8 +33,10 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
@@ -76,6 +78,7 @@ import java.util.concurrent.TimeUnit;
  */
 @EventDriven
 @SideEffectFree
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
 @Tags({"text", "convert", "characterset", "character set"})
 @CapabilityDescription("Converts a FlowFile's content from one character set to another")
