@@ -26,9 +26,10 @@
         <h2>Description:</h2>
         <p>
             This processor updates the attributes of a FlowFile using properties or rules that are added by the user. 
-            There are two ways to use this processor to add or modify attributes. One way is the "Basic Usage"; this allows you to set default attribute changes that affect 
+            There are three ways to use this processor to add or modify attributes. One way is the "Basic Usage"; this allows you to set default attribute changes that affect
             every FlowFile going through the processor. The second way is the "Advanced Usage"; this allows you to make conditional attribute changes that only affect a FlowFile if it 
-            meets certain conditions. It is possible to use both methods in the same processor at the same time.
+            meets certain conditions. It is possible to use both methods in the same processor at the same time.  The third way is the "Delete Attributes Expression"; this allows you to
+            provide a regular expression and any attributes with a matching name will be deleted.
         </p>
 
         <p>
@@ -187,6 +188,26 @@
             The UpdateAttribute processor allows you to make both basic usage changes (i.e., to every FlowFile) and advanced usage changes (i.e., conditional) 
             at the same time; however, if they both affect the same attribute(s), then the conditional changes take precedence. This has the added benefit of supporting 
             a type of "else" construct. In other words, if none of the rules match for the attribute, then the basic usage changes will be made.
+        </p>
+
+        <p><strong>Deleting Attributes</strong></p>
+
+        <p>
+            Deleting attributes is a simple as providing a regular expression for attribute names to be deleted.  This can be a simple regular expression that will
+            match a single attribute or more complex regular expression to match a group of similarly named attributes or even seveal individual attribute names.
+        </p>
+        <ul>
+            <li><strong>lastUser</strong> - will delete an attribute with the name "lastUser".
+            </li>
+            <li><strong>user.*</strong> - will delete attributes beginning with "user", including for example "username, "userName", "userID", and "users".  But
+                it will not delete "User" or "localuser".
+            </li>
+            <li><strong>(user.*|host.*|.*Date)</strong> - will delete "user", "username", "userName", "hostInfo", "hosts", and "updateDate", but not "User", "HOST", "update", or "updatedate".
+            </li>
+        </ul>
+
+        <p>
+            The delete attributes function does not produce a Provenance Event if the <strong>alternate.identified</strong> Attribute is deleted.
         </p>
 
         <p><strong>FlowFile Policy</strong>
