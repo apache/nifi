@@ -45,6 +45,7 @@
         <module>nifi-ambari-bundle</module>
         <module>nifi-image-bundle</module>
         <module>nifi-avro-bundle</module>
+        <module>nifi-couchbase-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
