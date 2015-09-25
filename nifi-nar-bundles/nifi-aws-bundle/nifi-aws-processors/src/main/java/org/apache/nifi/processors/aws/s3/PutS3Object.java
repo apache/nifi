@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -54,6 +56,7 @@ import com.amazonaws.services.s3.model.StorageClass;
 
 @SupportsBatching
 @SeeAlso({FetchS3Object.class})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "S3", "AWS", "Archive", "Put"})
 @CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket")
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the S3 Object",
@@ -101,7 +104,8 @@ public class PutS3Object extends AbstractS3Processor {
                 .build();
     }
 
-    public void onTrigger(final ProcessContext context, final ProcessSession session) {
+    @Override
+	public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;

@@ -41,6 +41,8 @@ import javax.jms.InvalidDestinationException;
 import javax.jms.JMSException;
 import javax.jms.Session;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -60,6 +62,7 @@ import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 
 @TriggerSerially
 @TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"jms", "topic", "subscription", "durable", "non-durable", "listen", "get", "pull", "source", "consume", "consumer"})
 @CapabilityDescription("Pulls messages from a JMS Topic, creating a FlowFile for each JMS Message or bundle of messages, as configured")
 @SeeAlso(PutJMS.class)

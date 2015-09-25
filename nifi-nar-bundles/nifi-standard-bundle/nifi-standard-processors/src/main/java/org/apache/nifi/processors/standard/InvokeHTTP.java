@@ -54,6 +54,8 @@ import javax.net.ssl.SSLSession;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -77,6 +79,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("An HTTP client processor which converts FlowFile attributes to HTTP headers, with configurable HTTP method, url, etc.")
 @WritesAttributes({
     @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),

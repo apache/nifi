@@ -18,18 +18,18 @@
  */
 package org.apache.nifi.processors.kite;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
+
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData.Record;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -47,9 +47,13 @@ import org.kitesdk.data.SchemaNotFoundException;
 import org.kitesdk.data.spi.DefaultConfiguration;
 import org.kitesdk.data.spi.filesystem.JSONFileReader;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 @Tags({"kite", "json", "avro"})
-@CapabilityDescription(
-        "Converts JSON files to Avro according to an Avro Schema")
+@InputRequirement(Requirement.INPUT_REQUIRED)
+@CapabilityDescription("Converts JSON files to Avro according to an Avro Schema")
 public class ConvertJSONToAvro extends AbstractKiteProcessor {
 
     private static final Relationship SUCCESS = new Relationship.Builder()

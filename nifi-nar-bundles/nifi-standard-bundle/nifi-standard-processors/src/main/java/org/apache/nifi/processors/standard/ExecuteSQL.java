@@ -30,6 +30,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -48,6 +50,7 @@ import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.StopWatch;
 
 @EventDriven
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({ "sql", "select", "jdbc", "query", "database" })
 @CapabilityDescription("Execute provided SQL select query. Query result will be converted to Avro format."
     + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on " +
