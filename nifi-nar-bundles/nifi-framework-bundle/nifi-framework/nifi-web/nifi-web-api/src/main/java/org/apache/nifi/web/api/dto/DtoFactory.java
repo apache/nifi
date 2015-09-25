@@ -1402,6 +1402,7 @@ public final class DtoFactory {
         dto.setPosition(createPositionDto(node.getPosition()));
         dto.setStyle(node.getStyle());
         dto.setParentGroupId(node.getProcessGroup().getIdentifier());
+        dto.setInputRequirement(node.getInputRequirement().name());
 
         dto.setType(node.getProcessor().getClass().getCanonicalName());
         dto.setName(node.getName());

@@ -36,6 +36,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     private String description;
     private Boolean supportsParallelProcessing;
     private Boolean supportsEventDriven;
+    private String inputRequirement;
 
     private ProcessorConfigDTO config;
 
@@ -118,6 +119,20 @@ public class ProcessorDTO extends NiFiComponentDTO {
 
     public void setSupportsParallelProcessing(Boolean supportsParallelProcessing) {
         this.supportsParallelProcessing = supportsParallelProcessing;
+    }
+
+    /**
+     * @return the input requirement of this processor
+     */
+    @ApiModelProperty(
+            value = "The input requirement for this processor."
+    )
+    public String getInputRequirement() {
+        return inputRequirement;
+    }
+
+    public void setInputRequirement(String inputRequirement) {
+        this.inputRequirement = inputRequirement;
     }
 
     /**
