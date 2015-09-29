@@ -43,6 +43,10 @@ public enum CouchbaseAttributes implements FlowFileAttributeKey {
      * The expiration of a related document.
      */
     Expiry("couchbase.doc.expiry"),
+    /**
+     * The thrown CouchbaseException class.
+     */
+    Exception("couchbase.exception"),
     ;
 
     private final String key;

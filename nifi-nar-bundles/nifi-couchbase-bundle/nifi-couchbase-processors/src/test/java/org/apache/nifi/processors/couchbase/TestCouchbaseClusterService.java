@@ -45,7 +45,7 @@ public class TestCouchbaseClusterService {
 
     @Test
     public void testConnectionFailure() throws InitializationException {
-        String connectionString = "couchbase://invalid-hostname";
+        String connectionString = "invalid-protocol://invalid-hostname";
         CouchbaseClusterControllerService service = new CouchbaseClusterService();
         testRunner.addControllerService(SERVICE_ID, service);
         testRunner.setProperty(service, CouchbaseClusterService.CONNECTION_STRING, connectionString);
