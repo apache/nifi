@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.processors.couchbase;
 
+import static org.apache.nifi.couchbase.CouchbaseAttributes.Exception;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.BUCKET_NAME;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.COUCHBASE_CLUSTER_SERVICE;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.DOC_ID;
-import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.DOC_ID_EXP;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_FAILURE;
+import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_RETRY;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_SUCCESS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -38,14 +40,18 @@ import java.util.Map;
 import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.couchbase.client.core.CouchbaseException;
+import com.couchbase.client.core.ServiceNotAvailableException;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.PersistTo;
 import com.couchbase.client.java.ReplicateTo;
@@ -102,6 +108,7 @@ public class TestPutCouchbaseKey {
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
         testRunner.assertTransferCount(REL_SUCCESS, 1);
+        testRunner.assertTransferCount(REL_RETRY, 0);
         testRunner.assertTransferCount(REL_FAILURE, 0);
         MockFlowFile outFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         outFile.assertContentEquals(inFileData);
@@ -134,36 +141,7 @@ public class TestPutCouchbaseKey {
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
         testRunner.assertTransferCount(REL_SUCCESS, 1);
-        testRunner.assertTransferCount(REL_FAILURE, 0);
-        MockFlowFile outFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
-        outFile.assertContentEquals(inFileData);
-    }
-
-    /**
-     * Use static document id even if doc id expression is set.
-     */
-    @Test
-    public void testStaticDocIdAndDocIdExp() throws Exception {
-        String docId = "doc-a";
-        String docIdExp = "${someProperty}";
-
-        String inFileData = "{\"key\":\"value\"}";
-        byte[] inFileDataBytes = inFileData.getBytes(StandardCharsets.UTF_8);
-
-        Bucket bucket = mock(Bucket.class);
-        when(bucket.upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE)))
-            .thenReturn(RawJsonDocument.create(docId, inFileData));
-        setupMockBucket(bucket);
-
-        testRunner.enqueue(inFileDataBytes);
-        testRunner.setProperty(DOC_ID, docId);
-        testRunner.setProperty(DOC_ID_EXP, docIdExp);
-        testRunner.run();
-
-        verify(bucket, times(1)).upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
-
-        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
-        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        testRunner.assertTransferCount(REL_RETRY, 0);
         testRunner.assertTransferCount(REL_FAILURE, 0);
         MockFlowFile outFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         outFile.assertContentEquals(inFileData);
@@ -182,7 +160,7 @@ public class TestPutCouchbaseKey {
             .thenReturn(RawJsonDocument.create(somePropertyValue, inFileData));
         setupMockBucket(bucket);
 
-        testRunner.setProperty(DOC_ID_EXP, docIdExp);
+        testRunner.setProperty(DOC_ID, docIdExp);
 
         Map<String, String> properties = new HashMap<>();
         properties.put("someProperty", somePropertyValue);
@@ -192,9 +170,40 @@ public class TestPutCouchbaseKey {
         verify(bucket, times(1)).upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
+        testRunner.assertTransferCount(REL_RETRY, 0);
         testRunner.assertTransferCount(REL_FAILURE, 0);
         MockFlowFile outFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         outFile.assertContentEquals(inFileData);
+    }
+
+    @Test
+    public void testInvalidDocIdExp() throws Exception {
+        String docIdExp = "${invalid_function(someProperty)}";
+        String somePropertyValue = "doc-p";
+
+        String inFileData = "{\"key\":\"value\"}";
+        byte[] inFileDataBytes = inFileData.getBytes(StandardCharsets.UTF_8);
+
+        Bucket bucket = mock(Bucket.class);
+        when(bucket.upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE)))
+            .thenReturn(RawJsonDocument.create(somePropertyValue, inFileData));
+        setupMockBucket(bucket);
+
+        testRunner.setProperty(DOC_ID, docIdExp);
+
+        Map<String, String> properties = new HashMap<>();
+        properties.put("someProperty", somePropertyValue);
+        testRunner.enqueue(inFileDataBytes, properties);
+        try {
+            testRunner.run();
+            fail("ProcessException should be throws.");
+        } catch (AssertionError e){
+            Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
+        }
+
+        testRunner.assertTransferCount(REL_SUCCESS, 0);
+        testRunner.assertTransferCount(REL_RETRY, 0);
+        testRunner.assertTransferCount(REL_FAILURE, 0);
     }
 
     @Test
@@ -219,6 +228,7 @@ public class TestPutCouchbaseKey {
         assertEquals(uuid, capture.getValue().id());
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
+        testRunner.assertTransferCount(REL_RETRY, 0);
         testRunner.assertTransferCount(REL_FAILURE, 0);
         MockFlowFile outFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         outFile.assertContentEquals(inFileData);
@@ -235,7 +245,39 @@ public class TestPutCouchbaseKey {
 
         Bucket bucket = mock(Bucket.class);
         when(bucket.upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.ONE)))
-            .thenThrow(new DurabilityException());
+            .thenThrow(new ServiceNotAvailableException());
+        setupMockBucket(bucket);
+
+        testRunner.enqueue(inFileDataBytes);
+        testRunner.setProperty(DOC_ID, docId);
+        testRunner.setProperty(PutCouchbaseKey.REPLICATE_TO, ReplicateTo.ONE.toString());
+        try {
+            testRunner.run();
+            fail("ProcessException should be throws.");
+        } catch (AssertionError e){
+            Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
+        }
+
+        verify(bucket, times(1)).upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.ONE));
+
+        testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
+        testRunner.assertTransferCount(REL_SUCCESS, 0);
+        testRunner.assertTransferCount(REL_RETRY, 0);
+        testRunner.assertTransferCount(REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testCouchbaseTempFlowFileError() throws Exception {
+
+        String docId = "doc-a";
+
+        String inFileData = "{\"key\":\"value\"}";
+        byte[] inFileDataBytes = inFileData.getBytes(StandardCharsets.UTF_8);
+
+        Bucket bucket = mock(Bucket.class);
+        CouchbaseException exception = new DurabilityException();
+        when(bucket.upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.ONE)))
+            .thenThrow(exception);
         setupMockBucket(bucket);
 
         testRunner.enqueue(inFileDataBytes);
@@ -245,10 +287,11 @@ public class TestPutCouchbaseKey {
 
         verify(bucket, times(1)).upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.ONE));
 
-        testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
         testRunner.assertTransferCount(REL_SUCCESS, 0);
-        testRunner.assertTransferCount(REL_FAILURE, 1);
-        MockFlowFile outFile = testRunner.getFlowFilesForRelationship(REL_FAILURE).get(0);
-        outFile.assertContentEquals(inFileData);
+        testRunner.assertTransferCount(REL_RETRY, 1);
+        testRunner.assertTransferCount(REL_FAILURE, 0);
+        MockFlowFile orgFile = testRunner.getFlowFilesForRelationship(REL_RETRY).get(0);
+        orgFile.assertContentEquals(inFileData);
+        orgFile.assertAttributeEquals(Exception.key(), exception.getClass().getName());
     }
 }

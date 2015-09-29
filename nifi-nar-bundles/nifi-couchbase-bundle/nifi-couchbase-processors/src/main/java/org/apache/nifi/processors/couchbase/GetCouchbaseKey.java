@@ -45,24 +45,27 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import com.couchbase.client.core.CouchbaseException;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.Document;
 import com.couchbase.client.java.document.RawJsonDocument;
+import com.couchbase.client.java.error.DocumentDoesNotExistException;
 
 @Tags({ "nosql", "couchbase", "database", "get" })
-@CapabilityDescription("Get a document from Couchbase Server via Key/Value access.")
+@CapabilityDescription("Get a document from Couchbase Server via Key/Value access. This processor can be triggered by an incoming FlowFile, or it can be scheduled on a timer")
 @SeeAlso({CouchbaseClusterControllerService.class})
 @ReadsAttributes({
-    @ReadsAttribute(attribute = "FlowFile content", description = "Used as a document id if none of 'Static Document Id' or 'Document Id Expression' is specified"),
-    @ReadsAttribute(attribute = "*", description = "Any attribute can be used as part of a document id by 'Document Id Excepression.")
+    @ReadsAttribute(attribute = "FlowFile content", description = "Used as a document id if 'Document Id' is not specified"),
+    @ReadsAttribute(attribute = "*", description = "Any attribute can be used as part of a document id by 'Document Id' expression.")
     })
 @WritesAttributes({
     @WritesAttribute(attribute="couchbase.cluster", description="Cluster where the document was retrieved from."),
     @WritesAttribute(attribute="couchbase.bucket", description="Bucket where the document was retrieved from."),
     @WritesAttribute(attribute="couchbase.doc.id", description="Id of the document."),
     @WritesAttribute(attribute="couchbase.doc.cas", description="CAS of the document."),
-    @WritesAttribute(attribute="couchbase.doc.expiry", description="Expiration of the document.")
+    @WritesAttribute(attribute="couchbase.doc.expiry", description="Expiration of the document."),
+    @WritesAttribute(attribute="couchbase.exception", description="If Couchbase related error occurs the CouchbaseException class name will be captured here.")
     })
 public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
 
@@ -70,13 +73,13 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
     protected void addSupportedProperties(List<PropertyDescriptor> descriptors) {
         descriptors.add(DOCUMENT_TYPE);
         descriptors.add(DOC_ID);
-        descriptors.add(DOC_ID_EXP);
     }
 
     @Override
     protected void addSupportedRelationships(Set<Relationship> relationships) {
         relationships.add(REL_SUCCESS);
         relationships.add(REL_ORIGINAL);
+        relationships.add(REL_RETRY);
         relationships.add(REL_FAILURE);
     }
 
@@ -86,15 +89,9 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
         FlowFile inFile = session.get();
 
         String docId = null;
-        if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
-            docId = context.getProperty(DOC_ID).getValue();
-        } else {
-            // Otherwise docId has to be extracted from inFile.
-            if ( inFile == null ) {
-                return;
-            }
-            if(!StringUtils.isEmpty(context.getProperty(DOC_ID_EXP).getValue())){
-                docId = context.getProperty(DOC_ID_EXP).evaluateAttributeExpressions(inFile).getValue();
+        try {
+            if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
+                docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(inFile).getValue();
             } else {
                 final byte[] content = new byte[(int) inFile.getSize()];
                 session.read(inFile, new InputStreamCallback() {
@@ -105,11 +102,14 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
                 });
                 docId = new String(content, StandardCharsets.UTF_8);
             }
+        } catch (Throwable t) {
+            throw new ProcessException("Please check 'Document Id' setting. Couldn't get document id from " + inFile);
         }
 
         if(StringUtils.isEmpty(docId)){
-            logger.error("Couldn't get document id from from {}", new Object[]{inFile});
-            session.transfer(inFile, REL_FAILURE);
+            if(inFile != null){
+                throw new ProcessException("Please check 'Document Id' setting. Couldn't get document id from " + inFile);
+            }
         }
 
         try {
@@ -137,8 +137,9 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
             }
 
             if(doc == null) {
-                logger.info("Document {} was not found in {}", new Object[]{docId, getTransitUrl(context)});
+                logger.warn("Document {} was not found in {}", new Object[]{docId, getTransitUrl(context)});
                 if(inFile != null){
+                    inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), DocumentDoesNotExistException.class.getName());
                     session.transfer(inFile, REL_FAILURE);
                 }
                 return;
@@ -160,13 +161,11 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
             session.getProvenanceReporter().receive(outFile, getTransitUrl(context));
             session.transfer(outFile, REL_SUCCESS);
 
-        } catch (Throwable t){
-            logger.error("Getting docuement {} from Couchbase Server using {} failed due to {}",
-                    new Object[]{docId, inFile, t}, t);
-            if(inFile != null){
-                session.transfer(inFile, REL_FAILURE);
-            }
+        } catch (CouchbaseException e){
+            String errMsg = String.format("Getting docuement %s from Couchbase Server using %s failed due to %s", docId, inFile, e);
+            handleCouchbaseException(session, logger, inFile, e, errMsg);
         }
     }
+
 
 }

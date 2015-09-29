@@ -23,13 +23,19 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import com.couchbase.client.core.CouchbaseException;
 import com.couchbase.client.java.Bucket;
 
 /**
@@ -46,49 +52,45 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor DOC_ID = new PropertyDescriptor
-            .Builder().name("Static Document Id")
-            .description("A static, fixed Couchbase document id.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor DOC_ID_EXP = new PropertyDescriptor
-            .Builder().name("Document Id Expression")
-            .description("An expression to construct the Couchbase document id."
-                    + " If 'Static Document Id' is specified, then 'Static Document Id' is used.")
-            .required(false)
+            .Builder().name("Document Id")
+            .description("A static, fixed Couchbase document id."
+                    + "Or an expression to construct the Couchbase document id.")
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All FlowFiles that are written to Couchbase Server are routed to this relationship.")
-            .build();
+        .name("success")
+        .description("All FlowFiles that are written to Couchbase Server are routed to this relationship.")
+        .build();
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .name("original")
-            .description("The original input file will be routed to this destination when it has been successfully processed.")
-            .build();
+        .name("original")
+        .description("The original input file will be routed to this destination when it has been successfully processed.")
+        .build();
+    public static final Relationship REL_RETRY = new Relationship.Builder()
+        .name("retry")
+        .description("All FlowFiles that cannot written to Couchbase Server but can be retried are routed to this relationship.")
+        .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("All FlowFiles that cannot written to Couchbase Server are routed to this relationship.")
-            .build();
+        .name("failure")
+        .description("All FlowFiles that cannot written to Couchbase Server and can't be retried are routed to this relationship.")
+        .build();
 
     public static final PropertyDescriptor COUCHBASE_CLUSTER_SERVICE = new PropertyDescriptor
-            .Builder().name("Couchbase Cluster Controller Service")
-            .description("A Couchbase Cluster Controller Service which manages connections to a Couchbase cluster.")
-            .required(true)
-            .identifiesControllerService(CouchbaseClusterControllerService.class)
-            .build();
+        .Builder().name("Couchbase Cluster Controller Service")
+        .description("A Couchbase Cluster Controller Service which manages connections to a Couchbase cluster.")
+        .required(true)
+        .identifiesControllerService(CouchbaseClusterControllerService.class)
+        .build();
 
     public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor
-            .Builder().name("Bucket Name")
-            .description("The name of bucket to access.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("default")
-            .build();
+        .Builder().name("Bucket Name")
+        .description("The name of bucket to access.")
+        .required(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .defaultValue("default")
+        .build();
 
     private List<PropertyDescriptor> descriptors;
 
@@ -171,4 +173,32 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             .toString();
     }
 
+    /**
+     * Handles the thrown CocuhbaseException accordingly.
+     * @param session a process session
+     * @param logger a logger
+     * @param inFile an input FlowFile
+     * @param e the thrown CouchbaseException
+     * @param errMsg a message to be logged
+     */
+    protected void handleCouchbaseException(final ProcessSession session,
+            final ProcessorLog logger, FlowFile inFile, CouchbaseException e,
+            String errMsg) {
+        logger.error(errMsg, e);
+        if(inFile != null){
+            ErrorHandlingStrategy strategy = CouchbaseExceptionMappings.getStrategy(e);
+            switch(strategy.result()) {
+            case ProcessException:
+                throw new ProcessException(errMsg, e);
+            case Failure:
+                inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), e.getClass().getName());
+                session.transfer(inFile, REL_FAILURE);
+                break;
+            case Retry:
+                inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), e.getClass().getName());
+                session.transfer(inFile, REL_RETRY);
+                break;
+            }
+        }
+    }
 }

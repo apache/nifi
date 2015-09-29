@@ -45,6 +45,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import com.couchbase.client.core.CouchbaseException;
 import com.couchbase.client.deps.io.netty.buffer.ByteBuf;
 import com.couchbase.client.deps.io.netty.buffer.Unpooled;
 import com.couchbase.client.java.PersistTo;
@@ -57,15 +58,16 @@ import com.couchbase.client.java.document.RawJsonDocument;
 @CapabilityDescription("Put a document to Couchbase Server via Key/Value access.")
 @SeeAlso({CouchbaseClusterControllerService.class})
 @ReadsAttributes({
-    @ReadsAttribute(attribute = "uuid", description = "Used as a document id if none of 'Static Document Id' or 'Document Id Expression' is specified"),
-    @ReadsAttribute(attribute = "*", description = "Any attribute can be used as part of a document id by 'Document Id Excepression.")
+    @ReadsAttribute(attribute = "uuid", description = "Used as a document id if 'Document Id' is not specified"),
+    @ReadsAttribute(attribute = "*", description = "Any attribute can be used as part of a document id by 'Document Id' expression.")
     })
 @WritesAttributes({
     @WritesAttribute(attribute="couchbase.cluster", description="Cluster where the document was stored."),
     @WritesAttribute(attribute="couchbase.bucket", description="Bucket where the document was stored."),
     @WritesAttribute(attribute="couchbase.doc.id", description="Id of the document."),
     @WritesAttribute(attribute="couchbase.doc.cas", description="CAS of the document."),
-    @WritesAttribute(attribute="couchbase.doc.expiry", description="Expiration of the document.")
+    @WritesAttribute(attribute="couchbase.doc.expiry", description="Expiration of the document."),
+    @WritesAttribute(attribute="couchbase.exception", description="If Couchbase related error occurs the CouchbaseException class name will be captured here.")
     })
 public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
 
@@ -90,7 +92,6 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
     protected void addSupportedProperties(List<PropertyDescriptor> descriptors) {
         descriptors.add(DOCUMENT_TYPE);
         descriptors.add(DOC_ID);
-        descriptors.add(DOC_ID_EXP);
         descriptors.add(PERSIST_TO);
         descriptors.add(REPLICATE_TO);
     }
@@ -109,24 +110,25 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
             return;
         }
 
-        try {
-
-            final byte[] content = new byte[(int) flowFile.getSize()];
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    StreamUtils.fillBuffer(in, content, true);
-                }
-            });
-
-
-            String docId = String.valueOf(flowFile.getAttribute(CoreAttributes.UUID.key()));
-            if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
-                docId = context.getProperty(DOC_ID).getValue();
-            } else if(!StringUtils.isEmpty(context.getProperty(DOC_ID_EXP).getValue())){
-                docId = context.getProperty(DOC_ID_EXP).evaluateAttributeExpressions(flowFile).getValue();
+        String docId = null;
+        final byte[] content = new byte[(int) flowFile.getSize()];
+        session.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream in) throws IOException {
+                StreamUtils.fillBuffer(in, content, true);
             }
+        });
 
+        try {
+            docId = String.valueOf(flowFile.getAttribute(CoreAttributes.UUID.key()));
+            if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
+                docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(flowFile).getValue();
+            }
+        } catch (Throwable t) {
+            throw new ProcessException("Please check 'Document Id' setting. Couldn't get document id from " + flowFile);
+        }
+
+        try {
             Document<?> doc = null;
             DocumentType documentType = DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
             switch (documentType){
@@ -141,7 +143,6 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
                 }
             }
 
-
             PersistTo persistTo = PersistTo.valueOf(context.getProperty(PERSIST_TO).getValue());
             ReplicateTo replicateTo = ReplicateTo.valueOf(context.getProperty(REPLICATE_TO).getValue());
             doc = openBucket(context).upsert(doc, persistTo, replicateTo);
@@ -155,9 +156,9 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
             session.getProvenanceReporter().send(flowFile, getTransitUrl(context));
             session.transfer(flowFile, REL_SUCCESS);
 
-        } catch (Throwable t) {
-            logger.error("Writing {} into Couchbase Server failed due to {}", new Object[]{flowFile, t}, t);
-            session.transfer(flowFile, REL_FAILURE);
+        } catch (CouchbaseException e) {
+            String errMsg = String.format("Writing docuement %s to Couchbase Server using %s failed due to %s", docId, flowFile, e);
+            handleCouchbaseException(session, logger, flowFile, e, errMsg);
         }
     }
 
