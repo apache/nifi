@@ -99,6 +99,7 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
     @Override
     protected void addSupportedRelationships(Set<Relationship> relationships) {
         relationships.add(REL_SUCCESS);
+        relationships.add(REL_RETRY);
         relationships.add(REL_FAILURE);
     }
 
@@ -110,7 +111,6 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
             return;
         }
 
-        String docId = null;
         final byte[] content = new byte[(int) flowFile.getSize()];
         session.read(flowFile, new InputStreamCallback() {
             @Override
@@ -119,13 +119,9 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
             }
         });
 
-        try {
-            docId = String.valueOf(flowFile.getAttribute(CoreAttributes.UUID.key()));
-            if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
-                docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(flowFile).getValue();
-            }
-        } catch (Throwable t) {
-            throw new ProcessException("Please check 'Document Id' setting. Couldn't get document id from " + flowFile);
+        String docId = String.valueOf(flowFile.getAttribute(CoreAttributes.UUID.key()));
+        if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
+            docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(flowFile).getValue();
         }
 
         try {
@@ -158,7 +154,7 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
 
         } catch (CouchbaseException e) {
             String errMsg = String.format("Writing docuement %s to Couchbase Server using %s failed due to %s", docId, flowFile, e);
-            handleCouchbaseException(session, logger, flowFile, e, errMsg);
+            handleCouchbaseException(context, session, logger, flowFile, e, errMsg);
         }
     }
 

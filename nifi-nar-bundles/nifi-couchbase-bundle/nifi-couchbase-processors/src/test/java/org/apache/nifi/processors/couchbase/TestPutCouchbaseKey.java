@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -167,7 +168,10 @@ public class TestPutCouchbaseKey {
         testRunner.enqueue(inFileDataBytes, properties);
         testRunner.run();
 
-        verify(bucket, times(1)).upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
+        ArgumentCaptor<RawJsonDocument> capture = ArgumentCaptor.forClass(RawJsonDocument.class);
+        verify(bucket, times(1)).upsert(capture.capture(), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
+        assertEquals(somePropertyValue, capture.getValue().id());
+        assertEquals(inFileData, capture.getValue().content());
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.assertTransferCount(REL_RETRY, 0);
@@ -196,9 +200,9 @@ public class TestPutCouchbaseKey {
         testRunner.enqueue(inFileDataBytes, properties);
         try {
             testRunner.run();
-            fail("ProcessException should be throws.");
+            fail("Exception should be thrown.");
         } catch (AssertionError e){
-            Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
+            Assert.assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
         }
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
@@ -226,6 +230,7 @@ public class TestPutCouchbaseKey {
         ArgumentCaptor<RawJsonDocument> capture = ArgumentCaptor.forClass(RawJsonDocument.class);
         verify(bucket, times(1)).upsert(capture.capture(), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
         assertEquals(uuid, capture.getValue().id());
+        assertEquals(inFileData, capture.getValue().content());
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.assertTransferCount(REL_RETRY, 0);
@@ -253,7 +258,7 @@ public class TestPutCouchbaseKey {
         testRunner.setProperty(PutCouchbaseKey.REPLICATE_TO, ReplicateTo.ONE.toString());
         try {
             testRunner.run();
-            fail("ProcessException should be throws.");
+            fail("ProcessException should be thrown.");
         } catch (AssertionError e){
             Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
         }
