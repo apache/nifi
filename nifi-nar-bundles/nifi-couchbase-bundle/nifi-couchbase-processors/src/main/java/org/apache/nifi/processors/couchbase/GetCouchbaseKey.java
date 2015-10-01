@@ -89,21 +89,17 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
         FlowFile inFile = session.get();
 
         String docId = null;
-        try {
-            if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
-                docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(inFile).getValue();
-            } else {
-                final byte[] content = new byte[(int) inFile.getSize()];
-                session.read(inFile, new InputStreamCallback() {
-                    @Override
-                    public void process(final InputStream in) throws IOException {
-                        StreamUtils.fillBuffer(in, content, true);
-                    }
-                });
-                docId = new String(content, StandardCharsets.UTF_8);
-            }
-        } catch (Throwable t) {
-            throw new ProcessException("Please check 'Document Id' setting. Couldn't get document id from " + inFile);
+        if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
+            docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(inFile).getValue();
+        } else {
+            final byte[] content = new byte[(int) inFile.getSize()];
+            session.read(inFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    StreamUtils.fillBuffer(in, content, true);
+                }
+            });
+            docId = new String(content, StandardCharsets.UTF_8);
         }
 
         if(StringUtils.isEmpty(docId)){
@@ -163,7 +159,7 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
 
         } catch (CouchbaseException e){
             String errMsg = String.format("Getting docuement %s from Couchbase Server using %s failed due to %s", docId, inFile, e);
-            handleCouchbaseException(session, logger, inFile, e, errMsg);
+            handleCouchbaseException(context, session, logger, inFile, e, errMsg);
         }
     }
 

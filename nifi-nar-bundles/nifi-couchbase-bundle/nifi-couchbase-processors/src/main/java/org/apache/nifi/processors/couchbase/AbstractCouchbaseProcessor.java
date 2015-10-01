@@ -175,18 +175,32 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     /**
      * Handles the thrown CocuhbaseException accordingly.
+     * @param context a process context
      * @param session a process session
      * @param logger a logger
      * @param inFile an input FlowFile
      * @param e the thrown CouchbaseException
      * @param errMsg a message to be logged
      */
-    protected void handleCouchbaseException(final ProcessSession session,
+    protected void handleCouchbaseException(final ProcessContext context, final ProcessSession session,
             final ProcessorLog logger, FlowFile inFile, CouchbaseException e,
             String errMsg) {
         logger.error(errMsg, e);
         if(inFile != null){
             ErrorHandlingStrategy strategy = CouchbaseExceptionMappings.getStrategy(e);
+            switch(strategy.penalty()) {
+            case Penalize:
+                if(logger.isDebugEnabled()) logger.debug("Penalized: {}", new Object[]{inFile});
+                inFile = session.penalize(inFile);
+                break;
+            case Yield:
+                if(logger.isDebugEnabled()) logger.debug("Yielded context: {}", new Object[]{inFile});
+                context.yield();
+                break;
+            case None:
+                break;
+            }
+
             switch(strategy.result()) {
             case ProcessException:
                 throw new ProcessException(errMsg, e);

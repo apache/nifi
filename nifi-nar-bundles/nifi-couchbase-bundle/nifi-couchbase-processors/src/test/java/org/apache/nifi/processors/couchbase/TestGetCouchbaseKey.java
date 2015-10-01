@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -181,9 +182,9 @@ public class TestGetCouchbaseKey {
 
         try {
             testRunner.run();
-            fail("ProcessException should be throws.");
+            fail("Exception should be thrown.");
         } catch (AssertionError e){
-            Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
+            Assert.assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
         }
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
@@ -208,9 +209,9 @@ public class TestGetCouchbaseKey {
         testRunner.enqueue(inFileData, properties);
         try {
             testRunner.run();
-            fail("ProcessException should be throws.");
+            fail("Exception should be thrown.");
         } catch (AssertionError e){
-            Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
+            Assert.assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
         }
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
@@ -286,7 +287,7 @@ public class TestGetCouchbaseKey {
         testRunner.enqueue(inFileData);
         try {
             testRunner.run();
-            fail("ProcessException should be throws.");
+            fail("ProcessException should be thrown.");
         } catch (AssertionError e){
             Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
         }
@@ -313,7 +314,7 @@ public class TestGetCouchbaseKey {
         testRunner.enqueue(inFileData);
         try {
             testRunner.run();
-            fail("ProcessException should be throws.");
+            fail("ProcessException should be thrown.");
         } catch (AssertionError e){
             Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
             Assert.assertTrue(e.getCause().getCause().getClass().equals(AuthenticationException.class));
@@ -424,9 +425,9 @@ public class TestGetCouchbaseKey {
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_ORIGINAL, 0);
-        testRunner.assertTransferCount(REL_RETRY, 0);
-        testRunner.assertTransferCount(REL_FAILURE, 1);
-        MockFlowFile orgFile = testRunner.getFlowFilesForRelationship(REL_FAILURE).get(0);
+        testRunner.assertTransferCount(REL_RETRY, 1);
+        testRunner.assertTransferCount(REL_FAILURE, 0);
+        MockFlowFile orgFile = testRunner.getFlowFilesForRelationship(REL_RETRY).get(0);
         orgFile.assertContentEquals(inputFileDataStr);
         orgFile.assertAttributeEquals(Exception.key(), exception.getClass().getName());
     }
