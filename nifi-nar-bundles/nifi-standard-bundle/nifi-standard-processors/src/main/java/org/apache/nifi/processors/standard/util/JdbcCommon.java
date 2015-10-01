@@ -16,15 +16,20 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
+import static java.sql.Types.BINARY;
+import static java.sql.Types.BLOB;
 import static java.sql.Types.BOOLEAN;
 import static java.sql.Types.CHAR;
+import static java.sql.Types.CLOB;
 import static java.sql.Types.DATE;
 import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
 import static java.sql.Types.LONGNVARCHAR;
+import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
 import static java.sql.Types.NUMERIC;
@@ -35,10 +40,12 @@ import static java.sql.Types.SMALLINT;
 import static java.sql.Types.TIME;
 import static java.sql.Types.TIMESTAMP;
 import static java.sql.Types.TINYINT;
+import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -70,17 +77,34 @@ public class JdbcCommon {
             long nrOfRows = 0;
             while (rs.next()) {
                 for (int i = 1; i <= nrOfColumns; i++) {
+                    final int javaSqlType = meta.getColumnType(i);
                     final Object value = rs.getObject(i);
 
-                    // The different types that we support are numbers (int, long, double, float),
-                    // as well as boolean values and Strings. Since Avro doesn't provide
-                    // timestamp types, we want to convert those to Strings. So we will cast anything other
-                    // than numbers or booleans to strings by using to toString() method.
                     if (value == null) {
                         rec.put(i - 1, null);
+
+                    } else if (javaSqlType==BINARY || javaSqlType==VARBINARY || javaSqlType==LONGVARBINARY || javaSqlType==ARRAY || javaSqlType==BLOB || javaSqlType==CLOB) {
+                        // bytes requires little bit different handling
+                        byte[] bytes = rs.getBytes(i);
+                        ByteBuffer bb = ByteBuffer.wrap(bytes);
+                        rec.put(i - 1, bb);
+
+                    } else if (value instanceof Byte) {
+                        // tinyint(1) type is returned by JDBC driver as java.sql.Types.TINYINT
+                        // But value is returned by JDBC as java.lang.Byte
+                        // (at least H2 JDBC works this way)
+                        // direct put to avro record results:
+                        // org.apache.avro.AvroRuntimeException: Unknown datum type java.lang.Byte
+                        rec.put(i - 1, ((Byte) value).intValue());
+
                     } else if (value instanceof Number || value instanceof Boolean) {
                         rec.put(i - 1, value);
+
                     } else {
+                        // The different types that we support are numbers (int, long, double, float),
+                        // as well as boolean values and Strings. Since Avro doesn't provide
+                        // timestamp types, we want to convert those to Strings. So we will cast anything other
+                        // than numbers or booleans to strings by using to toString() method.
                         rec.put(i - 1, value.toString());
                     }
                 }
@@ -110,53 +134,76 @@ public class JdbcCommon {
                 case NCHAR:
                 case NVARCHAR:
                 case VARCHAR:
-                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().nullable().stringType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().stringType().stringDefault(null);
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+
+
                     break;
 
                 case BOOLEAN:
-                    builder.name(meta.getColumnName(i)).type().booleanType().noDefault();
-                    break;
+//                    builder.name(meta.getColumnName(i)).type().nullable().booleanType().noDefault();
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().booleanType().endUnion().noDefault();
+                   break;
 
                 case INTEGER:
                 case SMALLINT:
                 case TINYINT:
-                    builder.name(meta.getColumnName(i)).type().intType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().intType().noDefault();
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
                     break;
 
                 case BIGINT:
-                    builder.name(meta.getColumnName(i)).type().longType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().nullable().longType().noDefault();
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
                     break;
 
                 // java.sql.RowId is interface, is seems to be database
                 // implementation specific, let's convert to String
                 case ROWID:
-                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().nullable().stringType().noDefault();
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 case FLOAT:
                 case REAL:
-                    builder.name(meta.getColumnName(i)).type().floatType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().nullable().floatType().noDefault();
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().floatType().endUnion().noDefault();
                     break;
 
                 case DOUBLE:
-                    builder.name(meta.getColumnName(i)).type().doubleType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().nullable().doubleType().noDefault();
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().doubleType().endUnion().noDefault();
                     break;
 
                 // Did not find direct suitable type, need to be clarified!!!!
                 case DECIMAL:
                 case NUMERIC:
-                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().nullable().stringType().noDefault();
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 // Did not find direct suitable type, need to be clarified!!!!
                 case DATE:
                 case TIME:
                 case TIMESTAMP:
-                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+//                    builder.name(meta.getColumnName(i)).type().nullable().stringType().noDefault();
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
-                default:
+                case BINARY:
+                case VARBINARY:
+                case LONGVARBINARY:
+                case ARRAY:
+                case BLOB:
+                case CLOB:
+                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
                     break;
+
+
+                default:
+                    throw new IllegalArgumentException("createSchema: Unknown SQL type " + meta.getColumnType(i) + " cannot be converted to Avro type");
             }
         }
 
