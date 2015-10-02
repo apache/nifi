@@ -36,8 +36,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.8.2</artifactId>
-            <version>0.8.1</version>
+            <artifactId>kafka_2.9.1</artifactId>
+            <version>0.8.2.2</version>
             <exclusions>
                 <!-- Transitive dependencies excluded because they are located 
                 in a legacy Maven repository, which Maven 3 doesn't support. -->
