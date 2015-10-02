@@ -91,6 +91,7 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 })
 public class ConvertJSONToSQL extends AbstractProcessor {
     private static final String UPDATE_TYPE = "UPDATE";
+    private static final String UPSERT_TYPE = "UPSERT";
     private static final String INSERT_TYPE = "INSERT";
 
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
@@ -109,7 +110,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .name("Statement Type")
             .description("Specifies the type of SQL Statement to generate")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE)
+            .allowableValues(UPDATE_TYPE, UPSERT_TYPE, INSERT_TYPE)
             .build();
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("Table Name")
@@ -140,8 +141,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         .build();
     static final PropertyDescriptor UPDATE_KEY = new PropertyDescriptor.Builder()
             .name("Update Keys")
-            .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
-                    + "If the Statement Type is UPDATE and this property is not set, the table's Primary Keys are used. "
+            .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE or UPSERT statements. "
+                    + "If the Statement Type is UPDATE or UPSERT and this property is not set, the table's Primary Keys are used. "
                     + "In this case, if no Primary Key exists, the conversion to SQL will fail. "
                     + "This property is ignored if the Statement Type is INSERT")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -287,8 +288,10 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             try {
                 if (INSERT_TYPE.equals(statementType)) {
                     sql = generateInsert(jsonNode, attributes, tableName, schema, translateFieldNames, ignoreUnmappedFields);
-                } else {
+                } else if (UPDATE_TYPE.equals(statementType)) {
                     sql = generateUpdate(jsonNode, attributes, tableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields);
+                } else {
+                    sql = generateUpsert(jsonNode, attributes, tableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields);
                 }
             } catch (final ProcessException pe) {
                 getLogger().error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
@@ -517,6 +520,88 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             }
             attributes.put("sql.args." + fieldCount + ".value", fieldValue);
         }
+
+        return sqlBuilder.toString();
+    }
+
+    private String generateUpsert(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
+        final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields) {
+
+        final Set<String> updateKeyNames;
+        if (updateKeys == null) {
+            updateKeyNames = schema.getPrimaryKeyColumnNames();
+        } else {
+            updateKeyNames = new HashSet<>();
+            for (final String updateKey : updateKeys.split(",")) {
+                updateKeyNames.add(updateKey.trim());
+            }
+        }
+
+        if (updateKeyNames.isEmpty()) {
+            throw new ProcessException("Table '" + tableName + "' does not have a Primary Key and no Update Keys were specified");
+        }
+
+        final StringBuilder sqlBuilder = new StringBuilder();
+        int fieldCount = 0;
+
+        sqlBuilder.append("UPSERT into ").append(tableName).append(" (");
+
+        // Create a Set of all normalized Update Key names, and ensure that there is a field in the JSON
+        // for each of the Update Key fields.
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
+        final Set<String> normalizedUpdateNames = new HashSet<>();
+        for (final String uk : updateKeyNames) {
+            final String normalizedUK = normalizeColumnName(uk, translateFieldNames);
+            normalizedUpdateNames.add(normalizedUK);
+
+            if (!normalizedFieldNames.contains(normalizedUK)) {
+                throw new ProcessException("JSON does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'");
+            }
+        }
+
+        // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
+        // adding the column value to a "sql.args.N.value" attribute and the type of a "sql.args.N.type" attribute add the
+        // columns that we are upserting into
+        // Statement Format: UPSERT INTO my_table (FIELD1, FIELD2) VALUES (?, ?);
+        Iterator<String> fieldNames = rootNode.getFieldNames();
+        String valueArgs = " VALUES (";
+        while (fieldNames.hasNext()) {
+            final String fieldName = fieldNames.next();
+
+            final String normalizedColName = normalizeColumnName(fieldName, translateFieldNames);
+            final ColumnDescription desc = schema.getColumns().get(normalizedColName);
+
+            if (desc == null) {
+                if (ignoreUnmappedFields) {
+                    throw new ProcessException("Cannot map JSON field '" + fieldName + "' to any column in the database");
+                } else {
+                    continue;
+                }
+            }
+
+            if (fieldCount++ > 0) {
+                sqlBuilder.append(", ");
+            }
+
+            sqlBuilder.append(desc.getColumnName());
+            valueArgs += "?,";
+
+            final int sqlType = desc.getDataType();
+            attributes.put("sql.args." + fieldCount + ".type", String.valueOf(sqlType));
+
+            final Integer colSize = desc.getColumnSize();
+
+            final JsonNode fieldNode = rootNode.get(fieldName);
+            if (!fieldNode.isNull()) {
+                String fieldValue = rootNode.get(fieldName).asText();
+                if (colSize != null && fieldValue.length() > colSize) {
+                    fieldValue = fieldValue.substring(0, colSize);
+                }
+                attributes.put("sql.args." + fieldCount + ".value", fieldValue);
+            }
+        }
+        //Remove last comma, close the arg string
+        sqlBuilder.append(valueArgs.substring(0, valueArgs.length() - 2) + ")");
 
         return sqlBuilder.toString();
     }
