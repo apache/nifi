@@ -94,6 +94,7 @@
         <spring.security.version>3.2.7.RELEASE</spring.security.version>
         <jersey.version>1.19</jersey.version>
         <hadoop.version>2.6.2</hadoop.version>
+        <hadoop.guava.version>12.0.1</hadoop.guava.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
     </properties>
     <dependencyManagement>
@@ -914,6 +915,18 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hbase_1_1_2-client-service-nar</artifactId>
+                <version>0.4.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hbase-nar</artifactId>
+                <version>0.4.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
                 <version>0.4.0-SNAPSHOT</version>
             </dependency>
@@ -956,6 +969,11 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-dbcp-service-api</artifactId>
+                <version>0.4.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hbase-client-service-api</artifactId>
                 <version>0.4.0-SNAPSHOT</version>
             </dependency>
             <dependency>

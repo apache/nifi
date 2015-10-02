@@ -26,4 +26,15 @@
     <modules>
         <module>nifi-hadoop-libraries-nar</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- the top-level pom forces 18.0, but Hadoop 2.6 expects 12.0.1 -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${hadoop.guava.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

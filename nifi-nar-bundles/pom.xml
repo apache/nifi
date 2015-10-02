@@ -42,6 +42,7 @@
         <module>nifi-language-translation-bundle</module>
         <module>nifi-mongodb-bundle</module>
         <module>nifi-flume-bundle</module>
+		<module>nifi-hbase-bundle</module>
         <module>nifi-ambari-bundle</module>
         <module>nifi-image-bundle</module>
         <module>nifi-avro-bundle</module>

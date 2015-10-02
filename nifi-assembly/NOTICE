@@ -746,6 +746,25 @@ The following binary components are provided under the Apache Software License v
         Couchbase Java SDK
         Copyright 2012 Netflix, Inc.
 
+    (ASLv2) HBase Common
+      The following NOTICE information applies:
+        This product includes portions of the Guava project v14, specifically
+        'hbase-common/src/main/java/org/apache/hadoop/hbase/io/LimitInputStream.java'
+
+        Copyright (C) 2007 The Guava Authors
+
+        Licensed under the Apache License, Version 2.0
+
+    (ASLv2) HTrace Core
+      The following NOTICE information applies:
+        In addition, this product includes software dependencies. See
+        the accompanying LICENSE.txt for a listing of dependencies
+        that are NOT Apache licensed (with pointers to their licensing)
+
+        Apache HTrace includes an Apache Thrift connector to Zipkin. Zipkin
+        is a distributed tracing system that is Apache 2.0 Licensed.
+        Copyright 2012 Twitter, Inc.
+
 ************************
 Common Development and Distribution License 1.1
 ************************
