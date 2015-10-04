@@ -34,16 +34,16 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPHTTPClient;
+import org.apache.commons.net.ftp.FTPReply;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPHTTPClient;
-import org.apache.commons.net.ftp.FTPReply;
 
 public class FTPTransfer implements FileTransfer {
 
@@ -57,53 +57,53 @@ public class FTPTransfer implements FileTransfer {
     public static final String PROXY_TYPE_SOCKS = Proxy.Type.SOCKS.name();
 
     public static final PropertyDescriptor CONNECTION_MODE = new PropertyDescriptor.Builder()
-            .name("Connection Mode")
-            .description("The FTP Connection Mode")
-            .allowableValues(CONNECTION_MODE_ACTIVE, CONNECTION_MODE_PASSIVE)
-            .defaultValue(CONNECTION_MODE_PASSIVE)
-            .build();
+        .name("Connection Mode")
+        .description("The FTP Connection Mode")
+        .allowableValues(CONNECTION_MODE_ACTIVE, CONNECTION_MODE_PASSIVE)
+        .defaultValue(CONNECTION_MODE_PASSIVE)
+        .build();
     public static final PropertyDescriptor TRANSFER_MODE = new PropertyDescriptor.Builder()
-            .name("Transfer Mode")
-            .description("The FTP Transfer Mode")
-            .allowableValues(TRANSFER_MODE_BINARY, TRANSFER_MODE_ASCII)
-            .defaultValue(TRANSFER_MODE_BINARY)
-            .build();
+        .name("Transfer Mode")
+        .description("The FTP Transfer Mode")
+        .allowableValues(TRANSFER_MODE_BINARY, TRANSFER_MODE_ASCII)
+        .defaultValue(TRANSFER_MODE_BINARY)
+        .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("Port")
-            .description("The port that the remote system is listening on for file transfers")
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .required(true)
-            .defaultValue("21")
-            .build();
+        .name("Port")
+        .description("The port that the remote system is listening on for file transfers")
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .required(true)
+        .defaultValue("21")
+        .build();
     public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
-            .name("Proxy Type")
-            .description("Proxy type used for file transfers")
-            .allowableValues(PROXY_TYPE_DIRECT, PROXY_TYPE_HTTP, PROXY_TYPE_SOCKS)
-            .defaultValue(PROXY_TYPE_DIRECT)
-            .build();
+        .name("Proxy Type")
+        .description("Proxy type used for file transfers")
+        .allowableValues(PROXY_TYPE_DIRECT, PROXY_TYPE_HTTP, PROXY_TYPE_SOCKS)
+        .defaultValue(PROXY_TYPE_DIRECT)
+        .build();
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
-            .name("Proxy Host")
-            .description("The fully qualified hostname or IP address of the proxy server")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+        .name("Proxy Host")
+        .description("The fully qualified hostname or IP address of the proxy server")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
     public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
-            .name("Proxy Port")
-            .description("The port of the proxy server")
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .build();
+        .name("Proxy Port")
+        .description("The port of the proxy server")
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .build();
     public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor.Builder()
-            .name("Http Proxy Username")
-            .description("Http Proxy Username")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
+        .name("Http Proxy Username")
+        .description("Http Proxy Username")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .required(false)
+        .build();
     public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Http Proxy Password")
-            .description("Http Proxy Password")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .sensitive(true)
-            .build();
+        .name("Http Proxy Password")
+        .description("Http Proxy Password")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .required(false)
+        .sensitive(true)
+        .build();
 
     private final ProcessorLog logger;
 
@@ -135,7 +135,7 @@ public class FTPTransfer implements FileTransfer {
                 client.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close FTPClient due to {}", new Object[]{ex.toString()}, ex);
+            logger.warn("Failed to close FTPClient due to {}", new Object[] { ex.toString() }, ex);
         }
         client = null;
     }
@@ -261,19 +261,24 @@ public class FTPTransfer implements FileTransfer {
         perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
 
         FileInfo.Builder builder = new FileInfo.Builder()
-                .filename(file.getName())
-                .fullPathFileName(newFullForwardPath)
-                .directory(file.isDirectory())
-                .size(file.getSize())
-                .lastModifiedTime(file.getTimestamp().getTimeInMillis())
-                .permissions(perms.toString())
-                .owner(file.getUser())
-                .group(file.getGroup());
+            .filename(file.getName())
+            .fullPathFileName(newFullForwardPath)
+            .directory(file.isDirectory())
+            .size(file.getSize())
+            .lastModifiedTime(file.getTimestamp().getTimeInMillis())
+            .permissions(perms.toString())
+            .owner(file.getUser())
+            .group(file.getGroup());
         return builder.build();
     }
 
     @Override
-    public InputStream getInputStream(final String remoteFileName) throws IOException {
+    public InputStream getInputStream(String remoteFileName) throws IOException {
+        return getInputStream(remoteFileName, null);
+    }
+
+    @Override
+    public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
         final FTPClient client = getClient(null);
         InputStream in = client.retrieveFileStream(remoteFileName);
         if (in == null) {
@@ -329,9 +334,9 @@ public class FTPTransfer implements FileTransfer {
         final boolean cdSuccessful = setWorkingDirectory(remoteDirectory);
 
         if (!cdSuccessful) {
-            logger.debug("Remote Directory {} does not exist; creating it", new Object[]{remoteDirectory});
+            logger.debug("Remote Directory {} does not exist; creating it", new Object[] { remoteDirectory });
             if (client.makeDirectory(remoteDirectory)) {
-                logger.debug("Created {}", new Object[]{remoteDirectory});
+                logger.debug("Created {}", new Object[] { remoteDirectory });
             } else {
                 throw new IOException("Failed to create remote directory " + remoteDirectory);
             }
@@ -387,10 +392,10 @@ public class FTPTransfer implements FileTransfer {
                 final String time = outformat.format(fileModifyTime);
                 if (!client.setModificationTime(tempFilename, time)) {
                     // FTP server probably doesn't support MFMT command
-                    logger.warn("Could not set lastModifiedTime on {} to {}", new Object[]{flowFile, lastModifiedTime});
+                    logger.warn("Could not set lastModifiedTime on {} to {}", new Object[] { flowFile, lastModifiedTime });
                 }
             } catch (final Exception e) {
-                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[]{flowFile, lastModifiedTime, e});
+                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[] { flowFile, lastModifiedTime, e });
             }
         }
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
@@ -399,17 +404,17 @@ public class FTPTransfer implements FileTransfer {
                 int perms = numberPermissions(permissions);
                 if (perms >= 0) {
                     if (!client.sendSiteCommand("chmod " + Integer.toOctalString(perms) + " " + tempFilename)) {
-                        logger.warn("Could not set permission on {} to {}", new Object[]{flowFile, permissions});
+                        logger.warn("Could not set permission on {} to {}", new Object[] { flowFile, permissions });
                     }
                 }
             } catch (final Exception e) {
-                logger.error("Failed to set permission on {} to {} due to {}", new Object[]{flowFile, permissions, e});
+                logger.error("Failed to set permission on {} to {} due to {}", new Object[] { flowFile, permissions, e });
             }
         }
 
         if (!filename.equals(tempFilename)) {
             try {
-                logger.debug("Renaming remote path from {} to {} for {}", new Object[]{tempFilename, filename, flowFile});
+                logger.debug("Renaming remote path from {} to {} for {}", new Object[] { tempFilename, filename, flowFile });
                 final boolean renameSuccessful = client.rename(tempFilename, filename);
                 if (!renameSuccessful) {
                     throw new IOException("Failed to rename temporary file " + tempFilename + " to " + fullPath + " due to: " + client.getReplyString());
@@ -513,13 +518,13 @@ public class FTPTransfer implements FileTransfer {
             inetAddress = InetAddress.getByName(remoteHostname);
         }
 
-        client.connect(inetAddress, ctx.getProperty(PORT).asInteger());
+        client.connect(inetAddress, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());
         this.closed = false;
         client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         client.setSoTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
 
-        final String username = ctx.getProperty(USERNAME).getValue();
-        final String password = ctx.getProperty(PASSWORD).getValue();
+        final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String password = ctx.getProperty(PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
         final boolean loggedIn = client.login(username, password);
         if (!loggedIn) {
             throw new IOException("Could not login for user '" + username + "'");
@@ -532,7 +537,7 @@ public class FTPTransfer implements FileTransfer {
             client.enterLocalPassiveMode();
         }
 
-        final String transferMode = ctx.getProperty(TRANSFER_MODE).getValue();
+        final String transferMode = ctx.getProperty(TRANSFER_MODE).evaluateAttributeExpressions(flowFile).getValue();
         final int fileType = (transferMode.equalsIgnoreCase(TRANSFER_MODE_ASCII)) ? FTPClient.ASCII_FILE_TYPE : FTPClient.BINARY_FILE_TYPE;
         if (!client.setFileType(fileType)) {
             throw new IOException("Unable to set transfer mode to type " + transferMode);

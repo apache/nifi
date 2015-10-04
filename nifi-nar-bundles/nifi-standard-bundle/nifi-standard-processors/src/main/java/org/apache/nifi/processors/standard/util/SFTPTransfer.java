@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard.util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -51,45 +52,45 @@ import com.jcraft.jsch.SftpException;
 public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor PRIVATE_KEY_PATH = new PropertyDescriptor.Builder()
-            .name("Private Key Path")
-            .description("The fully qualified path to the Private Key file")
-            .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .build();
+        .name("Private Key Path")
+        .description("The fully qualified path to the Private Key file")
+        .required(false)
+        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .build();
     public static final PropertyDescriptor PRIVATE_KEY_PASSPHRASE = new PropertyDescriptor.Builder()
-            .name("Private Key Passphrase")
-            .description("Password for the private key")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .build();
+        .name("Private Key Passphrase")
+        .description("Password for the private key")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .sensitive(true)
+        .build();
     public static final PropertyDescriptor HOST_KEY_FILE = new PropertyDescriptor.Builder()
-            .name("Host Key File")
-            .description("If supplied, the given file will be used as the Host Key; otherwise, no use host key file will be used")
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .required(false)
-            .build();
+        .name("Host Key File")
+        .description("If supplied, the given file will be used as the Host Key; otherwise, no use host key file will be used")
+        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .required(false)
+        .build();
     public static final PropertyDescriptor STRICT_HOST_KEY_CHECKING = new PropertyDescriptor.Builder()
-            .name("Strict Host Key Checking")
-            .description("Indicates whether or not strict enforcement of hosts keys should be applied")
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .required(true)
-            .build();
+        .name("Strict Host Key Checking")
+        .description("Indicates whether or not strict enforcement of hosts keys should be applied")
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(true)
+        .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("Port")
-            .description("The port that the remote system is listening on for file transfers")
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .required(true)
-            .defaultValue("22")
-            .build();
+        .name("Port")
+        .description("The port that the remote system is listening on for file transfers")
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .required(true)
+        .defaultValue("22")
+        .build();
     public static final PropertyDescriptor USE_KEEPALIVE_ON_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Send Keep Alive On Timeout")
-            .description("Indicates whether or not to send a single Keep Alive message when SSH socket times out")
-            .allowableValues("true", "false")
-            .defaultValue("true")
-            .required(true)
-            .build();
+        .name("Send Keep Alive On Timeout")
+        .description("Indicates whether or not to send a single Keep Alive message when SSH socket times out")
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(true)
+        .build();
 
     /**
      * Dynamic property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
@@ -99,12 +100,12 @@ public class SFTPTransfer implements FileTransfer {
      * This property is dynamic until deemed a worthy inclusion as proper.
      */
     public static final PropertyDescriptor DISABLE_DIRECTORY_LISTING = new PropertyDescriptor.Builder()
-            .name("Disable Directory Listing")
-            .description("Disables directory listings before operations which might fail, such as configurations which create directory structures.")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .dynamic(true)
-            .defaultValue("false")
-            .build();
+        .name("Disable Directory Listing")
+        .description("Disables directory listings before operations which might fail, such as configurations which create directory structures.")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .dynamic(true)
+        .defaultValue("false")
+        .build();
 
     private final ProcessorLog logger;
 
@@ -133,7 +134,16 @@ public class SFTPTransfer implements FileTransfer {
     public List<FileInfo> getListing() throws IOException {
         final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
         final int depth = 0;
-        final int maxResults = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).asInteger();
+
+        final int maxResults;
+        final PropertyValue batchSizeValue = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE);
+        if (batchSizeValue == null) {
+            maxResults = Integer.MAX_VALUE;
+        } else {
+            final Integer configuredValue = batchSizeValue.asInteger();
+            maxResults = configuredValue == null ? Integer.MAX_VALUE : configuredValue;
+        }
+
         final List<FileInfo> listing = new ArrayList<>(1000);
         getListing(path, depth, maxResults, listing);
         return listing;
@@ -222,7 +232,15 @@ public class SFTPTransfer implements FileTransfer {
                 sftp.ls(path, filter);
             }
         } catch (final SftpException e) {
-            throw new IOException("Failed to obtain file listing for " + (path == null ? "current directory" : path), e);
+            final String pathDesc = path == null ? "current directory" : path;
+            switch (e.id) {
+                case ChannelSftp.SSH_FX_NO_SUCH_FILE:
+                    throw new FileNotFoundException("Could not perform listing on " + pathDesc + " because could not find the file on the remote server");
+                case ChannelSftp.SSH_FX_PERMISSION_DENIED:
+                    throw new PermissionDeniedException("Could not perform listing on " + pathDesc + " due to insufficient permissions");
+                default:
+                    throw new IOException("Failed to obtain file listing for " + pathDesc, e);
+            }
         }
 
         for (final LsEntry entry : subDirs) {
@@ -251,24 +269,36 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         FileInfo.Builder builder = new FileInfo.Builder()
-                .filename(entry.getFilename())
-                .fullPathFileName(newFullForwardPath)
-                .directory(entry.getAttrs().isDir())
-                .size(entry.getAttrs().getSize())
-                .lastModifiedTime(entry.getAttrs().getMTime() * 1000L)
-                .permissions(perms)
-                .owner(Integer.toString(entry.getAttrs().getUId()))
-                .group(Integer.toString(entry.getAttrs().getGId()));
+            .filename(entry.getFilename())
+            .fullPathFileName(newFullForwardPath)
+            .directory(entry.getAttrs().isDir())
+            .size(entry.getAttrs().getSize())
+            .lastModifiedTime(entry.getAttrs().getMTime() * 1000L)
+            .permissions(perms)
+            .owner(Integer.toString(entry.getAttrs().getUId()))
+            .group(Integer.toString(entry.getAttrs().getGId()));
         return builder.build();
     }
 
     @Override
     public InputStream getInputStream(final String remoteFileName) throws IOException {
-        final ChannelSftp sftp = getChannel(null);
+        return getInputStream(remoteFileName, null);
+    }
+
+    @Override
+    public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
+        final ChannelSftp sftp = getChannel(flowFile);
         try {
             return sftp.get(remoteFileName);
         } catch (final SftpException e) {
-            throw new IOException("Failed to obtain file content for " + remoteFileName, e);
+            switch (e.id) {
+                case ChannelSftp.SSH_FX_NO_SUCH_FILE:
+                    throw new FileNotFoundException("Could not find file " + remoteFileName + " on remote SFTP Server");
+                case ChannelSftp.SSH_FX_PERMISSION_DENIED:
+                    throw new PermissionDeniedException("Insufficient permissions to read file " + remoteFileName + " from remote SFTP Server", e);
+                default:
+                    throw new IOException("Failed to obtain file content for " + remoteFileName, e);
+            }
         }
     }
 
@@ -283,7 +313,14 @@ public class SFTPTransfer implements FileTransfer {
         try {
             sftp.rm(fullPath);
         } catch (final SftpException e) {
-            throw new IOException("Failed to delete remote file " + fullPath, e);
+            switch (e.id) {
+                case ChannelSftp.SSH_FX_NO_SUCH_FILE:
+                    throw new FileNotFoundException("Could not find file " + remoteFileName + " to remove from remote SFTP Server");
+                case ChannelSftp.SSH_FX_PERMISSION_DENIED:
+                    throw new PermissionDeniedException("Insufficient permissions to delete file " + remoteFileName + " from remote SFTP Server", e);
+                default:
+                    throw new IOException("Failed to delete remote file " + fullPath, e);
+            }
         }
     }
 
@@ -333,10 +370,10 @@ public class SFTPTransfer implements FileTransfer {
             if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
                 ensureDirectoryExists(flowFile, directoryName.getParentFile());
             }
-            logger.debug("Remote Directory {} does not exist; creating it", new Object[]{remoteDirectory});
+            logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
             try {
                 channel.mkdir(remoteDirectory);
-                logger.debug("Created {}", new Object[]{remoteDirectory});
+                logger.debug("Created {}", new Object[] {remoteDirectory});
             } catch (final SftpException e) {
                 throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + e, e);
             }
@@ -358,9 +395,9 @@ public class SFTPTransfer implements FileTransfer {
 
         final JSch jsch = new JSch();
         try {
-            final Session session = jsch.getSession(ctx.getProperty(USERNAME).getValue(),
-                    ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
-                    ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
+            final Session session = jsch.getSession(ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue(),
+                ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
+                ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
 
             final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
             if (hostKeyVal != null) {
@@ -371,7 +408,8 @@ public class SFTPTransfer implements FileTransfer {
             properties.setProperty("StrictHostKeyChecking", ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean() ? "yes" : "no");
             properties.setProperty("PreferredAuthentications", "publickey,password");
 
-            if (ctx.getProperty(FileTransfer.USE_COMPRESSION).asBoolean()) {
+            final PropertyValue compressionValue = ctx.getProperty(FileTransfer.USE_COMPRESSION);
+            if (compressionValue != null && "true".equalsIgnoreCase(compressionValue.getValue())) {
                 properties.setProperty("compression.s2c", "zlib@openssh.com,zlib,none");
                 properties.setProperty("compression.c2s", "zlib@openssh.com,zlib,none");
             } else {
@@ -381,12 +419,12 @@ public class SFTPTransfer implements FileTransfer {
 
             session.setConfig(properties);
 
-            final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).getValue();
+            final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
             if (privateKeyFile != null) {
-                jsch.addIdentity(privateKeyFile, ctx.getProperty(PRIVATE_KEY_PASSPHRASE).getValue());
+                jsch.addIdentity(privateKeyFile, ctx.getProperty(PRIVATE_KEY_PASSPHRASE).evaluateAttributeExpressions(flowFile).getValue());
             }
 
-            final String password = ctx.getProperty(FileTransfer.PASSWORD).getValue();
+            final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
             if (password != null) {
                 session.setPassword(password);
             }
@@ -428,7 +466,7 @@ public class SFTPTransfer implements FileTransfer {
                 sftp.exit();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close ChannelSftp due to {}", new Object[]{ex.toString()}, ex);
+            logger.warn("Failed to close ChannelSftp due to {}", new Object[] {ex.toString()}, ex);
         }
         sftp = null;
 
@@ -437,7 +475,7 @@ public class SFTPTransfer implements FileTransfer {
                 session.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close session due to {}", new Object[]{ex.toString()}, ex);
+            logger.warn("Failed to close session due to {}", new Object[] {ex.toString()}, ex);
         }
         session = null;
     }
@@ -515,7 +553,7 @@ public class SFTPTransfer implements FileTransfer {
                 int time = (int) (fileModifyTime.getTime() / 1000L);
                 sftp.setMtime(tempPath, time);
             } catch (final Exception e) {
-                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[]{tempPath, lastModifiedTime, e});
+                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[] {tempPath, lastModifiedTime, e});
             }
         }
 
@@ -527,7 +565,7 @@ public class SFTPTransfer implements FileTransfer {
                     sftp.chmod(perms, tempPath);
                 }
             } catch (final Exception e) {
-                logger.error("Failed to set permission on {} to {} due to {}", new Object[]{tempPath, permissions, e});
+                logger.error("Failed to set permission on {} to {} due to {}", new Object[] {tempPath, permissions, e});
             }
         }
 
@@ -536,7 +574,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 sftp.chown(Integer.parseInt(owner), tempPath);
             } catch (final Exception e) {
-                logger.error("Failed to set owner on {} to {} due to {}", new Object[]{tempPath, owner, e});
+                logger.error("Failed to set owner on {} to {} due to {}", new Object[] {tempPath, owner, e});
             }
         }
 
@@ -545,7 +583,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 sftp.chgrp(Integer.parseInt(group), tempPath);
             } catch (final Exception e) {
-                logger.error("Failed to set group on {} to {} due to {}", new Object[]{tempPath, group, e});
+                logger.error("Failed to set group on {} to {} due to {}", new Object[] {tempPath, group, e});
             }
         }
 

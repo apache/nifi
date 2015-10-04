@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard.util;
 
 import java.io.Serializable;
 
-public class FileInfo implements Comparable<FileInfo>, Serializable {
+public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEntity {
 
     private static final long serialVersionUID = 1L;
 
@@ -163,5 +163,21 @@ public class FileInfo implements Comparable<FileInfo>, Serializable {
             this.group = group;
             return this;
         }
+    }
+
+    @Override
+    public String getName() {
+        return getFileName();
+    }
+
+    @Override
+    public String getIdentifier() {
+        final String fullPathName = getFullPathFileName();
+        return fullPathName == null ? getName() : fullPathName;
+    }
+
+    @Override
+    public long getTimestamp() {
+        return getLastModifiedTime();
     }
 }
