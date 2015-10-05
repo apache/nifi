@@ -57,7 +57,7 @@ import org.apache.nifi.util.StopWatch;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"put", "local", "copy", "archive", "files", "filesystem"})
 @CapabilityDescription("Writes the contents of a FlowFile to the local file system")
-@SeeAlso(GetFile.class)
+@SeeAlso({FetchFile.class, GetFile.class})
 public class PutFile extends AbstractProcessor {
 
     public static final String REPLACE_RESOLUTION = "replace";

@@ -86,7 +86,7 @@ import org.apache.nifi.processors.standard.util.FileInfo;
                 "is formatted as 3 characters for the owner, 3 for the group, and 3 for other users. For example " +
                 "rw-rw-r--")
 })
-@SeeAlso({GetFile.class, PutFile.class})
+@SeeAlso({GetFile.class, PutFile.class, FetchFile.class})
 public class ListFile extends AbstractListProcessor<FileInfo> {
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
