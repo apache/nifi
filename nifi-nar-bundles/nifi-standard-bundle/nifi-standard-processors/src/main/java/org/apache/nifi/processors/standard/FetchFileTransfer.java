@@ -31,7 +31,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -49,9 +51,18 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 
 /**
- * A base class for FetchSFTP, FetchFTP processors
+ * A base class for FetchSFTP, FetchFTP processors.
+ *
+ * Note that implementations of this class should never use the @SupportsBatching annotation! Doing so
+ * could result in data loss!
  */
 public abstract class FetchFileTransfer extends AbstractProcessor {
+
+    static final AllowableValue COMPLETION_NONE = new AllowableValue("None", "None", "Leave the file as-is");
+    static final AllowableValue COMPLETION_MOVE = new AllowableValue("Move File", "Move File", "Move the file to the directory specified by the <Move Destination Directory> property");
+    static final AllowableValue COMPLETION_DELETE = new AllowableValue("Delete File", "Delete File", "Deletes the original file from the remote system");
+
+
     static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
         .name("Hostname")
         .description("The fully-qualified hostname or IP address of the host to fetch the data from")
@@ -73,13 +84,25 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(true)
         .build();
-    public static final PropertyDescriptor DELETE_ORIGINAL = new PropertyDescriptor.Builder()
-        .name("Delete Original")
-        .description("Determines whether or not the file is deleted from the remote system after it has been successfully transferred")
-        .defaultValue("true")
-        .allowableValues("true", "false")
+    static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
+        .name("Completion Strategy")
+        .description("Specifies what to do with the original file on the server once it has been pulled into NiFi. If the Completion Strategy fails, a warning will be "
+            + "logged but the data will still be transferred.")
+        .expressionLanguageSupported(false)
+        .allowableValues(COMPLETION_NONE, COMPLETION_MOVE, COMPLETION_DELETE)
+        .defaultValue(COMPLETION_NONE.getValue())
         .required(true)
         .build();
+    static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
+        .name("Move Destination Directory")
+        .description("The directory on the remote server to the move the original file to once it has been ingested into NiFi. "
+            + "This property is ignored unless the Completion Strategy is set to \"Move File\". The specified directory must already exist on"
+            + "the remote system, or the rename will fail.")
+        .expressionLanguageSupported(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .required(false)
+        .build();
+
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -156,7 +179,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         properties.add(HOSTNAME);
         properties.add(UNDEFAULTED_PORT);
         properties.add(REMOTE_FILENAME);
-        properties.add(DELETE_ORIGINAL);
+        properties.add(COMPLETION_STRATEGY);
+        properties.add(MOVE_DESTINATION_DIR);
         return properties;
     }
 
@@ -203,6 +227,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         final InputStream in;
         try {
             in = transfer.getInputStream(filename, flowFile);
+
             flowFile = session.write(flowFile, new OutputStreamCallback() {
                 @Override
                 public void process(final OutputStream out) throws IOException {
@@ -250,15 +275,34 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
 
-        // delete remote file is necessary
-        final boolean deleteOriginal = context.getProperty(DELETE_ORIGINAL).asBoolean();
-        if (deleteOriginal) {
+        // it is critical that we commit the session before moving/deleting the remote file. Otherwise, we could have a situation where
+        // we ingest the data, delete/move the remote file, and then NiFi dies/is shut down before the session is committed. This would
+        // result in data loss! If we commit the session first, we are safe.
+        session.commit();
+
+        final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
+        if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
             try {
                 transfer.deleteFile(null, filename);
             } catch (final FileNotFoundException e) {
                 // file doesn't exist -- effectively the same as removing it. Move on.
             } catch (final IOException ioe) {
-                getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to remove the remote file due to {}", new Object[] {flowFile, host, port, filename, ioe}, ioe);
+                getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to remove the remote file due to {}",
+                    new Object[] {flowFile, host, port, filename, ioe}, ioe);
+            }
+        } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
+            String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
+            if (!targetDir.endsWith("/")) {
+                targetDir = targetDir + "/";
+            }
+            final String simpleFilename = StringUtils.substringAfterLast(filename, "/");
+            final String target = targetDir + simpleFilename;
+
+            try {
+                transfer.rename(filename, target);
+            } catch (final IOException ioe) {
+                getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
+                    new Object[] {flowFile, host, port, filename, ioe}, ioe);
             }
         }
     }

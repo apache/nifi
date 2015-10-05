@@ -70,22 +70,24 @@ import org.codehaus.jackson.map.ObjectMapper;
  *
  * <p>
  * In order to make use of this abstract class, the entities listed must meet the following criteria:
- * <ul>
- * <li>
- * Entity must have a timestamp associated with it. This timestamp is used to determine if entities are "new" or not. Any entity that is
- * returned by the listing will be considered "new" if the timestamp is later than the latest timestamp pulled.
- * </li>
- * <li>
- * Entity must have a unique identifier. This is used in conjunction with the timestamp in order to determine whether or not the entity is
- * new. If the timestamp of an entity is before the latest timestamp pulled, then the entity is not considered new. If the timestamp is later
- * than the last timestamp pulled, then the entity is considered new. If the timestamp is equal to the latest timestamp pulled, then the entity's
- * identifier is compared to all of the entity identifiers that have that same timestamp in order to determine whether or not the entity has been
- * seen already.
- * </li>
- * <li>
- * Entity must have a user-readable name that can be used for logging purposes.
- * </li>
  * </p>
+ *
+ * <ul>
+ *  <li>
+ *      Entity must have a timestamp associated with it. This timestamp is used to determine if entities are "new" or not. Any entity that is
+ *      returned by the listing will be considered "new" if the timestamp is later than the latest timestamp pulled.
+ *  </li>
+ *  <li>
+ *      Entity must have a unique identifier. This is used in conjunction with the timestamp in order to determine whether or not the entity is
+ *      new. If the timestamp of an entity is before the latest timestamp pulled, then the entity is not considered new. If the timestamp is later
+ *      than the last timestamp pulled, then the entity is considered new. If the timestamp is equal to the latest timestamp pulled, then the entity's
+ *      identifier is compared to all of the entity identifiers that have that same timestamp in order to determine whether or not the entity has been
+ *      seen already.
+ *  </li>
+ *  <li>
+ *      Entity must have a user-readable name that can be used for logging purposes.
+ *  </li>
+ * </ul>
  *
  * <p>
  * This class persists state across restarts so that even if NiFi is restarted, duplicates will not be pulled from the remote system. This is performed using
@@ -111,6 +113,7 @@ import org.codehaus.jackson.map.ObjectMapper;
  *
  * <p>
  * Subclasses are responsible for the following:
+ * </p>
  *
  * <ul>
  * <li>
@@ -134,7 +137,6 @@ import org.codehaus.jackson.map.ObjectMapper;
  * a boolean indicating whether or not a change in the value of the provided property should trigger the timestamp and identifier information to be cleared.
  * </li>
  * </ul>
- * </p>
  */
 @TriggerSerially
 public abstract class AbstractListProcessor<T extends ListableEntity> extends AbstractProcessor {
@@ -372,8 +374,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         int listCount = 0;
         Long latestListingTimestamp = null;
         for (final T entity : entityList) {
-            final boolean list = (minTimestamp == null || entity.getTimestamp() > minTimestamp ||
-                (entity.getTimestamp() == minTimestamp && !latestIdentifiersListed.contains(entity.getIdentifier())));
+            final boolean list = (minTimestamp == null || entity.getTimestamp() > minTimestamp
+                || (entity.getTimestamp() == minTimestamp && !latestIdentifiersListed.contains(entity.getIdentifier())));
 
             // Create the FlowFile for this path.
             if (list) {

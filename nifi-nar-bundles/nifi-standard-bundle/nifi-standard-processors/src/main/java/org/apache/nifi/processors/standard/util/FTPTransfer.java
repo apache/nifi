@@ -135,7 +135,7 @@ public class FTPTransfer implements FileTransfer {
                 client.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close FTPClient due to {}", new Object[] { ex.toString() }, ex);
+            logger.warn("Failed to close FTPClient due to {}", new Object[] {ex.toString()}, ex);
         }
         client = null;
     }
@@ -334,9 +334,9 @@ public class FTPTransfer implements FileTransfer {
         final boolean cdSuccessful = setWorkingDirectory(remoteDirectory);
 
         if (!cdSuccessful) {
-            logger.debug("Remote Directory {} does not exist; creating it", new Object[] { remoteDirectory });
+            logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
             if (client.makeDirectory(remoteDirectory)) {
-                logger.debug("Created {}", new Object[] { remoteDirectory });
+                logger.debug("Created {}", new Object[] {remoteDirectory});
             } else {
                 throw new IOException("Failed to create remote directory " + remoteDirectory);
             }
@@ -392,10 +392,10 @@ public class FTPTransfer implements FileTransfer {
                 final String time = outformat.format(fileModifyTime);
                 if (!client.setModificationTime(tempFilename, time)) {
                     // FTP server probably doesn't support MFMT command
-                    logger.warn("Could not set lastModifiedTime on {} to {}", new Object[] { flowFile, lastModifiedTime });
+                    logger.warn("Could not set lastModifiedTime on {} to {}", new Object[] {flowFile, lastModifiedTime});
                 }
             } catch (final Exception e) {
-                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[] { flowFile, lastModifiedTime, e });
+                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[] {flowFile, lastModifiedTime, e});
             }
         }
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
@@ -404,17 +404,17 @@ public class FTPTransfer implements FileTransfer {
                 int perms = numberPermissions(permissions);
                 if (perms >= 0) {
                     if (!client.sendSiteCommand("chmod " + Integer.toOctalString(perms) + " " + tempFilename)) {
-                        logger.warn("Could not set permission on {} to {}", new Object[] { flowFile, permissions });
+                        logger.warn("Could not set permission on {} to {}", new Object[] {flowFile, permissions});
                     }
                 }
             } catch (final Exception e) {
-                logger.error("Failed to set permission on {} to {} due to {}", new Object[] { flowFile, permissions, e });
+                logger.error("Failed to set permission on {} to {} due to {}", new Object[] {flowFile, permissions, e});
             }
         }
 
         if (!filename.equals(tempFilename)) {
             try {
-                logger.debug("Renaming remote path from {} to {} for {}", new Object[] { tempFilename, filename, flowFile });
+                logger.debug("Renaming remote path from {} to {} for {}", new Object[] {tempFilename, filename, flowFile});
                 final boolean renameSuccessful = client.rename(tempFilename, filename);
                 if (!renameSuccessful) {
                     throw new IOException("Failed to rename temporary file " + tempFilename + " to " + fullPath + " due to: " + client.getReplyString());
@@ -430,6 +430,16 @@ public class FTPTransfer implements FileTransfer {
         }
 
         return fullPath;
+    }
+
+
+    @Override
+    public void rename(final String source, final String target) throws IOException {
+        final FTPClient client = getClient(null);
+        final boolean renameSuccessful = client.rename(source, target);
+        if (!renameSuccessful) {
+            throw new IOException("Failed to rename temporary file " + source + " to " + target + " due to: " + client.getReplyString());
+        }
     }
 
     @Override

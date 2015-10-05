@@ -38,6 +38,7 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
 @SeeAlso({FetchSFTP.class, GetSFTP.class, PutSFTP.class})
 @WritesAttributes({
     @WritesAttribute(attribute = "sftp.remote.host", description = "The hostname of the SFTP Server"),
+    @WritesAttribute(attribute = "sftp.remote.port", description = "The port that was connected to on the SFTP Server"),
     @WritesAttribute(attribute = "file.owner", description = "The numeric owner id of the source file"),
     @WritesAttribute(attribute = "file.group", description = "The numeric group id of the source file"),
     @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the source file"),
@@ -48,9 +49,11 @@ public class ListSFTP extends ListFileTransfer {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("22").build();
+
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SFTPTransfer.HOSTNAME);
-        properties.add(SFTPTransfer.PORT);
+        properties.add(HOSTNAME);
+        properties.add(port);
         properties.add(SFTPTransfer.USERNAME);
         properties.add(SFTPTransfer.PASSWORD);
         properties.add(SFTPTransfer.PRIVATE_KEY_PATH);

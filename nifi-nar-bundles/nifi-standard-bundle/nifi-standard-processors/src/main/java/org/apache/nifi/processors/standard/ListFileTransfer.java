@@ -38,6 +38,13 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .required(true)
         .expressionLanguageSupported(true)
         .build();
+    static final PropertyDescriptor UNDEFAULTED_PORT = new PropertyDescriptor.Builder()
+        .name("Port")
+        .description("The port to connect to on the remote host to fetch the data from")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(true)
+        .required(true)
+        .build();
     public static final PropertyDescriptor REMOTE_PATH = new PropertyDescriptor.Builder()
         .name("Remote Path")
         .description("The path on the remote system from which to pull or push files")
@@ -52,6 +59,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(getProtocolName() + ".remote.host", context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue());
+        attributes.put(getProtocolName() + ".remote.port", context.getProperty(UNDEFAULTED_PORT).evaluateAttributeExpressions().getValue());
         attributes.put("file.owner", fileInfo.getOwner());
         attributes.put("file.group", fileInfo.getGroup());
         attributes.put("file.permissions", fileInfo.getPermissions());

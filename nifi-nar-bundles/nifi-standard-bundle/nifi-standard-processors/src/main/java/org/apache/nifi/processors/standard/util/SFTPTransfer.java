@@ -603,6 +603,23 @@ public class SFTPTransfer implements FileTransfer {
         return fullPath;
     }
 
+    @Override
+    public void rename(final String source, final String target) throws IOException {
+        final ChannelSftp sftp = getChannel(null);
+        try {
+            sftp.rename(source, target);
+        } catch (final SftpException e) {
+            switch (e.id) {
+                case ChannelSftp.SSH_FX_NO_SUCH_FILE:
+                    throw new FileNotFoundException();
+                case ChannelSftp.SSH_FX_PERMISSION_DENIED:
+                    throw new PermissionDeniedException("Could not rename remote file " + source + " to " + target + " due to insufficient permissions");
+                default:
+                    throw new IOException(e);
+            }
+        }
+    }
+
     protected int numberPermissions(String perms) {
         int number = -1;
         final Pattern rwxPattern = Pattern.compile("^[rwx-]{9}$");

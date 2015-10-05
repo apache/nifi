@@ -61,7 +61,7 @@ public class EntityListing {
     /**
      * Sets the Collection containing the identifiers of all entities in the listing whose Timestamp was
      * equal to {@link #getLatestTimestamp()}
-     * 
+     *
      * @param matchingIdentifiers the identifiers that have last modified date matching the latest timestamp
      */
     public void setMatchingIdentifiers(Collection<String> matchingIdentifiers) {
