@@ -20,7 +20,6 @@
         <div id="controller-service-type-filter-controls">
             <div id="controller-service-type-filter-container">
                 <input type="text" id="controller-service-type-filter"/>
-                <div id="controller-service-type-filter-options"></div>
             </div>
             <div id="controller-service-type-filter-status">
                 Displaying&nbsp;<span id="displayed-controller-service-types"></span>&nbsp;of&nbsp;<span id="total-controller-service-types"></span>

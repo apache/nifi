@@ -118,14 +118,5 @@
     line-height: 20px;
     width: 173px;
     border: 1px solid #ccc;
-    margin-right: 3px;
     float: left;
-}
-
-#processor-type-filter-options {
-    float: left;
-    height: 17px;
-    line-height: 17px;
-    width: 85px;
-    margin-top: 1px;
 }
