@@ -170,6 +170,7 @@ import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusDTO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
+import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -762,7 +763,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (user == null) {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
-        final String userDn = user.getDn();
+        final String userDn = user.getIdentity();
 
         if (Node.Status.CONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
             clusterManager.requestReconnection(nodeDTO.getNodeId(), userDn);
@@ -1782,7 +1783,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // create a purge action to record that records are being removed
         FlowChangeAction purgeAction = new FlowChangeAction();
-        purgeAction.setUserIdentity(user.getDn());
+        purgeAction.setUserIdentity(user.getIdentity());
         purgeAction.setUserName(user.getUserName());
         purgeAction.setOperation(Operation.Purge);
         purgeAction.setTimestamp(new Date());
@@ -1817,6 +1818,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 invalidateUser(userId);
             }
         }
+    }
+
+    @Override
+    public UserDTO createUser() {
+        NewAccountRequest newAccountRequest = NiFiUserUtils.getNewAccountRequest();
+
+        // log the new user account request
+        logger.info("Requesting new user account for " + newAccountRequest.getUsername());
+
+        // get the justification
+        String justification = newAccountRequest.getJustification();
+        if (justification == null) {
+            justification = StringUtils.EMPTY;
+        }
+
+        // create the pending user account
+        return dtoFactory.createUserDTO(userService.createPendingUserAccount(newAccountRequest.getUsername(), justification));
     }
 
     @Override
@@ -2256,7 +2274,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final Set<String> allowedUsers = port.getUserAccessControl();
-        if (allowedUsers.contains(user.getDn())) {
+        if (allowedUsers.contains(user.getIdentity())) {
             return true;
         }
 
@@ -2632,7 +2650,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final UserDTO groupedUser = groupedUserDTOs.get(user.getUserGroup());
                         groupedUser.setId(groupedUser.getId() + "," + String.valueOf(user.getId()));
                         groupedUser.setUserName(groupedUser.getUserName() + ", " + user.getUserName());
-                        groupedUser.setDn(groupedUser.getDn() + ", " + user.getDn());
+                        groupedUser.setDn(groupedUser.getDn() + ", " + user.getIdentity());
                         groupedUser.setCreation(getOldestDate(groupedUser.getCreation(), user.getCreation()));
                         groupedUser.setLastAccessed(getNewestDate(groupedUser.getLastAccessed(), user.getLastAccessed()));
                         groupedUser.setLastVerified(getNewestDate(groupedUser.getLastVerified(), user.getLastVerified()));
@@ -2731,7 +2749,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
 
-        final String userDn = user.getDn();
+        final String userDn = user.getIdentity();
         clusterManager.deleteNode(nodeId, userDn);
     }
 

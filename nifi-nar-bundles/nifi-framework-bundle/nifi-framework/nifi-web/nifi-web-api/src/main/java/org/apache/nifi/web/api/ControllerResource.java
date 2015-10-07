@@ -79,6 +79,7 @@ import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
+import org.apache.nifi.web.api.entity.IdentityEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -239,7 +240,7 @@ public class ControllerResource extends ApplicationResource {
     public ProcessGroupResource getGroupResource(
             @ApiParam(
                     value = "The id of the process group that is the parent of the requested resource(s). If the desired process group is "
-                            + "the root group an alias 'root' may be used as the process-group-id.",
+                    + "the root group an alias 'root' may be used as the process-group-id.",
                     required = true
             )
             @PathParam("process-group-id") String groupId) {
@@ -454,13 +455,13 @@ public class ControllerResource extends ApplicationResource {
     @ApiOperation(
             value = "Gets the current revision of this NiFi",
             notes = "NiFi employs an optimistic locking strategy where the client must include a revision in their request when "
-                    + "performing an update. If the specified revision does not match the current base revision a 409 status code "
-                    + "is returned. The revision is comprised of a clientId and a version number. The version is a simple integer "
-                    + "value that is incremented with each change. Including the most recent version tells NiFi that your working "
-                    + "with the most recent flow. In addition to the version the client who is performing the updates is recorded. "
-                    + "This allows the same client to submit multiple requests without having to wait for the previously ones to "
-                    + "return. Invoking this endpoint will return the current base revision. It is also available when retrieving "
-                    + "a process group and in the response of all mutable requests.",
+            + "performing an update. If the specified revision does not match the current base revision a 409 status code "
+            + "is returned. The revision is comprised of a clientId and a version number. The version is a simple integer "
+            + "value that is incremented with each change. Including the most recent version tells NiFi that your working "
+            + "with the most recent flow. In addition to the version the client who is performing the updates is recorded. "
+            + "This allows the same client to submit multiple requests without having to wait for the previously ones to "
+            + "return. Invoking this endpoint will return the current base revision. It is also available when retrieving "
+            + "a process group and in the response of all mutable requests.",
             response = Entity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
@@ -845,6 +846,47 @@ public class ControllerResource extends ApplicationResource {
     }
 
     /**
+     * Retrieves the identity of the user making the request.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @return An identityEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/identity")
+    @ApiOperation(
+            value = "Retrieves the user identity of the user making the request",
+            response = IdentityEntity.class
+    )
+    public Response getIdentity(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        // note that the cluster manager will handle this request directly
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user == null) {
+            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
+        }
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create the response entity
+        IdentityEntity entity = new IdentityEntity();
+        entity.setRevision(revision);
+        entity.setUserId(user.getId());
+        entity.setIdentity(user.getUserName());
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**
      * Retrieves the user details, including the authorities, about the user making the request.
      *
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
@@ -854,14 +896,17 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/authorities")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_PROXY', 'ROLE_NIFI', 'ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Retrieves the user details, including the authorities, about the user making the request",
             response = AuthorityEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN"),
+                @Authorization(value = "Proxy", type = "ROLE_PROXY"),
+                @Authorization(value = "NiFi", type = "ROLE_NIFI"),
+                @Authorization(value = "Provenance", type = "ROLE_PROVENANCE")
             }
     )
     @ApiResponses(

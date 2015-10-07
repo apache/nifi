@@ -188,7 +188,7 @@ public class RelationshipAuditor extends NiFiAuditor {
 
                     // create a configuration action
                     FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getDn());
+                    configurationAction.setUserIdentity(user.getIdentity());
                     configurationAction.setUserName(user.getUserName());
                     configurationAction.setOperation(Operation.Configure);
                     configurationAction.setTimestamp(actionTimestamp);
@@ -353,7 +353,7 @@ public class RelationshipAuditor extends NiFiAuditor {
 
             // create a new relationship action
             action = new FlowChangeAction();
-            action.setUserIdentity(user.getDn());
+            action.setUserIdentity(user.getIdentity());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(actionTimestamp);

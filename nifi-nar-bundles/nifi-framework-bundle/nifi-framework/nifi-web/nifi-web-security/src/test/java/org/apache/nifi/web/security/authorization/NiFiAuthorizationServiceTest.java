@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.authorization;
 
+import java.util.Arrays;
 import org.apache.nifi.admin.service.AccountDisabledException;
 import org.apache.nifi.admin.service.AccountNotFoundException;
 import org.apache.nifi.admin.service.AccountPendingException;
@@ -24,8 +25,8 @@ import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.DnUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
+import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.junit.Assert;
 import org.junit.Before;
@@ -66,10 +67,10 @@ public class NiFiAuthorizationServiceTest {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 Object[] args = invocation.getArguments();
-                String dn = (String) args[0];
+                String identity = (String) args[0];
 
-                if (null != dn) {
-                    switch (dn) {
+                if (null != identity) {
+                    switch (identity) {
                         case USER_NOT_FOUND:
                         case PROXY_NOT_FOUND:
                             throw new AccountNotFoundException("");
@@ -81,13 +82,13 @@ public class NiFiAuthorizationServiceTest {
                             throw new AdministrationException();
                         case USER:
                             final NiFiUser monitor = new NiFiUser();
-                            monitor.setDn(dn);
+                            monitor.setIdentity(identity);
                             monitor.getAuthorities().add(Authority.ROLE_MONITOR);
                             return monitor;
                         case PROXY:
                         case PROXY_PROXY:
                             final NiFiUser proxy = new NiFiUser();
-                            proxy.setDn(dn);
+                            proxy.setIdentity(identity);
                             proxy.getAuthorities().add(Authority.ROLE_PROXY);
                             return proxy;
                     }
@@ -103,15 +104,18 @@ public class NiFiAuthorizationServiceTest {
         authorizationService.setUserService(userService);
     }
 
+    private NiFiAuthenticationRequestToken createRequestAuthentication(final String... identities) {
+        return new NiFiAuthenticationRequestToken(Arrays.asList(identities));
+    }
+
     /**
-     * Ensures the authorization service correctly handles users invalid dn
-     * chain.
+     * Ensures the authorization service correctly handles users invalid identity chain.
      *
      * @throws Exception ex
      */
     @Test(expected = UntrustedProxyException.class)
     public void testInvalidDnChain() throws Exception {
-        authorizationService.loadUserByUsername(USER);
+        authorizationService.loadUserDetails(createRequestAuthentication());
     }
 
     /**
@@ -121,7 +125,7 @@ public class NiFiAuthorizationServiceTest {
      */
     @Test(expected = UsernameNotFoundException.class)
     public void testAccountNotFound() throws Exception {
-        authorizationService.loadUserByUsername(DnUtils.formatProxyDn(USER_NOT_FOUND));
+        authorizationService.loadUserDetails(createRequestAuthentication(USER_NOT_FOUND));
     }
 
     /**
@@ -131,7 +135,7 @@ public class NiFiAuthorizationServiceTest {
      */
     @Test(expected = AccountStatusException.class)
     public void testAccountDisabled() throws Exception {
-        authorizationService.loadUserByUsername(DnUtils.formatProxyDn(USER_DISABLED));
+        authorizationService.loadUserDetails(createRequestAuthentication(USER_DISABLED));
     }
 
     /**
@@ -141,18 +145,17 @@ public class NiFiAuthorizationServiceTest {
      */
     @Test(expected = AccountStatusException.class)
     public void testAccountPending() throws Exception {
-        authorizationService.loadUserByUsername(DnUtils.formatProxyDn(USER_PENDING));
+        authorizationService.loadUserDetails(createRequestAuthentication(USER_PENDING));
     }
 
     /**
-     * Ensures the authorization service correctly handles account
-     * administration exception.
+     * Ensures the authorization service correctly handles account administration exception.
      *
      * @throws Exception ex
      */
     @Test(expected = AuthenticationServiceException.class)
     public void testAccountAdminException() throws Exception {
-        authorizationService.loadUserByUsername(DnUtils.formatProxyDn(USER_ADMIN_EXCEPTION));
+        authorizationService.loadUserDetails(createRequestAuthentication(USER_ADMIN_EXCEPTION));
     }
 
     /**
@@ -162,10 +165,10 @@ public class NiFiAuthorizationServiceTest {
      */
     @Test
     public void testNoProxy() throws Exception {
-        final NiFiUserDetails details = (NiFiUserDetails) authorizationService.loadUserByUsername(DnUtils.formatProxyDn(USER));
+        final NiFiUserDetails details = (NiFiUserDetails) authorizationService.loadUserDetails(createRequestAuthentication(USER));
         final NiFiUser user = details.getNiFiUser();
 
-        Assert.assertEquals(USER, user.getDn());
+        Assert.assertEquals(USER, user.getIdentity());
         Assert.assertNull(user.getChain());
     }
 
@@ -176,21 +179,18 @@ public class NiFiAuthorizationServiceTest {
      */
     @Test(expected = UntrustedProxyException.class)
     public void testInvalidProxy() throws Exception {
-        final String dnChain = DnUtils.formatProxyDn(USER) + DnUtils.formatProxyDn(USER);
-        authorizationService.loadUserByUsername(dnChain);
+        authorizationService.loadUserDetails(createRequestAuthentication(USER, USER));
     }
 
     /**
-     * Ensures the authorization service correctly handles proxy not found by
-     * attempting to create an account request for the proxy.
+     * Ensures the authorization service correctly handles proxy not found by attempting to create an account request for the proxy.
      *
      * @throws Exception ex
      */
-    @Test(expected = UsernameNotFoundException.class)
+    @Test(expected = UntrustedProxyException.class)
     public void testProxyNotFound() throws Exception {
         try {
-            final String dnChain = DnUtils.formatProxyDn(USER) + DnUtils.formatProxyDn(PROXY_NOT_FOUND);
-            authorizationService.loadUserByUsername(DnUtils.formatProxyDn(dnChain));
+            authorizationService.loadUserDetails(createRequestAuthentication(USER, PROXY_NOT_FOUND));
         } finally {
             Mockito.verify(userService).createPendingUserAccount(Mockito.eq(PROXY_NOT_FOUND), Mockito.anyString());
         }
@@ -203,19 +203,18 @@ public class NiFiAuthorizationServiceTest {
      */
     @Test
     public void testProxy() throws Exception {
-        final String dnChain = DnUtils.formatProxyDn(USER) + DnUtils.formatProxyDn(PROXY);
-        final NiFiUserDetails details = (NiFiUserDetails) authorizationService.loadUserByUsername(dnChain);
+        final NiFiUserDetails details = (NiFiUserDetails) authorizationService.loadUserDetails(createRequestAuthentication(USER, PROXY));
         final NiFiUser user = details.getNiFiUser();
 
         // verify the user
-        Assert.assertEquals(USER, user.getDn());
+        Assert.assertEquals(USER, user.getIdentity());
         Assert.assertNotNull(user.getChain());
 
         // get the proxy
         final NiFiUser proxy = user.getChain();
 
         // verify the proxy
-        Assert.assertEquals(PROXY, proxy.getDn());
+        Assert.assertEquals(PROXY, proxy.getIdentity());
         Assert.assertNull(proxy.getChain());
     }
 
@@ -226,26 +225,25 @@ public class NiFiAuthorizationServiceTest {
      */
     @Test
     public void testProxyProxy() throws Exception {
-        final String dnChain = DnUtils.formatProxyDn(USER) + DnUtils.formatProxyDn(PROXY) + DnUtils.formatProxyDn(PROXY_PROXY);
-        final NiFiUserDetails details = (NiFiUserDetails) authorizationService.loadUserByUsername(dnChain);
+        final NiFiUserDetails details = (NiFiUserDetails) authorizationService.loadUserDetails(createRequestAuthentication(USER, PROXY, PROXY_PROXY));
         final NiFiUser user = details.getNiFiUser();
 
         // verify the user
-        Assert.assertEquals(USER, user.getDn());
+        Assert.assertEquals(USER, user.getIdentity());
         Assert.assertNotNull(user.getChain());
 
         // get the proxy
         NiFiUser proxy = user.getChain();
 
         // verify the proxy
-        Assert.assertEquals(PROXY, proxy.getDn());
+        Assert.assertEquals(PROXY, proxy.getIdentity());
         Assert.assertNotNull(proxy.getChain());
 
         // get the proxies proxy
         proxy = proxy.getChain();
 
         // verify the proxies proxy
-        Assert.assertEquals(PROXY_PROXY, proxy.getDn());
+        Assert.assertEquals(PROXY_PROXY, proxy.getIdentity());
         Assert.assertNull(proxy.getChain());
     }
 }

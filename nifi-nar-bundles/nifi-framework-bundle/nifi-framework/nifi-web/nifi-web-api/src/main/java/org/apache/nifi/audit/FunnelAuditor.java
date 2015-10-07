@@ -121,7 +121,7 @@ public class FunnelAuditor extends NiFiAuditor {
         if (user != null) {
             // create the action for adding this funnel
             action = new FlowChangeAction();
-            action.setUserIdentity(user.getDn());
+            action.setUserIdentity(user.getIdentity());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());

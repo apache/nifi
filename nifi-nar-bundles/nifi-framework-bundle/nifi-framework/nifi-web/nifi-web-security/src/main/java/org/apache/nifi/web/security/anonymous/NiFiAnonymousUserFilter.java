@@ -16,25 +16,22 @@
  */
 package org.apache.nifi.web.security.anonymous;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.EnumSet;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
-import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.token.NiFiAuthorizationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 
 /**
- * Custom AnonymouseAuthenticationFilter used to grant additional authorities
- * depending on the current operating mode.
+ * Custom AnonymouseAuthenticationFilter used to grant additional authorities depending on the current operating mode.
  */
 public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
 
@@ -42,7 +39,6 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
 
     private static final String ANONYMOUS_KEY = "anonymousNifiKey";
 
-    private NiFiProperties properties;
     private UserService userService;
 
     public NiFiAnonymousUserFilter() {
@@ -51,51 +47,37 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
 
     @Override
     protected Authentication createAuthentication(HttpServletRequest request) {
-        Authentication authentication;
+        Authentication authentication = null;
+
         try {
             // load the anonymous user from the database
-            NiFiUser user = userService.getUserByDn(NiFiUser.ANONYMOUS_USER_DN);
-            NiFiUserDetails userDetails = new NiFiUserDetails(user);
+            NiFiUser user = userService.getUserByDn(NiFiUser.ANONYMOUS_USER_IDENTITY);
 
-            // get the granted authorities
-            List<GrantedAuthority> authorities = new ArrayList<>(userDetails.getAuthorities());
-            authentication = new AnonymousAuthenticationToken(ANONYMOUS_KEY, userDetails, authorities);
+            // if this is an unsecure request allow full access
+            if (!request.isSecure()) {
+                user.getAuthorities().addAll(EnumSet.allOf(Authority.class));
+            }
+
+            // only create an authentication token if the anonymous user has some authorities
+            if (!user.getAuthorities().isEmpty()) {
+                NiFiUserDetails userDetails = new NiFiUserDetails(user);
+
+                // get the granted authorities
+                authentication = new NiFiAuthorizationToken(userDetails);
+            }
         } catch (AdministrationException ase) {
             // record the issue
             anonymousUserFilterLogger.warn("Unable to load anonymous user from accounts database: " + ase.getMessage());
             if (anonymousUserFilterLogger.isDebugEnabled()) {
                 anonymousUserFilterLogger.warn(StringUtils.EMPTY, ase);
             }
-
-            // defer to the base implementation
-            authentication = super.createAuthentication(request);
         }
         return authentication;
-    }
-
-    /**
-     * Only supports anonymous users for non-secure requests or one way ssl.
-     *
-     * @param request request
-     * @return true if allowed
-     */
-    @Override
-    protected boolean applyAnonymousForThisRequest(HttpServletRequest request) {
-        // anonymous for non secure requests
-        if ("http".equalsIgnoreCase(request.getScheme())) {
-            return true;
-        }
-
-        return !properties.getNeedClientAuth();
     }
 
     /* setters */
     public void setUserService(UserService userService) {
         this.userService = userService;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
 }

@@ -40,8 +40,8 @@ public class DisableUserActionTest {
     private static final String USER_ID_3 = "3";
     private static final String USER_ID_4 = "4";
 
-    private static final String USER_DN_3 = "authority access exception";
-    private static final String USER_DN_4 = "general disable user case";
+    private static final String USER_IDENTITY_3 = "authority access exception";
+    private static final String USER_IDENTITY_4 = "general disable user case";
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
@@ -66,11 +66,11 @@ public class DisableUserActionTest {
                 } else if (USER_ID_3.equals(id)) {
                     user = new NiFiUser();
                     user.setId(id);
-                    user.setDn(USER_DN_3);
+                    user.setIdentity(USER_IDENTITY_3);
                 } else if (USER_ID_4.equals(id)) {
                     user = new NiFiUser();
                     user.setId(id);
-                    user.setDn(USER_DN_4);
+                    user.setIdentity(USER_IDENTITY_4);
                     user.setStatus(AccountStatus.ACTIVE);
                 }
                 return user;
@@ -103,7 +103,7 @@ public class DisableUserActionTest {
                 Object[] args = invocation.getArguments();
                 String dn = (String) args[0];
 
-                if (USER_DN_3.equals(dn)) {
+                if (USER_IDENTITY_3.equals(dn)) {
                     throw new AuthorityAccessException(StringUtils.EMPTY);
                 }
 
@@ -158,11 +158,11 @@ public class DisableUserActionTest {
 
         // verify the user
         Assert.assertEquals(USER_ID_4, user.getId());
-        Assert.assertEquals(USER_DN_4, user.getDn());
+        Assert.assertEquals(USER_IDENTITY_4, user.getIdentity());
         Assert.assertEquals(AccountStatus.DISABLED, user.getStatus());
 
         // verify the interaction with the dao and provider
         Mockito.verify(userDao, Mockito.times(1)).updateUser(user);
-        Mockito.verify(authorityProvider, Mockito.times(1)).revokeUser(USER_DN_4);
+        Mockito.verify(authorityProvider, Mockito.times(1)).revokeUser(USER_IDENTITY_4);
     }
 }

@@ -77,6 +77,17 @@ div.context-menu-provenance {
     background-position: top left;
 }
 
+#user-logout-container {
+    position: absolute;
+    left: 478px;
+    top: 100px;
+    z-index: 1300;
+}
+
+#user-logout {
+    text-decoration: underline;
+}
+
 /*
     General Styles
 */
@@ -153,7 +164,7 @@ input.filter-list {
     background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top right;
 }
 
-input[type=text], textarea {
+input[type=text], input[type=password], textarea {
     background: white url(../images/bgInputText.png) repeat-x scroll top;
     border: 1px solid #ccc;
     font-family: Verdana;

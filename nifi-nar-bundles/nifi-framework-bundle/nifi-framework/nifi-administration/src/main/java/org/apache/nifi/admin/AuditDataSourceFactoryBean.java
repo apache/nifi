@@ -45,8 +45,8 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
     // ------------
     private static final String CREATE_ACTION_TABLE = "CREATE TABLE ACTION ("
             + "ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT, "
-            + "USER_DN VARCHAR2(255) NOT NULL, "
-            + "USER_NAME VARCHAR2(100) NOT NULL, "
+            + "IDENTITY VARCHAR2(4096) NOT NULL, "
+            + "USER_NAME VARCHAR2(4096) NOT NULL, "
             + "SOURCE_ID VARCHAR2(100) NOT NULL, "
             + "SOURCE_NAME VARCHAR2(1000) NOT NULL, "
             + "SOURCE_TYPE VARCHAR2(1000) NOT NULL, "
@@ -107,6 +107,10 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
             + "FOREIGN KEY (ACTION_ID) REFERENCES ACTION(ID)"
             + ")";
 
+    private static final String RENAME_DN_COLUMN = "ALTER TABLE ACTION ALTER COLUMN USER_DN RENAME TO IDENTITY";
+    private static final String RESIZE_IDENTITY_COLUMN = "ALTER TABLE ACTION MODIFY IDENTITY VARCHAR(4096)";
+    private static final String RESIZE_USER_NAME_COLUMN = "ALTER TABLE ACTION MODIFY USER_NAME VARCHAR(4096)";
+
     private JdbcConnectionPool connectionPool;
 
     private NiFiProperties properties;
@@ -148,14 +152,14 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
                 connection = connectionPool.getConnection();
                 connection.setAutoCommit(false);
 
+                // create a statement for initializing the database
+                statement = connection.createStatement();
+
                 // determine if the tables need to be created
                 rs = connection.getMetaData().getTables(null, null, "ACTION", null);
                 if (!rs.next()) {
                     logger.info("Database not built for repository: " + databaseUrl + ".  Building now...");
                     RepositoryUtils.closeQuietly(rs);
-
-                    // create a statement for initializing the database
-                    statement = connection.createStatement();
 
                     // action table
                     statement.execute(CREATE_ACTION_TABLE);
@@ -171,6 +175,15 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
                     statement.execute(CREATE_PURGE_DETAILS_TABLE);
                 } else {
                     logger.info("Existing database found and connected to at: " + databaseUrl);
+                    RepositoryUtils.closeQuietly(rs);
+
+                    // check if the DN column exists to see if we need to transform the table
+                    rs = connection.getMetaData().getColumns(null, null, "ACTION", "USER_DN");
+                    if (rs.next()) {
+                        statement.execute(RENAME_DN_COLUMN);
+                        statement.execute(RESIZE_IDENTITY_COLUMN);
+                        statement.execute(RESIZE_USER_NAME_COLUMN);
+                    }
                 }
 
                 // commit any changes

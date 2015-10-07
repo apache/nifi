@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.authorization;
+package org.apache.nifi.web.security.node;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -26,34 +26,26 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.nifi.controller.FlowController;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
-import org.apache.nifi.web.security.x509.SubjectDnX509PrincipalExtractor;
-import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.token.NiFiAuthorizationToken;
+import org.apache.nifi.web.security.x509.X509CertificateExtractor;
+import org.apache.nifi.web.security.x509.X509IdentityProvider;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
-import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 import org.springframework.web.filter.GenericFilterBean;
 
 /**
- * Custom filter to extract a user's authorities from the request where the user
- * was authenticated by the cluster manager and populate the threadlocal with
- * the authorized user. If the request contains the appropriate header with
- * authorities and the application instance is a node connected to the cluster,
- * then the authentication/authorization steps remaining in the filter chain are
- * skipped.
+ * Custom filter to extract a user's authorities from the request where the user was authenticated by the cluster manager and populate the threadlocal with the authorized user. If the request contains
+ * the appropriate header with authorities and the application instance is a node connected to the cluster, then the authentication/authorization steps remaining in the filter chain are skipped.
  *
- * Checking if the application instance is a connected node is important because
- * it prevents external clients from faking the request headers and bypassing
- * the authentication processing chain.
+ * Checking if the application instance is a connected node is important because it prevents external clients from faking the request headers and bypassing the authentication processing chain.
  */
 public class NodeAuthorizedUserFilter extends GenericFilterBean {
 
@@ -62,9 +54,8 @@ public class NodeAuthorizedUserFilter extends GenericFilterBean {
     public static final String PROXY_USER_DETAILS = "X-ProxiedEntityUserDetails";
 
     private NiFiProperties properties;
-    private final AuthenticationDetailsSource authenticationDetailsSource = new WebAuthenticationDetailsSource();
-    private final X509CertificateExtractor certificateExtractor = new X509CertificateExtractor();
-    private final X509PrincipalExtractor principalExtractor = new SubjectDnX509PrincipalExtractor();
+    private X509CertificateExtractor certificateExtractor;
+    private X509IdentityProvider certificateIdentityProvider;
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -83,16 +74,15 @@ public class NodeAuthorizedUserFilter extends GenericFilterBean {
             // check that we are connected to the cluster
             if (flowController.getNodeId() != null) {
                 try {
-                    // get the DN from the cert in the request
-                    final X509Certificate certificate = certificateExtractor.extractClientCertificate((HttpServletRequest) request);
+                    // attempt to extract the client certificate
+                    final X509Certificate[] certificate = certificateExtractor.extractClientCertificate(httpServletRequest);
                     if (certificate != null) {
-                        // extract the principal from the certificate
-                        final Object certificatePrincipal = principalExtractor.extractPrincipal(certificate);
-                        final String dn = certificatePrincipal.toString();
+                        // authenticate the certificate
+                        final AuthenticationResponse authenticationResponse = certificateIdentityProvider.authenticate(certificate);
 
-                        // only consider the pre-authorized user when the request came from the NCM according to the DN in the certificate
-                        final String clusterManagerDN = flowController.getClusterManagerDN();
-                        if (clusterManagerDN != null && clusterManagerDN.equals(dn)) {
+                        // only consider the pre-authorized user when the request came directly from the NCM according to the DN in the certificate
+                        final String clusterManagerIdentity = flowController.getClusterManagerDN();
+                        if (clusterManagerIdentity != null && clusterManagerIdentity.equals(authenticationResponse.getIdentity())) {
                             // deserialize hex encoded object
                             final Serializable userDetailsObj = WebUtils.deserializeHexToObject(hexEncodedUserDetails);
 
@@ -102,18 +92,19 @@ public class NodeAuthorizedUserFilter extends GenericFilterBean {
                                 final NiFiUser user = userDetails.getNiFiUser();
 
                                 // log the request attempt - response details will be logged later
-                                logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", user.getDn(), httpServletRequest.getMethod(),
+                                logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", user.getIdentity(), httpServletRequest.getMethod(),
                                         httpServletRequest.getRequestURL().toString(), request.getRemoteAddr()));
 
-                                // we do not create the authentication token with the X509 certificate because the certificate is from the sending system, not the proxied user
-                                final PreAuthenticatedAuthenticationToken token = new PreAuthenticatedAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                                token.setDetails(authenticationDetailsSource.buildDetails(request));
+                                // create the authorized nifi token
+                                final NiFiAuthorizationToken token = new NiFiAuthorizationToken(userDetails);
                                 SecurityContextHolder.getContext().setAuthentication(token);
                             }
                         }
                     }
                 } catch (final ClassNotFoundException cnfe) {
                     LOGGER.warn("Classpath issue detected because failed to deserialize authorized user in request header due to: " + cnfe, cnfe);
+                } catch (final IllegalArgumentException iae) {
+                    // unable to authenticate a serialized user from the incoming request
                 }
             }
         }
@@ -121,8 +112,16 @@ public class NodeAuthorizedUserFilter extends GenericFilterBean {
         chain.doFilter(request, response);
     }
 
-    /* setters */
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }
+
+    public void setCertificateIdentityProvider(X509IdentityProvider certificateIdentityProvider) {
+        this.certificateIdentityProvider = certificateIdentityProvider;
+    }
+
+    public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
+        this.certificateExtractor = certificateExtractor;
+    }
+
 }

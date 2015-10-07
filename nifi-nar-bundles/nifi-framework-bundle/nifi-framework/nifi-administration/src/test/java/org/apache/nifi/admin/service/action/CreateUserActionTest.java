@@ -40,8 +40,8 @@ public class CreateUserActionTest {
     private final String USER_ID_2 = "2";
     private final String USER_ID_3 = "3";
 
-    private final String USER_DN_1 = "data access exception when creating user";
-    private final String USER_DN_3 = "general create user case";
+    private final String USER_IDENTITY_1 = "data access exception when creating user";
+    private final String USER_IDENTITY_3 = "general create user case";
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
@@ -57,9 +57,9 @@ public class CreateUserActionTest {
                 Object[] args = invocation.getArguments();
                 NiFiUser user = (NiFiUser) args[0];
 
-                if (USER_DN_1.equals(user.getDn())) {
+                if (USER_IDENTITY_1.equals(user.getIdentity())) {
                     throw new DataAccessException();
-                } else if (USER_DN_3.equals(user.getDn())) {
+                } else if (USER_IDENTITY_3.equals(user.getIdentity())) {
                     user.setId(USER_ID_3);
                 }
 
@@ -100,7 +100,7 @@ public class CreateUserActionTest {
     @Test(expected = DataAccessException.class)
     public void testExceptionCreatingUser() throws Exception {
         NiFiUser user = new NiFiUser();
-        user.setDn(USER_DN_1);
+        user.setIdentity(USER_IDENTITY_1);
 
         CreateUserAction createUser = new CreateUserAction(user);
         createUser.execute(daoFactory, null);
@@ -128,7 +128,7 @@ public class CreateUserActionTest {
     @Test
     public void testCreateUserAccount() throws Exception {
         NiFiUser user = new NiFiUser();
-        user.setDn(USER_DN_3);
+        user.setIdentity(USER_IDENTITY_3);
         user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_DFM, Authority.ROLE_ADMIN));
 
         CreateUserAction createUser = new CreateUserAction(user);

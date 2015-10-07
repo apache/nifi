@@ -46,8 +46,8 @@ public class SetUserAuthoritiesActionTest {
     private static final String USER_ID_2 = "2";
     private static final String USER_ID_3 = "3";
 
-    private static final String USER_DN_2 = "user dn 2";
-    private static final String USER_DN_3 = "user dn 3";
+    private static final String USER_IDENTITY_2 = "user 2";
+    private static final String USER_IDENTITY_3 = "user 3";
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
@@ -70,11 +70,11 @@ public class SetUserAuthoritiesActionTest {
                 } else if (USER_ID_2.equals(id)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_2);
-                    user.setDn(USER_DN_2);
+                    user.setIdentity(USER_IDENTITY_2);
                 } else if (USER_ID_3.equals(id)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_3);
-                    user.setDn(USER_DN_3);
+                    user.setIdentity(USER_IDENTITY_3);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                     user.setStatus(AccountStatus.ACTIVE);
                 }
@@ -88,10 +88,10 @@ public class SetUserAuthoritiesActionTest {
                 String dn = (String) args[0];
 
                 NiFiUser user = null;
-                if (USER_DN_3.equals(dn)) {
+                if (USER_IDENTITY_3.equals(dn)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_3);
-                    user.setDn(USER_DN_3);
+                    user.setIdentity(USER_IDENTITY_3);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                     user.setStatus(AccountStatus.ACTIVE);
                 }
@@ -148,7 +148,7 @@ public class SetUserAuthoritiesActionTest {
                 String dn = (String) args[0];
 
                 Set<Authority> authorities = EnumSet.noneOf(Authority.class);
-                if (USER_DN_3.equals(dn)) {
+                if (USER_IDENTITY_3.equals(dn)) {
                     authorities.add(Authority.ROLE_DFM);
                 }
 
@@ -162,7 +162,7 @@ public class SetUserAuthoritiesActionTest {
                 String dn = (String) args[0];
                 Set<Authority> authorites = (Set<Authority>) args[1];
 
-                if (USER_DN_2.equals(dn)) {
+                if (USER_IDENTITY_2.equals(dn)) {
                     throw new AuthorityAccessException(StringUtils.EMPTY);
                 }
 
@@ -218,6 +218,6 @@ public class SetUserAuthoritiesActionTest {
         Set<Authority> authoritiesAddedToProvider = EnumSet.of(Authority.ROLE_ADMIN);
 
         // verify interaction with provider
-        Mockito.verify(authorityProvider, Mockito.times(1)).setAuthorities(USER_DN_3, authoritiesAddedToProvider);
+        Mockito.verify(authorityProvider, Mockito.times(1)).setAuthorities(USER_IDENTITY_3, authoritiesAddedToProvider);
     }
 }

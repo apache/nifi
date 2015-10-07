@@ -37,11 +37,11 @@ import org.apache.nifi.user.NiFiUser;
  */
 public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
 
-    private final String dn;
+    private final String identity;
     private final int cacheDurationSeconds;
 
-    public AuthorizeUserAction(String dn, int cacheDurationSeconds) {
-        this.dn = dn;
+    public AuthorizeUserAction(String identity, int cacheDurationSeconds) {
+        this.identity = identity;
         this.cacheDurationSeconds = cacheDurationSeconds;
     }
 
@@ -50,14 +50,14 @@ public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
         UserDAO userDao = daoFactory.getUserDAO();
 
         // get the user
-        NiFiUser user = userDao.findUserByDn(dn);
+        NiFiUser user = userDao.findUserByDn(identity);
 
         // verify the user was found
         if (user == null) {
             // determine whether this users exists
             boolean doesDnExist = false;
             try {
-                doesDnExist = authorityProvider.doesDnExist(dn);
+                doesDnExist = authorityProvider.doesDnExist(identity);
             } catch (AuthorityAccessException aae) {
                 throw new AdministrationException(String.format("Unable to access authority details: %s", aae.getMessage()), aae);
             }
@@ -66,8 +66,8 @@ public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
             if (doesDnExist) {
                 // create the user
                 user = new NiFiUser();
-                user.setDn(dn);
-                user.setUserName(CertificateUtils.extractUsername(dn));
+                user.setIdentity(identity);
+                user.setUserName(CertificateUtils.extractUsername(identity));
                 user.setJustification("User details specified by authority provider.");
 
                 try {
@@ -86,12 +86,12 @@ public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
                     createUser.execute(daoFactory, authorityProvider);
                 } catch (UnknownIdentityException uie) {
                     // strange since the provider just reported this dn existed but handleing anyways...
-                    throw new AccountNotFoundException(String.format("Unable to verify access for %s.", dn));
+                    throw new AccountNotFoundException(String.format("Unable to verify access for %s.", identity));
                 } catch (AuthorityAccessException aae) {
                     throw new AdministrationException(String.format("Unable to access authority details: %s", aae.getMessage()), aae);
                 }
             } else {
-                throw new AccountNotFoundException(String.format("Unable to verify access for %s.", dn));
+                throw new AccountNotFoundException(String.format("Unable to verify access for %s.", identity));
             }
         } else {
             Throwable providerError = null;
@@ -134,7 +134,7 @@ public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
             updateUserAuthorities.execute(daoFactory, authorityProvider);
 
             if (providerError != null) {
-                throw new AccountDisabledException(String.format("User credentials for %s were not found. This account has been disabled.", user.getDn()), providerError);
+                throw new AccountDisabledException(String.format("User credentials for %s were not found. This account has been disabled.", user.getIdentity()), providerError);
             }
         }
 
@@ -165,9 +165,9 @@ public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
      */
     private void checkAccountStatus(NiFiUser user) {
         if (AccountStatus.DISABLED.equals(user.getStatus())) {
-            throw new AccountDisabledException(String.format("Account for %s is disabled.", user.getDn()));
+            throw new AccountDisabledException(String.format("The account for %s has been disabled.", user.getIdentity()));
         } else if (AccountStatus.PENDING.equals(user.getStatus())) {
-            throw new AccountPendingException(String.format("Account for %s is pending.", user.getDn()));
+            throw new AccountPendingException(String.format("The account for %s is currently pending approval.", user.getIdentity()));
         }
     }
 }

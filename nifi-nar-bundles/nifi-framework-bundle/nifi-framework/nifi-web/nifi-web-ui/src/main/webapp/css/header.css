@@ -506,6 +506,24 @@ div.search-glass-pane {
 
 /* styles for the status link */
 
+#anonymous-user-alert {
+    float: left;
+    margin-top: -2px;
+    margin-right: 6px;
+    width: 18px;
+    height: 16px;
+    background-image: url(../images/iconAlert.png);
+}
+
+#current-user {
+    float: left;
+    margin-right: 8px;
+    font-weight: bold;
+    max-width: 250px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
 #utilities-container {
     float: right;
 }

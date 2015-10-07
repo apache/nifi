@@ -40,8 +40,8 @@
         <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
-        <script type="text/javascript" src="js/jquery/jquery.count.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.tab.js"></script>
@@ -73,7 +73,6 @@
             <img id="splash-img" src="images/loadAnimation.gif" alt="Loading..."/>
         </div>
         <jsp:include page="/WEB-INF/partials/message-pane.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/registration.jsp"/>
         <jsp:include page="/WEB-INF/partials/banners-main.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/canvas-header.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/about-dialog.jsp"/>

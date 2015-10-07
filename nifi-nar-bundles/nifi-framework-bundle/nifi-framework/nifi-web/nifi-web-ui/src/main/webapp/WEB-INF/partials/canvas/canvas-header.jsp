@@ -44,6 +44,17 @@
     </div>
     <div id="header-links-container">
         <ul>
+            <li id="current-user-container">
+                <div id="anonymous-user-alert" class="hidden"></div>
+                <div id="current-user"></div>
+                <div class="clear"></div>
+            </li>
+            <li id="login-link-container">
+                <span id="login-link" class="link">login</span>
+            </li>
+            <li id="logout-link-container" style="display: none;">
+                <span id="logout-link" class="link">logout</span>
+            </li>
             <li>
                 <span id="help-link" class="link">help</span>
             </li>

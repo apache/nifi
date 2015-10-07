@@ -29,10 +29,10 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class NiFiUser implements Serializable {
 
-    public static final String ANONYMOUS_USER_DN = "anonymous";
+    public static final String ANONYMOUS_USER_IDENTITY = "anonymous";
 
     private String id;
-    private String dn;
+    private String identity;
     private String userName;
     private String userGroup;
     private String justification;
@@ -55,12 +55,12 @@ public class NiFiUser implements Serializable {
         this.creation = creation;
     }
 
-    public String getDn() {
-        return dn;
+    public String getIdentity() {
+        return identity;
     }
 
-    public void setDn(String dn) {
-        this.dn = dn;
+    public void setIdentity(String identity) {
+        this.identity = identity;
     }
 
     public String getUserName() {
@@ -143,7 +143,7 @@ public class NiFiUser implements Serializable {
             return false;
         }
         final NiFiUser other = (NiFiUser) obj;
-        if (!Objects.equals(this.dn, other.dn)) {
+        if (!Objects.equals(this.identity, other.identity)) {
             return false;
         }
         return true;
@@ -152,13 +152,13 @@ public class NiFiUser implements Serializable {
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 53 * hash + Objects.hashCode(this.dn);
+        hash = 53 * hash + Objects.hashCode(this.identity);
         return hash;
     }
 
     @Override
     public String toString() {
-        return String.format("dn[%s], userName[%s], justification[%s], authorities[%s]", getDn(), getUserName(), getJustification(), StringUtils.join(getAuthorities(), ", "));
+        return String.format("identity[%s], userName[%s], justification[%s], authorities[%s]", getIdentity(), getUserName(), getJustification(), StringUtils.join(getAuthorities(), ", "));
     }
 
 }

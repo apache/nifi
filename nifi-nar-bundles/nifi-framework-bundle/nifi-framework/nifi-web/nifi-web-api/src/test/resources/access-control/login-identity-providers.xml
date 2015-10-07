@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -13,5 +13,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<tasks>
-</tasks>
+<!--
+    This file lists all authority providers to use when running securely.
+-->
+<loginIdentityProviders>
+    <provider>
+        <identifier>test-provider</identifier>
+        <class>org.apache.nifi.integration.util.NiFiTestLoginIdentityProvider</class>
+    </provider>
+</loginIdentityProviders>

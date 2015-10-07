@@ -158,19 +158,19 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
     @Override
     public String getCurrentUserDn() {
-        String userDn = NiFiUser.ANONYMOUS_USER_DN;
+        String userIdentity = NiFiUser.ANONYMOUS_USER_IDENTITY;
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
-            userDn = user.getDn();
+            userIdentity = user.getIdentity();
         }
 
-        return userDn;
+        return userIdentity;
     }
 
     @Override
     public String getCurrentUserName() {
-        String userName = NiFiUser.ANONYMOUS_USER_DN;
+        String userName = NiFiUser.ANONYMOUS_USER_IDENTITY;
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {

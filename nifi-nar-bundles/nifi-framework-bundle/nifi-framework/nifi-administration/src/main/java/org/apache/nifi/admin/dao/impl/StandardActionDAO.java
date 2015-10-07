@@ -63,7 +63,7 @@ public class StandardActionDAO implements ActionDAO {
     // action table
     // ------------
     private static final String INSERT_ACTION = "INSERT INTO ACTION ("
-            + "USER_DN, USER_NAME, SOURCE_ID, SOURCE_NAME, SOURCE_TYPE, OPERATION, ACTION_TIMESTAMP"
+            + "IDENTITY, USER_NAME, SOURCE_ID, SOURCE_NAME, SOURCE_TYPE, OPERATION, ACTION_TIMESTAMP"
             + ") VALUES ("
             + "?, "
             + "?, "
@@ -216,8 +216,8 @@ public class StandardActionDAO implements ActionDAO {
         try {
             // obtain a statement to insert to the action table
             statement = connection.prepareStatement(INSERT_ACTION, Statement.RETURN_GENERATED_KEYS);
-            statement.setString(1, StringUtils.left(action.getUserIdentity(), 255));
-            statement.setString(2, StringUtils.left(action.getUserName(), 100));
+            statement.setString(1, StringUtils.left(action.getUserIdentity(), 4096));
+            statement.setString(2, StringUtils.left(action.getUserName(), 4096));
             statement.setString(3, action.getSourceId());
             statement.setString(4, StringUtils.left(action.getSourceName(), 1000));
             statement.setString(5, action.getSourceType().toString());
@@ -561,7 +561,7 @@ public class StandardActionDAO implements ActionDAO {
 
                 FlowChangeAction action = new FlowChangeAction();
                 action.setId(actionId);
-                action.setUserIdentity(rs.getString("USER_DN"));
+                action.setUserIdentity(rs.getString("IDENTITY"));
                 action.setUserName(rs.getString("USER_NAME"));
                 action.setOperation(Operation.valueOf(rs.getString("OPERATION")));
                 action.setTimestamp(new Date(rs.getTimestamp("ACTION_TIMESTAMP").getTime()));
@@ -635,7 +635,7 @@ public class StandardActionDAO implements ActionDAO {
                 // populate the action
                 action = new FlowChangeAction();
                 action.setId(rs.getInt("ID"));
-                action.setUserIdentity(rs.getString("USER_DN"));
+                action.setUserIdentity(rs.getString("IDENTITY"));
                 action.setUserName(rs.getString("USER_NAME"));
                 action.setOperation(operation);
                 action.setTimestamp(new Date(rs.getTimestamp("ACTION_TIMESTAMP").getTime()));

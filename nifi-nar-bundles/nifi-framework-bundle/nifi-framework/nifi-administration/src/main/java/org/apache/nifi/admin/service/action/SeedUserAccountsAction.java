@@ -46,7 +46,7 @@ public class SeedUserAccountsAction extends AbstractUserAction<Void> {
     @Override
     public Void execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) throws DataAccessException {
         UserDAO userDao = daoFactory.getUserDAO();
-        Set<String> authorizedDns = new HashSet<>();
+        Set<String> authorizedIdentities = new HashSet<>();
 
         // get the current user cache
         final Set<NiFiUser> existingUsers;
@@ -62,7 +62,7 @@ public class SeedUserAccountsAction extends AbstractUserAction<Void> {
         try {
             // all users for all roles
             for (final Authority authority : Authority.values()) {
-                authorizedDns.addAll(authorityProvider.getUsers(authority));
+                authorizedIdentities.addAll(authorityProvider.getUsers(authority));
             }
         } catch (AuthorityAccessException aae) {
             // unable to access the authority provider... honor the cache
@@ -73,25 +73,25 @@ public class SeedUserAccountsAction extends AbstractUserAction<Void> {
         final Set<NiFiUser> accountsToRevoke = new HashSet<>(existingUsers);
 
         // persist the users
-        for (String dn : authorizedDns) {
+        for (String identity : authorizedIdentities) {
             NiFiUser user = null;
             try {
                 // locate the user for this dn
-                user = userDao.findUserByDn(dn);
+                user = userDao.findUserByDn(identity);
                 boolean newAccount = false;
 
                 // if the user does not exist, create a new account
                 if (user == null) {
-                    logger.info(String.format("Creating user account: %s", dn));
+                    logger.info(String.format("Creating user account: %s", identity));
                     newAccount = true;
 
                     // create the user
                     user = new NiFiUser();
-                    user.setDn(dn);
-                    user.setUserName(CertificateUtils.extractUsername(dn));
+                    user.setIdentity(identity);
+                    user.setUserName(CertificateUtils.extractUsername(identity));
                     user.setJustification("User details specified by authority provider.");
                 } else {
-                    logger.info(String.format("User account already created: %s. Updating authorities...", dn));
+                    logger.info(String.format("User account already created: %s. Updating authorities...", identity));
                 }
 
                 // verify the account
@@ -142,7 +142,7 @@ public class SeedUserAccountsAction extends AbstractUserAction<Void> {
             }
 
             try {
-                logger.info(String.format("User not authorized with configured provider: %s. Disabling account...", user.getDn()));
+                logger.info(String.format("User not authorized with configured provider: %s. Disabling account...", user.getIdentity()));
 
                 // disable the account and reset its last verified timestamp since it was not found
                 // in the current configured authority provider

@@ -52,13 +52,13 @@ public class RequestLogger implements Filter {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
             // get the user details for the log message
-            String dn = "<no user found>";
+            String identity = "<no user found>";
             if (user != null) {
-                dn = user.getDn();
+                identity = user.getIdentity();
             }
 
             // log the request attempt - response details will be logged later
-            logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", dn, request.getMethod(),
+            logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", identity, request.getMethod(),
                     request.getRequestURL().toString(), request.getRemoteAddr()));
         }
 
