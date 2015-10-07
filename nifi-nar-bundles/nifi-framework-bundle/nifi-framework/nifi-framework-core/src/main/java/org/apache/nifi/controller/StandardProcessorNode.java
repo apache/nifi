@@ -1306,9 +1306,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-	public void verifyModifiable() throws IllegalStateException {
-		if (isRunning()) {
-			throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
-		}
-	}>>>>>>>2215 bc848b7db395b2ca9ac7cc4dc10891393721
+    public void verifyModifiable() throws IllegalStateException {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+        }
+    }
 }

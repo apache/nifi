@@ -31,72 +31,72 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 
 public abstract class ProcessorNode extends AbstractConfiguredComponent implements Connectable {
 
-	public ProcessorNode(final Processor processor, final String id,
-		final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
-		super(processor, id, validationContextFactory, serviceProvider);
-	}
+    public ProcessorNode(final Processor processor, final String id,
+        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
+        super(processor, id, validationContextFactory, serviceProvider);
+    }
 
-	public abstract boolean isIsolated();
+    public abstract boolean isIsolated();
 
-	public abstract boolean isTriggerWhenAnyDestinationAvailable();
+    public abstract boolean isTriggerWhenAnyDestinationAvailable();
 
-	@Override
-	public abstract boolean isSideEffectFree();
+    @Override
+    public abstract boolean isSideEffectFree();
 
-	public abstract boolean isTriggeredSerially();
+    public abstract boolean isTriggeredSerially();
 
-	public abstract boolean isEventDrivenSupported();
+    public abstract boolean isEventDrivenSupported();
 
-	public abstract boolean isHighThroughputSupported();
+    public abstract boolean isHighThroughputSupported();
 
-	public abstract Requirement getInputRequirement();
+    public abstract Requirement getInputRequirement();
 
-	@Override
-	public abstract boolean isValid();
+    @Override
+    public abstract boolean isValid();
 
-	public abstract void setScheduledState(ScheduledState scheduledState);
+    public abstract void setScheduledState(ScheduledState scheduledState);
 
-	public abstract void setBulletinLevel(LogLevel bulletinLevel);
+    public abstract void setBulletinLevel(LogLevel bulletinLevel);
 
-	public abstract LogLevel getBulletinLevel();
+    public abstract LogLevel getBulletinLevel();
 
-	public abstract Processor getProcessor();
+    public abstract Processor getProcessor();
 
-	public abstract void yield(long period, TimeUnit timeUnit);
+    public abstract void yield(long period, TimeUnit timeUnit);
 
-	public abstract void setAutoTerminatedRelationships(Set<Relationship> relationships);
+    public abstract void setAutoTerminatedRelationships(Set<Relationship> relationships);
 
-	public abstract Set<Relationship> getAutoTerminatedRelationships();
+    public abstract Set<Relationship> getAutoTerminatedRelationships();
 
-	public abstract void setSchedulingStrategy(SchedulingStrategy schedulingStrategy);
+    public abstract void setSchedulingStrategy(SchedulingStrategy schedulingStrategy);
 
-	@Override
-	public abstract SchedulingStrategy getSchedulingStrategy();
+    @Override
+    public abstract SchedulingStrategy getSchedulingStrategy();
 
-	public abstract void setRunDuration(long duration, TimeUnit timeUnit);
+    public abstract void setRunDuration(long duration, TimeUnit timeUnit);
 
-	public abstract long getRunDuration(TimeUnit timeUnit);
+    public abstract long getRunDuration(TimeUnit timeUnit);
 
-	public abstract Map<String, String> getStyle();
+    public abstract Map<String, String> getStyle();
 
-	public abstract void setStyle(Map<String, String> style);
+    public abstract void setStyle(Map<String, String> style);
 
-	/**
-	 * @return the number of threads (concurrent tasks) currently being used by
-	 * this Processor
-	 */
-	public abstract int getActiveThreadCount();
+    /**
+     * @return the number of threads (concurrent tasks) currently being used by
+     *         this Processor
+     */
+    public abstract int getActiveThreadCount();
 
-	/**
-	 * Verifies that this Processor can be started if the provided set of
-	 * services are enabled. This is introduced because we need to verify that
-	 * all components can be started before starting any of them. In order to do
-	 * that, we need to know that this component can be started if the given
-	 * services are enabled, as we will then enable the given services before
-	 * starting this component.
-	 *
-	 * @param ignoredReferences to ignore
-	 */
-	public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
+    /**
+     * Verifies that this Processor can be started if the provided set of
+     * services are enabled. This is introduced because we need to verify that
+     * all components can be started before starting any of them. In order to do
+     * that, we need to know that this component can be started if the given
+     * services are enabled, as we will then enable the given services before
+     * starting this component.
+     *
+     * @param ignoredReferences to ignore
+     */
+    public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
 
 }
