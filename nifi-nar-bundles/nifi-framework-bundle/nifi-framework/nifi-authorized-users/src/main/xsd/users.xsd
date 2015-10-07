@@ -30,19 +30,10 @@
         </xs:attribute>
     </xs:complexType>
 
-    <!-- user -->
-    <xs:complexType name="User">
+    <xs:complexType name="NiFiUser">
         <xs:sequence>
             <xs:element name="role" type="Role" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="dn">
-            <xs:simpleType>
-                <xs:restriction base="xs:string">
-                    <xs:minLength value="1"/>
-                    <xs:pattern value=".*[^\s].*"/>
-                </xs:restriction>
-            </xs:simpleType>
-        </xs:attribute>
         <xs:attribute name="group">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
@@ -53,11 +44,52 @@
         </xs:attribute>
     </xs:complexType>
 
+    <!-- preauthenticated user -->
+    <xs:complexType name="User">
+        <xs:complexContent>
+            <xs:extension base="NiFiUser">
+                <xs:attribute name="dn">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:minLength value="1"/>
+                            <xs:pattern value=".*[^\s].*"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:attribute>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    
+    <!-- login user -->
+    <xs:complexType name="LoginUser">
+        <xs:complexContent>
+            <xs:extension base="NiFiUser">
+                <xs:attribute name="username">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:minLength value="1"/>
+                            <xs:pattern value=".*[^\s].*"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:attribute>
+                <xs:attribute name="password">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:minLength value="1"/>
+                            <xs:pattern value=".*[^\s].*"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:attribute>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
     <!-- users -->
     <xs:element name="users">
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="user" type="User" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element name="loginUser" type="LoginUser" minOccurs="0" maxOccurs="unbounded"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>

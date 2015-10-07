@@ -16,34 +16,35 @@
  */
 package org.apache.nifi.web.security.authorization;
 
-import java.util.Deque;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AccountDisabledException;
 import org.apache.nifi.admin.service.AccountNotFoundException;
 import org.apache.nifi.admin.service.AccountPendingException;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authorization.Authority;
-import org.apache.nifi.web.security.DnUtils;
 import org.apache.nifi.user.NiFiUser;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
-import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * UserDetailsService that will verify user identity and grant user authorities.
  */
-public class NiFiAuthorizationService implements UserDetailsService {
+public class NiFiAuthorizationService implements AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiAuthorizationService.class);
 
@@ -58,30 +59,30 @@ public class NiFiAuthorizationService implements UserDetailsService {
      * made for each individual request as a whole (without other request
      * potentially impacting it).
      *
-     * @param rawProxyChain proxy chain
+     * @param request request
      * @return user details
      * @throws UsernameNotFoundException ex
      * @throws org.springframework.dao.DataAccessException ex
      */
     @Override
-    public synchronized UserDetails loadUserByUsername(String rawProxyChain) throws UsernameNotFoundException, DataAccessException {
+    public synchronized UserDetails loadUserDetails(NiFiAuthenticationRequestToken request) throws UsernameNotFoundException, DataAccessException {
         NiFiUserDetails userDetails = null;
-        final Deque<String> dnList = DnUtils.tokenizeProxyChain(rawProxyChain);
+        final List<String> chain = new ArrayList<>(request.getChain());
 
         // ensure valid input
-        if (dnList.size() == 0) {
-            logger.warn("Malformed proxy chain: " + rawProxyChain);
+        if (chain.isEmpty()) {
+            logger.warn("Malformed proxy chain: " + StringUtils.join(request.getChain()));
             throw new UntrustedProxyException("Malformed proxy chain.");
         }
 
         NiFiUser proxy = null;
 
         // process each part of the proxy chain
-        for (final Iterator<String> dnIter = dnList.iterator(); dnIter.hasNext();) {
-            final String dn = dnIter.next();
+        for (final ListIterator<String> chainIter = request.getChain().listIterator(chain.size()); chainIter.hasPrevious();) {
+            final String dn = chainIter.previous();
 
             // if there is another dn after this one, this dn is a proxy for the request
-            if (dnIter.hasNext()) {
+            if (chainIter.hasPrevious()) {
                 try {
                     // get the user details for the proxy
                     final NiFiUserDetails proxyDetails = getNiFiUserDetails(dn);
@@ -110,7 +111,7 @@ public class NiFiAuthorizationService implements UserDetailsService {
                             userService.createPendingUserAccount(dn, "Automatic account request generated for unknown proxy.");
 
                             // propagate the exception to return the appropriate response
-                            throw new UsernameNotFoundException(String.format("An account request was generated for the proxy '%s'.", dn));
+                            throw new UntrustedProxyException(String.format("An account request was generated for the proxy '%s'.", dn));
                         } catch (AdministrationException ae) {
                             throw new AuthenticationServiceException(String.format("Unable to create an account request for '%s': %s", dn, ae.getMessage()), ae);
                         } catch (IllegalArgumentException iae) {

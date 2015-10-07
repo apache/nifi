@@ -113,6 +113,7 @@ import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -822,17 +823,7 @@ public class ControllerFacade {
             final Map<String, String> attributes = event.getAttributes();
 
             // calculate the dn chain
-            final List<String> dnChain = new ArrayList<>();
-
-            // build the dn chain
-            NiFiUser chainedUser = user;
-            do {
-                // add the entry for this user
-                dnChain.add(chainedUser.getDn());
-
-                // go to the next user in the chain
-                chainedUser = chainedUser.getChain();
-            } while (chainedUser != null);
+            final List<String> dnChain = ProxiedEntitiesUtils.getXProxiedEntitiesChain(user);
 
             // ensure the users in this chain are allowed to download this content
             final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);

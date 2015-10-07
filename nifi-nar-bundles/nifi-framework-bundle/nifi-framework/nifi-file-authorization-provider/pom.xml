@@ -21,44 +21,6 @@
         <version>0.3.1-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-file-authorization-provider</artifactId>
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-            <resource>
-                <directory>src/main/xsd</directory>
-            </resource>
-        </resources>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>jaxb2-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>xjc</id>
-                        <goals>
-                            <goal>xjc</goal>
-                        </goals>
-                        <configuration>
-                            <packageName>org.apache.nifi.user.generated</packageName>
-                        </configuration>
-                    </execution>
-                </executions>
-                <configuration>
-                    <generateDirectory>${project.build.directory}/generated-sources/jaxb</generateDirectory>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <configuration>
-                    <excludes>**/user/generated/*.java</excludes>
-                </configuration>
-            </plugin>            
-
-        </plugins>
-    </build>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -66,7 +28,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-authorized-users</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

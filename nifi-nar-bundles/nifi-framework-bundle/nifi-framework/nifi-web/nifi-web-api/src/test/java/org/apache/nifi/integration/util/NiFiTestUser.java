@@ -22,8 +22,7 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import java.util.Map;
 import javax.ws.rs.core.MediaType;
-import org.apache.nifi.web.security.DnUtils;
-import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 
 /**
  *
@@ -37,7 +36,7 @@ public class NiFiTestUser {
 
     public NiFiTestUser(Client client, String dn) {
         this.client = client;
-        this.proxyDn = DnUtils.formatProxyDn(dn);
+        this.proxyDn = ProxiedEntitiesUtils.formatProxyDn(dn);
     }
 
     /**
@@ -70,7 +69,7 @@ public class NiFiTestUser {
         }
 
         // perform the query
-        return resource.accept(MediaType.APPLICATION_JSON).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn).get(ClientResponse.class);
+        return resource.accept(MediaType.APPLICATION_JSON).header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxyDn).get(ClientResponse.class);
     }
 
     /**
@@ -94,7 +93,7 @@ public class NiFiTestUser {
      */
     public ClientResponse testPost(String url, Object entity) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
+        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxyDn);
 
         // include the request entity
         if (entity != null) {
@@ -115,7 +114,7 @@ public class NiFiTestUser {
      */
     public ClientResponse testPostMultiPart(String url, Object entity) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_XML).type(MediaType.MULTIPART_FORM_DATA).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
+        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_XML).type(MediaType.MULTIPART_FORM_DATA).header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxyDn);
 
         // include the request entity
         if (entity != null) {
@@ -143,7 +142,7 @@ public class NiFiTestUser {
 
         // get the resource
         WebResource.Builder resourceBuilder
-                = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
+                = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxyDn);
 
         // add the form data if necessary
         if (!entity.isEmpty()) {
@@ -164,7 +163,7 @@ public class NiFiTestUser {
      */
     public ClientResponse testPut(String url, Object entity) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
+        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxyDn);
 
         // include the request entity
         if (entity != null) {
@@ -192,7 +191,7 @@ public class NiFiTestUser {
 
         // get the resource
         WebResource.Builder resourceBuilder
-                = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
+                = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxyDn);
 
         // add the form data if necessary
         if (!entity.isEmpty()) {
@@ -224,7 +223,7 @@ public class NiFiTestUser {
      */
     public ClientResponse testDelete(String url, Object entity) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_JSON).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
+        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_JSON).header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxyDn);
 
         // append any query parameters
         if (entity != null) {
@@ -255,7 +254,7 @@ public class NiFiTestUser {
         }
 
         // perform the request
-        return resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn).delete(ClientResponse.class);
+        return resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxyDn).delete(ClientResponse.class);
     }
 
 }

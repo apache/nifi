@@ -25,8 +25,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * Utility methods for retrieving information about the current application
- * user.
+ * Utility methods for retrieving information about the current application user.
  *
  */
 public final class NiFiUserUtils {
@@ -58,8 +57,7 @@ public final class NiFiUserUtils {
     }
 
     /**
-     * Returns the current NiFiUser or null if the current user is not a
-     * NiFiUser.
+     * Returns the current NiFiUser or null if the current user is not a NiFiUser.
      *
      * @return user
      */
@@ -77,6 +75,27 @@ public final class NiFiUserUtils {
         }
 
         return user;
+    }
+
+    /**
+     * Returns the NewAccountRequest or null if this is not a new account request.
+     *
+     * @return new account request
+     */
+    public static NewAccountRequest getNewAccountRequest() {
+        NewAccountRequest newAccountRequest = null;
+
+        // obtain the principal in the current authentication
+        final SecurityContext context = SecurityContextHolder.getContext();
+        final Authentication authentication = context.getAuthentication();
+        if (authentication != null) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof NewAccountRequest) {
+                newAccountRequest = (NewAccountRequest) principal;
+            }
+        }
+
+        return newAccountRequest;
     }
 
     public static String getNiFiUserName() {

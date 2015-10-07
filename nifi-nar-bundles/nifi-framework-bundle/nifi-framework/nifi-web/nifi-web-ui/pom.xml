@@ -32,6 +32,7 @@
         <templates.filter>templates.properties</templates.filter>
         <users.filter>users.properties</users.filter>
         <bulletin.board.filter>bulletin-board.properties</bulletin.board.filter>
+        <login.filter>login.properties</login.filter>
         <provenance.filter>provenance.properties</provenance.filter>
     </properties>
     <build>
@@ -54,6 +55,7 @@
             <filter>src/main/resources/filters/${templates.filter}</filter>
             <filter>src/main/resources/filters/${users.filter}</filter>
             <filter>src/main/resources/filters/${bulletin.board.filter}</filter>
+            <filter>src/main/resources/filters/${login.filter}</filter>
             <filter>src/main/resources/filters/${provenance.filter}</filter>
         </filters>
         <plugins>
@@ -89,7 +91,8 @@
                                 **/cluster.jsp,
                                 **/templates.jsp,
                                 **/users.jsp,
-                                **/bulletin-board.jsp
+                                **/bulletin-board.jsp,
+                                **/login.jsp
                             </excludes>
                         </configuration>
                     </execution>
@@ -209,6 +212,14 @@
                             </includes>
                             <filtering>true</filtering>
                         </resource>
+                        <resource>
+                            <directory>src/main/webapp/WEB-INF/pages</directory>
+                            <targetPath>WEB-INF/pages</targetPath>
+                            <includes>
+                                <include>login.jsp</include>
+                            </includes>
+                            <filtering>true</filtering>
+                        </resource>
                     </webResources>
                 </configuration>
             </plugin>
@@ -229,6 +240,7 @@
                 <templates.filter>templates-min.properties</templates.filter>
                 <users.filter>users-min.properties</users.filter>
                 <bulletin.board.filter>bulletin-board-min.properties</bulletin.board.filter>
+                <login.filter>login-min.properties</login.filter>
                 <provenance.filter>provenance-min.properties</provenance.filter>
             </properties>
             <build>
@@ -403,6 +415,16 @@
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/js/nf/login/nf-login-all.js</output>
+                                            <includes>
+                                                <include>${staging.dir}/js/nf/nf-client.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/login/nf-login.js</include>
+                                            </includes>
+                                        </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/css/nf-canvas-all.css</output>
                                             <includes>
                                                 <include>${staging.dir}/css/reporting-task.css</include>
@@ -517,6 +539,16 @@
                                                 <include>${staging.dir}/css/bulletin-board.css</include>
                                             </includes>
                                         </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/css/nf-login-all.css</output>
+                                            <includes>
+                                                <include>${staging.dir}/css/main.css</include>
+                                                <include>${staging.dir}/css/banner.css</include>
+                                                <include>${staging.dir}/css/dialog.css</include>
+                                                <include>${staging.dir}/css/login.css</include>
+                                            </includes>
+                                        </aggregation>
                                     </aggregations>
                                 </configuration>
                             </execution>
@@ -556,6 +588,8 @@
                                 css/nf-users-all.css.gz,
                                 css/nf-bulletin-board-all.css,
                                 css/nf-bulletin-board-all.css.gz,
+                                css/nf-login-all.css,
+                                css/nf-login-all.css.gz,
                                 js/*,
                                 js/d3/**/*,
                                 js/codemirror/**/*,
@@ -584,6 +618,8 @@
                                 js/nf/users/nf-users-all.js.gz,
                                 js/nf/bulletin-board/nf-bulletin-board-all.js,
                                 js/nf/bulletin-board/nf-bulletin-board-all.js.gz,
+                                js/nf/login/nf-login-all.js,
+                                js/nf/login/nf-login-all.js.gz,
                                 images/*,
                                 resources/*,
                                 images/*,
@@ -615,7 +651,6 @@
             the application classpath or the maven jetty plugin classpath defined
             above.
         -->
-        
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -651,6 +686,25 @@
             <artifactId>javax.servlet.jsp.jstl-api</artifactId>
             <scope>provided</scope>
         </dependency>
-        
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-security</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

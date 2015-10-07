@@ -91,7 +91,7 @@
         <jetty.version>9.2.11.v20150529</jetty.version>
         <lucene.version>4.10.4</lucene.version>
         <spring.version>4.1.6.RELEASE</spring.version>
-        <spring.security.version>3.2.7.RELEASE</spring.security.version>
+        <spring.security.version>4.0.2.RELEASE</spring.security.version>
         <jersey.version>1.19</jersey.version>
         <hadoop.version>2.6.0</hadoop.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>

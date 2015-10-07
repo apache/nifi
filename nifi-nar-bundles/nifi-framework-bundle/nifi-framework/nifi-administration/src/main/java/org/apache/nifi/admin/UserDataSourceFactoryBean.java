@@ -19,10 +19,14 @@ package org.apache.nifi.admin;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authority;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
@@ -41,8 +45,8 @@ public class UserDataSourceFactoryBean implements FactoryBean {
 
     private static final String CREATE_USER_TABLE = "CREATE TABLE USER ("
             + "ID VARCHAR2(100) NOT NULL PRIMARY KEY, "
-            + "DN VARCHAR2(255) NOT NULL UNIQUE, "
-            + "USER_NAME VARCHAR2(100) NOT NULL, "
+            + "IDENTITY VARCHAR2(4096) NOT NULL UNIQUE, "
+            + "USER_NAME VARCHAR2(4096) NOT NULL, "
             + "USER_GROUP VARCHAR2(100), "
             + "CREATION TIMESTAMP NOT NULL, "
             + "LAST_ACCESSED TIMESTAMP, "
@@ -60,7 +64,7 @@ public class UserDataSourceFactoryBean implements FactoryBean {
             + ")";
 
     private static final String INSERT_ANONYMOUS_USER = "INSERT INTO USER ("
-            + "ID, DN, USER_NAME, CREATION, LAST_VERIFIED, JUSTIFICATION, STATUS"
+            + "ID, IDENTITY, USER_NAME, CREATION, LAST_VERIFIED, JUSTIFICATION, STATUS"
             + ") VALUES ("
             + "'" + UUID.randomUUID().toString() + "', "
             + "'" + NiFiUser.ANONYMOUS_USER_DN + "', "
@@ -71,46 +75,19 @@ public class UserDataSourceFactoryBean implements FactoryBean {
             + "'ACTIVE'"
             + ")";
 
-    private static final String INSERT_ANONYMOUS_MONITOR_AUTHORITY = "INSERT INTO AUTHORITY ("
+    private static final String INSERT_ANONYMOUS_AUTHORITY = "INSERT INTO AUTHORITY ("
             + "USER_ID, ROLE"
             + ") VALUES ("
-            + "(SELECT ID FROM USER WHERE DN = '" + NiFiUser.ANONYMOUS_USER_DN + "'), "
-            + "'ROLE_MONITOR'"
+            + "(SELECT ID FROM USER WHERE IDENTITY = '" + NiFiUser.ANONYMOUS_USER_DN + "'), "
+            + "'%s'"
             + ")";
 
-    private static final String INSERT_ANONYMOUS_DFM_AUTHORITY = "INSERT INTO AUTHORITY ("
-            + "USER_ID, ROLE"
-            + ") VALUES ("
-            + "(SELECT ID FROM USER WHERE DN = '" + NiFiUser.ANONYMOUS_USER_DN + "'), "
-            + "'ROLE_DFM'"
-            + ")";
+    private static final String DELETE_ANONYMOUS_AUTHORITIES = "DELETE FROM AUTHORITY "
+            + "WHERE USER_ID = (SELECT ID FROM USER WHERE IDENTITY = '" + NiFiUser.ANONYMOUS_USER_DN + "')";
 
-    private static final String INSERT_ANONYMOUS_ADMIN_AUTHORITY = "INSERT INTO AUTHORITY ("
-            + "USER_ID, ROLE"
-            + ") VALUES ("
-            + "(SELECT ID FROM USER WHERE DN = '" + NiFiUser.ANONYMOUS_USER_DN + "'), "
-            + "'ROLE_ADMIN'"
-            + ")";
-
-    private static final String INSERT_ANONYMOUS_NIFI_AUTHORITY = "INSERT INTO AUTHORITY ("
-            + "USER_ID, ROLE"
-            + ") VALUES ("
-            + "(SELECT ID FROM USER WHERE DN = '" + NiFiUser.ANONYMOUS_USER_DN + "'), "
-            + "'ROLE_NIFI'"
-            + ")";
-
-    private static final String INSERT_ANONYMOUS_PROVENANCE_AUTHORITY = "INSERT INTO AUTHORITY ("
-            + "USER_ID, ROLE"
-            + ") VALUES ("
-            + "(SELECT ID FROM USER WHERE DN = '" + NiFiUser.ANONYMOUS_USER_DN + "'), "
-            + "'ROLE_PROVENANCE'"
-            + ")";
-
-    private static final String SELECT_ANONYMOUS_PROVENANCE_AUTHORITY = "SELECT * FROM AUTHORITY "
-            + "WHERE "
-            + "USER_ID = (SELECT ID FROM USER WHERE DN = '" + NiFiUser.ANONYMOUS_USER_DN + "') "
-            + "AND "
-            + "ROLE = 'ROLE_PROVENANCE'";
+    private static final String RENAME_DN_COLUMN = "ALTER TABLE USER ALTER COLUMN DN RENAME TO IDENTITY";
+    private static final String RESIZE_IDENTITY_COLUMN = "ALTER TABLE USER MODIFY IDENTITY VARCHAR(4096)";
+    private static final String RESIZE_USER_NAME_COLUMN = "ALTER TABLE USER MODIFY USER_NAME VARCHAR(4096)";
 
     private JdbcConnectionPool connectionPool;
 
@@ -126,6 +103,17 @@ public class UserDataSourceFactoryBean implements FactoryBean {
             // ensure the repository directory is specified
             if (repositoryDirectoryPath == null) {
                 throw new NullPointerException("Database directory must be specified.");
+            }
+
+            // get the roles being granted to anonymous users
+            final Set<String> rawAnonymousAuthorities = new HashSet<>(properties.getAnonymousAuthorities());
+            final Set<Authority> anonymousAuthorities = Authority.convertRawAuthorities(rawAnonymousAuthorities);
+
+            // ensure every authorities was recognized
+            if (rawAnonymousAuthorities.size() != anonymousAuthorities.size()) {
+                final Set<String> validAuthorities = Authority.convertAuthorities(anonymousAuthorities);
+                rawAnonymousAuthorities.removeAll(validAuthorities);
+                throw new IllegalStateException("Invalid authorities specified: " + StringUtils.join(rawAnonymousAuthorities, ", "));
             }
 
             // create a handle to the repository directory
@@ -161,21 +149,24 @@ public class UserDataSourceFactoryBean implements FactoryBean {
 
                     // seed the anonymous user
                     statement.execute(INSERT_ANONYMOUS_USER);
-                    statement.execute(INSERT_ANONYMOUS_MONITOR_AUTHORITY);
-                    statement.execute(INSERT_ANONYMOUS_DFM_AUTHORITY);
-                    statement.execute(INSERT_ANONYMOUS_ADMIN_AUTHORITY);
-                    statement.execute(INSERT_ANONYMOUS_NIFI_AUTHORITY);
                 } else {
                     logger.info("Existing database found and connected to at: " + databaseUrl);
+
+                    // get the RS metadata to see if we need to transform the table
+                    final ResultSetMetaData rsMetadata = rs.getMetaData();
+                    if (hasDnColumn(rsMetadata)) {
+                        statement.execute(RENAME_DN_COLUMN);
+                        statement.execute(RESIZE_IDENTITY_COLUMN);
+                        statement.execute(RESIZE_USER_NAME_COLUMN);
+                    }
+
+                    // remove all authorities for the anonymous user
+                    statement.execute(DELETE_ANONYMOUS_AUTHORITIES);
                 }
 
-                // close the previous result set
-                RepositoryUtils.closeQuietly(rs);
-
-                // merge in the provenance role to handle existing databases
-                rs = statement.executeQuery(SELECT_ANONYMOUS_PROVENANCE_AUTHORITY);
-                if (!rs.next()) {
-                    statement.execute(INSERT_ANONYMOUS_PROVENANCE_AUTHORITY);
+                // add all authorities for the anonymous user
+                for (final Authority authority : anonymousAuthorities) {
+                    statement.execute(String.format(INSERT_ANONYMOUS_AUTHORITY, authority.name()));
                 }
 
                 // commit any changes
@@ -191,6 +182,16 @@ public class UserDataSourceFactoryBean implements FactoryBean {
         }
 
         return connectionPool;
+    }
+
+    private boolean hasDnColumn(final ResultSetMetaData rsMetadata) throws SQLException {
+        boolean hasDn = false;
+        for (int i = 1; i <= rsMetadata.getColumnCount() && !hasDn; i++) {
+            if ("DN".equals(rsMetadata.getColumnName(i))) {
+                hasDn = true;
+            }
+        }
+        return hasDn;
     }
 
     private String getDatabaseUrl(File databaseFile) {

@@ -138,6 +138,11 @@ nf.CanvasHeader = (function () {
             $('#help-link').click(function () {
                 nf.Shell.showPage(config.urls.helpDocument);
             });
+            
+            // login link
+            $('#login-link').click(function () {
+                nf.Shell.showPage('login', false);
+            });
 
             // initialize the new template dialog
             $('#new-template-dialog').modal({

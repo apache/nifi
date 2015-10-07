@@ -614,8 +614,9 @@ public class JettyServer implements NiFiServer {
     private SslContextFactory createSslContextFactory() {
         final SslContextFactory contextFactory = new SslContextFactory();
 
-        // need client auth
-        contextFactory.setNeedClientAuth(props.getNeedClientAuth());
+        // client auth
+        contextFactory.setWantClientAuth(true);
+        contextFactory.setNeedClientAuth(false);
 
         /* below code sets JSSE system properties when values are provided */
         // keystore properties

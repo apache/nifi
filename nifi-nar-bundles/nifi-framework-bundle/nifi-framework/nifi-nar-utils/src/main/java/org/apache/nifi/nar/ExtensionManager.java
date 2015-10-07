@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import org.apache.nifi.authentication.LoginIdentityProvider;
 
 import org.apache.nifi.authorization.AuthorityProvider;
 import org.apache.nifi.controller.ControllerService;
@@ -65,6 +66,7 @@ public class ExtensionManager {
         definitionMap.put(FlowFileRepository.class, new HashSet<Class>());
         definitionMap.put(FlowFileSwapManager.class, new HashSet<Class>());
         definitionMap.put(ContentRepository.class, new HashSet<Class>());
+        definitionMap.put(LoginIdentityProvider.class, new HashSet<Class>());
     }
 
     /**

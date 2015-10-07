@@ -169,6 +169,7 @@ import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusDTO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
+import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -1809,6 +1810,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public UserDTO createUser() {
+        NewAccountRequest newAccountRequest = NiFiUserUtils.getNewAccountRequest();
+
+        // log the new user account request
+        logger.info("Requesting new user account for " + newAccountRequest.getUsername());
+
+        // get the justification
+        String justification = newAccountRequest.getJustification();
+        if (justification == null) {
+            justification = StringUtils.EMPTY;
+        }
+
+        // create the pending user account
+        return dtoFactory.createUserDTO(userService.createPendingUserAccount(newAccountRequest.getUsername(), justification));
+    }
+
+    @Override
     public UserDTO updateUser(UserDTO userDto) {
         NiFiUser user;
 
@@ -3437,8 +3455,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     /**
-     * Utility method for extracting component counts from the specified group
-     * status.
+     * Utility method for extracting component counts from the specified group status.
      */
     private ProcessGroupCounts extractProcessGroupCounts(ProcessGroupStatus groupStatus) {
         int running = 0;

@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.web.api;
 
+import com.sun.jersey.api.Responses;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +41,7 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -59,9 +62,11 @@ import org.apache.nifi.web.api.entity.UserSearchResultsEntity;
 import org.apache.nifi.web.api.entity.UsersEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.web.NiFiServiceFacade;
 import static org.apache.nifi.web.api.ApplicationResource.CLIENT_ID;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
@@ -83,12 +88,35 @@ public class UserResource extends ApplicationResource {
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
 
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("") // necessary due to a bug in swagger
+    @ApiOperation(
+            value = "Creates a user",
+            response = String.class
+    )
+    public Response createUser() {
+        if (!properties.getSupportNewAccountRequests()) {
+            return Responses.notFound().entity("This NiFi does not support new account requests.").build();
+        }
+
+        final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
+        if (nifiUser != null) {
+            throw new IllegalArgumentException("User account already created " + nifiUser.getDn());
+        }
+
+        // create an account request for the current user
+        final UserDTO user = serviceFacade.createUser();
+
+        final String uri = generateResourceUri("controller", "templates", user.getId());
+        return generateCreatedResponse(URI.create(uri), "Not authorized. User account created. Authorization pending.").build();
+    }
+
     /**
      * Gets all users that are registered within this Controller.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param grouped Whether to return the users in their groups.
      * @return A usersEntity.
      */
@@ -144,9 +172,7 @@ public class UserResource extends ApplicationResource {
     /**
      * Gets the details for the specified user.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The user id.
      * @return A userEntity.
      */
@@ -315,12 +341,9 @@ public class UserResource extends ApplicationResource {
      * Updates the specified user.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the user to update.
-     * @param rawAuthorities Array of authorities to assign to the specified
-     * user.
+     * @param rawAuthorities Array of authorities to assign to the specified user.
      * @param status The status of the specified users account.
      * @param formParams form params
      * @return A userEntity
@@ -491,9 +514,7 @@ public class UserResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param id The user id
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A userEntity.
      */
     @DELETE

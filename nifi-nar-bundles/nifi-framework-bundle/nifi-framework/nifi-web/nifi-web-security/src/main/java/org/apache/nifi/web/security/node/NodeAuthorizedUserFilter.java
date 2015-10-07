@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.authorization;
+package org.apache.nifi.web.security.node;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -61,10 +61,14 @@ public class NodeAuthorizedUserFilter extends GenericFilterBean {
 
     public static final String PROXY_USER_DETAILS = "X-ProxiedEntityUserDetails";
 
-    private NiFiProperties properties;
+    private final NiFiProperties properties;
     private final AuthenticationDetailsSource authenticationDetailsSource = new WebAuthenticationDetailsSource();
     private final X509CertificateExtractor certificateExtractor = new X509CertificateExtractor();
     private final X509PrincipalExtractor principalExtractor = new SubjectDnX509PrincipalExtractor();
+
+    public NodeAuthorizedUserFilter(NiFiProperties properties) {
+        this.properties = properties;
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -119,10 +123,5 @@ public class NodeAuthorizedUserFilter extends GenericFilterBean {
         }
 
         chain.doFilter(request, response);
-    }
-
-    /* setters */
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 }

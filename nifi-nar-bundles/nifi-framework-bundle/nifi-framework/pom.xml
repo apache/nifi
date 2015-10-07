@@ -40,6 +40,8 @@
         <module>nifi-web</module>
         <module>nifi-resources</module>
         <module>nifi-documentation</module>
+        <module>nifi-authorized-users</module>
+        <module>nifi-file-identity-provider</module>
     </modules>
     <dependencies>
         <dependency>
