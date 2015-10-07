@@ -1048,8 +1048,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     final int incomingConnCount = getIncomingConnections().size();
                     if (incomingConnCount != 0) {
                         results.add(new ValidationResult.Builder()
-                            .explanation("Processor is currently configured with " + incomingConnCount + " upstream connections but does not accept any upstream connections")
-                            .subject("Upstream Connections")
+                            .explanation("Processor does not accept Incoming Connections but is currently configured with " + incomingConnCount + " Incoming Connections")
+                            .subject("Incoming Connections")
                             .valid(false)
                             .build());
                     }
@@ -1058,8 +1058,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 case INPUT_REQUIRED: {
                     if (getIncomingConnections().isEmpty()) {
                         results.add(new ValidationResult.Builder()
-                            .explanation("Processor requires an upstream connection but currently has none")
-                            .subject("Upstream Connections")
+                            .explanation("Processor required at least one Incoming Connection in order to perform its function but currently has no Incoming Connection")
+                            .subject("Incoming Connections")
                             .valid(false)
                             .build());
                     }
@@ -1306,9 +1306,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void verifyModifiable() throws IllegalStateException {
-        if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
-        }
-    }
+	public void verifyModifiable() throws IllegalStateException {
+		if (isRunning()) {
+			throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+		}
+	}>>>>>>>2215 bc848b7db395b2ca9ac7cc4dc10891393721
 }
