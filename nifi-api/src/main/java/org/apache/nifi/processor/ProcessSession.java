@@ -509,6 +509,33 @@ public interface ProcessSession {
     void read(FlowFile source, InputStreamCallback reader) throws FlowFileAccessException;
 
     /**
+     * Executes the given callback against the contents corresponding to the
+     * given FlowFile.
+     *
+     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback
+     * will not be accessible once this method has completed its execution.
+     *
+     * @param source flowfile to retrieve content of
+     * @param allowSessionStreamManagement allow session to hold the stream open for performance reasons
+     * @param reader that will be called to read the flowfile content
+     * @throws IllegalStateException if detected that this method is being
+     * called from within a callback of another method in this session and for
+     * the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already
+     * transferred or removed or doesn't belong to this session. Automatic
+     * rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be
+     * found. The FlowFile should no longer be reference, will be internally
+     * destroyed, and the session is automatically rolled back and what is left
+     * of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing
+     * FlowFile content; if an attempt is made to access the InputStream
+     * provided to the given InputStreamCallback after this method completed its
+     * execution
+     */
+    void read(FlowFile source, boolean allowSessionStreamManagement, InputStreamCallback reader) throws FlowFileAccessException;
+
+    /**
      * Combines the content of all given source FlowFiles into a single given
      * destination FlowFile.
      *

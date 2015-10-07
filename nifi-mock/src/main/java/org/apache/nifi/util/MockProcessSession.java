@@ -400,6 +400,11 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void read(final FlowFile flowFile, final InputStreamCallback callback) {
+        read(flowFile, false, callback);
+    }
+
+    @Override
+    public void read(final FlowFile flowFile, boolean allowSessionStreamManagement, final InputStreamCallback callback) {
         if (callback == null || flowFile == null) {
             throw new IllegalArgumentException("argument cannot be null");
         }
@@ -413,6 +418,9 @@ public class MockProcessSession implements ProcessSession {
         final ByteArrayInputStream bais = new ByteArrayInputStream(mock.getData());
         try {
             callback.process(bais);
+            if(!allowSessionStreamManagement){
+                bais.close();
+            }
         } catch (final IOException e) {
             throw new ProcessException(e.toString(), e);
         }

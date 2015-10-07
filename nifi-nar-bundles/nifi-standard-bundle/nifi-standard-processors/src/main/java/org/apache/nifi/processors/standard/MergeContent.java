@@ -567,7 +567,7 @@ public class MergeContent extends BinFiles {
                     final Iterator<FlowFileSessionWrapper> itr = wrappers.iterator();
                     while (itr.hasNext()) {
                         final FlowFileSessionWrapper wrapper = itr.next();
-                        wrapper.getSession().read(wrapper.getFlowFile(), new InputStreamCallback() {
+                        wrapper.getSession().read(wrapper.getFlowFile(), false, new InputStreamCallback() {
                             @Override
                             public void process(final InputStream in) throws IOException {
                                 StreamUtils.copy(in, out);
@@ -780,7 +780,7 @@ public class MergeContent extends BinFiles {
 
                         for (final FlowFileSessionWrapper wrapper : wrappers) {
                             final FlowFile flowFile = wrapper.getFlowFile();
-                            wrapper.getSession().read(flowFile, new InputStreamCallback() {
+                            wrapper.getSession().read(flowFile, false, new InputStreamCallback() {
                                 @Override
                                 public void process(final InputStream rawIn) throws IOException {
                                     try (final InputStream in = new BufferedInputStream(rawIn)) {
@@ -893,7 +893,7 @@ public class MergeContent extends BinFiles {
                     try (final OutputStream out = new BufferedOutputStream(rawOut)) {
                         for (final FlowFileSessionWrapper wrapper : wrappers) {
                             final FlowFile flowFile = wrapper.getFlowFile();
-                            wrapper.getSession().read(flowFile, new InputStreamCallback() {
+                            wrapper.getSession().read(flowFile, false, new InputStreamCallback() {
                                 @Override
                                 public void process(InputStream in) throws IOException {
                                     boolean canMerge = true;
