@@ -1048,8 +1048,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     final int incomingConnCount = getIncomingConnections().size();
                     if (incomingConnCount != 0) {
                         results.add(new ValidationResult.Builder()
-                            .explanation("Processor does not accept Incoming Connections but is currently configured with " + incomingConnCount + " Incoming Connections")
-                            .subject("Incoming Connections")
+                            .explanation("Processor does not allow upstream connections but currently has " + incomingConnCount)
+                            .subject("Upstream Connections")
                             .valid(false)
                             .build());
                     }
@@ -1058,8 +1058,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 case INPUT_REQUIRED: {
                     if (getIncomingConnections().isEmpty()) {
                         results.add(new ValidationResult.Builder()
-                            .explanation("Processor required at least one Incoming Connection in order to perform its function but currently has no Incoming Connection")
-                            .subject("Incoming Connections")
+                            .explanation("Processor requires an upstream connection but currently has none")
+                            .subject("Upstream Connections")
                             .valid(false)
                             .build());
                     }
