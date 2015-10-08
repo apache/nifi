@@ -277,6 +277,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .displayName("Basic Authentication Password")
                 .description("The password to be used by the client to authenticate against the Remote URL.")
                 .required(false)
+                .sensitive(true)
                 .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
                 .build();
 
