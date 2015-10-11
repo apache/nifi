@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,21 +35,25 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
-import org.apache.nifi.processor.QueueSize;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.concurrency.TimedLock;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
 import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,12 +89,14 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     private boolean swapMode = false;
     private long maximumQueueObjectCount;
 
+    private final EventReporter eventReporter;
     private final AtomicLong flowFileExpirationMillis;
     private final Connection connection;
     private final AtomicReference<String> flowFileExpirationPeriod;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
     private final List<FlowFilePrioritizer> priorities;
     private final int swapThreshold;
+    private final FlowFileSwapManager swapManager;
     private final TimedLock readLock;
     private final TimedLock writeLock;
     private final String identifier;
@@ -101,7 +108,8 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     // SCHEDULER CANNOT BE NOTIFIED OF EVENTS WITH THE WRITE LOCK HELD! DOING SO WILL RESULT IN A DEADLOCK!
     private final ProcessScheduler scheduler;
 
-    public StandardFlowFileQueue(final String identifier, final Connection connection, final ProcessScheduler scheduler, final int swapThreshold) {
+    public StandardFlowFileQueue(final String identifier, final Connection connection, final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter,
+        final int swapThreshold) {
         activeQueue = new PriorityQueue<>(20, new Prioritizer(new ArrayList<FlowFilePrioritizer>()));
         priorities = new ArrayList<>();
         maximumQueueObjectCount = 0L;
@@ -110,6 +118,8 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         flowFileExpirationMillis = new AtomicLong(0);
         flowFileExpirationPeriod = new AtomicReference<>("0 mins");
         swapQueue = new ArrayList<>();
+        this.eventReporter = eventReporter;
+        this.swapManager = swapManager;
 
         this.identifier = identifier;
         this.swapThreshold = swapThreshold;
@@ -230,21 +240,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
         return new QueueSize(activeQueue.size() + swappedRecordCount + unacknowledged.getObjectCount() + preFetchCount,
             activeQueueContentSize + swappedContentSize + unacknowledged.getByteCount() + preFetchSize);
-    }
-
-    @Override
-    public long contentSize() {
-        readLock.lock();
-        try {
-            final PreFetch prefetch = preFetchRef.get();
-            if (prefetch == null) {
-                return activeQueueContentSize + swappedContentSize + unacknowledgedSizeRef.get().getObjectCount();
-            } else {
-                return activeQueueContentSize + swappedContentSize + unacknowledgedSizeRef.get().getObjectCount() + prefetch.size().getByteCount();
-            }
-        } finally {
-            readLock.unlock("getContentSize");
-        }
     }
 
     @Override
@@ -945,9 +940,86 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         this.flowFileExpirationMillis.set(millis);
     }
 
+
+    @Override
+    public void purgeSwapFiles() {
+        swapManager.purge();
+    }
+
+    @Override
+    public Long recoverSwappedFlowFiles() {
+        int swapFlowFileCount = 0;
+        long swapByteCount = 0L;
+        Long maxId = null;
+
+        writeLock.lock();
+        try {
+            final List<String> swapLocations;
+            try {
+                swapLocations = swapManager.recoverSwapLocations(this);
+            } catch (final IOException ioe) {
+                logger.error("Failed to determine whether or not any Swap Files exist for FlowFile Queue {}", getIdentifier());
+                logger.error("", ioe);
+                if (eventReporter != null) {
+                    eventReporter.reportEvent(Severity.ERROR, "FlowFile Swapping", "Failed to determine whether or not any Swap Files exist for FlowFile Queue " +
+                        getIdentifier() + "; see logs for more detials");
+                }
+                return null;
+            }
+
+            for (final String swapLocation : swapLocations) {
+                try {
+                    final QueueSize queueSize = swapManager.getSwapSize(swapLocation);
+                    final Long maxSwapRecordId = swapManager.getMaxRecordId(swapLocation);
+                    if (maxSwapRecordId != null) {
+                        if (maxId == null || maxSwapRecordId > maxId) {
+                            maxId = maxSwapRecordId;
+                        }
+                    }
+
+                    swapFlowFileCount += queueSize.getObjectCount();
+                    swapByteCount += queueSize.getByteCount();
+                } catch (final IOException ioe) {
+                    logger.error("Failed to recover FlowFiles from Swap File {}; the file appears to be corrupt", swapLocation, ioe.toString());
+                    logger.error("", ioe);
+                    if (eventReporter != null) {
+                        eventReporter.reportEvent(Severity.ERROR, "FlowFile Swapping", "Failed to recover FlowFiles from Swap File " + swapLocation +
+                            "; the file appears to be corrupt. See logs for more details");
+                    }
+                }
+            }
+
+            this.swappedRecordCount = swapFlowFileCount;
+            this.swappedContentSize = swapByteCount;
+        } finally {
+            writeLock.unlock("Recover Swap Files");
+        }
+
+        return maxId;
+    }
+
+
     @Override
     public String toString() {
         return "FlowFileQueue[id=" + identifier + "]";
+    }
+
+    @Override
+    public DropFlowFileStatus dropFlowFiles() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public boolean cancelDropFlowFileRequest(String requestIdentifier) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public DropFlowFileStatus getDropFlowFileStatus(String requestIdentifier) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     /**

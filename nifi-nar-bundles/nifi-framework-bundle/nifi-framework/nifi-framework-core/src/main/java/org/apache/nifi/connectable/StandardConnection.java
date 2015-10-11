@@ -26,17 +26,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.nifi.controller.FlowFileQueue;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.StandardFlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.NiFiProperties;
-
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 /**
  * Models a connection between connectable components. A connection may contain one or more relationships that map the source component to the destination component.
@@ -65,7 +66,7 @@ public final class StandardConnection implements Connection {
         destination = new AtomicReference<>(builder.destination);
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
-        flowFileQueue = new StandardFlowFileQueue(id, this, scheduler, NiFiProperties.getInstance().getQueueSwapThreshold());
+        flowFileQueue = new StandardFlowFileQueue(id, this, scheduler, builder.swapManager, builder.eventReporter, NiFiProperties.getInstance().getQueueSwapThreshold());
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -259,6 +260,8 @@ public final class StandardConnection implements Connection {
         private Connectable source;
         private Connectable destination;
         private Collection<Relationship> relationships;
+        private FlowFileSwapManager swapManager;
+        private EventReporter eventReporter;
 
         public Builder(final ProcessScheduler scheduler) {
             this.scheduler = scheduler;
@@ -305,12 +308,25 @@ public final class StandardConnection implements Connection {
             return this;
         }
 
+        public Builder swapManager(final FlowFileSwapManager swapManager) {
+            this.swapManager = swapManager;
+            return this;
+        }
+
+        public Builder eventReporter(final EventReporter eventReporter) {
+            this.eventReporter = eventReporter;
+            return this;
+        }
+
         public StandardConnection build() {
             if (source == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Source");
             }
             if (destination == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Destination");
+            }
+            if (swapManager == null) {
+                throw new IllegalStateException("Cannot build a Connection without a FlowFileSwapManager");
             }
 
             if (relationships == null) {

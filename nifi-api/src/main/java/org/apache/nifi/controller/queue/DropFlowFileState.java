@@ -14,35 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor;
+
+package org.apache.nifi.controller.queue;
 
 /**
- *
+ * Represents the state that a Drop FlowFile request is in
  */
-public class QueueSize {
+public enum DropFlowFileState {
 
-    private final int objectCount;
-    private final long totalSizeBytes;
-
-    public QueueSize(final int numberObjects, final long totalSizeBytes) {
-        if (numberObjects < 0 || totalSizeBytes < 0) {
-            throw new IllegalArgumentException();
-        }
-        objectCount = numberObjects;
-        this.totalSizeBytes = totalSizeBytes;
+    WAITING_FOR_LOCK("Waiting for Destination Component to complete its action"),
+    DROPPING_ACTIVE_FLOWFILES("Dropping FlowFiles from queue"),
+    COMPLETE("Completed Successfully"),
+    FAILURE("Failed");
+    
+    private final String description;
+    
+    private DropFlowFileState(final String description) {
+        this.description = description;
     }
-
-    /**
-     * @return number of objects present on the queue
-     */
-    public int getObjectCount() {
-        return objectCount;
-    }
-
-    /**
-     * @return total size in bytes of the content for the data on the queue
-     */
-    public long getByteCount() {
-        return totalSizeBytes;
+    
+    @Override
+    public String toString() {
+        return description;
     }
 }

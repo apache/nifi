@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.events.EventReporter;
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
 
 /**
  * Defines a mechanism by which FlowFiles can be move into external storage or
@@ -26,38 +29,81 @@ import org.apache.nifi.events.EventReporter;
 public interface FlowFileSwapManager {
 
     /**
-     * Starts the Manager's background threads to start swapping FlowFiles in
-     * and out of memory
+     * Initializes the Swap Manager, providing a {@link SwapManagerInitializationContext} so that the
+     * Swap Manager has access to all of the components necessary to perform its functions
      *
-     * @param flowFileRepository the FlowFileRepository that must be notified of
-     * any swapping in or out of FlowFiles
-     * @param queueProvider the provider of FlowFileQueue's so that FlowFiles
-     * can be obtained and restored
-     * @param claimManager the ContentClaimManager to use for interacting with
-     * Content Claims
-     * @param reporter the EventReporter that can be used for notifying users of
-     * important events
+     * @param initializationContext the context the provides the swap manager with access to the
+     *            resources that it needs to perform its functions
      */
-    void start(FlowFileRepository flowFileRepository, QueueProvider queueProvider, ResourceClaimManager claimManager, EventReporter reporter);
+    void initialize(SwapManagerInitializationContext initializationContext);
 
     /**
-     * Shuts down the manager
+     * Swaps out the given FlowFiles that belong to the queue with the given identifier.
+     *
+     * @param flowFiles the FlowFiles to swap out to external storage
+     * @param flowFileQueue the queue that the FlowFiles belong to
+     * @return the location of the externally stored swap file
+     *
+     * @throws IOException if unable to swap the FlowFiles out
      */
-    void shutdown();
+    String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue) throws IOException;
 
     /**
-     * Removes all Swap information, permanently destroying any FlowFiles that
-     * have been swapped out
+     * Recovers the SwapFiles from the swap file that lives at the given location. This action
+     * provides a view of the FlowFiles but does not actively swap them in, meaning that the swap file
+     * at the given location remains in that location and the FlowFile Repository is not updated.
+     *
+     * @param swapLocation the location of hte swap file
+     * @param flowFileQueue the queue that the FlowFiles belong to
+     * @return the FlowFiles that live at the given swap location
+     *
+     * @throws IOException if unable to recover the FlowFiles from the given location
+     */
+    List<FlowFileRecord> peek(String swapLocation, final FlowFileQueue flowFileQueue) throws IOException;
+
+    /**
+     * Recovers the FlowFiles from the swap file that lives at the given location and belongs
+     * to the FlowFile Queue with the given identifier. The FlowFile Repository is then updated
+     * and the swap file is permanently removed from the external storage
+     *
+     * @param swapLocation the location of the swap file
+     * @param flowFileQueue the queue to which the FlowFiles belong
+     *
+     * @return the FlowFiles that are stored in the given location
+     *
+     * @throws IOException if unable to recover the FlowFiles from the given location or update the
+     *             FlowFileRepository
+     */
+    List<FlowFileRecord> swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IOException;
+
+    /**
+     * Determines swap files that exist for the given FlowFileQueue
+     *
+     * @param flowFileQueue the queue for which the FlowFiles should be recovered
+     *
+     * @return all swap locations that have been identified for the given queue, in the order that they should
+     *         be swapped back in
+     */
+    List<String> recoverSwapLocations(FlowFileQueue flowFileQueue) throws IOException;
+
+    /**
+     * Determines how many FlowFiles and the size of the FlowFiles that are swapped out at the given location
+     *
+     * @param swapLocation the location of the swap file
+     * @return the QueueSize representing the number of FlowFiles and total size of the FlowFiles that are swapped out
+     */
+    QueueSize getSwapSize(String swapLocation) throws IOException;
+
+    /**
+     * Returns the maximum record id of the FlowFiles stored at the given swap location
+     *
+     * @param swapLocation the swap location to read id's from
+     * @return the max record id of any FlowFile in the swap location, or null if no record ID's can be found
+     */
+    Long getMaxRecordId(String swapLocation) throws IOException;
+
+    /**
+     * Purge all known Swap Files without updating FlowFileRepository or Provenance Repository
      */
     void purge();
-
-    /**
-     * Notifies FlowFile queues of the number of FlowFiles and content size of
-     * all FlowFiles that are currently swapped out
-     *
-     * @param connectionProvider provider
-     * @param claimManager manager
-     * @return how many flowfiles have been recovered
-     */
-    long recoverSwappedFlowFiles(QueueProvider connectionProvider, ResourceClaimManager claimManager);
 }

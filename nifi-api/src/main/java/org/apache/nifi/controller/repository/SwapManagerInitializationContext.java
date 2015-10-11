@@ -14,20 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.controller.repository;
 
-import java.util.Collection;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.events.EventReporter;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
-
-/**
- * Provides a collection of <code>FlowFileQueue</code>s that represents all
- * queues in the current flow
- */
-public interface QueueProvider {
+public interface SwapManagerInitializationContext {
 
     /**
-     * @return all <code>FlowFileQueue</code>s that currently exist in the flow
+     * @return the {@link FlowFileRepository} that should be updated when FlowFiles are swapped in and out
      */
-    Collection<FlowFileQueue> getAllQueues();
+    FlowFileRepository getFlowFileRepository();
+
+
+    /**
+     * @return the {@link ResourceClaimManager} that is necessary to provide to the FlowFileRepository when
+     *         performing swapping actions
+     */
+    ResourceClaimManager getResourceClaimManager();
+
+    /**
+     * @return an {@link EventReporter} that can be used to report events to users
+     */
+    EventReporter getEventReporter();
 }

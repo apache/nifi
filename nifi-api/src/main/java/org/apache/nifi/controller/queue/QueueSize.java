@@ -14,20 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.repository;
-
-import java.util.Collection;
-
-import org.apache.nifi.controller.queue.FlowFileQueue;
+package org.apache.nifi.controller.queue;
 
 /**
- * Provides a collection of <code>FlowFileQueue</code>s that represents all
- * queues in the current flow
+ *
  */
-public interface QueueProvider {
+public class QueueSize {
+
+    private final int objectCount;
+    private final long totalSizeBytes;
+
+    public QueueSize(final int numberObjects, final long totalSizeBytes) {
+        if (numberObjects < 0 || totalSizeBytes < 0) {
+            throw new IllegalArgumentException();
+        }
+        objectCount = numberObjects;
+        this.totalSizeBytes = totalSizeBytes;
+    }
 
     /**
-     * @return all <code>FlowFileQueue</code>s that currently exist in the flow
+     * @return number of objects present on the queue
      */
-    Collection<FlowFileQueue> getAllQueues();
+    public int getObjectCount() {
+        return objectCount;
+    }
+
+    /**
+     * @return total size in bytes of the content for the data on the queue
+     */
+    public long getByteCount() {
+        return totalSizeBytes;
+    }
 }

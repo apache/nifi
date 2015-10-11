@@ -48,9 +48,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.controller.FlowFileQueue;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.StandardFlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -133,7 +133,8 @@ public class TestStandardProcessSession {
         final Connection connection = Mockito.mock(Connection.class);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
-        flowFileQueue = new StandardFlowFileQueue("1", connection, processScheduler, 10000);
+        final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
+        flowFileQueue = new StandardFlowFileQueue("1", connection, processScheduler, swapManager, null, 10000);
         when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
 
         Mockito.doAnswer(new Answer<Object>() {
@@ -445,7 +446,7 @@ public class TestStandardProcessSession {
         session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
 
-        assertEquals(1, provenanceRepo.getEvents(0L, 100000).size());  // 1 event for both parents and children
+        assertEquals(1, provenanceRepo.getEvents(0L, 100000).size()); // 1 event for both parents and children
     }
 
     @Test
@@ -809,7 +810,7 @@ public class TestStandardProcessSession {
             .entryDate(System.currentTimeMillis())
             .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
 
-            .contentClaimOffset(1000L).size(1L).build();
+        .contentClaimOffset(1000L).size(1L).build();
         flowFileQueue.put(flowFileRecord2);
 
         // attempt to read the data.
