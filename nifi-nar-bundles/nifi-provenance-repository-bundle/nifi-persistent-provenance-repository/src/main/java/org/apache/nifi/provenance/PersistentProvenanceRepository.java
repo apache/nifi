@@ -102,7 +102,7 @@ import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PersistentProvenanceRepository implements ProvenanceEventRepository {
+public class PersistentProvenanceRepository extends AbstractProvenanceRepository {
 
     public static final String DEPRECATED_CLASS_NAME = "nifi.controller.repository.provenance.PersistentProvenanceRepository";
     public static final String EVENT_CATEGORY = "Provenance Repository";
@@ -381,12 +381,12 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public void registerEvent(final ProvenanceEventRecord event) {
+    protected void doRegisterEvent(final ProvenanceEventRecord event) {
         persistRecord(Collections.singleton(event));
     }
 
     @Override
-    public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
+    protected void doRegisterEvents(final Iterable<ProvenanceEventRecord> events) {
         persistRecord(events);
     }
 
@@ -629,7 +629,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public synchronized void close() throws IOException {
+    protected synchronized void doClose() throws IOException {
         this.closed.set(true);
         writeLock.lock();
         try {
