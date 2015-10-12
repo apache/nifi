@@ -286,7 +286,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final NodeProtocolSender protocolSender;
 
     private final ScheduledExecutorService clusterTaskExecutor = new FlowEngine(3, "Clustering Tasks");
-    private final ResourceClaimManager contentClaimManager = new StandardResourceClaimManager();
+    private final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
 
     // guarded by rwLock
     /**
@@ -393,7 +393,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
         eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process"));
 
-        final FlowFileRepository flowFileRepo = createFlowFileRepository(properties, contentClaimManager);
+        final FlowFileRepository flowFileRepo = createFlowFileRepository(properties, resourceClaimManager);
         flowFileRepository = flowFileRepo;
         flowFileEventRepository = flowFileEventRepo;
         counterRepositoryRef = new AtomicReference<CounterRepository>(new StandardCounterRepository());
@@ -668,7 +668,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         try {
             final ContentRepository contentRepo = NarThreadContextClassLoader.createInstance(implementationClassName, ContentRepository.class);
             synchronized (contentRepo) {
-                contentRepo.initialize(contentClaimManager);
+                contentRepo.initialize(resourceClaimManager);
             }
             return contentRepo;
         } catch (final Exception e) {
@@ -728,11 +728,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // Create and initialize a FlowFileSwapManager for this connection
         final FlowFileSwapManager swapManager = createSwapManager(properties);
         final EventReporter eventReporter = createEventReporter(getBulletinRepository());
+
         try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
             final SwapManagerInitializationContext initializationContext = new SwapManagerInitializationContext() {
                 @Override
                 public ResourceClaimManager getResourceClaimManager() {
-                    return getResourceClaimManager();
+                    return resourceClaimManager;
                 }
 
                 @Override
@@ -756,6 +757,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .destination(destination)
             .swapManager(swapManager)
             .eventReporter(eventReporter)
+            .resourceClaimManager(resourceClaimManager)
+            .flowFileRepository(flowFileRepository)
+            .provenanceRepository(provenanceEventRepository)
             .build();
     }
 
@@ -3188,7 +3192,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new IllegalArgumentException("Input Content Claim not specified");
             }
 
-            final ResourceClaim resourceClaim = contentClaimManager.newResourceClaim(provEvent.getPreviousContentClaimContainer(), provEvent.getPreviousContentClaimSection(),
+            final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(provEvent.getPreviousContentClaimContainer(), provEvent.getPreviousContentClaimSection(),
                 provEvent.getPreviousContentClaimIdentifier(), false);
             claim = new StandardContentClaim(resourceClaim, provEvent.getPreviousContentClaimOffset());
             offset = provEvent.getPreviousContentClaimOffset() == null ? 0L : provEvent.getPreviousContentClaimOffset();
@@ -3198,7 +3202,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new IllegalArgumentException("Output Content Claim not specified");
             }
 
-            final ResourceClaim resourceClaim = contentClaimManager.newResourceClaim(provEvent.getContentClaimContainer(), provEvent.getContentClaimSection(),
+            final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(provEvent.getContentClaimContainer(), provEvent.getContentClaimSection(),
                 provEvent.getContentClaimIdentifier(), false);
 
             claim = new StandardContentClaim(resourceClaim, provEvent.getContentClaimOffset());
@@ -3247,7 +3251,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            final ResourceClaim resourceClaim = contentClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false);
+            final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false);
             final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, event.getPreviousContentClaimOffset());
 
             if (!contentRepository.isAccessible(contentClaim)) {
@@ -3327,17 +3331,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         // Create the ContentClaim
-        final ResourceClaim resourceClaim = contentClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
+        final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
             event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false);
 
         // Increment Claimant Count, since we will now be referencing the Content Claim
-        contentClaimManager.incrementClaimantCount(resourceClaim);
+        resourceClaimManager.incrementClaimantCount(resourceClaim);
         final long claimOffset = event.getPreviousContentClaimOffset() == null ? 0L : event.getPreviousContentClaimOffset().longValue();
         final StandardContentClaim contentClaim = new StandardContentClaim(resourceClaim, claimOffset);
         contentClaim.setLength(event.getPreviousFileSize() == null ? -1L : event.getPreviousFileSize());
 
         if (!contentRepository.isAccessible(contentClaim)) {
-            contentClaimManager.decrementClaimantCount(resourceClaim);
+            resourceClaimManager.decrementClaimantCount(resourceClaim);
             throw new IllegalStateException("Cannot replay data from Provenance Event because the data is no longer available in the Content Repository");
         }
 

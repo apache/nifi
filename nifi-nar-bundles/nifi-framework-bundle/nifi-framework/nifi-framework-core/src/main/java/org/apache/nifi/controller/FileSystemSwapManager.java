@@ -28,6 +28,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,7 +80,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private EventReporter eventReporter;
     private ResourceClaimManager claimManager;
 
-
     public FileSystemSwapManager() {
         final NiFiProperties properties = NiFiProperties.getInstance();
         final Path flowFileRepoPath = properties.getFlowFileRepositoryPath();
@@ -111,6 +111,10 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         try (final FileOutputStream fos = new FileOutputStream(swapTempFile)) {
             serializeFlowFiles(toSwap, flowFileQueue, swapLocation, fos);
             fos.getFD().sync();
+        } catch (final IOException ioe) {
+            // we failed to write out the entire swap file. Delete the temporary file, if we can.
+            swapTempFile.delete();
+            throw ioe;
         }
 
         if (swapTempFile.renameTo(swapFile)) {
@@ -133,25 +137,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             warn("Swapped in FlowFiles from file " + swapFile.getAbsolutePath() + " but failed to delete the file; this file should be cleaned up manually");
         }
 
-        // TODO: When FlowFile Queue performs this operation, it needs to take the following error handling logic into account:
-
-        /*
-         * } catch (final EOFException eof) {
-         * error("Failed to Swap In FlowFiles for " + flowFileQueue + " due to: Corrupt Swap File; will remove this Swap File: " + swapFile);
-         *
-         * if (!swapFile.delete()) {
-         * warn("Failed to remove corrupt Swap File " + swapFile + "; This file should be cleaned up manually");
-         * }
-         * } catch (final FileNotFoundException fnfe) {
-         * error("Failed to Swap In FlowFiles for " + flowFileQueue + " due to: Could not find Swap File " + swapFile);
-         * } catch (final Exception e) {
-         * error("Failed to Swap In FlowFiles for " + flowFileQueue + " due to " + e, e);
-         *
-         * if (swapFile != null) {
-         * queue.add(swapFile);
-         * }
-         * }
-         */
         return swappedFlowFiles;
     }
 
@@ -165,7 +150,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         final List<FlowFileRecord> swappedFlowFiles;
         try (final InputStream fis = new FileInputStream(swapFile);
             final DataInputStream in = new DataInputStream(fis)) {
-            swappedFlowFiles = deserializeFlowFiles(in, flowFileQueue, swapLocation, claimManager);
+            swappedFlowFiles = deserializeFlowFiles(in, swapLocation, flowFileQueue, claimManager);
         }
 
         return swappedFlowFiles;
@@ -187,6 +172,12 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
         }
     }
+
+    @Override
+    public void dropSwappedFlowFiles(final String swapLocation, final FlowFileQueue flowFileQueue, final String user) throws IOException {
+
+    }
+
 
     @Override
     public List<String> recoverSwapLocations(final FlowFileQueue flowFileQueue) throws IOException {
@@ -322,7 +313,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
 
-    public int serializeFlowFiles(final List<FlowFileRecord> toSwap, final FlowFileQueue queue, final String swapLocation, final OutputStream destination) throws IOException {
+    public static int serializeFlowFiles(final List<FlowFileRecord> toSwap, final FlowFileQueue queue, final String swapLocation, final OutputStream destination) throws IOException {
         if (toSwap == null || toSwap.isEmpty()) {
             return 0;
         }
@@ -396,8 +387,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         return toSwap.size();
     }
 
-    private void writeString(final String toWrite, final OutputStream out) throws IOException {
-        final byte[] bytes = toWrite.getBytes("UTF-8");
+    private static void writeString(final String toWrite, final OutputStream out) throws IOException {
+        final byte[] bytes = toWrite.getBytes(StandardCharsets.UTF_8);
         final int utflen = bytes.length;
 
         if (utflen < 65535) {
@@ -415,26 +406,29 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-    static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final FlowFileQueue queue, final String swapLocation, final ResourceClaimManager claimManager) throws IOException {
+    static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final String swapLocation, final FlowFileQueue queue, final ResourceClaimManager claimManager) throws IOException {
         final int swapEncodingVersion = in.readInt();
         if (swapEncodingVersion > SWAP_ENCODING_VERSION) {
             throw new IOException("Cannot swap FlowFiles in from SwapFile because the encoding version is "
                 + swapEncodingVersion + ", which is too new (expecting " + SWAP_ENCODING_VERSION + " or less)");
         }
 
-        final String connectionId = in.readUTF();
+        final String connectionId = in.readUTF(); // Connection ID
         if (!connectionId.equals(queue.getIdentifier())) {
-            throw new IllegalArgumentException("Cannot restore contents from FlowFile Swap File " + swapLocation +
-                " because the file indicates that records belong to Connection with ID " + connectionId + " but attempted to swap those records into " + queue);
+            throw new IllegalArgumentException("Cannot deserialize FlowFiles from Swap File at location " + swapLocation +
+                " because those FlowFiles belong to Connection with ID " + connectionId + " and an attempt was made to swap them into a Connection with ID " + queue.getIdentifier());
         }
 
         final int numRecords = in.readInt();
         in.readLong(); // Content Size
+        if (swapEncodingVersion > 7) {
+            in.readLong(); // Max Record ID
+        }
 
         return deserializeFlowFiles(in, numRecords, swapEncodingVersion, false, claimManager);
     }
 
-    static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final int numFlowFiles,
+    private static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final int numFlowFiles,
         final int serializationVersion, final boolean incrementContentClaims, final ResourceClaimManager claimManager) throws IOException {
         final List<FlowFileRecord> flowFiles = new ArrayList<>();
         for (int i = 0; i < numFlowFiles; i++) {
@@ -543,7 +537,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
         final byte[] bytes = new byte[numBytes];
         fillBuffer(in, bytes, numBytes);
-        return new String(bytes, "UTF-8");
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     private static Integer readFieldLength(final InputStream in) throws IOException {

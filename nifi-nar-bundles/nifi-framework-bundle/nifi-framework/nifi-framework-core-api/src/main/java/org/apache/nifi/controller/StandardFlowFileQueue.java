@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -24,9 +25,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,25 +40,32 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.RepositoryRecord;
+import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
+import org.apache.nifi.provenance.ProvenanceEventBuilder;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.concurrency.TimedLock;
-import org.apache.nifi.util.timebuffer.LongEntityAccess;
-import org.apache.nifi.util.timebuffer.TimedBuffer;
-import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,15 +78,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
     public static final int MAX_EXPIRED_RECORDS_PER_ITERATION = 100000;
     public static final int SWAP_RECORD_POLL_SIZE = 10000;
-
-    // When we have very high contention on a FlowFile Queue, the writeLock quickly becomes the bottleneck. In order to avoid this,
-    // we keep track of how often we are obtaining the write lock. If we exceed some threshold, we start performing a Pre-fetch so that
-    // we can then poll many times without having to obtain the lock.
-    // If lock obtained an average of more than PREFETCH_POLL_THRESHOLD times per second in order to poll from queue for last 5 seconds, do a pre-fetch.
-    public static final int PREFETCH_POLL_THRESHOLD = 1000;
-    public static final int PRIORITIZED_PREFETCH_SIZE = 10;
-    public static final int UNPRIORITIZED_PREFETCH_SIZE = 1000;
-    private volatile int prefetchSize = UNPRIORITIZED_PREFETCH_SIZE; // when we pre-fetch, how many should we pre-fetch?
 
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowFileQueue.class);
 
@@ -97,9 +100,13 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     private final List<FlowFilePrioritizer> priorities;
     private final int swapThreshold;
     private final FlowFileSwapManager swapManager;
+    private final List<String> swapLocations = new ArrayList<>();
     private final TimedLock readLock;
     private final TimedLock writeLock;
     private final String identifier;
+    private final FlowFileRepository flowFileRepository;
+    private final ProvenanceEventRepository provRepository;
+    private final ResourceClaimManager resourceClaimManager;
 
     private final AtomicBoolean queueFullRef = new AtomicBoolean(false);
     private final AtomicInteger activeQueueSizeRef = new AtomicInteger(0);
@@ -108,8 +115,8 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     // SCHEDULER CANNOT BE NOTIFIED OF EVENTS WITH THE WRITE LOCK HELD! DOING SO WILL RESULT IN A DEADLOCK!
     private final ProcessScheduler scheduler;
 
-    public StandardFlowFileQueue(final String identifier, final Connection connection, final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter,
-        final int swapThreshold) {
+    public StandardFlowFileQueue(final String identifier, final Connection connection, final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo,
+        final ResourceClaimManager resourceClaimManager, final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter, final int swapThreshold) {
         activeQueue = new PriorityQueue<>(20, new Prioritizer(new ArrayList<FlowFilePrioritizer>()));
         priorities = new ArrayList<>();
         maximumQueueObjectCount = 0L;
@@ -120,6 +127,9 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         swapQueue = new ArrayList<>();
         this.eventReporter = eventReporter;
         this.swapManager = swapManager;
+        this.flowFileRepository = flowFileRepo;
+        this.provRepository = provRepo;
+        this.resourceClaimManager = resourceClaimManager;
 
         this.identifier = identifier;
         this.swapThreshold = swapThreshold;
@@ -141,11 +151,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     }
 
     @Override
-    public int getSwapThreshold() {
-        return swapThreshold;
-    }
-
-    @Override
     public void setPriorities(final List<FlowFilePrioritizer> newPriorities) {
         writeLock.lock();
         try {
@@ -154,12 +159,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             activeQueue = newQueue;
             priorities.clear();
             priorities.addAll(newPriorities);
-
-            if (newPriorities.isEmpty()) {
-                prefetchSize = UNPRIORITIZED_PREFETCH_SIZE;
-            } else {
-                prefetchSize = PRIORITIZED_PREFETCH_SIZE;
-            }
         } finally {
             writeLock.unlock("setPriorities");
         }
@@ -225,33 +224,16 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
      */
     private QueueSize getQueueSize() {
         final QueueSize unacknowledged = unacknowledgedSizeRef.get();
-        final PreFetch preFetch = preFetchRef.get();
 
-        final int preFetchCount;
-        final long preFetchSize;
-        if (preFetch == null) {
-            preFetchCount = 0;
-            preFetchSize = 0L;
-        } else {
-            final QueueSize preFetchQueueSize = preFetch.size();
-            preFetchCount = preFetchQueueSize.getObjectCount();
-            preFetchSize = preFetchQueueSize.getByteCount();
-        }
-
-        return new QueueSize(activeQueue.size() + swappedRecordCount + unacknowledged.getObjectCount() + preFetchCount,
-            activeQueueContentSize + swappedContentSize + unacknowledged.getByteCount() + preFetchSize);
+        return new QueueSize(activeQueue.size() + swappedRecordCount + unacknowledged.getObjectCount(),
+            activeQueueContentSize + swappedContentSize + unacknowledged.getByteCount());
     }
 
     @Override
     public boolean isEmpty() {
         readLock.lock();
         try {
-            final PreFetch prefetch = preFetchRef.get();
-            if (prefetch == null) {
-                return activeQueue.isEmpty() && swappedRecordCount == 0 && unacknowledgedSizeRef.get().getObjectCount() == 0;
-            } else {
-                return activeQueue.isEmpty() && swappedRecordCount == 0 && unacknowledgedSizeRef.get().getObjectCount() == 0 && prefetch.size().getObjectCount() == 0;
-            }
+            return activeQueue.isEmpty() && swappedRecordCount == 0 && unacknowledgedSizeRef.get().getObjectCount() == 0;
         } finally {
             readLock.unlock("isEmpty");
         }
@@ -260,30 +242,13 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     @Override
     public boolean isActiveQueueEmpty() {
         final int activeQueueSize = activeQueueSizeRef.get();
-        if (activeQueueSize == 0) {
-            final PreFetch preFetch = preFetchRef.get();
-            if (preFetch == null) {
-                return true;
-            }
-
-            final QueueSize queueSize = preFetch.size();
-            return queueSize.getObjectCount() == 0;
-        } else {
-            return false;
-        }
+        return activeQueueSize == 0;
     }
 
-    @Override
     public QueueSize getActiveQueueSize() {
         readLock.lock();
         try {
-            final PreFetch preFetch = preFetchRef.get();
-            if (preFetch == null) {
-                return new QueueSize(activeQueue.size(), activeQueueContentSize);
-            } else {
-                final QueueSize preFetchSize = preFetch.size();
-                return new QueueSize(activeQueue.size() + preFetchSize.getObjectCount(), activeQueueContentSize + preFetchSize.getByteCount());
-            }
+            return new QueueSize(activeQueue.size(), activeQueueContentSize);
         } finally {
             readLock.unlock("getActiveQueueSize");
         }
@@ -374,6 +339,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
                 swappedContentSize += file.getSize();
                 swappedRecordCount++;
                 swapMode = true;
+                writeSwapFilesIfNecessary();
             } else {
                 activeQueueContentSize += file.getSize();
                 activeQueue.add(file);
@@ -405,6 +371,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
                 swappedContentSize += bytes;
                 swappedRecordCount += numFiles;
                 swapMode = true;
+                writeSwapFilesIfNecessary();
             } else {
                 activeQueueContentSize += bytes;
                 activeQueue.addAll(files);
@@ -421,116 +388,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         }
     }
 
-    @Override
-    public List<FlowFileRecord> pollSwappableRecords() {
-        writeLock.lock();
-        try {
-            if (swapQueue.size() < SWAP_RECORD_POLL_SIZE) {
-                return null;
-            }
-
-            final List<FlowFileRecord> swapRecords = new ArrayList<>(Math.min(SWAP_RECORD_POLL_SIZE, swapQueue.size()));
-            final Iterator<FlowFileRecord> itr = swapQueue.iterator();
-            while (itr.hasNext() && swapRecords.size() < SWAP_RECORD_POLL_SIZE) {
-                final FlowFileRecord record = itr.next();
-                swapRecords.add(record);
-                itr.remove();
-            }
-
-            swapQueue.trimToSize();
-            return swapRecords;
-        } finally {
-            writeLock.unlock("pollSwappableRecords");
-        }
-    }
-
-    @Override
-    public void putSwappedRecords(final Collection<FlowFileRecord> records) {
-        writeLock.lock();
-        try {
-            try {
-                for (final FlowFileRecord record : records) {
-                    swappedContentSize -= record.getSize();
-                    swappedRecordCount--;
-                    activeQueueContentSize += record.getSize();
-                    activeQueue.add(record);
-                }
-
-                if (swappedRecordCount > swapQueue.size()) {
-                    // we have more swap files to be swapped in.
-                    return;
-                }
-
-                // If a call to #pollSwappableRecords will not produce any, go ahead and roll those FlowFiles back into the mix
-                if (swapQueue.size() < SWAP_RECORD_POLL_SIZE) {
-                    for (final FlowFileRecord record : swapQueue) {
-                        activeQueue.add(record);
-                        activeQueueContentSize += record.getSize();
-                    }
-                    swapQueue.clear();
-                    swappedContentSize = 0L;
-                    swappedRecordCount = 0;
-                    swapMode = false;
-                }
-            } finally {
-                activeQueueSizeRef.set(activeQueue.size());
-            }
-        } finally {
-            writeLock.unlock("putSwappedRecords");
-            scheduler.registerEvent(connection.getDestination());
-        }
-    }
-
-    @Override
-    public void incrementSwapCount(final int numRecords, final long contentSize) {
-        writeLock.lock();
-        try {
-            swappedContentSize += contentSize;
-            swappedRecordCount += numRecords;
-        } finally {
-            writeLock.unlock("incrementSwapCount");
-        }
-    }
-
-    @Override
-    public int unswappedSize() {
-        readLock.lock();
-        try {
-            return activeQueue.size() + unacknowledgedSizeRef.get().getObjectCount();
-        } finally {
-            readLock.unlock("unswappedSize");
-        }
-    }
-
-    @Override
-    public int getSwapRecordCount() {
-        readLock.lock();
-        try {
-            return swappedRecordCount;
-        } finally {
-            readLock.unlock("getSwapRecordCount");
-        }
-    }
-
-    @Override
-    public int getSwapQueueSize() {
-        readLock.lock();
-        try {
-            if (logger.isDebugEnabled()) {
-                final long byteToMbDivisor = 1024L * 1024L;
-                final QueueSize unacknowledged = unacknowledgedSizeRef.get();
-
-                logger.debug("Total Queue Size: ActiveQueue={}/{} MB, Swap Queue={}/{} MB, Unacknowledged={}/{} MB",
-                    activeQueue.size(), activeQueueContentSize / byteToMbDivisor,
-                    swappedRecordCount, swappedContentSize / byteToMbDivisor,
-                    unacknowledged.getObjectCount(), unacknowledged.getByteCount() / byteToMbDivisor);
-            }
-
-            return swapQueue.size();
-        } finally {
-            readLock.unlock("getSwapQueueSize");
-        }
-    }
 
     private boolean isLaterThan(final Long maxAge) {
         if (maxAge == null) {
@@ -558,30 +415,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
         // First check if we have any records Pre-Fetched.
         final long expirationMillis = flowFileExpirationMillis.get();
-        final PreFetch preFetch = preFetchRef.get();
-        if (preFetch != null) {
-            if (preFetch.isExpired()) {
-                requeueExpiredPrefetch(preFetch);
-            } else {
-                while (true) {
-                    final FlowFileRecord next = preFetch.nextRecord();
-                    if (next == null) {
-                        break;
-                    }
-
-                    if (isLaterThan(getExpirationDate(next, expirationMillis))) {
-                        expiredRecords.add(next);
-                        continue;
-                    }
-
-                    updateUnacknowledgedSize(1, next.getSize());
-                    return next;
-                }
-
-                preFetchRef.compareAndSet(preFetch, null);
-            }
-        }
-
         writeLock.lock();
         try {
             flowFile = doPoll(expiredRecords, expirationMillis);
@@ -631,9 +464,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             queueFullRef.set(determineIfFull());
         }
 
-        if (incrementPollCount()) {
-            prefetch();
-        }
         return isExpired ? null : flowFile;
     }
 
@@ -642,38 +472,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         final List<FlowFileRecord> records = new ArrayList<>(Math.min(1024, maxResults));
 
         // First check if we have any records Pre-Fetched.
-        final long expirationMillis = flowFileExpirationMillis.get();
-        final PreFetch preFetch = preFetchRef.get();
-        if (preFetch != null) {
-            if (preFetch.isExpired()) {
-                requeueExpiredPrefetch(preFetch);
-            } else {
-                long totalSize = 0L;
-                for (int i = 0; i < maxResults; i++) {
-                    final FlowFileRecord next = preFetch.nextRecord();
-                    if (next == null) {
-                        break;
-                    }
-
-                    if (isLaterThan(getExpirationDate(next, expirationMillis))) {
-                        expiredRecords.add(next);
-                        continue;
-                    }
-
-                    records.add(next);
-                    totalSize += next.getSize();
-                }
-
-                // If anything was prefetched, use what we have.
-                if (!records.isEmpty()) {
-                    updateUnacknowledgedSize(records.size(), totalSize);
-                    return records;
-                }
-
-                preFetchRef.compareAndSet(preFetch, null);
-            }
-        }
-
         writeLock.lock();
         try {
             doPoll(records, maxResults, expiredRecords);
@@ -705,10 +503,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         if (queueFullAtStart && !expiredRecords.isEmpty()) {
             queueFullRef.set(determineIfFull());
         }
-
-        if (incrementPollCount()) {
-            prefetch();
-        }
     }
 
     /**
@@ -731,6 +525,46 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         // Calling this method when records are polled prevents this condition by migrating FlowFiles from the
         // Swap Queue to the Active Queue. However, we don't do this if there are FlowFiles already swapped out
         // to disk, because we want them to be swapped back in in the same order that they were swapped out.
+
+        if (activeQueue.size() > swapThreshold - SWAP_RECORD_POLL_SIZE) {
+            return;
+        }
+
+        // If there are swap files waiting to be swapped in, swap those in first. We do this in order to ensure that those that
+        // were swapped out first are then swapped back in first. If we instead just immediately migrated the FlowFiles from the
+        // swap queue to the active queue, and we never run out of FlowFiles in the active queue (because destination cannot
+        // keep up with queue), we will end up always processing the new FlowFiles first instead of the FlowFiles that arrived
+        // first.
+        if (!swapLocations.isEmpty()) {
+            final String swapLocation = swapLocations.remove(0);
+            try {
+                final List<FlowFileRecord> swappedIn = swapManager.swapIn(swapLocation, this);
+                swappedRecordCount -= swappedIn.size();
+                long swapSize = 0L;
+                for (final FlowFileRecord flowFile : swappedIn) {
+                    swapSize += flowFile.getSize();
+                }
+                swappedContentSize -= swapSize;
+                activeQueueContentSize += swapSize;
+                activeQueueSizeRef.set(activeQueue.size());
+                activeQueue.addAll(swappedIn);
+                return;
+            } catch (final FileNotFoundException fnfe) {
+                logger.error("Failed to swap in FlowFiles from Swap File {} because the Swap File can no longer be found", swapLocation);
+                if (eventReporter != null) {
+                    eventReporter.reportEvent(Severity.ERROR, "Swap File", "Failed to swap in FlowFiles from Swap File " + swapLocation + " because the Swap File can no longer be found");
+                }
+                return;
+            } catch (final IOException ioe) {
+                logger.error("Failed to swap in FlowFiles from Swap File {}; Swap File appears to be corrupt!", swapLocation);
+                logger.error("", ioe);
+                if (eventReporter != null) {
+                    eventReporter.reportEvent(Severity.ERROR, "Swap File", "Failed to swap in FlowFiles from Swap File " +
+                        swapLocation + "; Swap File appears to be corrupt! Some FlowFiles in the queue may not be accessible. See logs for more information.");
+                }
+                return;
+            }
+        }
 
         // this is the most common condition (nothing is swapped out), so do the check first and avoid the expense
         // of other checks for 99.999% of the cases.
@@ -759,6 +593,69 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             swapMode = false;
         }
     }
+
+    /**
+     * This method MUST be called with the write lock held
+     */
+    private void writeSwapFilesIfNecessary() {
+        if (swapQueue.size() < SWAP_RECORD_POLL_SIZE) {
+            return;
+        }
+
+        final int numSwapFiles = swapQueue.size() / SWAP_RECORD_POLL_SIZE;
+
+        // Create a new Priority queue with the prioritizers that are set, but reverse the
+        // prioritizers because we want to pull the lowest-priority FlowFiles to swap out
+        final PriorityQueue<FlowFileRecord> tempQueue = new PriorityQueue<>(activeQueue.size() + swapQueue.size(), Collections.reverseOrder(new Prioritizer(priorities)));
+        tempQueue.addAll(activeQueue);
+        tempQueue.addAll(swapQueue);
+
+        final List<String> swapLocations = new ArrayList<>(numSwapFiles);
+        for (int i = 0; i < numSwapFiles; i++) {
+            // Create a new swap file for the next SWAP_RECORD_POLL_SIZE records
+            final List<FlowFileRecord> toSwap = new ArrayList<>(SWAP_RECORD_POLL_SIZE);
+            for (int j = 0; j < SWAP_RECORD_POLL_SIZE; j++) {
+                toSwap.add(tempQueue.poll());
+            }
+
+            try {
+                Collections.reverse(toSwap); // currently ordered in reverse priority order based on the ordering of the temp queue.
+                final String swapLocation = swapManager.swapOut(toSwap, this);
+                swapLocations.add(swapLocation);
+            } catch (final IOException ioe) {
+                tempQueue.addAll(toSwap); // if we failed, we must add the FlowFiles back to the queue.
+                logger.error("FlowFile Queue with identifier {} has {} FlowFiles queued up. Attempted to spill FlowFile information over to disk in order to avoid exhausting "
+                    + "the Java heap space but failed to write information to disk due to {}", getIdentifier(), getQueueSize().getObjectCount(), ioe.toString());
+                logger.error("", ioe);
+                if (eventReporter != null) {
+                    eventReporter.reportEvent(Severity.ERROR, "Failed to Overflow to Disk", "Flowfile Queue with identifier " + getIdentifier() + " has " + getQueueSize().getObjectCount() +
+                        " queued up. Attempted to spill FlowFile information over to disk in order to avoid exhausting the Java heap space but failed to write information to disk. "
+                        + "See logs for more information.");
+                }
+
+                break;
+            }
+        }
+
+        // Pull any records off of the temp queue that won't fit back on the active queue, and add those to the
+        // swap queue. Then add the records back to the active queue.
+        swapQueue.clear();
+        while (tempQueue.size() > swapThreshold) {
+            final FlowFileRecord record = tempQueue.poll();
+            swapQueue.add(record);
+        }
+
+        Collections.reverse(swapQueue); // currently ordered in reverse priority order based on the ordering of the temp queue
+
+        // replace the contents of the active queue, since we've merged it with the swap queue.
+        activeQueue.clear();
+        FlowFileRecord toRequeue;
+        while ((toRequeue = tempQueue.poll()) != null) {
+            activeQueue.offer(toRequeue);
+        }
+        this.swapLocations.addAll(swapLocations);
+    }
+
 
     @Override
     public long drainQueue(final Queue<FlowFileRecord> sourceQueue, final List<FlowFileRecord> destination, int maxResults, final Set<FlowFileRecord> expiredRecords) {
@@ -795,13 +692,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
             final List<FlowFileRecord> selectedFlowFiles = new ArrayList<>();
             final List<FlowFileRecord> unselected = new ArrayList<>();
-
-            // the prefetch doesn't allow us to add records back. So when this method is used,
-            // if there are prefetched records, we have to requeue them into the active queue first.
-            final PreFetch prefetch = preFetchRef.get();
-            if (prefetch != null) {
-                requeueExpiredPrefetch(prefetch);
-            }
 
             while (true) {
                 FlowFileRecord flowFile = this.activeQueue.poll();
@@ -855,6 +745,8 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             writeLock.unlock("poll(Filter, Set)");
         }
     }
+
+
 
     private static final class Prioritizer implements Comparator<FlowFileRecord>, Serializable {
 
@@ -991,6 +883,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
             this.swappedRecordCount = swapFlowFileCount;
             this.swappedContentSize = swapByteCount;
+            this.swapLocations.addAll(swapLocations);
         } finally {
             writeLock.unlock("Recover Swap Files");
         }
@@ -1004,22 +897,190 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         return "FlowFileQueue[id=" + identifier + "]";
     }
 
+    private final ConcurrentMap<String, DropFlowFileRequest> dropRequestMap = new ConcurrentHashMap<>();
+
     @Override
     public DropFlowFileStatus dropFlowFiles() {
-        // TODO Auto-generated method stub
-        return null;
+        // purge any old requests from the map just to keep it clean. But if there are very requests, which is usually the case, then don't bother
+        if (dropRequestMap.size() > 10) {
+            final List<String> toDrop = new ArrayList<>();
+            for (final Map.Entry<String, DropFlowFileRequest> entry : dropRequestMap.entrySet()) {
+                final DropFlowFileRequest request = entry.getValue();
+                final boolean completed = request.getState() == DropFlowFileState.COMPLETE || request.getState() == DropFlowFileState.FAILURE;
+
+                if (completed && System.currentTimeMillis() - request.getLastUpdated() > TimeUnit.MINUTES.toMillis(5L)) {
+                    toDrop.add(entry.getKey());
+                }
+            }
+
+            for (final String requestId : toDrop) {
+                dropRequestMap.remove(requestId);
+            }
+        }
+
+        // TODO: get user name!
+        final String userName = null;
+
+        final String requestIdentifier = UUID.randomUUID().toString();
+        final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier);
+        final Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                writeLock.lock();
+                try {
+                    dropRequest.setState(DropFlowFileState.DROPPING_ACTIVE_FLOWFILES);
+
+                    try {
+                        final List<FlowFileRecord> activeQueueRecords = new ArrayList<>(activeQueue);
+                        drop(activeQueueRecords, userName);
+                        activeQueue.clear();
+                        dropRequest.setCurrentSize(getQueueSize());
+
+                        drop(swapQueue, userName);
+                        swapQueue.clear();
+                        dropRequest.setCurrentSize(getQueueSize());
+
+                        final Iterator<String> swapLocationItr = swapLocations.iterator();
+                        while (swapLocationItr.hasNext()) {
+                            final String swapLocation = swapLocationItr.next();
+                            final List<FlowFileRecord> swappedIn = swapManager.swapIn(swapLocation, StandardFlowFileQueue.this);
+                            try {
+                                drop(swappedIn, userName);
+                            } catch (final Exception e) {
+                                activeQueue.addAll(swappedIn); // ensure that we don't lose the FlowFiles from our queue.
+                                throw e;
+                            }
+
+                            dropRequest.setCurrentSize(getQueueSize());
+                            swapLocationItr.remove();
+                        }
+
+                        dropRequest.setState(DropFlowFileState.COMPLETE);
+                    } catch (final Exception e) {
+                        // TODO: Handle adequately
+                        dropRequest.setState(DropFlowFileState.FAILURE);
+                    }
+                } finally {
+                    writeLock.unlock("Drop FlowFiles");
+                }
+            }
+        }, "Drop FlowFiles for Connection " + getIdentifier());
+        t.setDaemon(true);
+        t.start();
+
+        dropRequest.setExecutionThread(t);
+        dropRequestMap.put(requestIdentifier, dropRequest);
+
+        return dropRequest;
+    }
+
+    private void drop(final List<FlowFileRecord> flowFiles, final String user) throws IOException {
+        // Create a Provenance Event and a FlowFile Repository record for each FlowFile
+        final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(flowFiles.size());
+        final List<RepositoryRecord> flowFileRepoRecords = new ArrayList<>(flowFiles.size());
+        for (final FlowFileRecord flowFile : flowFiles) {
+            provenanceEvents.add(createDropEvent(flowFile, user));
+            flowFileRepoRecords.add(createDeleteRepositoryRecord(flowFile));
+        }
+
+        for (final FlowFileRecord flowFile : flowFiles) {
+            final ContentClaim contentClaim = flowFile.getContentClaim();
+            if (contentClaim == null) {
+                continue;
+            }
+
+            final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+            if (resourceClaim == null) {
+                continue;
+            }
+
+            resourceClaimManager.decrementClaimantCount(resourceClaim);
+        }
+
+        provRepository.registerEvents(provenanceEvents);
+        flowFileRepository.updateRepository(flowFileRepoRecords);
+    }
+
+    private ProvenanceEventRecord createDropEvent(final FlowFileRecord flowFile, final String user) {
+        final ProvenanceEventBuilder builder = provRepository.eventBuilder();
+        builder.fromFlowFile(flowFile);
+        builder.setEventType(ProvenanceEventType.DROP);
+        builder.setLineageStartDate(flowFile.getLineageStartDate());
+        builder.setComponentId(getIdentifier());
+        builder.setComponentType("Connection");
+        builder.setDetails("FlowFile manually dropped by user " + user);
+        return builder.build();
+    }
+
+    private RepositoryRecord createDeleteRepositoryRecord(final FlowFileRecord flowFile) {
+        return new RepositoryRecord() {
+            @Override
+            public FlowFileQueue getDestination() {
+                return null;
+            }
+
+            @Override
+            public FlowFileQueue getOriginalQueue() {
+                return StandardFlowFileQueue.this;
+            }
+
+            @Override
+            public RepositoryRecordType getType() {
+                return RepositoryRecordType.DELETE;
+            }
+
+            @Override
+            public ContentClaim getCurrentClaim() {
+                return flowFile.getContentClaim();
+            }
+
+            @Override
+            public ContentClaim getOriginalClaim() {
+                return flowFile.getContentClaim();
+            }
+
+            @Override
+            public long getCurrentClaimOffset() {
+                return flowFile.getContentClaimOffset();
+            }
+
+            @Override
+            public FlowFileRecord getCurrent() {
+                return flowFile;
+            }
+
+            @Override
+            public boolean isAttributesChanged() {
+                return false;
+            }
+
+            @Override
+            public boolean isMarkedForAbort() {
+                return false;
+            }
+
+            @Override
+            public String getSwapLocation() {
+                return null;
+            }
+        };
+    }
+
+
+    @Override
+    public boolean cancelDropFlowFileRequest(final String requestIdentifier) {
+        final DropFlowFileRequest request = dropRequestMap.remove(requestIdentifier);
+        if (request == null) {
+            return false;
+        }
+
+        final boolean successful = request.cancel();
+        return successful;
     }
 
     @Override
-    public boolean cancelDropFlowFileRequest(String requestIdentifier) {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public DropFlowFileStatus getDropFlowFileStatus(String requestIdentifier) {
-        // TODO Auto-generated method stub
-        return null;
+    public DropFlowFileStatus getDropFlowFileStatus(final String requestIdentifier) {
+        return dropRequestMap.get(requestIdentifier);
     }
 
     /**
@@ -1050,127 +1111,5 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             final QueueSize newSize = new QueueSize(queueSize.getObjectCount() + addToCount, queueSize.getByteCount() + addToSize);
             updated = unacknowledgedSizeRef.compareAndSet(queueSize, newSize);
         } while (!updated);
-    }
-
-    private void requeueExpiredPrefetch(final PreFetch prefetch) {
-        if (prefetch == null) {
-            return;
-        }
-
-        writeLock.lock();
-        try {
-            final long contentSizeRequeued = prefetch.requeue(activeQueue);
-            this.activeQueueContentSize += contentSizeRequeued;
-            this.preFetchRef.compareAndSet(prefetch, null);
-        } finally {
-            writeLock.unlock("requeueExpiredPrefetch");
-        }
-    }
-
-    /**
-     * MUST be called with write lock held.
-     */
-    private final AtomicReference<PreFetch> preFetchRef = new AtomicReference<>();
-
-    private void prefetch() {
-        if (activeQueue.isEmpty()) {
-            return;
-        }
-
-        final int numToFetch = Math.min(prefetchSize, activeQueue.size());
-
-        final PreFetch curPreFetch = preFetchRef.get();
-        if (curPreFetch != null && curPreFetch.size().getObjectCount() > 0) {
-            return;
-        }
-
-        final List<FlowFileRecord> buffer = new ArrayList<>(numToFetch);
-        long contentSize = 0L;
-        for (int i = 0; i < numToFetch; i++) {
-            final FlowFileRecord record = activeQueue.poll();
-            if (record == null || record.isPenalized()) {
-                // not enough unpenalized records to pull. Put all records back and return
-                activeQueue.addAll(buffer);
-                if (record != null) {
-                    activeQueue.add(record);
-                }
-                return;
-            } else {
-                buffer.add(record);
-                contentSize += record.getSize();
-            }
-        }
-
-        activeQueueContentSize -= contentSize;
-        preFetchRef.set(new PreFetch(buffer));
-    }
-
-    private final TimedBuffer<TimestampedLong> pollCounts = new TimedBuffer<>(TimeUnit.SECONDS, 5, new LongEntityAccess());
-
-    private boolean incrementPollCount() {
-        pollCounts.add(new TimestampedLong(1L));
-        final long totalCount = pollCounts.getAggregateValue(System.currentTimeMillis() - 5000L).getValue();
-        return totalCount > PREFETCH_POLL_THRESHOLD * 5;
-    }
-
-    private static class PreFetch {
-
-        private final List<FlowFileRecord> records;
-        private final AtomicInteger pointer = new AtomicInteger(0);
-        private final long expirationTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(1L);
-        private final AtomicLong contentSize = new AtomicLong(0L);
-
-        public PreFetch(final List<FlowFileRecord> records) {
-            this.records = records;
-
-            long totalSize = 0L;
-            for (final FlowFileRecord record : records) {
-                totalSize += record.getSize();
-            }
-            contentSize.set(totalSize);
-        }
-
-        public FlowFileRecord nextRecord() {
-            final int nextValue = pointer.getAndIncrement();
-            if (nextValue >= records.size()) {
-                return null;
-            }
-
-            final FlowFileRecord flowFile = records.get(nextValue);
-            contentSize.addAndGet(-flowFile.getSize());
-            return flowFile;
-        }
-
-        public QueueSize size() {
-            final int pointerIndex = pointer.get();
-            final int count = records.size() - pointerIndex;
-            if (count < 0) {
-                return new QueueSize(0, 0L);
-            }
-
-            final long bytes = contentSize.get();
-            return new QueueSize(count, bytes);
-        }
-
-        public boolean isExpired() {
-            return System.nanoTime() > expirationTime;
-        }
-
-        private long requeue(final Queue<FlowFileRecord> queue) {
-            // get the current pointer and prevent any other thread from accessing the rest of the elements
-            final int curPointer = pointer.getAndAdd(records.size());
-            if (curPointer < records.size() - 1) {
-                final List<FlowFileRecord> subList = records.subList(curPointer, records.size());
-                long contentSize = 0L;
-                for (final FlowFileRecord record : subList) {
-                    contentSize += record.getSize();
-                }
-
-                queue.addAll(subList);
-
-                return contentSize;
-            }
-            return 0L;
-        }
     }
 }

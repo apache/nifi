@@ -43,6 +43,12 @@ public interface DropFlowFileStatus {
     long getRequestSubmissionTime();
 
     /**
+     * @return the date/time (in milliseconds since epoch) at which the status of the
+     *         request was last updated
+     */
+    long getLastUpdated();
+
+    /**
      * @return the size of the queue when the drop request was issued or <code>null</code> if
      *         it is not yet known, which can happen if the {@link DropFlowFileState} is
      *         {@link DropFlowFileState#WAITING_FOR_LOCK}.
@@ -58,5 +64,4 @@ public interface DropFlowFileStatus {
      * @return the current state of the operation
      */
     DropFlowFileState getState();
-
 }

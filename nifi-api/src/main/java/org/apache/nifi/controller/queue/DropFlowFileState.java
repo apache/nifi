@@ -25,7 +25,8 @@ public enum DropFlowFileState {
     WAITING_FOR_LOCK("Waiting for Destination Component to complete its action"),
     DROPPING_ACTIVE_FLOWFILES("Dropping FlowFiles from queue"),
     COMPLETE("Completed Successfully"),
-    FAILURE("Failed");
+    FAILURE("Failed"),
+    CANCELED("Cancelled by User");
     
     private final String description;
     

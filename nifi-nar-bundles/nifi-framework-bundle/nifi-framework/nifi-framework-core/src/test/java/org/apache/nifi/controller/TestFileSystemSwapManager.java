@@ -22,16 +22,26 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.flowfile.FlowFile;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -47,7 +57,7 @@ public class TestFileSystemSwapManager {
             final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
             Mockito.when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
-            final List<FlowFileRecord> records = FileSystemSwapManager.deserializeFlowFiles(in, flowFileQueue, "/src/test/resources/old-swap-file.swap", new NopResourceClaimManager());
+            final List<FlowFileRecord> records = FileSystemSwapManager.deserializeFlowFiles(in, "/src/test/resources/old-swap-file.swap", flowFileQueue, new NopResourceClaimManager());
             assertEquals(10000, records.size());
 
             for (final FlowFileRecord record : records) {
@@ -56,6 +66,53 @@ public class TestFileSystemSwapManager {
             }
         }
     }
+
+    @Test
+    public void testRoundTripSerializeDeserialize() throws IOException {
+        final List<FlowFileRecord> toSwap = new ArrayList<>(10000);
+        final Map<String, String> attrs = new HashMap<>();
+        for (int i = 0; i < 10000; i++) {
+            attrs.put("i", String.valueOf(i));
+            final FlowFileRecord ff = new TestFlowFile(attrs, i);
+            toSwap.add(ff);
+        }
+
+        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        Mockito.when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+
+        final String swapLocation = "target/testRoundTrip.swap";
+        final File swapFile = new File(swapLocation);
+        Files.deleteIfExists(swapFile.toPath());
+
+        try (final FileOutputStream fos = new FileOutputStream(swapFile)) {
+            FileSystemSwapManager.serializeFlowFiles(toSwap, flowFileQueue, swapLocation, fos);
+        }
+
+        final List<FlowFileRecord> swappedIn;
+        try (final FileInputStream fis = new FileInputStream(swapFile);
+            final DataInputStream dis = new DataInputStream(fis)) {
+            swappedIn = FileSystemSwapManager.deserializeFlowFiles(dis, swapLocation, flowFileQueue, Mockito.mock(ResourceClaimManager.class));
+        }
+
+        assertEquals(toSwap.size(), swappedIn.size());
+        for (int i = 0; i < toSwap.size(); i++) {
+            final FlowFileRecord pre = toSwap.get(i);
+            final FlowFileRecord post = swappedIn.get(i);
+
+            assertEquals(pre.getSize(), post.getSize());
+            assertEquals(pre.getAttributes(), post.getAttributes());
+            assertEquals(pre.getSize(), post.getSize());
+            assertEquals(pre.getId(), post.getId());
+            assertEquals(pre.getContentClaim(), post.getContentClaim());
+            assertEquals(pre.getContentClaimOffset(), post.getContentClaimOffset());
+            assertEquals(pre.getEntryDate(), post.getEntryDate());
+            assertEquals(pre.getLastQueueDate(), post.getLastQueueDate());
+            assertEquals(pre.getLineageIdentifiers(), post.getLineageIdentifiers());
+            assertEquals(pre.getLineageStartDate(), post.getLineageStartDate());
+            assertEquals(pre.getPenaltyExpirationMillis(), post.getPenaltyExpirationMillis());
+        }
+    }
+
 
     public class NopResourceClaimManager implements ResourceClaimManager {
 
@@ -98,6 +155,89 @@ public class TestFileSystemSwapManager {
 
         @Override
         public void purge() {
+        }
+    }
+
+
+    private static class TestFlowFile implements FlowFileRecord {
+        private static final AtomicLong idGenerator = new AtomicLong(0L);
+
+        private final long id = idGenerator.getAndIncrement();
+        private final long entryDate = System.currentTimeMillis();
+        private final long lastQueueDate = System.currentTimeMillis();
+        private final Map<String, String> attributes;
+        private final long size;
+
+
+        public TestFlowFile(final Map<String, String> attributes, final long size) {
+            this.attributes = attributes;
+            this.size = size;
+        }
+
+
+        @Override
+        public long getId() {
+            return id;
+        }
+
+        @Override
+        public long getEntryDate() {
+            return entryDate;
+        }
+
+        @Override
+        public long getLineageStartDate() {
+            return entryDate;
+        }
+
+        @Override
+        public Long getLastQueueDate() {
+            return lastQueueDate;
+        }
+
+        @Override
+        public Set<String> getLineageIdentifiers() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public boolean isPenalized() {
+            return false;
+        }
+
+        @Override
+        public String getAttribute(String key) {
+            return attributes.get(key);
+        }
+
+        @Override
+        public long getSize() {
+            return size;
+        }
+
+        @Override
+        public Map<String, String> getAttributes() {
+            return Collections.unmodifiableMap(attributes);
+        }
+
+        @Override
+        public int compareTo(final FlowFile o) {
+            return Long.compare(id, o.getId());
+        }
+
+        @Override
+        public long getPenaltyExpirationMillis() {
+            return -1L;
+        }
+
+        @Override
+        public ContentClaim getContentClaim() {
+            return null;
+        }
+
+        @Override
+        public long getContentClaimOffset() {
+            return 0;
         }
     }
 }

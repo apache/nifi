@@ -26,6 +26,9 @@ import org.apache.nifi.controller.queue.QueueSize;
  * Defines a mechanism by which FlowFiles can be move into external storage or
  * memory so that they can be removed from the Java heap and vice-versa
  */
+// TODO: This needs to be refactored into two different mechanisms, one that is responsible for doing
+// framework-y types of things, such as updating the repositories, and another that is responsible
+// for serializing and deserializing FlowFiles to external storage.
 public interface FlowFileSwapManager {
 
     /**
@@ -36,6 +39,16 @@ public interface FlowFileSwapManager {
      *            resources that it needs to perform its functions
      */
     void initialize(SwapManagerInitializationContext initializationContext);
+
+    /**
+     * Drops all FlowFiles that are swapped out at the given location. This will update the Provenance
+     * Repository as well as the FlowFile Repository and
+     *
+     * @param swapLocation the location of the swap file to drop
+     * @param flowFileQueue the queue to which the FlowFiles belong
+     * @param user the user that initiated the request
+     */
+    void dropSwappedFlowFiles(String swapLocation, FlowFileQueue flowFileQueue, String user) throws IOException;
 
     /**
      * Swaps out the given FlowFiles that belong to the queue with the given identifier.
@@ -53,13 +66,13 @@ public interface FlowFileSwapManager {
      * provides a view of the FlowFiles but does not actively swap them in, meaning that the swap file
      * at the given location remains in that location and the FlowFile Repository is not updated.
      *
-     * @param swapLocation the location of hte swap file
+     * @param swapLocation the location of the swap file
      * @param flowFileQueue the queue that the FlowFiles belong to
      * @return the FlowFiles that live at the given swap location
      *
      * @throws IOException if unable to recover the FlowFiles from the given location
      */
-    List<FlowFileRecord> peek(String swapLocation, final FlowFileQueue flowFileQueue) throws IOException;
+    List<FlowFileRecord> peek(String swapLocation, FlowFileQueue flowFileQueue) throws IOException;
 
     /**
      * Recovers the FlowFiles from the swap file that lives at the given location and belongs

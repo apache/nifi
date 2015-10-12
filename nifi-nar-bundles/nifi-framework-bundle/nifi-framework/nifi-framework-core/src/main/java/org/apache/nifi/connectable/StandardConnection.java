@@ -32,11 +32,14 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.StandardFlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.util.NiFiProperties;
 
 /**
@@ -66,7 +69,8 @@ public final class StandardConnection implements Connection {
         destination = new AtomicReference<>(builder.destination);
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
-        flowFileQueue = new StandardFlowFileQueue(id, this, scheduler, builder.swapManager, builder.eventReporter, NiFiProperties.getInstance().getQueueSwapThreshold());
+        flowFileQueue = new StandardFlowFileQueue(id, this, builder.flowFileRepository, builder.provenanceRepository, builder.resourceClaimManager,
+            scheduler, builder.swapManager, builder.eventReporter, NiFiProperties.getInstance().getQueueSwapThreshold());
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -262,6 +266,9 @@ public final class StandardConnection implements Connection {
         private Collection<Relationship> relationships;
         private FlowFileSwapManager swapManager;
         private EventReporter eventReporter;
+        private FlowFileRepository flowFileRepository;
+        private ProvenanceEventRepository provenanceRepository;
+        private ResourceClaimManager resourceClaimManager;
 
         public Builder(final ProcessScheduler scheduler) {
             this.scheduler = scheduler;
@@ -318,6 +325,21 @@ public final class StandardConnection implements Connection {
             return this;
         }
 
+        public Builder flowFileRepository(final FlowFileRepository flowFileRepository) {
+            this.flowFileRepository = flowFileRepository;
+            return this;
+        }
+
+        public Builder provenanceRepository(final ProvenanceEventRepository provenanceRepository) {
+            this.provenanceRepository = provenanceRepository;
+            return this;
+        }
+
+        public Builder resourceClaimManager(final ResourceClaimManager resourceClaimManager) {
+            this.resourceClaimManager = resourceClaimManager;
+            return this;
+        }
+
         public StandardConnection build() {
             if (source == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Source");
@@ -327,6 +349,15 @@ public final class StandardConnection implements Connection {
             }
             if (swapManager == null) {
                 throw new IllegalStateException("Cannot build a Connection without a FlowFileSwapManager");
+            }
+            if (flowFileRepository == null) {
+                throw new IllegalStateException("Cannot build a Connection without a FlowFile Repository");
+            }
+            if (provenanceRepository == null) {
+                throw new IllegalStateException("Cannot build a Connection without a Provenance Repository");
+            }
+            if (resourceClaimManager == null) {
+                throw new IllegalStateException("Cannot build a Connection without a Resource Claim Manager");
             }
 
             if (relationships == null) {

@@ -27,7 +27,6 @@ public interface SwapManagerInitializationContext {
      */
     FlowFileRepository getFlowFileRepository();
 
-
     /**
      * @return the {@link ResourceClaimManager} that is necessary to provide to the FlowFileRepository when
      *         performing swapping actions

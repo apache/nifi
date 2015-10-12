@@ -60,13 +60,6 @@ public interface FlowFileQueue {
     void purgeSwapFiles();
 
     /**
-     * @return the minimum number of FlowFiles that must be present in order for
-     *         FlowFiles to begin being swapped out of the queue
-     */
-    // TODO: REMOVE THIS.
-    int getSwapThreshold();
-
-    /**
      * Resets the comparator used by this queue to maintain order.
      *
      * @param newPriorities the ordered list of prioritizers to use to determine
@@ -112,11 +105,7 @@ public interface FlowFileQueue {
      *         not include those FlowFiles that have been swapped out or are currently
      *         being processed
      */
-    // TODO: REMOVE?
     boolean isActiveQueueEmpty();
-
-    // TODO: REMOVE?
-    QueueSize getActiveQueueSize();
 
     /**
      * Returns a QueueSize that represents all FlowFiles that are 'unacknowledged'. A FlowFile
@@ -150,45 +139,6 @@ public interface FlowFileQueue {
      * @param files to place into queue
      */
     void putAll(Collection<FlowFileRecord> files);
-
-    /**
-     * Removes all records from the internal swap queue and returns them.
-     *
-     * @return all removed records from internal swap queue
-     */
-    // TODO: REMOVE THIS?
-    List<FlowFileRecord> pollSwappableRecords();
-
-    /**
-     * Restores the records from swap space into this queue, adding the records
-     * that have expired to the given set instead of enqueuing them.
-     *
-     * @param records that were swapped in
-     */
-    // TODO: REMOVE THIS?
-    void putSwappedRecords(Collection<FlowFileRecord> records);
-
-    /**
-     * Updates the internal counters of how much data is queued, based on
-     * swapped data that is being restored.
-     *
-     * @param numRecords count of records swapped in
-     * @param contentSize total size of records being swapped in
-     */
-    // TODO: REMOVE THIS?
-    void incrementSwapCount(int numRecords, long contentSize);
-
-    /**
-     * @return the number of FlowFiles that are enqueued and not swapped
-     */
-    // TODO: REMOVE THIS?
-    int unswappedSize();
-
-    // TODO: REMOVE THIS?
-    int getSwapRecordCount();
-
-    // TODO: REMOVE THIS?
-    int getSwapQueueSize();
 
     /**
      * @param expiredRecords expired records

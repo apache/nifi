@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.queue;
 
+import java.text.NumberFormat;
+
 /**
  *
  */
@@ -44,5 +46,10 @@ public class QueueSize {
      */
     public long getByteCount() {
         return totalSizeBytes;
+    }
+
+    @Override
+    public String toString() {
+        return "QueueSize[FlowFiles=" + objectCount + ", ContentSize=" + NumberFormat.getNumberInstance().format(totalSizeBytes) + " Bytes]";
     }
 }

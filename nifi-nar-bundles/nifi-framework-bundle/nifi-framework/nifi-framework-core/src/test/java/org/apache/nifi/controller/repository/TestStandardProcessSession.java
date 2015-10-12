@@ -134,7 +134,7 @@ public class TestStandardProcessSession {
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
         final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
-        flowFileQueue = new StandardFlowFileQueue("1", connection, processScheduler, swapManager, null, 10000);
+        flowFileQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null, processScheduler, swapManager, null, 10000);
         when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
 
         Mockito.doAnswer(new Answer<Object>() {

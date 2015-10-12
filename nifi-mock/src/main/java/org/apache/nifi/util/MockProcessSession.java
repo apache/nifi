@@ -40,12 +40,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
@@ -691,7 +691,7 @@ public class MockProcessSession implements ProcessSession {
     /**
      * @param relationship to get flowfiles for
      * @return a List of FlowFiles in the order in which they were transferred
-     * to the given relationship
+     *         to the given relationship
      */
     public List<MockFlowFile> getFlowFilesForRelationship(final String relationship) {
         final Relationship procRel = new Relationship.Builder().name(relationship).build();
@@ -778,7 +778,7 @@ public class MockProcessSession implements ProcessSession {
      */
     private FlowFile inheritAttributes(final FlowFile source, final FlowFile destination) {
         if (source == null || destination == null || source == destination) {
-            return destination; //don't need to inherit from ourselves
+            return destination; // don't need to inherit from ourselves
         }
         final FlowFile updated = putAllAttributes(destination, source.getAttributes());
         getProvenanceReporter().fork(source, Collections.singletonList(updated));
@@ -801,7 +801,7 @@ public class MockProcessSession implements ProcessSession {
         int uuidsCaptured = 0;
         for (final FlowFile source : sources) {
             if (source == destination) {
-                continue; //don't want to capture parent uuid of this.  Something can't be a child of itself
+                continue; // don't want to capture parent uuid of this. Something can't be a child of itself
             }
             final String sourceUuid = source.getAttribute(CoreAttributes.UUID.key());
             if (sourceUuid != null && !sourceUuid.trim().isEmpty()) {
@@ -832,7 +832,7 @@ public class MockProcessSession implements ProcessSession {
      */
     private static Map<String, String> intersectAttributes(final Collection<FlowFile> flowFileList) {
         final Map<String, String> result = new HashMap<>();
-        //trivial cases
+        // trivial cases
         if (flowFileList == null || flowFileList.isEmpty()) {
             return result;
         } else if (flowFileList.size() == 1) {
@@ -845,8 +845,7 @@ public class MockProcessSession implements ProcessSession {
          */
         final Map<String, String> firstMap = flowFileList.iterator().next().getAttributes();
 
-        outer:
-        for (final Map.Entry<String, String> mapEntry : firstMap.entrySet()) {
+        outer: for (final Map.Entry<String, String> mapEntry : firstMap.entrySet()) {
             final String key = mapEntry.getKey();
             final String value = mapEntry.getValue();
             for (final FlowFile flowFile : flowFileList) {
@@ -900,7 +899,7 @@ public class MockProcessSession implements ProcessSession {
     public void assertTransferCount(final Relationship relationship, final int count) {
         final int transferCount = getFlowFilesForRelationship(relationship).size();
         Assert.assertEquals("Expected " + count + " FlowFiles to be transferred to "
-                + relationship + " but actual transfer count was " + transferCount, count, transferCount);
+            + relationship + " but actual transfer count was " + transferCount, count, transferCount);
     }
 
     /**
