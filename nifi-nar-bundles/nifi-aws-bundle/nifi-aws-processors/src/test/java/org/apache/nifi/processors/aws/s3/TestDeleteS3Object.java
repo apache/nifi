@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazonaws.auth.PropertiesCredentials;
@@ -38,7 +39,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
 
-//@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
+@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
 public class TestDeleteS3Object {
 
     private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
