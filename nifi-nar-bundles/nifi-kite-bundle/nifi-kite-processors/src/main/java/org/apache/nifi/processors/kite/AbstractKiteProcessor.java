@@ -121,14 +121,17 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             if ("dataset".equals(uri.getScheme()) || "view".equals(uri.getScheme())) {
                 return Datasets.load(uri).getDataset().getDescriptor().getSchema();
             } else if ("resource".equals(uri.getScheme())) {
-                InputStream in = Resources.getResource(uri.getSchemeSpecificPart())
-                        .openStream();
-                return parseSchema(uri, in);
+                try (InputStream in = Resources.getResource(uri.getSchemeSpecificPart())
+                        .openStream()) {
+                    return parseSchema(uri, in);
+                }
             } else {
                 // try to open the file
                 Path schemaPath = new Path(uri);
                 FileSystem fs = schemaPath.getFileSystem(conf);
-                return parseSchema(uri, fs.open(schemaPath));
+                try (InputStream in = fs.open(schemaPath)) {
+                    return parseSchema(uri, in);
+                }
             }
 
         } catch (DatasetNotFoundException e) {
