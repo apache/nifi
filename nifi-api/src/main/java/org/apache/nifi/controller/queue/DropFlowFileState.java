@@ -27,13 +27,13 @@ public enum DropFlowFileState {
     COMPLETE("Completed Successfully"),
     FAILURE("Failed"),
     CANCELED("Cancelled by User");
-    
+
     private final String description;
-    
+
     private DropFlowFileState(final String description) {
         this.description = description;
     }
-    
+
     @Override
     public String toString() {
         return description;
