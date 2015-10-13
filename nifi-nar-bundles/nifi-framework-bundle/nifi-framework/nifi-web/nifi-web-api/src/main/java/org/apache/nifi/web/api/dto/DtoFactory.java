@@ -124,6 +124,9 @@ import org.apache.nifi.web.api.dto.status.StatusDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.queue.DropFlowFileState;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.reporting.ReportingTask;
@@ -291,6 +294,42 @@ public final class DtoFactory {
      */
     public PositionDTO createPositionDto(final Position position) {
         return new PositionDTO(position.getX(), position.getY());
+    }
+
+    /**
+     * Creates a DropRequestDTO from the specified flow file status.
+     *
+     * @param dropRequest dropRequest
+     * @return dto
+     */
+    public DropRequestDTO createDropRequestDTO(final DropFlowFileStatus dropRequest) {
+        final DropRequestDTO dto = new DropRequestDTO();
+        dto.setId(dropRequest.getRequestIdentifier());
+        dto.setSubmissionTime(new Date(dropRequest.getRequestSubmissionTime()));
+        dto.setLastUpdated(new Date(dropRequest.getLastUpdated()));
+        dto.setState(dropRequest.getState().toString());
+        dto.setFinished(DropFlowFileState.COMPLETE.equals(dropRequest.getState()));
+
+        final QueueSize dropped = dropRequest.getDroppedSize();
+        dto.setDroppedCount(dropped.getObjectCount());
+        dto.setDroppedSize(FormatUtils.formatDataSize(dropped.getByteCount()));
+
+        if (dropRequest.getOriginalSize() != null) {
+            final QueueSize original = dropRequest.getOriginalSize();
+            dto.setOriginalCount(original.getObjectCount());
+            dto.setOriginalSize(FormatUtils.formatDataSize(original.getByteCount()));
+            dto.setPercentCompleted((dropped.getObjectCount() * 100 ) / original.getObjectCount());
+        } else {
+            dto.setPercentCompleted(0);
+        }
+
+        if (dropRequest.getCurrentSize() != null) {
+            final QueueSize current = dropRequest.getCurrentSize();
+            dto.setCurrentCount(current.getObjectCount());
+            dto.setCurrentSize(FormatUtils.formatDataSize(current.getByteCount()));
+        }
+
+        return dto;
     }
 
     /**
@@ -1521,8 +1560,7 @@ public final class DtoFactory {
     }
 
     /**
-     * Creates a ProvenanceEventNodeDTO for the specified
-     * ProvenanceEventLineageNode.
+     * Creates a ProvenanceEventNodeDTO for the specified ProvenanceEventLineageNode.
      *
      * @param node node
      * @return dto
@@ -2173,9 +2211,8 @@ public final class DtoFactory {
     /**
      *
      * @param original orig
-     * @param deep if <code>true</code>, all Connections, ProcessGroups, Ports,
-     * Processors, etc. will be copied. If <code>false</code>, the copy will
-     * have links to the same objects referenced by <code>original</code>.
+     * @param deep if <code>true</code>, all Connections, ProcessGroups, Ports, Processors, etc. will be copied. If <code>false</code>, the copy will have links to the same objects referenced by
+     * <code>original</code>.
      *
      * @return dto
      */

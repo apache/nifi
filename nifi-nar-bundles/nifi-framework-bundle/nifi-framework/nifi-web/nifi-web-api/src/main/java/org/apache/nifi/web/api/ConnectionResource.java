@@ -946,8 +946,8 @@ public class ConnectionResource extends ApplicationResource {
         }
 
         // submit the drop request
-        final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(groupId, id);
-        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", id, "contents", "drop-requests", dropRequestId));
+        final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(groupId, id, dropRequestId);
+        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", id, "contents", "drop-requests", dropRequest.getId()));
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -1019,7 +1019,7 @@ public class ConnectionResource extends ApplicationResource {
         }
 
         // get the drop request
-        final DropRequestDTO dropRequest = serviceFacade.getFlowFileDropRequest(dropRequestId);
+        final DropRequestDTO dropRequest = serviceFacade.getFlowFileDropRequest(groupId, connectionId, dropRequestId);
         dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", connectionId, "contents", "drop-requests", dropRequestId));
 
         // create the revision
@@ -1086,7 +1086,7 @@ public class ConnectionResource extends ApplicationResource {
         }
 
         // delete the drop request
-        serviceFacade.deleteFlowFileDropRequest(dropRequestId);
+        serviceFacade.deleteFlowFileDropRequest(groupId, connectionId, dropRequestId);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();

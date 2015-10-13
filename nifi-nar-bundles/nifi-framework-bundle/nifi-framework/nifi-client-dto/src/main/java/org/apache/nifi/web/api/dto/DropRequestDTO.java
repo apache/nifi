@@ -32,10 +32,19 @@ public class DropRequestDTO {
     private String uri;
 
     private Date submissionTime;
-    private Date expiration;
+    private Date lastUpdated;
 
     private Integer percentCompleted;
     private Boolean finished;
+
+    private Integer currentCount;
+    private String currentSize;
+    private Integer originalCount;
+    private String originalSize;
+    private Integer droppedCount;
+    private String droppedSize;
+
+    private String state;
 
     /**
      * The id for this component.
@@ -85,21 +94,6 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return expiration time of the query results
-     */
-    @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp when the query will expire."
-    )
-    public Date getExpiration() {
-        return expiration;
-    }
-
-    public void setExpiration(Date expiration) {
-        this.expiration = expiration;
-    }
-
-    /**
      * @return percent completed
      */
     @ApiModelProperty(
@@ -126,4 +120,118 @@ public class DropRequestDTO {
     public void setFinished(Boolean finished) {
         this.finished = finished;
     }
+
+    /**
+     * @return the time this request was last updated
+     */
+    @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "The last time this drop request was updated."
+    )
+    public Date getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(Date lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
+
+    /**
+     * @return the number of flow files currently queued.
+     */
+    @ApiModelProperty(
+            value = "The number of flow files currently queued."
+    )
+    public Integer getCurrentCount() {
+        return currentCount;
+    }
+
+    public void setCurrentCount(Integer currentCount) {
+        this.currentCount = currentCount;
+    }
+
+    /**
+     * @return the siez of the flow files currently queued.
+     */
+    @ApiModelProperty(
+            value = "The size of flow files currently queued."
+    )
+    public String getCurrentSize() {
+        return currentSize;
+    }
+
+    public void setCurrentSize(String currentSize) {
+        this.currentSize = currentSize;
+    }
+
+    /**
+     * @return the number of flow files to be dropped as a result of this request.
+     */
+    @ApiModelProperty(
+            value = "The number of flow files to be dropped as a result of this request."
+    )
+    public Integer getOriginalCount() {
+        return originalCount;
+    }
+
+    public void setOriginalCount(Integer originalCount) {
+        this.originalCount = originalCount;
+    }
+
+    /**
+     * @return the size of the flow files to be dropped as a result of this request.
+     */
+    @ApiModelProperty(
+            value = "The size of flow files to be dropped as a result of this request."
+    )
+    public String getOriginalSize() {
+        return originalSize;
+    }
+
+    public void setOriginalSize(String originalSize) {
+        this.originalSize = originalSize;
+    }
+
+    /**
+     * @return the number of flow files that have been dropped thus far.
+     */
+    @ApiModelProperty(
+            value = "The number of flow files that have been dropped thus far."
+    )
+    public Integer getDroppedCount() {
+        return droppedCount;
+    }
+
+    public void setDroppedCount(Integer droppedCount) {
+        this.droppedCount = droppedCount;
+    }
+
+    /**
+     * @return the size of the flow files that have been dropped thus far.
+     */
+    @ApiModelProperty(
+            value = "The size of flow files that have been dropped thus far."
+    )
+    public String getDroppedSize() {
+        return droppedSize;
+    }
+
+    public void setDroppedSize(String droppedSize) {
+        this.droppedSize = droppedSize;
+    }
+
+    /**
+     * @return the current state of the drop request.
+     */
+    @ApiModelProperty(
+            value = "The current state of the drop request."
+    )
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
 }

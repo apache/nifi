@@ -50,7 +50,7 @@ public class QueueSize {
 
     /**
      * Returns a new QueueSize that is the sum of this QueueSize and the provided QueueSize
-     * 
+     *
      * @param other the other QueueSize to add to this QueueSize
      * @return a new QueueSize that is the sum of this QueueSize and the provided QueueSize
      */

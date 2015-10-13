@@ -810,8 +810,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void deleteFlowFileDropRequest(String dropRequestId) {
-        // TODO
+    public void deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        connectionDAO.deleteFlowFileDropRequest(groupId, connectionId, dropRequestId);
     }
 
     @Override
@@ -1066,15 +1066,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId) {
-        // TODO
-        final DropRequestDTO dto = new DropRequestDTO();
-        dto.setFinished(false);
-        dto.setSubmissionTime(new Date());
-        dto.setExpiration(new Date(System.currentTimeMillis() + 10000));
-        dto.setId(UUID.randomUUID().toString());
-        dto.setPercentCompleted(100);
-        return dto;
+    public DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(connectionDAO.createFileFlowDropRequest(groupId, connectionId, dropRequestId));
     }
 
     @Override
@@ -2110,9 +2103,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public DropRequestDTO getFlowFileDropRequest(String dropRequestId) {
-        // TODO
-        return null;
+    public DropRequestDTO getFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(connectionDAO.getFlowFileDropRequest(groupId, connectionId, dropRequestId));
     }
 
     @Override
@@ -3460,8 +3452,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     /**
-     * Utility method for extracting component counts from the specified group
-     * status.
+     * Utility method for extracting component counts from the specified group status.
      */
     private ProcessGroupCounts extractProcessGroupCounts(ProcessGroupStatus groupStatus) {
         int running = 0;

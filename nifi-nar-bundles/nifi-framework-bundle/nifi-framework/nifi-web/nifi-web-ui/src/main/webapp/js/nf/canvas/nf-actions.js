@@ -854,13 +854,17 @@ nf.Actions = (function () {
             if (selection.size() !== 1 || !nf.CanvasUtils.isConnection(selection)) {
                 return;
             }
+            
+            var MAX_DELAY = 4;
 
             // process the drop request
             var processDropRequest = function (dropRequest, nextDelay) {
                 // see if the drop request has completed
                 if (dropRequest.finished === true) {
+                    // request is finished so it can be removed
                     deleteDropRequest(dropRequest);
                 } else {
+                    // update the UI with the current status of the drop request
                     schedule(dropRequest, nextDelay);
                 }
             };
@@ -874,7 +878,7 @@ nf.Actions = (function () {
                         dataType: 'json'
                     }).done(function(response) {
                         var dropRequest = response.dropRequest;
-                        processDropRequest(dropRequest, Math.min(8, delay * 2));
+                        processDropRequest(dropRequest, Math.min(MAX_DELAY, delay * 2));
                     }).fail(nf.Common.handleAjaxError);
                 }, delay * 1000);
             };

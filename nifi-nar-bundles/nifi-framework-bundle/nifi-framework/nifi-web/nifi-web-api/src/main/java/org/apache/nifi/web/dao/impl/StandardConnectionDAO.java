@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
+import javax.ws.rs.WebApplicationException;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -31,17 +32,21 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.exception.ValidationException;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.dao.ConnectionDAO;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
 
 public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO {
 
@@ -69,8 +74,16 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public void getFlowFileDropRequest(String dropRequestId) {
-        // TODO
+    public DropFlowFileStatus getFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        final Connection connection = locateConnection(groupId, connectionId);
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+
+        final DropFlowFileStatus dropRequest = queue.getDropFlowFileStatus(dropRequestId);
+        if (dropRequest == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find drop request with id '%s'.", dropRequestId));
+        }
+
+        return dropRequest;
     }
 
     @Override
@@ -299,8 +312,16 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public void createFileFlowDropRequest(String groupId, String id) {
-        // TODO
+    public DropFlowFileStatus createFileFlowDropRequest(String groupId, String id, String dropRequestId) {
+        final Connection connection = locateConnection(groupId, id);
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user == null) {
+            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
+        }
+
+        return queue.dropFlowFiles(dropRequestId, user.getDn());
     }
 
     @Override
@@ -475,8 +496,10 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public void deleteFlowFileDropRequest(String dropRequestId) {
-        // TODO
+    public void deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        final Connection connection = locateConnection(groupId, connectionId);
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+        queue.cancelDropFlowFileRequest(dropRequestId);
     }
 
     /* setters */

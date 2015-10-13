@@ -531,24 +531,29 @@ public interface NiFiServiceFacade {
      *
      * @param groupId group
      * @param connectionId The ID of the connection
+     * @param dropRequestId The ID of the drop request
      * @return The DropRequest
      */
-    DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId);
+    DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
 
     /**
      * Gets the specified flow file drop request.
      *
+     * @param groupId group
+     * @param connectionId The ID of the connection
      * @param dropRequestId The flow file drop request
      * @return The DropRequest
      */
-    DropRequestDTO getFlowFileDropRequest(String dropRequestId);
+    DropRequestDTO getFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
 
     /**
      * Cancels/removes the specified flow file drop request.
      *
+     * @param groupId group
+     * @param connectionId The ID of the connection
      * @param dropRequestId The flow file drop request
      */
-    void deleteFlowFileDropRequest(String dropRequestId);
+    void deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
 
     // ----------------------------------------
     // InputPort methods

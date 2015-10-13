@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao;
 
 import java.util.Set;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
 public interface ConnectionDAO {
@@ -34,9 +35,12 @@ public interface ConnectionDAO {
     /**
      * Gets the specified flow file drop request.
      *
+     * @param groupId group id
+     * @param id The id of the connection
      * @param dropRequestId The drop request id
+     * @return The drop request status
      */
-    void getFlowFileDropRequest(String dropRequestId);
+    DropFlowFileStatus getFlowFileDropRequest(String groupId, String id, String dropRequestId);
 
     /**
      * Gets the connections for the specified source processor.
@@ -78,8 +82,10 @@ public interface ConnectionDAO {
      *
      * @param groupId group id
      * @param id connection id
+     * @param dropRequestId drop request id
+     * @return The drop request status
      */
-    void createFileFlowDropRequest(String groupId, String id);
+    DropFlowFileStatus createFileFlowDropRequest(String groupId, String id, String dropRequestId);
 
     /**
      * Verifies the create request can be processed.
@@ -125,7 +131,9 @@ public interface ConnectionDAO {
     /**
      * Deletes the specified flow file drop request.
      *
+     * @param groupId group id
+     * @param id The id of the connection
      * @param dropRequestId The drop request id
      */
-    void deleteFlowFileDropRequest(String dropRequestId);
+    void deleteFlowFileDropRequest(String groupId, String id, String dropRequestId);
 }
