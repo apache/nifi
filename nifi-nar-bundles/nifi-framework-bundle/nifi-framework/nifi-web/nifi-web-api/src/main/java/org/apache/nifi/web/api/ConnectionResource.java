@@ -1036,7 +1036,7 @@ public class ConnectionResource extends ApplicationResource {
 
     /**
      * Deletes the specified drop request.
-     * 
+     *
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
      * @param dropRequestId The drop request id

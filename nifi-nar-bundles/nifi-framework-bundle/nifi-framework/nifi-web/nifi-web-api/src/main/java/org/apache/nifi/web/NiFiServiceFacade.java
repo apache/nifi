@@ -528,28 +528,28 @@ public interface NiFiServiceFacade {
 
     /**
      * Creates a new flow file drop request.
-     * 
+     *
      * @param groupId group
      * @param connectionId The ID of the connection
-     * @return 
+     * @return The DropRequest
      */
     DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId);
-    
+
     /**
      * Gets the specified flow file drop request.
-     * 
+     *
      * @param dropRequestId The flow file drop request
      * @return The DropRequest
      */
     DropRequestDTO getFlowFileDropRequest(String dropRequestId);
-    
+
     /**
      * Cancels/removes the specified flow file drop request.
-     * 
+     *
      * @param dropRequestId The flow file drop request
      */
     void deleteFlowFileDropRequest(String dropRequestId);
-    
+
     // ----------------------------------------
     // InputPort methods
     // ----------------------------------------

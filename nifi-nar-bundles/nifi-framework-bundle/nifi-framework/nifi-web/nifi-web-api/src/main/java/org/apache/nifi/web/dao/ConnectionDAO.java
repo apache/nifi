@@ -33,11 +33,11 @@ public interface ConnectionDAO {
 
     /**
      * Gets the specified flow file drop request.
-     * 
+     *
      * @param dropRequestId The drop request id
      */
     void getFlowFileDropRequest(String dropRequestId);
-    
+
     /**
      * Gets the connections for the specified source processor.
      *
@@ -75,12 +75,12 @@ public interface ConnectionDAO {
 
     /**
      * Creates a new flow file drop request.
-     * 
+     *
      * @param groupId group id
      * @param id connection id
      */
     void createFileFlowDropRequest(String groupId, String id);
-    
+
     /**
      * Verifies the create request can be processed.
      *
@@ -121,10 +121,10 @@ public interface ConnectionDAO {
      * @param id The id of the connection
      */
     void deleteConnection(String groupId, String id);
-    
+
     /**
      * Deletes the specified flow file drop request.
-     * 
+     *
      * @param dropRequestId The drop request id
      */
     void deleteFlowFileDropRequest(String dropRequestId);

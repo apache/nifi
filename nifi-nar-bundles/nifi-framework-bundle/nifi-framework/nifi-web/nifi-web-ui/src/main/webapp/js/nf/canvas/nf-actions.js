@@ -850,7 +850,7 @@ nf.Actions = (function () {
          * 
          * @param {type} selection
          */
-        deleteQueueContents: function (selection) {
+        emptyQueue: function (selection) {
             if (selection.size() !== 1 || !nf.CanvasUtils.isConnection(selection)) {
                 return;
             }
