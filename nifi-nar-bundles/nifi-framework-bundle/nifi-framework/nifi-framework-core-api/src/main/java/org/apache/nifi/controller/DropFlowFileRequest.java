@@ -30,6 +30,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
     private volatile QueueSize droppedSize = new QueueSize(0, 0L);
     private volatile long lastUpdated = System.currentTimeMillis();
     private volatile Thread executionThread;
+    private volatile String failureReason;
 
     private DropFlowFileState state = DropFlowFileState.WAITING_FOR_LOCK;
 
@@ -85,8 +86,18 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         return lastUpdated;
     }
 
+    @Override
+    public String getFailureReason() {
+        return failureReason;
+    }
+
     synchronized void setState(final DropFlowFileState state) {
+        setState(state, null);
+    }
+
+    synchronized void setState(final DropFlowFileState state, final String explanation) {
         this.state = state;
+        this.failureReason = explanation;
         this.lastUpdated = System.currentTimeMillis();
     }
 

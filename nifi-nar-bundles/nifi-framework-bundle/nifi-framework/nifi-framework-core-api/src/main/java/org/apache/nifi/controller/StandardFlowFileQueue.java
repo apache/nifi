@@ -928,14 +928,34 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
                     try {
                         final List<FlowFileRecord> activeQueueRecords = new ArrayList<>(activeQueue);
-                        QueueSize droppedSize = drop(activeQueueRecords, requestor);
+
+                        QueueSize droppedSize;
+                        try {
+                            droppedSize = drop(activeQueueRecords, requestor);
+                        } catch (final IOException ioe) {
+                            logger.error("Failed to drop the FlowFiles from queue {} due to {}", StandardFlowFileQueue.this.getIdentifier(), ioe.toString());
+                            logger.error("", ioe);
+
+                            dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe.toString());
+                            return;
+                        }
+
                         activeQueue.clear();
                         activeQueueContentSize = 0;
                         activeQueueSizeRef.set(0);
                         dropRequest.setCurrentSize(getQueueSize());
                         dropRequest.setDroppedSize(dropRequest.getDroppedSize().add(droppedSize));
 
-                        droppedSize = drop(swapQueue, requestor);
+                        try {
+                            droppedSize = drop(swapQueue, requestor);
+                        } catch (final IOException ioe) {
+                            logger.error("Failed to drop the FlowFiles from queue {} due to {}", StandardFlowFileQueue.this.getIdentifier(), ioe.toString());
+                            logger.error("", ioe);
+
+                            dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe.toString());
+                            return;
+                        }
+
                         swapQueue.clear();
                         dropRequest.setCurrentSize(getQueueSize());
                         dropRequest.setDroppedSize(dropRequest.getDroppedSize().add(droppedSize));
@@ -946,12 +966,22 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
                         final Iterator<String> swapLocationItr = swapLocations.iterator();
                         while (swapLocationItr.hasNext()) {
                             final String swapLocation = swapLocationItr.next();
-                            final List<FlowFileRecord> swappedIn = swapManager.swapIn(swapLocation, StandardFlowFileQueue.this);
+
+                            List<FlowFileRecord> swappedIn = null;
                             try {
+                                swappedIn = swapManager.swapIn(swapLocation, StandardFlowFileQueue.this);
                                 droppedSize = drop(swappedIn, requestor);
-                            } catch (final Exception e) {
-                                activeQueue.addAll(swappedIn); // ensure that we don't lose the FlowFiles from our queue.
-                                throw e;
+                            } catch (final IOException ioe) {
+                                logger.error("Failed to swap in FlowFiles from Swap File {} in order to drop the FlowFiles for Connection {} due to {}",
+                                    swapLocation, StandardFlowFileQueue.this.getIdentifier(), ioe.toString());
+                                logger.error("", ioe);
+
+                                dropRequest.setState(DropFlowFileState.FAILURE, "Failed to swap in FlowFiles from Swap File " + swapLocation + " due to " + ioe.toString());
+                                if (swappedIn != null) {
+                                    activeQueue.addAll(swappedIn); // ensure that we don't lose the FlowFiles from our queue.
+                                }
+
+                                return;
                             }
 
                             dropRequest.setDroppedSize(dropRequest.getDroppedSize().add(droppedSize));
@@ -963,8 +993,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
                         dropRequest.setState(DropFlowFileState.COMPLETE);
                     } catch (final Exception e) {
-                        // TODO: Handle adequately
-                        dropRequest.setState(DropFlowFileState.FAILURE);
+                        dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + e.toString());
                     }
                 } finally {
                     writeLock.unlock("Drop FlowFiles");
