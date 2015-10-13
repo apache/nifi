@@ -846,6 +846,64 @@ nf.Actions = (function () {
         },
         
         /**
+         * Deletes the flow files in the specified connection.
+         * 
+         * @param {type} selection
+         */
+        deleteQueueContents: function (selection) {
+            if (selection.size() !== 1 || !nf.CanvasUtils.isConnection(selection)) {
+                return;
+            }
+
+            // process the drop request
+            var processDropRequest = function (dropRequest, nextDelay) {
+                // see if the drop request has completed
+                if (dropRequest.finished === true) {
+                    deleteDropRequest(dropRequest);
+                } else {
+                    schedule(dropRequest, nextDelay);
+                }
+            };
+
+            // schedule for the next poll iteration
+            var schedule = function (dropRequest, delay) {
+                setTimeout(function () {
+                    $.ajax({
+                        type: 'GET',
+                        url: dropRequest.uri,
+                        dataType: 'json'
+                    }).done(function(response) {
+                        var dropRequest = response.dropRequest;
+                        processDropRequest(dropRequest, Math.min(8, delay * 2));
+                    }).fail(nf.Common.handleAjaxError);
+                }, delay * 1000);
+            };
+            
+            // delete the drop request
+            var deleteDropRequest = function (dropRequest) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: dropRequest.uri,
+                    dataType: 'json'
+                }).done(function() {
+                    // drop request has been deleted
+                }).fail(nf.Common.handleAjaxError);
+            };
+            
+            // get the connection data
+            var connection = selection.datum();
+            
+            // issue the request to delete the flow files
+            $.ajax({
+                type: 'DELETE',
+                url: connection.component.uri + '/contents',
+                dataType: 'json'
+            }).done(function(response) {
+                processDropRequest(response.dropRequest, 1);
+            }).fail(nf.Common.handleAjaxError);
+        },
+        
+        /**
          * Opens the fill color dialog for the component in the specified selection.
          * 
          * @param {type} selection      The selection

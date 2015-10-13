@@ -162,6 +162,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
@@ -809,6 +810,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void deleteFlowFileDropRequest(String dropRequestId) {
+        // TODO
+    }
+
+    @Override
     public ConfigurationSnapshot<Void> deleteProcessor(final Revision revision, final String groupId, final String processorId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
@@ -1057,6 +1063,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 };
             }
         });
+    }
+
+    @Override
+    public DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId) {
+        // TODO
+        final DropRequestDTO dto = new DropRequestDTO();
+        dto.setFinished(false);
+        dto.setSubmissionTime(new Date());
+        dto.setExpiration(new Date(System.currentTimeMillis() + 10000));
+        dto.setId(UUID.randomUUID().toString());
+        dto.setPercentCompleted(100);
+        return dto;
     }
 
     @Override
@@ -2089,6 +2107,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ConnectionDTO getConnection(String groupId, String connectionId) {
         return dtoFactory.createConnectionDto(connectionDAO.getConnection(groupId, connectionId));
+    }
+
+    @Override
+    public DropRequestDTO getFlowFileDropRequest(String dropRequestId) {
+        // TODO
+        return null;
     }
 
     @Override

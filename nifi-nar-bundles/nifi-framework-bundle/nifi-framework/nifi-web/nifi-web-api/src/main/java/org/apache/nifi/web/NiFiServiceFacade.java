@@ -43,6 +43,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -525,6 +526,30 @@ public interface NiFiServiceFacade {
      */
     ConfigurationSnapshot<Void> deleteConnection(Revision revision, String groupId, String connectionId);
 
+    /**
+     * Creates a new flow file drop request.
+     * 
+     * @param groupId group
+     * @param connectionId The ID of the connection
+     * @return 
+     */
+    DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId);
+    
+    /**
+     * Gets the specified flow file drop request.
+     * 
+     * @param dropRequestId The flow file drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO getFlowFileDropRequest(String dropRequestId);
+    
+    /**
+     * Cancels/removes the specified flow file drop request.
+     * 
+     * @param dropRequestId The flow file drop request
+     */
+    void deleteFlowFileDropRequest(String dropRequestId);
+    
     // ----------------------------------------
     // InputPort methods
     // ----------------------------------------

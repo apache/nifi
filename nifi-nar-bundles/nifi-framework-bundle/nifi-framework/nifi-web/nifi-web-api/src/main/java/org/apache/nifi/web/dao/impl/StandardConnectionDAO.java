@@ -69,6 +69,11 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
+    public void getFlowFileDropRequest(String dropRequestId) {
+        // TODO
+    }
+
+    @Override
     public Set<Connection> getConnectionsForSource(final String groupId, final String processorId) {
         final Set<Connection> connections = new HashSet<>(getConnections(groupId));
         for (final Iterator<Connection> connectionIter = connections.iterator(); connectionIter.hasNext();) {
@@ -294,6 +299,11 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
+    public void createFileFlowDropRequest(String groupId, String id) {
+        // TODO
+    }
+
+    @Override
     public void verifyCreate(String groupId, ConnectionDTO connectionDTO) {
         // validate the incoming request
         final List<String> validationErrors = validateProposedConfiguration(groupId, connectionDTO);
@@ -462,6 +472,11 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
         final Connection connection = locateConnection(group, id);
         group.removeConnection(connection);
+    }
+
+    @Override
+    public void deleteFlowFileDropRequest(String dropRequestId) {
+        // TODO
     }
 
     /* setters */
