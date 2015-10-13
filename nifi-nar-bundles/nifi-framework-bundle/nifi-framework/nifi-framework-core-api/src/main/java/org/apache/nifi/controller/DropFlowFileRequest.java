@@ -27,6 +27,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
 
     private volatile QueueSize originalSize;
     private volatile QueueSize currentSize;
+    private volatile QueueSize droppedSize = new QueueSize(0, 0L);
     private volatile long lastUpdated = System.currentTimeMillis();
     private volatile Thread executionThread;
 
@@ -63,6 +64,15 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
 
     void setCurrentSize(final QueueSize queueSize) {
         this.currentSize = currentSize;
+    }
+
+    @Override
+    public QueueSize getDroppedSize() {
+        return droppedSize;
+    }
+
+    void setDroppedSize(final QueueSize droppedSize) {
+        this.droppedSize = droppedSize;
     }
 
     @Override

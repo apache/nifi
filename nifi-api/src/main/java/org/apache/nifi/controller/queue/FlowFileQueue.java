@@ -181,9 +181,12 @@ public interface FlowFileQueue {
      * passed to the {@link #getDropFlowFileStatus(String)} and {@link #cancelDropFlowFileStatus(String)}
      * methods in order to obtain the status later or cancel a request
      *
+     * @param requestor the entity that is requesting that the FlowFiles be dropped; this will be
+     *            included in the Provenance Events that are generated.
+     *
      * @return the status of the drop request.
      */
-    DropFlowFileStatus dropFlowFiles();
+    DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor);
 
     /**
      * Returns the current status of a Drop FlowFile Request that was initiated via the

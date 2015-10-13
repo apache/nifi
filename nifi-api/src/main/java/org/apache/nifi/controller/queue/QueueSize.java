@@ -48,6 +48,20 @@ public class QueueSize {
         return totalSizeBytes;
     }
 
+    /**
+     * Returns a new QueueSize that is the sum of this QueueSize and the provided QueueSize
+     * 
+     * @param other the other QueueSize to add to this QueueSize
+     * @return a new QueueSize that is the sum of this QueueSize and the provided QueueSize
+     */
+    public QueueSize add(final QueueSize other) {
+        if (other == null) {
+            return new QueueSize(objectCount, totalSizeBytes);
+        }
+
+        return new QueueSize(objectCount + other.getObjectCount(), totalSizeBytes + other.getByteCount());
+    }
+
     @Override
     public String toString() {
         return "QueueSize[FlowFiles=" + objectCount + ", ContentSize=" + NumberFormat.getNumberInstance().format(totalSizeBytes) + " Bytes]";

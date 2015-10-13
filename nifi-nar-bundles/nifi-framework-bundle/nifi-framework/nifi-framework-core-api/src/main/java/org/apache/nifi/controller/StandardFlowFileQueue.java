@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -900,7 +899,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     private final ConcurrentMap<String, DropFlowFileRequest> dropRequestMap = new ConcurrentHashMap<>();
 
     @Override
-    public DropFlowFileStatus dropFlowFiles() {
+    public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String requestor) {
         // purge any old requests from the map just to keep it clean. But if there are very requests, which is usually the case, then don't bother
         if (dropRequestMap.size() > 10) {
             final List<String> toDrop = new ArrayList<>();
@@ -918,10 +917,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             }
         }
 
-        // TODO: get user name!
-        final String userName = null;
-
-        final String requestIdentifier = UUID.randomUUID().toString();
         final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier);
         final Thread t = new Thread(new Runnable() {
             @Override
@@ -932,20 +927,23 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
                     try {
                         final List<FlowFileRecord> activeQueueRecords = new ArrayList<>(activeQueue);
-                        drop(activeQueueRecords, userName);
+                        QueueSize droppedSize = drop(activeQueueRecords, requestor);
                         activeQueue.clear();
                         dropRequest.setCurrentSize(getQueueSize());
+                        dropRequest.setDroppedSize(dropRequest.getDroppedSize().add(droppedSize));
 
-                        drop(swapQueue, userName);
+                        droppedSize = drop(swapQueue, requestor);
                         swapQueue.clear();
                         dropRequest.setCurrentSize(getQueueSize());
+                        dropRequest.setDroppedSize(dropRequest.getDroppedSize().add(droppedSize));
 
                         final Iterator<String> swapLocationItr = swapLocations.iterator();
                         while (swapLocationItr.hasNext()) {
                             final String swapLocation = swapLocationItr.next();
                             final List<FlowFileRecord> swappedIn = swapManager.swapIn(swapLocation, StandardFlowFileQueue.this);
                             try {
-                                drop(swappedIn, userName);
+                                droppedSize = drop(swappedIn, requestor);
+                                dropRequest.setDroppedSize(dropRequest.getDroppedSize().add(droppedSize));
                             } catch (final Exception e) {
                                 activeQueue.addAll(swappedIn); // ensure that we don't lose the FlowFiles from our queue.
                                 throw e;
@@ -974,15 +972,16 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         return dropRequest;
     }
 
-    private void drop(final List<FlowFileRecord> flowFiles, final String user) throws IOException {
+    private QueueSize drop(final List<FlowFileRecord> flowFiles, final String requestor) throws IOException {
         // Create a Provenance Event and a FlowFile Repository record for each FlowFile
         final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(flowFiles.size());
         final List<RepositoryRecord> flowFileRepoRecords = new ArrayList<>(flowFiles.size());
         for (final FlowFileRecord flowFile : flowFiles) {
-            provenanceEvents.add(createDropEvent(flowFile, user));
+            provenanceEvents.add(createDropEvent(flowFile, requestor));
             flowFileRepoRecords.add(createDeleteRepositoryRecord(flowFile));
         }
 
+        long dropContentSize = 0L;
         for (final FlowFileRecord flowFile : flowFiles) {
             final ContentClaim contentClaim = flowFile.getContentClaim();
             if (contentClaim == null) {
@@ -995,20 +994,22 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             }
 
             resourceClaimManager.decrementClaimantCount(resourceClaim);
+            dropContentSize += flowFile.getSize();
         }
 
         provRepository.registerEvents(provenanceEvents);
         flowFileRepository.updateRepository(flowFileRepoRecords);
+        return new QueueSize(flowFiles.size(), dropContentSize);
     }
 
-    private ProvenanceEventRecord createDropEvent(final FlowFileRecord flowFile, final String user) {
+    private ProvenanceEventRecord createDropEvent(final FlowFileRecord flowFile, final String requestor) {
         final ProvenanceEventBuilder builder = provRepository.eventBuilder();
         builder.fromFlowFile(flowFile);
         builder.setEventType(ProvenanceEventType.DROP);
         builder.setLineageStartDate(flowFile.getLineageStartDate());
         builder.setComponentId(getIdentifier());
         builder.setComponentType("Connection");
-        builder.setDetails("FlowFile manually dropped by user " + user);
+        builder.setDetails("FlowFile manually dropped; request made by " + requestor);
         return builder.build();
     }
 

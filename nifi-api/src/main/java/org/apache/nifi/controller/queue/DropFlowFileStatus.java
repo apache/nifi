@@ -61,6 +61,12 @@ public interface DropFlowFileStatus {
     QueueSize getCurrentSize();
 
     /**
+     * @return a QueueSize representing the number of FlowFiles that have been dropped for this request
+     *         and the aggregate size of those FlowFiles
+     */
+    QueueSize getDroppedSize();
+
+    /**
      * @return the current state of the operation
      */
     DropFlowFileState getState();
