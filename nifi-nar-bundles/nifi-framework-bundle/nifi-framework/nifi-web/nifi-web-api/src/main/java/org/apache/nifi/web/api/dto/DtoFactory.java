@@ -312,13 +312,16 @@ public final class DtoFactory {
 
         final QueueSize dropped = dropRequest.getDroppedSize();
         dto.setDroppedCount(dropped.getObjectCount());
-        dto.setDroppedSize(FormatUtils.formatDataSize(dropped.getByteCount()));
+        dto.setDroppedSize(dropped.getByteCount());
+        dto.setDropped(FormatUtils.formatCount(dropped.getObjectCount()) + " / " + FormatUtils.formatDataSize(dropped.getByteCount()));
 
         if (dropRequest.getOriginalSize() != null) {
             final QueueSize original = dropRequest.getOriginalSize();
             dto.setOriginalCount(original.getObjectCount());
-            dto.setOriginalSize(FormatUtils.formatDataSize(original.getByteCount()));
-            dto.setPercentCompleted((dropped.getObjectCount() * 100 ) / original.getObjectCount());
+            dto.setOriginalSize(original.getByteCount());
+            dto.setOriginal(FormatUtils.formatCount(original.getObjectCount()) + " / " + FormatUtils.formatDataSize(original.getByteCount()));
+
+            dto.setPercentCompleted((dropped.getObjectCount() * 100) / original.getObjectCount());
         } else {
             dto.setPercentCompleted(0);
         }
@@ -326,7 +329,8 @@ public final class DtoFactory {
         if (dropRequest.getCurrentSize() != null) {
             final QueueSize current = dropRequest.getCurrentSize();
             dto.setCurrentCount(current.getObjectCount());
-            dto.setCurrentSize(FormatUtils.formatDataSize(current.getByteCount()));
+            dto.setCurrentSize(current.getByteCount());
+            dto.setCurrent(FormatUtils.formatCount(current.getObjectCount()) + " / " + FormatUtils.formatDataSize(current.getByteCount()));
         }
 
         return dto;

@@ -134,6 +134,7 @@ public interface ConnectionDAO {
      * @param groupId group id
      * @param id The id of the connection
      * @param dropRequestId The drop request id
+     * @return The drop request
      */
-    void deleteFlowFileDropRequest(String groupId, String id, String dropRequestId);
+    DropFlowFileStatus deleteFlowFileDropRequest(String groupId, String id, String dropRequestId);
 }

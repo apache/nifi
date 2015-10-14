@@ -496,10 +496,10 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public void deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+    public DropFlowFileStatus deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
         final Connection connection = locateConnection(groupId, connectionId);
         final FlowFileQueue queue = connection.getFlowFileQueue();
-        queue.cancelDropFlowFileRequest(dropRequestId);
+        return queue.cancelDropFlowFileRequest(dropRequestId);
     }
 
     /* setters */

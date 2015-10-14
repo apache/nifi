@@ -38,11 +38,14 @@ public class DropRequestDTO {
     private Boolean finished;
 
     private Integer currentCount;
-    private String currentSize;
+    private Long currentSize;
+    private String current;
     private Integer originalCount;
-    private String originalSize;
+    private Long originalSize;
+    private String original;
     private Integer droppedCount;
-    private String droppedSize;
+    private Long droppedSize;
+    private String dropped;
 
     private String state;
 
@@ -151,17 +154,31 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the siez of the flow files currently queued.
+     * @return the size of the flow files currently queued in bytes.
      */
     @ApiModelProperty(
-            value = "The size of flow files currently queued."
+            value = "The size of flow files currently queued in bytes."
     )
-    public String getCurrentSize() {
+    public Long getCurrentSize() {
         return currentSize;
     }
 
-    public void setCurrentSize(String currentSize) {
+    public void setCurrentSize(Long currentSize) {
         this.currentSize = currentSize;
+    }
+
+    /**
+     * @return the count and size of the currently queued flow files.
+     */
+    @ApiModelProperty(
+            value = "The count and size of flow files currently queued."
+    )
+    public String getCurrent() {
+        return current;
+    }
+
+    public void setCurrent(String current) {
+        this.current = current;
     }
 
     /**
@@ -179,17 +196,31 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the size of the flow files to be dropped as a result of this request.
+     * @return the size of the flow files to be dropped as a result of this request in bytes.
      */
     @ApiModelProperty(
-            value = "The size of flow files to be dropped as a result of this request."
+            value = "The size of flow files to be dropped as a result of this request in bytes."
     )
-    public String getOriginalSize() {
+    public Long getOriginalSize() {
         return originalSize;
     }
 
-    public void setOriginalSize(String originalSize) {
+    public void setOriginalSize(Long originalSize) {
         this.originalSize = originalSize;
+    }
+
+    /**
+     * @return the count and size of flow files to be dropped as a result of this request.
+     */
+    @ApiModelProperty(
+            value = "The count and size of flow files to be dropped as a result of this request."
+    )
+    public String getOriginal() {
+        return original;
+    }
+
+    public void setOriginal(String original) {
+        this.original = original;
     }
 
     /**
@@ -207,17 +238,31 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the size of the flow files that have been dropped thus far.
+     * @return the size of the flow files that have been dropped thus far in bytes.
      */
     @ApiModelProperty(
-            value = "The size of flow files that have been dropped thus far."
+            value = "The size of flow files that have been dropped thus far in bytes."
     )
-    public String getDroppedSize() {
+    public Long getDroppedSize() {
         return droppedSize;
     }
 
-    public void setDroppedSize(String droppedSize) {
+    public void setDroppedSize(Long droppedSize) {
         this.droppedSize = droppedSize;
+    }
+
+    /**
+     * @return the count and size of the flow files that have been dropped thus far.
+     */
+    @ApiModelProperty(
+            value = "The count and size of flow files that have been dropped thus far."
+    )
+    public String getDropped() {
+        return dropped;
+    }
+
+    public void setDropped(String dropped) {
+        this.dropped = dropped;
     }
 
     /**

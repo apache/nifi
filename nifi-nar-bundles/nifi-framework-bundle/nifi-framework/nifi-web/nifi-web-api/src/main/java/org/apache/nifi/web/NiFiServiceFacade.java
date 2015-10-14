@@ -552,8 +552,9 @@ public interface NiFiServiceFacade {
      * @param groupId group
      * @param connectionId The ID of the connection
      * @param dropRequestId The flow file drop request
+     * @return The DropRequest
      */
-    void deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
+    DropRequestDTO deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
 
     // ----------------------------------------
     // InputPort methods

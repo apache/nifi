@@ -269,6 +269,31 @@ div.go-to-link {
     height: 195px;
 }
 
+#drop-request-status-dialog {
+    display: none;
+    width: 400px;
+    height: 135px;
+    z-index: 1301;
+}
+
+#drop-request-percent-complete {
+    width: 378px;
+    border-radius: 0;
+}
+
+#drop-request-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+div.progress-label {
+    color: #000000;
+    display: block;
+    font-weight: bold;
+    text-align: center;
+    width: 378px;
+    margin-top: 4px;
+}
+
 #nf-ok-dialog {
     z-index: 1302;
     display: none;

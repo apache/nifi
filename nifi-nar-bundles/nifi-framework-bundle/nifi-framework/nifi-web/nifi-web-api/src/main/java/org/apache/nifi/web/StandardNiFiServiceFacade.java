@@ -810,8 +810,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
-        connectionDAO.deleteFlowFileDropRequest(groupId, connectionId, dropRequestId);
+    public DropRequestDTO deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(connectionDAO.deleteFlowFileDropRequest(groupId, connectionId, dropRequestId));
     }
 
     @Override

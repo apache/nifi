@@ -1086,7 +1086,8 @@ public class ConnectionResource extends ApplicationResource {
         }
 
         // delete the drop request
-        serviceFacade.deleteFlowFileDropRequest(groupId, connectionId, dropRequestId);
+        final DropRequestDTO dropRequest = serviceFacade.deleteFlowFileDropRequest(groupId, connectionId, dropRequestId);
+        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", connectionId, "contents", "drop-requests", dropRequestId));
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -1095,6 +1096,7 @@ public class ConnectionResource extends ApplicationResource {
         // create the response entity
         final DropRequestEntity entity = new DropRequestEntity();
         entity.setRevision(revision);
+        entity.setDropRequest(dropRequest);
 
         return generateOkResponse(entity).build();
     }
