@@ -77,7 +77,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
     }
 
     @Override
-    public DropFlowFileState getState() {
+    public synchronized DropFlowFileState getState() {
         return state;
     }
 

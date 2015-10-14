@@ -952,6 +952,11 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
                         QueueSize droppedSize;
                         try {
+                            if (dropRequest.getState() == DropFlowFileState.CANCELED) {
+                                logger.info("Cancel requested for DropFlowFileRequest {}", requestIdentifier);
+                                return;
+                            }
+
                             droppedSize = drop(activeQueueRecords, requestor);
                             logger.debug("For DropFlowFileRequest {}, Dropped {} from active queue", requestIdentifier, droppedSize);
                         } catch (final IOException ioe) {
@@ -972,6 +977,11 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
                             logger.debug("For DropFlowFileRequest {}, Swap Queue has {} elements, Swapped Record Count = {}, Swapped Content Size = {}",
                                 requestIdentifier, swapQueue.size(), swapSize.getObjectCount(), swapSize.getByteCount());
+                            if (dropRequest.getState() == DropFlowFileState.CANCELED) {
+                                logger.info("Cancel requested for DropFlowFileRequest {}", requestIdentifier);
+                                return;
+                            }
+
                             droppedSize = drop(swapQueue, requestor);
                         } catch (final IOException ioe) {
                             logger.error("Failed to drop the FlowFiles from queue {} due to {}", StandardFlowFileQueue.this.getIdentifier(), ioe.toString());
@@ -995,6 +1005,11 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
                             List<FlowFileRecord> swappedIn = null;
                             try {
+                                if (dropRequest.getState() == DropFlowFileState.CANCELED) {
+                                    logger.info("Cancel requested for DropFlowFileRequest {}", requestIdentifier);
+                                    return;
+                                }
+
                                 swappedIn = swapManager.swapIn(swapLocation, StandardFlowFileQueue.this);
                                 droppedSize = drop(swappedIn, requestor);
                             } catch (final IOException ioe) {
