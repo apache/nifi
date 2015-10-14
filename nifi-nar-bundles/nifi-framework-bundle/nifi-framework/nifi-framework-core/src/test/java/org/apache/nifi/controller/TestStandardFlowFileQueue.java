@@ -34,6 +34,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.queue.DropFlowFileState;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -44,7 +46,9 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -65,6 +69,8 @@ public class TestStandardFlowFileQueue {
         final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
         final ProvenanceEventRepository provRepo = Mockito.mock(ProvenanceEventRepository.class);
         final ResourceClaimManager claimManager = Mockito.mock(ResourceClaimManager.class);
+
+        Mockito.when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
 
         queue = new StandardFlowFileQueue("id", connection, flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000);
         TestFlowFile.idGenerator.set(0L);
@@ -148,15 +154,36 @@ public class TestStandardFlowFileQueue {
         assertTrue(swapManager.swappedOut.isEmpty());
 
         queue.poll(exp);
-
     }
 
+    @Test
+    public void testDropSwappedFlowFiles() {
+        for (int i = 1; i <= 210000; i++) {
+            queue.put(new TestFlowFile());
+        }
+
+        assertEquals(20, swapManager.swappedOut.size());
+        final DropFlowFileStatus status = queue.dropFlowFiles("1", "Unit Test");
+        while (status.getState() != DropFlowFileState.COMPLETE) {
+            final QueueSize queueSize = queue.size();
+            System.out.println(queueSize);
+            try {
+                Thread.sleep(1000L);
+            } catch (final Exception e) {
+            }
+        }
+
+        System.out.println(queue.size());
+        assertEquals(0, queue.size().getObjectCount());
+        assertEquals(0, queue.size().getByteCount());
+        assertEquals(0, swapManager.swappedOut.size());
+        assertEquals(20, swapManager.swapInCalledCount);
+    }
 
     private class TestSwapManager implements FlowFileSwapManager {
         private final Map<String, List<FlowFileRecord>> swappedOut = new HashMap<>();
         int swapOutCalledCount = 0;
         int swapInCalledCount = 0;
-
 
         @Override
         public void initialize(final SwapManagerInitializationContext initializationContext) {
@@ -185,11 +212,6 @@ public class TestStandardFlowFileQueue {
         @Override
         public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue) throws IOException {
             return new ArrayList<String>(swappedOut.keySet());
-        }
-
-        @Override
-        public void dropSwappedFlowFiles(String swapLocation, final FlowFileQueue flowFileQueue, String user) {
-
         }
 
         @Override
@@ -252,6 +274,10 @@ public class TestStandardFlowFileQueue {
         public TestFlowFile(final Map<String, String> attributes, final long size) {
             this.attributes = attributes;
             this.size = size;
+
+            if (!attributes.containsKey(CoreAttributes.UUID.key())) {
+                attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
+            }
         }
 
 

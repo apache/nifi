@@ -64,7 +64,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
     }
 
     void setCurrentSize(final QueueSize queueSize) {
-        this.currentSize = currentSize;
+        this.currentSize = queueSize;
     }
 
     @Override

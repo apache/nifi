@@ -41,16 +41,6 @@ public interface FlowFileSwapManager {
     void initialize(SwapManagerInitializationContext initializationContext);
 
     /**
-     * Drops all FlowFiles that are swapped out at the given location. This will update the Provenance
-     * Repository as well as the FlowFile Repository and
-     *
-     * @param swapLocation the location of the swap file to drop
-     * @param flowFileQueue the queue to which the FlowFiles belong
-     * @param user the user that initiated the request
-     */
-    void dropSwappedFlowFiles(String swapLocation, FlowFileQueue flowFileQueue, String user) throws IOException;
-
-    /**
      * Swaps out the given FlowFiles that belong to the queue with the given identifier.
      *
      * @param flowFiles the FlowFiles to swap out to external storage

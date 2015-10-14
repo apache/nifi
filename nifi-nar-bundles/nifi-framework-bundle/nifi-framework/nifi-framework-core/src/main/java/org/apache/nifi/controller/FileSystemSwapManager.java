@@ -173,11 +173,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-    @Override
-    public void dropSwappedFlowFiles(final String swapLocation, final FlowFileQueue flowFileQueue, final String user) throws IOException {
-
-    }
-
 
     @Override
     public List<String> recoverSwapLocations(final FlowFileQueue flowFileQueue) throws IOException {
