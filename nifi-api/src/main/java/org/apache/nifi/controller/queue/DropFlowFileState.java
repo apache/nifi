@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.controller.queue;
 
 /**
@@ -37,5 +36,22 @@ public enum DropFlowFileState {
     @Override
     public String toString() {
         return description;
+    }
+
+    /**
+     * @param description string form of drop flow file state
+     * @return the matching DropFlowFileState or null if the description doesn't match
+     */
+    public static DropFlowFileState valueOfDescription(String description) {
+        DropFlowFileState desiredState = null;
+
+        for (DropFlowFileState state : values()) {
+            if (state.toString().equals(description)) {
+                desiredState = state;
+                break;
+            }
+        }
+
+        return desiredState;
     }
 }

@@ -226,14 +226,17 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import com.sun.jersey.api.client.ClientResponse;
+import org.apache.nifi.controller.queue.DropFlowFileState;
 
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 
@@ -315,6 +318,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     public static final Pattern CONTROLLER_SERVICE_REFERENCES_URI_PATTERN = Pattern.compile("/nifi-api/controller/controller-services/node/[a-f0-9\\-]{36}/references");
     public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks/node";
     public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile("/nifi-api/controller/reporting-tasks/node/[a-f0-9\\-]{36}");
+
+    public static final Pattern QUEUE_CONTENTS_URI = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections/[a-f0-9\\-]{36}/contents");
+    public static final Pattern DROP_REQUEST_URI = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections/[a-f0-9\\-]{36}/drop-requests/[a-f0-9\\-]{36}");
 
     private final NiFiProperties properties;
     private final HttpRequestReplicator httpRequestReplicator;
@@ -1090,7 +1096,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
-            new ReportingTaskLogObserver(getBulletinRepository(), taskNode));
+                new ReportingTaskLogObserver(getBulletinRepository(), taskNode));
 
         return taskNode;
     }
@@ -1385,7 +1391,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
-            new ControllerServiceLogObserver(getBulletinRepository(), serviceNode));
+                new ControllerServiceLogObserver(getBulletinRepository(), serviceNode));
 
         return serviceNode;
     }
@@ -2465,6 +2471,16 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         return false;
     }
 
+    private static boolean isDropRequestEndpoint(final URI uri, final String method) {
+        if ("DELETE".equalsIgnoreCase(method) && QUEUE_CONTENTS_URI.matcher(uri.getPath()).matches()) {
+            return true;
+        } else if (("GET".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) && DROP_REQUEST_URI.matcher(uri.getPath()).matches()) {
+            return true;
+        }
+
+        return false;
+    }
+
     static boolean isResponseInterpreted(final URI uri, final String method) {
         return isProcessorsEndpoint(uri, method) || isProcessorEndpoint(uri, method)
                 || isRemoteProcessGroupsEndpoint(uri, method) || isRemoteProcessGroupEndpoint(uri, method)
@@ -2472,7 +2488,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 || isTemplateEndpoint(uri, method) || isFlowSnippetEndpoint(uri, method)
                 || isProvenanceQueryEndpoint(uri, method) || isProvenanceEventEndpoint(uri, method)
                 || isControllerServicesEndpoint(uri, method) || isControllerServiceEndpoint(uri, method) || isControllerServiceReferenceEndpoint(uri, method)
-                || isReportingTasksEndpoint(uri, method) || isReportingTaskEndpoint(uri, method);
+                || isReportingTasksEndpoint(uri, method) || isReportingTaskEndpoint(uri, method)
+                || isDropRequestEndpoint(uri, method);
     }
 
     private void mergeProcessorValidationErrors(final ProcessorDTO processor, Map<NodeIdentifier, ProcessorDTO> processorMap) {
@@ -2806,6 +2823,62 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             }
         }
         return normalizedValidationErrors;
+    }
+
+    /**
+     * Merges the drop requests in the specified map into the specified drop request.
+     *
+     * @param dropRequest the target drop request
+     * @param dropRequestMap the mapping of all responses being merged
+     */
+    private void mergeDropRequests(final DropRequestDTO dropRequest, final Map<NodeIdentifier, DropRequestDTO> dropRequestMap) {
+        boolean nodeWaiting = false;
+        int originalCount = 0;
+        long originalSize = 0;
+        int currentCount = 0;
+        long currentSize = 0;
+        int droppedCount = 0;
+        long droppedSize = 0;
+
+        DropFlowFileState state = null;
+        for (final Map.Entry<NodeIdentifier, DropRequestDTO> nodeEntry : dropRequestMap.entrySet()) {
+            final DropRequestDTO nodeDropRequest = nodeEntry.getValue();
+
+            currentCount += nodeDropRequest.getCurrentCount();
+            currentSize += nodeDropRequest.getCurrentSize();
+            droppedCount += nodeDropRequest.getDroppedCount();
+            droppedSize += nodeDropRequest.getDroppedSize();
+
+            if (nodeDropRequest.getOriginalCount() == null) {
+                nodeWaiting = true;
+            } else {
+                originalCount += nodeDropRequest.getOriginalCount();
+                originalSize += nodeDropRequest.getOriginalSize();
+            }
+
+            final DropFlowFileState nodeState = DropFlowFileState.valueOfDescription(nodeDropRequest.getState());
+            if (state == null || state.compareTo(nodeState) > 0) {
+                state = nodeState;
+            }
+        }
+
+        dropRequest.setCurrentCount(currentCount);
+        dropRequest.setCurrentSize(currentSize);
+        dropRequest.setCurrent(FormatUtils.formatCount(currentCount) + " / " + FormatUtils.formatDataSize(currentSize));
+
+        dropRequest.setDroppedCount(droppedCount);
+        dropRequest.setDroppedSize(droppedSize);
+        dropRequest.setDropped(FormatUtils.formatCount(droppedCount) + " / " + FormatUtils.formatDataSize(droppedSize));
+
+        if (!nodeWaiting) {
+            dropRequest.setOriginalCount(originalCount);
+            dropRequest.setOriginalSize(originalSize);
+            dropRequest.setOriginal(FormatUtils.formatCount(originalCount) + " / " + FormatUtils.formatDataSize(originalSize));
+        }
+
+        if (state != null) {
+            dropRequest.setState(state.toString());
+        }
     }
 
     // requires write lock to be already acquired unless request is not mutable
@@ -3158,8 +3231,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ControllerServiceReferencingComponentsEntity nodeResponseEntity =
-                        nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
+                final ControllerServiceReferencingComponentsEntity nodeResponseEntity
+                        = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
                 final Set<ControllerServiceReferencingComponentDTO> nodeReferencingComponents = nodeResponseEntity.getControllerServiceReferencingComponents();
 
                 resultsMap.put(nodeResponse.getNodeId(), nodeReferencingComponents);
@@ -3218,6 +3291,24 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
             // create a new client response
             clientResponse = new NodeResponse(clientResponse, responseEntity);
+        } else if (hasSuccessfulClientResponse && isDropRequestEndpoint(uri, method)) {
+            final DropRequestEntity responseEntity = clientResponse.getClientResponse().getEntity(DropRequestEntity.class);
+            final DropRequestDTO dropRequest = responseEntity.getDropRequest();
+
+            final Map<NodeIdentifier, DropRequestDTO> resultsMap = new HashMap<>();
+            for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
+                if (problematicNodeResponses.contains(nodeResponse)) {
+                    continue;
+                }
+
+                final DropRequestEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(DropRequestEntity.class);
+                final DropRequestDTO nodeDropRequest = nodeResponseEntity.getDropRequest();
+
+                resultsMap.put(nodeResponse.getNodeId(), nodeDropRequest);
+            }
+            mergeDropRequests(dropRequest, resultsMap);
+
+            clientResponse = new NodeResponse(clientResponse, responseEntity);
         } else {
             if (!nodeResponsesToDrain.isEmpty()) {
                 drainResponses(nodeResponsesToDrain);
@@ -3270,12 +3361,12 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Determines if all problematic responses were due to 404 NOT_FOUND. Assumes that problematicNodeResponses is not empty and
-     * is not comprised of responses from all nodes in the cluster (at least one node contained the counter in question).
+     * Determines if all problematic responses were due to 404 NOT_FOUND. Assumes that problematicNodeResponses is not empty and is not comprised of responses from all nodes in the cluster (at least
+     * one node contained the counter in question).
      *
-     * @param problematicNodeResponses  The problematic node responses
-     * @param uri                       The URI for the request
-     * @return                          Whether all problematic node responses were due to a missing counter
+     * @param problematicNodeResponses The problematic node responses
+     * @param uri The URI for the request
+     * @return Whether all problematic node responses were due to a missing counter
      */
     private boolean isMissingCounter(final Set<NodeResponse> problematicNodeResponses, final URI uri) {
         if (isCountersEndpoint(uri)) {

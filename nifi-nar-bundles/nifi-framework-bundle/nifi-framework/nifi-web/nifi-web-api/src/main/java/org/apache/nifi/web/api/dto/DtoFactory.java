@@ -315,6 +315,11 @@ public final class DtoFactory {
         dto.setDroppedSize(dropped.getByteCount());
         dto.setDropped(FormatUtils.formatCount(dropped.getObjectCount()) + " / " + FormatUtils.formatDataSize(dropped.getByteCount()));
 
+        final QueueSize current = dropRequest.getCurrentSize();
+        dto.setCurrentCount(current.getObjectCount());
+        dto.setCurrentSize(current.getByteCount());
+        dto.setCurrent(FormatUtils.formatCount(current.getObjectCount()) + " / " + FormatUtils.formatDataSize(current.getByteCount()));
+
         if (dropRequest.getOriginalSize() != null) {
             final QueueSize original = dropRequest.getOriginalSize();
             dto.setOriginalCount(original.getObjectCount());
@@ -324,13 +329,6 @@ public final class DtoFactory {
             dto.setPercentCompleted((dropped.getObjectCount() * 100) / original.getObjectCount());
         } else {
             dto.setPercentCompleted(0);
-        }
-
-        if (dropRequest.getCurrentSize() != null) {
-            final QueueSize current = dropRequest.getCurrentSize();
-            dto.setCurrentCount(current.getObjectCount());
-            dto.setCurrentSize(current.getByteCount());
-            dto.setCurrent(FormatUtils.formatCount(current.getObjectCount()) + " / " + FormatUtils.formatDataSize(current.getByteCount()));
         }
 
         return dto;

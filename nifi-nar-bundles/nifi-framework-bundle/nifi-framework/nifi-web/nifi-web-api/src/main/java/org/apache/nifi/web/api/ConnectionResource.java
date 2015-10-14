@@ -894,6 +894,7 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Drops the flowfiles in the queue of the specified connection.
      *
+     * @param httpServletRequest request
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the connection
      * @return A dropRequestEntity
@@ -920,6 +921,7 @@ public class ConnectionResource extends ApplicationResource {
             }
     )
     public Response dropQueueContents(
+            @Context HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
@@ -936,6 +938,12 @@ public class ConnectionResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            return generateContinueResponse().build();
+        }
+
         // ensure the id is the same across the cluster
         final String dropRequestId;
         final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
@@ -947,7 +955,7 @@ public class ConnectionResource extends ApplicationResource {
 
         // submit the drop request
         final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(groupId, id, dropRequestId);
-        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", id, "contents", "drop-requests", dropRequest.getId()));
+        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", id, "drop-requests", dropRequest.getId()));
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -978,7 +986,7 @@ public class ConnectionResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{connection-id}/contents/drop-requests/{drop-request-id}")
+    @Path("/{connection-id}/drop-requests/{drop-request-id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Gets the current status of a drop request for the specified connection.",
@@ -1020,7 +1028,7 @@ public class ConnectionResource extends ApplicationResource {
 
         // get the drop request
         final DropRequestDTO dropRequest = serviceFacade.getFlowFileDropRequest(groupId, connectionId, dropRequestId);
-        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", connectionId, "contents", "drop-requests", dropRequestId));
+        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", connectionId, "drop-requests", dropRequestId));
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -1037,6 +1045,7 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Deletes the specified drop request.
      *
+     * @param httpServletRequest request
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
      * @param dropRequestId The drop request id
@@ -1045,7 +1054,7 @@ public class ConnectionResource extends ApplicationResource {
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{connection-id}/contents/drop-requests/{drop-request-id}")
+    @Path("/{connection-id}/drop-requests/{drop-request-id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Cancels and/or removes a request drop of the contents in this connection.",
@@ -1064,6 +1073,7 @@ public class ConnectionResource extends ApplicationResource {
             }
     )
     public Response removeDropRequest(
+            @Context HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
@@ -1085,9 +1095,15 @@ public class ConnectionResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            return generateContinueResponse().build();
+        }
+
         // delete the drop request
         final DropRequestDTO dropRequest = serviceFacade.deleteFlowFileDropRequest(groupId, connectionId, dropRequestId);
-        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", connectionId, "contents", "drop-requests", dropRequestId));
+        dropRequest.setUri(generateResourceUri("controller", "process-groups", groupId, "connections", connectionId, "drop-requests", dropRequestId));
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
