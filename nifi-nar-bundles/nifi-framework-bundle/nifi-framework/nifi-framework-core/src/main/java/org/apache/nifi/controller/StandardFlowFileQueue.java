@@ -938,6 +938,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         }
 
         final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier);
+        dropRequest.setCurrentSize(size());
         final Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
