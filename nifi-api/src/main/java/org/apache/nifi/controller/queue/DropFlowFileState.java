@@ -23,10 +23,10 @@ package org.apache.nifi.controller.queue;
 public enum DropFlowFileState {
 
     WAITING_FOR_LOCK("Waiting for Destination Component to complete its action"),
-    DROPPING_ACTIVE_FLOWFILES("Dropping FlowFiles from queue"),
-    COMPLETE("Completed Successfully"),
+    DROPPING_FLOWFILES("Dropping FlowFiles from queue"),
     FAILURE("Failed"),
-    CANCELED("Cancelled by User");
+    CANCELED("Canceled by User"),
+    COMPLETE("Completed Successfully");
 
     private final String description;
 

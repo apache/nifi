@@ -944,7 +944,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             public void run() {
                 writeLock.lock();
                 try {
-                    dropRequest.setState(DropFlowFileState.DROPPING_ACTIVE_FLOWFILES);
+                    dropRequest.setState(DropFlowFileState.DROPPING_FLOWFILES);
                     logger.debug("For DropFlowFileRequest {}, original size is {}", requestIdentifier, getQueueSize());
                     dropRequest.setOriginalSize(getQueueSize());
 
