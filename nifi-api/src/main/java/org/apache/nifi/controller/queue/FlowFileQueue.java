@@ -199,11 +199,13 @@ public interface FlowFileQueue {
     DropFlowFileStatus getDropFlowFileStatus(String requestIdentifier);
 
     /**
-     * Cancels the request to drop FlowFiles that has the given identifier
+     * Cancels the request to drop FlowFiles that has the given identifier. After this method is called, the request
+     * will no longer be known by this queue, so subsequent calls to {@link #getDropFlowFileStatus(String)} or
+     * {@link #cancelDropFlowFileRequest(String)} will return <code>null</code>
      *
      * @param requestIdentifier the identifier of the Drop FlowFile Request
-     * @return <code>true</code> if the request was canceled, <code>false</code> if the request has
-     *         already completed or is not known
+     * @return the status for the request with the given identifier after it has been canceled, or <code>null</code> if no
+     *         request status exists with that identifier
      */
-    boolean cancelDropFlowFileRequest(String requestIdentifier);
+    DropFlowFileStatus cancelDropFlowFileRequest(String requestIdentifier);
 }

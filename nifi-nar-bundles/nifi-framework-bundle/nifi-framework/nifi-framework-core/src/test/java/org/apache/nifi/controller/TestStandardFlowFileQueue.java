@@ -156,7 +156,7 @@ public class TestStandardFlowFileQueue {
         queue.poll(exp);
     }
 
-    @Test
+    @Test(timeout = 20000)
     public void testDropSwappedFlowFiles() {
         for (int i = 1; i <= 210000; i++) {
             queue.put(new TestFlowFile());
@@ -165,15 +165,12 @@ public class TestStandardFlowFileQueue {
         assertEquals(20, swapManager.swappedOut.size());
         final DropFlowFileStatus status = queue.dropFlowFiles("1", "Unit Test");
         while (status.getState() != DropFlowFileState.COMPLETE) {
-            final QueueSize queueSize = queue.size();
-            System.out.println(queueSize);
             try {
-                Thread.sleep(1000L);
+                Thread.sleep(100L);
             } catch (final Exception e) {
             }
         }
 
-        System.out.println(queue.size());
         assertEquals(0, queue.size().getObjectCount());
         assertEquals(0, queue.size().getByteCount());
         assertEquals(0, swapManager.swappedOut.size());

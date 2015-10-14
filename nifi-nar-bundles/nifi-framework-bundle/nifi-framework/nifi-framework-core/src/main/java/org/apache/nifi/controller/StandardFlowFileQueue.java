@@ -1078,7 +1078,16 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         builder.setLineageStartDate(flowFile.getLineageStartDate());
         builder.setComponentId(getIdentifier());
         builder.setComponentType("Connection");
-        builder.setDetails("FlowFile manually dropped; request made by " + requestor);
+        builder.setAttributes(flowFile.getAttributes(), Collections.<String, String> emptyMap());
+        builder.setDetails("Manually dropped by " + requestor);
+        builder.setSourceQueueIdentifier(getIdentifier());
+
+        final ContentClaim contentClaim = flowFile.getContentClaim();
+        if (contentClaim != null) {
+            final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+            builder.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(), contentClaim.getOffset(), flowFile.getSize());
+        }
+
         return builder.build();
     }
 
@@ -1138,14 +1147,14 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
 
     @Override
-    public boolean cancelDropFlowFileRequest(final String requestIdentifier) {
+    public DropFlowFileRequest cancelDropFlowFileRequest(final String requestIdentifier) {
         final DropFlowFileRequest request = dropRequestMap.remove(requestIdentifier);
         if (request == null) {
-            return false;
+            return null;
         }
 
-        final boolean successful = request.cancel();
-        return successful;
+        request.cancel();
+        return request;
     }
 
     @Override
