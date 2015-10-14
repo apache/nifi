@@ -135,7 +135,14 @@ public class TestStandardFlowFileQueue {
 
         final Set<FlowFileRecord> exp = new HashSet<>();
         for (int i = 0; i < 9999; i++) {
-            assertNotNull(queue.poll(exp));
+            final FlowFileRecord flowFile = queue.poll(exp);
+            assertNotNull(flowFile);
+            assertEquals(1, queue.getUnacknowledgedQueueSize().getObjectCount());
+            assertEquals(1, queue.getUnacknowledgedQueueSize().getByteCount());
+
+            queue.acknowledge(Collections.singleton(flowFile));
+            assertEquals(0, queue.getUnacknowledgedQueueSize().getObjectCount());
+            assertEquals(0, queue.getUnacknowledgedQueueSize().getByteCount());
         }
 
         assertEquals(0, swapManager.swapInCalledCount);
