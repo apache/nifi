@@ -149,8 +149,8 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 0);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
-        //expected in request status.code and status.message
-        //original flow file (+attributes)??????????
+        // expected in request status.code and status.message
+        // original flow file (+attributes)??????????
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).get(0);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
@@ -159,10 +159,10 @@ public class TestInvokeHTTP {
         Assert.assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
-        //expected in response
-        //status code, status message, all headers from server response --> ff attributes
-        //server response message body into payload of ff
-        //should not contain any original ff attributes
+        // expected in response
+        // status code, status message, all headers from server response --> ff attributes
+        // server response message body into payload of ff
+        // should not contain any original ff attributes
         final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).get(0);
         bundle1.assertContentEquals("/status/200".getBytes("UTF-8"));
         bundle1.assertAttributeEquals(Config.STATUS_CODE, "200");
@@ -198,8 +198,8 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 0);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
-        //expected in request status.code and status.message
-        //original flow file (+attributes)??????????
+        // expected in request status.code and status.message
+        // original flow file (+attributes)??????????
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).get(0);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
@@ -208,10 +208,10 @@ public class TestInvokeHTTP {
         final String expected = "Hello";
         Assert.assertEquals(expected, actual);
 
-        //expected in response
-        //status code, status message, all headers from server response --> ff attributes
-        //server response message body into payload of ff
-        //should not contain any original ff attributes
+        // expected in response
+        // status code, status message, all headers from server response --> ff attributes
+        // server response message body into payload of ff
+        // should not contain any original ff attributes
         final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).get(0);
         final String bundle1Content = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         assertTrue(bundle1Content.startsWith(expAuth)); // use startsWith instead of equals so we can ignore line endings
@@ -223,17 +223,17 @@ public class TestInvokeHTTP {
         final List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
         assertEquals(2, provEvents.size());
         boolean forkEvent = false;
-        boolean contentModEvent = false;
+        boolean fetchEvent = false;
         for (final ProvenanceEventRecord event : provEvents) {
             if (event.getEventType() == ProvenanceEventType.FORK) {
                 forkEvent = true;
-            } else if (event.getEventType() == ProvenanceEventType.CONTENT_MODIFIED) {
-                contentModEvent = true;
+            } else if (event.getEventType() == ProvenanceEventType.FETCH) {
+                fetchEvent = true;
             }
         }
 
         assertTrue(forkEvent);
-        assertTrue(contentModEvent);
+        assertTrue(fetchEvent);
     }
 
     @Test
@@ -257,8 +257,8 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 1);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
-        //expected in request status.code and status.message
-        //original flow file (+attributes)??????????
+        // expected in request status.code and status.message
+        // original flow file (+attributes)??????????
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "401");
         bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "Unauthorized");
@@ -286,7 +286,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 0);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
-        //expected in response
+        // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "500");
@@ -313,8 +313,8 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_RETRY, 0);
         runner.assertTransferCount(Config.REL_NO_RETRY, 1);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
-        //getMyFlowFiles();
-        //expected in response
+        // getMyFlowFiles();
+        // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
@@ -340,8 +340,8 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_RETRY, 0);
         runner.assertTransferCount(Config.REL_NO_RETRY, 1);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
-        //getMyFlowFiles();
-        //expected in response
+        // getMyFlowFiles();
+        // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
@@ -367,8 +367,8 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_RETRY, 0);
         runner.assertTransferCount(Config.REL_NO_RETRY, 1);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
-        //getMyFlowFiles();
-        //expected in response
+        // getMyFlowFiles();
+        // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
@@ -397,7 +397,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 1);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
-        //expected in response
+        // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
@@ -593,7 +593,7 @@ public class TestInvokeHTTP {
 
         @Override
         public void handle(String target, Request baseRequest,
-                HttpServletRequest request, HttpServletResponse response)
+            HttpServletRequest request, HttpServletResponse response)
                 throws IOException, ServletException {
 
             baseRequest.setHandled(true);
