@@ -272,11 +272,16 @@ div.go-to-link {
 #drop-request-status-dialog {
     display: none;
     width: 400px;
-    height: 135px;
+    height: 125px;
     z-index: 1301;
 }
 
+#drop-request-status-message {
+    
+}
+
 #drop-request-percent-complete {
+    margin-top: 10px;
     width: 378px;
     border-radius: 0;
 }

@@ -34,7 +34,6 @@ nf.Actions = (function () {
 
         // configure the drop request status dialog
         $('#drop-request-status-dialog').modal({
-            headerText: 'Emptying queue',
             overlayBackground: false,
             handler: {
                 close: function () {
@@ -44,8 +43,14 @@ nf.Actions = (function () {
                     // update the progress bar
                     var label = $('<div class="progress-label"></div>').text('0%');
                     dropRequestProgressBar.progressbar('value', 0).append(label);
+                    
+                    // clear the current button model
+                    $('#drop-request-status-dialog').modal('setButtonModel', []);
                 }
             }
+        }).draggable({
+            containment: 'parent',
+            handle: '.dialog-header'
         });
     };
     
@@ -889,8 +894,11 @@ nf.Actions = (function () {
             
             // prompt the user before emptying the queue
             nf.Dialog.showYesNoDialog({
-                dialogContent: 'Are you sure you want to empty the queue? All data enqueued at the time of the request will be removed from the dataflow.',
+                headerText: 'Empty Queue',
+                dialogContent: 'Are you sure you want to empty this queue? All flowfiles waiting at the time of the request will be removed.',
                 overlayBackground: false,
+                noText: 'Cancel',
+                yesText: 'Empty',
                 yesHandler: function () {
                     // get the connection data
                     var connection = selection.datum();
@@ -916,7 +924,7 @@ nf.Actions = (function () {
 
                     // update the button model of the drop request status dialog
                     $('#drop-request-status-dialog').modal('setButtonModel', [{
-                            buttonText: 'Cancel',
+                            buttonText: 'Stop',
                             handler: {
                                 click: function () {
                                     cancelled = true;
@@ -944,9 +952,26 @@ nf.Actions = (function () {
                                 // report the results of this drop request
                                 dropRequest = response.dropRequest;
                                 
-                                // parse the dropped stats to render results
-                                var tokens = dropRequest.dropped.split(/ \/ /);
-                                var results = $('<div></div>').text('Successfully removed ' + tokens[0] + ' (' + tokens[1] + ') FlowFiles');
+                                // build the results
+                                var droppedTokens = dropRequest.dropped.split(/ \/ /);
+                                var results = $('<div></div>');
+                                $('<span class="label"></span>').text(droppedTokens[0]).appendTo(results);
+                                $('<span></span>').text(' FlowFiles (' + droppedTokens[1] + ')').appendTo(results);
+                                
+                                // if the request did not complete, include the original
+                                if (dropRequest.percentCompleted < 100) {
+                                    var originalTokens = dropRequest.original.split(/ \/ /);
+                                    $('<span class="label"></span>').text(' out of ' + originalTokens[0]).appendTo(results);
+                                    $('<span></span>').text(' (' + originalTokens[1] + ')').appendTo(results);
+                                }
+                                $('<span></span>').text(' were removed from the queue.').appendTo(results);
+                                
+                                // if this request failed so the error
+                                if (nf.Common.isDefinedAndNotNull(dropRequest.failureReason)) {
+                                    $('<br/><br/><span></span>').text(dropRequest.failureReason).appendTo(results);
+                                }
+                                
+                                // display the results
                                 nf.Dialog.showOkDialog({
                                     dialogContent: results,
                                     overlayBackground: false

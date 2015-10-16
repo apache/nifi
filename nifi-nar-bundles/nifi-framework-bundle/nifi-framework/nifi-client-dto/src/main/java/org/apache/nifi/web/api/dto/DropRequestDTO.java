@@ -36,6 +36,7 @@ public class DropRequestDTO {
 
     private Integer percentCompleted;
     private Boolean finished;
+    private String failureReason;
 
     private Integer currentCount;
     private Long currentSize;
@@ -122,6 +123,17 @@ public class DropRequestDTO {
 
     public void setFinished(Boolean finished) {
         this.finished = finished;
+    }
+
+    /**
+     * @return the reason, if any, that this drop request failed
+     */
+    public String getFailureReason() {
+        return failureReason;
+    }
+
+    public void setFailureReason(String failureReason) {
+        this.failureReason = failureReason;
     }
 
     /**

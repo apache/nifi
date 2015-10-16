@@ -308,7 +308,10 @@ public final class DtoFactory {
         dto.setSubmissionTime(new Date(dropRequest.getRequestSubmissionTime()));
         dto.setLastUpdated(new Date(dropRequest.getLastUpdated()));
         dto.setState(dropRequest.getState().toString());
-        dto.setFinished(DropFlowFileState.COMPLETE.equals(dropRequest.getState()));
+        dto.setFailureReason(dropRequest.getFailureReason());
+        dto.setFinished(DropFlowFileState.COMPLETE.equals(dropRequest.getState())
+                || DropFlowFileState.CANCELED.equals(dropRequest.getState())
+                || DropFlowFileState.FAILURE.equals(dropRequest.getState()));
 
         final QueueSize dropped = dropRequest.getDroppedSize();
         dto.setDroppedCount(dropped.getObjectCount());
