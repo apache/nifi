@@ -1095,7 +1095,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         builder.setComponentId(getIdentifier());
         builder.setComponentType("Connection");
         builder.setAttributes(flowFile.getAttributes(), Collections.<String, String> emptyMap());
-        builder.setDetails("Manually dropped by " + requestor);
+        builder.setDetails("FlowFile Queue emptied by " + requestor);
         builder.setSourceQueueIdentifier(getIdentifier());
 
         final ContentClaim contentClaim = flowFile.getContentClaim();
