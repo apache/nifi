@@ -40,7 +40,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.nifi.flowfile.FlowFile;
@@ -61,7 +60,6 @@ import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
-@Path(ListenHTTP.URI)
 public class ListenHTTPServlet extends HttpServlet {
 
     private static final long serialVersionUID = 5329940480987723163L;
