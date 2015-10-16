@@ -63,7 +63,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 @Tags({"ingest", "http", "https", "rest", "listen"})
-@CapabilityDescription("Starts an HTTP Server that is used to receive FlowFiles from remote sources. The URL of the Service will be http://{hostname}:{port}/contentListener")
+@CapabilityDescription("Starts an HTTP Server that is used to receive FlowFiles from remote sources. The default URL of the Service will be http://{hostname}:{port}/contentListener")
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     private Set<Relationship> relationships;
@@ -74,6 +74,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .description("Relationship for successfully received FlowFiles")
             .build();
 
+    public static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
+            .name("URI")
+            .description("URI for incoming connections")
+            .required(true)
+            .defaultValue("/contentListener")
+            .addValidator(StandardValidators.URI_VALIDATOR)
+            .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Listening Port")
             .description("The Port to listen on for incoming connections")
@@ -113,7 +120,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .required(false)
             .build();
 
-    public static final String URI = "/contentListener";
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
     public static final String CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER = "sessionFactoryHolder";
@@ -134,6 +140,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         this.relationships = Collections.unmodifiableSet(relationships);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(URI);
         descriptors.add(PORT);
         descriptors.add(MAX_DATA_RATE);
         descriptors.add(SSL_CONTEXT_SERVICE);
@@ -170,6 +177,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     private void createHttpServerFromService(final ProcessContext context) throws Exception {
+        final String uri = context.getProperty(URI).getValue();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
@@ -231,9 +239,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
             if (path == null) {
-                contextHandler.addServlet(cls, "/*");
+                contextHandler.addServlet(cls, uri + "/*");
             } else {
-                contextHandler.addServlet(cls, path.value());
+                contextHandler.addServlet(cls, uri + "/" + path.value());
             }
         }
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PROCESSOR, this);
