@@ -29,7 +29,6 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
     private volatile QueueSize currentSize;
     private volatile QueueSize droppedSize = new QueueSize(0, 0L);
     private volatile long lastUpdated = System.currentTimeMillis();
-    private volatile Thread executionThread;
     private volatile String failureReason;
 
     private DropFlowFileState state = DropFlowFileState.WAITING_FOR_LOCK;
@@ -101,20 +100,12 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         this.lastUpdated = System.currentTimeMillis();
     }
 
-    void setExecutionThread(final Thread thread) {
-        this.executionThread = thread;
-    }
-
     synchronized boolean cancel() {
         if (this.state == DropFlowFileState.COMPLETE || this.state == DropFlowFileState.CANCELED) {
             return false;
         }
 
         this.state = DropFlowFileState.CANCELED;
-        if (executionThread != null) {
-            executionThread.interrupt();
-        }
-
         return true;
     }
 }

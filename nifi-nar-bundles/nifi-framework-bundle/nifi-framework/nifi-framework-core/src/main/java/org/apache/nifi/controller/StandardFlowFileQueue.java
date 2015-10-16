@@ -1051,7 +1051,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         t.setDaemon(true);
         t.start();
 
-        dropRequest.setExecutionThread(t);
         dropRequestMap.put(requestIdentifier, dropRequest);
 
         return dropRequest;
