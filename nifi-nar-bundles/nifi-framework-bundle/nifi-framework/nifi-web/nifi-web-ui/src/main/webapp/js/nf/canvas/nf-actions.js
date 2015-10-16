@@ -895,7 +895,7 @@ nf.Actions = (function () {
             // prompt the user before emptying the queue
             nf.Dialog.showYesNoDialog({
                 headerText: 'Empty Queue',
-                dialogContent: 'Are you sure you want to empty this queue? All flowfiles waiting at the time of the request will be removed.',
+                dialogContent: 'Are you sure you want to empty this queue? All FlowFiles waiting at the time of the request will be removed.',
                 overlayBackground: false,
                 noText: 'Cancel',
                 yesText: 'Empty',
