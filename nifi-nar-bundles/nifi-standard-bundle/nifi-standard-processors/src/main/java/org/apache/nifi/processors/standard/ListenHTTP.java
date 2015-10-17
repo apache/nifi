@@ -239,12 +239,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, (keystorePath != null));
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
-            if (path == null) {
-                contextHandler.addServlet(cls, uri + "/*");
-            } else {
-                contextHandler.addServlet(cls, uri + "/" + path.value());
-            }
+            contextHandler.addServlet(cls, uri + path.value());
         }
+
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PROCESSOR, this);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_LOGGER, getLogger());
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER, sessionFactoryReference);

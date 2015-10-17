@@ -38,7 +38,7 @@ import org.apache.nifi.processors.standard.ListenHTTP;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
 import org.apache.nifi.util.FormatUtils;
 
-@Path("holds/*")
+@Path("/holds/*")
 public class ContentAcknowledgmentServlet extends HttpServlet {
 
     public static final String DEFAULT_FOUND_SUBJECT = "none";
