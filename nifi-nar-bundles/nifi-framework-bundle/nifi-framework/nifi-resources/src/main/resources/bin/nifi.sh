@@ -21,7 +21,9 @@
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
-NIFI_HOME=$(cd $(dirname "$0") && cd .. && pwd)
+SCRIPT_DIR=$(dirname "$0")
+SCRIPT_NAME=$(basename "$0")
+NIFI_HOME=$(cd "${SCRIPT_DIR}" && cd .. && pwd)
 PROGNAME=$(basename "$0")
 
 
@@ -137,21 +139,21 @@ install() {
         fi
 
         SVC_FILE=/etc/init.d/$SVC_NAME
-        cp $0 $SVC_FILE
-        sed -i s:NIFI_HOME=.*:NIFI_HOME="$NIFI_HOME": $SVC_FILE
-        sed -i s:PROGNAME=.*:PROGNAME=$(basename "$0"): $SVC_FILE
-        rm -f /etc/rc2.d/S65${SVC_NAME}
-        ln -s /etc/init.d/$SVC_NAME /etc/rc2.d/S65${SVC_NAME}
-        rm -f /etc/rc2.d/K65${SVC_NAME}
-        ln -s /etc/init.d/$SVC_NAME /etc/rc2.d/K65${SVC_NAME}
-        echo Service $SVC_NAME installed
+        cp "$0" "$SVC_FILE"
+        sed -i s:NIFI_HOME=.*:NIFI_HOME="$NIFI_HOME": "$SVC_FILE"
+        sed -i s:PROGNAME=.*:PROGNAME="${SCRIPT_NAME}": "$SVC_FILE"
+        rm -f "/etc/rc2.d/S65${SVC_NAME}"
+        ln -s "/etc/init.d/$SVC_NAME" "/etc/rc2.d/S65${SVC_NAME}"
+        rm -f "/etc/rc2.d/K65${SVC_NAME}"
+        ln -s "/etc/init.d/$SVC_NAME" "/etc/rc2.d/K65${SVC_NAME}"
+        echo "Service $SVC_NAME installed"
 }
 
 
 run() {
     BOOTSTRAP_CONF="$NIFI_HOME/conf/bootstrap.conf";
 
-    run_as=$(grep run.as ${BOOTSTRAP_CONF} | cut -d'=' -f2)
+    run_as=$(grep run.as "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
 
     sudo_cmd_prefix=""
     if $cygwin; then
@@ -183,9 +185,9 @@ run() {
     # run 'start' in the background because the process will continue to run, monitoring NiFi.
     # all other commands will terminate quickly so want to just wait for them
     if [ "$1" = "start" ]; then
-        (cd $NIFI_HOME && ${sudo_cmd_prefix} "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@ &)
+        (cd "$NIFI_HOME" && ${sudo_cmd_prefix} "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@ &)
     else
-        (cd $NIFI_HOME && ${sudo_cmd_prefix} "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@)
+        (cd "$NIFI_HOME" && ${sudo_cmd_prefix} "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@)
     fi
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
