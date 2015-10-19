@@ -57,35 +57,35 @@ detectOS() {
                 ;;
     esac
     # For AIX, set an environment variable
-    if $aix; then
+    if ${aix}; then
          export LDR_CNTRL=MAXDATA=0xB0000000@DSA
-         echo $LDR_CNTRL
+         echo ${LDR_CNTRL}
     fi
 }
 
 unlimitFD() {
     # Use the maximum available, or set MAX_FD != -1 to use that
-    if [ "x$MAX_FD" = "x" ]; then
+    if [ "x${MAX_FD}" = "x" ]; then
         MAX_FD="maximum"
     fi
 
     # Increase the maximum file descriptors if we can
-    if [ "$os400" = "false" ] && [ "$cygwin" = "false" ]; then
+    if [ "${os400}" = "false" ] && [ "${cygwin}" = "false" ]; then
         MAX_FD_LIMIT=$(ulimit -H -n)
-        if [ "$MAX_FD_LIMIT" != 'unlimited' ]; then
+        if [ "${MAX_FD_LIMIT}" != 'unlimited' ]; then
             if [ $? -eq 0 ]; then
-                if [ "$MAX_FD" = "maximum" -o "$MAX_FD" = "max" ]; then
+                if [ "${MAX_FD}" = "maximum" -o "${MAX_FD}" = "max" ]; then
                     # use the system max
-                    MAX_FD="$MAX_FD_LIMIT"
+                    MAX_FD="${MAX_FD_LIMIT}"
                 fi
 
-                ulimit -n $MAX_FD > /dev/null
+                ulimit -n ${MAX_FD} > /dev/null
                 # echo "ulimit -n" `ulimit -n`
                 if [ $? -ne 0 ]; then
-                    warn "Could not set maximum file descriptor limit: $MAX_FD"
+                    warn "Could not set maximum file descriptor limit: ${MAX_FD}"
                 fi
             else
-                warn "Could not query system maximum file descriptor limit: $MAX_FD_LIMIT"
+                warn "Could not query system maximum file descriptor limit: ${MAX_FD_LIMIT}"
             fi
         fi
     fi
@@ -96,24 +96,24 @@ unlimitFD() {
 locateJava() {
     # Setup the Java Virtual Machine
     if $cygwin ; then
-        [ -n "$JAVA" ] && JAVA=$(cygpath --unix "$JAVA")
-        [ -n "$JAVA_HOME" ] && JAVA_HOME=$(cygpath --unix "$JAVA_HOME")
+        [ -n "${JAVA}" ] && JAVA=$(cygpath --unix "${JAVA}")
+        [ -n "${JAVA_HOME}" ] && JAVA_HOME=$(cygpath --unix "${JAVA_HOME}")
     fi
 
-    if [ "x$JAVA" = "x" ] && [ -r /etc/gentoo-release ] ; then
+    if [ "x${JAVA}" = "x" ] && [ -r /etc/gentoo-release ] ; then
         JAVA_HOME=$(java-config --jre-home)
     fi
-    if [ "x$JAVA" = "x" ]; then
-        if [ "x$JAVA_HOME" != "x" ]; then
-            if [ ! -d "$JAVA_HOME" ]; then
-                die "JAVA_HOME is not valid: $JAVA_HOME"
+    if [ "x${JAVA}" = "x" ]; then
+        if [ "x${JAVA_HOME}" != "x" ]; then
+            if [ ! -d "${JAVA_HOME}" ]; then
+                die "JAVA_HOME is not valid: ${JAVA_HOME}"
             fi
-            JAVA="$JAVA_HOME/bin/java"
+            JAVA="${JAVA_HOME}/bin/java"
         else
             warn "JAVA_HOME not set; results may vary"
             JAVA=$(type java)
-            JAVA=$(expr "$JAVA" : '.* \(/.*\)$')
-            if [ "x$JAVA" = "x" ]; then
+            JAVA=$(expr "${JAVA}" : '.* \(/.*\)$')
+            if [ "x${JAVA}" = "x" ]; then
                 die "java command not found"
             fi
         fi
@@ -138,35 +138,35 @@ install() {
                 SVC_NAME=$2
         fi
 
-        SVC_FILE=/etc/init.d/$SVC_NAME
-        cp "$0" "$SVC_FILE"
-        sed -i s:NIFI_HOME=.*:NIFI_HOME="$NIFI_HOME": "$SVC_FILE"
-        sed -i s:PROGNAME=.*:PROGNAME="${SCRIPT_NAME}": "$SVC_FILE"
+        SVC_FILE="/etc/init.d/${SVC_NAME}"
+        cp "$0" "${SVC_FILE}"
+        sed -i s:NIFI_HOME=.*:NIFI_HOME="${NIFI_HOME}": "${SVC_FILE}"
+        sed -i s:PROGNAME=.*:PROGNAME="${SCRIPT_NAME}": "${SVC_FILE}"
         rm -f "/etc/rc2.d/S65${SVC_NAME}"
-        ln -s "/etc/init.d/$SVC_NAME" "/etc/rc2.d/S65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}"
         rm -f "/etc/rc2.d/K65${SVC_NAME}"
-        ln -s "/etc/init.d/$SVC_NAME" "/etc/rc2.d/K65${SVC_NAME}"
-        echo "Service $SVC_NAME installed"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}"
+        echo "Service ${SVC_NAME} installed"
 }
 
 
 run() {
-    BOOTSTRAP_CONF="$NIFI_HOME/conf/bootstrap.conf";
+    BOOTSTRAP_CONF="${NIFI_HOME}/conf/bootstrap.conf";
 
     run_as=$(grep run.as "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
 
     sudo_cmd_prefix=""
     if $cygwin; then
-        if [ -n "$run_as" ]; then
+        if [ -n "${run_as}" ]; then
             echo "The run.as option is not supported in a Cygwin environment. Exiting."
             exit 1
         fi;
 
-        NIFI_HOME=$(cygpath --path --windows "$NIFI_HOME")
-        BOOTSTRAP_CONF=$(cygpath --path --windows "$BOOTSTRAP_CONF")
+        NIFI_HOME=$(cygpath --path --windows "${NIFI_HOME}")
+        BOOTSTRAP_CONF=$(cygpath --path --windows "${BOOTSTRAP_CONF}")
     else
-        if [ -n "$run_as" ]; then
-            if id -u "$run_as" >/dev/null 2>&1; then
+        if [ -n "${run_as}" ]; then
+            if id -u "${run_as}" >/dev/null 2>&1; then
                 sudo_cmd_prefix="sudo -u ${run_as}"
             else
                 echo "The specified run.as user ${run_as} does not exist. Exiting."
@@ -176,18 +176,18 @@ run() {
     fi
 
     echo
-    echo "Java home: $JAVA_HOME"
-    echo "NiFi home: $NIFI_HOME"
+    echo "Java home: ${JAVA_HOME}"
+    echo "NiFi home: ${NIFI_HOME}"
     echo
-    echo "Bootstrap Config File: $BOOTSTRAP_CONF"
+    echo "Bootstrap Config File: ${BOOTSTRAP_CONF}"
     echo
 
     # run 'start' in the background because the process will continue to run, monitoring NiFi.
     # all other commands will terminate quickly so want to just wait for them
     if [ "$1" = "start" ]; then
-        (cd "$NIFI_HOME" && ${sudo_cmd_prefix} "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@ &)
+        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${NIFI_HOME}"/conf/:"${NIFI_HOME}"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@ &)
     else
-        (cd "$NIFI_HOME" && ${sudo_cmd_prefix} "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@)
+        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${NIFI_HOME}"/conf/:"${NIFI_HOME}"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@)
     fi
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
