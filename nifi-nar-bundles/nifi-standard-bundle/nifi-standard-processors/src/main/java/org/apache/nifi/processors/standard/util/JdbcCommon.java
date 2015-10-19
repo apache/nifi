@@ -51,6 +51,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * JDBC / SQL common functions.
@@ -95,7 +96,10 @@ public class JdbcCommon {
     public static Schema createSchema(final ResultSet rs) throws SQLException {
         final ResultSetMetaData meta = rs.getMetaData();
         final int nrOfColumns = meta.getColumnCount();
-        final String tableName = meta.getTableName(1);
+        String tableName = meta.getTableName(1);
+        if (StringUtils.isBlank(tableName)) {
+            tableName = "NiFi_ExecuteSQL_Record";
+        }
 
         final FieldAssembler<Schema> builder = SchemaBuilder.record(tableName).namespace("any.data").fields();
 
