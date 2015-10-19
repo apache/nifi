@@ -21,8 +21,8 @@
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
-NIFI_HOME=`cd $(dirname "$0") && cd .. && pwd`
-PROGNAME=`basename "$0"`
+NIFI_HOME=$(cd $(dirname "$0") && cd .. && pwd)
+PROGNAME=$(basename "$0")
 
 
 warn() {
@@ -40,7 +40,7 @@ detectOS() {
     aix=false;
     os400=false;
     darwin=false;
-    case "`uname`" in
+    case "$(uname)" in
         CYGWIN*)
             cygwin=true
             ;;
@@ -69,7 +69,7 @@ unlimitFD() {
 
     # Increase the maximum file descriptors if we can
     if [ "$os400" = "false" ] && [ "$cygwin" = "false" ]; then
-        MAX_FD_LIMIT=`ulimit -H -n`
+        MAX_FD_LIMIT=$(ulimit -H -n)
         if [ "$MAX_FD_LIMIT" != 'unlimited' ]; then
             if [ $? -eq 0 ]; then
                 if [ "$MAX_FD" = "maximum" -o "$MAX_FD" = "max" ]; then
@@ -94,12 +94,12 @@ unlimitFD() {
 locateJava() {
     # Setup the Java Virtual Machine
     if $cygwin ; then
-        [ -n "$JAVA" ] && JAVA=`cygpath --unix "$JAVA"`
-        [ -n "$JAVA_HOME" ] && JAVA_HOME=`cygpath --unix "$JAVA_HOME"`
+        [ -n "$JAVA" ] && JAVA=$(cygpath --unix "$JAVA")
+        [ -n "$JAVA_HOME" ] && JAVA_HOME=$(cygpath --unix "$JAVA_HOME")
     fi
 
     if [ "x$JAVA" = "x" ] && [ -r /etc/gentoo-release ] ; then
-        JAVA_HOME=`java-config --jre-home`
+        JAVA_HOME=$(java-config --jre-home)
     fi
     if [ "x$JAVA" = "x" ]; then
         if [ "x$JAVA_HOME" != "x" ]; then
@@ -109,8 +109,8 @@ locateJava() {
             JAVA="$JAVA_HOME/bin/java"
         else
             warn "JAVA_HOME not set; results may vary"
-            JAVA=`type java`
-            JAVA=`expr "$JAVA" : '.* \(/.*\)$'`
+            JAVA=$(type java)
+            JAVA=$(expr "$JAVA" : '.* \(/.*\)$')
             if [ "x$JAVA" = "x" ]; then
                 die "java command not found"
             fi
@@ -160,8 +160,8 @@ run() {
             exit 1
         fi;
 
-        NIFI_HOME=`cygpath --path --windows "$NIFI_HOME"`
-        BOOTSTRAP_CONF=`cygpath --path --windows "$BOOTSTRAP_CONF"`
+        NIFI_HOME=$(cygpath --path --windows "$NIFI_HOME")
+        BOOTSTRAP_CONF=$(cygpath --path --windows "$BOOTSTRAP_CONF")
     else
         if [ -n "$run_as" ]; then
             if id -u "$run_as" >/dev/null 2>&1; then
