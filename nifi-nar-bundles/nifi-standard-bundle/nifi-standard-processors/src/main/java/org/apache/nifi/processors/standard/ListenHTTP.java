@@ -63,7 +63,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 @Tags({"ingest", "http", "https", "rest", "listen"})
-@CapabilityDescription("Starts an HTTP Server that is used to receive FlowFiles from remote sources. The URL of the Service will be http://{hostname}:{port}/contentListener")
+@CapabilityDescription("Starts an HTTP Server that is used to receive FlowFiles from remote sources. The default URI of the Service will be http://{hostname}:{port}/contentListener")
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     private Set<Relationship> relationships;
@@ -74,6 +74,14 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .description("Relationship for successfully received FlowFiles")
             .build();
 
+    public static final PropertyDescriptor BASE_PATH = new PropertyDescriptor.Builder()
+            .name("Base Path")
+            .description("Base path for incoming connections")
+            .required(true)
+            .defaultValue("contentListener")
+            .addValidator(StandardValidators.URI_VALIDATOR)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
+            .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Listening Port")
             .description("The Port to listen on for incoming connections")
@@ -113,7 +121,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .required(false)
             .build();
 
-    public static final String URI = "/contentListener";
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
     public static final String CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER = "sessionFactoryHolder";
@@ -122,6 +129,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_HEADER_PATTERN = "headerPattern";
     public static final String CONTEXT_ATTRIBUTE_FLOWFILE_MAP = "flowFileMap";
     public static final String CONTEXT_ATTRIBUTE_STREAM_THROTTLER = "streamThrottler";
+    public static final String CONTEXT_ATTRIBUTE_BASE_PATH = "basePath";
 
     private volatile Server server = null;
     private final ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap = new ConcurrentHashMap<>();
@@ -134,6 +142,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         this.relationships = Collections.unmodifiableSet(relationships);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(BASE_PATH);
         descriptors.add(PORT);
         descriptors.add(MAX_DATA_RATE);
         descriptors.add(SSL_CONTEXT_SERVICE);
@@ -170,6 +179,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     private void createHttpServerFromService(final ProcessContext context) throws Exception {
+        final String basePath = context.getProperty(BASE_PATH).getValue();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
@@ -230,12 +240,17 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, (keystorePath != null));
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
-            if (path == null) {
-                contextHandler.addServlet(cls, "/*");
-            } else {
+            // Note: servlets must have a path annotation - this will NPE otherwise
+            // also, servlets other than ListenHttpServlet must have a path starting with /
+            if(basePath.isEmpty() && !path.value().isEmpty()){
+                // Note: this is to handle the condition of an empty uri, otherwise pathSpec would start with //
                 contextHandler.addServlet(cls, path.value());
             }
+            else{
+                contextHandler.addServlet(cls, "/" + basePath + path.value());
+            }
         }
+
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PROCESSOR, this);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_LOGGER, getLogger());
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER, sessionFactoryReference);
@@ -243,6 +258,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_FLOWFILE_MAP, flowFileMap);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_DN_PATTERN).getValue()));
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_STREAM_THROTTLER, streamThrottler);
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_BASE_PATH, basePath);
 
         if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
@@ -259,6 +275,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     protected Set<Class<? extends Servlet>> getServerClasses() {
         final Set<Class<? extends Servlet>> s = new HashSet<>();
+        // NOTE: Servlets added below MUST have a Path annotation
+        // any servlets other than ListenHTTPServlet must have a Path annotation start with /
         s.add(ListenHTTPServlet.class);
         s.add(ContentAcknowledgmentServlet.class);
         return s;

@@ -38,10 +38,9 @@ import org.apache.nifi.processors.standard.ListenHTTP;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
 import org.apache.nifi.util.FormatUtils;
 
-@Path(ContentAcknowledgmentServlet.URI)
+@Path("/holds/*")
 public class ContentAcknowledgmentServlet extends HttpServlet {
 
-    public static final String URI = ListenHTTP.URI + "/holds/*";
     public static final String DEFAULT_FOUND_SUBJECT = "none";
     private static final long serialVersionUID = -2675148117984902978L;
 
