@@ -61,7 +61,7 @@ import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
-@Path(ListenHTTP.URI)
+@Path("/*")
 public class ListenHTTPServlet extends HttpServlet {
 
     private static final long serialVersionUID = 5329940480987723163L;
