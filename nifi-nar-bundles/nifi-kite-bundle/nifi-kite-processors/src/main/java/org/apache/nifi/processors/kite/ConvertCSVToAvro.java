@@ -69,7 +69,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         public ValidationResult validate(String subject, String input,
                 ValidationContext context) {
             // Allows special, escaped characters as input, which is then unescaped and converted to a single character.
-            // Examples for special characters: \t, \f, \n, \r.
+            // Examples for special characters: \t (or \u0009), \f.
             input = unescapeString(input);
 
             return new ValidationResult.Builder()
@@ -148,7 +148,6 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
             .name("Use CSV header line")
             .description("Whether to use the first line as a header")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
             .defaultValue(String.valueOf(DEFAULTS.useHeader))
             .build();
 
