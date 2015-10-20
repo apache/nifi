@@ -56,7 +56,7 @@ import org.apache.nifi.util.RingBuffer.Filter;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.apache.nifi.util.RingBuffer.IterationDirection;
 
-public class VolatileProvenanceRepository implements ProvenanceEventRepository {
+public class VolatileProvenanceRepository extends AbstractProvenanceRepository {
 
     // properties
     public static final String BUFFER_SIZE = "nifi.provenance.repository.buffer.size";
@@ -117,15 +117,15 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     }
 
     @Override
-    public void registerEvent(final ProvenanceEventRecord event) {
+    protected void doRegisterEvent(final ProvenanceEventRecord event) {
         final long id = idGenerator.getAndIncrement();
         ringBuffer.add(new IdEnrichedProvEvent(event, id));
     }
 
     @Override
-    public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
+    protected void doRegisterEvents(final Iterable<ProvenanceEventRecord> events) {
         for (final ProvenanceEventRecord event : events) {
-            registerEvent(event);
+            doRegisterEvent(event);
         }
     }
 
@@ -168,7 +168,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     }
 
     @Override
-    public void close() throws IOException {
+    protected void doClose() throws IOException {
         queryExecService.shutdownNow();
         scheduledExecService.shutdown();
     }
