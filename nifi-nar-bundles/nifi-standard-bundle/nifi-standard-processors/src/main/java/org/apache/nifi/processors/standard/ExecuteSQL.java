@@ -51,14 +51,13 @@ import org.apache.nifi.util.StopWatch;
 
 @EventDriven
 @InputRequirement(Requirement.INPUT_ALLOWED)
-@Tags({ "sql", "select", "jdbc", "query", "database" })
+@Tags({"sql", "select", "jdbc", "query", "database"})
 @CapabilityDescription("Execute provided SQL select query. Query result will be converted to Avro format."
     + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on " +
-        "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. " +
-        "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the " +
-        "select query. " +
-        "FlowFile attribute 'executesql.row.count' indicates how many rows were selected."
-        )
+    "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. " +
+    "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the " +
+    "select query. " +
+    "FlowFile attribute 'executesql.row.count' indicates how many rows were selected.")
 public class ExecuteSQL extends AbstractProcessor {
 
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
@@ -155,7 +154,7 @@ public class ExecuteSQL extends AbstractProcessor {
                 @Override
                 public void process(final OutputStream out) throws IOException {
                     try {
-                        logger.debug("Executing query {}", new Object[] { selectQuery });
+                        logger.debug("Executing query {}", new Object[] {selectQuery});
                         final ResultSet resultSet = st.executeQuery(selectQuery);
                         nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out));
                     } catch (final SQLException e) {
@@ -167,8 +166,7 @@ public class ExecuteSQL extends AbstractProcessor {
             // set attribute how many rows were selected
             outgoing = session.putAttribute(outgoing, RESULT_ROW_COUNT, nrOfRows.get().toString());
 
-            logger.info("{} contains {} Avro records", new Object[] { nrOfRows.get() });
-            logger.info("Transferred {} to 'success'", new Object[] { outgoing });
+            logger.info("{} contains {} Avro records; transferring to 'success'", new Object[] {outgoing, nrOfRows.get()});
             session.getProvenanceReporter().modifyContent(outgoing, "Retrieved " + nrOfRows.get() + " rows", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(outgoing, REL_SUCCESS);
         } catch (final ProcessException | SQLException e) {
