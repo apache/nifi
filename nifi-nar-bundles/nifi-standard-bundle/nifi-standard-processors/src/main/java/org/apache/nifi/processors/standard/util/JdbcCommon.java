@@ -134,53 +134,41 @@ public class JdbcCommon {
                 case NCHAR:
                 case NVARCHAR:
                 case VARCHAR:
-//                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
-//                    builder.name(meta.getColumnName(i)).type().nullable().stringType().noDefault();
-//                    builder.name(meta.getColumnName(i)).type().stringType().stringDefault(null);
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
-
-
                     break;
 
                 case BOOLEAN:
-//                    builder.name(meta.getColumnName(i)).type().nullable().booleanType().noDefault();
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().booleanType().endUnion().noDefault();
                    break;
 
                 case INTEGER:
                 case SMALLINT:
                 case TINYINT:
-//                    builder.name(meta.getColumnName(i)).type().intType().noDefault();
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
                     break;
 
                 case BIGINT:
-//                    builder.name(meta.getColumnName(i)).type().nullable().longType().noDefault();
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
                     break;
 
                 // java.sql.RowId is interface, is seems to be database
                 // implementation specific, let's convert to String
                 case ROWID:
-//                    builder.name(meta.getColumnName(i)).type().nullable().stringType().noDefault();
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 case FLOAT:
                 case REAL:
-//                    builder.name(meta.getColumnName(i)).type().nullable().floatType().noDefault();
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().floatType().endUnion().noDefault();
                     break;
 
                 case DOUBLE:
-//                    builder.name(meta.getColumnName(i)).type().nullable().doubleType().noDefault();
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().doubleType().endUnion().noDefault();
                     break;
 
                 // Did not find direct suitable type, need to be clarified!!!!
                 case DECIMAL:
                 case NUMERIC:
-//                    builder.name(meta.getColumnName(i)).type().nullable().stringType().noDefault();
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
@@ -188,7 +176,6 @@ public class JdbcCommon {
                 case DATE:
                 case TIME:
                 case TIMESTAMP:
-//                    builder.name(meta.getColumnName(i)).type().nullable().stringType().noDefault();
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
