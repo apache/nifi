@@ -35,7 +35,7 @@
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
-                <version>1.9.24</version>
+                <version>1.10.27</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
