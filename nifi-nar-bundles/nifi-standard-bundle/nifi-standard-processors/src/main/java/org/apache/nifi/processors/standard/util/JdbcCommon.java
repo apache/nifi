@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard.util;
 import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
 import static java.sql.Types.BINARY;
+import static java.sql.Types.BIT;
 import static java.sql.Types.BLOB;
 import static java.sql.Types.BOOLEAN;
 import static java.sql.Types.CHAR;
@@ -83,7 +84,7 @@ public class JdbcCommon {
                     if (value == null) {
                         rec.put(i - 1, null);
 
-                    } else if (javaSqlType==BINARY || javaSqlType==VARBINARY || javaSqlType==LONGVARBINARY || javaSqlType==ARRAY || javaSqlType==BLOB || javaSqlType==CLOB) {
+                    } else if (javaSqlType == BINARY || javaSqlType == VARBINARY || javaSqlType == LONGVARBINARY || javaSqlType == ARRAY || javaSqlType == BLOB || javaSqlType == CLOB) {
                         // bytes requires little bit different handling
                         byte[] bytes = rs.getBytes(i);
                         ByteBuffer bb = ByteBuffer.wrap(bytes);
@@ -104,7 +105,7 @@ public class JdbcCommon {
                         // The different types that we support are numbers (int, long, double, float),
                         // as well as boolean values and Strings. Since Avro doesn't provide
                         // timestamp types, we want to convert those to Strings. So we will cast anything other
-                        // than numbers or booleans to strings by using to toString() method.
+                        // than numbers or booleans to strings by using the toString() method.
                         rec.put(i - 1, value.toString());
                     }
                 }
@@ -137,9 +138,10 @@ public class JdbcCommon {
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
+                case BIT:
                 case BOOLEAN:
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().booleanType().endUnion().noDefault();
-                   break;
+                    break;
 
                 case INTEGER:
                 case SMALLINT:

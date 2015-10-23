@@ -64,10 +64,6 @@ public class TestJdbcTypesDerby {
             + "  active tinyint NOT NULL DEFAULT 0, "
             + "  home_module_id int DEFAULT NULL, "
             + "   PRIMARY KEY (id) ) " ;
-//            + "   UNIQUE email ) " ;
-//            + "   KEY home_module_id (home_module_id) ) " ;
-//            + "   CONSTRAINT users_ibfk_1 FOREIGN KEY (home_module_id) REFERENCES "
-//            + "  modules (id) ON DELETE SET NULL " ;
 
     String dropTable = "drop table users";
 
