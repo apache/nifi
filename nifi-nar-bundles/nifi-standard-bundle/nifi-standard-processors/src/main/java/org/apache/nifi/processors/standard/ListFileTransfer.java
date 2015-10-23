@@ -45,6 +45,13 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .expressionLanguageSupported(true)
         .required(true)
         .build();
+    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+        .name("Username")
+        .description("Username")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(true)
+        .required(true)
+        .build();
     public static final PropertyDescriptor REMOTE_PATH = new PropertyDescriptor.Builder()
         .name("Remote Path")
         .description("The path on the remote system from which to pull or push files")
@@ -64,6 +71,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         attributes.put("file.group", fileInfo.getGroup());
         attributes.put("file.permissions", fileInfo.getPermissions());
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
+        attributes.put(getProtocolName() + ".listing.user", context.getProperty(USERNAME).evaluateAttributeExpressions().getValue());
 
         final String fullPath = fileInfo.getFullPathFileName();
         if (fullPath != null) {

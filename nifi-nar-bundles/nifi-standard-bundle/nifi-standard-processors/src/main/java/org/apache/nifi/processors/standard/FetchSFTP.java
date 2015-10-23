@@ -53,7 +53,7 @@ public class FetchSFTP extends FetchFileTransfer {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(HOSTNAME);
         properties.add(port);
-        properties.add(SFTPTransfer.USERNAME);
+        properties.add(USERNAME);
         properties.add(SFTPTransfer.PASSWORD);
         properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
         properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);

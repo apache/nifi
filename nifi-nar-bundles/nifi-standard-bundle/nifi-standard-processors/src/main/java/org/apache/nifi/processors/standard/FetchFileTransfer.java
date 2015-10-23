@@ -77,6 +77,13 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .expressionLanguageSupported(true)
         .required(true)
         .build();
+    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+        .name("Username")
+        .description("Username")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(true)
+        .required(true)
+        .build();
     public static final PropertyDescriptor REMOTE_FILENAME = new PropertyDescriptor.Builder()
         .name("Remote File")
         .description("The fully qualified filename on the remote system")
