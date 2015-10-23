@@ -142,7 +142,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     private static final Object RESOURCES_LOCK = new Object();
 
-    private long TICKET_RENEWAL_THRESHOLD_SEC;
+    private long ticketRenewalThresholdSeconds;
     private long lastTicketRenewal;
 
     static {
@@ -169,7 +169,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     @Override
     protected void init(ProcessorInitializationContext context) {
-        hdfsResources.set(null);
+        hdfsResources.set(new HdfsResources(null, null, null));
     }
 
     @Override
@@ -186,10 +186,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // This value will be null when called from ListHDFS, because it overrides all of the default
             // properties this processor sets. TODO: re-work ListHDFS to utilize Kerberos
             if (context.getProperty(KERBEROS_RENEWAL_PERIOD).getValue() != null) {
-                TICKET_RENEWAL_THRESHOLD_SEC = context.getProperty(KERBEROS_RENEWAL_PERIOD).asTimePeriod(TimeUnit.SECONDS);
+                ticketRenewalThresholdSeconds = context.getProperty(KERBEROS_RENEWAL_PERIOD).asTimePeriod(TimeUnit.SECONDS);
             }
             HdfsResources resources = hdfsResources.get();
-            if (resources == null) {
+            if (resources.getConfiguration() == null) {
                 String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
                 String dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
                 dir = dir == null ? "/" : dir;
@@ -198,14 +198,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             }
         } catch (IOException ex) {
             getLogger().error("HDFS Configuration error - {}", new Object[] { ex });
-            hdfsResources.set(null);
+            hdfsResources.set(new HdfsResources(null, null, null));
             throw ex;
         }
     }
 
     @OnStopped
     public final void abstractOnStopped() {
-        hdfsResources.set(null);
+        hdfsResources.set(new HdfsResources(null, null, null));
     }
 
     private static Configuration getConfigurationFromResources(String configResources) throws IOException {
@@ -428,7 +428,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         try {
             getLogger().info(String.format("Kerberos ticket age exceeds threshold [%d seconds], " +
                 "attempting to renew ticket for user [%s]",
-              TICKET_RENEWAL_THRESHOLD_SEC, ugi.getUserName()));
+              ticketRenewalThresholdSeconds, ugi.getUserName()));
             ugi.checkTGTAndReloginFromKeytab();
             lastTicketRenewal = System.currentTimeMillis() / 1000;
             getLogger().info("Kerberos ticket successfully renewed!");
@@ -439,7 +439,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected boolean isTicketOld() {
-        return (System.currentTimeMillis() / 1000 - lastTicketRenewal) > TICKET_RENEWAL_THRESHOLD_SEC;
+        return (System.currentTimeMillis() / 1000 - lastTicketRenewal) > ticketRenewalThresholdSeconds;
     }
 
 
