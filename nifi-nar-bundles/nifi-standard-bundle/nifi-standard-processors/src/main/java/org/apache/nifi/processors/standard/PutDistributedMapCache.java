@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -33,24 +43,22 @@ import org.apache.nifi.distributed.cache.client.exception.SerializationException
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
 
 @EventDriven
 @SupportsBatching
 @Tags({"map", "cache", "put", "distributed"})
 @CapabilityDescription("Gets the content of a FlowFile and puts it to a distributed map cache, using a cache key " +
-        "computed from FlowFile attributes. If the cache already contains the entry and the cache update strategy is " +
-        "'keep original' the entry is not replaced.'")
+    "computed from FlowFile attributes. If the cache already contains the entry and the cache update strategy is " +
+    "'keep original' the entry is not replaced.'")
 @WritesAttribute(attribute = "cached", description = "All FlowFiles will have an attribute 'cached'. The value of this " +
-        "attribute is true, is the FlowFile is cached, otherwise false.")
+    "attribute is true, is the FlowFile is cached, otherwise false.")
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer"})
 public class PutDistributedMapCache extends AbstractProcessor {
 
@@ -58,55 +66,55 @@ public class PutDistributedMapCache extends AbstractProcessor {
 
     // Identifies the distributed map cache client
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
-            .name("Distributed Cache Service")
-            .description("The Controller Service that is used to cache flow files")
-            .required(true)
-            .identifiesControllerService(DistributedMapCacheClient.class)
-            .build();
+        .name("Distributed Cache Service")
+        .description("The Controller Service that is used to cache flow files")
+        .required(true)
+        .identifiesControllerService(DistributedMapCacheClient.class)
+        .build();
 
     // Selects the FlowFile attribute, whose value is used as cache key
     public static final PropertyDescriptor CACHE_ENTRY_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("Cache Entry Identifier")
-            .description("A FlowFile attribute, or the results of an Attribute Expression Language statement, which will " +
-                    "be evaluated against a FlowFile in order to determine the cache key")
-            .required(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
-            .expressionLanguageSupported(true)
-            .build();
+        .name("Cache Entry Identifier")
+        .description("A FlowFile attribute, or the results of an Attribute Expression Language statement, which will " +
+            "be evaluated against a FlowFile in order to determine the cache key")
+        .required(true)
+        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
+        .expressionLanguageSupported(true)
+        .build();
 
     public static final AllowableValue CACHE_UPDATE_REPLACE = new AllowableValue("replace", "Replace if present",
-            "Adds the specified entry to the cache, replacing any value that is currently set.");
+        "Adds the specified entry to the cache, replacing any value that is currently set.");
 
     public static final AllowableValue CACHE_UPDATE_KEEP_ORIGINAL = new AllowableValue("keeporiginal", "Keep original",
-            "Adds the specified entry to the cache, if the key does not exist.");
+        "Adds the specified entry to the cache, if the key does not exist.");
 
     public static final PropertyDescriptor CACHE_UPDATE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Cache update strategy")
-            .description("Determines how the cache is updated if the cache already contains the entry")
-            .required(true)
-            .allowableValues(CACHE_UPDATE_REPLACE, CACHE_UPDATE_KEEP_ORIGINAL)
-            .defaultValue(CACHE_UPDATE_REPLACE.getValue())
-            .build();
+        .name("Cache update strategy")
+        .description("Determines how the cache is updated if the cache already contains the entry")
+        .required(true)
+        .allowableValues(CACHE_UPDATE_REPLACE, CACHE_UPDATE_KEEP_ORIGINAL)
+        .defaultValue(CACHE_UPDATE_REPLACE.getValue())
+        .build();
 
     public static final PropertyDescriptor CACHE_ENTRY_MAX_BYTES = new PropertyDescriptor.Builder()
-            .name("Max cache entry size")
-            .description("The maximum amount of data to put into cache")
-            .required(false)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .defaultValue("1 MB")
-            .expressionLanguageSupported(false)
-            .build();
+        .name("Max cache entry size")
+        .description("The maximum amount of data to put into cache")
+        .required(false)
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .defaultValue("1 MB")
+        .expressionLanguageSupported(false)
+        .build();
 
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Any FlowFile that is successfully inserted into cache will be routed to this relationship")
-            .build();
+        .name("success")
+        .description("Any FlowFile that is successfully inserted into cache will be routed to this relationship")
+        .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("Any FlowFile that cannot be inserted into the cache will be routed to this relationship")
-            .build();
+        .name("failure")
+        .description("Any FlowFile that cannot be inserted into the cache will be routed to this relationship")
+        .build();
     private final Set<Relationship> relationships;
 
     private final Serializer<String> keySerializer = new StringSerializer();
@@ -207,7 +215,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
         } catch (final IOException e) {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-            logger.error("Unable to communicate with cache when processing {} due to {}", new Object[]{flowFile, e});
+            logger.error("Unable to communicate with cache when processing {} due to {}", new Object[] {flowFile, e});
         }
     }
 

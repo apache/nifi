@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -26,22 +34,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import static org.junit.Assert.assertEquals;
 
 public class TestPutDistributedMapCache {
 
     private TestRunner runner;
     private MockCacheClient service;
-    private PutDistributedMapCache processor;
 
     @Before
     public void setup() throws InitializationException {
@@ -57,7 +54,7 @@ public class TestPutDistributedMapCache {
     public void testNoCacheKey() throws InitializationException {
 
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${caheKeyAttribute}");
-        runner.enqueue(new byte[]{});
+        runner.enqueue(new byte[] {});
 
         runner.run();
 
@@ -99,7 +96,7 @@ public class TestPutDistributedMapCache {
         props.put("caheKeyAttribute", "2");
 
         // flow file without content
-        runner.enqueue(new byte[]{}, props);
+        runner.enqueue(new byte[] {}, props);
 
         runner.run();
 
@@ -171,7 +168,7 @@ public class TestPutDistributedMapCache {
 
         runner.clearTransferState();
 
-        //we expect that the cache entry is replaced
+        // we expect that the cache entry is replaced
         value = service.get("replaceme", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
         assertEquals(replaced, new String(value, "UTF-8"));
     }
@@ -215,7 +212,7 @@ public class TestPutDistributedMapCache {
 
         runner.clearTransferState();
 
-        //we expect that the cache entry is NOT replaced
+        // we expect that the cache entry is NOT replaced
         value = service.get("replaceme", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
         assertEquals(original, new String(value, "UTF-8"));
     }
@@ -225,7 +222,7 @@ public class TestPutDistributedMapCache {
         private boolean failOnCalls = false;
 
         private void verifyNotFail() throws IOException {
-            if ( failOnCalls ) {
+            if (failOnCalls) {
                 throw new IOException("Could not call to remote service because Unit Test marked service unavailable");
             }
         }
@@ -240,7 +237,7 @@ public class TestPutDistributedMapCache {
         @Override
         @SuppressWarnings("unchecked")
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-                                          final Deserializer<V> valueDeserializer) throws IOException {
+            final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
             return (V) values.putIfAbsent(key, value);
         }

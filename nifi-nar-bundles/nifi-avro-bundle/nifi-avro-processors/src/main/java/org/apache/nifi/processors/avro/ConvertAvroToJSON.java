@@ -50,7 +50,7 @@ import org.apache.nifi.processor.io.StreamCallback;
 
 @SideEffectFree
 @SupportsBatching
-@Tags({ "json", "avro", "binary" })
+@Tags({"json", "avro", "binary"})
 @CapabilityDescription("Converts a Binary Avro record into a JSON object. This processor provides a direct mapping of an Avro field to a JSON field, such "
     + "that the resulting JSON will have the same hierarchical structure as the Avro document. Note that the Avro schema information will be lost, as this "
     + "is not a translation from binary Avro to JSON formatted Avro. The output JSON is encoded the UTF-8 encoding. If an incoming FlowFile contains a stream of "
@@ -60,41 +60,41 @@ public class ConvertAvroToJSON extends AbstractProcessor {
     protected static final String CONTAINER_ARRAY = "array";
     protected static final String CONTAINER_NONE = "none";
 
-    static final PropertyDescriptor CONTAINER_OPTIONS
-            = new PropertyDescriptor.Builder()
-            .name("JSON container options")
-            .description("Determines how stream of records is exposed: either as a sequence of single Objects (" + CONTAINER_NONE + ") (i.e. writing every Object to a new line), or as an array of Objects (" + CONTAINER_ARRAY + ").")
-            .allowableValues(CONTAINER_NONE, CONTAINER_ARRAY)
-            .required(true)
-            .defaultValue(CONTAINER_ARRAY)
-            .build();
+    static final PropertyDescriptor CONTAINER_OPTIONS = new PropertyDescriptor.Builder()
+        .name("JSON container options")
+        .description("Determines how stream of records is exposed: either as a sequence of single Objects (" + CONTAINER_NONE
+            + ") (i.e. writing every Object to a new line), or as an array of Objects (" + CONTAINER_ARRAY + ").")
+        .allowableValues(CONTAINER_NONE, CONTAINER_ARRAY)
+        .required(true)
+        .defaultValue(CONTAINER_ARRAY)
+        .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("A FlowFile is routed to this relationship after it has been converted to JSON")
-            .build();
+        .name("success")
+        .description("A FlowFile is routed to this relationship after it has been converted to JSON")
+        .build();
     static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("A FlowFile is routed to this relationship if it cannot be parsed as Avro or cannot be converted to JSON for any reason")
-            .build();
+        .name("failure")
+        .description("A FlowFile is routed to this relationship if it cannot be parsed as Avro or cannot be converted to JSON for any reason")
+        .build();
 
-    
 
     private List<PropertyDescriptor> properties;
-    
+
     @Override
     protected void init(ProcessorInitializationContext context) {
         super.init(context);
-        
+
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(CONTAINER_OPTIONS);
         this.properties = Collections.unmodifiableList(properties);
-    
     }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
+
     @Override
     public Set<Relationship> getRelationships() {
         final Set<Relationship> rels = new HashSet<>();
@@ -118,8 +118,8 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                 public void process(final InputStream rawIn, final OutputStream rawOut) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn);
 
-                         final OutputStream out = new BufferedOutputStream(rawOut);
-                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                        final OutputStream out = new BufferedOutputStream(rawOut);
+                        final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
 
                         final GenericData genericData = GenericData.get();
                         GenericRecord record = reader.next();

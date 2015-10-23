@@ -58,7 +58,6 @@ public class TestCSVToAvroProcessor {
 
     /**
      * Basic test for tab separated files, similar to #test
-     * @throws IOException
      */
     @Test
     public void testTabSeparatedConversion() throws IOException {

@@ -31,10 +31,12 @@ import java.util.regex.Pattern;
 import javax.servlet.Servlet;
 import javax.ws.rs.Path;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
-import org.apache.nifi.stream.io.StreamThrottler;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -42,15 +44,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet;
 import org.apache.nifi.processors.standard.servlets.ListenHTTPServlet;
 import org.apache.nifi.ssl.SSLContextService;
-
+import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
+import org.apache.nifi.stream.io.StreamThrottler;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -70,56 +69,56 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private List<PropertyDescriptor> properties;
 
     public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Relationship for successfully received FlowFiles")
-            .build();
+        .name("success")
+        .description("Relationship for successfully received FlowFiles")
+        .build();
 
     public static final PropertyDescriptor BASE_PATH = new PropertyDescriptor.Builder()
-            .name("Base Path")
-            .description("Base path for incoming connections")
-            .required(true)
-            .defaultValue("contentListener")
-            .addValidator(StandardValidators.URI_VALIDATOR)
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
-            .build();
+        .name("Base Path")
+        .description("Base path for incoming connections")
+        .required(true)
+        .defaultValue("contentListener")
+        .addValidator(StandardValidators.URI_VALIDATOR)
+        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
+        .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("Listening Port")
-            .description("The Port to listen on for incoming connections")
-            .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .build();
+        .name("Listening Port")
+        .description("The Port to listen on for incoming connections")
+        .required(true)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .build();
     public static final PropertyDescriptor AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()
-            .name("Authorized DN Pattern")
-            .description("A Regular Expression to apply against the Distinguished Name of incoming connections. If the Pattern does not match the DN, the connection will be refused.")
-            .required(true)
-            .defaultValue(".*")
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .build();
+        .name("Authorized DN Pattern")
+        .description("A Regular Expression to apply against the Distinguished Name of incoming connections. If the Pattern does not match the DN, the connection will be refused.")
+        .required(true)
+        .defaultValue(".*")
+        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .build();
     public static final PropertyDescriptor MAX_UNCONFIRMED_TIME = new PropertyDescriptor.Builder()
-            .name("Max Unconfirmed Flowfile Time")
-            .description("The maximum amount of time to wait for a FlowFile to be confirmed before it is removed from the cache")
-            .required(true)
-            .defaultValue("60 secs")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
+        .name("Max Unconfirmed Flowfile Time")
+        .description("The maximum amount of time to wait for a FlowFile to be confirmed before it is removed from the cache")
+        .required(true)
+        .defaultValue("60 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
     public static final PropertyDescriptor MAX_DATA_RATE = new PropertyDescriptor.Builder()
-            .name("Max Data to Receive per Second")
-            .description("The maximum amount of data to receive per second; this allows the bandwidth to be throttled to a specified data rate; if not specified, the data rate is not throttled")
-            .required(false)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .build();
+        .name("Max Data to Receive per Second")
+        .description("The maximum amount of data to receive per second; this allows the bandwidth to be throttled to a specified data rate; if not specified, the data rate is not throttled")
+        .required(false)
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("The Controller Service to use in order to obtain an SSL Context")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
+        .name("SSL Context Service")
+        .description("The Controller Service to use in order to obtain an SSL Context")
+        .required(false)
+        .identifiesControllerService(SSLContextService.class)
+        .build();
     public static final PropertyDescriptor HEADERS_AS_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
-            .name("HTTP Headers to receive as Attributes (Regex)")
-            .description("Specifies the Regular Expression that determines the names of HTTP Headers that should be passed along as FlowFile attributes")
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .required(false)
-            .build();
+        .name("HTTP Headers to receive as Attributes (Regex)")
+        .description("Specifies the Regular Expression that determines the names of HTTP Headers that should be passed along as FlowFile attributes")
+        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .required(false)
+        .build();
 
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
@@ -173,7 +172,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             toShutdown.stop();
             toShutdown.destroy();
         } catch (final Exception ex) {
-            getLogger().warn("unable to cleanly shutdown embedded server due to {}", new Object[]{ex});
+            getLogger().warn("unable to cleanly shutdown embedded server due to {}", new Object[] {ex});
             this.server = null;
         }
     }
@@ -235,18 +234,17 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         connector.setPort(port);
 
         // add the connector to the server
-        server.setConnectors(new Connector[]{connector});
+        server.setConnectors(new Connector[] {connector});
 
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, (keystorePath != null));
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
             // Note: servlets must have a path annotation - this will NPE otherwise
             // also, servlets other than ListenHttpServlet must have a path starting with /
-            if(basePath.isEmpty() && !path.value().isEmpty()){
+            if (basePath.isEmpty() && !path.value().isEmpty()) {
                 // Note: this is to handle the condition of an empty uri, otherwise pathSpec would start with //
                 contextHandler.addServlet(cls, path.value());
-            }
-            else{
+            } else {
                 contextHandler.addServlet(cls, "/" + basePath + path.value());
             }
         }
@@ -304,7 +302,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         for (final String id : findOldFlowFileIds(context)) {
             final FlowFileEntryTimeWrapper wrapper = flowFileMap.remove(id);
             if (wrapper != null) {
-                getLogger().warn("failed to received acknowledgment for HOLD with ID {}; rolling back session", new Object[]{id});
+                getLogger().warn("failed to received acknowledgment for HOLD with ID {}; rolling back session", new Object[] {id});
                 wrapper.session.rollback();
             }
         }
