@@ -25,6 +25,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.SocketFactory;
@@ -53,7 +54,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.Tuple;
 
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
@@ -133,11 +133,16 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .description("Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be set " + "in your nifi.properties").addValidator(Validator.VALID)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).addValidator(KERBEROS_CONFIG_VALIDATOR).build();
 
+    private static final PropertyDescriptor KERBEROS_RENEWAL_PERIOD = new PropertyDescriptor.Builder().name("Kerberos Renewal Period").required(false)
+            .description("Period of time which should pass before renewing the kerberos ticket").defaultValue("4 hours")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     protected static final List<PropertyDescriptor> properties;
 
     private static final Object RESOURCES_LOCK = new Object();
 
-    private static final long TICKET_RENEWAL_THRESHOLD_SEC = 4 * 3600;   // renew Kerberos ticket after 4 hours
+    private long TICKET_RENEWAL_THRESHOLD_SEC;
     private long lastTicketRenewal;
 
     static {
@@ -145,6 +150,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         props.add(HADOOP_CONFIGURATION_RESOURCES);
         props.add(KERBEROS_PRINCIPAL);
         props.add(KERBEROS_KEYTAB);
+        props.add(KERBEROS_RENEWAL_PERIOD);
         properties = Collections.unmodifiableList(props);
         try {
             NIFI_PROPERTIES = NiFiProperties.getInstance();
@@ -159,11 +165,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     // variables shared by all threads of this processor
     // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
-    private final AtomicReference<Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>>> hdfsResources = new AtomicReference<>();
+    private final AtomicReference<HdfsResources> hdfsResources = new AtomicReference<>();
 
     @Override
     protected void init(ProcessorInitializationContext context) {
-        hdfsResources.set(new Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>>(null, null));
+        hdfsResources.set(null);
     }
 
     @Override
@@ -177,8 +183,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     @OnScheduled
     public final void abstractOnScheduled(ProcessContext context) throws IOException {
         try {
-            Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>> resources = hdfsResources.get();
-            if (resources.getKey() == null || resources.getValue() == null) {
+            // This value will be null when called from ListHDFS, because it overrides all of the default
+            // properties this processor sets. TODO: re-work ListHDFS to utilize Kerberos
+            if (context.getProperty(KERBEROS_RENEWAL_PERIOD).getValue() != null) {
+                TICKET_RENEWAL_THRESHOLD_SEC = context.getProperty(KERBEROS_RENEWAL_PERIOD).asTimePeriod(TimeUnit.SECONDS);
+            }
+            HdfsResources resources = hdfsResources.get();
+            if (resources == null) {
                 String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
                 String dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
                 dir = dir == null ? "/" : dir;
@@ -187,14 +198,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             }
         } catch (IOException ex) {
             getLogger().error("HDFS Configuration error - {}", new Object[] { ex });
-            hdfsResources.set(new Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>>(null, null));
+            hdfsResources.set(null);
             throw ex;
         }
     }
 
     @OnStopped
     public final void abstractOnStopped() {
-        hdfsResources.set(new Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>>(null, null));
+        hdfsResources.set(null);
     }
 
     private static Configuration getConfigurationFromResources(String configResources) throws IOException {
@@ -228,7 +239,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
-    Tuple<Configuration, Tuple<FileSystem, UserGroupInformation>> resetHDFSResources(String configResources, String dir, ProcessContext context) throws IOException {
+    HdfsResources resetHDFSResources(String configResources, String dir, ProcessContext context) throws IOException {
         // org.apache.hadoop.conf.Configuration saves its current thread context class loader to use for threads that it creates
         // later to do I/O. We need this class loader to be the NarClassLoader instead of the magical
         // NarThreadContextClassLoader.
@@ -266,7 +277,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             config.set(disableCacheName, "true");
             getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
                     new Object[] { fs.getWorkingDirectory(), fs.getDefaultBlockSize(new Path(dir)), fs.getDefaultReplication(new Path(dir)), config.toString() });
-            return new Tuple<>(config, new Tuple<>(fs, ugi));
+            return new HdfsResources(config, fs, ugi);
 
         } finally {
             Thread.currentThread().setContextClassLoader(savedClassLoader);
@@ -398,19 +409,19 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected Configuration getConfiguration() {
-        return hdfsResources.get().getKey();
+        return hdfsResources.get().getConfiguration();
     }
 
     protected FileSystem getFileSystem() {
         // if kerberos is enabled, check if the ticket should be renewed before returning the FS
         if (getUserGroupInformation() != null && isTicketOld()) {
-            renewKerberosTicket(hdfsResources.get().getValue().getValue());
+            renewKerberosTicket(getUserGroupInformation());
         }
-        return hdfsResources.get().getValue().getKey();
+        return hdfsResources.get().getFileSystem();
     }
 
     protected UserGroupInformation getUserGroupInformation() {
-        return hdfsResources.get().getValue().getValue();
+        return hdfsResources.get().getUserGroupInformation();
     }
 
     protected void renewKerberosTicket(UserGroupInformation ugi) {
@@ -429,5 +440,30 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     protected boolean isTicketOld() {
         return (System.currentTimeMillis() / 1000 - lastTicketRenewal) > TICKET_RENEWAL_THRESHOLD_SEC;
+    }
+
+
+    protected class HdfsResources {
+        private Configuration configuration;
+        private FileSystem fileSystem;
+        private  UserGroupInformation userGroupInformation;
+
+        public HdfsResources(Configuration configuration, FileSystem fileSystem, UserGroupInformation userGroupInformation) {
+            this.configuration = configuration;
+            this.fileSystem = fileSystem;
+            this.userGroupInformation = userGroupInformation;
+        }
+
+        public Configuration getConfiguration() {
+            return configuration;
+        }
+
+        public FileSystem getFileSystem() {
+            return fileSystem;
+        }
+
+        public UserGroupInformation getUserGroupInformation() {
+            return userGroupInformation;
+        }
     }
 }
