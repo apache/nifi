@@ -47,6 +47,11 @@ public enum ProvenanceEventType {
     SEND,
 
     /**
+     * Indicates that the contents of a FlowFile were downloaded by a user or external entity.
+     */
+    DOWNLOAD,
+
+    /**
      * Indicates a provenance event for the conclusion of an object's life for
      * some reason other than object expiration
      */
