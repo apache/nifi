@@ -156,14 +156,14 @@ nf.Settings = (function () {
 
             // update the search criteria
             controllerServiceTypesData.setFilterArgs({
-                searchString: getControllerServiceTypeFilterText(),
-                property: $('#controller-service-type-filter-options').combo('getSelectedOption').value
+                searchString: getControllerServiceTypeFilterText()
             });
-
-            // need to invalidate the entire table since parent elements may need to be 
-            // rerendered due to changes in their children
             controllerServiceTypesData.refresh();
-            controllerServiceTypesGrid.invalidate();
+
+            // update the selection if possible
+            if (controllerServiceTypesData.getLength() > 0) {
+                controllerServiceTypesGrid.setSelectedRows([0]);
+            }
         }
     };
 
@@ -249,7 +249,9 @@ nf.Settings = (function () {
         }
 
         // determine if the item matches the filter
-        return item[args.property].search(filterExp) >= 0;
+        var matchesLabel = item['label'].search(filterExp) >= 0;
+        var matchesTags = item['tags'].search(filterExp) >= 0;
+        return matchesLabel || matchesTags;
     };
 
     /**
@@ -276,6 +278,23 @@ nf.Settings = (function () {
         });
 
         return matches;
+    };
+
+    /**
+     * Adds the currently selected controller service.
+     */
+    var addSelectedControllerService = function () {
+        var selectedServiceType = $('#selected-controller-service-type').text();
+
+        // ensure something was selected
+        if (selectedServiceType === '') {
+            nf.Dialog.showOkDialog({
+                dialogContent: 'The type of controller service to create must be selected.',
+                overlayBackground: false
+            });
+        } else {
+            addControllerService(selectedServiceType);
+        }
     };
 
     /**
@@ -334,20 +353,6 @@ nf.Settings = (function () {
      * Initializes the new controller service dialog.
      */
     var initNewControllerServiceDialog = function () {
-        // specify the combo options
-        $('#controller-service-type-filter-options').combo({
-            options: [{
-                    text: 'by type',
-                    value: 'label'
-                }, {
-                    text: 'by tag',
-                    value: 'tags'
-                }],
-            select: function (option) {
-                applyControllerServiceTypeFilter();
-            }
-        });
-
         // specify the controller service availability
         if (nf.Canvas.isClustered()) {
             $('#controller-service-availability-combo').combo({
@@ -365,8 +370,13 @@ nf.Settings = (function () {
         }
 
         // define the function for filtering the list
-        $('#controller-service-type-filter').keyup(function () {
-            applyControllerServiceTypeFilter();
+        $('#controller-service-type-filter').on('keyup', function (e) {
+            var code = e.keyCode ? e.keyCode : e.which;
+            if (code === $.ui.keyCode.ENTER) {
+                addSelectedControllerService();
+            } else {
+                applyControllerServiceTypeFilter();
+            }
         }).focus(function () {
             if ($(this).hasClass(config.styles.filterList)) {
                 $(this).removeClass(config.styles.filterList).val('');
@@ -389,8 +399,7 @@ nf.Settings = (function () {
         });
         controllerServiceTypesData.setItems([]);
         controllerServiceTypesData.setFilterArgs({
-            searchString: getControllerServiceTypeFilterText(),
-            property: $('#controller-service-type-filter-options').combo('getSelectedOption').value
+            searchString: getControllerServiceTypeFilterText()
         });
         controllerServiceTypesData.setFilter(filterControllerServiceTypes);
 
@@ -493,17 +502,7 @@ nf.Settings = (function () {
                     buttonText: 'Add',
                     handler: {
                         click: function () {
-                            var selectedServiceType = $('#selected-controller-service-type').text();
-                            
-                            // ensure something was selected
-                            if (selectedServiceType === '') {
-                                nf.Dialog.showOkDialog({
-                                    dialogContent: 'The type of controller service to create must be selected.',
-                                    overlayBackground: false
-                                });
-                            } else {
-                                addControllerService(selectedServiceType);
-                            }
+                            addSelectedControllerService();
                         }
                     }
                 }, {
@@ -905,14 +904,14 @@ nf.Settings = (function () {
 
             // update the search criteria
             reportingTaskTypesData.setFilterArgs({
-                searchString: getReportingTaskTypeFilterText(),
-                property: $('#reporting-task-type-filter-options').combo('getSelectedOption').value
+                searchString: getReportingTaskTypeFilterText()
             });
-
-            // need to invalidate the entire table since parent elements may need to be 
-            // rerendered due to changes in their children
             reportingTaskTypesData.refresh();
-            reportingTaskTypesGrid.invalidate();
+
+            // update the selection if possible
+            if (reportingTaskTypesData.getLength() > 0) {
+                reportingTaskTypesGrid.setSelectedRows([0]);
+            }
         }
     };
 
@@ -978,6 +977,23 @@ nf.Settings = (function () {
     };
 
     /**
+     * Adds the currently selected reporting task.
+     */
+    var addSelectedReportingTask = function () {
+        var selectedTaskType = $('#selected-reporting-task-type').text();
+
+        // ensure something was selected
+        if (selectedTaskType === '') {
+            nf.Dialog.showOkDialog({
+                dialogContent: 'The type of reporting task to create must be selected.',
+                overlayBackground: false
+            });
+        } else {
+            addReportingTask(selectedTaskType);
+        }
+    };
+    
+    /**
      * Adds a new reporting task of the specified type.
      * 
      * @param {string} reportingTaskType
@@ -1033,20 +1049,6 @@ nf.Settings = (function () {
      * Initializes the new reporting task dialog.
      */
     var initNewReportingTaskDialog = function () {
-        // specify the combo options
-        $('#reporting-task-type-filter-options').combo({
-            options: [{
-                    text: 'by type',
-                    value: 'label'
-                }, {
-                    text: 'by tag',
-                    value: 'tags'
-                }],
-            select: function (option) {
-                applyReportingTaskTypeFilter();
-            }
-        });
-
         // specify the reporting task availability
         if (nf.Canvas.isClustered()) {
             $('#reporting-task-availability-combo').combo({
@@ -1064,8 +1066,13 @@ nf.Settings = (function () {
         }
 
         // define the function for filtering the list
-        $('#reporting-task-type-filter').keyup(function () {
-            applyReportingTaskTypeFilter();
+        $('#reporting-task-type-filter').on('keyup', function (e) {
+            var code = e.keyCode ? e.keyCode : e.which;
+            if (code === $.ui.keyCode.ENTER) {
+                addSelectedReportingTask();
+            } else {
+                applyReportingTaskTypeFilter();
+            }
         }).focus(function () {
             if ($(this).hasClass(config.styles.filterList)) {
                 $(this).removeClass(config.styles.filterList).val('');
@@ -1088,8 +1095,7 @@ nf.Settings = (function () {
         });
         reportingTaskTypesData.setItems([]);
         reportingTaskTypesData.setFilterArgs({
-            searchString: getReportingTaskTypeFilterText(),
-            property: $('#reporting-task-type-filter-options').combo('getSelectedOption').value
+            searchString: getReportingTaskTypeFilterText()
         });
         reportingTaskTypesData.setFilter(filterReportingTaskTypes);
 
@@ -1192,17 +1198,7 @@ nf.Settings = (function () {
                     buttonText: 'Add',
                     handler: {
                         click: function () {
-                            var selectedTaskType = $('#selected-reporting-task-type').text();
-                            
-                            // ensure something was selected
-                            if (selectedTaskType === '') {
-                                nf.Dialog.showOkDialog({
-                                    dialogContent: 'The type of reporting task to create must be selected.',
-                                    overlayBackground: false
-                                });
-                            } else {
-                                addReportingTask(selectedTaskType);
-                            }
+                            addSelectedReportingTask();
                         }
                     }
                 }, {
@@ -1587,6 +1583,7 @@ nf.Settings = (function () {
                     // reset the canvas size after the dialog is shown
                     var controllerServiceTypesGrid = $('#controller-service-types-table').data('gridInstance');
                     if (nf.Common.isDefinedAndNotNull(controllerServiceTypesGrid)) {
+                        controllerServiceTypesGrid.setSelectedRows([0]);
                         controllerServiceTypesGrid.resizeCanvas();
                     }
                     
@@ -1598,6 +1595,7 @@ nf.Settings = (function () {
                     // reset the canvas size after the dialog is shown
                     var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
                     if (nf.Common.isDefinedAndNotNull(reportingTaskTypesGrid)) {
+                        reportingTaskTypesGrid.setSelectedRows([0]);
                         reportingTaskTypesGrid.resizeCanvas();
                     }
                     

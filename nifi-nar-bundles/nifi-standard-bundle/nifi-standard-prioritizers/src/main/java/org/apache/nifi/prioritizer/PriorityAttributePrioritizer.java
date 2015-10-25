@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 /**
  * This prioritizer checks each FlowFile for a "priority" attribute and lets
@@ -33,8 +34,6 @@ import org.apache.nifi.flowfile.FlowFilePrioritizer;
  */
 public class PriorityAttributePrioritizer implements FlowFilePrioritizer {
 
-    public static final String PRIORITY_ATTR = "priority";
-
     private static final Pattern intPattern = Pattern.compile("-?\\d+");
 
     @Override
@@ -47,8 +46,8 @@ public class PriorityAttributePrioritizer implements FlowFilePrioritizer {
             return 1;
         }
 
-        String o1Priority = o1.getAttribute(PRIORITY_ATTR);
-        String o2Priority = o2.getAttribute(PRIORITY_ATTR);
+        String o1Priority = o1.getAttribute(CoreAttributes.PRIORITY.key());
+        String o2Priority = o2.getAttribute(CoreAttributes.PRIORITY.key());
         if (o1Priority == null && o2Priority == null) {
             return -1; // this is not 0 to match FirstInFirstOut
         } else if (o2Priority == null) {

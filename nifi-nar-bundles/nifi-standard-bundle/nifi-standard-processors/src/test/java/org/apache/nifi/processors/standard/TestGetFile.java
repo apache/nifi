@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -33,6 +34,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
@@ -158,8 +160,23 @@ public class TestGetFile {
 
         boolean verifyPermissions = false;
         try {
-            Files.setPosixFilePermissions(targetPath, PosixFilePermissions.fromString("r--r-----"));
-            verifyPermissions = true;
+            // If you mount an NTFS partition in Linux, you are unable to change the permissions of the files,
+            // because every file has the same permissions, controlled by the 'fmask' and 'dmask' mount options.
+            // Executing a chmod command will not fail, but it does not change the file's permissions.
+            // From Java perspective the NTFS mount point, as a FileStore supports the 'unix' and 'posix' file
+            // attribute views, but the setPosixFilePermissions() has no effect.
+            //
+            // If you set verifyPermissions to true without the following extra check, the test case will fail
+            // on a file system, where Nifi source is located on a NTFS mount point in Linux.
+            // The purpose of the extra check is to ensure, that setPosixFilePermissions() changes the file's
+            // permissions, and set verifyPermissions, after we are convinced.
+            Set<PosixFilePermission> perms = PosixFilePermissions.fromString("r--r-----");
+            Files.setPosixFilePermissions(targetPath, perms);
+            Set<PosixFilePermission> permsAfterSet =  Files.getPosixFilePermissions(targetPath);
+            if (perms.equals(permsAfterSet)) {
+               verifyPermissions = true;
+            }
+
         } catch (Exception donothing) {
         }
 

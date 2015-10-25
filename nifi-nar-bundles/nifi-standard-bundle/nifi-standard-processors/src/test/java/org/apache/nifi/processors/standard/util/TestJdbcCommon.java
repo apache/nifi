@@ -24,19 +24,26 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class TestJdbcCommon {
 
@@ -137,6 +144,41 @@ public class TestJdbcCommon {
             }
         }
     }
+
+
+    @Test
+    public void testCreateSchemaTypes() throws SQLException, IllegalArgumentException, IllegalAccessException {
+        final Set<Integer> fieldsToIgnore = new HashSet<>();
+        fieldsToIgnore.add(Types.NULL);
+        fieldsToIgnore.add(Types.OTHER);
+
+        final Field[] fieldTypes = Types.class.getFields();
+        for (final Field field : fieldTypes) {
+            final Object fieldObject = field.get(null);
+            final int type = (int) fieldObject;
+
+            if (fieldsToIgnore.contains(Types.NULL)) {
+                continue;
+            }
+
+            final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
+            Mockito.when(metadata.getColumnCount()).thenReturn(1);
+            Mockito.when(metadata.getColumnType(1)).thenReturn(type);
+            Mockito.when(metadata.getColumnName(1)).thenReturn(field.getName());
+            Mockito.when(metadata.getTableName(1)).thenReturn("table");
+
+            final ResultSet rs = Mockito.mock(ResultSet.class);
+            Mockito.when(rs.getMetaData()).thenReturn(metadata);
+
+            try {
+                JdbcCommon.createSchema(rs);
+            } catch (final IllegalArgumentException | SQLException sqle) {
+                sqle.printStackTrace();
+                Assert.fail("Failed when using type " + field.getName());
+            }
+        }
+    }
+
 
     // many test use Derby as database, so ensure driver is available
     @Test

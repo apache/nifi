@@ -54,7 +54,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("FlowFiles are routed to failure if unable to be copied to Amazon S3").build();
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
+    public static Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
     public static final PropertyDescriptor CREDENTAILS_FILE = new PropertyDescriptor.Builder()
