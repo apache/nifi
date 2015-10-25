@@ -46,6 +46,8 @@ import static java.sql.Types.VARCHAR;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -98,6 +100,10 @@ public class JdbcCommon {
                         // direct put to avro record results:
                         // org.apache.avro.AvroRuntimeException: Unknown datum type java.lang.Byte
                         rec.put(i - 1, ((Byte) value).intValue());
+
+                    } else if (value instanceof BigDecimal || value instanceof BigInteger) {
+                        // Avro can't handle BigDecimal and BigInteger as numbers - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
+                        rec.put(i - 1, value.toString());
 
                     } else if (value instanceof Number || value instanceof Boolean) {
                         rec.put(i - 1, value);

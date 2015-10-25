@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -34,6 +35,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
@@ -44,6 +46,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TestJdbcCommon {
 
@@ -175,6 +179,47 @@ public class TestJdbcCommon {
             } catch (final IllegalArgumentException | SQLException sqle) {
                 sqle.printStackTrace();
                 Assert.fail("Failed when using type " + field.getName());
+            }
+        }
+    }
+
+
+    @Test
+    public void testConvertToAvroStreamForBigDecimal() throws SQLException, IOException {
+        final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
+        Mockito.when(metadata.getColumnCount()).thenReturn(1);
+        Mockito.when(metadata.getColumnType(1)).thenReturn(Types.NUMERIC);
+        Mockito.when(metadata.getColumnName(1)).thenReturn("Chairman");
+        Mockito.when(metadata.getTableName(1)).thenReturn("table");
+
+        final ResultSet rs = Mockito.mock(ResultSet.class);
+        Mockito.when(rs.getMetaData()).thenReturn(metadata);
+
+        final AtomicInteger counter = new AtomicInteger(1);
+        Mockito.doAnswer(new Answer<Boolean>() {
+            @Override
+            public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                return counter.getAndDecrement() > 0;
+            }
+        }).when(rs).next();
+
+        final BigDecimal bigDecimal = new BigDecimal(38D);
+        Mockito.when(rs.getObject(Mockito.anyInt())).thenReturn(bigDecimal);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        JdbcCommon.convertToAvroStream(rs, baos);
+
+        final byte[] serializedBytes = baos.toByteArray();
+
+        final InputStream instream = new ByteArrayInputStream(serializedBytes);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                record = dataFileReader.next(record);
+                assertEquals(bigDecimal.toString(), record.get("Chairman").toString());
             }
         }
     }
