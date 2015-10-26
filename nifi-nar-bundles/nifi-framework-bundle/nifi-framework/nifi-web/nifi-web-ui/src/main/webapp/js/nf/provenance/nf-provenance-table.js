@@ -258,19 +258,6 @@ nf.ProvenanceTable = (function () {
      * @param {boolean} isClustered     Whether or not this NiFi clustered
      */
     var initSearchDialog = function (isClustered) {
-        $.ajax({
-            type: 'GET',
-            url: config.urls.searchOptions,
-            dataType: 'json'
-        }).done(function (response) {
-            var provenanceOptions = response.provenanceOptions;
-
-            // load all searchable fields
-            $.each(provenanceOptions.searchableFields, function (_, field) {
-                appendSearchableField(field);
-            });
-        });
-
         // configure the start and end date picker
         $('#provenance-search-start-date, #provenance-search-end-date').datepicker({
             showAnim: '',
@@ -402,6 +389,19 @@ nf.ProvenanceTable = (function () {
                     }
                 }]
         });
+        
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.searchOptions,
+            dataType: 'json'
+        }).done(function (response) {
+            var provenanceOptions = response.provenanceOptions;
+
+            // load all searchable fields
+            $.each(provenanceOptions.searchableFields, function (_, field) {
+                appendSearchableField(field);
+            });
+        });
     };
 
     /**
@@ -440,6 +440,11 @@ nf.ProvenanceTable = (function () {
         $('<div class="searchable-field-name"></div>').text(field.label).appendTo(searchableField);
         $('<div class="searchable-field-value"><input type="text" class="searchable-field-input"/></div>').appendTo(searchableField);
         $('<div class="clear"></div>').appendTo(searchableField);
+
+        // make the component id accessible for populating
+        if (field.id === 'ProcessorID') {
+            searchableField.find('input').addClass('searchable-component-id');
+        }
 
         // ensure the no searchable fields message is hidden
         $('#no-searchable-fields').hide();
@@ -949,12 +954,23 @@ nf.ProvenanceTable = (function () {
          * @param {boolean} isClustered     Whether or not this instance is clustered
          */
         init: function (isClustered) {
-            return loadLineageCapabilities().done(function () {
-                initDetailsDialog();
-                initProvenanceQueryDialog();
-                initSearchDialog(isClustered);
-                initProvenanceTable(isClustered);
-            }).fail(nf.Common.handleAjaxError);
+            return $.Deferred(function (deferred) {
+                // handles init failure
+                var failure = function (xhr, status, error) {
+                    deferred.reject();
+                    nf.Common.handleAjaxError(xhr, status, error);
+                };
+                
+                // load the lineage capabilities
+                loadLineageCapabilities().done(function () {
+                    initDetailsDialog();
+                    initProvenanceQueryDialog();
+                    initProvenanceTable(isClustered);
+                    initSearchDialog(isClustered).done(function () {
+                        deferred.resolve();
+                    }).fail(failure);
+                }).fail(failure);
+            }).promise();
         },
         
         /**

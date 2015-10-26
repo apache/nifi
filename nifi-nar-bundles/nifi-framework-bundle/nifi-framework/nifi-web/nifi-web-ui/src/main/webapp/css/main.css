@@ -57,10 +57,11 @@ div.context-menu-item.hover {
     color: #027fd2;
 }
 
-img.context-menu-item-img {
+.context-menu-item-img {
     float: left;
     width: 16px;
     height: 16px;
+    background-size: cover;
 }
 
 div.context-menu-item-text {
@@ -70,6 +71,10 @@ div.context-menu-item-text {
     float: left;
     font-family: Arial,​ sans-serif;
     font-size: 11px;
+}
+
+div.context-menu-provenance {
+    background-position: top left;
 }
 
 /*

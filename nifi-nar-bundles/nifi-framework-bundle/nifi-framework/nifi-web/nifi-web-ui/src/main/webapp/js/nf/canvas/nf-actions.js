@@ -427,6 +427,22 @@ nf.Actions = (function () {
         },
         
         /**
+         * Opens provenance with the component in the specified selection.
+         *
+         * @argument {selection} selection The selection
+         */
+        openProvenance: function (selection) {
+            if (selection.size() === 1) {
+                var selectionData = selection.datum();
+
+                // open the provenance page with the specified component
+                nf.Shell.showPage('provenance?' + $.param({
+                    componentId: selectionData.component.id
+                }));
+            }
+        },
+
+        /**
          * Starts the components in the specified selection.
          * 
          * @argument {selection} selection      The selection
