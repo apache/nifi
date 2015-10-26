@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
@@ -1759,7 +1760,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 return new DisableOnCloseInputStream(currentReadClaimStream);
             } else {
                 final InputStream rawInStream = context.getContentRepository().read(claim);
-                StreamUtils.skip(rawInStream, offset);
+                try {
+                    StreamUtils.skip(rawInStream, offset);
+                } catch(IOException ioe) {
+                    IOUtils.closeQuietly(rawInStream);
+                    throw ioe;
+                }
                 return rawInStream;
             }
         } catch (final ContentNotFoundException cnfe) {

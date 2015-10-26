@@ -38,8 +38,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
 import javax.servlet.DispatcherType;
 import javax.servlet.ServletContext;
+
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.controller.FlowSerializationException;
 import org.apache.nifi.controller.FlowSynchronizationException;
@@ -51,6 +53,7 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiWebContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.ui.extension.UiExtension;
@@ -372,24 +375,25 @@ public class JettyServer implements NiFiServer {
         }
 
         // get an input stream for the nifi-processor configuration file
-        BufferedReader in = new BufferedReader(new InputStreamReader(jarFile.getInputStream(jarEntry)));
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(jarFile.getInputStream(jarEntry)))) {
 
-        // read in each configured type
-        String rawComponentType;
-        while ((rawComponentType = in.readLine()) != null) {
-            // extract the component type
-            final String componentType = extractComponentType(rawComponentType);
-            if (componentType != null) {
-                List<String> extensions = uiExtensions.get(uiExtensionType);
+            // read in each configured type
+            String rawComponentType;
+            while ((rawComponentType = in.readLine()) != null) {
+                // extract the component type
+                final String componentType = extractComponentType(rawComponentType);
+                if (componentType != null) {
+                    List<String> extensions = uiExtensions.get(uiExtensionType);
 
-                // if there are currently no extensions for this type create it
-                if (extensions == null) {
-                    extensions = new ArrayList<>();
-                    uiExtensions.put(uiExtensionType, extensions);
+                    // if there are currently no extensions for this type create it
+                    if (extensions == null) {
+                        extensions = new ArrayList<>();
+                        uiExtensions.put(uiExtensionType, extensions);
+                    }
+
+                    // add the specified type
+                    extensions.add(componentType);
                 }
-
-                // add the specified type
-                extensions.add(componentType);
             }
         }
     }
@@ -437,37 +441,34 @@ public class JettyServer implements NiFiServer {
      */
     private List<String> getWarExtensions(final File war, final String path) {
         List<String> processorTypes = new ArrayList<>();
+
+        // load the jar file and attempt to find the nifi-processor entry
         JarFile jarFile = null;
         try {
-            // load the jar file and attempt to find the nifi-processor entry
             jarFile = new JarFile(war);
             JarEntry jarEntry = jarFile.getJarEntry(path);
 
             // ensure the nifi-processor entry was found
             if (jarEntry != null) {
                 // get an input stream for the nifi-processor configuration file
-                BufferedReader in = new BufferedReader(new InputStreamReader(jarFile.getInputStream(jarEntry)));
+                try (final BufferedReader in = new BufferedReader(
+                        new InputStreamReader(jarFile.getInputStream(jarEntry)))) {
 
-                // read in each configured type
-                String rawProcessorType;
-                while ((rawProcessorType = in.readLine()) != null) {
-                    // extract the processor type
-                    final String processorType = extractComponentType(rawProcessorType);
-                    if (processorType != null) {
-                        processorTypes.add(processorType);
+                    // read in each configured type
+                    String rawProcessorType;
+                    while ((rawProcessorType = in.readLine()) != null) {
+                        // extract the processor type
+                        final String processorType = extractComponentType(rawProcessorType);
+                        if (processorType != null) {
+                            processorTypes.add(processorType);
+                        }
                     }
                 }
             }
         } catch (IOException ioe) {
-            logger.warn(String.format("Unable to inspect %s for a custom processor UI.", war));
+            logger.warn("Unable to inspect {} for a custom processor UI.", new Object[]{war, ioe});
         } finally {
-            try {
-                // close the jar file - which closes all input streams obtained via getInputStream above
-                if (jarFile != null) {
-                    jarFile.close();
-                }
-            } catch (IOException ioe) {
-            }
+            IOUtils.closeQuietly(jarFile);
         }
 
         return processorTypes;

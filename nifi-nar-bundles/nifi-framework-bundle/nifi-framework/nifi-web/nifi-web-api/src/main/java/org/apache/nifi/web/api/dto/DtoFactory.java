@@ -148,7 +148,7 @@ public final class DtoFactory {
         }
     };
 
-    final int MAX_BULLETINS_PER_COMPONENT = 5;
+    final static int MAX_BULLETINS_PER_COMPONENT = 5;
 
     private ControllerServiceLookup controllerServiceLookup;
 

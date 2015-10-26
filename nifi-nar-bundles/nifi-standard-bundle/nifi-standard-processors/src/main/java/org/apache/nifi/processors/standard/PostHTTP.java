@@ -49,6 +49,7 @@ import javax.net.ssl.SSLSession;
 import javax.security.cert.X509Certificate;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
@@ -637,6 +638,7 @@ public class PostHTTP extends AbstractProcessor {
                         + "configured to deliver FlowFiles; rolling back session", new Object[]{url});
                 session.rollback();
                 context.yield();
+                IOUtils.closeQuietly(client);
                 return;
             }
         } else {

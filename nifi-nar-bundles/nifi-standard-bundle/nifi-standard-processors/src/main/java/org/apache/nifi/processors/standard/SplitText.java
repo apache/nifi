@@ -353,7 +353,7 @@ public class SplitText extends AbstractProcessor {
         }
     }
 
-    private class SplitInfo {
+    private static class SplitInfo {
 
         public long offsetBytes;
         public long lengthBytes;

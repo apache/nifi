@@ -56,7 +56,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.config.Registry;
@@ -67,6 +66,7 @@ import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
@@ -438,7 +438,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             }
 
             // create the http client
-            final HttpClient client = clientBuilder.build();
+            final CloseableHttpClient client = clientBuilder.build();
 
             // create request
             final HttpGet get = new HttpGet(url);
@@ -539,7 +539,6 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 logger.error("Failed to process due to {}; rolling back session", new Object[]{t.getMessage()}, t);
                 throw t;
             }
-
         } finally {
             conMan.shutdown();
         }
