@@ -278,8 +278,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         flowFile = session.putAllAttributes(flowFile, attributes);
 
         // emit provenance event and transfer FlowFile
-        session.getProvenanceReporter().modifyContent(flowFile, "Content replaced with content from " + protocolName + "://" + host + ":" + port + "/" + filename,
-            stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.getProvenanceReporter().fetch(flowFile, protocolName + "://" + host + ":" + port + "/" + filename, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
 
         // it is critical that we commit the session before moving/deleting the remote file. Otherwise, we could have a situation where
