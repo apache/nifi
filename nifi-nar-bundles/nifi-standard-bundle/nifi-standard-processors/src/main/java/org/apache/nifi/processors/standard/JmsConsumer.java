@@ -25,6 +25,7 @@ import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROPS_T
 import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
 import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
 import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
+import static org.apache.nifi.processors.standard.util.JmsProperties.SSL_CONTEXT_SERVICE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
 import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
 import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
@@ -87,6 +88,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
         descriptors.add(BATCH_SIZE);
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(ACKNOWLEDGEMENT_MODE);
         descriptors.add(MESSAGE_SELECTOR);
         descriptors.add(JMS_PROPS_TO_ATTRIBUTES);

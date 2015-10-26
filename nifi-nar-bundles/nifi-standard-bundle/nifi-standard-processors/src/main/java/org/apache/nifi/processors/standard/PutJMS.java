@@ -47,6 +47,7 @@ import static org.apache.nifi.processors.standard.util.JmsProperties.REPLY_TO_QU
 import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
 import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
 import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
+import static org.apache.nifi.processors.standard.util.JmsProperties.SSL_CONTEXT_SERVICE;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -122,6 +123,7 @@ public class PutJMS extends AbstractProcessor {
         descriptors.add(BATCH_SIZE);
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(MESSAGE_TYPE);
         descriptors.add(MESSAGE_PRIORITY);
         descriptors.add(REPLY_TO_QUEUE);

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard.util;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 
 public class JmsProperties {
 
@@ -177,4 +178,11 @@ public class JmsProperties {
             .defaultValue("1 MB")
             .build();
 
+    // JMS SSL Properties
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The Controller Service to use in order to obtain an SSL Context.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 }

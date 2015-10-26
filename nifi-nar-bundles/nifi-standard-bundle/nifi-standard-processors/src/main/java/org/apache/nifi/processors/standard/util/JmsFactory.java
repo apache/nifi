@@ -28,12 +28,15 @@ import static org.apache.nifi.processors.standard.util.JmsProperties.DURABLE_SUB
 import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
 import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
 import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
+import static org.apache.nifi.processors.standard.util.JmsProperties.SSL_CONTEXT_SERVICE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
 import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
 import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -57,12 +60,15 @@ import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.processor.ProcessContext;
-
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.ActiveMQSslConnectionFactory;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.activemq.command.ActiveMQTopic;
+import org.apache.activemq.util.URISupport;
+import org.apache.activemq.util.URISupport.CompositeData;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
 
 public class JmsFactory {
 
@@ -348,16 +354,79 @@ public class JmsFactory {
     }
 
     private static ConnectionFactory createConnectionFactory(final ProcessContext context) throws JMSException {
-        final String url = context.getProperty(URL).getValue();
+        final URI uri;
+        try {
+            uri = new URI(context.getProperty(URL).getValue());
+        } catch (URISyntaxException e) {
+            // Should not happen - URL was validated
+            throw new IllegalArgumentException("Validated URI [" + context.getProperty(URL) + "] was invalid", e);
+        }
         final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final String provider = context.getProperty(JMS_PROVIDER).getValue();
-        return createConnectionFactory(url, timeoutMillis, provider);
+        if (uri.getScheme().equals("ssl") || (URISupport.isCompositeURI(uri) && compositeURIHasSSL(uri))) {
+            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            if (sslContextService == null) {
+                throw new IllegalArgumentException("Attempting to initiate SSL JMS connection and SSL Context is not set.");
+            }
+            return createSslConnectionFactory(uri, timeoutMillis, provider, sslContextService.getKeyStoreFile(),
+                    sslContextService.getKeyStorePassword(), sslContextService.getTrustStoreFile(), sslContextService.getTrustStorePassword());
+        } else {
+            return createConnectionFactory(uri, timeoutMillis, provider);
+        }
+    }
+
+    private static boolean compositeURIHasSSL(URI uri) {
+        try {
+            CompositeData compositeData = URISupport.parseComposite(uri);
+            for(URI component : compositeData.getComponents()){
+                if(component.getScheme().equals("ssl")){
+                    return true;
+                }
+            }
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Attempting to initiate JMS with invalid composite URI [" + uri + "]", e);
+        }
+        return false;
+    }
+
+    public static ConnectionFactory createConnectionFactory(final URI uri, final int timeoutMillis, final String jmsProvider) throws JMSException {
+        return createConnectionFactory(uri.toString(), timeoutMillis, jmsProvider);
     }
 
     public static ConnectionFactory createConnectionFactory(final String url, final int timeoutMillis, final String jmsProvider) throws JMSException {
         switch (jmsProvider) {
             case ACTIVEMQ_PROVIDER: {
                 final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
+                factory.setSendTimeout(timeoutMillis);
+                return factory;
+            }
+            default:
+                throw new IllegalArgumentException("Unknown JMS Provider: " + jmsProvider);
+        }
+    }
+
+    public static ConnectionFactory createSslConnectionFactory(final URI uri, final int timeoutMillis, final String jmsProvider,
+            final String keystore, final String keystorePassword, final String truststore, final String truststorePassword) throws JMSException {
+        return createSslConnectionFactory(uri.toString(), timeoutMillis, jmsProvider, keystore, keystorePassword, truststore, truststorePassword);
+    }
+
+    public static ConnectionFactory createSslConnectionFactory(final String url, final int timeoutMillis, final String jmsProvider,
+                            final String keystore, final String keystorePassword, final String truststore, final String truststorePassword) throws JMSException {
+        switch (jmsProvider) {
+            case ACTIVEMQ_PROVIDER: {
+                final ActiveMQSslConnectionFactory factory = new ActiveMQSslConnectionFactory(url);
+                try {
+                    factory.setKeyStore(keystore);
+                } catch (Exception e) {
+                    throw new JMSException("Problem Setting the KeyStore: " + e.getMessage());
+                }
+                factory.setKeyStorePassword(keystorePassword);
+                try {
+                    factory.setTrustStore(truststore);
+                } catch (Exception e) {
+                    throw new JMSException("Problem Setting the TrustStore: " + e.getMessage());
+                }
+                factory.setTrustStorePassword(truststorePassword);
                 factory.setSendTimeout(timeoutMillis);
                 return factory;
             }
