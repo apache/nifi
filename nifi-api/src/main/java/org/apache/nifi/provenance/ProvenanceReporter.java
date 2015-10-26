@@ -159,7 +159,7 @@ public interface ProvenanceReporter {
      * the data
      */
     void fetch(FlowFile flowFile, String transitUri, String details, long transmissionMillis);
-    
+
     /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#SEND SEND}
      * that indicates that a copy of the given FlowFile was sent to an external
