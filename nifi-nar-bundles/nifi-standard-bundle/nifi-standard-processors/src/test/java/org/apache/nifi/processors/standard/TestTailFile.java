@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
@@ -78,7 +79,40 @@ public class TestTailFile {
 
 
     @Test
-    public void testConsumeAfterTruncation() throws IOException {
+    public void testConsumeAfterTruncationStartAtBeginningOfFile() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.txt*");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        raf.write("hello\n".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
+        runner.clearTransferState();
+
+        // roll over the file
+        raf.close();
+        file.renameTo(new File(file.getParentFile(), file.getName() + ".previous"));
+        raf = new RandomAccessFile(file, "rw");
+
+        // truncate file
+        raf.setLength(0L);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        // write some bytes to the file.
+        Thread.sleep(1000L); // we need to wait at least one second because of the granularity of timestamps on many file systems.
+        raf.write("HELLO\n".getBytes());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("HELLO\n");
+    }
+
+    @Test
+    public void testConsumeAfterTruncationStartAtCurrentTime() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_TIME.getValue());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
 
@@ -92,11 +126,65 @@ public class TestTailFile {
         raf.setLength(0L);
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        Thread.sleep(1000L); // we need to wait at least one second because of the granularity of timestamps on many file systems.
         raf.write("HELLO\n".getBytes());
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("HELLO\n");
+    }
+
+
+    @Test
+    public void testStartAtBeginningOfFile() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
+
+        raf.write("hello world\n".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello world\n");
+    }
+
+    @Test
+    public void testStartAtCurrentTime() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_TIME.getValue());
+
+        raf.write("hello world\n".getBytes());
+        runner.run(100);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testStartAtBeginningOfTime() throws IOException, InterruptedException {
+        raf.write("hello".getBytes());
+        raf.close();
+        file.renameTo(new File(file.getParentFile(), file.getName() + ".previous"));
+
+        raf = new RandomAccessFile(file, "rw");
+        raf.write("world\n".getBytes());
+
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.txt*");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_BEGINNING_OF_TIME.getValue());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+
+        boolean world = false;
+        boolean hello = false;
+        for (final MockFlowFile mff : runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)) {
+            final String content = new String(mff.toByteArray());
+            if ("world\n".equals(content)) {
+                world = true;
+            } else if ("hello".equals(content)) {
+                hello = true;
+            } else {
+                Assert.fail("Got unexpected content: " + content);
+            }
+        }
+
+        assertTrue(hello);
+        assertTrue(world);
     }
 
 
