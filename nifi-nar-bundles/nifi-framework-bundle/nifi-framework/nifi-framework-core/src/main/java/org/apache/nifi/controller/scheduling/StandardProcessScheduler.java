@@ -655,7 +655,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
 
                             final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
-                            componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
+                            componentLog.error("failed to invoke @OnEnabled method due to {}", new Object[]{cause.toString()});
                             LOG.error("Failed to invoke @OnEnabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
                             if (LOG.isDebugEnabled()) {
                                 LOG.error("", cause);
