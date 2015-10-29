@@ -309,6 +309,12 @@ public class FileSystemRepository implements ContentRepository {
                     // the path already exists, so scan the path to find any files and update maxIndex to the max of
                     // all filenames seen.
                     Files.walkFileTree(realPath, new SimpleFileVisitor<Path>() {
+                    	
+						public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+							LOG.warn("Content repository contains un-readable file or directory '" + file.getFileName() + "'. Skipping. ", exc);
+							return FileVisitResult.SKIP_SUBTREE;
+						}
+                    		 
                         @Override
                         public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
                             if (attrs.isDirectory()) {

@@ -71,6 +71,24 @@ public class TestFileSystemRepository {
     public void shutdown() throws IOException {
         repository.shutdown();
     }
+    
+    @Test
+    public void testBogusFile() throws IOException {
+    	repository.shutdown();
+    	System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
+        
+        File bogus = new File(rootFile, "bogus");
+        try {
+        	 bogus.mkdir();
+             bogus.setReadable(false);
+        
+             repository = new FileSystemRepository();
+             repository.initialize(new StandardResourceClaimManager());
+		} finally {
+			bogus.setReadable(true);
+			assertTrue(bogus.delete());
+		}
+    }
 
     @Test
     public void testCreateContentClaim() throws IOException {
