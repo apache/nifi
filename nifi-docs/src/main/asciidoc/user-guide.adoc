@@ -155,7 +155,7 @@ image::status-bar.png["NiFi Status Bar"]
 
 
 
-
+[[building-dataflow]]
 Building a DataFlow
 -------------------
 
