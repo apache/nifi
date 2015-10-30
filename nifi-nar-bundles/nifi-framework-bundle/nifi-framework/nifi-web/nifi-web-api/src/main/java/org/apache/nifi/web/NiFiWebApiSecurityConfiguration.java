@@ -24,7 +24,6 @@ import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.NiFiAuthenticationEntryPoint;
 import org.apache.nifi.web.security.form.LoginAuthenticationFilter;
-import org.apache.nifi.web.security.form.LoginAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -37,6 +36,7 @@ import org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -75,6 +75,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .authenticationEntryPoint(new NiFiAuthenticationEntryPoint())
                 .and()
                 .authorizeRequests()
+                .antMatchers(HttpMethod.GET, "/controller/login/config").permitAll()
                 .anyRequest().fullyAuthenticated()
                 .and()
                 .sessionManagement()
@@ -113,15 +114,10 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        final LoginAuthenticationProvider baseLoginAuthenticationProvider = new LoginAuthenticationProvider();
-        baseLoginAuthenticationProvider.setLoginIdentityProvider(loginIdentityProvider);
-
-        final AuthenticationProvider loginAuthenticationProvider = new NiFiAuthenticationProvider(baseLoginAuthenticationProvider, userDetailsService);
         final AuthenticationProvider x509AuthenticationProvider = new NiFiAuthenticationProvider(new X509AuthenticationProvider(), userDetailsService);
         final AuthenticationProvider jwtAuthenticationProvider = new NiFiAuthenticationProvider(new JwtAuthenticationProvider(), userDetailsService);
 
         auth
-                .authenticationProvider(loginAuthenticationProvider)
                 .authenticationProvider(x509AuthenticationProvider)
                 .authenticationProvider(jwtAuthenticationProvider);
     }
@@ -129,7 +125,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private LoginAuthenticationFilter buildLoginFilter(final String url) {
         final LoginAuthenticationFilter loginFilter = new LoginAuthenticationFilter(url);
         loginFilter.setJwtService(jwtService);
-        loginFilter.setLoginIdentityProvider(loginIdentityProvider);
+        loginFilter.setUserDetailsService(userDetailsService);
         loginFilter.setPrincipalExtractor(new SubjectDnX509PrincipalExtractor());
         loginFilter.setCertificateExtractor(new X509CertificateExtractor());
         return loginFilter;

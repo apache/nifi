@@ -22,10 +22,40 @@ $(document).ready(function () {
 });
 
 nf.Login = (function () {
+    var loadControllerConfiguration = function () {
+        return $.ajax({
+            type: 'GET',
+            url: '../nifi-api/controller/login/config',
+            dataType: 'json'
+        });
+    };
+
     var initializePage = function () {
-        return $.Deferred(function (deferred) {
-            console.log('hello there');
-            deferred.resolve();
+        return loadControllerConfiguration().done(function (response) {
+            var config = response.config;
+            
+            if (config.supportsLogin === true) {
+                
+            }
+            
+            if (config.supportsRegistration === true) {
+                
+            }
+        });
+    };
+    
+    var login = function () {
+        var username = $('#username').val();
+        var password = $('#password').val();
+        
+        return $.ajax({
+            type: 'POST',
+            url: '../nifi-api/token',
+            data: {
+                'username': username,
+                'password': password
+            },
+            dataType: 'json'
         });
     };
 
@@ -34,7 +64,13 @@ nf.Login = (function () {
          * Initializes the login page.
          */
         init: function () {
-            initializePage().done(function () {
+            initializePage();
+            
+            // handle login click
+            $('#login-button').on('click', function () {
+                login().done(function (response) {
+                   console.log(response); 
+                });
             });
         }
     };

@@ -484,7 +484,7 @@ public class NiFiProperties extends Properties {
             return new File(value);
         }
     }
-    
+
     /**
      * @return the user authorities file
      */

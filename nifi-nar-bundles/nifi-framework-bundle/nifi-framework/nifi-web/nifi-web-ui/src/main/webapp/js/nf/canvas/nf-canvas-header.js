@@ -32,7 +32,7 @@ nf.CanvasHeader = (function () {
         /**
          * Initialize the canvas header.
          */
-        init: function () {
+        init: function (supportsLogin) {
             // mouse over for the reporting link
             nf.Common.addHoverEffect('#reporting-link', 'reporting-link', 'reporting-link-hover').click(function () {
                 nf.Shell.showPage('summary');
@@ -138,11 +138,15 @@ nf.CanvasHeader = (function () {
             $('#help-link').click(function () {
                 nf.Shell.showPage(config.urls.helpDocument);
             });
-            
-            // login link
-            $('#login-link').click(function () {
-                nf.Shell.showPage('login', false);
-            });
+
+            if (supportsLogin === true) {
+                // login link
+                $('#login-link').click(function () {
+                    nf.Shell.showPage('login', false);
+                });
+            } else {
+                $('#login-link-container').css('display', 'none');
+            }
 
             // initialize the new template dialog
             $('#new-template-dialog').modal({

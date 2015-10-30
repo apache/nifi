@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         if (!request.isSecure()) {
             return null;
         }
-        
+
         final String principal = jwtService.getAuthentication(request);
         if (principal == null) {
             return null;

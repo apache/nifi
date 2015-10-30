@@ -50,7 +50,7 @@
             <li>
                 <span id="about-link" class="link">about</span>
             </li>
-            <li>
+            <li id="login-link-container">
                 <span id="login-link" class="link">login</span>
             </li>
         </ul>

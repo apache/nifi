@@ -153,6 +153,7 @@ import org.apache.nifi.web.util.SnippetUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -163,6 +164,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.LoginConfigurationDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
@@ -205,6 +207,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     // administrative services
     private AuditService auditService;
     private UserService userService;
+    private LoginIdentityProvider loginIdentityProvider;
 
     // cluster manager
     private WebClusterManager clusterManager;
@@ -2348,6 +2351,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public LoginConfigurationDTO getLoginConfiguration() {
+        final LoginConfigurationDTO loginConfiguration = new LoginConfigurationDTO();
+
+        // specify whether login/registration should be supported
+        if (loginIdentityProvider == null) {
+            loginConfiguration.setSupportsLogin(false);
+            loginConfiguration.setSupportsRegistration(false);
+        } else {
+            loginConfiguration.setSupportsLogin(true);
+            loginConfiguration.setSupportsRegistration(loginIdentityProvider.supportsRegistration());
+        }
+
+        return loginConfiguration;
+    }
+
+    @Override
     public ControllerConfigurationDTO getControllerConfiguration() {
         ControllerConfigurationDTO controllerConfig = new ControllerConfigurationDTO();
         controllerConfig.setName(controllerFacade.getName());
@@ -3405,6 +3424,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setSnippetUtils(SnippetUtils snippetUtils) {
         this.snippetUtils = snippetUtils;
+    }
+
+    public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
+        this.loginIdentityProvider = loginIdentityProvider;
     }
 
     private boolean isPrimaryNode(String nodeId) {

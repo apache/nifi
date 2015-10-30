@@ -64,6 +64,7 @@ nf.Canvas = (function () {
             banners: '../nifi-api/controller/banners',
             controller: '../nifi-api/controller',
             controllerConfig: '../nifi-api/controller/config',
+            loginConfig: '../nifi-api/controller/login/config',
             cluster: '../nifi-api/cluster',
             d3Script: 'js/d3/d3.min.js'
         }
@@ -1036,6 +1037,13 @@ nf.Canvas = (function () {
                 url: config.urls.controllerConfig,
                 dataType: 'json'
             });
+            
+            // get the login config
+            var loginXhr = $.ajax({
+                type: 'GET',
+                url: config.urls.loginConfig,
+                dataType: 'json'
+            });
 
             // create the deferred cluster request
             var isClusteredRequest = $.Deferred(function (deferred) {
@@ -1063,9 +1071,10 @@ nf.Canvas = (function () {
             });
 
             // ensure the authorities and config request is processed first
-            $.when(authoritiesXhr, configXhr).done(function (authoritiesResult, configResult) {
+            $.when(authoritiesXhr, configXhr, loginXhr).done(function (authoritiesResult, configResult, loginResult) {
                 var authoritiesResponse = authoritiesResult[0];
                 var configResponse = configResult[0];
+                var loginResponse = loginResult[0];
 
                 // set the user's authorities
                 nf.Common.setAuthorities(authoritiesResponse.authorities);
@@ -1076,6 +1085,7 @@ nf.Canvas = (function () {
 
                 // get the config details
                 var configDetails = configResponse.config;
+                var loginDetails = loginResponse.config;
 
                 // when both request complete, load the application
                 isClusteredRequest.done(function () {
@@ -1095,7 +1105,7 @@ nf.Canvas = (function () {
                         nf.ContextMenu.init();
                         nf.CanvasToolbar.init();
                         nf.CanvasToolbox.init();
-                        nf.CanvasHeader.init();
+                        nf.CanvasHeader.init(loginDetails.supportsLogin);
                         nf.GraphControl.init();
                         nf.Search.init();
                         nf.Settings.init();

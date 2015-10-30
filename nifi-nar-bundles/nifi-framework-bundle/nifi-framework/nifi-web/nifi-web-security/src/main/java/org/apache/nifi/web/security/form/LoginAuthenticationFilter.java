@@ -26,16 +26,21 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
-import org.apache.nifi.web.security.token.LoginAuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 /**
@@ -45,11 +50,13 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
     private static final Logger logger = LoggerFactory.getLogger(LoginAuthenticationFilter.class);
 
+    private AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService;
+
     private X509CertificateExtractor certificateExtractor;
     private X509PrincipalExtractor principalExtractor;
 
-    private JwtService jwtService;
     private LoginIdentityProvider loginIdentityProvider;
+    private JwtService jwtService;
 
     public LoginAuthenticationFilter(final String defaultFilterProcessesUrl) {
         super(defaultFilterProcessesUrl);
@@ -64,34 +71,70 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
         if (!request.isSecure()) {
             return null;
         }
-        
-        // look for a certificate
-        final X509Certificate certificate = certificateExtractor.extractClientCertificate(request);
 
-        // ensure the cert was found
-        if (certificate != null) {
-            // extract the principal
-            Object certificatePrincipal = principalExtractor.extractPrincipal(certificate);
-            final String principal = ProxiedEntitiesUtils.formatProxyDn(certificatePrincipal.toString());
+        // look for the credentials in the request
+        final LoginCredentials credentials = getLoginCredentials(request);
 
-            final List<String> proxyChain = ProxiedEntitiesUtils.buildProxyChain(request, principal);
-            return new NiFiAuthenticationRequestToken(proxyChain);
-        } else {
-            // if there were no certificate or no principal, defer to the login provider
-            final LoginCredentials credentials = getLoginCredentials(request);
+        // if the credentials were not part of the request, attempt to log in with the certificate in the request
+        if (credentials == null) {
+            // look for a certificate
+            final X509Certificate certificate = certificateExtractor.extractClientCertificate(request);
 
-            // if unable to authenticate return null
-            if (credentials == null) {
-                return null;
+            if (certificate == null) {
+                throw new PreAuthenticatedCredentialsNotFoundException("Unable to extract client certificate after processing request with no login credentials specified.");
             }
 
-            final List<String> proxyChain = ProxiedEntitiesUtils.buildProxyChain(request, credentials.getUsername());
-            return new LoginAuthenticationRequestToken(proxyChain, credentials);
+            // authorize the proxy if necessary
+            final String principal = extractPrincipal(certificate);
+            authorizeProxyIfNecessary(ProxiedEntitiesUtils.buildProxyChain(request, principal));
+
+            final LoginCredentials preAuthenticatedCredentials = new LoginCredentials(principal, null);
+            return new LoginAuthenticationToken(preAuthenticatedCredentials);
+        } else {
+            // look for a certificate
+            final X509Certificate certificate = certificateExtractor.extractClientCertificate(request);
+
+            // if there was a certificate with this request see if it was proxying an end user request
+            if (certificate != null) {
+                // authorize the proxy if necessary
+                final String principal = extractPrincipal(certificate);
+                authorizeProxyIfNecessary(ProxiedEntitiesUtils.buildProxyChain(request, principal));
+            }
+
+            if (loginIdentityProvider.authenticate(credentials)) {
+                return new LoginAuthenticationToken(credentials);
+            } else {
+                throw new BadCredentialsException("User could not be authenticated with the configured identity provider.");
+            }
         }
     }
 
+    private void authorizeProxyIfNecessary(final List<String> proxyChain) throws AuthenticationException {
+        if (proxyChain.size() > 1) {
+            try {
+                userDetailsService.loadUserDetails(new NiFiAuthenticationRequestToken(proxyChain));
+            } catch (final UsernameNotFoundException unfe) {
+                // if a username not found exception was thrown, the proxies were authorized and now
+                // we can issue a new ID token to the end user
+            }
+        }
+    }
+
+    private String extractPrincipal(final X509Certificate certificate) {
+        // extract the principal
+        final Object certificatePrincipal = principalExtractor.extractPrincipal(certificate);
+        return ProxiedEntitiesUtils.formatProxyDn(certificatePrincipal.toString());
+    }
+
     private LoginCredentials getLoginCredentials(HttpServletRequest request) {
-        return new LoginCredentials(request.getParameter("username"), request.getParameter("password"));
+        final String username = request.getParameter("username");
+        final String password = request.getParameter("password");
+
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+            return null;
+        } else {
+            return new LoginCredentials(username, password);
+        }
     }
 
     @Override
@@ -112,6 +155,34 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
         out.println("Invalid username/password");
     }
 
+    /**
+     * This is an Authentication Token for logging in. Once a user is authenticated, they can be issues an ID token.
+     */
+    public static class LoginAuthenticationToken extends AbstractAuthenticationToken {
+
+        final LoginCredentials credentials;
+
+        public LoginAuthenticationToken(final LoginCredentials credentials) {
+            super(null);
+            setAuthenticated(true);
+            this.credentials = credentials;
+        }
+
+        public LoginCredentials getLoginCredentials() {
+            return credentials;
+        }
+
+        @Override
+        public Object getCredentials() {
+            return credentials.getPassword();
+        }
+
+        @Override
+        public Object getPrincipal() {
+            return credentials.getUsername();
+        }
+    }
+
     public void setJwtService(JwtService jwtService) {
         this.jwtService = jwtService;
     }
@@ -126,6 +197,10 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
     public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
         this.principalExtractor = principalExtractor;
+    }
+
+    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService) {
+        this.userDetailsService = userDetailsService;
     }
 
 }

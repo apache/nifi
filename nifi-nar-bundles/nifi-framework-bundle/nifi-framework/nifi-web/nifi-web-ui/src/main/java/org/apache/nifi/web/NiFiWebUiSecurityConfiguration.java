@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.web;
 
-import org.apache.nifi.web.security.form.LoginAuthenticationFilter;
-import org.apache.nifi.web.security.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * NiFi Web Ui Security Config
@@ -38,32 +34,11 @@ public class NiFiWebUiSecurityConfiguration extends WebSecurityConfigurerAdapter
         super(true); // disable defaults
     }
 
-    private JwtService jwtService;
-
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
-        http
-                .addFilterBefore(buildFormLoginFilter(), UsernamePasswordAuthenticationFilter.class)
-                .sessionManagement()
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-    }
-
-    private LoginAuthenticationFilter buildFormLoginFilter() throws Exception {
-        final LoginAuthenticationFilter loginFilter = new LoginAuthenticationFilter("/token");
-        loginFilter.setJwtService(jwtService);
-        return loginFilter;
     }
 
     @Autowired
     public void configureGlobal(final AuthenticationManagerBuilder auth) throws Exception {
-        auth
-                .inMemoryAuthentication()
-                    .withUser("gilman").password("password").roles("USER");
     }
-
-    @Autowired
-    public void setJwtService(JwtService jwtService) {
-        this.jwtService = jwtService;
-    }
-
 }

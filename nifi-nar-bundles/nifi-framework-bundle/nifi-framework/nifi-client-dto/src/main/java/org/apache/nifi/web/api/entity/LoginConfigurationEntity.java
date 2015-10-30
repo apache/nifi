@@ -14,24 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.token;
+package org.apache.nifi.web.api.entity;
 
-import java.util.List;
-import org.apache.nifi.authentication.LoginCredentials;
+import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.LoginConfigurationDTO;
 
 /**
- * This is an Authentication Token for requesting an ID token for accessing the NIFI REST API.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a LoginConfigurationDTO.
  */
-public class LoginAuthenticationRequestToken extends NiFiAuthenticationRequestToken {
+@XmlRootElement(name = "loginConfigurationEntity")
+public class LoginConfigurationEntity extends Entity {
 
-    final LoginCredentials credentials;
+    private LoginConfigurationDTO config;
 
-    public LoginAuthenticationRequestToken(final List<String> proxyChain, final LoginCredentials credentials) {
-        super(proxyChain);
-        this.credentials = credentials;
+    /**
+     * The LoginConfigurationDTO that is being serialized.
+     *
+     * @return The LoginConfigurationDTO object
+     */
+    public LoginConfigurationDTO getConfig() {
+        return config;
     }
 
-    public LoginCredentials getLoginCredentials() {
-        return credentials;
+    public void setConfig(LoginConfigurationDTO config) {
+        this.config = config;
     }
+
 }

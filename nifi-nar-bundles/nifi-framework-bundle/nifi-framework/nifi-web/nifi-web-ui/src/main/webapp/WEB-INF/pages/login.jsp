@@ -34,16 +34,7 @@
         ${nf.login.script.tags}
     </head>
     <body>
-        <form name="loginForm" action="token" method="post">
-            <legend>Please Login</legend>
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" value="${username}"/>
-            <br>
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password"/>
-            <div class="form-actions">
-                <button type="submit" class="btn">Log in</button>
-            </div>
-        </form>
+        <jsp:include page="/WEB-INF/partials/login/login-form.jsp"/>
+        <jsp:include page="/WEB-INF/partials/login/registration-form.jsp"/>
     </body>
 </html>

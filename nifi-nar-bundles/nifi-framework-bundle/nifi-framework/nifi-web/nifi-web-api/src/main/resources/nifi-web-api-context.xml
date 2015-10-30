@@ -122,6 +122,7 @@
         <property name="optimisticLockingManager" ref="webOptimisticLockingManager"/>
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="clusterManager" ref="clusterManager"/>
+        <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
     </bean>
 
     <!-- depecrated -->

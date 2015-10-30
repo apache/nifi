@@ -50,7 +50,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
         if (!request.isSecure()) {
             return null;
         }
-        
+
         // extract the cert
         X509Certificate certificate = certificateExtractor.extractClientCertificate(request);
 
