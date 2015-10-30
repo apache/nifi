@@ -225,6 +225,29 @@ public class PutSyslog extends AbstractSyslogProcessor {
         }
     }
 
+    private void pruneIdleSenders(final long idleThreshold){
+        long currentTime = System.currentTimeMillis();
+        final List<ChannelSender> putBack = new ArrayList<>();
+
+        // if a connection hasn't been used with in the threshold then it gets closed
+        ChannelSender sender;
+        while ((sender = senderPool.poll()) != null) {
+            if (currentTime > (sender.lastUsed + idleThreshold)) {
+                getLogger().debug("Closing idle connection...");
+                sender.close();
+            } else {
+                putBack.add(sender);
+            }
+        }
+        // re-queue senders that weren't idle, but if the queue is full then close the sender
+        for (ChannelSender putBackSender : putBack) {
+            boolean returned = senderPool.offer(putBackSender);
+            if (!returned) {
+                putBackSender.close();
+            }
+        }
+    }
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final String protocol = context.getProperty(PROTOCOL).getValue();
@@ -232,27 +255,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
 
         final List<FlowFile> flowFiles = session.get(batchSize);
         if (flowFiles == null || flowFiles.isEmpty()) {
-            final List<ChannelSender> putBack = new ArrayList<>();
-            final long expirationThreshold = context.getProperty(IDLE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS).longValue();
-
-            // if a connection hasn't been used with in the threshold then it gets closed
-            ChannelSender sender;
-            while ((sender = senderPool.poll()) != null) {
-                if (System.currentTimeMillis() > (sender.lastUsed + expirationThreshold)) {
-                    getLogger().debug("Closing idle connection...");
-                    sender.close();
-                } else {
-                    putBack.add(sender);
-                }
-            }
-
-            // re-queue senders that weren't idle, but if the queue is full then close the sender
-            for (ChannelSender putBackSender : putBack) {
-                boolean returned = senderPool.offer(putBackSender);
-                if (!returned) {
-                    putBackSender.close();
-                }
-            }
+            pruneIdleSenders(context.getProperty(IDLE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS).longValue());
             return;
         }
 
