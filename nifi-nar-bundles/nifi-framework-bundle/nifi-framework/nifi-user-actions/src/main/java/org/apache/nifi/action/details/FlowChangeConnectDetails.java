@@ -21,7 +21,7 @@ import org.apache.nifi.action.Component;
 /**
  *
  */
-public class ConnectDetails extends ActionDetails {
+public class FlowChangeConnectDetails implements ConnectDetails {
 
     private String sourceId;
     private String sourceName;
@@ -31,6 +31,7 @@ public class ConnectDetails extends ActionDetails {
     private String destinationName;
     private Component destinationType;
 
+    @Override
     public String getSourceId() {
         return sourceId;
     }
@@ -39,6 +40,7 @@ public class ConnectDetails extends ActionDetails {
         this.sourceId = sourceId;
     }
 
+    @Override
     public String getSourceName() {
         return sourceName;
     }
@@ -47,6 +49,7 @@ public class ConnectDetails extends ActionDetails {
         this.sourceName = sourceName;
     }
 
+    @Override
     public Component getSourceType() {
         return sourceType;
     }
@@ -55,6 +58,7 @@ public class ConnectDetails extends ActionDetails {
         this.sourceType = sourceType;
     }
 
+    @Override
     public String getDestinationId() {
         return destinationId;
     }
@@ -63,6 +67,7 @@ public class ConnectDetails extends ActionDetails {
         this.destinationId = destinationId;
     }
 
+    @Override
     public String getDestinationName() {
         return destinationName;
     }
@@ -71,6 +76,7 @@ public class ConnectDetails extends ActionDetails {
         this.destinationName = destinationName;
     }
 
+    @Override
     public Component getDestinationType() {
         return destinationType;
     }
@@ -79,6 +85,7 @@ public class ConnectDetails extends ActionDetails {
         this.destinationType = destinationType;
     }
 
+    @Override
     public String getRelationship() {
         return relationship;
     }

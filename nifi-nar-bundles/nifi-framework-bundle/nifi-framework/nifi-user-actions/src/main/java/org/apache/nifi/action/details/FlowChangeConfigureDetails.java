@@ -19,12 +19,13 @@ package org.apache.nifi.action.details;
 /**
  *
  */
-public class ConfigureDetails extends ActionDetails {
+public class FlowChangeConfigureDetails implements ConfigureDetails {
 
     private String name;
     private String previousValue;
     private String value;
 
+    @Override
     public String getName() {
         return name;
     }
@@ -33,6 +34,7 @@ public class ConfigureDetails extends ActionDetails {
         this.name = name;
     }
 
+    @Override
     public String getPreviousValue() {
         return previousValue;
     }
@@ -41,6 +43,7 @@ public class ConfigureDetails extends ActionDetails {
         this.previousValue = previousValue;
     }
 
+    @Override
     public String getValue() {
         return value;
     }

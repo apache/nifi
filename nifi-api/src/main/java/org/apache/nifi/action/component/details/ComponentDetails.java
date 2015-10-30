@@ -14,32 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action.details;
+package org.apache.nifi.action.component.details;
 
-import java.util.Date;
+import java.io.Serializable;
 
 /**
- *
+ * Base interface for providing component details to an Action.
  */
-public class PurgeDetails extends ActionDetails {
-
-    private Date endDate;
-
-    /**
-     * The end date for this purge action.
-     *
-     * @return date at which the purge ends
-     */
-    public Date getEndDate() {
-        return endDate;
-    }
-
-    /**
-     * Establishes the end data for this purge action
-     * @param endDate date at which the purge ends
-     */
-    public void setEndDate(Date endDate) {
-        this.endDate = endDate;
-    }
+public interface ComponentDetails extends Serializable {
 
 }

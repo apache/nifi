@@ -14,36 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
-
-import org.apache.nifi.action.Action;
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.authorization.AuthorityProvider;
-
-import java.util.Collection;
+package org.apache.nifi.action.component.details;
 
 /**
- * Adds the specified actions.
+ *
  */
-public class AddActionsAction implements AdministrationAction<Void> {
+public class FlowChangeRemoteProcessGroupDetails implements RemoteProcessGroupDetails {
 
-    private final Collection<Action> actions;
-
-    public AddActionsAction(Collection<Action> actions) {
-        this.actions = actions;
-    }
+    private String uri;
 
     @Override
-    public Void execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
-        ActionDAO actionDao = daoFactory.getActionDAO();
+    public String getUri() {
+        return uri;
+    }
 
-        // add each action
-        for (Action action : actions) {
-            actionDao.createAction(action);
-        }
-
-        return null;
+    public void setUri(String uri) {
+        this.uri = uri;
     }
 
 }

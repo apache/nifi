@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.admin.service;
 
+import org.apache.nifi.action.Action;
+import org.apache.nifi.history.History;
+import org.apache.nifi.history.HistoryQuery;
+import org.apache.nifi.history.PreviousValue;
+
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.apache.nifi.action.Action;
-import org.apache.nifi.history.HistoryQuery;
-import org.apache.nifi.history.History;
-import org.apache.nifi.history.PreviousValue;
 
 /**
  * Allows NiFi actions to be audited.
@@ -53,6 +54,15 @@ public interface AuditService {
      * @throws AdministrationException ae
      */
     History getActions(HistoryQuery actionQuery);
+
+    /**
+     * Get the actions starting with firstActionId, returning up to maxActions.
+     *
+     * @param firstActionId the offset
+     * @param maxActions the number of actions to return
+     * @return history of actions matching the above conditions
+     */
+    History getActions(final int firstActionId, final int maxActions);
 
     /**
      * Get the details for the specified action id. If the action cannot be

@@ -14,21 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action.component.details;
+package org.apache.nifi.action.details;
 
 /**
- *
+ * Provides details about a move action.
  */
-public class ExtensionDetails extends ComponentDetails {
+public interface MoveDetails extends ActionDetails {
+    String getGroup();
 
-    private String type;
+    String getGroupId();
 
-    public String getType() {
-        return type;
-    }
+    String getPreviousGroup();
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
+    String getPreviousGroupId();
 }
