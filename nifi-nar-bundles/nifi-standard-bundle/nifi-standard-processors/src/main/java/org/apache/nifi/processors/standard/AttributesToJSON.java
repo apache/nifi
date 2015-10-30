@@ -1,15 +1,40 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -18,32 +43,38 @@ import org.apache.nifi.stream.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"json", "attributes"})
+@Tags({"json", "attributes", "flowfile"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Evaluates the attributes from a FlowFile and generates a JSON string with the attribute key/value pair. " +
-        "The resulting JSON string is placed in the FlowFile as a new Attribute with the name 'JSONAttributes'. By default all" +
-        "Attributes in the FlowFile are placed in the resulting JSON string. If only certain Attributes are desired you may" +
-        "specify a list of FlowFile Attributes that you want in the resulting JSON string")
-@WritesAttribute(attribute = "JSONAttributes", description = "JSON string of all the pre-existing attributes in the flowfile")
+@CapabilityDescription("Generates a JSON representation of the input FlowFile Attributes. The resulting JSON " +
+        "can be written to either a new Attribute 'JSONAttributes' or written to the FlowFile as content.")
+@WritesAttribute(attribute = "JSONAttributes", description = "JSON representation of Attributes")
 public class AttributesToJSON extends AbstractProcessor {
 
-    public static final String JSON_ATTRIBUTE_NAME = "JSONAttribute";
+    public static final String JSON_ATTRIBUTE_NAME = "JSONAttributes";
     private static final String AT_LIST_SEPARATOR = ",";
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
     public static final String DESTINATION_CONTENT = "flowfile-content";
+    private final String APPLICATION_JSON = "application/json";
 
 
     public static final PropertyDescriptor ATTRIBUTES_LIST = new PropertyDescriptor.Builder()
             .name("Attributes List")
-            .description("Comma separated list of attributes to be included in the '" + JSON_ATTRIBUTE_NAME +"' " +
-                    "attribute. This list of attributes is case sensitive. If a specified attribute is not found" +
-                    "in the flowfile an empty string will be output for that attritbute in the resulting JSON")
+            .description("Comma separated list of attributes to be included in the resulting JSON. If this value " +
+                    "is left empty then all existing Attributes will be included. This list of attributes is " +
+                    "case sensitive. If an attribute specified in the list is not found it will be be emitted " +
+                    "to the resulting JSON with an empty string or NULL value.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -51,8 +82,8 @@ public class AttributesToJSON extends AbstractProcessor {
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
             .description("Control if JSON value is written as a new flowfile attribute '" + JSON_ATTRIBUTE_NAME + "' " +
-                    "or written in the flowfile content. " +
-                    "Writing to flowfile content will overwrite any existing flowfile content.")
+                    "or written in the flowfile content. Writing to flowfile content will overwrite any " +
+                    "existing flowfile content.")
             .required(true)
             .allowableValues(DESTINATION_ATTRIBUTE, DESTINATION_CONTENT)
             .defaultValue(DESTINATION_ATTRIBUTE)
@@ -68,9 +99,9 @@ public class AttributesToJSON extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor NULL_VALUE_FOR_EMPTY_STRING = new PropertyDescriptor.Builder()
-            .name("Null Value")
-            .description("If an Attribute is value is empty or not present this property determines if an empty string" +
-                    "or true NULL value is present in the resulting JSON output")
+            .name(("If true a non existing or empty attribute will be NULL in the resulting JSON. If false an empty " +
+                    "string will be placed in the JSON"))
+            .description("")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -78,9 +109,9 @@ public class AttributesToJSON extends AbstractProcessor {
 
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("'" + JSON_ATTRIBUTE_NAME + "' attribute has been successfully added to the flowfile").build();
+            .description("Successfully converted attributes to JSON").build();
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("Failed to add '" + JSON_ATTRIBUTE_NAME + "' attribute to the flowfile").build();
+            .description("Failed to convert attributes to JSON").build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -116,7 +147,7 @@ public class AttributesToJSON extends AbstractProcessor {
      * Builds the Map of attributes that should be included in the JSON that is emitted from this process.
      *
      * @return
-     *  Map<String, String> of values that are feed to a Jackson ObjectMapper
+     *  Map of values that are feed to a Jackson ObjectMapper
      */
     protected Map<String, String> buildAttributesMapForFlowFile(FlowFile ff, String atrList,
                                                                 boolean includeCoreAttributes,
@@ -198,6 +229,7 @@ public class AttributesToJSON extends AbstractProcessor {
                             }
                         }
                     });
+                    conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
                     session.transfer(conFlowfile, REL_SUCCESS);
                     break;
             }
