@@ -18,12 +18,12 @@ package org.apache.nifi.processor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.argThat;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.times;
 
 import java.lang.reflect.Field;
 
@@ -35,66 +35,67 @@ import org.mockito.internal.matchers.VarargMatcher;
 import org.slf4j.Logger;
 
 public class TestSimpleProcessLogger {
-	private final Exception e = new RuntimeException("intentional");
+    private final Exception e = new RuntimeException("intentional");
 
-	private  ReportingTask task;
+    private ReportingTask task;
 
-	private SimpleProcessLogger componentLog;
+    private SimpleProcessLogger componentLog;
 
-	private Logger logger;
+    private Logger logger;
 
-	@Before
-	public void before(){
-		task = mock(ReportingTask.class);
-		when(task.getIdentifier()).thenReturn("foo");
-		when(task.toString()).thenReturn("MyTask");
-		componentLog = new SimpleProcessLogger(task.getIdentifier(), task);
-		try {
-			Field loggerField = componentLog.getClass().getDeclaredField("logger");
-			loggerField.setAccessible(true);
-			logger = mock(Logger.class);
-			loggerField.set(componentLog, logger);
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
+    @Before
+    public void before() {
+        task = mock(ReportingTask.class);
+        when(task.getIdentifier()).thenReturn("foo");
+        when(task.toString()).thenReturn("MyTask");
+        componentLog = new SimpleProcessLogger(task.getIdentifier(), task);
+        try {
+            Field loggerField = componentLog.getClass().getDeclaredField("logger");
+            loggerField.setAccessible(true);
+            logger = mock(Logger.class);
+            loggerField.set(componentLog, logger);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
 
-	@Test
-	public void validateDelegateLoggerReceivesThrowableToStringOnError() {
-		componentLog.error("Hello {}", e);
-		verify(logger, times(1)).error(anyString(), argThat(new MyVarargMatcher()));
-	}
+    @Test
+    public void validateDelegateLoggerReceivesThrowableToStringOnError() {
+        componentLog.error("Hello {}", e);
+        verify(logger, times(1)).error(anyString(), argThat(new MyVarargMatcher()));
+    }
 
-	@Test
-	public void validateDelegateLoggerReceivesThrowableToStringOnInfo() {
-		componentLog.info("Hello {}", e);
-		verify(logger, times(1)).info(anyString(), argThat(new MyVarargMatcher()));
-	}
+    @Test
+    public void validateDelegateLoggerReceivesThrowableToStringOnInfo() {
+        componentLog.info("Hello {}", e);
+        verify(logger, times(1)).info(anyString(), argThat(new MyVarargMatcher()));
+    }
 
-	@Test
-	public void validateDelegateLoggerReceivesThrowableToStringOnTrace() {
-		componentLog.trace("Hello {}", e);
-		verify(logger, times(1)).trace(anyString(), argThat(new MyVarargMatcher()));
-	}
+    @Test
+    public void validateDelegateLoggerReceivesThrowableToStringOnTrace() {
+        componentLog.trace("Hello {}", e);
+        verify(logger, times(1)).trace(anyString(), argThat(new MyVarargMatcher()));
+    }
 
-	@Test
-	public void validateDelegateLoggerReceivesThrowableToStringOnWarn() {
-		componentLog.warn("Hello {}", e);
-		verify(logger, times(1)).warn(anyString(), argThat(new MyVarargMatcher()));
-	}
+    @Test
+    public void validateDelegateLoggerReceivesThrowableToStringOnWarn() {
+        componentLog.warn("Hello {}", e);
+        verify(logger, times(1)).warn(anyString(), argThat(new MyVarargMatcher()));
+    }
 
-	/**
-	 *
-	 */
-	private class MyVarargMatcher extends ArgumentMatcher<Object[]> implements VarargMatcher {
-		private static final long serialVersionUID = 1L;
-		@Override
-		public boolean matches(Object argument) {
-			Object[] args = (Object[]) argument;
-			assertEquals(task, args[0]);
-			assertEquals(e.toString(), args[1]);
-			return true;
-		}
-	}
+    /**
+     *
+     */
+    private class MyVarargMatcher extends ArgumentMatcher<Object[]>implements VarargMatcher {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public boolean matches(Object argument) {
+            Object[] args = (Object[]) argument;
+            assertEquals(task, args[0]);
+            assertEquals(e.toString(), args[1]);
+            return true;
+        }
+    }
 }
