@@ -1208,7 +1208,15 @@ public class FileSystemRepository implements ContentRepository {
         final long startNanos = System.nanoTime();
         final long toFree = minRequiredSpace - usableSpace;
         final BlockingQueue<ArchiveInfo> fileQueue = archivedFiles.get(containerName);
-        archiveExpirationLog.info("Currently {} bytes free for Container {}; requirement is {} byte free, so need to free {} bytes", usableSpace, containerName, minRequiredSpace, toFree);
+        if (archiveExpirationLog.isDebugEnabled()) {
+            if (toFree < 0) {
+                archiveExpirationLog.debug("Currently {} bytes free for Container {}; requirement is {} byte free, so no need to free space until an additional {} bytes are used",
+                    usableSpace, containerName, minRequiredSpace, Math.abs(toFree));
+            } else {
+                archiveExpirationLog.debug("Currently {} bytes free for Container {}; requirement is {} byte free, so need to free {} bytes",
+                    usableSpace, containerName, minRequiredSpace, toFree);
+            }
+        }
 
         ArchiveInfo toDelete;
         int deleteCount = 0;
