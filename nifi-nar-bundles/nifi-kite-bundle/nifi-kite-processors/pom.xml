@@ -25,7 +25,6 @@
     <packaging>jar</packaging>
 
     <properties>
-        <kite.version>1.0.0</kite.version>
         <findbugs-annotations.version>1.3.9-1</findbugs-annotations.version>
     </properties>
 
@@ -58,19 +57,21 @@
 
         <dependency>
             <groupId>org.kitesdk</groupId>
+            <artifactId>kite-hadoop-compatibility</artifactId>
+            <version>${kite.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hive-dataset</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.kitesdk</groupId>
             <artifactId>kite-hadoop-dependencies</artifactId>
             <type>pom</type>
             <version>${kite.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-mapreduce-client-app</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
