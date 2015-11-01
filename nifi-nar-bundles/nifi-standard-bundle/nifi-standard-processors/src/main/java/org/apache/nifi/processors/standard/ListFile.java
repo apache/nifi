@@ -17,8 +17,17 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
@@ -26,9 +35,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.FileInfo;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,24 +50,123 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
+@TriggerSerially
+@TriggerWhenEmpty
+@Tags({"file", "get", "list", "ingest", "source", "filesystem"})
+@CapabilityDescription("Retrieves a listing of files from the local filesystem. For each file that is listed, " +
+        "creates a FlowFile that represents the file so that it can be fetched in conjunction with ListFile. This " +
+        "Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new " +
+        "Primary Node will pick up where the previous node left off without duplicating all of the data. Unlike " +
+        "GetFile, this Processor does not delete any data from the local filesystem.")
+@WritesAttributes({
+        @WritesAttribute(attribute="filename", description="The name of the file that was read from filesystem."),
+        @WritesAttribute(attribute="path", description="The path is set to the absolute path of the file's directory " +
+                "on filesystem. For example, if the Directory property is set to /tmp, then files picked up from " +
+                "/tmp will have the path attribute set to \"./\". If the Recurse Subdirectories property is set to " +
+                "true and a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to " +
+                "\"/tmp/abc/1/2/3\"."),
+        @WritesAttribute(attribute="fs.owner", description="The user that owns the file in filesystem"),
+        @WritesAttribute(attribute="fs.group", description="The group that owns the file in filesystem"),
+        @WritesAttribute(attribute="fs.lastModified", description="The timestamp of when the file in filesystem was " +
+                "last modified, as milliseconds since midnight Jan 1, 1970 UTC"),
+        @WritesAttribute(attribute="fs.length", description="The number of bytes in the file in filesystem"),
+        @WritesAttribute(attribute="fs.permissions", description="The permissions for the file in filesystem. This " +
+                "is formatted as 3 characters for the owner, 3 for the group, and 3 for other users. For example " +
+                "rw-rw-r--")
+})
+@SeeAlso({GetFile.class, PutFile.class})
 public class ListFile extends AbstractListProcessor<FileInfo> {
-    public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
-        .name("Path")
-        .description("The path on the system from which to pull or push files")
-        .required(false)
-        .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-        .expressionLanguageSupported(true)
-        .defaultValue(".")
-        .build();
+
+    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
+            .name("Input Directory")
+            .description("The input directory from which files to pull files")
+            .required(true)
+            .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
+            .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder()
+            .name("Recurse Subdirectories")
+            .description("Indicates whether to list files from subdirectories of the directory")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+
+    public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
+            .name("File Filter")
+            .description("Only files whose names match the given regular expression will be picked up")
+            .required(true)
+            .defaultValue("[^\\.].*")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PATH_FILTER = new PropertyDescriptor.Builder()
+            .name("Path Filter")
+            .description("When " + RECURSE.getName() + " is true, then only subdirectories whose path matches the given regular expression will be scanned")
+            .required(false)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+
+    public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
+            .name("Minimum File Age")
+            .description("The minimum age that a file must be in order to be pulled; any file younger than this amount of time (according to last modification date) will be ignored")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 sec")
+            .build();
+
+    public static final PropertyDescriptor MAX_AGE = new PropertyDescriptor.Builder()
+            .name("Maximum File Age")
+            .description("The maximum age that a file must be in order to be pulled; any file older than this amount of time (according to last modification date) will be ignored")
+            .required(false)
+            .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+            .build();
+
+    public static final PropertyDescriptor MIN_SIZE = new PropertyDescriptor.Builder()
+            .name("Minimum File Size")
+            .description("The minimum size that a file must be in order to be pulled")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("0 B")
+            .build();
+
+    public static final PropertyDescriptor MAX_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum File Size")
+            .description("The maximum size that a file can be in order to be pulled")
+            .required(false)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor IGNORE_HIDDEN_FILES = new PropertyDescriptor.Builder()
+            .name("Ignore Hidden Files")
+            .description("Indicates whether or not hidden files should be ignored")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
+    private final AtomicReference<FileFilter> fileFilterRef = new AtomicReference<>();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PATH);
+        properties.add(DIRECTORY);
+        properties.add(RECURSE);
+        properties.add(FILE_FILTER);
+        properties.add(PATH_FILTER);
+        properties.add(MIN_AGE);
+        properties.add(MAX_AGE);
+        properties.add(MIN_SIZE);
+        properties.add(MAX_SIZE);
+        properties.add(IGNORE_HIDDEN_FILES);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -73,13 +184,19 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         return relationships;
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        fileFilterRef.set(createFileFilter(context));
+    }
 
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("file.owner", fileInfo.getOwner());
-        attributes.put("file.group", fileInfo.getGroup());
-        attributes.put("file.permissions", fileInfo.getPermissions());
+        attributes.put("fs.owner", fileInfo.getOwner());
+        attributes.put("fs.group", fileInfo.getGroup());
+        attributes.put("fs.lastModified", Long.toString(fileInfo.getLastModifiedTime()));
+        attributes.put("fs.length", Long.toString(fileInfo.getSize()));
+        attributes.put("fs.permissions", fileInfo.getPermissions());
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
 
         final String fullPath = fileInfo.getFullPathFileName();
@@ -95,27 +212,54 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     @Override
     protected String getPath(final ProcessContext context) {
-        return context.getProperty(PATH).evaluateAttributeExpressions().getValue();
+        return context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
     }
 
     @Override
     protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
         final File path = new File(getPath(context));
+        final Boolean recurse = context.getProperty(RECURSE).asBoolean();
+        return scanDirectory(path, fileFilterRef.get(), recurse, minTimestamp);
+    }
+
+    @Override
+    protected boolean isListingResetNecessary(final PropertyDescriptor property) {
+        return DIRECTORY.equals(property)
+                || RECURSE.equals(property)
+                || FILE_FILTER.equals(property)
+                || PATH_FILTER.equals(property)
+                || MIN_AGE.equals(property)
+                || MAX_AGE.equals(property)
+                || MIN_SIZE.equals(property)
+                || MAX_SIZE.equals(property)
+                || IGNORE_HIDDEN_FILES.equals(property);
+    }
+
+    private List<FileInfo> scanDirectory(final File path, final FileFilter filter, final Boolean recurse,
+                                         final Long minTimestamp) throws IOException {
         final List<FileInfo> listing = new ArrayList<>();
         File[] files = path.listFiles();
         if (files != null) {
             for (File file : files) {
-                final PosixFileAttributes attrib = Files.readAttributes(file.toPath(), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-                listing.add(new FileInfo.Builder()
-                        .directory(file.isDirectory())
-                        .filename(file.getName())
-                        .fullPathFileName(file.getAbsolutePath())
-                        .group(attrib.group().getName())
-                        .lastModifiedTime(file.lastModified())
-                        .owner(attrib.owner().getName())
-                        .permissions(attrib.permissions().toString())
-                        .size(file.getTotalSpace())
-                        .build());
+                if (file.isDirectory()) {
+                    if (recurse) {
+                        listing.addAll(scanDirectory(file, filter, true, minTimestamp));
+                    }
+                } else {
+                    if (filter.accept(file)) {
+                        final PosixFileAttributes attrib = Files.readAttributes(file.toPath(), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                        listing.add(new FileInfo.Builder()
+                                .directory(file.isDirectory())
+                                .filename(file.getName())
+                                .fullPathFileName(file.getAbsolutePath())
+                                .group(attrib.group().getName())
+                                .lastModifiedTime(file.lastModified())
+                                .owner(attrib.owner().getName())
+                                .permissions(attrib.permissions().toString())
+                                .size(attrib.size())
+                                .build());
+                    }
+                }
             }
         }
         if (minTimestamp == null) {
@@ -133,8 +277,54 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         return listing;
     }
 
-    @Override
-    protected boolean isListingResetNecessary(final PropertyDescriptor property) {
-        return PATH.equals(property);
+    private FileFilter createFileFilter(final ProcessContext context) {
+        final long minSize = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
+        final Double maxSize = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
+        final long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAge = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final boolean ignoreHidden = context.getProperty(IGNORE_HIDDEN_FILES).asBoolean();
+        final Pattern filePattern = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
+        final String indir = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+        final boolean recurseDirs = context.getProperty(RECURSE).asBoolean();
+        final String pathPatternStr = context.getProperty(PATH_FILTER).getValue();
+        final Pattern pathPattern = (!recurseDirs || pathPatternStr == null) ? null : Pattern.compile(pathPatternStr);
+
+        return new FileFilter() {
+            @Override
+            public boolean accept(final File file) {
+                if (minSize > file.length()) {
+                    return false;
+                }
+                if (maxSize != null && maxSize < file.length()) {
+                    return false;
+                }
+                final long fileAge = System.currentTimeMillis() - file.lastModified();
+                if (minAge > fileAge) {
+                    return false;
+                }
+                if (maxAge != null && maxAge < fileAge) {
+                    return false;
+                }
+                if (ignoreHidden && file.isHidden()) {
+                    return false;
+                }
+                if (pathPattern != null) {
+                    Path reldir = Paths.get(indir).relativize(file.toPath()).getParent();
+                    System.out.println("reldir=" + reldir + " pathPatternStr=" + pathPatternStr + " file=" + file.getName());
+                    if (reldir != null && !reldir.toString().isEmpty()) {
+                        if (!pathPattern.matcher(reldir.toString()).matches()) {
+                            return false;
+                        }
+                    }
+                    System.out.flush();
+                }
+                //Verify that we have at least read permissions on the file we're considering grabbing
+                if (!Files.isReadable(file.toPath())) {
+                    return false;
+                }
+                return filePattern.matcher(file.getName()).matches();
+            }
+        };
     }
+
 }
