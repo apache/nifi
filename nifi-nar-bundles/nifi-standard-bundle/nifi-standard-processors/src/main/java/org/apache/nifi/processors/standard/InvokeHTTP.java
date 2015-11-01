@@ -228,7 +228,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         public static final PropertyDescriptor PROP_ATTRIBUTES_TO_SEND = new PropertyDescriptor.Builder()
             .name("Attributes to Send")
             .description("Regular expression that defines which attributes to send as HTTP headers in the request. "
-                + "If not defined, no attributes are sent as headers.")
+                    + "If not defined, no attributes are sent as headers.")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
@@ -301,36 +301,37 @@ public final class InvokeHTTP extends AbstractProcessor {
         // this is a "hidden" property - it's configured using a dynamic user property
         public static final PropertyDescriptor PROP_TRUSTED_HOSTNAME = new PropertyDescriptor.Builder()
             .name("Trusted Hostname")
-            .description("Bypass the normal truststore hostname verifier to allow the specified (single) remote hostname as trusted "
-                + "Enabling this property has MITM security implications, use wisely. Only valid with SSL (HTTPS) connections.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dynamic(true)
+            .description("Bypass the normal truststore hostname verifier to allow the specified remote hostname as trusted. "
+                    + "Enabling this property has MITM security implications, use wisely. Will still accept other connections based "
+                    + "on the normal truststore hostname verifier. Only valid with SSL (HTTPS) connections.")
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .dynamic(true)
             .build();
 
         // relationships
         public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
             .name("Original")
-            .description("Original FlowFile will be routed upon success (2xx status codes).")
+                .description("Original FlowFile will be routed upon success (2xx status codes).")
             .build();
 
         public static final Relationship REL_SUCCESS_RESP = new Relationship.Builder()
             .name("Response")
-            .description("Response FlowFile will be routed upon success (2xx status codes).")
+                .description("Response FlowFile will be routed upon success (2xx status codes).")
             .build();
 
         public static final Relationship REL_RETRY = new Relationship.Builder()
             .name("Retry")
-            .description("FlowFile will be routed on any status code that can be retried (5xx status codes).")
+                .description("FlowFile will be routed on any status code that can be retried (5xx status codes).")
             .build();
 
         public static final Relationship REL_NO_RETRY = new Relationship.Builder()
             .name("No Retry")
-            .description("FlowFile will be routed on any status code that should NOT be retried (1xx, 3xx, 4xx status codes).")
+                .description("FlowFile will be routed on any status code that should NOT be retried (1xx, 3xx, 4xx status codes).")
             .build();
 
         public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("Failure")
-            .description("FlowFile will be routed on any type of connection failure, timeout or general exception.")
+                .description("FlowFile will be routed on any type of connection failure, timeout or general exception.")
             .build();
 
         public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
