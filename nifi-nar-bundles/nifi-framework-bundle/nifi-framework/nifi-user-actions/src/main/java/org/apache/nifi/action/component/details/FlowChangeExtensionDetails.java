@@ -19,16 +19,17 @@ package org.apache.nifi.action.component.details;
 /**
  *
  */
-public class RemoteProcessGroupDetails extends ComponentDetails {
+public class FlowChangeExtensionDetails implements ExtensionDetails {
 
-    private String uri;
+    private String type;
 
-    public String getUri() {
-        return uri;
+    @Override
+    public String getType() {
+        return type;
     }
 
-    public void setUri(String uri) {
-        this.uri = uri;
+    public void setType(String type) {
+        this.type = type;
     }
 
 }

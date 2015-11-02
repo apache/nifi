@@ -26,13 +26,15 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -48,6 +50,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SideEffectFree
 @SupportsBatching
 @Tags({"segment", "split"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Segments a FlowFile into multiple smaller segments on byte boundaries. Each segment is given the following attributes: "
         + "fragment.identifier, fragment.index, fragment.count, segment.original.filename; these attributes can then be used by the "
         + "MergeContent processor in order to reconstitute the original FlowFile")

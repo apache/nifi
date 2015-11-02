@@ -31,9 +31,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -57,11 +61,9 @@ import org.apache.nifi.search.Searchable;
 import org.apache.nifi.update.attributes.Action;
 import org.apache.nifi.update.attributes.Condition;
 import org.apache.nifi.update.attributes.Criteria;
-import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.FlowFilePolicy;
+import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
 
 /**
  * This processor supports updating flowfile attributes and can do so
@@ -116,6 +118,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
  */
 @EventDriven
 @SideEffectFree
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "modification", "update", "delete", "Attribute Expression Language"})
 @CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language and/or deletes the attributes based on a regular expression")
 @DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", supportsExpressionLanguage = true,

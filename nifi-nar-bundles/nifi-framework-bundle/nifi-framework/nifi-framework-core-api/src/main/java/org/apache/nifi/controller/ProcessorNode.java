@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -31,7 +32,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 public abstract class ProcessorNode extends AbstractConfiguredComponent implements Connectable {
 
     public ProcessorNode(final Processor processor, final String id,
-            final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
+        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
         super(processor, id, validationContextFactory, serviceProvider);
     }
 
@@ -47,6 +48,8 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
     public abstract boolean isEventDrivenSupported();
 
     public abstract boolean isHighThroughputSupported();
+
+    public abstract Requirement getInputRequirement();
 
     @Override
     public abstract boolean isValid();
@@ -80,7 +83,7 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     /**
      * @return the number of threads (concurrent tasks) currently being used by
-     * this Processor
+     *         this Processor
      */
     public abstract int getActiveThreadCount();
 

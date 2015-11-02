@@ -14,13 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action.component.details;
-
-import java.io.Serializable;
+package org.apache.nifi.action.details;
 
 /**
  *
  */
-public abstract class ComponentDetails implements Serializable {
+public class FlowChangeConfigureDetails implements ConfigureDetails {
+
+    private String name;
+    private String previousValue;
+    private String value;
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String getPreviousValue() {
+        return previousValue;
+    }
+
+    public void setPreviousValue(String previousValue) {
+        this.previousValue = previousValue;
+    }
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
 
 }

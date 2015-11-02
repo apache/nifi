@@ -30,6 +30,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -48,13 +50,18 @@ import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.StopWatch;
 
 @EventDriven
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({ "sql", "select", "jdbc", "query", "database" })
 @CapabilityDescription("Execute provided SQL select query. Query result will be converted to Avro format."
     + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on " +
         "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. " +
         "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the " +
-        "select query.")
+        "select query. " +
+        "FlowFile attribute 'executesql.row.count' indicates how many rows were selected."
+        )
 public class ExecuteSQL extends AbstractProcessor {
+
+    public static final String RESULT_ROW_COUNT = "executesql.row.count";
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -152,6 +159,9 @@ public class ExecuteSQL extends AbstractProcessor {
                     }
                 }
             });
+
+            // set attribute how many rows were selected
+            outgoing = session.putAttribute(outgoing, RESULT_ROW_COUNT, nrOfRows.get().toString());
 
             logger.info("{} contains {} Avro records", new Object[] { nrOfRows.get() });
             logger.info("Transferred {} to 'success'", new Object[] { outgoing });

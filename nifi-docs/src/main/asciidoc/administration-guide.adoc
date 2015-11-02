@@ -336,7 +336,7 @@ For the NCM, the minimum properties to configure are as follows:
 * Under the Web Properties, set either the http or https port that you want the NCM to run on. If the NCM and one of the nodes are on the same server, make sure this port is different from the web port used by the node.
 * Under the Cluster Manager Properties, set the following:
 ** nifi.cluster.is.manager - Set this to _true_.
-** nifi.cluster.protocol.manager.port - Set this to an open port that is higher than 1024 (anything lower requires root). Take note of this setting, as you will need to reference it when you set up the nodes.
+** nifi.cluster.manager.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root). Take note of this setting, as you will need to reference it when you set up the nodes.
 
 For Node 1, the minimum properties to configure are as follows:
 
@@ -344,7 +344,7 @@ For Node 1, the minimum properties to configure are as follows:
 * Under Cluster Node Properties, set the following:
 ** nifi.cluster.is.node - Set this to _true_.
 ** nifi.cluster.node.address - Set this to the fully qualified hostname of the node. If left blank, it defaults to "localhost".
-** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root). If Node 1 and the NCM are on the same server, make sure this port is different from the nifi.cluster.protocol.manager.port.
+** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root). If Node 1 and the NCM are on the same server, make sure this port is different from the nifi.cluster.manager.protocol.port.
 ** nifi.cluster.node.unicast.manager.address - Set this to the NCM's fully qualified hostname.  
 ** nifi.cluster.node.unicast.manager.protocol.port - Set this to exactly the same port that was set on the NCM for the property nifi.cluster.manager.protocol.port.
 

@@ -20,6 +20,7 @@ import java.util.Date;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.connectable.Funnel;
@@ -111,7 +112,7 @@ public class FunnelAuditor extends NiFiAuditor {
      * @return action
      */
     public Action generateAuditRecord(Funnel funnel, Operation operation, ActionDetails actionDetails) {
-        Action action = null;
+        FlowChangeAction action = null;
 
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -119,8 +120,8 @@ public class FunnelAuditor extends NiFiAuditor {
         // ensure the user was found
         if (user != null) {
             // create the action for adding this funnel
-            action = new Action();
-            action.setUserDn(user.getDn());
+            action = new FlowChangeAction();
+            action.setUserIdentity(user.getDn());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());

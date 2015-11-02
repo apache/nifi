@@ -462,7 +462,7 @@ public class StandardUserDAO implements UserDAO {
     }
 
     @Override
-    public void createUser(NiFiUser user) throws DataAccessException {
+    public NiFiUser createUser(NiFiUser user) throws DataAccessException {
         if (user.getDn() == null) {
             throw new IllegalArgumentException("User dn must be specified.");
         }
@@ -493,6 +493,8 @@ public class StandardUserDAO implements UserDAO {
             } else {
                 throw new DataAccessException("Unable to insert user.");
             }
+
+            return user;
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);
         } catch (DataAccessException dae) {

@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action.details;
 
-import java.io.Serializable;
+package org.apache.nifi.processors.standard.util;
 
-/**
- *
- */
-public abstract class ActionDetails implements Serializable {
+import java.io.IOException;
 
+public class PermissionDeniedException extends IOException {
+    private static final long serialVersionUID = -6215434916883053982L;
+
+    public PermissionDeniedException(final String message) {
+        super(message);
+    }
+
+    public PermissionDeniedException(final String message, final Throwable t) {
+        super(message, t);
+    }
 }

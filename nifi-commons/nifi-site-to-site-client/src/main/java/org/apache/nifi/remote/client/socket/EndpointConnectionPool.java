@@ -820,12 +820,13 @@ public class EndpointConnectionPool {
         for (final BlockingQueue<EndpointConnection> connectionQueue : connectionQueueMap.values()) {
             EndpointConnection state;
             while ((state = connectionQueue.poll()) != null) {
-                cleanup(state.getSocketClientProtocol(), state.getPeer());
+                terminate(state);
             }
         }
     }
 
     public void terminate(final EndpointConnection connection) {
+        activeConnections.remove(connection);
         cleanup(connection.getSocketClientProtocol(), connection.getPeer());
     }
 

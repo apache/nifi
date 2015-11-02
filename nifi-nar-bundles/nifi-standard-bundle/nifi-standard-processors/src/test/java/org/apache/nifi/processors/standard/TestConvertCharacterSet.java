@@ -19,16 +19,20 @@ package org.apache.nifi.processors.standard;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
+import static junit.framework.TestCase.fail;
+
 public class TestConvertCharacterSet {
 
     @Test
-    public void test() throws IOException {
+    public void testSimple() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ConvertCharacterSet());
         runner.setProperty(ConvertCharacterSet.INPUT_CHARSET, "ASCII");
         runner.setProperty(ConvertCharacterSet.OUTPUT_CHARSET, "UTF-32");
@@ -41,4 +45,62 @@ public class TestConvertCharacterSet {
         output.assertContentEquals(new File("src/test/resources/CharacterSetConversionSamples/Converted2.txt"));
     }
 
+    @Test
+    public void testExpressionLanguageInput() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertCharacterSet());
+        runner.setProperty(ConvertCharacterSet.INPUT_CHARSET, "${characterSet}");
+        runner.setProperty(ConvertCharacterSet.OUTPUT_CHARSET, "UTF-32");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("characterSet", "ASCII");
+        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"),attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertCharacterSet.REL_SUCCESS, 1);
+        final MockFlowFile output = runner.getFlowFilesForRelationship(ConvertCharacterSet.REL_SUCCESS).get(0);
+        output.assertContentEquals(new File("src/test/resources/CharacterSetConversionSamples/Converted2.txt"));
+    }
+
+    @Test
+    public void testExpressionLanguageOutput() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertCharacterSet());
+        runner.setProperty(ConvertCharacterSet.INPUT_CHARSET, "ASCII");
+        runner.setProperty(ConvertCharacterSet.OUTPUT_CHARSET, "${characterSet}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("characterSet", "UTF-32");
+        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"),attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertCharacterSet.REL_SUCCESS, 1);
+        final MockFlowFile output = runner.getFlowFilesForRelationship(ConvertCharacterSet.REL_SUCCESS).get(0);
+        output.assertContentEquals(new File("src/test/resources/CharacterSetConversionSamples/Converted2.txt"));
+    }
+
+    @Test
+    public void testExpressionLanguageConfig() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertCharacterSet());
+        runner.setProperty(ConvertCharacterSet.INPUT_CHARSET, "${now()}");
+        runner.setProperty(ConvertCharacterSet.OUTPUT_CHARSET, "UTF-32");
+
+        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"));
+        try {
+            runner.run();
+            fail("Should fail to validate config and fail to run the on trigger");
+        } catch (AssertionError e){
+            // Expect to fail assertion for passing a date to the character set validator
+        }
+
+
+        runner.setProperty(ConvertCharacterSet.INPUT_CHARSET, "UTF-32");
+        runner.setProperty(ConvertCharacterSet.OUTPUT_CHARSET, "${anyAttribute(\"abc\", \"xyz\"):contains(\"bye\")}");
+
+        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"));
+        try {
+            runner.run();
+            fail("Should fail to validate config and fail to run the on trigger");
+        } catch (AssertionError e) {
+            // Expect to fail assertion for passing a boolean to the character set validator
+        }
+    }
 }

@@ -373,7 +373,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     }
 
     public Lineage computeLineage(final String flowFileUUID) throws IOException {
-        return computeLineage(Collections.<String>singleton(flowFileUUID), LineageComputationType.FLOWFILE_LINEAGE, null);
+        return computeLineage(Collections.<String> singleton(flowFileUUID), LineageComputationType.FLOWFILE_LINEAGE, null);
     }
 
     private Lineage computeLineage(final Collection<String> flowFileUuids, final LineageComputationType computationType, final Long eventId) throws IOException {
@@ -411,9 +411,9 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     public ComputeLineageSubmission submitExpandParents(final long eventId) {
         final ProvenanceEventRecord event = getEvent(eventId);
         if (event == null) {
-            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
+            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String> emptyList(), 1);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-            submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+            submission.getResult().update(Collections.<ProvenanceEventRecord> emptyList());
             return submission;
         }
 
@@ -424,7 +424,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
             case CLONE:
                 return submitLineageComputation(event.getParentUuids(), LineageComputationType.EXPAND_PARENTS, eventId);
             default: {
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
+                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String> emptyList(), 1);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                 submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its parents cannot be expanded");
                 return submission;
@@ -440,9 +440,9 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     public ComputeLineageSubmission submitExpandChildren(final long eventId) {
         final ProvenanceEventRecord event = getEvent(eventId);
         if (event == null) {
-            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-            submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+            submission.getResult().update(Collections.<ProvenanceEventRecord> emptyList());
             return submission;
         }
 
@@ -453,7 +453,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
             case CLONE:
                 return submitLineageComputation(event.getChildUuids(), LineageComputationType.EXPAND_CHILDREN, eventId);
             default: {
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                 submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its children cannot be expanded");
                 return submission;
@@ -526,7 +526,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
 
             }, IterationDirection.BACKWARD);
 
-            submission.getResult().update(matchingRecords, matchingCount.get());
+            submission.getResult().update(matchingRecords, matchingCount.get(), 0);
         }
     }
 

@@ -14,39 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action.details;
+package org.apache.nifi.action;
+
+import org.apache.nifi.action.component.details.ComponentDetails;
+import org.apache.nifi.action.details.ActionDetails;
+
+import java.io.Serializable;
+import java.util.Date;
 
 /**
- *
+ * An action taken on the flow by a user.
  */
-public class ConfigureDetails extends ActionDetails {
+public interface Action extends Serializable {
 
-    private String name;
-    private String previousValue;
-    private String value;
+    Integer getId();
 
-    public String getName() {
-        return name;
-    }
+    Date getTimestamp();
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    String getUserIdentity();
 
-    public String getPreviousValue() {
-        return previousValue;
-    }
+    String getUserName();
 
-    public void setPreviousValue(String previousValue) {
-        this.previousValue = previousValue;
-    }
+    String getSourceId();
 
-    public String getValue() {
-        return value;
-    }
+    String getSourceName();
 
-    public void setValue(String value) {
-        this.value = value;
-    }
+    Component getSourceType();
+
+    ComponentDetails getComponentDetails();
+
+    Operation getOperation();
+
+    ActionDetails getActionDetails();
 
 }

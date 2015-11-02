@@ -85,6 +85,7 @@ public class TestStandardProcessSession {
     private StandardProcessSession session;
     private MockContentRepository contentRepo;
     private FlowFileQueue flowFileQueue;
+    private ProcessContext context;
 
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
@@ -188,7 +189,7 @@ public class TestStandardProcessSession {
         contentRepo.initialize(new StandardResourceClaimManager());
         flowFileRepo = new MockFlowFileRepository();
 
-        final ProcessContext context = new ProcessContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+        context = new ProcessContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
         session = new StandardProcessSession(context);
     }
 
@@ -330,7 +331,7 @@ public class TestStandardProcessSession {
         final FlowFile flowFile = session.get();
         assertNotNull(flowFile);
         final ObjectHolder<InputStream> inputStreamHolder = new ObjectHolder<>(null);
-        session.read(flowFile, new InputStreamCallback() {
+        session.read(flowFile, true , new InputStreamCallback() {
             @Override
             public void process(final InputStream inputStream) throws IOException {
                 inputStreamHolder.set(inputStream);
@@ -719,6 +720,40 @@ public class TestStandardProcessSession {
         });
 
         assertEquals("Hello, World", new String(buff));
+    }
+
+    @Test
+    public void testManyFilesOpened() throws IOException {
+
+        StandardProcessSession[] standardProcessSessions = new StandardProcessSession[100000];
+        for(int i = 0; i<70000;i++){
+            standardProcessSessions[i] = new StandardProcessSession(context);
+
+            FlowFile flowFile = standardProcessSessions[i].create();
+            final byte[] buff = new byte["Hello".getBytes().length];
+
+            flowFile = standardProcessSessions[i].append(flowFile, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    out.write("Hello".getBytes());
+                }
+            });
+
+            try {
+                standardProcessSessions[i].read(flowFile, false, new InputStreamCallback() {
+                    @Override
+                    public void process(final InputStream in) throws IOException {
+                        StreamUtils.fillBuffer(in, buff);
+                    }
+                });
+            } catch (Exception e){
+                System.out.println("Failed at file:"+i);
+                throw e;
+            }
+            if(i%1000==0){
+                System.out.println("i:"+i);
+            }
+        }
     }
 
     @Test

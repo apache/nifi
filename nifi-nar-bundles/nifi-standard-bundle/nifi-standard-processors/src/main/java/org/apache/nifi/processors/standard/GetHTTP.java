@@ -69,6 +69,8 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -94,6 +96,7 @@ import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.StopWatch;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Fetches a file via HTTP")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),

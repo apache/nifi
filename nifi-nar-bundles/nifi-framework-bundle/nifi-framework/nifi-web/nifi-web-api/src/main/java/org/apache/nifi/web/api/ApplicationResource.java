@@ -40,6 +40,7 @@ import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
 import org.apache.nifi.action.Action;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
@@ -203,12 +204,12 @@ public abstract class ApplicationResource {
                 clusterCtx.getActions().clear();
 
                 // create the batch action
-                Action batchAction = new Action();
+                FlowChangeAction batchAction = new FlowChangeAction();
                 batchAction.setOperation(Operation.Batch);
 
                 // copy values from prototype action
                 batchAction.setTimestamp(prototypeAction.getTimestamp());
-                batchAction.setUserDn(prototypeAction.getUserDn());
+                batchAction.setUserIdentity(prototypeAction.getUserIdentity());
                 batchAction.setUserName(prototypeAction.getUserName());
                 batchAction.setSourceId(prototypeAction.getSourceId());
                 batchAction.setSourceName(prototypeAction.getSourceName());

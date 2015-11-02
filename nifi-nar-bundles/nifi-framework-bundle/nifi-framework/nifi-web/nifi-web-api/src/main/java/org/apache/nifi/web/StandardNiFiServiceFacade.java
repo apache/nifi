@@ -37,8 +37,9 @@ import javax.ws.rs.WebApplicationException;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AccountNotFoundException;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.UserService;
@@ -1776,12 +1777,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         // create the purge details
-        PurgeDetails details = new PurgeDetails();
+        FlowChangePurgeDetails details = new FlowChangePurgeDetails();
         details.setEndDate(endDate);
 
         // create a purge action to record that records are being removed
-        Action purgeAction = new Action();
-        purgeAction.setUserDn(user.getDn());
+        FlowChangeAction purgeAction = new FlowChangeAction();
+        purgeAction.setUserIdentity(user.getDn());
         purgeAction.setUserName(user.getUserName());
         purgeAction.setOperation(Operation.Purge);
         purgeAction.setTimestamp(new Date());

@@ -178,8 +178,22 @@ nf.Provenance = (function () {
             $.when(loadControllerConfig(), loadAuthorities(), detectedCluster()).done(function () {
                 // create the provenance table
                 nf.ProvenanceTable.init(isClustered).done(function () {
+                    var search;
+                    
+                    // look for a processor id in the query search
+                    var initialComponentId = $('#intial-component-query').text();
+                    if ($.trim(initialComponentId) !== '') {
+                        // populate initial search component
+                        $('input.searchable-component-id').val(initialComponentId);
+                        
+                        // build the search criteria
+                        search = {
+                            'search[ProcessorID]': initialComponentId
+                        };
+                    }
+
                     // load the provenance table
-                    nf.ProvenanceTable.loadProvenanceTable();
+                    nf.ProvenanceTable.loadProvenanceTable(search);
 
                     // once the table is initialized, finish initializing the page
                     initializeProvenancePage().done(function () {

@@ -23,7 +23,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.SequenceFile.CompressionType;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -57,6 +58,7 @@ import org.apache.nifi.processors.hadoop.util.SequenceFileWriter;
  *
  */
 @SideEffectFree
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "sequence file", "create", "sequencefile"})
 @CapabilityDescription("Creates Hadoop Sequence Files from incoming flow files")
 @SeeAlso(PutHDFS.class)

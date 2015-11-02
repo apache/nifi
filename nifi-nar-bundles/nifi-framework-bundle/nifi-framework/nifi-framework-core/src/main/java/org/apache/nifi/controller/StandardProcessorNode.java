@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
-import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
@@ -43,6 +35,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.Connectable;
@@ -61,8 +64,6 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.quartz.CronExpression;
 import org.slf4j.LoggerFactory;
 
@@ -108,15 +109,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final boolean triggerWhenAnyDestinationAvailable;
     private final boolean eventDrivenSupported;
     private final boolean batchSupported;
+    private final Requirement inputRequirement;
     private final ValidationContextFactory validationContextFactory;
     private final ProcessScheduler processScheduler;
     private long runNanos = 0L;
 
-    private SchedulingStrategy schedulingStrategy;  // guarded by read/write lock
+    private SchedulingStrategy schedulingStrategy; // guarded by read/write lock
 
     @SuppressWarnings("deprecation")
     public StandardProcessorNode(final Processor processor, final String uuid, final ValidationContextFactory validationContextFactory,
-            final ProcessScheduler scheduler, final ControllerServiceProvider controllerServiceProvider) {
+        final ProcessScheduler scheduler, final ControllerServiceProvider controllerServiceProvider) {
         super(processor, uuid, validationContextFactory, controllerServiceProvider);
 
         this.processor = processor;
@@ -152,10 +154,18 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         batchSupported = procClass.isAnnotationPresent(SupportsBatching.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.SupportsBatching.class);
         triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerSerially.class);
         triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class)
-                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable.class);
+            || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable.class);
         this.validationContextFactory = validationContextFactory;
         eventDrivenSupported = (procClass.isAnnotationPresent(EventDriven.class)
-                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.EventDriven.class)) && !triggeredSerially && !triggerWhenEmpty;
+            || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.EventDriven.class)) && !triggeredSerially && !triggerWhenEmpty;
+
+        final boolean inputRequirementPresent = procClass.isAnnotationPresent(InputRequirement.class);
+        if (inputRequirementPresent) {
+            inputRequirement = procClass.getAnnotation(InputRequirement.class).value();
+        } else {
+            inputRequirement = Requirement.INPUT_ALLOWED;
+        }
+
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
     }
 
@@ -349,8 +359,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (capDesc != null) {
             description = capDesc.value();
         } else {
-            final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapDesc
-                    = processor.getClass().getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
+            final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapDesc = processor.getClass().getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
             if (deprecatedCapDesc != null) {
                 description = deprecatedCapDesc.value();
             }
@@ -450,7 +459,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + schedulingPeriod);
                     }
                 }
-                break;
+                    break;
                 case PRIMARY_NODE_ONLY:
                 case TIMER_DRIVEN: {
                     final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS);
@@ -459,7 +468,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     }
                     this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
                 }
-                break;
+                    break;
                 case EVENT_DRIVEN:
                 default:
                     return;
@@ -654,7 +663,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         } finally {
             readLock.unlock();
         }
-        return (applicableConnections == null) ? Collections.<Connection>emptySet() : Collections.unmodifiableSet(applicableConnections);
+        return (applicableConnections == null) ? Collections.<Connection> emptySet() : Collections.unmodifiableSet(applicableConnections);
     }
 
     @Override
@@ -741,7 +750,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             // connection that defines the given relationship, and that relationship is required,
                             // then it is not legal to remove this relationship from this connection.
                             throw new IllegalStateException("Cannot remove relationship " + rel.getName() + " from Connection because doing so would invalidate Processor "
-                                    + this + ", which is currently running");
+                                + this + ", which is currently running");
                         }
                     }
                 }
@@ -977,6 +986,23 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     return false;
                 }
             }
+
+            switch (getInputRequirement()) {
+                case INPUT_ALLOWED:
+                    break;
+                case INPUT_FORBIDDEN: {
+                    if (!getIncomingConnections().isEmpty()) {
+                        return false;
+                    }
+                    break;
+                }
+                case INPUT_REQUIRED: {
+                    if (getIncomingConnections().isEmpty()) {
+                        return false;
+                    }
+                    break;
+                }
+            }
         } catch (final Throwable t) {
             return false;
         } finally {
@@ -1007,11 +1033,37 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             for (final Relationship relationship : getUndefinedRelationships()) {
                 if (!isAutoTerminated(relationship)) {
                     final ValidationResult error = new ValidationResult.Builder()
-                            .explanation("Relationship '" + relationship.getName() + "' is not connected to any component and is not auto-terminated")
-                            .subject("Relationship " + relationship.getName())
-                            .valid(false)
-                            .build();
+                        .explanation("Relationship '" + relationship.getName() + "' is not connected to any component and is not auto-terminated")
+                        .subject("Relationship " + relationship.getName())
+                        .valid(false)
+                        .build();
                     results.add(error);
+                }
+            }
+
+            switch (getInputRequirement()) {
+                case INPUT_ALLOWED:
+                    break;
+                case INPUT_FORBIDDEN: {
+                    final int incomingConnCount = getIncomingConnections().size();
+                    if (incomingConnCount != 0) {
+                        results.add(new ValidationResult.Builder()
+                            .explanation("Processor does not allow upstream connections but currently has " + incomingConnCount)
+                            .subject("Upstream Connections")
+                            .valid(false)
+                            .build());
+                    }
+                    break;
+                }
+                case INPUT_REQUIRED: {
+                    if (getIncomingConnections().isEmpty()) {
+                        results.add(new ValidationResult.Builder()
+                            .explanation("Processor requires an upstream connection but currently has none")
+                            .subject("Upstream Connections")
+                            .valid(false)
+                            .build());
+                    }
+                    break;
                 }
             }
         } catch (final Throwable t) {
@@ -1020,6 +1072,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             readLock.unlock();
         }
         return results;
+    }
+
+    @Override
+    public Requirement getInputRequirement() {
+        return inputRequirement;
     }
 
     /**
@@ -1086,7 +1143,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void setScheduledState(final ScheduledState scheduledState) {
         this.scheduledState.set(scheduledState);
-        if (!scheduledState.equals(ScheduledState.RUNNING)) {   // if user stops processor, clear yield expiration
+        if (!scheduledState.equals(ScheduledState.RUNNING)) { // if user stops processor, clear yield expiration
             yieldExpiration.set(0L);
         }
     }
@@ -1112,7 +1169,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public Collection<ValidationResult> validate(final ValidationContext validationContext) {
-        return processor.validate(validationContext);
+        return getValidationErrors();
     }
 
     @Override

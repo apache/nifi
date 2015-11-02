@@ -34,6 +34,8 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -56,6 +58,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 @EventDriven
 @SideEffectFree
 @SupportsBatching
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"evaluate", "extract", "Text", "Regular Expression", "regex"})
 @CapabilityDescription(
         "Evaluates one or more Regular Expressions against the content of a FlowFile.  "

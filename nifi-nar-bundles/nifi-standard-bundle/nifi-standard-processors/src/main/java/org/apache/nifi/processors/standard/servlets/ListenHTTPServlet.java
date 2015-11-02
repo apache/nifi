@@ -61,7 +61,8 @@ import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
-@Path(ListenHTTP.URI)
+
+@Path("")
 public class ListenHTTPServlet extends HttpServlet {
 
     private static final long serialVersionUID = 5329940480987723163L;
@@ -93,6 +94,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private Pattern headerPattern;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
     private StreamThrottler streamThrottler;
+    private String basePath;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -105,6 +107,7 @@ public class ListenHTTPServlet extends HttpServlet {
         this.headerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_HEADER_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
         this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
+        this.basePath = (String) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_BASE_PATH);
     }
 
     @Override
@@ -266,6 +269,7 @@ public class ListenHTTPServlet extends HttpServlet {
 
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.getProvenanceReporter().receive(flowFile, request.getRequestURL().toString(), sourceSystemFlowFileIdentifier, "Remote DN=" + foundSubject, transferMillis);
+                flowFile = session.putAttribute(flowFile, "restlistener.remote.source.host", request.getRemoteHost());
                 flowFile = session.putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
                 flowFileSet.add(flowFile);
 
@@ -291,7 +295,7 @@ public class ListenHTTPServlet extends HttpServlet {
                 } while (previousWrapper != null);
 
                 response.setStatus(HttpServletResponse.SC_SEE_OTHER);
-                final String ackUri = ListenHTTP.URI + "/holds/" + uuid;
+                final String ackUri =  "/" + basePath + "/holds/" + uuid;
                 response.addHeader(LOCATION_HEADER_NAME, ackUri);
                 response.addHeader(LOCATION_URI_INTENT_NAME, LOCATION_URI_INTENT_VALUE);
                 response.getOutputStream().write(ackUri.getBytes("UTF-8"));

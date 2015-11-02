@@ -1773,6 +1773,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     @Override
     public void read(final FlowFile source, final InputStreamCallback reader) {
+        read(source, false, reader);
+    }
+
+    @Override
+    public void read(FlowFile source, boolean allowSessionStreamManagement, InputStreamCallback reader) {
         validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
 
@@ -1798,6 +1803,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             try {
                 recursionSet.add(source);
                 reader.process(ffais);
+
+                // Allow processors to close the file after reading to avoid too many files open or do smart session stream management.
+                if(!allowSessionStreamManagement){
+                    currentReadClaimStream.close();
+                    currentReadClaimStream = null;
+                }
             } catch (final ContentNotFoundException cnfe) {
                 cnfeThrown = true;
                 throw cnfe;
@@ -1809,6 +1820,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     throw ffais.getContentNotFoundException();
                 }
             }
+
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
         } catch (final IOException ex) {

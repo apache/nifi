@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -51,8 +53,9 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 @SupportsBatching
+@SeeAlso({ PutSQS.class, DeleteSQS.class })
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"Amazon", "AWS", "SQS", "Queue", "Get", "Fetch", "Poll"})
-@SeeAlso({PutSQS.class, DeleteSQS.class})
 @CapabilityDescription("Fetches messages from an Amazon Simple Queuing Service Queue")
 @WritesAttributes({
     @WritesAttribute(attribute = "hash.value", description = "The MD5 sum of the message"),

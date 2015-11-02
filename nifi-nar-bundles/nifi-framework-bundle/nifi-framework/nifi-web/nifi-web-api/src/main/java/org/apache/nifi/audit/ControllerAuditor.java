@@ -21,8 +21,9 @@ import java.util.Collection;
 import java.util.Date;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.web.controller.ControllerFacade;
@@ -70,14 +71,14 @@ public class ControllerAuditor extends NiFiAuditor {
                 Collection<Action> actions = new ArrayList<>();
 
                 // create the configuration details
-                ConfigureDetails configDetails = new ConfigureDetails();
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Controller Name");
                 configDetails.setValue(name);
                 configDetails.setPreviousValue(previousName);
 
                 // create the config action
-                Action configAction = new Action();
-                configAction.setUserDn(user.getDn());
+                FlowChangeAction configAction = new FlowChangeAction();
+                configAction.setUserIdentity(user.getDn());
                 configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());
@@ -123,14 +124,14 @@ public class ControllerAuditor extends NiFiAuditor {
                 Collection<Action> actions = new ArrayList<>();
 
                 // create the configuration details
-                ConfigureDetails configDetails = new ConfigureDetails();
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Controller Comments");
                 configDetails.setValue(comments);
                 configDetails.setPreviousValue(previousComments);
 
                 // create the config action
-                Action configAction = new Action();
-                configAction.setUserDn(user.getDn());
+                FlowChangeAction configAction = new FlowChangeAction();
+                configAction.setUserIdentity(user.getDn());
                 configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());
@@ -176,14 +177,14 @@ public class ControllerAuditor extends NiFiAuditor {
                 Collection<Action> actions = new ArrayList<>();
 
                 // create the configure details
-                ConfigureDetails configDetails = new ConfigureDetails();
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Controller Max Timer Driven Thread Count");
                 configDetails.setValue(String.valueOf(maxTimerDrivenThreadCount));
                 configDetails.setPreviousValue(String.valueOf(previousMaxTimerDrivenThreadCount));
 
                 // create the config action
-                Action configAction = new Action();
-                configAction.setUserDn(user.getDn());
+                FlowChangeAction configAction = new FlowChangeAction();
+                configAction.setUserIdentity(user.getDn());
                 configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());
@@ -229,14 +230,14 @@ public class ControllerAuditor extends NiFiAuditor {
                 Collection<Action> actions = new ArrayList<>();
 
                 // create the configure details
-                ConfigureDetails configDetails = new ConfigureDetails();
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Controller Max Event Driven Thread Count");
                 configDetails.setValue(String.valueOf(maxEventDrivenThreadCount));
                 configDetails.setPreviousValue(String.valueOf(previousMaxEventDrivenThreadCount));
 
                 // create the config action
-                Action configAction = new Action();
-                configAction.setUserDn(user.getDn());
+                FlowChangeAction configAction = new FlowChangeAction();
+                configAction.setUserIdentity(user.getDn());
                 configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());

@@ -364,7 +364,7 @@
             <xs:element name="comment" type="xs:string" />
             <xs:element name="class" type="NonEmptyStringType" />
             <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
-            <xs:element name="schedulingState" type="ScheduledState" />
+            <xs:element name="scheduledState" type="ScheduledState" />
             <xs:element name="schedulingStrategy" type="SchedulingStrategy" />
     		
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>

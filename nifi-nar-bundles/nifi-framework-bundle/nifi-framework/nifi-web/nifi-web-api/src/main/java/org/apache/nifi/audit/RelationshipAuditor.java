@@ -26,10 +26,12 @@ import java.util.Map;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
-import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.action.details.ConnectDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConnectDetails;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -179,14 +181,14 @@ public class RelationshipAuditor extends NiFiAuditor {
                 // ensure the value is changing
                 if (oldValue == null || newValue == null || !newValue.equals(oldValue)) {
                     // create the config details
-                    ConfigureDetails configurationDetails = new ConfigureDetails();
+                    FlowChangeConfigureDetails configurationDetails = new FlowChangeConfigureDetails();
                     configurationDetails.setName(property);
                     configurationDetails.setValue(newValue);
                     configurationDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    Action configurationAction = new Action();
-                    configurationAction.setUserDn(user.getDn());
+                    FlowChangeAction configurationAction = new FlowChangeAction();
+                    configurationAction.setUserIdentity(user.getDn());
                     configurationAction.setUserName(user.getUserName());
                     configurationAction.setOperation(Operation.Configure);
                     configurationAction.setTimestamp(actionTimestamp);
@@ -263,7 +265,7 @@ public class RelationshipAuditor extends NiFiAuditor {
         final String formattedRelationships = relationshipNames.isEmpty() ? StringUtils.EMPTY : StringUtils.join(relationshipNames, ", ");
 
         // create the connect details
-        final ConnectDetails connectDetails = new ConnectDetails();
+        final FlowChangeConnectDetails connectDetails = new FlowChangeConnectDetails();
         connectDetails.setSourceId(source.getIdentifier());
         connectDetails.setSourceName(source.getName());
         connectDetails.setSourceType(sourceType);
@@ -327,7 +329,7 @@ public class RelationshipAuditor extends NiFiAuditor {
      * @return action
      */
     public Action generateAuditRecordForConnection(Connection connection, Operation operation, ActionDetails actionDetails) {
-        Action action = null;
+        FlowChangeAction action = null;
 
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -350,8 +352,8 @@ public class RelationshipAuditor extends NiFiAuditor {
             Date actionTimestamp = new Date();
 
             // create a new relationship action
-            action = new Action();
-            action.setUserDn(user.getDn());
+            action = new FlowChangeAction();
+            action.setUserIdentity(user.getDn());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(actionTimestamp);

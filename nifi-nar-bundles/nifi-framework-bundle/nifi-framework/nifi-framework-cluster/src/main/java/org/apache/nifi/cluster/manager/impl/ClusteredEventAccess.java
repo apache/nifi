@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.cluster.manager.impl;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
+import org.apache.nifi.action.Action;
+import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.history.History;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
@@ -31,12 +30,18 @@ import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.reporting.EventAccess;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 public class ClusteredEventAccess implements EventAccess {
 
     private final WebClusterManager clusterManager;
+    private final AuditService auditService;
 
-    public ClusteredEventAccess(final WebClusterManager clusterManager) {
+    public ClusteredEventAccess(final WebClusterManager clusterManager, final AuditService auditService) {
         this.clusterManager = clusterManager;
+        this.auditService = auditService;
     }
 
     @Override
@@ -131,5 +136,11 @@ public class ClusteredEventAccess implements EventAccess {
 
             }
         };
+    }
+
+    @Override
+    public List<Action> getFlowChanges(int firstActionId, int maxActions) {
+        final History history = auditService.getActions(firstActionId, maxActions);
+        return new ArrayList<>(history.getActions());
     }
 }

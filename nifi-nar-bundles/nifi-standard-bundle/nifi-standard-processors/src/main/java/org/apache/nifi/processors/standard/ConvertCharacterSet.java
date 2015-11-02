@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -33,8 +34,10 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
@@ -76,6 +79,7 @@ import java.util.concurrent.TimeUnit;
  */
 @EventDriven
 @SideEffectFree
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
 @Tags({"text", "convert", "characterset", "character set"})
 @CapabilityDescription("Converts a FlowFile's content from one character set to another")
@@ -84,12 +88,14 @@ public class ConvertCharacterSet extends AbstractProcessor {
     public static final PropertyDescriptor INPUT_CHARSET = new PropertyDescriptor.Builder()
             .name("Input Character Set")
             .description("The name of the CharacterSet to expect for Input")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
             .build();
     public static final PropertyDescriptor OUTPUT_CHARSET = new PropertyDescriptor.Builder()
             .name("Output Character Set")
             .description("The name of the CharacterSet to convert to")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
             .build();
@@ -125,10 +131,15 @@ public class ConvertCharacterSet extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
         final ProcessorLog logger = getLogger();
 
-        final Charset inputCharset = Charset.forName(context.getProperty(INPUT_CHARSET).getValue());
-        final Charset outputCharset = Charset.forName(context.getProperty(OUTPUT_CHARSET).getValue());
+        final Charset inputCharset = Charset.forName(context.getProperty(INPUT_CHARSET).evaluateAttributeExpressions(flowFile).getValue());
+        final Charset outputCharset = Charset.forName(context.getProperty(OUTPUT_CHARSET).evaluateAttributeExpressions(flowFile).getValue());
         final CharBuffer charBuffer = CharBuffer.allocate(MAX_BUFFER_SIZE);
 
         final CharsetDecoder decoder = inputCharset.newDecoder();
@@ -140,11 +151,6 @@ public class ConvertCharacterSet extends AbstractProcessor {
         encoder.onMalformedInput(CodingErrorAction.REPLACE);
         encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
         encoder.replaceWith("?".getBytes(outputCharset));
-
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
 
         try {
             final StopWatch stopWatch = new StopWatch(true);
@@ -166,7 +172,7 @@ public class ConvertCharacterSet extends AbstractProcessor {
 
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             logger.info("successfully converted characters from {} to {} for {}",
-                    new Object[]{context.getProperty(INPUT_CHARSET).getValue(), context.getProperty(OUTPUT_CHARSET).getValue(), flowFile});
+                    new Object[]{inputCharset, outputCharset, flowFile});
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {
             throw new ProcessException(e);

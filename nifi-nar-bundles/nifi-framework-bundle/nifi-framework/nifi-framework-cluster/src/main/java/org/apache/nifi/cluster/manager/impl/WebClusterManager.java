@@ -1081,7 +1081,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this);
         final ReportingTaskNode taskNode = new ClusteredReportingTaskNode(task, id, processScheduler,
-                new ClusteredEventAccess(this), bulletinRepository, controllerServiceProvider, validationContextFactory);
+                new ClusteredEventAccess(this, auditService), bulletinRepository, controllerServiceProvider, validationContextFactory);
         taskNode.setName(task.getClass().getSimpleName());
 
         reportingTasks.put(id, taskNode);

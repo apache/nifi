@@ -54,6 +54,8 @@ import javax.net.ssl.SSLSession;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -77,6 +79,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("An HTTP client processor which converts FlowFile attributes to HTTP headers, with configurable HTTP method, url, etc.")
 @WritesAttributes({
     @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
@@ -86,7 +89,7 @@ import org.joda.time.format.DateTimeFormatter;
     @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
     @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server")})
 @DynamicProperty(name = "Trusted Hostname", value = "A hostname", description = "Bypass the normal truststore hostname verifier to allow the specified (single) remote hostname as trusted "
-        + "Enabling this property has MITM security implications, use wisely. Only valid with SSL (HTTPS) connections.")
+    + "Enabling this property has MITM security implications, use wisely. Only valid with SSL (HTTPS) connections.")
 public final class InvokeHTTP extends AbstractProcessor {
 
     @Override
@@ -167,76 +170,75 @@ public final class InvokeHTTP extends AbstractProcessor {
         // This set includes our strings defined above as well as some standard flowfile
         // attributes.
         public static final Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-                STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, TRANSACTION_ID, REMOTE_DN,
-                "uuid", "filename", "path"
-        )));
+            STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, TRANSACTION_ID, REMOTE_DN,
+            "uuid", "filename", "path")));
 
         // properties
         public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
-                .name("HTTP Method")
-                .description("HTTP request method (GET, POST, PUT, DELETE, HEAD, OPTIONS).")
-                .required(true)
-                .defaultValue("GET")
-                .expressionLanguageSupported(true)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .build();
+            .name("HTTP Method")
+            .description("HTTP request method (GET, POST, PUT, DELETE, HEAD, OPTIONS).")
+            .required(true)
+            .defaultValue("GET")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
         public static final PropertyDescriptor PROP_URL = new PropertyDescriptor.Builder()
-                .name("Remote URL")
-                .description("Remote URL which will be connected to, including scheme, host, port, path.")
-                .required(true)
-                .expressionLanguageSupported(true)
-                .addValidator(StandardValidators.URL_VALIDATOR)
-                .build();
+            .name("Remote URL")
+            .description("Remote URL which will be connected to, including scheme, host, port, path.")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
 
         public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-                .name("Connection Timeout")
-                .description("Max wait time for connection to remote service.")
-                .required(true)
-                .defaultValue("5 secs")
-                .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-                .build();
+            .name("Connection Timeout")
+            .description("Max wait time for connection to remote service.")
+            .required(true)
+            .defaultValue("5 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
 
         public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
-                .name("Read Timeout")
-                .description("Max wait time for response from remote service.")
-                .required(true)
-                .defaultValue("15 secs")
-                .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-                .build();
+            .name("Read Timeout")
+            .description("Max wait time for response from remote service.")
+            .required(true)
+            .defaultValue("15 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
 
         public static final PropertyDescriptor PROP_DATE_HEADER = new PropertyDescriptor.Builder()
-                .name("Include Date Header")
-                .description("Include an RFC-2616 Date header in the request.")
-                .required(true)
-                .defaultValue("True")
-                .allowableValues("True", "False")
-                .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-                .build();
+            .name("Include Date Header")
+            .description("Include an RFC-2616 Date header in the request.")
+            .required(true)
+            .defaultValue("True")
+            .allowableValues("True", "False")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
         public static final PropertyDescriptor PROP_FOLLOW_REDIRECTS = new PropertyDescriptor.Builder()
-                .name("Follow Redirects")
-                .description("Follow HTTP redirects issued by remote server.")
-                .required(true)
-                .defaultValue("True")
-                .allowableValues("True", "False")
-                .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-                .build();
+            .name("Follow Redirects")
+            .description("Follow HTTP redirects issued by remote server.")
+            .required(true)
+            .defaultValue("True")
+            .allowableValues("True", "False")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
         public static final PropertyDescriptor PROP_ATTRIBUTES_TO_SEND = new PropertyDescriptor.Builder()
-                .name("Attributes to Send")
-                .description("Regular expression that defines which attributes to send as HTTP headers in the request. "
-                        + "If not defined, no attributes are sent as headers.")
-                .required(false)
-                .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-                .build();
+            .name("Attributes to Send")
+            .description("Regular expression that defines which attributes to send as HTTP headers in the request. "
+                    + "If not defined, no attributes are sent as headers.")
+            .required(false)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
 
         public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-                .name("SSL Context Service")
-                .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
-                .required(false)
-                .identifiesControllerService(SSLContextService.class)
-                .build();
+            .name("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
         public static final PropertyDescriptor PROP_PROXY_HOST = new PropertyDescriptor.Builder()
             .name("Proxy Host")
@@ -253,33 +255,33 @@ public final class InvokeHTTP extends AbstractProcessor {
             .build();
 
         // Per RFC 7235, 2617, and 2616.
-        //      basic-credentials   = base64-user-pass
-        //      base64-user-pass    = userid ":" password
-        //      userid              = *<TEXT excluding ":">
-        //      password            = *TEXT
+        // basic-credentials = base64-user-pass
+        // base64-user-pass = userid ":" password
+        // userid = *<TEXT excluding ":">
+        // password = *TEXT
         //
-        //      OCTET          = <any 8-bit sequence of data>
-        //      CTL            = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
-        //      LWS            = [CRLF] 1*( SP | HT )
-        //      TEXT           = <any OCTET except CTLs but including LWS>
+        // OCTET = <any 8-bit sequence of data>
+        // CTL = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
+        // LWS = [CRLF] 1*( SP | HT )
+        // TEXT = <any OCTET except CTLs but including LWS>
         //
         // Per RFC 7230, username & password in URL are now disallowed in HTTP and HTTPS URIs.
         public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
-                .name("Basic Authentication Username")
-                .displayName("Basic Authentication Username")
-                .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
-                .required(false)
-                .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
-                .build();
+            .name("Basic Authentication Username")
+            .displayName("Basic Authentication Username")
+            .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
+            .required(false)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+            .build();
 
         public static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
-                .name("Basic Authentication Password")
-                .displayName("Basic Authentication Password")
-                .description("The password to be used by the client to authenticate against the Remote URL.")
-                .required(false)
-                .sensitive(true)
-                .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
-                .build();
+            .name("Basic Authentication Password")
+            .displayName("Basic Authentication Password")
+            .description("The password to be used by the client to authenticate against the Remote URL.")
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+            .build();
 
         public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             PROP_METHOD,
@@ -293,48 +295,47 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
             PROP_PROXY_HOST,
-            PROP_PROXY_PORT
-        ));
+            PROP_PROXY_PORT));
 
         // property to allow the hostname verifier to be overridden
         // this is a "hidden" property - it's configured using a dynamic user property
         public static final PropertyDescriptor PROP_TRUSTED_HOSTNAME = new PropertyDescriptor.Builder()
-                .name("Trusted Hostname")
-                .description("Bypass the normal truststore hostname verifier to allow the specified (single) remote hostname as trusted "
-                        + "Enabling this property has MITM security implications, use wisely. Only valid with SSL (HTTPS) connections.")
+            .name("Trusted Hostname")
+            .description("Bypass the normal truststore hostname verifier to allow the specified remote hostname as trusted. "
+                    + "Enabling this property has MITM security implications, use wisely. Will still accept other connections based "
+                    + "on the normal truststore hostname verifier. Only valid with SSL (HTTPS) connections.")
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .dynamic(true)
-                .build();
+            .build();
 
         // relationships
         public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
-                .name("Original")
+            .name("Original")
                 .description("Original FlowFile will be routed upon success (2xx status codes).")
-                .build();
+            .build();
 
         public static final Relationship REL_SUCCESS_RESP = new Relationship.Builder()
-                .name("Response")
+            .name("Response")
                 .description("Response FlowFile will be routed upon success (2xx status codes).")
-                .build();
+            .build();
 
         public static final Relationship REL_RETRY = new Relationship.Builder()
-                .name("Retry")
+            .name("Retry")
                 .description("FlowFile will be routed on any status code that can be retried (5xx status codes).")
-                .build();
+            .build();
 
         public static final Relationship REL_NO_RETRY = new Relationship.Builder()
-                .name("No Retry")
+            .name("No Retry")
                 .description("FlowFile will be routed on any status code that should NOT be retried (1xx, 3xx, 4xx status codes).")
-                .build();
+            .build();
 
         public static final Relationship REL_FAILURE = new Relationship.Builder()
-                .name("Failure")
+            .name("Failure")
                 .description("FlowFile will be routed on any type of connection failure, timeout or general exception.")
-                .build();
+            .build();
 
         public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-                REL_SUCCESS_REQ, REL_SUCCESS_RESP, REL_RETRY, REL_NO_RETRY, REL_FAILURE
-        )));
+            REL_SUCCESS_REQ, REL_SUCCESS_RESP, REL_RETRY, REL_NO_RETRY, REL_FAILURE)));
 
     }
 
@@ -400,7 +401,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 transfer();
             } catch (final Exception e) {
                 // log exception
-                logger.error("Routing to {} due to exception: {}", new Object[] { REL_FAILURE.getName(), e }, e);
+                logger.error("Routing to {} due to exception: {}", new Object[] {REL_FAILURE.getName(), e}, e);
 
                 // penalize
                 request = session.penalize(request);
@@ -414,7 +415,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                         session.remove(response);
                     }
                 } catch (final Exception e1) {
-                    logger.error("Could not cleanup response flowfile due to exception: {}", new Object[] { e1 }, e1);
+                    logger.error("Could not cleanup response flowfile due to exception: {}", new Object[] {e1}, e1);
                 }
             }
         }
@@ -542,7 +543,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
                         // emit provenance event
                         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                        session.getProvenanceReporter().modifyContent(response, "Updated content with data received from " + conn.getURL().toExternalForm(), millis);
+                        session.getProvenanceReporter().fetch(response, conn.getURL().toExternalForm(), millis);
                     }
 
                 }
@@ -559,7 +560,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
             // log the status codes from the response
             logger.info("Request to {} returned status code {} for {}",
-                    new Object[]{conn.getURL().toExternalForm(), statusCode, request});
+                new Object[] {conn.getURL().toExternalForm(), statusCode, request});
 
             // transfer to the correct relationship
             // 2xx -> SUCCESS
@@ -657,12 +658,12 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         private void logRequest() {
             logger.debug("\nRequest to remote service:\n\t{}\n{}",
-                    new Object[]{conn.getURL().toExternalForm(), getLogString(conn.getRequestProperties())});
+                new Object[] {conn.getURL().toExternalForm(), getLogString(conn.getRequestProperties())});
         }
 
         private void logResponse() {
             logger.debug("\nResponse from remote service:\n\t{}\n{}",
-                    new Object[]{conn.getURL().toExternalForm(), getLogString(conn.getHeaderFields())});
+                new Object[] {conn.getURL().toExternalForm(), getLogString(conn.getHeaderFields())});
         }
 
         private String getLogString(Map<String, List<String>> map) {
@@ -750,7 +751,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 return new BufferedInputStream(is);
 
             } catch (IOException e) {
-                logger.warn("Response stream threw an exception: {}", new Object[]{e}, e);
+                logger.warn("Response stream threw an exception: {}", new Object[] {e}, e);
                 return null;
             }
         }

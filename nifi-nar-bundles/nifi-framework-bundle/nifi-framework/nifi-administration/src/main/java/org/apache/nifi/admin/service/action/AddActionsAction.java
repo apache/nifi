@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.admin.service.action;
 
-import java.util.Collection;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.dao.ActionDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.authorization.AuthorityProvider;
+
+import java.util.Collection;
 
 /**
  * Adds the specified actions.

@@ -1371,9 +1371,16 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
-            return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isProcessGroup(selection) ||
-                    nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isOutputPort(selection) ||
-                    nf.CanvasUtils.isFunnel(selection);
+            if (nf.CanvasUtils.isProcessGroup(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) ||
+                    nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isFunnel(selection)) {
+                return true;
+            }
+
+            // if processor, ensure it supports input
+            if (nf.CanvasUtils.isProcessor(selection)) {
+                var destinationData = selection.datum();
+                return destinationData.component.inputRequirement !== 'INPUT_FORBIDDEN';
+            }
         }
     };
 }());

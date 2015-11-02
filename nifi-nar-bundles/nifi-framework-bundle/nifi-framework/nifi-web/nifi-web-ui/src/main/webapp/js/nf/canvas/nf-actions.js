@@ -464,6 +464,22 @@ nf.Actions = (function () {
         },
         
         /**
+         * Opens provenance with the component in the specified selection.
+         *
+         * @argument {selection} selection The selection
+         */
+        openProvenance: function (selection) {
+            if (selection.size() === 1) {
+                var selectionData = selection.datum();
+
+                // open the provenance page with the specified component
+                nf.Shell.showPage('provenance?' + $.param({
+                    componentId: selectionData.component.id
+                }));
+            }
+        },
+
+        /**
          * Starts the components in the specified selection.
          * 
          * @argument {selection} selection      The selection
@@ -774,7 +790,9 @@ nf.Actions = (function () {
                             var destinationData = destination.datum();
 
                             // update the destination component accordingly
-                            if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
+                            if (nf.CanvasUtils.isProcessor(destination)) {
+                                nf.Processor.reload(destinationData.component);
+                            } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
                                 nf.RemoteProcessGroup.reload(destinationData.component);
                             }
                         } else {
