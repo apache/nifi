@@ -108,7 +108,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     public static final String EVENT_CATEGORY = "Provenance Repository";
     private static final String FILE_EXTENSION = ".prov";
     private static final String TEMP_FILE_SUFFIX = ".prov.part";
-    private static final long PURGE_EVENT_MILLISECONDS = 2500L; //Determines the frequency over which the task to delete old events will occur
+    private static final long PURGE_EVENT_MILLISECONDS = 2500L; // Determines the frequency over which the task to delete old events will occur
     public static final int SERIALIZATION_VERSION = 8;
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
     public static final Pattern INDEX_PATTERN = Pattern.compile("index-\\d+");
@@ -404,9 +404,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 // if this is the first record, try to find out the block index and jump directly to
                 // the block index. This avoids having to read through a lot of data that we don't care about
                 // just to get to the first record that we want.
-                if ( records.isEmpty() ) {
+                if (records.isEmpty()) {
                     final TocReader tocReader = reader.getTocReader();
-                    if ( tocReader != null ) {
+                    if (tocReader != null) {
                         final Integer blockIndex = tocReader.getBlockIndexForEventId(firstRecordId);
                         if (blockIndex != null) {
                             reader.skipToBlock(blockIndex);
@@ -641,7 +641,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
             indexManager.close();
 
-            if ( writers != null ) {
+            if (writers != null) {
                 for (final RecordWriter writer : writers) {
                     writer.close();
                 }
@@ -700,7 +700,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     // journal will result in corruption!
                     writer.markDirty();
                     dirtyWriterCount.incrementAndGet();
-                    streamStartTime.set(0L);    // force rollover to happen soon.
+                    streamStartTime.set(0L); // force rollover to happen soon.
                     throw t;
                 } finally {
                     writer.unlock();
@@ -912,15 +912,15 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 removed.add(baseName);
             } catch (final FileNotFoundException fnf) {
                 logger.warn("Failed to perform Expiration Action {} on Provenance Event file {} because the file no longer exists; will not "
-                        + "perform additional Expiration Actions on this file", currentAction, file);
+                    + "perform additional Expiration Actions on this file", currentAction, file);
                 removed.add(baseName);
             } catch (final Throwable t) {
                 logger.warn("Failed to perform Expiration Action {} on Provenance Event file {} due to {}; will not perform additional "
-                        + "Expiration Actions on this file at this time", currentAction, file, t.toString());
+                    + "Expiration Actions on this file at this time", currentAction, file, t.toString());
                 logger.warn("", t);
                 eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to perform Expiration Action " + currentAction +
-                        " on Provenance Event file " + file + " due to " + t.toString() + "; will not perform additional Expiration Actions " +
-                        "on this file at this time");
+                    " on Provenance Event file " + file + " due to " + t.toString() + "; will not perform additional Expiration Actions " +
+                    "on this file at this time");
             }
         }
 
@@ -1131,10 +1131,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     protected int getJournalCount() {
         // determine how many 'journals' we have in the journals directories
         int journalFileCount = 0;
-        for ( final File storageDir : configuration.getStorageDirectories() ) {
+        for (final File storageDir : configuration.getStorageDirectories()) {
             final File journalsDir = new File(storageDir, "journals");
             final File[] journalFiles = journalsDir.listFiles();
-            if ( journalFiles != null ) {
+            if (journalFiles != null) {
                 journalFileCount += journalFiles.length;
             }
         }
@@ -1169,12 +1169,12 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     writer.close();
                 } catch (final IOException ioe) {
                     logger.warn("Failed to close {} due to {}", writer, ioe.toString());
-                    if ( logger.isDebugEnabled() ) {
+                    if (logger.isDebugEnabled()) {
                         logger.warn("", ioe);
                     }
                 }
             }
-            if ( logger.isDebugEnabled() ) {
+            if (logger.isDebugEnabled()) {
                 logger.debug("Going to merge {} files for journals starting with ID {}", journalsToMerge.size(), LuceneUtil.substringBefore(journalsToMerge.get(0).getName(), "."));
             }
 
@@ -1263,10 +1263,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             // that is no longer the case.
             if (journalFileCount > journalCountThreshold || repoSize > sizeThreshold) {
                 logger.warn("The rate of the dataflow is exceeding the provenance recording rate. "
-                        + "Slowing down flow to accommodate. Currently, there are {} journal files ({} bytes) and "
-                        + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
+                    + "Slowing down flow to accommodate. Currently, there are {} journal files ({} bytes) and "
+                    + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
                 eventReporter.reportEvent(Severity.WARNING, "Provenance Repository", "The rate of the dataflow is "
-                        + "exceeding the provenance recording rate. Slowing down flow to accommodate");
+                    + "exceeding the provenance recording rate. Slowing down flow to accommodate");
 
                 while (journalFileCount > journalCountThreshold || repoSize > sizeThreshold) {
                     // if a shutdown happens while we are in this loop, kill the rollover thread and break
@@ -1293,15 +1293,15 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     }
 
                     logger.debug("Provenance Repository is still behind. Keeping flow slowed down "
-                            + "to accommodate. Currently, there are {} journal files ({} bytes) and "
-                            + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
+                        + "to accommodate. Currently, there are {} journal files ({} bytes) and "
+                        + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
 
                     journalFileCount = getJournalCount();
                     repoSize = getSize(getLogFiles(), 0L);
                 }
 
                 logger.info("Provenance Repository has now caught up with rolling over journal files. Current number of "
-                        + "journal files to be rolled over is {}", journalFileCount);
+                    + "journal files to be rolled over is {}", journalFileCount);
             }
 
             // we've finished rolling over successfully. Create new writers and reset state.
@@ -1335,7 +1335,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             }
 
             for (final File journalFile : journalFiles) {
-                if ( journalFile.isDirectory() ) {
+                if (journalFile.isDirectory()) {
                     continue;
                 }
 
@@ -1403,7 +1403,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
      */
     File mergeJournals(final List<File> journalFiles, final File suggestedMergeFile, final EventReporter eventReporter) throws IOException {
         logger.debug("Merging {} to {}", journalFiles, suggestedMergeFile);
-        if ( this.closed.get() ) {
+        if (this.closed.get()) {
             logger.info("Provenance Repository has been closed; will not merge journal files to {}", suggestedMergeFile);
             return null;
         }
@@ -1439,14 +1439,14 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 // we have all "partial" files and there is already a merged file. Delete the data from the index
                 // because the merge file may not be fully merged. We will re-merge.
                 logger.warn("Merged Journal File {} already exists; however, all partial journal files also exist "
-                        + "so assuming that the merge did not finish. Repeating procedure in order to ensure consistency.");
+                    + "so assuming that the merge did not finish. Repeating procedure in order to ensure consistency.");
 
                 final DeleteIndexAction deleteAction = new DeleteIndexAction(this, indexConfig, indexManager);
                 try {
                     deleteAction.execute(suggestedMergeFile);
                 } catch (final Exception e) {
                     logger.warn("Failed to delete records from Journal File {} from the index; this could potentially result in duplicates. Failure was due to {}", suggestedMergeFile, e.toString());
-                    if ( logger.isDebugEnabled() ) {
+                    if (logger.isDebugEnabled()) {
                         logger.warn("", e);
                     }
                 }
@@ -1460,18 +1460,18 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 }
 
                 final File tocFile = TocUtil.getTocFile(suggestedMergeFile);
-                if ( tocFile.exists() && !tocFile.delete() ) {
+                if (tocFile.exists() && !tocFile.delete()) {
                     logger.error("Failed to delete .toc file {}; this may result in not being able to read the Provenance Events from the {} Journal File. "
                         + "This can be corrected by manually deleting the {} file", tocFile, suggestedMergeFile, tocFile);
                 }
             }
         } else {
             logger.warn("Cannot merge journal files {} because expected first file to end with extension '.0' "
-                    + "but it did not; assuming that the files were already merged but only some finished deletion "
-                    + "before restart. Deleting remaining partial journal files.", journalFiles);
+                + "but it did not; assuming that the files were already merged but only some finished deletion "
+                + "before restart. Deleting remaining partial journal files.", journalFiles);
 
-            for ( final File file : journalFiles ) {
-                if ( !file.delete() && file.exists() ) {
+            for (final File file : journalFiles) {
+                if (!file.delete() && file.exists()) {
                     logger.warn("Failed to delete unneeded journal file {}; this file should be cleaned up manually", file);
                 }
             }
@@ -1529,7 +1529,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 } catch (final EOFException eof) {
                 } catch (final Exception e) {
                     logger.warn("Failed to generate Provenance Event Record from Journal due to " + e + "; it's possible that the record wasn't "
-                            + "completely written to the file. This record will be skipped.");
+                        + "completely written to the file. This record will be skipped.");
                     if (logger.isDebugEnabled()) {
                         logger.warn("", e);
                     }
@@ -1544,11 +1544,11 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     continue;
                 }
 
-                if ( record.getEventTime() < earliestTimestamp ) {
+                if (record.getEventTime() < earliestTimestamp) {
                     earliestTimestamp = record.getEventTime();
                 }
 
-                if ( record.getEventId() < minEventId ) {
+                if (record.getEventId() < minEventId) {
                     minEventId = record.getEventId();
                 }
 
@@ -1799,7 +1799,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         final int numQueries = querySubmissionMap.size();
         if (numQueries > MAX_UNDELETED_QUERY_RESULTS) {
             throw new IllegalStateException("Cannot process query because there are currently " + numQueries + " queries whose results have not "
-                    + "been deleted due to poorly behaving clients not issuing DELETE requests. Please try again later.");
+                + "been deleted due to poorly behaving clients not issuing DELETE requests. Please try again later.");
         }
 
         if (query.getEndDate() != null && query.getStartDate() != null && query.getStartDate().getTime() > query.getEndDate().getTime()) {
@@ -1820,7 +1820,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
                 Long maxEventId = getMaxEventId();
                 if (maxEventId == null) {
-                    result.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0L);
+                    result.getResult().update(Collections.<ProvenanceEventRecord> emptyList(), 0L, 0);
                     maxEventId = 0L;
                 }
                 Long minIndexedId = indexConfig.getMinIdIndexed();
@@ -1830,7 +1830,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
                 final long totalNumDocs = maxEventId - minIndexedId;
 
-                result.getResult().update(trimmed, totalNumDocs);
+                result.getResult().update(trimmed, totalNumDocs, 0);
             } else {
                 queryExecService.submit(new GetMostRecentRunnable(query, result));
             }
@@ -1839,18 +1839,18 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             return result;
         }
 
-        final AtomicInteger retrievalCount = new AtomicInteger(0);
         final List<File> indexDirectories = indexConfig.getIndexDirectories(
-                query.getStartDate() == null ? null : query.getStartDate().getTime(),
-                        query.getEndDate() == null ? null : query.getEndDate().getTime());
+            query.getStartDate() == null ? null : query.getStartDate().getTime(),
+            query.getEndDate() == null ? null : query.getEndDate().getTime());
         final AsyncQuerySubmission result = new AsyncQuerySubmission(query, indexDirectories.size());
         querySubmissionMap.put(query.getIdentifier(), result);
 
         if (indexDirectories.isEmpty()) {
-            result.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0L);
+            result.getResult().update(Collections.<ProvenanceEventRecord> emptyList(), 0L, 0);
         } else {
+            int indexId = 0;
             for (final File indexDir : indexDirectories) {
-                queryExecService.submit(new QueryRunnable(query, result, indexDir, retrievalCount));
+                queryExecService.submit(new QueryRunnable(query, result, indexDir, indexId++));
             }
         }
 
@@ -2024,11 +2024,11 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     Lineage computeLineage(final String flowFileUuid) throws IOException {
-        return computeLineage(Collections.<String>singleton(flowFileUuid), LineageComputationType.FLOWFILE_LINEAGE, null, 0L, Long.MAX_VALUE);
+        return computeLineage(Collections.<String> singleton(flowFileUuid), LineageComputationType.FLOWFILE_LINEAGE, null, 0L, Long.MAX_VALUE);
     }
 
     private Lineage computeLineage(final Collection<String> flowFileUuids, final LineageComputationType computationType, final Long eventId, final Long startTimestamp,
-            final Long endTimestamp) throws IOException {
+        final Long endTimestamp) throws IOException {
         final AsyncLineageSubmission submission = submitLineageComputation(flowFileUuids, computationType, eventId, startTimestamp, endTimestamp);
         final StandardLineageResult result = submission.getResult();
         while (!result.isFinished()) {
@@ -2051,7 +2051,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final LineageComputationType computationType,
-            final Long eventId, final long startTimestamp, final long endTimestamp) {
+        final Long eventId, final long startTimestamp, final long endTimestamp) {
         final List<File> indexDirs = indexConfig.getIndexDirectories(startTimestamp, endTimestamp);
         final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size());
         lineageSubmissionMap.put(result.getLineageIdentifier(), result);
@@ -2068,9 +2068,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
             if (event == null) {
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-                submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+                submission.getResult().update(Collections.<ProvenanceEventRecord> emptyList());
                 return submission;
             }
 
@@ -2081,13 +2081,13 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 case REPLAY:
                     return submitLineageComputation(event.getChildUuids(), LineageComputationType.EXPAND_CHILDREN, eventId, event.getEventTime(), Long.MAX_VALUE);
                 default:
-                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1);
                     lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                     submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its children cannot be expanded");
                     return submission;
             }
         } catch (final IOException ioe) {
-            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
 
             if (ioe.getMessage() == null) {
@@ -2105,9 +2105,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
             if (event == null) {
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-                submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+                submission.getResult().update(Collections.<ProvenanceEventRecord> emptyList());
                 return submission;
             }
 
@@ -2118,14 +2118,14 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 case REPLAY:
                     return submitLineageComputation(event.getParentUuids(), LineageComputationType.EXPAND_PARENTS, eventId, event.getLineageStartDate(), event.getEventTime());
                 default: {
-                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
+                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String> emptyList(), 1);
                     lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                     submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its parents cannot be expanded");
                     return submission;
                 }
             }
         } catch (final IOException ioe) {
-            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
+            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String> emptyList(), 1);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
 
             if (ioe.getMessage() == null) {
@@ -2248,7 +2248,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             // get the max indexed event id
             final Long maxEventId = indexConfig.getMaxIdIndexed();
             if (maxEventId == null) {
-                submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0);
+                submission.getResult().update(Collections.<ProvenanceEventRecord> emptyList(), 0L, 0);
                 return;
             }
 
@@ -2263,7 +2263,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 final long totalNumDocs = maxEventId - minIndexedId;
 
                 final List<ProvenanceEventRecord> mostRecent = getEvents(startIndex, maxResults);
-                submission.getResult().update(mostRecent, totalNumDocs);
+                // reverse the order so that the newest events come first.
+                Collections.reverse(mostRecent);
+                submission.getResult().update(mostRecent, totalNumDocs, 0);
             } catch (final IOException ioe) {
                 logger.error("Failed to retrieve records from Provenance Repository: " + ioe.toString());
                 if (logger.isDebugEnabled()) {
@@ -2284,24 +2286,28 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         private final Query query;
         private final AsyncQuerySubmission submission;
         private final File indexDir;
-        private final AtomicInteger retrievalCount;
+        private final int indexId;
 
-        public QueryRunnable(final Query query, final AsyncQuerySubmission submission, final File indexDir, final AtomicInteger retrievalCount) {
+        public QueryRunnable(final Query query, final AsyncQuerySubmission submission, final File indexDir, final int indexId) {
             this.query = query;
             this.submission = submission;
             this.indexDir = indexDir;
-            this.retrievalCount = retrievalCount;
+            this.indexId = indexId;
         }
 
         @Override
         public void run() {
             try {
                 final IndexSearch search = new IndexSearch(PersistentProvenanceRepository.this, indexDir, indexManager, maxAttributeChars);
-                final StandardQueryResult queryResult = search.search(query, retrievalCount, firstEventTimestamp);
-                submission.getResult().update(queryResult.getMatchingEvents(), queryResult.getTotalHitCount());
+                final StandardQueryResult queryResult = search.search(query, firstEventTimestamp);
+
+                logger.debug("Merging query results for indexId {}; before merge, num events = {}", indexId, queryResult.getTotalHitCount());
+                submission.getResult().update(queryResult.getMatchingEvents(), queryResult.getTotalHitCount(), indexId);
+                logger.debug("Merging query results for indexId {}; after merge, num events = {}", indexId, queryResult.getTotalHitCount());
+
                 if (queryResult.isFinished()) {
                     logger.info("Successfully executed Query[{}] against Index {}; Search took {} milliseconds; Total Hits = {}",
-                            query, indexDir, queryResult.getQueryTime(), queryResult.getTotalHitCount());
+                        query, indexDir, queryResult.getQueryTime(), queryResult.getTotalHitCount());
                 }
             } catch (final Throwable t) {
                 logger.error("Failed to query Provenance Repository Index {} due to {}", indexDir, t.toString());
@@ -2344,7 +2350,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 result.update(matchingRecords);
 
                 logger.info("Successfully created Lineage for FlowFiles with UUIDs {} in {} milliseconds; Lineage contains {} nodes and {} edges",
-                        flowFileUuids, result.getComputationTime(TimeUnit.MILLISECONDS), result.getNodes().size(), result.getEdges().size());
+                    flowFileUuids, result.getComputationTime(TimeUnit.MILLISECONDS), result.getNodes().size(), result.getEdges().size());
             } catch (final Throwable t) {
                 logger.error("Failed to query provenance repository due to {}", t.toString());
                 if (logger.isDebugEnabled()) {
