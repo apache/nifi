@@ -923,7 +923,15 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         }
 
         final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier);
-        dropRequest.setCurrentSize(size());
+        final QueueSize originalSize = getQueueSize();
+        dropRequest.setCurrentSize(originalSize);
+        dropRequest.setOriginalSize(originalSize);
+        if (originalSize.getObjectCount() == 0) {
+            dropRequest.setDroppedSize(originalSize);
+            dropRequest.setState(DropFlowFileState.COMPLETE);
+            return dropRequest;
+        }
+
         final Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -931,7 +939,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
                 try {
                     dropRequest.setState(DropFlowFileState.DROPPING_FLOWFILES);
                     logger.debug("For DropFlowFileRequest {}, original size is {}", requestIdentifier, getQueueSize());
-                    dropRequest.setOriginalSize(getQueueSize());
 
                     try {
                         final List<FlowFileRecord> activeQueueRecords = new ArrayList<>(activeQueue);
