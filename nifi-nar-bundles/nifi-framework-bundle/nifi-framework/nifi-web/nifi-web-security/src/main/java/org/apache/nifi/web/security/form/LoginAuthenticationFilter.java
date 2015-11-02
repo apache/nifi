@@ -111,7 +111,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
     /**
      * Ensures the proxyChain is authorized before allowing the user to be authenticated.
-     * 
+     *
      * @param proxyChain the proxy chain
      * @throws AuthenticationException if the proxy chain is not authorized
      */
@@ -149,7 +149,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
         // generate JWT for response
         jwtService.addToken(response, authentication);
-        
+
         // mark as successful
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("text/plain");

@@ -40,7 +40,7 @@ public class NiFiAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public NiFiAuthenticationEntryPoint(NiFiProperties properties) {
         this.properties = properties;
     }
-    
+
     /**
      * Always returns a 403 error code to the client.
      *

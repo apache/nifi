@@ -50,7 +50,7 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
         try {
             // load the anonymous user from the database
             NiFiUser user = userService.getUserByDn(NiFiUser.ANONYMOUS_USER_DN);
-            
+
             // only create an authentication token if the anonymous user has some authorities
             if (!user.getAuthorities().isEmpty()) {
                 NiFiUserDetails userDetails = new NiFiUserDetails(user);
@@ -68,10 +68,7 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
         return authentication;
     }
 
-    
-    
     /* setters */
-    
     public void setUserService(UserService userService) {
         this.userService = userService;
     }
