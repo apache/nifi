@@ -296,6 +296,10 @@ public final class DtoFactory {
         return new PositionDTO(position.getX(), position.getY());
     }
 
+    private boolean isDropRequestComplete(final DropFlowFileState state) {
+        return DropFlowFileState.COMPLETE.equals(state) || DropFlowFileState.CANCELED.equals(state) || DropFlowFileState.FAILURE.equals(state);
+    }
+
     /**
      * Creates a DropRequestDTO from the specified flow file status.
      *
@@ -309,9 +313,7 @@ public final class DtoFactory {
         dto.setLastUpdated(new Date(dropRequest.getLastUpdated()));
         dto.setState(dropRequest.getState().toString());
         dto.setFailureReason(dropRequest.getFailureReason());
-        dto.setFinished(DropFlowFileState.COMPLETE.equals(dropRequest.getState())
-                || DropFlowFileState.CANCELED.equals(dropRequest.getState())
-                || DropFlowFileState.FAILURE.equals(dropRequest.getState()));
+        dto.setFinished(isDropRequestComplete(dropRequest.getState()));
 
         final QueueSize dropped = dropRequest.getDroppedSize();
         dto.setDroppedCount(dropped.getObjectCount());
@@ -323,15 +325,15 @@ public final class DtoFactory {
         dto.setCurrentSize(current.getByteCount());
         dto.setCurrent(FormatUtils.formatCount(current.getObjectCount()) + " / " + FormatUtils.formatDataSize(current.getByteCount()));
 
-        if (dropRequest.getOriginalSize() != null) {
-            final QueueSize original = dropRequest.getOriginalSize();
-            dto.setOriginalCount(original.getObjectCount());
-            dto.setOriginalSize(original.getByteCount());
-            dto.setOriginal(FormatUtils.formatCount(original.getObjectCount()) + " / " + FormatUtils.formatDataSize(original.getByteCount()));
+        final QueueSize original = dropRequest.getOriginalSize();
+        dto.setOriginalCount(original.getObjectCount());
+        dto.setOriginalSize(original.getByteCount());
+        dto.setOriginal(FormatUtils.formatCount(original.getObjectCount()) + " / " + FormatUtils.formatDataSize(original.getByteCount()));
 
-            dto.setPercentCompleted((dropped.getObjectCount() * 100) / original.getObjectCount());
+        if (isDropRequestComplete(dropRequest.getState())) {
+            dto.setPercentCompleted(100);
         } else {
-            dto.setPercentCompleted(0);
+            dto.setPercentCompleted((dropped.getObjectCount() * 100) / original.getObjectCount());
         }
 
         return dto;
