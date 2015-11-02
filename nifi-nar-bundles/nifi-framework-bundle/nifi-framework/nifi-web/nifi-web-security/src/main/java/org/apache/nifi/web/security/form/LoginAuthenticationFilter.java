@@ -109,6 +109,12 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
         }
     }
 
+    /**
+     * Ensures the proxyChain is authorized before allowing the user to be authenticated.
+     * 
+     * @param proxyChain the proxy chain
+     * @throws AuthenticationException if the proxy chain is not authorized
+     */
     private void authorizeProxyIfNecessary(final List<String> proxyChain) throws AuthenticationException {
         if (proxyChain.size() > 1) {
             try {
@@ -143,6 +149,11 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
         // generate JWT for response
         jwtService.addToken(response, authentication);
+        
+        // mark as successful
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("text/plain");
+        response.setContentLength(0);
     }
 
     @Override
@@ -152,7 +163,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
         response.setContentType("text/plain");
 
         final PrintWriter out = response.getWriter();
-        out.println("Invalid username/password");
+        out.println("Unable to authenticate.");
     }
 
     /**

@@ -15,5 +15,17 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="registration-form">
+<div id="nifi-registration-container" class="hidden">
+    <div id="nifi-registration-form" class="settings">
+        <div class="setting">
+            <div class="setting-name">Justification</div>
+            <div class="setting-field">
+                <textarea cols="30" rows="4" id="nifi-registration-justification" maxlength="500" class="setting-input"></textarea>
+            </div>
+            <div style="text-align: right; color: #666; margin-top: 2px;">
+                <span id="remaining-characters"></span>&nbsp;characters remaining
+            </div>
+            <div class="clear"></div>
+        </div>
+    </div>
 </div>

@@ -18,3 +18,20 @@
 /*
     Login Styles
 */
+
+/*
+    NiFi Registration
+*/
+
+#nifi-registration-container {
+}
+
+#nifi-registration-form {
+    margin-top: 10px;
+    width: 610px;
+}
+
+#nifi-registration-justification {
+    width: 600px;
+    height: 200px;
+}

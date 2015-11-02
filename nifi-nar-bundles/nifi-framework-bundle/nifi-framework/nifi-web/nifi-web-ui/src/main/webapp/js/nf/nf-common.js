@@ -185,14 +185,14 @@ nf.Common = {
      */
     handleAjaxError: function (xhr, status, error) {
         // show the account registration page if necessary
-        if (xhr.status === 401 && $('#registration-pane').length) {
-            // show the registration pane
-            $('#registration-pane').show();
-
-            // close the canvas
-            nf.Common.closeCanvas();
-            return;
-        }
+//        if (xhr.status === 401 && $('#registration-pane').length) {
+//            // show the registration pane
+//            $('#registration-pane').show();
+//
+//            // close the canvas
+//            nf.Common.closeCanvas();
+//            return;
+//        }
         
         // if an error occurs while the splash screen is visible close the canvas show the error message
         if ($('#splash').is(':visible')) {

@@ -57,12 +57,14 @@ nf.Canvas = (function () {
 
     var config = {
         urls: {
+            identity: '../nifi-api/controller/identity',
             authorities: '../nifi-api/controller/authorities',
             revision: '../nifi-api/controller/revision',
             status: '../nifi-api/controller/status',
             bulletinBoard: '../nifi-api/controller/bulletin-board',
             banners: '../nifi-api/controller/banners',
             controller: '../nifi-api/controller',
+            token: '../nifi-api/token',
             controllerConfig: '../nifi-api/controller/config',
             loginConfig: '../nifi-api/controller/login/config',
             cluster: '../nifi-api/cluster',
@@ -1027,10 +1029,58 @@ nf.Canvas = (function () {
          * Initialize NiFi.
          */
         init: function () {
-            // init the registration form before performing the first query since 
-            // the response could lead to a registration attempt
-            nf.Registration.init();
+            // get the current user's identity
+            var identityXhr = $.ajax({
+                type: 'GET',
+                url: config.urls.identity,
+                dataType: 'json'
+            });
+            
+            // get the current user's authorities
+            var authoritiesXhr = $.ajax({
+                type: 'GET',
+                url: config.urls.authorities,
+                dataType: 'json'
+            });
+            
+            
+            // load the identity and authorities for the current user
+            var userXhr = $.Deferred(function(deferred) {
+                $.when(authoritiesXhr, identityXhr).done(function (authoritiesResult, identityResult) {
+                    var authoritiesResponse = authoritiesResult[0];
+                    var identityResponse = identityResult[0];
 
+                    // set the user's authorities
+                    nf.Common.setAuthorities(authoritiesResponse.authorities);
+
+                    // at this point the user may be themselves or anonymous
+
+                    // if the user is logged, we want to determine if they were logged in using a certificate
+                    if (identityResponse.identity !== 'anonymous') {
+                        // attempt to get a token for the current user without passing login credentials
+                        $.ajax({
+                            type: 'GET',
+                            url: config.urls.token
+                        }).fail(function () {
+                            // if this request succeeds, it means the user is logged in using their certificate.
+                            // if this request fails, it means the user is logged in with login credentials so we want to render a logout button.
+                            // TODO - render logout button
+                        }).always(function () {
+                            deferred.resolve();
+                        });
+                    } else {
+                        deferred.resolve();
+                    }
+                }).fail(function (xhr, status, error) {
+                    // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
+                    if (xhr.status === 401) {
+                        window.location = '/nifi/login';
+                    }
+                    
+                    deferred.reject(xhr, status, error);
+                });
+            }).promise();
+            
             // get the controller config to register the status poller
             var configXhr = $.ajax({
                 type: 'GET',
@@ -1044,7 +1094,7 @@ nf.Canvas = (function () {
                 url: config.urls.loginConfig,
                 dataType: 'json'
             });
-
+            
             // create the deferred cluster request
             var isClusteredRequest = $.Deferred(function (deferred) {
                 $.ajax({
@@ -1063,21 +1113,10 @@ nf.Canvas = (function () {
                 });
             }).promise();
 
-            // load the authorities
-            var authoritiesXhr = $.ajax({
-                type: 'GET',
-                url: config.urls.authorities,
-                dataType: 'json'
-            });
-
-            // ensure the authorities and config request is processed first
-            $.when(authoritiesXhr, configXhr, loginXhr).done(function (authoritiesResult, configResult, loginResult) {
-                var authoritiesResponse = authoritiesResult[0];
+            // ensure the config requests are loaded
+            $.when(configXhr, loginXhr, userXhr).done(function (configResult, loginResult) {
                 var configResponse = configResult[0];
                 var loginResponse = loginResult[0];
-
-                // set the user's authorities
-                nf.Common.setAuthorities(authoritiesResponse.authorities);
 
                 // calculate the canvas offset
                 var canvasContainer = $('#canvas-container');

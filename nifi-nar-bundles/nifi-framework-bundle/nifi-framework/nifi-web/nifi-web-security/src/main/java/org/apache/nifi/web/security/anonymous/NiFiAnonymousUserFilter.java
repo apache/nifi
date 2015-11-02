@@ -50,10 +50,14 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
         try {
             // load the anonymous user from the database
             NiFiUser user = userService.getUserByDn(NiFiUser.ANONYMOUS_USER_DN);
-            NiFiUserDetails userDetails = new NiFiUserDetails(user);
+            
+            // only create an authentication token if the anonymous user has some authorities
+            if (!user.getAuthorities().isEmpty()) {
+                NiFiUserDetails userDetails = new NiFiUserDetails(user);
 
-            // get the granted authorities
-            authentication = new NiFiAuthorizationToken(userDetails);
+                // get the granted authorities
+                authentication = new NiFiAuthorizationToken(userDetails);
+            }
         } catch (AdministrationException ase) {
             // record the issue
             anonymousUserFilterLogger.warn("Unable to load anonymous user from accounts database: " + ase.getMessage());
@@ -64,7 +68,10 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
         return authentication;
     }
 
+    
+    
     /* setters */
+    
     public void setUserService(UserService userService) {
         this.userService = userService;
     }

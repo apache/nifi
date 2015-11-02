@@ -54,6 +54,12 @@
         </property>
     </bean>-->
 
+    <!-- certificate extractor -->
+    <bean id="certificateExtractor" class="org.apache.nifi.web.security.x509.X509CertificateExtractor"/>
+
+    <!-- principal extractor -->
+    <bean id="principalExtractor" class="org.apache.nifi.web.security.x509.SubjectDnX509PrincipalExtractor"/>
+        
     <!-- user details service -->
     <bean id="userDetailsService" class="org.apache.nifi.web.security.authorization.NiFiAuthorizationService">
         <property name="userService" ref="userService"/>

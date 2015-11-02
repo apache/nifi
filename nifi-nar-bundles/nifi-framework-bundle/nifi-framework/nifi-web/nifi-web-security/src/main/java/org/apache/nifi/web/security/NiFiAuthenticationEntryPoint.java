@@ -21,21 +21,26 @@ import java.io.PrintWriter;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.security.web.WebAttributes;
 
 /**
- * This is our own implementation of
- * org.springframework.security.web.AuthenticationEntryPoint that allows us to
- * send the response to the client exactly how we want to and log the results.
+ * This is our own implementation of org.springframework.security.web.AuthenticationEntryPoint that allows us to send the response to the client exactly how we want to and log the results.
  */
 public class NiFiAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiAuthenticationEntryPoint.class);
 
+    private final NiFiProperties properties;
+
+    public NiFiAuthenticationEntryPoint(NiFiProperties properties) {
+        this.properties = properties;
+    }
+    
     /**
      * Always returns a 403 error code to the client.
      *
@@ -47,23 +52,20 @@ public class NiFiAuthenticationEntryPoint implements AuthenticationEntryPoint {
      */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException ae) throws IOException, ServletException {
-        // get the last exception - the exception that is being passed in is a generic no credentials found
-        // exception because the authentication could not be found in the security context. the actual cause
-        // of the problem is stored in the session as the authentication_exception
-        Object authenticationException = request.getSession().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
+        // if the content type is not set, mark as access denied
+        if (StringUtils.isBlank(response.getContentType())) {
+            // write the response message
+            PrintWriter out = response.getWriter();
+            response.setContentType("text/plain");
 
-        // log request result
-        if (authenticationException instanceof AuthenticationException) {
-            ae = (AuthenticationException) authenticationException;
-            logger.info(String.format("Rejecting access to web api: %s", ae.getMessage()));
+            // return authorized if the request is secure and this nifi supports new account requests
+            if (request.isSecure() && properties.getSupportNewAccountRequests()) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                out.println("Not authorized.");
+            } else {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                out.println("Access is denied.");
+            }
         }
-
-        // set the response status
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-        response.setContentType("text/plain");
-
-        // write the response message
-        PrintWriter out = response.getWriter();
-        out.println("Access is denied.");
     }
 }

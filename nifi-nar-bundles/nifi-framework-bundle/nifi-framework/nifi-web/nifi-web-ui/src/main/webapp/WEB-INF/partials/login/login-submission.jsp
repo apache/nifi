@@ -15,11 +15,6 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="login-container" class="hidden">
-    <legend>Please Login</legend>
-    <label for="username">Username</label>
-    <input type="text" id="username" name="username" value="${username}"/>
-    <br>
-    <label for="password">Password</label>
-    <input type="password" id="password" name="password"/>
+<div id="login-submission-container">
+    <button id="login-submission-button" type="submit" class="btn">Log in</button>
 </div>

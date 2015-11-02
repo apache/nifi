@@ -17,6 +17,7 @@
 package org.apache.nifi.web.security;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -26,13 +27,18 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  *
@@ -42,6 +48,7 @@ public abstract class NiFiAuthenticationFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(NiFiAuthenticationFilter.class);
 
     private AuthenticationManager authenticationManager;
+    private NiFiProperties properties;
 
     @Override
     public void init(final FilterConfig filterConfig) throws ServletException {
@@ -62,10 +69,21 @@ public abstract class NiFiAuthenticationFilter implements Filter {
     }
 
     private boolean requiresAuthentication(final HttpServletRequest request) {
+        // continue attempting authorization if the user is anonymous
+        if (isAnonymousUser()) {
+            return true;
+        }
+
+        // or there is no user yet
         return NiFiUserUtils.getNiFiUser() == null && NiFiUserUtils.getNewAccountRequest() == null;
     }
 
-    private void authenticate(final HttpServletRequest request, final HttpServletResponse response) {
+    private boolean isAnonymousUser() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        return user != null && NiFiUser.ANONYMOUS_USER_DN.equals(user.getDn());
+    }
+
+    private void authenticate(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
         try {
             final Authentication authenticated = attemptAuthentication(request, response);
             if (authenticated != null) {
@@ -73,7 +91,9 @@ public abstract class NiFiAuthenticationFilter implements Filter {
                 successfulAuthorization(request, response, authorized);
             }
         } catch (final AuthenticationException ae) {
-            unsuccessfulAuthorization(request, response, ae);
+            if (!isAnonymousUser()) {
+                unsuccessfulAuthorization(request, response, ae);
+            }
         }
     }
 
@@ -88,8 +108,48 @@ public abstract class NiFiAuthenticationFilter implements Filter {
         ProxiedEntitiesUtils.successfulAuthorization(request, response, authResult);
     }
 
-    protected void unsuccessfulAuthorization(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
-        ProxiedEntitiesUtils.unsuccessfulAuthorization(request, response, failed);
+    protected void unsuccessfulAuthorization(HttpServletRequest request, HttpServletResponse response, AuthenticationException ae) throws IOException {
+        // populate the response
+        ProxiedEntitiesUtils.unsuccessfulAuthorization(request, response, ae);
+
+        // set the response status
+        response.setContentType("text/plain");
+
+        // write the response message
+        PrintWriter out = response.getWriter();
+
+        // use the type of authentication exception to determine the response code
+        if (ae instanceof UsernameNotFoundException) {
+            if (properties.getSupportNewAccountRequests()) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                out.println("Not authorized.");
+            } else {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                out.println("Access is denied.");
+            }
+        } else if (ae instanceof AccountStatusException) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.println(ae.getMessage());
+        } else if (ae instanceof UntrustedProxyException) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.println(ae.getMessage());
+        } else if (ae instanceof AuthenticationServiceException) {
+            logger.error(String.format("Unable to authorize: %s", ae.getMessage()), ae);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            out.println(String.format("Unable to authorize: %s", ae.getMessage()));
+        } else {
+            logger.error(String.format("Unable to authorize: %s", ae.getMessage()), ae);
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.println("Access is denied.");
+        }
+
+        // log the failure
+        logger.info(String.format("Rejecting access to web api: %s", ae.getMessage()));
+
+        // optionally log the stack trace
+        if (logger.isDebugEnabled()) {
+            logger.debug(StringUtils.EMPTY, ae);
+        }
     }
 
     /**
@@ -131,6 +191,10 @@ public abstract class NiFiAuthenticationFilter implements Filter {
 
     public void setAuthenticationManager(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
+    }
+
+    public void setProperties(NiFiProperties properties) {
+        this.properties = properties;
     }
 
 }

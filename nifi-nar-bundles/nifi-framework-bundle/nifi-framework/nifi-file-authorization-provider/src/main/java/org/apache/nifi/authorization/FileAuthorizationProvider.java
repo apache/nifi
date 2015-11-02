@@ -113,21 +113,7 @@ public class FileAuthorizationProvider implements AuthorityProvider {
             return true;
         }
 
-        return authorizedUsers.hasUser(new HasUser() {
-            @Override
-            public boolean hasUser(List<NiFiUser> users) {
-                // attempt to get the user and ensure it was located
-                NiFiUser desiredUser = null;
-                for (final NiFiUser user : users) {
-                    if (dn.equalsIgnoreCase(authorizedUsers.getUserIdentity(user))) {
-                        desiredUser = user;
-                        break;
-                    }
-                }
-
-                return desiredUser != null;
-            }
-        });
+        return authorizedUsers.hasUser(new HasUserByIdentity(dn));
     }
 
     @Override
@@ -199,10 +185,8 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         authorizedUsers.createUser(new CreateUser() {
             @Override
             public NiFiUser createUser() {
-                final NiFiUser user = authorizedUsers.getUser(new FindUserByIdentity(dn));
-
                 // ensure the user doesn't already exist
-                if (user != null) {
+                if (authorizedUsers.hasUser(new HasUserByIdentity(dn))) {
                     throw new IdentityAlreadyExistsException(String.format("User identity already exists: %s", dn));
                 }
 
@@ -320,6 +304,34 @@ public class FileAuthorizationProvider implements AuthorityProvider {
     @AuthorityProviderContext
     public void setNiFiProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public class HasUserByIdentity implements HasUser {
+
+        private final String identity;
+
+        public HasUserByIdentity(String identity) {
+            // ensure the identity was specified
+            if (identity == null) {
+                throw new UnknownIdentityException("User identity not specified.");
+            }
+
+            this.identity = identity;
+        }
+
+        @Override
+        public boolean hasUser(List<NiFiUser> users) {
+            // attempt to get the user and ensure it was located
+            NiFiUser desiredUser = null;
+            for (final NiFiUser user : users) {
+                if (identity.equalsIgnoreCase(authorizedUsers.getUserIdentity(user))) {
+                    desiredUser = user;
+                    break;
+                }
+            }
+
+            return desiredUser != null;
+        }
     }
 
     public class FindUserByIdentity implements FindUser {

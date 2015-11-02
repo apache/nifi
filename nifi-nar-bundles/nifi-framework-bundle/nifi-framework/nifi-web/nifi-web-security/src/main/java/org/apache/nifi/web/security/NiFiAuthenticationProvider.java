@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security;
 
+import org.apache.nifi.web.security.token.NewAccountAuthenticationRequestToken;
 import org.apache.nifi.web.security.token.NewAccountAuthenticationToken;
 import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.token.NiFiAuthorizationToken;
@@ -31,23 +32,15 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  */
 public class NiFiAuthenticationProvider implements AuthenticationProvider {
 
-    private final AuthenticationProvider provider;
     private final AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService;
 
-    public NiFiAuthenticationProvider(final AuthenticationProvider provider, final AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService) {
-        this.provider = provider;
+    public NiFiAuthenticationProvider(final AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         final NiFiAuthenticationRequestToken request = (NiFiAuthenticationRequestToken) authentication;
-
-        // ensure the base provider could authenticate
-        final Authentication result = provider.authenticate(request);
-        if (result == null) {
-            return null;
-        }
 
         try {
             // defer to the nifi user details service to authorize the user
@@ -58,8 +51,8 @@ public class NiFiAuthenticationProvider implements AuthenticationProvider {
         } catch (final UsernameNotFoundException unfe) {
             // if the result was an authenticated new account request and it could not be authorized because the user was not found,
             // return the token so the new account could be created. this must go here to ensure that any proxies have been authorized
-            if (isNewAccountAuthenticationToken(result)) {
-                return result;
+            if (isNewAccountAuthenticationToken(request)) {
+                return new NewAccountAuthenticationToken(((NewAccountAuthenticationRequestToken) authentication).getNewAccountRequest());
             } else {
                 throw unfe;
             }
@@ -67,12 +60,12 @@ public class NiFiAuthenticationProvider implements AuthenticationProvider {
     }
 
     private boolean isNewAccountAuthenticationToken(final Authentication authentication) {
-        return NewAccountAuthenticationToken.class.isAssignableFrom(authentication.getClass());
+        return NewAccountAuthenticationRequestToken.class.isAssignableFrom(authentication.getClass());
     }
 
     @Override
     public boolean supports(Class<?> authentication) {
-        return provider.supports(authentication) && NiFiAuthenticationRequestToken.class.isAssignableFrom(authentication);
+        return NiFiAuthenticationRequestToken.class.isAssignableFrom(authentication);
     }
 
 }

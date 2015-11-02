@@ -25,12 +25,9 @@ import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.NiFiAuthenticationEntryPoint;
 import org.apache.nifi.web.security.form.LoginAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
-import org.apache.nifi.web.security.x509.SubjectDnX509PrincipalExtractor;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
-import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,16 +35,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 /**
  * NiFi Web Api Spring security
@@ -61,6 +59,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private UserService userService;
     private AuthenticationUserDetailsService userDetailsService;
     private JwtService jwtService;
+    private X509CertificateExtractor certificateExtractor;
+    private X509PrincipalExtractor principalExtractor;
     private LoginIdentityProvider loginIdentityProvider;
 
     public NiFiWebApiSecurityConfiguration() {
@@ -68,14 +68,18 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     }
 
     @Override
+    public void configure(WebSecurity webSecurity) throws Exception {
+        webSecurity.ignoring().antMatchers("/controller/login/config");
+    }
+
+    @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .rememberMe().disable()
                 .exceptionHandling()
-                .authenticationEntryPoint(new NiFiAuthenticationEntryPoint())
+                .authenticationEntryPoint(new NiFiAuthenticationEntryPoint(properties))
                 .and()
                 .authorizeRequests()
-                .antMatchers(HttpMethod.GET, "/controller/login/config").permitAll()
                 .anyRequest().fullyAuthenticated()
                 .and()
                 .sessionManagement()
@@ -86,7 +90,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
             // login authentication for /token - exchanges for JWT for subsequent API usage
             http.addFilterBefore(buildLoginFilter("/token"), UsernamePasswordAuthenticationFilter.class);
 
-            // login registration
+            // verify the configured login authenticator supports registration
             if (loginIdentityProvider.supportsRegistration()) {
                 http.addFilterBefore(buildRegistrationFilter("/registration"), UsernamePasswordAuthenticationFilter.class);
             }
@@ -95,14 +99,14 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // cluster authorized user
         http.addFilterBefore(buildNodeAuthorizedUserFilter(), AnonymousAuthenticationFilter.class);
 
-        // x509
-        http.addFilterBefore(buildX509Filter(), AnonymousAuthenticationFilter.class);
-
-        // jwt
-        http.addFilterBefore(buildJwtFilter(), AnonymousAuthenticationFilter.class);
-
         // anonymous
         http.anonymous().authenticationFilter(buildAnonymousFilter());
+
+        // x509
+        http.addFilterAfter(buildX509Filter(), AnonymousAuthenticationFilter.class);
+
+        // jwt
+        http.addFilterAfter(buildJwtFilter(), AnonymousAuthenticationFilter.class);
     }
 
     @Bean
@@ -114,20 +118,16 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        final AuthenticationProvider x509AuthenticationProvider = new NiFiAuthenticationProvider(new X509AuthenticationProvider(), userDetailsService);
-        final AuthenticationProvider jwtAuthenticationProvider = new NiFiAuthenticationProvider(new JwtAuthenticationProvider(), userDetailsService);
-
-        auth
-                .authenticationProvider(x509AuthenticationProvider)
-                .authenticationProvider(jwtAuthenticationProvider);
+        auth.authenticationProvider(new NiFiAuthenticationProvider(userDetailsService));
     }
 
     private LoginAuthenticationFilter buildLoginFilter(final String url) {
         final LoginAuthenticationFilter loginFilter = new LoginAuthenticationFilter(url);
         loginFilter.setJwtService(jwtService);
+        loginFilter.setLoginIdentityProvider(loginIdentityProvider);
         loginFilter.setUserDetailsService(userDetailsService);
-        loginFilter.setPrincipalExtractor(new SubjectDnX509PrincipalExtractor());
-        loginFilter.setCertificateExtractor(new X509CertificateExtractor());
+        loginFilter.setPrincipalExtractor(principalExtractor);
+        loginFilter.setCertificateExtractor(certificateExtractor);
         return loginFilter;
     }
 
@@ -141,6 +141,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     private JwtAuthenticationFilter buildJwtFilter() throws Exception {
         final JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter();
+        jwtFilter.setProperties(properties);
         jwtFilter.setJwtService(jwtService);
         jwtFilter.setAuthenticationManager(authenticationManager());
         return jwtFilter;
@@ -148,8 +149,9 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     private X509AuthenticationFilter buildX509Filter() throws Exception {
         final X509AuthenticationFilter x509Filter = new X509AuthenticationFilter();
-        x509Filter.setPrincipalExtractor(new SubjectDnX509PrincipalExtractor());
-        x509Filter.setCertificateExtractor(new X509CertificateExtractor());
+        x509Filter.setProperties(properties);
+        x509Filter.setPrincipalExtractor(principalExtractor);
+        x509Filter.setCertificateExtractor(certificateExtractor);
         x509Filter.setCertificateValidator(new OcspCertificateValidator(properties));
         x509Filter.setAuthenticationManager(authenticationManager());
         return x509Filter;
@@ -184,5 +186,15 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Autowired
     public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
+    }
+
+    @Autowired
+    public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
+        this.certificateExtractor = certificateExtractor;
+    }
+
+    @Autowired
+    public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
+        this.principalExtractor = principalExtractor;
     }
 }

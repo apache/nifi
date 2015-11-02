@@ -279,7 +279,6 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-toolbox.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-registration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-service.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-reporting-task.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-processor-configuration.js</include>
@@ -440,7 +439,6 @@
                                                 <include>${staging.dir}/css/connection-configuration.css</include>
                                                 <include>${staging.dir}/css/connection-details.css</include>
                                                 <include>${staging.dir}/css/shell.css</include>
-                                                <include>${staging.dir}/css/registration.css</include>
                                                 <include>${staging.dir}/css/dialog.css</include>
                                                 <include>${staging.dir}/css/new-processor-dialog.css</include>
                                                 <include>${staging.dir}/css/new-controller-service-dialog.css</include>
