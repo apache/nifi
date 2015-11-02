@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.InvokeHTTP.Config;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunners;
@@ -63,7 +62,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         final StandardSSLContextService sslService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslService, sslProperties);
         runner.enableControllerService(sslService);
-        runner.setProperty(Config.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
 
         server.clearHandlers();
     }
