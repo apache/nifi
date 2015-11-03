@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.security.jwt;
 
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -24,9 +26,12 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.token.NewAccountAuthenticationRequestToken;
 import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.user.NewAccountRequest;
+import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 /**
  */
@@ -34,6 +39,8 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
+    private X509CertificateExtractor certificateExtractor;
+    private X509PrincipalExtractor principalExtractor;
     private JwtService jwtService;
 
     @Override
@@ -43,21 +50,52 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
             return null;
         }
 
-        final String principal = jwtService.getAuthentication(request);
-        if (principal == null) {
+        // get the principal out of the user token
+        final String jwtPrincipal = jwtService.getAuthentication(request);
+        if (jwtPrincipal == null) {
             return null;
         }
 
-        final List<String> proxyChain = ProxiedEntitiesUtils.buildProxyChain(request, principal);
-        if (isNewAccountRequest(request)) {
-            return new NewAccountAuthenticationRequestToken(new NewAccountRequest(proxyChain, getJustification(request)));
+        // look for a certificate
+        final X509Certificate certificate = certificateExtractor.extractClientCertificate(request);
+
+        final List<String> chain;
+        if (certificate == null) {
+            // without a certificate, this is not a proxied request
+            chain = Arrays.asList(jwtPrincipal);
         } else {
-            return new NiFiAuthenticationRequestToken(proxyChain);
+            // TODO - certificate validation
+
+            // extract the principal
+            Object certificatePrincipal = principalExtractor.extractPrincipal(certificate);
+            final String principal = ProxiedEntitiesUtils.formatProxyDn(certificatePrincipal.toString());
+
+            // get the proxy chain and verify the principal is found
+            chain = ProxiedEntitiesUtils.buildProxyChain(request, principal);
+
+            // ensure the chain contains the jwt principal
+            if (!chain.contains(jwtPrincipal)) {
+                throw new BadCredentialsException("Principal in user token not found in the proxy chain.");
+            }
+        }
+
+        if (isNewAccountRequest(request)) {
+            return new NewAccountAuthenticationRequestToken(new NewAccountRequest(chain, getJustification(request)));
+        } else {
+            return new NiFiAuthenticationRequestToken(chain);
         }
     }
 
     public void setJwtService(JwtService jwtService) {
         this.jwtService = jwtService;
+    }
+
+    public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
+        this.certificateExtractor = certificateExtractor;
+    }
+
+    public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
+        this.principalExtractor = principalExtractor;
     }
 
 }

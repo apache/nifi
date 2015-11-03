@@ -156,6 +156,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         final JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter();
         jwtFilter.setProperties(properties);
         jwtFilter.setJwtService(jwtService);
+        jwtFilter.setCertificateExtractor(certificateExtractor);
+        jwtFilter.setPrincipalExtractor(principalExtractor);
         jwtFilter.setAuthenticationManager(authenticationManager());
         return jwtFilter;
     }

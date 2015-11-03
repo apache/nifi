@@ -19,6 +19,8 @@ package org.apache.nifi.web.security;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -75,17 +77,27 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
         if (certificate == null) {
             final LoginCredentials credentials = getLoginCredentials(request);
             
+            // ensure we have something we can work with (certificate or crendentials)
             if (credentials == null) {
                 throw new BadCredentialsException("Unable to check registration status as no credentials were included with the request.");
             }
             
-            checkAuthorization(ProxiedEntitiesUtils.buildProxyChain(request, credentials.getUsername()));
+            // without a certificate, this is not a proxied request
+            final List<String> chain = Arrays.asList(credentials.getUsername());
+            
+            // check authorization for this user
+            checkAuthorization(chain);
+            
+            // no issues with authorization
             return new RegistrationStatusAuthenticationToken(credentials);
         } else {
-            // we have a certificate so let's use that
+            // TODO - certificate validation
+            
+            // we have a certificate so let's consider a proxy chain
             final String principal = extractPrincipal(certificate);
             checkAuthorization(ProxiedEntitiesUtils.buildProxyChain(request, principal));
 
+            // no issues with authorization
             final LoginCredentials preAuthenticatedCredentials = new LoginCredentials(principal, null);
             return new RegistrationStatusAuthenticationToken(preAuthenticatedCredentials);
         }

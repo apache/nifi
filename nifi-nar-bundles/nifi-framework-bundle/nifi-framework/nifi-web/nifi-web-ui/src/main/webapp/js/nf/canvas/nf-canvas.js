@@ -1076,121 +1076,123 @@ nf.Canvas = (function () {
                     // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
                     if (xhr.status === 401) {
                         window.location = '/nifi/login';
-                    }
-                    
-                    deferred.reject(xhr, status, error);
-                });
-            }).promise();
-            
-            // get the controller config to register the status poller
-            var configXhr = $.ajax({
-                type: 'GET',
-                url: config.urls.controllerConfig,
-                dataType: 'json'
-            });
-            
-            // get the login config
-            var loginXhr = $.ajax({
-                type: 'GET',
-                url: config.urls.loginConfig,
-                dataType: 'json'
-            });
-            
-            // create the deferred cluster request
-            var isClusteredRequest = $.Deferred(function (deferred) {
-                $.ajax({
-                    type: 'HEAD',
-                    url: config.urls.cluster
-                }).done(function (response, status, xhr) {
-                    clustered = true;
-                    deferred.resolve(response, status, xhr);
-                }).fail(function (xhr, status, error) {
-                    if (xhr.status === 404) {
-                        clustered = false;
-                        deferred.resolve('', 'success', xhr);
                     } else {
                         deferred.reject(xhr, status, error);
                     }
                 });
             }).promise();
+            
+            userXhr.done(function () {
+                // get the controller config to register the status poller
+                var configXhr = $.ajax({
+                    type: 'GET',
+                    url: config.urls.controllerConfig,
+                    dataType: 'json'
+                });
 
-            // ensure the config requests are loaded
-            $.when(configXhr, loginXhr, userXhr).done(function (configResult, loginResult) {
-                var configResponse = configResult[0];
-                var loginResponse = loginResult[0];
+                // get the login config
+                var loginXhr = $.ajax({
+                    type: 'GET',
+                    url: config.urls.loginConfig,
+                    dataType: 'json'
+                });
 
-                // calculate the canvas offset
-                var canvasContainer = $('#canvas-container');
-                nf.Canvas.CANVAS_OFFSET = canvasContainer.offset().top;
+                // create the deferred cluster request
+                var isClusteredRequest = $.Deferred(function (deferred) {
+                    $.ajax({
+                        type: 'HEAD',
+                        url: config.urls.cluster
+                    }).done(function (response, status, xhr) {
+                        clustered = true;
+                        deferred.resolve(response, status, xhr);
+                    }).fail(function (xhr, status, error) {
+                        if (xhr.status === 404) {
+                            clustered = false;
+                            deferred.resolve('', 'success', xhr);
+                        } else {
+                            deferred.reject(xhr, status, error);
+                        }
+                    });
+                }).promise();
+                
+                // ensure the config requests are loaded
+                $.when(configXhr, loginXhr, userXhr).done(function (configResult, loginResult) {
+                    var configResponse = configResult[0];
+                    var loginResponse = loginResult[0];
 
-                // get the config details
-                var configDetails = configResponse.config;
-                var loginDetails = loginResponse.config;
+                    // calculate the canvas offset
+                    var canvasContainer = $('#canvas-container');
+                    nf.Canvas.CANVAS_OFFSET = canvasContainer.offset().top;
 
-                // when both request complete, load the application
-                isClusteredRequest.done(function () {
-                    // get the auto refresh interval
-                    var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
+                    // get the config details
+                    var configDetails = configResponse.config;
+                    var loginDetails = loginResponse.config;
 
-                    // initialize whether site to site is secure
-                    secureSiteToSite = configDetails.siteToSiteSecure;
+                    // when both request complete, load the application
+                    isClusteredRequest.done(function () {
+                        // get the auto refresh interval
+                        var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
-                    // load d3
-                    loadD3().done(function () {
-                        nf.Storage.init();
+                        // initialize whether site to site is secure
+                        secureSiteToSite = configDetails.siteToSiteSecure;
 
-                        // initialize the application
-                        initCanvas();
-                        nf.Canvas.View.init();
-                        nf.ContextMenu.init();
-                        nf.CanvasToolbar.init();
-                        nf.CanvasToolbox.init();
-                        nf.CanvasHeader.init(loginDetails.supportsLogin);
-                        nf.GraphControl.init();
-                        nf.Search.init();
-                        nf.Settings.init();
+                        // load d3
+                        loadD3().done(function () {
+                            nf.Storage.init();
 
-                        // initialize the component behaviors
-                        nf.Draggable.init();
-                        nf.Selectable.init();
-                        nf.Connectable.init();
+                            // initialize the application
+                            initCanvas();
+                            nf.Canvas.View.init();
+                            nf.ContextMenu.init();
+                            nf.CanvasToolbar.init();
+                            nf.CanvasToolbox.init();
+                            nf.CanvasHeader.init(loginDetails.supportsLogin);
+                            nf.GraphControl.init();
+                            nf.Search.init();
+                            nf.Settings.init();
 
-                        // initialize the chart
-                        nf.StatusHistory.init(configDetails.timeOffset);
+                            // initialize the component behaviors
+                            nf.Draggable.init();
+                            nf.Selectable.init();
+                            nf.Connectable.init();
 
-                        // initialize the birdseye
-                        nf.Birdseye.init();
+                            // initialize the chart
+                            nf.StatusHistory.init(configDetails.timeOffset);
 
-                        // initialize components
-                        nf.ConnectionConfiguration.init();
-                        nf.ControllerService.init();
-                        nf.ReportingTask.init();
-                        nf.ProcessorConfiguration.init();
-                        nf.ProcessGroupConfiguration.init();
-                        nf.RemoteProcessGroupConfiguration.init();
-                        nf.RemoteProcessGroupPorts.init();
-                        nf.PortConfiguration.init();
-                        nf.SecurePortConfiguration.init();
-                        nf.LabelConfiguration.init();
-                        nf.ProcessorDetails.init();
-                        nf.ProcessGroupDetails.init();
-                        nf.PortDetails.init();
-                        nf.SecurePortDetails.init();
-                        nf.ConnectionDetails.init();
-                        nf.RemoteProcessGroupDetails.init();
-                        nf.GoTo.init();
-                        nf.Graph.init().done(function () {
-                            // determine the split between the polling
-                            var pollingSplit = autoRefreshIntervalSeconds / 2;
+                            // initialize the birdseye
+                            nf.Birdseye.init();
 
-                            // register the revision and status polling
-                            startRevisionPolling(autoRefreshIntervalSeconds);
-                            setTimeout(function () {
-                                startStatusPolling(autoRefreshIntervalSeconds);
-                            }, pollingSplit * 1000);
+                            // initialize components
+                            nf.ConnectionConfiguration.init();
+                            nf.ControllerService.init();
+                            nf.ReportingTask.init();
+                            nf.ProcessorConfiguration.init();
+                            nf.ProcessGroupConfiguration.init();
+                            nf.RemoteProcessGroupConfiguration.init();
+                            nf.RemoteProcessGroupPorts.init();
+                            nf.PortConfiguration.init();
+                            nf.SecurePortConfiguration.init();
+                            nf.LabelConfiguration.init();
+                            nf.ProcessorDetails.init();
+                            nf.ProcessGroupDetails.init();
+                            nf.PortDetails.init();
+                            nf.SecurePortDetails.init();
+                            nf.ConnectionDetails.init();
+                            nf.RemoteProcessGroupDetails.init();
+                            nf.GoTo.init();
+                            nf.Graph.init().done(function () {
+                                // determine the split between the polling
+                                var pollingSplit = autoRefreshIntervalSeconds / 2;
 
-                            // hide the splash screen
-                            nf.Canvas.hideSplash();
+                                // register the revision and status polling
+                                startRevisionPolling(autoRefreshIntervalSeconds);
+                                setTimeout(function () {
+                                    startStatusPolling(autoRefreshIntervalSeconds);
+                                }, pollingSplit * 1000);
+
+                                // hide the splash screen
+                                nf.Canvas.hideSplash();
+                            }).fail(nf.Common.handleAjaxError);
                         }).fail(nf.Common.handleAjaxError);
                     }).fail(nf.Common.handleAjaxError);
                 }).fail(nf.Common.handleAjaxError);

@@ -231,6 +231,8 @@ nf.Login = (function () {
                         }).fail(function () {
                             // no token granted, user needs to login with their credentials
                             needsLogin = true;
+                        }).always(function () {
+                            deferred.resolve();
                         });
                     } else {
                         showMessage = true;
@@ -241,13 +243,14 @@ nf.Login = (function () {
                         } else {
                             $('#login-message').text(xhr.responseText);
                         }
+                        
+                        deferred.resolve();
                     }
-                    deferred.resolve();
                 });
             }).promise();
             
             // render the page accordingly
-            $.when(pageStateInit).done(function () {
+            pageStateInit.done(function () {
                 if (showMessage === true) {
                     initializeMessage();
                 } else if (needsLogin === true) {

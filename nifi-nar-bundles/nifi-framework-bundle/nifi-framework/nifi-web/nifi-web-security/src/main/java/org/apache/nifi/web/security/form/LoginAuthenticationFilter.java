@@ -83,6 +83,8 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
             if (certificate == null) {
                 throw new PreAuthenticatedCredentialsNotFoundException("Unable to extract client certificate after processing request with no login credentials specified.");
             }
+            
+            // TODO - certificate validation
 
             // authorize the proxy if necessary
             final String principal = extractPrincipal(certificate);
@@ -96,6 +98,8 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
             // if there was a certificate with this request see if it was proxying an end user request
             if (certificate != null) {
+                // TODO - certificate validation
+                
                 // authorize the proxy if necessary
                 final String principal = extractPrincipal(certificate);
                 authorizeProxyIfNecessary(ProxiedEntitiesUtils.buildProxyChain(request, principal));

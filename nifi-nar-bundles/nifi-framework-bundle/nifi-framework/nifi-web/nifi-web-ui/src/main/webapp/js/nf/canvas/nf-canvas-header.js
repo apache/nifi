@@ -139,7 +139,9 @@ nf.CanvasHeader = (function () {
                 nf.Shell.showPage(config.urls.helpDocument);
             });
 
-            if (supportsLogin === true) {
+            // show the login link if supported and user is currently anonymous
+            var isAnonymous = $('#current-user').text() === 'anonymous';
+            if (supportsLogin === true && isAnonymous) {
                 // login link
                 $('#login-link').click(function () {
                     nf.Shell.showPage('login', false);
