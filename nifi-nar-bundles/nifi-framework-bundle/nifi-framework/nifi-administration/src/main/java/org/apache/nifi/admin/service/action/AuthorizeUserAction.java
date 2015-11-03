@@ -165,9 +165,9 @@ public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
      */
     private void checkAccountStatus(NiFiUser user) {
         if (AccountStatus.DISABLED.equals(user.getStatus())) {
-            throw new AccountDisabledException(String.format("Account for %s is disabled.", user.getDn()));
+            throw new AccountDisabledException(String.format("The account for %s has been disabled.", user.getDn()));
         } else if (AccountStatus.PENDING.equals(user.getStatus())) {
-            throw new AccountPendingException(String.format("Account for %s is pending.", user.getDn()));
+            throw new AccountPendingException(String.format("The account for %s is currently pending approval.", user.getDn()));
         }
     }
 }

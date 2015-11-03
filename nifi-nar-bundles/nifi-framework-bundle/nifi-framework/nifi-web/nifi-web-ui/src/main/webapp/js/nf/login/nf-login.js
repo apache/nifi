@@ -22,7 +22,9 @@ $(document).ready(function () {
 });
 
 nf.Login = (function () {
-    
+
+    var isAnonymous = false;
+
     var config = {
         urls: {
             registrationStatus: '../nifi-api/registration/status',
@@ -38,109 +40,124 @@ nf.Login = (function () {
         $('#login-message-container').show();
     };
 
-    var initializeLogin = function () {
-        return $.ajax({
-            type: 'GET',
-            url: config.urls.loginConfig,
-            dataType: 'json'
-        }).done(function (response) {
-            var config = response.config;
-            
-            // if this nifi supports login, render the login form
-            if (config.supportsLogin === true) {
-                
-                // handle login click
-                $('#login-button').on('click', function () {
-                    login().done(function (response, status, xhr) {
-                        var authorization = xhr.getResponseHeader('Authorization');
-                        var badToken = false;
-                        
-                        // ensure there was a token in the response
-                        if (authorization) {
-                            var tokens = authorization.split(/ /);
-                            
-                            // ensure the token is the appropriate length
-                            if (tokens.length === 2) {
-                                // store the jwt and reload the page
-                                nf.Storage.setItem('jwt', tokens[1]);
-                                window.location = '/nifi';
-                            } else {
-                                badToken = true;
-                            }
-                        } else {
-                            badToken = true;
-                        }
-                        
-                        if (badToken === true) {
-                            // TODO - show unable to parse response token
-                        }
-                    });
-                });
-                
-                // show the login form
-                $('#login-container').show();
-            }
-            
-            // if this nifi supports registration, render the registration form
-            if (config.supportsRegistration === true) {
-                initializeUserRegistration();
-                
-                // automatically include support for nifi registration
-                initializeNiFiRegistration();
-            }
-        });
-    };
-    
-    var initializeUserRegistration = function () {
+    var initializeLogin = function (supportsRegistration) {
+        // if this nifi supports registration, render the registration form
+        if (supportsRegistration === true) {
+            initializeUserRegistration();
+
+            // automatically include support for nifi registration
+            initializeNiFiRegistration();
+
+            // hide the submit justification title
+            $('#nifi-registration-title').hide();
+
+            // update the submit button text
+            $('#login-submission-button').text('Create');
+        }
         
+        // show the login form
+        $('#login-container').show();
+    };
+
+    var initializeUserRegistration = function () {
+
         // show the user registration form
         $('#user-registration-container').show();
     };
-    
-    var login = function () {
-        var username = $('#username').val();
-        var password = $('#password').val();
-        
-        return $.ajax({
-            type: 'POST',
-            url: '../nifi-api/token',
-            data: {
-                'username': username,
-                'password': password
-            },
-            dataType: 'json'
-        });
-    };
-    
+
     var initializeNiFiRegistration = function () {
         $('#nifi-registration-justification').count({
             charCountField: '#remaining-characters'
         });
 
+        // update the button text
+        $('#login-submission-button').text('Submit');
+
         // show the nifi registration container
         $('#nifi-registration-container').show();
     };
-    
+
     var initializeSubmission = function () {
         $('#login-submission-button').one('click', function () {
             if ($('#login-container').is(':visible')) {
+                var username = $('#username').val();
+                var password = $('#password').val();
+
                 // login submit
+                $.ajax({
+                    type: 'POST',
+                    url: '../nifi-api/token',
+                    data: {
+                        'username': username,
+                        'password': password
+                    }
+                }).done(function (response, status, xhr) {
+                    var authorization = xhr.getResponseHeader('Authorization');
+                    var badToken = false;
+
+                    // ensure there was a token in the response
+                    if (authorization) {
+                        var tokens = authorization.split(/ /);
+
+                        // ensure the token is the appropriate length
+                        if (tokens.length === 2) {
+                            // store the jwt and reload the page
+                            nf.Storage.setItem('jwt', tokens[1]);
+                            
+                            // reload as appropriate
+                            if (top !== window) {
+                                parent.window.location = '/nifi';
+                            } else {
+                                window.location = '/nifi';
+                            }
+                            return;
+                        } else {
+                            badToken = true;
+                        }
+                    } else {
+                        badToken = true;
+                    }
+
+                    if (badToken === true) {
+                        $('#login-message-title').text('An unexpected error has occurred');
+                        $('#login-message').text('The id token could not be parsed.');
+                        
+                        // update visibility
+                        $('#login-container').hide();
+                        $('#login-submission-container').hide();
+                        $('#login-message-container').show();
+                    }
+                }).fail(function (xhr, status, error) {
+                    $('#login-message-title').text('An unexpected error has occurred');
+                    $('#login-message').text(xhr.responseText);
+                    
+                    // update visibility
+                    $('#login-container').hide();
+                    $('#login-submission-container').hide();
+                    $('#login-message-container').show();
+                });
             } else if ($('#user-registration-container').is(':visible')) {
+                var justification = $('#registration-justification').val();
+                
                 // new user account submit
             } else if ($('#nifi-registration-container').is(':visible')) {
-                // new nifi account submit
-                var justification = $('#registration-justification').val();
-
                 // attempt to create the user account registration
                 $.ajax({
                     type: 'POST',
                     url: config.urls.users,
                     data: {
-                        'justification': justification
+                        'justification': $('#registration-justification').val()
                     }
                 }).done(function (response) {
-                    $('#login-message').text('Thanks! Your request will be processed shortly.');
+                    var markup = 'An administrator will process your request shortly.';
+                    if (isAnonymous === true) {
+                        markup += '<br/><br/>In the meantime you can continue accessing anonymously.';
+                    }
+
+                    $('#login-message-title').text('Thanks!');
+                    $('#login-message').html(markup);
                 }).fail(function (xhr, status, error) {
+                    $('#login-message-title').text('An unexpected error has occurred');
                     $('#login-message').text(xhr.responseText);
                 }).always(function () {
                     // update form visibility
@@ -150,7 +167,7 @@ nf.Login = (function () {
                 });
             }
         });
-        
+
         $('#login-submission-container').show();
     };
 
@@ -160,27 +177,29 @@ nf.Login = (function () {
          */
         init: function () {
             nf.Storage.init();
-            
+
             var showMessage = false;
             var needsLogin = false;
             var needsNiFiRegistration = false;
-            
+
             var token = $.ajax({
                 type: 'GET',
                 url: config.urls.token
             });
-            
+
             var identity = $.ajax({
                 type: 'GET',
                 url: config.urls.identity,
                 dataType: 'json'
             });
-            
-            var pageStateInit = $.Deferred(function(deferred) {
+
+            var pageStateInit = $.Deferred(function (deferred) {
                 // get the current user's identity
                 identity.done(function (response) {
                     // if the user is anonymous see if they need to login or if they are working with a certificate
                     if (response.identity === 'anonymous') {
+                        isAnonymous = true;
+
                         // request a token without including credentials, if successful then the user is using a certificate
                         token.done(function () {
                             // the user is using a certificate, see if their account is active/pending/revoked/etc
@@ -189,8 +208,9 @@ nf.Login = (function () {
                                 url: config.urls.registrationStatus
                             }).done(function () {
                                 showMessage = true;
-                                
+
                                 // account is active and good
+                                $('#login-message-title').text('Success');
                                 $('#login-message').text('Your account is active and you are already logged in.');
                                 deferred.resolve();
                             }).fail(function (xhr, status, error) {
@@ -199,8 +219,9 @@ nf.Login = (function () {
                                     needsNiFiRegistration = true;
                                 } else {
                                     showMessage = true;
-                                    
-                                    // anonymous user and non-401 means they already have an account and it's pending/revoked 
+
+                                    // anonymous user and non-401 means they already have an account and it's pending/revoked
+                                    $('#login-message-title').text('Access Denied');
                                     if ($.trim(xhr.responseText) === '') {
                                         $('#login-message').text('Unable to check registration status.');
                                     } else {
@@ -216,8 +237,9 @@ nf.Login = (function () {
                         });
                     } else {
                         showMessage = true;
-                        
+
                         // the user is not anonymous and has an active account (though maybe role-less)
+                        $('#login-message-title').text('Success');
                         $('#login-message').text('Your account is active and you are already logged in.');
                         deferred.resolve();
                     }
@@ -236,29 +258,47 @@ nf.Login = (function () {
                         });
                     } else {
                         showMessage = true;
-                        
+
                         // the user is logged in with certificate or credentials but their account is pending/revoked. error message should indicate
+                        $('#login-message-title').text('Access Denied');
                         if ($.trim(xhr.responseText) === '') {
                             $('#login-message').text('Unable to authorize you to use this NiFi and anonymous access is disabled.');
                         } else {
                             $('#login-message').text(xhr.responseText);
                         }
-                        
+
                         deferred.resolve();
                     }
                 });
             }).promise();
             
+            var loginConfigXhr = $.ajax({
+                type: 'GET',
+                url: config.urls.loginConfig,
+                dataType: 'json'
+            });
+
             // render the page accordingly
-            pageStateInit.done(function () {
+            $.when(loginConfigXhr, pageStateInit).done(function (loginResult) {
+                var loginResponse = loginResult[0];
+                var loginConfig = loginResponse.config;
+                
+                // if login is required, verify its supported
+                if (loginConfig.supportsLogin === false && needsLogin === true) {
+                    $('#login-message-title').text('Access Denied');
+                    $('#login-message').text('This NiFi is not configured to support login.');
+                    showMessage = true;
+                    needsLogin = false;
+                }
+                
                 if (showMessage === true) {
                     initializeMessage();
                 } else if (needsLogin === true) {
-                    initializeLogin();
+                    initializeLogin(loginConfig.supportsRegistration);
                 } else if (needsNiFiRegistration === true) {
                     initializeNiFiRegistration();
                 }
-                
+
                 if (needsLogin === true || needsNiFiRegistration === true) {
                     initializeSubmission();
                 }

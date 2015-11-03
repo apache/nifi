@@ -34,11 +34,13 @@
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
         ${nf.login.script.tags}
     </head>
-    <body>
-        <jsp:include page="/WEB-INF/partials/login/login-message.jsp"/>
-        <jsp:include page="/WEB-INF/partials/login/login-form.jsp"/>
-        <jsp:include page="/WEB-INF/partials/login/user-registration-form.jsp"/>
-        <jsp:include page="/WEB-INF/partials/login/nifi-registration-form.jsp"/>
-        <jsp:include page="/WEB-INF/partials/login/login-submission.jsp"/>
+    <body class="login-body">
+        <div id="login-contents-container">
+            <jsp:include page="/WEB-INF/partials/login/login-message.jsp"/>
+            <jsp:include page="/WEB-INF/partials/login/login-form.jsp"/>
+            <jsp:include page="/WEB-INF/partials/login/user-registration-form.jsp"/>
+            <jsp:include page="/WEB-INF/partials/login/nifi-registration-form.jsp"/>
+            <jsp:include page="/WEB-INF/partials/login/login-submission.jsp"/>
+        </div>
     </body>
 </html>

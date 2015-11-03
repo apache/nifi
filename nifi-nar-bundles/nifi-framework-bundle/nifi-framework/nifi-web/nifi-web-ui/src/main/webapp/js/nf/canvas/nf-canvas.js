@@ -938,6 +938,7 @@ nf.Canvas = (function () {
 
     return {
         
+        ANONYMOUS_USER_TEXT: 'Anonymous user',
         CANVAS_OFFSET: 0,
         
         /**
@@ -1054,10 +1055,11 @@ nf.Canvas = (function () {
                     nf.Common.setAuthorities(authoritiesResponse.authorities);
 
                     // at this point the user may be themselves or anonymous
-                    $('#current-user').text(identityResponse.identity).show();
 
                     // if the user is logged, we want to determine if they were logged in using a certificate
                     if (identityResponse.identity !== 'anonymous') {
+                        $('#current-user').text(identityResponse.identity).show();
+                        
                         // attempt to get a token for the current user without passing login credentials
                         $.ajax({
                             type: 'GET',
@@ -1070,6 +1072,7 @@ nf.Canvas = (function () {
                             deferred.resolve();
                         });
                     } else {
+                        $('#current-user').text(nf.Canvas.ANONYMOUS_USER_TEXT).show();
                         deferred.resolve();
                     }
                 }).fail(function (xhr, status, error) {

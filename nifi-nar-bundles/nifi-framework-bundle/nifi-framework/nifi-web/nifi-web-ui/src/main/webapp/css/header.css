@@ -508,6 +508,7 @@ div.search-glass-pane {
 
 #current-user {
     margin-right: 8px;
+    font-weight: bold;
 }
 
 #utilities-container {

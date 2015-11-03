@@ -18,13 +18,16 @@ package org.apache.nifi.web.security.jwt;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.Authentication;
 
 /**
  *
  */
 public class JwtService {
-
+    
+    private final static String AUTHORIZATION = "Authorization";
+    
     /**
      * Gets the Authentication by extracting a JWT token from the specified request.
      *
@@ -32,10 +35,12 @@ public class JwtService {
      * @return The user identifier from the token
      */
     public String getAuthentication(final HttpServletRequest request) {
+        // TODO : actually extract/verify token
+        
         // extract/verify token from incoming request
-        // load user details with identifier from token
-        // create authentication using user details
-        return null;
+        final String authorization = request.getHeader(AUTHORIZATION);
+        final String username = StringUtils.substringAfterLast(authorization, " ");
+        return username;
     }
 
     /**
@@ -45,7 +50,12 @@ public class JwtService {
      * @param authentication The authentication to generate a token for
      */
     public void addToken(final HttpServletResponse response, final Authentication authentication) {
+        // TODO : actually create real token
+        
         // create a token the specified authentication
+        String token = authentication.getName();
+        
         // add the token as a response header
+        response.setHeader(AUTHORIZATION, "Bearer " + token);
     }
 }

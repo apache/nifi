@@ -16,10 +16,17 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="login-container" class="hidden">
-    <legend>Please Login</legend>
-    <label for="username">Username</label>
-    <input type="text" id="username" name="username" value="${username}"/>
-    <br>
-    <label for="password">Password</label>
-    <input type="password" id="password" name="password"/>
+    <div class="login-title">Log In</div>
+    <div class="setting">
+        <div class="setting-name">Username</div>
+        <div class="setting-field">
+            <input type="text" id="username"/>
+        </div>
+    </div>
+    <div class="setting">
+        <div class="setting-name">Password</div>
+        <div class="setting-field">
+            <input type="password" id="password"/>
+        </div>
+    </div>
 </div>

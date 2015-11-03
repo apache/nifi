@@ -19,19 +19,73 @@
     Login Styles
 */
 
+body.login-body {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+    background: #fff url(../images/bg-error.png) left top no-repeat;
+    font-family: Verdana, Geneva, sans-serif;
+    color: #191919;
+    z-index: 999999;
+}
+
+#login-contents-container {
+    margin-top: 100px;
+    margin-left: 100px;
+}
+
+#login-message-title {
+    font-size: 18px;
+    color: #294c58;
+    margin-bottom: 16px;
+}
+
+#login-message {
+    font-size: 11px;
+}
+
+.login-title {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #000;
+}
+
+/*
+    Login
+*/
+
+body.login-body input, body.login-body textarea {
+    width: 400px;
+}
+
+/*
+    User Registration
+*/
+
 /*
     NiFi Registration
 */
 
 #nifi-registration-container {
-}
-
-#nifi-registration-form {
     margin-top: 10px;
-    width: 610px;
+    width: 412px;
 }
 
 #nifi-registration-justification {
-    width: 600px;
     height: 200px;
+}
+
+/*
+    Submission
+*/
+
+#login-submission-container {
+    width: 412px;
+}
+
+#login-submission-button {
+    
 }

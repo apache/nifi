@@ -155,7 +155,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
         jwtService.addToken(response, authentication);
 
         // mark as successful
-        response.setStatus(HttpServletResponse.SC_OK);
+        response.setStatus(HttpServletResponse.SC_CREATED);
         response.setContentType("text/plain");
         response.setContentLength(0);
     }

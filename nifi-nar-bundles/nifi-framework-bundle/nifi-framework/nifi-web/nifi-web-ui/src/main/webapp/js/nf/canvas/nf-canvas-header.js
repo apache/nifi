@@ -31,6 +31,8 @@ nf.CanvasHeader = (function () {
     return {
         /**
          * Initialize the canvas header.
+         * 
+         * @argument {boolean} supportsLogin Whether login is supported
          */
         init: function (supportsLogin) {
             // mouse over for the reporting link
@@ -140,7 +142,7 @@ nf.CanvasHeader = (function () {
             });
 
             // show the login link if supported and user is currently anonymous
-            var isAnonymous = $('#current-user').text() === 'anonymous';
+            var isAnonymous = $('#current-user').text() === nf.Canvas.ANONYMOUS_USER_TEXT;
             if (supportsLogin === true && isAnonymous) {
                 // login link
                 $('#login-link').click(function () {
@@ -150,9 +152,15 @@ nf.CanvasHeader = (function () {
                 $('#login-link-container').css('display', 'none');
             }
             
+            // if login is not supported, don't show the current user
+            if (supportsLogin !== true) {
+                $('#current-user-container').css('display', 'none');
+            }
+            
             // logout link
             $('#logout-link').click(function () {
                 nf.Storage.removeItem("jwt");
+                window.location = '/nifi';
             });
 
             // initialize the new template dialog

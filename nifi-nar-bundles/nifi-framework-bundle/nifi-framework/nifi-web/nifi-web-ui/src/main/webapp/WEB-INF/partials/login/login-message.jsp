@@ -16,5 +16,6 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="login-message-container" class="hidden">
+    <div id="login-message-title"></div>
     <div id="login-message"></div>
 </div>
