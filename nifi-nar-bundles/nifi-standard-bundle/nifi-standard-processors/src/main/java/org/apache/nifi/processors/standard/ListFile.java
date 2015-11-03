@@ -37,17 +37,25 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.nio.file.FileStore;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileOwnerAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -155,6 +163,15 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     private Set<Relationship> relationships;
     private final AtomicReference<FileFilter> fileFilterRef = new AtomicReference<>();
 
+    public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
+    public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
+    public static final String FILE_LAST_ACCESS_TIME_ATTRIBUTE = "file.lastAccessTime";
+    public static final String FILE_SIZE_ATTRIBUTE = "file.size";
+    public static final String FILE_OWNER_ATTRIBUTE = "file.owner";
+    public static final String FILE_GROUP_ATTRIBUTE = "file.group";
+    public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
+    public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -192,21 +209,57 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("fs.owner", fileInfo.getOwner());
-        attributes.put("fs.group", fileInfo.getGroup());
-        attributes.put("fs.lastModified", Long.toString(fileInfo.getLastModifiedTime()));
-        attributes.put("fs.length", Long.toString(fileInfo.getSize()));
-        attributes.put("fs.permissions", fileInfo.getPermissions());
-        attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
 
         final String fullPath = fileInfo.getFullPathFileName();
-        if (fullPath != null) {
-            final int index = fullPath.lastIndexOf("/");
-            if (index > -1) {
-                final String path = fullPath.substring(0, index);
-                attributes.put(CoreAttributes.PATH.key(), path);
-            }
+        final File file = new File(fullPath);
+        final Path filePath = file.toPath();
+        final Path directoryPath = new File(getPath(context)).toPath();
+
+        final Path relativePath = directoryPath.relativize(filePath.getParent());
+        String relativePathString = relativePath.toString() + "/";
+        if (relativePathString.isEmpty()) {
+            relativePathString = "./";
         }
+        final Path absPath = filePath.toAbsolutePath();
+        final String absPathString = absPath.getParent().toString() + "/";
+
+        attributes.put(CoreAttributes.PATH.key(), relativePathString);
+        attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
+        attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
+
+        try {
+            FileStore store = Files.getFileStore(filePath);
+            if (store.supportsFileAttributeView("basic")) {
+                try {
+                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+                    BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
+                    BasicFileAttributes attrs = view.readAttributes();
+                    attributes.put(FILE_SIZE_ATTRIBUTE, Long.toString(attrs.size()));
+                    attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastModifiedTime().toMillis())));
+                    attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatter.format(new Date(attrs.creationTime().toMillis())));
+                    attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastAccessTime().toMillis())));
+                } catch (Exception ignore) {
+                } // allow other attributes if these fail
+            }
+            if (store.supportsFileAttributeView("owner")) {
+                try {
+                    FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
+                    attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
+                } catch (Exception ignore) {
+                } // allow other attributes if these fail
+            }
+            if (store.supportsFileAttributeView("posix")) {
+                try {
+                    PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
+                    attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
+                    attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
+                } catch (Exception ignore) {
+                } // allow other attributes if these fail
+            }
+        } catch (IOException ioe) {
+            // well then this FlowFile gets none of these attributes
+        }
+
         return attributes;
     }
 
@@ -247,16 +300,11 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                     }
                 } else {
                     if (filter.accept(file)) {
-                        final PosixFileAttributes attrib = Files.readAttributes(file.toPath(), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
                         listing.add(new FileInfo.Builder()
                                 .directory(file.isDirectory())
                                 .filename(file.getName())
                                 .fullPathFileName(file.getAbsolutePath())
-                                .group(attrib.group().getName())
                                 .lastModifiedTime(file.lastModified())
-                                .owner(attrib.owner().getName())
-                                .permissions(attrib.permissions().toString())
-                                .size(attrib.size())
                                 .build());
                     }
                 }

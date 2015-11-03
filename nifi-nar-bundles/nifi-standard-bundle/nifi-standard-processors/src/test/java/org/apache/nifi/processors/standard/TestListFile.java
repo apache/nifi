@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
@@ -31,16 +32,19 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
-import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class TestListFile  {
@@ -75,27 +79,13 @@ public class TestListFile  {
         deleteDirectory(testDir);
         File tempFile = processor.getPersistenceFile();
         if (tempFile.exists()) {
-            assertTrue(tempFile.delete());
+            File[] stateFiles = tempFile.getParentFile().listFiles();
+            if (stateFiles != null) {
+                for (File stateFile : stateFiles) {
+                    assertTrue(stateFile.delete());
+                }
+            }
         }
-//        assertTrue(processor.getPersistenceFile().delete());
-    }
-
-    @Test
-    public void testAttributes() throws IOException {
-        final File file1 = new File(TESTDIR + "/attrib1.txt");
-        assertTrue(file1.createNewFile());
-        FileOutputStream fos = new FileOutputStream(file1);
-        fos.write(new byte[1234]);
-        fos.close();
-        assertTrue(file1.setLastModified(time1millis));
-        Long time1rounded = time1millis - time1millis % 1000;
-
-        final PosixFileAttributes attrib1 = Files.readAttributes(file1.toPath(), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-        assertEquals(System.getProperty("user.name"), attrib1.owner().getName());
-        assertEquals(System.getProperty("user.name"), attrib1.group().getName());
-        assertEquals(time1rounded.longValue(), attrib1.lastModifiedTime().toMillis());
-        assertEquals(1234, attrib1.size());
-        assertEquals("rw-rw-r--", perms2string(attrib1.permissions().toString()));
     }
 
     @Test
@@ -314,6 +304,10 @@ public class TestListFile  {
         assertTrue(file2.createNewFile());
         fos = new FileOutputStream(file2);
         fos.close();
+        FileStore store = Files.getFileStore(file2.toPath());
+        if (store.supportsFileAttributeView("dos")) {
+            Files.setAttribute(file2.toPath(), "dos:hidden", true);
+        }
 
         // check all files
         runner.clearTransferState();
@@ -485,41 +479,71 @@ public class TestListFile  {
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(3, successFiles1.size());
 
-        // make file2 unreadable
-        assertTrue(file2.setReadable(false));
-        runner.clearTransferState();
-        runner.setProperty(ListFile.RECURSE, "false");
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
-        final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(2, successFiles2.size());
+        // make file2 unreadable and test (setReadable() does not work on Windows)
+        if (!System.getProperty("os.name").toLowerCase().startsWith("windows")) {
+            assertTrue(file2.setReadable(false));
+            runner.clearTransferState();
+            runner.setProperty(ListFile.RECURSE, "false");
+            runner.run();
+            runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
+            final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+            assertEquals(2, successFiles2.size());
+        }
     }
 
     @Test
     public void testAttributesSet() throws IOException {
+        // create temp file and time constant
         final File file1 = new File(TESTDIR + "/file1.txt");
         assertTrue(file1.createNewFile());
         FileOutputStream fos = new FileOutputStream(file1);
         fos.write(new byte[1234]);
         fos.close();
         assertTrue(file1.setLastModified(time3millis));
-        String time3rounded = Long.toString(time3millis - time3millis % 1000);
+        Long time3rounded = time3millis - time3millis % 1000;
+        String userName = System.getProperty("user.name");
 
-        // check all files
+        // validate the file transferred
         runner.clearTransferState();
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles1.size());
+
+        // get attribute check values
+        final Path file1Path = file1.toPath();
+        final Path directoryPath = new File(TESTDIR).toPath();
+        final Path relativePath = directoryPath.relativize(file1.toPath().getParent());
+        String relativePathString = relativePath.toString() + "/";
+        final Path absolutePath = file1.toPath().toAbsolutePath();
+        final String absolutePathString = absolutePath.getParent().toString() + "/";
+        final FileStore store = Files.getFileStore(file1Path);
+        final DateFormat formatter = new SimpleDateFormat(ListFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+        final String time3Formatted = formatter.format(time3rounded);
+
+        // check standard attributes
         MockFlowFile mock1 = successFiles1.get(0);
-        assertEquals("file1.txt", mock1.getAttribute("filename"));
-        assertEquals(testDir.getAbsolutePath(), mock1.getAttribute("path"));
-        assertEquals(System.getProperty("user.name"), mock1.getAttribute("fs.owner"));
-        assertEquals(System.getProperty("user.name"), mock1.getAttribute("fs.group"));
-        assertEquals(time3rounded, mock1.getAttribute("fs.lastModified"));
-        assertEquals("1234", mock1.getAttribute("fs.length"));
-        assertEquals("rw-rw-r--", perms2string(mock1.getAttribute("fs.permissions")));
+        assertEquals(relativePathString, mock1.getAttribute(CoreAttributes.PATH.key()));
+        assertEquals("file1.txt", mock1.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals(absolutePathString, mock1.getAttribute(CoreAttributes.ABSOLUTE_PATH.key()));
+        assertEquals("1234", mock1.getAttribute(ListFile.FILE_SIZE_ATTRIBUTE));
+
+        // check attributes dependent on views supported
+        if (store.supportsFileAttributeView("basic")) {
+            assertEquals(time3Formatted, mock1.getAttribute(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE));
+            assertNotNull(mock1.getAttribute(ListFile.FILE_CREATION_TIME_ATTRIBUTE));
+            assertNotNull(mock1.getAttribute(ListFile.FILE_LAST_ACCESS_TIME_ATTRIBUTE));
+        }
+        if (store.supportsFileAttributeView("owner")) {
+            // look for username containment to handle Windows domains as well as Unix user names
+            // org.junit.ComparisonFailure: expected:<[]username> but was:<[DOMAIN\]username>
+            assertTrue(mock1.getAttribute(ListFile.FILE_OWNER_ATTRIBUTE).contains(userName));
+        }
+        if (store.supportsFileAttributeView("posix")) {
+            assertEquals(userName, mock1.getAttribute(ListFile.FILE_GROUP_ATTRIBUTE));
+            assertEquals("rw-rw-r--", mock1.getAttribute(ListFile.FILE_PERMISSIONS_ATTRIBUTE));
+        }
     }
 
     @Test
@@ -634,11 +658,19 @@ public class TestListFile  {
         final File target = (top == null) ? testDir : top;
         final DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         final File[] dirFiles = target.listFiles();
+        final FileStore fileStore = (top == null) ? null : Files.getFileStore(top.toPath());
+        final Boolean isPosix = (fileStore != null) && fileStore.supportsFileAttributeView("posix");
+        String perms;
         if (dirFiles != null) {
             for (File f : dirFiles) {
+                if (isPosix) {
+                    perms = perms2string(Files.getPosixFilePermissions(f.toPath(), LinkOption.NOFOLLOW_LINKS).toString());
+                } else {
+                    perms = "";
+                }
                 System.out.printf(format,
                         (f.isDirectory() ? 'd' : 'f'),
-                        perms2string(Files.getPosixFilePermissions(f.toPath(), LinkOption.NOFOLLOW_LINKS).toString()),
+                        perms,
                         formatter.format(f.lastModified()),
                         f.lastModified(),
                         f.getPath());
