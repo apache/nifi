@@ -204,6 +204,8 @@ nf.Templates = (function () {
          * Initializes the templates page.
          */
         init: function () {
+            nf.Storage.init();
+            
             // load the users authorities
             loadAuthorities().done(function () {
 

@@ -174,6 +174,8 @@ nf.Provenance = (function () {
          * Initializes the status page.
          */
         init: function () {
+            nf.Storage.init();
+            
             // load the users authorities and detect if the NiFi is clustered
             $.when(loadControllerConfig(), loadAuthorities(), detectedCluster()).done(function () {
                 // create the provenance table

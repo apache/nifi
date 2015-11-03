@@ -46,7 +46,7 @@ nf.Login = (function () {
                 // handle login click
                 $('#login-button').on('click', function () {
                     login().done(function (response) {
-                       console.log(response); 
+                        
                     });
                 });
                 
@@ -55,7 +55,7 @@ nf.Login = (function () {
             }
             
             // if this nifi supports registration, render the registration form
-            if (config.supportsRegistration === false) {
+            if (config.supportsRegistration === true) {
                 initializeUserRegistration();
                 
                 // automatically include support for nifi registration
@@ -130,6 +130,8 @@ nf.Login = (function () {
          * Initializes the login page.
          */
         init: function () {
+            nf.Storage.init();
+            
             var needsLogin = false;
             var needsNiFiRegistration = false;
             

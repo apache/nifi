@@ -44,14 +44,15 @@
     </div>
     <div id="header-links-container">
         <ul>
+            <li id="login-link-container">
+                <span id="current-user" class="hidden"></span>
+                <span id="login-link" class="link">login</span>
+            </li>
             <li>
                 <span id="help-link" class="link">help</span>
             </li>
             <li>
                 <span id="about-link" class="link">about</span>
-            </li>
-            <li id="login-link-container">
-                <span id="login-link" class="link">login</span>
             </li>
         </ul>
     </div>
