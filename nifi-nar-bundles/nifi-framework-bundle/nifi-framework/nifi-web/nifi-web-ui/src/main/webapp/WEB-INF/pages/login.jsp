@@ -35,6 +35,7 @@
         ${nf.login.script.tags}
     </head>
     <body>
+        <jsp:include page="/WEB-INF/partials/login/login-message.jsp"/>
         <jsp:include page="/WEB-INF/partials/login/login-form.jsp"/>
         <jsp:include page="/WEB-INF/partials/login/user-registration-form.jsp"/>
         <jsp:include page="/WEB-INF/partials/login/nifi-registration-form.jsp"/>

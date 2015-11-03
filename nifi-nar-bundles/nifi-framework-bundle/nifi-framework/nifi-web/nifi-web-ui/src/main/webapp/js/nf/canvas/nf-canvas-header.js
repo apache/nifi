@@ -147,6 +147,11 @@ nf.CanvasHeader = (function () {
             } else {
                 $('#login-link-container').css('display', 'none');
             }
+            
+            // logout link
+            $('#logout-link').click(function () {
+                nf.Storage.removeItem("jwt");
+            });
 
             // initialize the new template dialog
             $('#new-template-dialog').modal({

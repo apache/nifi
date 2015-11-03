@@ -929,7 +929,7 @@ public class ControllerResource extends ApplicationResource {
         IdentityEntity entity = new IdentityEntity();
         entity.setRevision(revision);
         entity.setUserId(user.getId());
-        entity.setIdentity(user.getDn());
+        entity.setIdentity(user.getUserName());
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -945,14 +945,17 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/authorities")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_PROXY', 'ROLE_NIFI', 'ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Retrieves the user details, including the authorities, about the user making the request",
             response = AuthorityEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN"),
+                @Authorization(value = "Proxy", type = "ROLE_PROXY"),
+                @Authorization(value = "NiFi", type = "ROLE_NIFI"),
+                @Authorization(value = "Provenance", type = "ROLE_PROVENANCE")
             }
     )
     @ApiResponses(

@@ -48,6 +48,9 @@
                 <span id="current-user" class="hidden"></span>
                 <span id="login-link" class="link">login</span>
             </li>
+            <li id="logout-link-container" style="display: none;">
+                <span id="logout-link" class="link">logout</span>
+            </li>
             <li>
                 <span id="help-link" class="link">help</span>
             </li>

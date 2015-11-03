@@ -1054,6 +1054,7 @@ nf.Canvas = (function () {
                     nf.Common.setAuthorities(authoritiesResponse.authorities);
 
                     // at this point the user may be themselves or anonymous
+                    $('#current-user').text(identityResponse.identity).show();
 
                     // if the user is logged, we want to determine if they were logged in using a certificate
                     if (identityResponse.identity !== 'anonymous') {
@@ -1064,7 +1065,7 @@ nf.Canvas = (function () {
                         }).fail(function () {
                             // if this request succeeds, it means the user is logged in using their certificate.
                             // if this request fails, it means the user is logged in with login credentials so we want to render a logout button.
-                            // TODO - render logout button
+                            $('#logout-link-container').show();
                         }).always(function () {
                             deferred.resolve();
                         });

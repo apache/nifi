@@ -506,6 +506,10 @@ div.search-glass-pane {
 
 /* styles for the status link */
 
+#current-user {
+    margin-right: 8px;
+}
+
 #utilities-container {
     float: right;
 }

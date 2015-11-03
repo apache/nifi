@@ -23,6 +23,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.NiFiAuthenticationEntryPoint;
+import org.apache.nifi.web.security.RegistrationStatusFilter;
 import org.apache.nifi.web.security.form.LoginAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -90,11 +91,14 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
             // login authentication for /token - exchanges for JWT for subsequent API usage
             http.addFilterBefore(buildLoginFilter("/token"), UsernamePasswordAuthenticationFilter.class);
 
-            // verify the configured login authenticator supports registration
+            // verify the configured login authenticator supports user login registration
             if (loginIdentityProvider.supportsRegistration()) {
                 http.addFilterBefore(buildRegistrationFilter("/registration"), UsernamePasswordAuthenticationFilter.class);
             }
         }
+        
+        // registration status - will check the status of a user's account registration (regardless if its based on login or not)
+        http.addFilterBefore(buildRegistrationStatusFilter("/registration/status"), UsernamePasswordAuthenticationFilter.class);
 
         // cluster authorized user
         http.addFilterBefore(buildNodeAuthorizedUserFilter(), AnonymousAuthenticationFilter.class);
@@ -133,6 +137,15 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     private Filter buildRegistrationFilter(final String url) {
         return null;
+    }
+    
+    private Filter buildRegistrationStatusFilter(final String url) {
+        final RegistrationStatusFilter registrationFilter = new RegistrationStatusFilter(url);
+        registrationFilter.setCertificateExtractor(certificateExtractor);
+        registrationFilter.setPrincipalExtractor(principalExtractor);
+        registrationFilter.setProperties(properties);
+        registrationFilter.setUserDetailsService(userDetailsService);
+        return registrationFilter;
     }
 
     private NodeAuthorizedUserFilter buildNodeAuthorizedUserFilter() {

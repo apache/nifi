@@ -50,6 +50,16 @@ $(document).ready(function () {
         // hide the loading indicator 
         $('div.loading-container').removeClass('ajax-loading');
     });
+    
+    // include jwt when possible
+    $.ajaxSetup({
+        'beforeSend': function(xhr) {
+            var token = nf.Storage.getItem('jwt');
+            if (token) {
+                xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            }
+        }
+    });
 
     // initialize the tooltips
     $('img.setting-icon').qtip(nf.Common.config.tooltipConfig);

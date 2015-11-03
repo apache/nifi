@@ -25,11 +25,17 @@ nf.Login = (function () {
     
     var config = {
         urls: {
+            registrationStatus: '../nifi-api/registration/status',
+            registration: '../nifi-api/registration',
             identity: '../nifi-api/controller/identity',
             users: '../nifi-api/controller/users',
             token: '../nifi-api/token',
             loginConfig: '../nifi-api/controller/login/config'
         }
+    };
+
+    var initializeMessage = function () {
+        $('#login-message-container').show();
     };
 
     var initializeLogin = function () {
@@ -45,8 +51,29 @@ nf.Login = (function () {
                 
                 // handle login click
                 $('#login-button').on('click', function () {
-                    login().done(function (response) {
+                    login().done(function (response, status, xhr) {
+                        var authorization = xhr.getResponseHeader('Authorization');
+                        var badToken = false;
                         
+                        // ensure there was a token in the response
+                        if (authorization) {
+                            var tokens = authorization.split(/ /);
+                            
+                            // ensure the token is the appropriate length
+                            if (tokens.length === 2) {
+                                // store the jwt and reload the page
+                                nf.Storage.setItem('jwt', tokens[1]);
+                                window.location = '/nifi';
+                            } else {
+                                badToken = true;
+                            }
+                        } else {
+                            badToken = true;
+                        }
+                        
+                        if (badToken === true) {
+                            // TODO - show unable to parse response token
+                        }
                     });
                 });
                 
@@ -112,17 +139,19 @@ nf.Login = (function () {
                         'justification': justification
                     }
                 }).done(function (response) {
-                    // TODO
-    //                // hide the registration pane
-    //                $('#registration-pane').hide();
-    //
-    //                // show the message pane
-    //                $('#message-pane').show();
-    //                $('#message-title').text('Thanks');
-    //                $('#message-content').text('Your request will be processed shortly.');
-                }).fail(nf.Common.handleAjaxError);
+                    $('#login-message').text('Thanks! Your request will be processed shortly.');
+                }).fail(function (xhr, status, error) {
+                    $('#login-message').text(xhr.responseText);
+                }).always(function () {
+                    // update form visibility
+                    $('#nifi-registration-container').hide();
+                    $('#login-submission-container').hide();
+                    $('#login-message-container').show();
+                });
             }
         });
+        
+        $('#login-submission-container').show();
     };
 
     return {
@@ -132,6 +161,7 @@ nf.Login = (function () {
         init: function () {
             nf.Storage.init();
             
+            var showMessage = false;
             var needsLogin = false;
             var needsNiFiRegistration = false;
             
@@ -140,47 +170,87 @@ nf.Login = (function () {
                 url: config.urls.token
             });
             
+            var identity = $.ajax({
+                type: 'GET',
+                url: config.urls.identity,
+                dataType: 'json'
+            });
+            
             var pageStateInit = $.Deferred(function(deferred) {
                 // get the current user's identity
-                $.ajax({
-                    type: 'GET',
-                    url: config.urls.identity,
-                    dataType: 'json'
-                }).done(function (response) {
-                    var identity = response.identity;
-
-                    // if the user is anonymous they need to login
-                    if (identity === 'anonymous') {
+                identity.done(function (response) {
+                    // if the user is anonymous see if they need to login or if they are working with a certificate
+                    if (response.identity === 'anonymous') {
+                        // request a token without including credentials, if successful then the user is using a certificate
                         token.done(function () {
-                            // anonymous user and 200 from token means they have a certificate but have not yet requested an account
-                            needsNiFiRegistration = true;
-                        }).fail(function (xhr, status, error) {
-                            // no token granted, user needs to login with their credentials
+                            // the user is using a certificate, see if their account is active/pending/revoked/etc
+                            $.ajax({
+                                type: 'GET',
+                                url: config.urls.registrationStatus
+                            }).done(function () {
+                                showMessage = true;
+                                
+                                // account is active and good
+                                $('#login-message').text('Your account is active and you are already logged in.');
+                                deferred.resolve();
+                            }).fail(function (xhr, status, error) {
+                                if (xhr.status === 401) {
+                                    // anonymous user and 401 means they need nifi registration
+                                    needsNiFiRegistration = true;
+                                } else {
+                                    showMessage = true;
+                                    
+                                    // anonymous user and non-401 means they already have an account and it's pending/revoked 
+                                    if ($.trim(xhr.responseText) === '') {
+                                        $('#login-message').text('Unable to check registration status.');
+                                    } else {
+                                        $('#login-message').text(xhr.responseText);
+                                    }
+                                }
+                                deferred.resolve();
+                            });
+                        }).fail(function () {
+                            // no token granted, user has no certificate and needs to login with their credentials
                             needsLogin = true;
+                            deferred.resolve();
                         });
+                    } else {
+                        showMessage = true;
+                        
+                        // the user is not anonymous and has an active account (though maybe role-less)
+                        $('#login-message').text('Your account is active and you are already logged in.');
+                        deferred.resolve();
                     }
                 }).fail(function (xhr, status, error) {
+                    // unable to get identity (and no anonymous user) see if we can offer login
                     if (xhr.status === 401) {
                         // attempt to get a token for the current user without passing login credentials
                         token.done(function () {
                             // 401 from identity request and 200 from token means they have a certificate but have not yet requested an account 
                             needsNiFiRegistration = true;
-                        }).fail(function (xhr, status, error) {
+                        }).fail(function () {
                             // no token granted, user needs to login with their credentials
                             needsLogin = true;
                         });
-                    } else if (xhr.status === 403) {
-                        // the user is logged in with certificate or credentials but their account is still pending. error message should indicate
-                        // TODO - show error
+                    } else {
+                        showMessage = true;
+                        
+                        // the user is logged in with certificate or credentials but their account is pending/revoked. error message should indicate
+                        if ($.trim(xhr.responseText) === '') {
+                            $('#login-message').text('Unable to authorize you to use this NiFi and anonymous access is disabled.');
+                        } else {
+                            $('#login-message').text(xhr.responseText);
+                        }
                     }
-                }).always(function () {
                     deferred.resolve();
                 });
             }).promise();
             
             // render the page accordingly
             $.when(pageStateInit).done(function () {
-                if (needsLogin === true) {
+                if (showMessage === true) {
+                    initializeMessage();
+                } else if (needsLogin === true) {
                     initializeLogin();
                 } else if (needsNiFiRegistration === true) {
                     initializeNiFiRegistration();
