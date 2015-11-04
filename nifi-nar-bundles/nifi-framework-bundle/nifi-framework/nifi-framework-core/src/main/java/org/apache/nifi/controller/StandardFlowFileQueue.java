@@ -395,7 +395,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         migrateSwapToActive();
         final boolean queueFullAtStart = queueFullRef.get();
 
-        int expiredRecordCount = 0;
         long expiredBytes = 0L;
 
         do {
@@ -404,8 +403,8 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             isExpired = isLaterThan(getExpirationDate(flowFile, expirationMillis));
             if (isExpired) {
                 expiredRecords.add(flowFile);
-                expiredRecordCount++;
                 expiredBytes += flowFile.getSize();
+                flowFile = null;
 
                 if (expiredRecords.size() >= MAX_EXPIRED_RECORDS_PER_ITERATION) {
                     break;
@@ -419,11 +418,11 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             if (flowFile != null) {
                 incrementActiveQueueSize(-1, -flowFile.getSize());
             }
-
-            if (expiredRecordCount > 0) {
-                incrementActiveQueueSize(-expiredRecordCount, -expiredBytes);
-            }
         } while (isExpired);
+
+        if (!expiredRecords.isEmpty()) {
+            incrementActiveQueueSize(-expiredRecords.size(), -expiredBytes);
+        }
 
         // if at least 1 FlowFile was expired & the queue was full before we started, then
         // we need to determine whether or not the queue is full again. If no FlowFile was expired,
@@ -432,7 +431,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             queueFullRef.set(determineIfFull());
         }
 
-        return isExpired ? null : flowFile;
+        return flowFile;
     }
 
     @Override
@@ -1198,6 +1197,10 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             final FlowFileQueueSize newSize = new FlowFileQueueSize(original.activeQueueCount + count, original.activeQueueBytes + bytes,
                 original.swappedCount, original.swappedBytes, original.unacknowledgedCount, original.unacknowledgedBytes);
             updated = size.compareAndSet(original, newSize);
+
+            if (updated) {
+                logIfNegative(original, newSize, "active");
+            }
         }
     }
 
@@ -1208,6 +1211,10 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             final FlowFileQueueSize newSize = new FlowFileQueueSize(original.activeQueueCount, original.activeQueueBytes,
                 original.swappedCount + count, original.swappedBytes + bytes, original.unacknowledgedCount, original.unacknowledgedBytes);
             updated = size.compareAndSet(original, newSize);
+
+            if (updated) {
+                logIfNegative(original, newSize, "swap");
+            }
         }
     }
 
@@ -1218,6 +1225,19 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             final FlowFileQueueSize newSize = new FlowFileQueueSize(original.activeQueueCount, original.activeQueueBytes,
                 original.swappedCount, original.swappedBytes, original.unacknowledgedCount + count, original.unacknowledgedBytes + bytes);
             updated = size.compareAndSet(original, newSize);
+
+            if (updated) {
+                logIfNegative(original, newSize, "Unacknowledged");
+            }
+        }
+    }
+
+    private void logIfNegative(final FlowFileQueueSize original, final FlowFileQueueSize newSize, final String counterName) {
+        if (newSize.activeQueueBytes < 0 || newSize.activeQueueCount < 0 || newSize.swappedBytes < 0 || newSize.swappedCount < 0 ||
+            newSize.unacknowledgedBytes < 0 || newSize.unacknowledgedCount < 0) {
+
+            logger.error("Updated Size of Queue " + counterName + " from " + original + " to " + newSize, new RuntimeException("Cannot create negative queue size"));
+
         }
     }
 
@@ -1258,6 +1278,13 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
         public QueueSize swapQueueSize() {
             return new QueueSize(swappedCount, swappedBytes);
+        }
+
+        @Override
+        public String toString() {
+            return "FlowFile Queue Size[ ActiveQueue=[" + activeQueueCount + ", " + activeQueueBytes +
+                " Bytes], Swap Queue=[" + swappedCount + ", " + swappedBytes +
+                " Bytes], Unacknowledged=[" + unacknowledgedCount + ", " + unacknowledgedBytes + " Bytes] ]";
         }
     }
 }

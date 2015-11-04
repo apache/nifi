@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -76,6 +77,34 @@ public class TestStandardFlowFileQueue {
         TestFlowFile.idGenerator.set(0L);
     }
 
+    @Test
+    public void testExpire() {
+        queue.setFlowFileExpiration("1 ms");
+
+        for (int i = 0; i < 100; i++) {
+            queue.put(new TestFlowFile());
+        }
+
+        // just make sure that the flowfiles have time to expire.
+        try {
+            Thread.sleep(100L);
+        } catch (final InterruptedException ie) {
+        }
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>(100);
+        final FlowFileRecord pulled = queue.poll(expiredRecords);
+
+        assertNull(pulled);
+        assertEquals(100, expiredRecords.size());
+
+        final QueueSize activeSize = queue.getActiveQueueSize();
+        assertEquals(0, activeSize.getObjectCount());
+        assertEquals(0L, activeSize.getByteCount());
+
+        final QueueSize unackSize = queue.getUnacknowledgedQueueSize();
+        assertEquals(0, unackSize.getObjectCount());
+        assertEquals(0L, unackSize.getByteCount());
+    }
 
     @Test
     public void testSwapOutOccurs() {
