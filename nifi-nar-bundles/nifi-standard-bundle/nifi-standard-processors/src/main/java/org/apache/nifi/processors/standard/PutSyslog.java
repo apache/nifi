@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -33,6 +34,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.SyslogParser;
 import org.apache.nifi.util.ObjectHolder;
+import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -52,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @TriggerWhenEmpty
 @Tags({"syslog", "put", "udp", "tcp", "logs"})
 @CapabilityDescription("Sends Syslog messages to a given host and port over TCP or UDP. Messages are constructed from the \"Message ___\" properties of the processor " +
@@ -59,7 +62,7 @@ import java.util.regex.Pattern;
         "(<PRIORITY>)(VERSION )(TIMESTAMP) (HOSTNAME) (BODY) where version is optional.  The constructed messages are checked against regular expressions for " +
         "RFC5424 and RFC3164 formatted messages. The timestamp can be an RFC5424 timestamp with a format of \"yyyy-MM-dd'T'HH:mm:ss.SZ\" or \"yyyy-MM-dd'T'HH:mm:ss.S+hh:mm\", " +
         "or it can be an RFC3164 timestamp with a format of \"MMM d HH:mm:ss\". If a message is constructed that does not form a valid Syslog message according to the " +
-        "above description, then it is routed to the invalid relationship. Valid messages are pushed to Syslog with successes routed to the success relationship, and " +
+        "above description, then it is routed to the invalid relationship. Valid messages are sent to the Syslog server and successes are routed to the success relationship, " +
         "failures routed to the failure relationship.")
 public class PutSyslog extends AbstractSyslogProcessor {
 
@@ -277,9 +280,14 @@ public class PutSyslog extends AbstractSyslogProcessor {
             }
         }
 
+        final String port = context.getProperty(PORT).getValue();
+        final String host = context.getProperty(HOSTNAME).getValue();
+        final String transitUri = new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
         final ObjectHolder<IOException> exceptionHolder = new ObjectHolder<>(null);
+
         try {
             for (FlowFile flowFile : flowFiles) {
+                final StopWatch timer = new StopWatch(true);
                 final String priority = context.getProperty(MSG_PRIORITY).evaluateAttributeExpressions(flowFile).getValue();
                 final String version = context.getProperty(MSG_VERSION).evaluateAttributeExpressions(flowFile).getValue();
                 final String timestamp = context.getProperty(MSG_TIMESTAMP).evaluateAttributeExpressions(flowFile).getValue();
@@ -304,6 +312,11 @@ public class PutSyslog extends AbstractSyslogProcessor {
                         }
 
                         sender.send(messageBuilder.toString());
+                        timer.stop();
+
+                        final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
+                        session.getProvenanceReporter().send(flowFile, transitUri, duration, true);
+
                         getLogger().info("Transferring {} to success", new Object[]{flowFile});
                         session.transfer(flowFile, REL_SUCCESS);
                     } catch (IOException e) {

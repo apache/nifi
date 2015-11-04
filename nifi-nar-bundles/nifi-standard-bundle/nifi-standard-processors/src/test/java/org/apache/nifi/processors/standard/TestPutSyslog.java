@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -70,6 +72,14 @@ public class TestPutSyslog {
         runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
         Assert.assertEquals(1, sender.messages.size());
         Assert.assertEquals(expectedMessage, sender.messages.get(0));
+
+        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
+        Assert.assertNotNull(events);
+        Assert.assertEquals(1, events.size());
+
+        final ProvenanceEventRecord event = events.get(0);
+        Assert.assertEquals(ProvenanceEventType.SEND, event.getEventType());
+        Assert.assertEquals("UDP://localhost:12345", event.getTransitUri());
     }
 
     @Test
@@ -95,6 +105,14 @@ public class TestPutSyslog {
         runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
         Assert.assertEquals(1, sender.messages.size());
         Assert.assertEquals(expectedMessage, sender.messages.get(0).replace("\n", ""));
+
+        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
+        Assert.assertNotNull(events);
+        Assert.assertEquals(1, events.size());
+
+        final ProvenanceEventRecord event = events.get(0);
+        Assert.assertEquals(ProvenanceEventType.SEND, event.getEventType());
+        Assert.assertEquals("TCP://localhost:12345", event.getTransitUri());
     }
 
     @Test
