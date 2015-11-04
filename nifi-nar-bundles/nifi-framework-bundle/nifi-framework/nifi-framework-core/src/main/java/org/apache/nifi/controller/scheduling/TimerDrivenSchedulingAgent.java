@@ -127,7 +127,7 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
                     // after the yield has expired.
                     final long newYieldExpiration = connectable.getYieldExpiration();
                     if (newYieldExpiration > System.currentTimeMillis()) {
-                        final long yieldMillis = System.currentTimeMillis() - newYieldExpiration;
+                        final long yieldMillis = newYieldExpiration - System.currentTimeMillis();
                         final ScheduledFuture<?> scheduledFuture = futureRef.get();
                         if (scheduledFuture == null) {
                             return;
