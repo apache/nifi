@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.admin.service.impl;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.service.AdministrationException;
@@ -39,6 +33,13 @@ import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  *
@@ -138,6 +139,17 @@ public class StandardAuditService implements AuditService {
         }
 
         return history;
+    }
+
+    @Override
+    public History getActions(int firstActionId, int maxActions) {
+        final HistoryQuery query = new HistoryQuery();
+        query.setOffset(firstActionId);
+        query.setCount(maxActions);
+        query.setSortOrder("asc");
+        query.setSortColumn("timestamp");
+
+        return getActions(query);
     }
 
     @Override

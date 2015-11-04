@@ -209,6 +209,16 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+                final ResultType resultType = context.newExpressionLanguageCompiler().getResultType(value);
+                if (!resultType.equals(ResultType.STRING)) {
+                    return new ValidationResult.Builder()
+                            .subject(subject)
+                            .input(value)
+                            .valid(false)
+                            .explanation("Expected Attribute Query to return type " + ResultType.STRING + " but query returns type " + resultType)
+                            .build();
+                }
+
                 return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
             }
 

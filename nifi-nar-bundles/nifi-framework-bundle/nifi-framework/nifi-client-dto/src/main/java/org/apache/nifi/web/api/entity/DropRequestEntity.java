@@ -14,32 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action.details;
+package org.apache.nifi.web.api.entity;
 
-import java.util.Date;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 
 /**
- *
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a DropRequestDTO.
  */
-public class PurgeDetails extends ActionDetails {
+@XmlRootElement(name = "dropRequestEntity")
+public class DropRequestEntity extends Entity {
 
-    private Date endDate;
+    private DropRequestDTO dropRequest;
 
     /**
-     * The end date for this purge action.
+     * The DropRequestDTO that is being serialized.
      *
-     * @return date at which the purge ends
+     * @return The DropRequestDTO object
      */
-    public Date getEndDate() {
-        return endDate;
+    public DropRequestDTO getDropRequest() {
+        return dropRequest;
     }
 
-    /**
-     * Establishes the end data for this purge action
-     * @param endDate date at which the purge ends
-     */
-    public void setEndDate(Date endDate) {
-        this.endDate = endDate;
+    public void setDropRequest(DropRequestDTO dropRequest) {
+        this.dropRequest = dropRequest;
     }
 
 }

@@ -47,8 +47,9 @@ $(document).ready(function () {
     $('#nf-yes-no-dialog').modal({
         handler: {
             close: function () {
-                // clear the content
+                // clear the content and reset the button model
                 $('#nf-yes-no-dialog-content').empty();
+                $('#nf-yes-no-dialog').modal('setButtonModel', []);
             }
         }
     }).draggable({
@@ -91,7 +92,9 @@ nf.Dialog = (function () {
             options = $.extend({
                 headerText: '',
                 dialogContent: '',
-                overlayBackgrond: true
+                overlayBackgrond: true,
+                yesText: 'Yes',
+                noText: 'No'
             }, options);
 
             // add the content to the prompt
@@ -100,7 +103,7 @@ nf.Dialog = (function () {
 
             // update the button model
             $('#nf-yes-no-dialog').modal('setButtonModel', [{
-                    buttonText: 'Yes',
+                    buttonText: options.yesText,
                     handler: {
                         click: function () {
                             // close the dialog
@@ -111,7 +114,7 @@ nf.Dialog = (function () {
                         }
                     }
                 }, {
-                    buttonText: 'No',
+                    buttonText: options.noText,
                     handler: {
                         click: function () {
                             // close the dialog

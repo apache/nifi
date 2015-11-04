@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.action;
 
-import java.io.Serializable;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import java.util.Date;
@@ -24,10 +23,10 @@ import java.util.Date;
 /**
  *
  */
-public class Action implements Serializable {
+public class FlowChangeAction implements Action {
 
     private Integer id;
-    private String userDn;
+    private String userIdentity;
     private String userName;
     private Date timestamp;
 
@@ -39,6 +38,7 @@ public class Action implements Serializable {
     private Operation operation;
     private ActionDetails actionDetails;
 
+    @Override
     public Integer getId() {
         return id;
     }
@@ -47,6 +47,7 @@ public class Action implements Serializable {
         this.id = id;
     }
 
+    @Override
     public Date getTimestamp() {
         return timestamp;
     }
@@ -55,14 +56,16 @@ public class Action implements Serializable {
         this.timestamp = timestamp;
     }
 
-    public String getUserDn() {
-        return userDn;
+    @Override
+    public String getUserIdentity() {
+        return userIdentity;
     }
 
-    public void setUserDn(String userDn) {
-        this.userDn = userDn;
+    public void setUserIdentity(String userIdentity) {
+        this.userIdentity = userIdentity;
     }
 
+    @Override
     public String getUserName() {
         return userName;
     }
@@ -71,6 +74,7 @@ public class Action implements Serializable {
         this.userName = userName;
     }
 
+    @Override
     public String getSourceId() {
         return sourceId;
     }
@@ -79,6 +83,7 @@ public class Action implements Serializable {
         this.sourceId = sourceId;
     }
 
+    @Override
     public String getSourceName() {
         return sourceName;
     }
@@ -87,6 +92,7 @@ public class Action implements Serializable {
         this.sourceName = sourceName;
     }
 
+    @Override
     public Component getSourceType() {
         return sourceType;
     }
@@ -95,6 +101,7 @@ public class Action implements Serializable {
         this.sourceType = sourceType;
     }
 
+    @Override
     public ComponentDetails getComponentDetails() {
         return componentDetails;
     }
@@ -103,6 +110,7 @@ public class Action implements Serializable {
         this.componentDetails = componentDetails;
     }
 
+    @Override
     public Operation getOperation() {
         return operation;
     }
@@ -111,6 +119,7 @@ public class Action implements Serializable {
         this.operation = operation;
     }
 
+    @Override
     public ActionDetails getActionDetails() {
         return actionDetails;
     }

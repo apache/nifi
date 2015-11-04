@@ -33,12 +33,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-
 import org.junit.Assert;
 
-public class MockFlowFile implements FlowFile {
+public class MockFlowFile implements FlowFileRecord {
 
     private final Map<String, String> attributes = new HashMap<>();
 
@@ -170,7 +171,7 @@ public class MockFlowFile implements FlowFile {
 
     public void assertAttributeNotExists(final String attributeName) {
         Assert.assertFalse("Attribute " + attributeName + " not exists with value " + attributes.get(attributeName),
-                attributes.containsKey(attributeName));
+            attributes.containsKey(attributeName));
     }
 
     public void assertAttributeEquals(final String attributeName, final String expectedValue) {
@@ -250,7 +251,7 @@ public class MockFlowFile implements FlowFile {
 
                 if ((fromStream & 0xFF) != (data[i] & 0xFF)) {
                     Assert.fail("FlowFile content differs from input at byte " + bytesRead + " with input having value "
-                            + (fromStream & 0xFF) + " and FlowFile having value " + (data[i] & 0xFF));
+                        + (fromStream & 0xFF) + " and FlowFile having value " + (data[i] & 0xFF));
                 }
 
                 bytesRead++;
@@ -273,5 +274,20 @@ public class MockFlowFile implements FlowFile {
     @Override
     public Long getLastQueueDate() {
         return entryDate;
+    }
+
+    @Override
+    public long getPenaltyExpirationMillis() {
+        return -1;
+    }
+
+    @Override
+    public ContentClaim getContentClaim() {
+        return null;
+    }
+
+    @Override
+    public long getContentClaimOffset() {
+        return 0;
     }
 }

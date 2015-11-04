@@ -14,13 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action.details;
 
-import java.io.Serializable;
+package org.apache.nifi.controller.repository;
 
-/**
- *
- */
-public abstract class ActionDetails implements Serializable {
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.events.EventReporter;
 
+public interface SwapManagerInitializationContext {
+
+    /**
+     * @return the {@link FlowFileRepository} that should be updated when FlowFiles are swapped in and out
+     */
+    FlowFileRepository getFlowFileRepository();
+
+    /**
+     * @return the {@link ResourceClaimManager} that is necessary to provide to the FlowFileRepository when
+     *         performing swapping actions
+     */
+    ResourceClaimManager getResourceClaimManager();
+
+    /**
+     * @return an {@link EventReporter} that can be used to report events to users
+     */
+    EventReporter getEventReporter();
 }

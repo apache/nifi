@@ -16,46 +16,25 @@
  */
 package org.apache.nifi.action.details;
 
+import org.apache.nifi.action.Component;
+
 /**
- *
+ * Provides details about a connect action.
  */
-public class MoveDetails extends ActionDetails {
+public interface ConnectDetails extends ActionDetails {
 
-    private String previousGroupId;
-    private String previousGroup;
-    private String groupId;
-    private String group;
+    String getSourceId();
 
-    public String getGroup() {
-        return group;
-    }
+    String getSourceName();
 
-    public void setGroup(String group) {
-        this.group = group;
-    }
+    Component getSourceType();
 
-    public String getGroupId() {
-        return groupId;
-    }
+    String getDestinationId();
 
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
+    String getDestinationName();
 
-    public String getPreviousGroup() {
-        return previousGroup;
-    }
+    Component getDestinationType();
 
-    public void setPreviousGroup(String previousGroup) {
-        this.previousGroup = previousGroup;
-    }
-
-    public String getPreviousGroupId() {
-        return previousGroupId;
-    }
-
-    public void setPreviousGroupId(String previousGroupId) {
-        this.previousGroupId = previousGroupId;
-    }
+    String getRelationship();
 
 }

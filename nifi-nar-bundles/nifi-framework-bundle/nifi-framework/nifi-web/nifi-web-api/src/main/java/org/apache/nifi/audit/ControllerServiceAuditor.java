@@ -25,10 +25,11 @@ import java.util.Set;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.ExtensionDetails;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
-import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ProcessorNode;
@@ -121,7 +122,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             Map<String, String> updatedValues = extractConfiguredPropertyValues(controllerService, controllerServiceDTO);
 
             // create the controller service details
-            ExtensionDetails serviceDetails = new ExtensionDetails();
+            FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
             serviceDetails.setType(controllerService.getControllerServiceImplementation().getClass().getSimpleName());
 
             // create a controller service action
@@ -159,14 +160,14 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                         }
                     }
 
-                    final ConfigureDetails actionDetails = new ConfigureDetails();
+                    final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
                     actionDetails.setName(property);
                     actionDetails.setValue(newValue);
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    Action configurationAction = new Action();
-                    configurationAction.setUserDn(user.getDn());
+                    FlowChangeAction configurationAction = new FlowChangeAction();
+                    configurationAction.setUserIdentity(user.getDn());
                     configurationAction.setUserName(user.getUserName());
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
@@ -185,8 +186,8 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (isDisabled != updateIsDisabled) {
                 // create a controller service action
-                Action serviceAction = new Action();
-                serviceAction.setUserDn(user.getDn());
+                FlowChangeAction serviceAction = new FlowChangeAction();
+                serviceAction.setUserIdentity(user.getDn());
                 serviceAction.setUserName(user.getUserName());
                 serviceAction.setTimestamp(new Date());
                 serviceAction.setSourceId(controllerService.getIdentifier());
@@ -265,12 +266,12 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 final ProcessorNode processor = ((ProcessorNode) component);
 
                 // create the processor details
-                ExtensionDetails processorDetails = new ExtensionDetails();
+                FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
                 processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
 
                 // create a processor action
-                Action processorAction = new Action();
-                processorAction.setUserDn(user.getDn());
+                FlowChangeAction processorAction = new FlowChangeAction();
+                processorAction.setUserIdentity(user.getDn());
                 processorAction.setUserName(user.getUserName());
                 processorAction.setTimestamp(new Date());
                 processorAction.setSourceId(processor.getIdentifier());
@@ -283,12 +284,12 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 final ReportingTaskNode reportingTask = ((ReportingTaskNode) component);
 
                 // create the reporting task details
-                ExtensionDetails processorDetails = new ExtensionDetails();
+                FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
                 processorDetails.setType(reportingTask.getReportingTask().getClass().getSimpleName());
 
                 // create a reporting task action
-                Action reportingTaskAction = new Action();
-                reportingTaskAction.setUserDn(user.getDn());
+                FlowChangeAction reportingTaskAction = new FlowChangeAction();
+                reportingTaskAction.setUserIdentity(user.getDn());
                 reportingTaskAction.setUserName(user.getUserName());
                 reportingTaskAction.setTimestamp(new Date());
                 reportingTaskAction.setSourceId(reportingTask.getIdentifier());
@@ -301,12 +302,12 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 final ControllerServiceNode controllerService = ((ControllerServiceNode) component);
 
                 // create the controller service details
-                ExtensionDetails serviceDetails = new ExtensionDetails();
+                FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
                 serviceDetails.setType(controllerService.getControllerServiceImplementation().getClass().getSimpleName());
 
                 // create a controller service action
-                Action serviceAction = new Action();
-                serviceAction.setUserDn(user.getDn());
+                FlowChangeAction serviceAction = new FlowChangeAction();
+                serviceAction.setUserIdentity(user.getDn());
                 serviceAction.setUserName(user.getUserName());
                 serviceAction.setTimestamp(new Date());
                 serviceAction.setSourceId(controllerService.getIdentifier());
@@ -373,7 +374,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      * @return action
      */
     private Action generateAuditRecord(ControllerServiceNode controllerService, Operation operation, ActionDetails actionDetails) {
-        Action action = null;
+        FlowChangeAction action = null;
 
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -381,12 +382,12 @@ public class ControllerServiceAuditor extends NiFiAuditor {
         // ensure the user was found
         if (user != null) {
             // create the controller service details
-            ExtensionDetails serviceDetails = new ExtensionDetails();
+            FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
             serviceDetails.setType(controllerService.getControllerServiceImplementation().getClass().getSimpleName());
 
             // create the controller service action for adding this controller service
-            action = new Action();
-            action.setUserDn(user.getDn());
+            action = new FlowChangeAction();
+            action.setUserIdentity(user.getDn());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());

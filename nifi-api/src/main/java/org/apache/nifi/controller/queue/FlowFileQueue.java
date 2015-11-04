@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller;
+package org.apache.nifi.controller.queue;
 
 import java.util.Collection;
 import java.util.List;
@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.QueueSize;
 
 public interface FlowFileQueue {
 
@@ -40,16 +39,31 @@ public interface FlowFileQueue {
     List<FlowFilePrioritizer> getPriorities();
 
     /**
-     * @return the minimum number of FlowFiles that must be present in order for
-     * FlowFiles to begin being swapped out of the queue
+     * Reads any Swap Files that belong to this queue and increments counts so that the size
+     * of the queue will reflect the size of all FlowFiles regardless of whether or not they are
+     * swapped out. This will be called only during NiFi startup as an initialization step. This
+     * method is then responsible for returning the largest ID of any FlowFile that is swapped
+     * out, or <code>null</code> if no FlowFiles are swapped out for this queue.
+     *
+     * @return the largest ID of any FlowFile that is swapped out for this queue, or <code>null</code> if
+     *         no FlowFiles are swapped out for this queue.
      */
-    int getSwapThreshold();
+    Long recoverSwappedFlowFiles();
+
+    /**
+     * Destroys any Swap Files that exist for this queue without updating the FlowFile Repository
+     * or Provenance Repository. This is done only on startup in the case of non-persistent
+     * repositories. In the case of non-persistent repositories, we may still have Swap Files because
+     * we may still need to overflow the FlowFiles from heap onto disk, even though we don't want to keep
+     * the FlowFiles on restart.
+     */
+    void purgeSwapFiles();
 
     /**
      * Resets the comparator used by this queue to maintain order.
      *
      * @param newPriorities the ordered list of prioritizers to use to determine
-     * order within this queue.
+     *            order within this queue.
      * @throws NullPointerException if arg is null
      */
     void setPriorities(List<FlowFilePrioritizer> newPriorities);
@@ -58,13 +72,13 @@ public interface FlowFileQueue {
      * Establishes this queue's preferred maximum work load.
      *
      * @param maxQueueSize the maximum number of flow files this processor
-     * recommends having in its work queue at any one time
+     *            recommends having in its work queue at any one time
      */
     void setBackPressureObjectThreshold(long maxQueueSize);
 
     /**
      * @return maximum number of flow files that should be queued up at any one
-     * time
+     *         time
      */
     long getBackPressureObjectThreshold();
 
@@ -81,24 +95,17 @@ public interface FlowFileQueue {
     QueueSize size();
 
     /**
-     * @return total size in bytes of the queue flow file's content
-     */
-    long contentSize();
-
-    /**
      * @return true if no items queue; false otherwise
      */
     boolean isEmpty();
 
     /**
      * @return true if the active queue is empty; false otherwise. The Active
-     * queue contains those FlowFiles that can be processed immediately and does
-     * not include those FlowFiles that have been swapped out or are currently
-     * being processed
+     *         queue contains those FlowFiles that can be processed immediately and does
+     *         not include those FlowFiles that have been swapped out or are currently
+     *         being processed
      */
     boolean isActiveQueueEmpty();
-
-    QueueSize getActiveQueueSize();
 
     /**
      * Returns a QueueSize that represents all FlowFiles that are 'unacknowledged'. A FlowFile
@@ -115,7 +122,7 @@ public interface FlowFileQueue {
 
     /**
      * @return true if maximum queue size has been reached or exceeded; false
-     * otherwise
+     *         otherwise
      */
     boolean isFull();
 
@@ -134,39 +141,6 @@ public interface FlowFileQueue {
     void putAll(Collection<FlowFileRecord> files);
 
     /**
-     * Removes all records from the internal swap queue and returns them.
-     *
-     * @return all removed records from internal swap queue
-     */
-    List<FlowFileRecord> pollSwappableRecords();
-
-    /**
-     * Restores the records from swap space into this queue, adding the records
-     * that have expired to the given set instead of enqueuing them.
-     *
-     * @param records that were swapped in
-     */
-    void putSwappedRecords(Collection<FlowFileRecord> records);
-
-    /**
-     * Updates the internal counters of how much data is queued, based on
-     * swapped data that is being restored.
-     *
-     * @param numRecords count of records swapped in
-     * @param contentSize total size of records being swapped in
-     */
-    void incrementSwapCount(int numRecords, long contentSize);
-
-    /**
-     * @return the number of FlowFiles that are enqueued and not swapped
-     */
-    int unswappedSize();
-
-    int getSwapRecordCount();
-
-    int getSwapQueueSize();
-
-    /**
      * @param expiredRecords expired records
      * @return the next flow file on the queue; null if empty
      */
@@ -176,7 +150,7 @@ public interface FlowFileQueue {
      * @param maxResults limits how many results can be polled
      * @param expiredRecords for expired records
      * @return the next flow files on the queue up to the max results; null if
-     * empty
+     *         empty
      */
     List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords);
 
@@ -200,4 +174,38 @@ public interface FlowFileQueue {
 
     void setFlowFileExpiration(String flowExpirationPeriod);
 
+    /**
+     * Initiates a request to drop all FlowFiles in this queue. This method returns
+     * a DropFlowFileStatus that can be used to determine the current state of the request.
+     * Additionally, the DropFlowFileStatus provides a request identifier that can then be
+     * passed to the {@link #getDropFlowFileStatus(String)} and {@link #cancelDropFlowFileStatus(String)}
+     * methods in order to obtain the status later or cancel a request
+     *
+     * @param requestor the entity that is requesting that the FlowFiles be dropped; this will be
+     *            included in the Provenance Events that are generated.
+     *
+     * @return the status of the drop request.
+     */
+    DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor);
+
+    /**
+     * Returns the current status of a Drop FlowFile Request that was initiated via the
+     * {@link #dropFlowFiles()} method that has the given identifier
+     *
+     * @param requestIdentifier the identifier of the Drop FlowFile Request
+     * @return the status for the request with the given identifier, or <code>null</code> if no
+     *         request status exists with that identifier
+     */
+    DropFlowFileStatus getDropFlowFileStatus(String requestIdentifier);
+
+    /**
+     * Cancels the request to drop FlowFiles that has the given identifier. After this method is called, the request
+     * will no longer be known by this queue, so subsequent calls to {@link #getDropFlowFileStatus(String)} or
+     * {@link #cancelDropFlowFileRequest(String)} will return <code>null</code>
+     *
+     * @param requestIdentifier the identifier of the Drop FlowFile Request
+     * @return the status for the request with the given identifier after it has been canceled, or <code>null</code> if no
+     *         request status exists with that identifier
+     */
+    DropFlowFileStatus cancelDropFlowFileRequest(String requestIdentifier);
 }

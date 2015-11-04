@@ -24,6 +24,36 @@ nf.Actions = (function () {
             controller: '../nifi-api/controller'
         }
     };
+    
+    /**
+     * Initializes the drop request status dialog.
+     */
+    var initializeDropRequestStatusDialog = function () {
+        // initialize the drop requst progress bar
+        var dropRequestProgressBar = $('#drop-request-percent-complete').progressbar();
+
+        // configure the drop request status dialog
+        $('#drop-request-status-dialog').modal({
+            overlayBackground: false,
+            handler: {
+                close: function () {
+                    // reset the progress bar
+                    dropRequestProgressBar.find('div.progress-label').remove();
+
+                    // update the progress bar
+                    var label = $('<div class="progress-label"></div>').text('0%');
+                    dropRequestProgressBar.progressbar('value', 0).append(label);
+                    
+                    // clear the current button model
+                    $('#drop-request-status-dialog').modal('setButtonModel', []);
+                }
+            }
+        }).draggable({
+            containment: 'parent',
+            handle: '.dialog-header'
+        });
+    };
+    
 
     /**
      * Updates the resource with the specified data.
@@ -78,6 +108,13 @@ nf.Actions = (function () {
     };
 
     return {
+        /**
+         * Initializes the actions.
+         */
+        init: function () {
+            initializeDropRequestStatusDialog();
+        },
+        
         /**
          * Enters the specified process group.
          * 
@@ -861,6 +898,176 @@ nf.Actions = (function () {
                     }).fail(nf.Common.handleAjaxError);
                 }
             }
+        },
+        
+        /**
+         * Deletes the flow files in the specified connection.
+         * 
+         * @param {type} selection
+         */
+        emptyQueue: function (selection) {
+            if (selection.size() !== 1 || !nf.CanvasUtils.isConnection(selection)) {
+                return;
+            }
+            
+            // prompt the user before emptying the queue
+            nf.Dialog.showYesNoDialog({
+                headerText: 'Empty Queue',
+                dialogContent: 'Are you sure you want to empty this queue? All FlowFiles waiting at the time of the request will be removed.',
+                overlayBackground: false,
+                noText: 'Cancel',
+                yesText: 'Empty',
+                yesHandler: function () {
+                    // get the connection data
+                    var connection = selection.datum();
+                    
+                    var MAX_DELAY = 4;
+                    var cancelled = false;
+                    var dropRequest = null;
+                    var dropRequestTimer = null;
+
+                    // updates the progress bar
+                    var updateProgress = function (percentComplete) {
+                        // remove existing labels
+                        var progressBar = $('#drop-request-percent-complete');
+                        progressBar.find('div.progress-label').remove();
+
+                        // update the progress bar
+                        var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
+                        if (percentComplete > 0) {
+                            label.css('margin-top', '-19px');
+                        }
+                        progressBar.progressbar('value', percentComplete).append(label);
+                    };
+
+                    // update the button model of the drop request status dialog
+                    $('#drop-request-status-dialog').modal('setButtonModel', [{
+                            buttonText: 'Stop',
+                            handler: {
+                                click: function () {
+                                    cancelled = true;
+
+                                    // we are waiting for the next poll attempt
+                                    if (dropRequestTimer !== null) {
+                                        // cancel it
+                                        clearTimeout(dropRequestTimer);
+
+                                        // cancel the provenance
+                                        completeDropRequest();
+                                    }
+                                }
+                            }
+                        }]);
+
+                    // completes the drop request by removing it and showing how many flowfiles were deleted
+                    var completeDropRequest = function () {
+                        if (nf.Common.isDefinedAndNotNull(dropRequest)) {
+                            $.ajax({
+                                type: 'DELETE',
+                                url: dropRequest.uri,
+                                dataType: 'json'
+                            }).done(function(response) {
+                                // report the results of this drop request
+                                dropRequest = response.dropRequest;
+                                
+                                // build the results
+                                var droppedTokens = dropRequest.dropped.split(/ \/ /);
+                                var results = $('<div></div>');
+                                $('<span class="label"></span>').text(droppedTokens[0]).appendTo(results);
+                                $('<span></span>').text(' FlowFiles (' + droppedTokens[1] + ')').appendTo(results);
+                                
+                                // if the request did not complete, include the original
+                                if (dropRequest.percentCompleted < 100) {
+                                    var originalTokens = dropRequest.original.split(/ \/ /);
+                                    $('<span class="label"></span>').text(' out of ' + originalTokens[0]).appendTo(results);
+                                    $('<span></span>').text(' (' + originalTokens[1] + ')').appendTo(results);
+                                }
+                                $('<span></span>').text(' were removed from the queue.').appendTo(results);
+                                
+                                // if this request failed so the error
+                                if (nf.Common.isDefinedAndNotNull(dropRequest.failureReason)) {
+                                    $('<br/><br/><span></span>').text(dropRequest.failureReason).appendTo(results);
+                                }
+                                
+                                // display the results
+                                nf.Dialog.showOkDialog({
+                                    dialogContent: results,
+                                    overlayBackground: false
+                                });
+                            }).always(function() {
+                                $('#drop-request-status-dialog').modal('hide');
+                            });
+                        } else {
+                            // nothing was removed
+                            nf.Dialog.showYesNoDialog({
+                                dialogContent: 'No FlowFiles were removed.',
+                                overlayBackground: false
+                            });
+                            
+                            // close the dialog
+                            $('#drop-request-status-dialog').modal('hide');
+                        }
+                    };
+
+                    // process the drop request
+                    var processDropRequest = function (delay) {
+                        // update the percent complete
+                        updateProgress(dropRequest.percentCompleted);
+
+                        // update the status of the drop request
+                        $('#drop-request-status-message').text(dropRequest.state);
+                        
+                        // update the current number of enqueued flowfiles
+                        if (nf.Common.isDefinedAndNotNull(dropRequest.currentCount)) {
+                            connection.status.queued = dropRequest.current;
+                            nf.Connection.refresh(connection.id);
+                        }
+                        
+                        // close the dialog if the 
+                        if (dropRequest.finished === true || cancelled === true) {
+                            completeDropRequest();
+                        } else {
+                            // wait delay to poll again
+                            dropRequestTimer = setTimeout(function () {
+                                // clear the drop request timer
+                                dropRequestTimer = null;
+
+                                // schedule to poll the status again in nextDelay
+                                pollDropRequest(Math.min(MAX_DELAY, delay * 2));
+                            }, delay * 1000);
+                        }
+                    };
+
+                    // schedule for the next poll iteration
+                    var pollDropRequest = function (nextDelay) {
+                        $.ajax({
+                            type: 'GET',
+                            url: dropRequest.uri,
+                            dataType: 'json'
+                        }).done(function(response) {
+                            dropRequest = response.dropRequest;
+                            processDropRequest(nextDelay);
+                        }).fail(completeDropRequest);
+                    };
+
+                    // issue the request to delete the flow files
+                    $.ajax({
+                        type: 'DELETE',
+                        url: connection.component.uri + '/contents',
+                        dataType: 'json'
+                    }).done(function(response) {
+                        // initialize the progress bar value
+                        updateProgress(0);
+                        
+                        // show the progress dialog
+                        $('#drop-request-status-dialog').modal('show');
+                        
+                        // process the drop request
+                        dropRequest = response.dropRequest;
+                        processDropRequest(1);
+                    }).fail(completeDropRequest);
+                }
+            });
         },
         
         /**

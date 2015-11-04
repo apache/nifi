@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.admin.dao;
 
+import org.apache.nifi.action.Action;
+import org.apache.nifi.history.History;
+import org.apache.nifi.history.HistoryQuery;
+import org.apache.nifi.history.PreviousValue;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.apache.nifi.action.Action;
-import org.apache.nifi.history.HistoryQuery;
-import org.apache.nifi.history.History;
-import org.apache.nifi.history.PreviousValue;
 
 /**
  * Action data access.
@@ -33,9 +34,10 @@ public interface ActionDAO {
      * Persists the specified action.
      *
      * @param action to persist
+     * @return the created Action with it's id
      * @throws DataAccessException if unable to persist
      */
-    void createAction(Action action) throws DataAccessException;
+    Action createAction(Action action) throws DataAccessException;
 
     /**
      * Finds all actions that meet the specified criteria.
