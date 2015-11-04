@@ -73,6 +73,24 @@ public class TestFileSystemRepository {
     }
 
     @Test
+    public void testBogusFile() throws IOException {
+        repository.shutdown();
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
+
+        File bogus = new File(rootFile, "bogus");
+        try {
+            bogus.mkdir();
+            bogus.setReadable(false);
+
+            repository = new FileSystemRepository();
+            repository.initialize(new StandardResourceClaimManager());
+        } finally {
+            bogus.setReadable(true);
+            assertTrue(bogus.delete());
+        }
+    }
+
+    @Test
     public void testCreateContentClaim() throws IOException {
         // value passed to #create is irrelevant because the FileSystemRepository does not currently support loss tolerance.
         final ContentClaim claim = repository.create(true);

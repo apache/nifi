@@ -18,6 +18,7 @@ package org.apache.nifi.provenance;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +41,7 @@ public class StandardQueryResult implements QueryResult {
 
     private final Lock writeLock = rwLock.writeLock();
     // guarded by writeLock
-    private final List<ProvenanceEventRecord> matchingRecords = new ArrayList<>();
+    private final List<List<ProvenanceEventRecord>> matchingRecords;
     private long totalHitCount;
     private int numCompletedSteps = 0;
     private Date expirationDate;
@@ -53,6 +54,11 @@ public class StandardQueryResult implements QueryResult {
         this.query = query;
         this.numSteps = numSteps;
         this.creationNanos = System.nanoTime();
+        this.matchingRecords = new ArrayList<>(numSteps);
+
+        for (int i = 0; i < Math.max(1, numSteps); i++) {
+            matchingRecords.add(Collections.<ProvenanceEventRecord> emptyList());
+        }
 
         updateExpiration();
     }
@@ -61,13 +67,14 @@ public class StandardQueryResult implements QueryResult {
     public List<ProvenanceEventRecord> getMatchingEvents() {
         readLock.lock();
         try {
-            if (matchingRecords.size() <= query.getMaxResults()) {
-                return new ArrayList<>(matchingRecords);
-            }
-
             final List<ProvenanceEventRecord> copy = new ArrayList<>(query.getMaxResults());
-            for (int i = 0; i < query.getMaxResults(); i++) {
-                copy.add(matchingRecords.get(i));
+            for (final List<ProvenanceEventRecord> recordList : matchingRecords) {
+                if (copy.size() + recordList.size() > query.getMaxResults()) {
+                    copy.addAll(recordList.subList(0, query.getMaxResults() - copy.size()));
+                    return copy;
+                } else {
+                    copy.addAll(recordList);
+                }
             }
 
             return copy;
@@ -141,10 +148,10 @@ public class StandardQueryResult implements QueryResult {
         }
     }
 
-    public void update(final Collection<ProvenanceEventRecord> matchingRecords, final long totalHits) {
+    public void update(final Collection<ProvenanceEventRecord> matchingRecords, final long totalHits, final int indexId) {
         writeLock.lock();
         try {
-            this.matchingRecords.addAll(matchingRecords);
+            this.matchingRecords.set(indexId, new ArrayList<>(matchingRecords));
             this.totalHitCount += totalHits;
 
             numCompletedSteps++;

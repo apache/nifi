@@ -24,10 +24,12 @@ import java.util.Set;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.ExtensionDetails;
-import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.action.component.details.FlowChangeRemoteProcessGroupDetails;
 import org.apache.nifi.action.details.ConnectDetails;
+import org.apache.nifi.action.details.FlowChangeConnectDetails;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -136,10 +138,10 @@ public class SnippetAuditor extends NiFiAuditor {
 
         // remote processor groups
         for (final RemoteProcessGroupDTO remoteProcessGroup : snippet.getRemoteProcessGroups()) {
-            RemoteProcessGroupDetails remoteProcessGroupDetails = new RemoteProcessGroupDetails();
+            FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = new FlowChangeRemoteProcessGroupDetails();
             remoteProcessGroupDetails.setUri(remoteProcessGroup.getTargetUri());
 
-            final Action action = generateAuditRecord(remoteProcessGroup.getId(), remoteProcessGroup.getName(), Component.RemoteProcessGroup, Operation.Add, timestamp);
+            final FlowChangeAction action = generateAuditRecord(remoteProcessGroup.getId(), remoteProcessGroup.getName(), Component.RemoteProcessGroup, Operation.Add, timestamp);
             action.setComponentDetails(remoteProcessGroupDetails);
             actions.add(action);
         }
@@ -151,10 +153,10 @@ public class SnippetAuditor extends NiFiAuditor {
 
         // processors
         for (final ProcessorDTO processor : snippet.getProcessors()) {
-            final ExtensionDetails processorDetails = new ExtensionDetails();
+            final FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
             processorDetails.setType(StringUtils.substringAfterLast(processor.getType(), "."));
 
-            final Action action = generateAuditRecord(processor.getId(), processor.getName(), Component.Processor, Operation.Add, timestamp);
+            final FlowChangeAction action = generateAuditRecord(processor.getId(), processor.getName(), Component.Processor, Operation.Add, timestamp);
             action.setComponentDetails(processorDetails);
             actions.add(action);
         }
@@ -174,7 +176,7 @@ public class SnippetAuditor extends NiFiAuditor {
             final String name = StringUtils.isBlank(connection.getName()) ? relationships : connection.getName();
 
             // create the connect details
-            ConnectDetails connectDetails = new ConnectDetails();
+            FlowChangeConnectDetails connectDetails = new FlowChangeConnectDetails();
             connectDetails.setSourceId(source.getId());
             connectDetails.setSourceName(source.getName());
             connectDetails.setSourceType(determineConnectableType(source));
@@ -184,7 +186,7 @@ public class SnippetAuditor extends NiFiAuditor {
             connectDetails.setDestinationType(determineConnectableType(destination));
 
             // create the audit record
-            final Action action = generateAuditRecord(connection.getId(), name, Component.Connection, Operation.Connect, timestamp);
+            final FlowChangeAction action = generateAuditRecord(connection.getId(), name, Component.Connection, Operation.Connect, timestamp);
             action.setActionDetails(connectDetails);
             actions.add(action);
         }
@@ -220,8 +222,8 @@ public class SnippetAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of the specified funnel.
      */
-    private Action generateAuditRecord(String id, String name, Component type, Operation operation, Date timestamp) {
-        Action action = null;
+    private FlowChangeAction generateAuditRecord(String id, String name, Component type, Operation operation, Date timestamp) {
+        FlowChangeAction action = null;
 
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -229,8 +231,8 @@ public class SnippetAuditor extends NiFiAuditor {
         // ensure the user was found
         if (user != null) {
             // create the action for adding this funnel
-            action = new Action();
-            action.setUserDn(user.getDn());
+            action = new FlowChangeAction();
+            action.setUserIdentity(user.getDn());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(timestamp);

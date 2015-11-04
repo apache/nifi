@@ -37,8 +37,9 @@ import javax.ws.rs.WebApplicationException;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AccountNotFoundException;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.UserService;
@@ -162,6 +163,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
@@ -809,6 +811,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public DropRequestDTO deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(connectionDAO.deleteFlowFileDropRequest(groupId, connectionId, dropRequestId));
+    }
+
+    @Override
     public ConfigurationSnapshot<Void> deleteProcessor(final Revision revision, final String groupId, final String processorId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
@@ -1057,6 +1064,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 };
             }
         });
+    }
+
+    @Override
+    public DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(connectionDAO.createFileFlowDropRequest(groupId, connectionId, dropRequestId));
     }
 
     @Override
@@ -1765,12 +1777,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         // create the purge details
-        PurgeDetails details = new PurgeDetails();
+        FlowChangePurgeDetails details = new FlowChangePurgeDetails();
         details.setEndDate(endDate);
 
         // create a purge action to record that records are being removed
-        Action purgeAction = new Action();
-        purgeAction.setUserDn(user.getDn());
+        FlowChangeAction purgeAction = new FlowChangeAction();
+        purgeAction.setUserIdentity(user.getDn());
         purgeAction.setUserName(user.getUserName());
         purgeAction.setOperation(Operation.Purge);
         purgeAction.setTimestamp(new Date());
@@ -2089,6 +2101,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ConnectionDTO getConnection(String groupId, String connectionId) {
         return dtoFactory.createConnectionDto(connectionDAO.getConnection(groupId, connectionId));
+    }
+
+    @Override
+    public DropRequestDTO getFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(connectionDAO.getFlowFileDropRequest(groupId, connectionId, dropRequestId));
     }
 
     @Override
@@ -3436,8 +3453,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     /**
-     * Utility method for extracting component counts from the specified group
-     * status.
+     * Utility method for extracting component counts from the specified group status.
      */
     private ProcessGroupCounts extractProcessGroupCounts(ProcessGroupStatus groupStatus) {
         int running = 0;

@@ -23,7 +23,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.nifi.processor.QueueSize;
+import org.apache.nifi.controller.queue.QueueSize;
+
 
 public class MockFlowFileQueue {
 

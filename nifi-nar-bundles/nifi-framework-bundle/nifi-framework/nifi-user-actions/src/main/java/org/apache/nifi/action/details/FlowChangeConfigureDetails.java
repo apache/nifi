@@ -14,35 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor;
+package org.apache.nifi.action.details;
 
 /**
  *
  */
-public class QueueSize {
+public class FlowChangeConfigureDetails implements ConfigureDetails {
 
-    private final int objectCount;
-    private final long totalSizeBytes;
+    private String name;
+    private String previousValue;
+    private String value;
 
-    public QueueSize(final int numberObjects, final long totalSizeBytes) {
-        if (numberObjects < 0 || totalSizeBytes < 0) {
-            throw new IllegalArgumentException();
-        }
-        objectCount = numberObjects;
-        this.totalSizeBytes = totalSizeBytes;
+    @Override
+    public String getName() {
+        return name;
     }
 
-    /**
-     * @return number of objects present on the queue
-     */
-    public int getObjectCount() {
-        return objectCount;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    /**
-     * @return total size in bytes of the content for the data on the queue
-     */
-    public long getByteCount() {
-        return totalSizeBytes;
+    @Override
+    public String getPreviousValue() {
+        return previousValue;
     }
+
+    public void setPreviousValue(String previousValue) {
+        this.previousValue = previousValue;
+    }
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
 }

@@ -58,12 +58,12 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
@@ -222,7 +222,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             boolean unscheduledRun = false;
             for (final Future<Throwable> future : futures) {
                 try {
-                    final Throwable thrown = future.get();   // wait for the result
+                    final Throwable thrown = future.get(); // wait for the result
                     if (thrown != null) {
                         throw new AssertionError(thrown);
                     }
@@ -551,11 +551,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void addControllerService(final String identifier, final ControllerService service, final Map<String, String> properties) throws InitializationException {
         // hold off on failing due to deprecated annotation for now... will introduce later.
-//        for ( final Method method : service.getClass().getMethods() ) {
-//            if ( method.isAnnotationPresent(org.apache.nifi.controller.annotation.OnConfigured.class) ) {
-//                Assert.fail("Controller Service " + service + " is using deprecated Annotation " + org.apache.nifi.controller.annotation.OnConfigured.class + " for method " + method);
-//            }
-//        }
+        // for ( final Method method : service.getClass().getMethods() ) {
+        // if ( method.isAnnotationPresent(org.apache.nifi.controller.annotation.OnConfigured.class) ) {
+        // Assert.fail("Controller Service " + service + " is using deprecated Annotation " + org.apache.nifi.controller.annotation.OnConfigured.class + " for method " + method);
+        // }
+        // }
 
         final ComponentLog logger = new MockProcessorLog(identifier, service);
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger);
@@ -716,11 +716,11 @@ public class StandardProcessorTestRunner implements TestRunner {
         final PropertyDescriptor descriptor = service.getPropertyDescriptor(propertyName);
         if (descriptor == null) {
             return new ValidationResult.Builder()
-                    .input(propertyName)
-                    .explanation(propertyName + " is not a known Property for Controller Service " + service)
-                    .subject("Invalid property")
-                    .valid(false)
-                    .build();
+                .input(propertyName)
+                .explanation(propertyName + " is not a known Property for Controller Service " + service)
+                .subject("Invalid property")
+                .valid(false)
+                .build();
         }
         return setProperty(service, descriptor, value);
     }

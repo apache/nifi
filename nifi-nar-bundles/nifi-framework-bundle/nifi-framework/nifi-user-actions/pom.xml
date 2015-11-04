@@ -21,4 +21,11 @@
         <version>0.3.1-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-user-actions</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>

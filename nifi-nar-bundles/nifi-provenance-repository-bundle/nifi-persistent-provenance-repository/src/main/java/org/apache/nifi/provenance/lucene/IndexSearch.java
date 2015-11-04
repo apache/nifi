@@ -19,17 +19,22 @@ package org.apache.nifi.provenance.lucene;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.SortField.Type;
 import org.apache.lucene.search.TopDocs;
 import org.apache.nifi.provenance.PersistentProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.StandardQueryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +53,7 @@ public class IndexSearch {
         this.maxAttributeChars = maxAttributeChars;
     }
 
-    public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final AtomicInteger retrievedCount, final long firstEventTimestamp) throws IOException {
+    public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final long firstEventTimestamp) throws IOException {
         if (!indexDirectory.exists() && !indexDirectory.mkdirs()) {
             throw new IOException("Unable to create Indexing Directory " + indexDirectory);
         }
@@ -57,7 +62,6 @@ public class IndexSearch {
         }
 
         final StandardQueryResult sqr = new StandardQueryResult(provenanceQuery, 1);
-        final Set<ProvenanceEventRecord> matchingRecords;
 
         // we need to set the start date because if we do not, the first index may still have events that have aged off from
         // the repository, and we don't want those events to count toward the total number of matches.
@@ -77,38 +81,47 @@ public class IndexSearch {
             final long searchStartNanos = System.nanoTime();
             final long openSearcherNanos = searchStartNanos - start;
 
-            final TopDocs topDocs = searcher.search(luceneQuery, provenanceQuery.getMaxResults());
+            final Sort sort = new Sort(new SortField(SearchableFields.Identifier.getSearchableFieldName(), Type.LONG, true));
+            final TopDocs topDocs = searcher.search(luceneQuery, provenanceQuery.getMaxResults(), sort);
             final long finishSearch = System.nanoTime();
             final long searchNanos = finishSearch - searchStartNanos;
 
             logger.debug("Searching {} took {} millis; opening searcher took {} millis", this,
-                    TimeUnit.NANOSECONDS.toMillis(searchNanos), TimeUnit.NANOSECONDS.toMillis(openSearcherNanos));
+                TimeUnit.NANOSECONDS.toMillis(searchNanos), TimeUnit.NANOSECONDS.toMillis(openSearcherNanos));
 
             if (topDocs.totalHits == 0) {
-                sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
+                sqr.update(Collections.<ProvenanceEventRecord> emptyList(), 0, 0);
                 return sqr;
             }
 
             final DocsReader docsReader = new DocsReader(repository.getConfiguration().getStorageDirectories());
-            matchingRecords = docsReader.read(topDocs, searcher.getIndexReader(), repository.getAllLogFiles(), retrievedCount,
+            final Set<ProvenanceEventRecord> matchingRecords = docsReader.read(topDocs, searcher.getIndexReader(), repository.getAllLogFiles(),
                 provenanceQuery.getMaxResults(), maxAttributeChars);
 
             final long readRecordsNanos = System.nanoTime() - finishSearch;
             logger.debug("Reading {} records took {} millis for {}", matchingRecords.size(), TimeUnit.NANOSECONDS.toMillis(readRecordsNanos), this);
 
-            sqr.update(matchingRecords, topDocs.totalHits);
+            // The records returned are going to be in a sorted set. The sort order will be dependent on
+            // the ID of the events, which is also approximately the same as the timestamp of the event (i.e.
+            // it's ordered by the time when the event was inserted into the repo, not the time when the event took
+            // place). We want to reverse this so that we get the newest events first, so we have to first create a
+            // new List object to hold the events, and then reverse the list.
+            final List<ProvenanceEventRecord> recordList = new ArrayList<>(matchingRecords);
+            Collections.reverse(recordList);
+
+            sqr.update(recordList, topDocs.totalHits, 0);
             return sqr;
         } catch (final FileNotFoundException e) {
             // nothing has been indexed yet, or the data has already aged off
             logger.warn("Attempted to search Provenance Index {} but could not find the file due to {}", indexDirectory, e);
-            if ( logger.isDebugEnabled() ) {
+            if (logger.isDebugEnabled()) {
                 logger.warn("", e);
             }
 
-            sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
+            sqr.update(Collections.<ProvenanceEventRecord> emptyList(), 0, 0);
             return sqr;
         } finally {
-            if ( searcher != null ) {
+            if (searcher != null) {
                 indexManager.returnIndexSearcher(indexDirectory, searcher);
             }
         }

@@ -23,10 +23,11 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
+import org.apache.nifi.action.component.details.FlowChangeRemoteProcessGroupDetails;
 import org.apache.nifi.action.details.ActionDetails;
-import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
@@ -123,7 +124,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             // see if the communications timeout has changed
             if (remoteProcessGroupDTO.getCommunicationsTimeout() != null && !updatedRemoteProcessGroup.getCommunicationsTimeout().equals(communicationsTimeout)) {
                 // create the config details
-                ConfigureDetails configDetails = new ConfigureDetails();
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Communications Timeout");
                 configDetails.setValue(updatedRemoteProcessGroup.getCommunicationsTimeout());
                 configDetails.setPreviousValue(communicationsTimeout);
@@ -134,7 +135,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             // see if the yield duration has changed
             if (remoteProcessGroupDTO.getYieldDuration() != null && !updatedRemoteProcessGroup.getYieldDuration().equals(yieldDuration)) {
                 // create the config details
-                ConfigureDetails configDetails = new ConfigureDetails();
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Yield Duration");
                 configDetails.setValue(updatedRemoteProcessGroup.getYieldDuration());
                 configDetails.setPreviousValue(yieldDuration);
@@ -162,7 +163,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                             final Integer previousConcurrentTasks = concurrentTasks.get(remotePortDTO.getId());
                             if (previousConcurrentTasks != null && remotePort.getMaxConcurrentTasks() != previousConcurrentTasks) {
                                 // create the config details
-                                ConfigureDetails concurrentTasksDetails = new ConfigureDetails();
+                                FlowChangeConfigureDetails concurrentTasksDetails = new FlowChangeConfigureDetails();
                                 concurrentTasksDetails.setName("Concurrent Tasks");
                                 concurrentTasksDetails.setValue(String.valueOf(remotePort.getMaxConcurrentTasks()));
                                 concurrentTasksDetails.setPreviousValue(String.valueOf(previousConcurrentTasks));
@@ -177,7 +178,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                             final Boolean previousCompression = compression.get(remotePortDTO.getId());
                             if (previousCompression != null && remotePort.isUseCompression() != previousCompression) {
                                 // create the config details
-                                ConfigureDetails compressionDetails = new ConfigureDetails();
+                                FlowChangeConfigureDetails compressionDetails = new FlowChangeConfigureDetails();
                                 compressionDetails.setName("Compressed");
                                 compressionDetails.setValue(String.valueOf(remotePort.isUseCompression()));
                                 compressionDetails.setPreviousValue(String.valueOf(previousCompression));
@@ -204,7 +205,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                             final Integer previousConcurrentTasks = concurrentTasks.get(remotePortDTO.getId());
                             if (previousConcurrentTasks != null && remotePort.getMaxConcurrentTasks() != previousConcurrentTasks) {
                                 // create the config details
-                                ConfigureDetails concurrentTasksDetails = new ConfigureDetails();
+                                FlowChangeConfigureDetails concurrentTasksDetails = new FlowChangeConfigureDetails();
                                 concurrentTasksDetails.setName("Concurrent Tasks");
                                 concurrentTasksDetails.setValue(String.valueOf(remotePort.getMaxConcurrentTasks()));
                                 concurrentTasksDetails.setPreviousValue(String.valueOf(previousConcurrentTasks));
@@ -219,7 +220,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                             final Boolean previousCompression = compression.get(remotePortDTO.getId());
                             if (previousCompression != null && remotePort.isUseCompression() != previousCompression) {
                                 // create the config details
-                                ConfigureDetails compressionDetails = new ConfigureDetails();
+                                FlowChangeConfigureDetails compressionDetails = new FlowChangeConfigureDetails();
                                 compressionDetails.setName("Compressed");
                                 compressionDetails.setValue(String.valueOf(remotePort.isUseCompression()));
                                 compressionDetails.setPreviousValue(String.valueOf(previousCompression));
@@ -234,7 +235,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             Collection<Action> actions = new ArrayList<>();
 
             // create the remote process group details
-            RemoteProcessGroupDetails remoteProcessGroupDetails = new RemoteProcessGroupDetails();
+            FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = new FlowChangeRemoteProcessGroupDetails();
             remoteProcessGroupDetails.setUri(remoteProcessGroup.getTargetUri().toString());
 
             // save the actions if necessary
@@ -244,8 +245,8 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                 // create the actions
                 for (ActionDetails detail : details) {
                     // create the port action for updating the name
-                    Action remoteProcessGroupAction = new Action();
-                    remoteProcessGroupAction.setUserDn(user.getDn());
+                    FlowChangeAction remoteProcessGroupAction = new FlowChangeAction();
+                    remoteProcessGroupAction.setUserIdentity(user.getDn());
                     remoteProcessGroupAction.setUserName(user.getUserName());
                     remoteProcessGroupAction.setOperation(Operation.Configure);
                     remoteProcessGroupAction.setTimestamp(timestamp);
@@ -265,8 +266,8 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             // determine if the running state has changed
             if (transmissionState != updatedTransmissionState) {
                 // create a processor action
-                Action remoteProcessGroupAction = new Action();
-                remoteProcessGroupAction.setUserDn(user.getDn());
+                FlowChangeAction remoteProcessGroupAction = new FlowChangeAction();
+                remoteProcessGroupAction.setUserIdentity(user.getDn());
                 remoteProcessGroupAction.setUserName(user.getUserName());
                 remoteProcessGroupAction.setTimestamp(new Date());
                 remoteProcessGroupAction.setSourceId(updatedRemoteProcessGroup.getIdentifier());
@@ -342,7 +343,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
      * @return action
      */
     public Action generateAuditRecord(RemoteProcessGroup remoteProcessGroup, Operation operation, ActionDetails actionDetails) {
-        Action action = null;
+        FlowChangeAction action = null;
 
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -350,12 +351,12 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
         // ensure the user was found
         if (user != null) {
             // create the remote process group details
-            RemoteProcessGroupDetails remoteProcessGroupDetails = new RemoteProcessGroupDetails();
+            FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = new FlowChangeRemoteProcessGroupDetails();
             remoteProcessGroupDetails.setUri(remoteProcessGroup.getTargetUri().toString());
 
             // create the remote process group action
-            action = new Action();
-            action.setUserDn(user.getDn());
+            action = new FlowChangeAction();
+            action.setUserIdentity(user.getDn());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());
