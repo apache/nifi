@@ -53,7 +53,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -258,6 +257,8 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             }
         } catch (IOException ioe) {
             // well then this FlowFile gets none of these attributes
+            getLogger().warn("Error collecting attributes for file {}, message is {}",
+                    new Object[]{absPathString, ioe.getMessage()});
         }
 
         return attributes;
@@ -299,7 +300,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                         listing.addAll(scanDirectory(file, filter, true, minTimestamp));
                     }
                 } else {
-                    if (filter.accept(file)) {
+                    if ((minTimestamp == null || file.lastModified() >= minTimestamp) && filter.accept(file)) {
                         listing.add(new FileInfo.Builder()
                                 .directory(file.isDirectory())
                                 .filename(file.getName())
@@ -308,17 +309,6 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                                 .build());
                     }
                 }
-            }
-        }
-        if (minTimestamp == null) {
-            return listing;
-        }
-
-        final Iterator<FileInfo> itr = listing.iterator();
-        while (itr.hasNext()) {
-            final FileInfo next = itr.next();
-            if (next.getLastModifiedTime() < minTimestamp) {
-                itr.remove();
             }
         }
 
@@ -358,13 +348,11 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 }
                 if (pathPattern != null) {
                     Path reldir = Paths.get(indir).relativize(file.toPath()).getParent();
-                    System.out.println("reldir=" + reldir + " pathPatternStr=" + pathPatternStr + " file=" + file.getName());
                     if (reldir != null && !reldir.toString().isEmpty()) {
                         if (!pathPattern.matcher(reldir.toString()).matches()) {
                             return false;
                         }
                     }
-                    System.out.flush();
                 }
                 //Verify that we have at least read permissions on the file we're considering grabbing
                 if (!Files.isReadable(file.toPath())) {

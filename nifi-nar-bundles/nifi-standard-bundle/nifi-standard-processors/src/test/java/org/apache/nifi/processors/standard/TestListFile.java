@@ -180,16 +180,6 @@ public class TestListFile  {
         assertTrue(file3.createNewFile());
         assertTrue(file3.setLastModified(time4millis));
 
-        dumpTestDir(testDir);
-        System.out.println("testFilterAge syncTime=         " + syncTime);
-        System.out.println("testFilterAge now=              " + System.currentTimeMillis());
-        System.out.println("testFilterAge age0=             " + age0);
-        System.out.println("testFilterAge age1=             " + age1);
-        System.out.println("testFilterAge age2=             " + age2);
-        System.out.println("testFilterAge age3=             " + age3);
-        System.out.println("testFilterAge age4=             " + age4);
-        System.out.println("testFilterAge age5=             " + age5);
-
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.run();
@@ -392,10 +382,6 @@ public class TestListFile  {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(4, successFiles1.size());
-        for (MockFlowFile file : successFiles1) {
-            System.out.println("successFiles1=" + file.getAttribute("filename"));
-        }
-        System.out.flush();
 
         // filter path on pattern subdir1
         runner.clearTransferState();
@@ -405,10 +391,6 @@ public class TestListFile  {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(3, successFiles2.size());
-        for (MockFlowFile file : successFiles2) {
-            System.out.println("successFiles2=" + file.getAttribute("filename"));
-        }
-        System.out.flush();
 
         // filter path on pattern subdir2
         runner.clearTransferState();
@@ -418,10 +400,6 @@ public class TestListFile  {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles3.size());
-        for (MockFlowFile file : successFiles3) {
-            System.out.println("successFiles3=" + file.getAttribute("filename"));
-        }
-        System.out.flush();
     }
 
     @Test
@@ -647,37 +625,5 @@ public class TestListFile  {
             sb.append("-");
         }
         return sb.toString();
-    }
-
-    /*
-     * Because of difficulty tracking some of these tests, age especially, this can be used during test development to
-     * show physical file listings for troubleshooting file creation and test execution.
-     */
-    public void dumpTestDir(final File top) throws IOException {
-        final String format = "%1s %9s %19s %13d %s\n";
-        final File target = (top == null) ? testDir : top;
-        final DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        final File[] dirFiles = target.listFiles();
-        final FileStore fileStore = (top == null) ? null : Files.getFileStore(top.toPath());
-        final Boolean isPosix = (fileStore != null) && fileStore.supportsFileAttributeView("posix");
-        String perms;
-        if (dirFiles != null) {
-            for (File f : dirFiles) {
-                if (isPosix) {
-                    perms = perms2string(Files.getPosixFilePermissions(f.toPath(), LinkOption.NOFOLLOW_LINKS).toString());
-                } else {
-                    perms = "";
-                }
-                System.out.printf(format,
-                        (f.isDirectory() ? 'd' : 'f'),
-                        perms,
-                        formatter.format(f.lastModified()),
-                        f.lastModified(),
-                        f.getPath());
-                if (f.isDirectory()) {
-                    dumpTestDir(target);
-                }
-            }
-        }
     }
 }
