@@ -61,6 +61,7 @@ org.apache.nifi.processors.standard.PutSFTP
 org.apache.nifi.processors.standard.PutSQL
 org.apache.nifi.processors.standard.PutSyslog
 org.apache.nifi.processors.standard.ReplaceText
+org.apache.nifi.processors.standard.RouteText
 org.apache.nifi.processors.standard.ReplaceTextWithMapping
 org.apache.nifi.processors.standard.RouteOnAttribute
 org.apache.nifi.processors.standard.RouteOnContent
