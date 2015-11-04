@@ -28,6 +28,8 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -54,6 +56,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @EventDriven
 @SupportsBatching
 @Tags({"map", "cache", "put", "distributed"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Gets the content of a FlowFile and puts it to a distributed map cache, using a cache key " +
     "computed from FlowFile attributes. If the cache already contains the entry and the cache update strategy is " +
     "'keep original' the entry is not replaced.'")
