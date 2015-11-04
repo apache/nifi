@@ -30,7 +30,7 @@ import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
-import org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator;
+import org.apache.nifi.web.security.x509.X509CertificateValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -60,6 +60,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private UserService userService;
     private AuthenticationUserDetailsService userDetailsService;
     private JwtService jwtService;
+    private X509CertificateValidator certificateValidator;
     private X509CertificateExtractor certificateExtractor;
     private X509PrincipalExtractor principalExtractor;
     private LoginIdentityProvider loginIdentityProvider;
@@ -96,7 +97,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 http.addFilterBefore(buildRegistrationFilter("/registration"), UsernamePasswordAuthenticationFilter.class);
             }
         }
-        
+
         // registration status - will check the status of a user's account registration (regardless if its based on login or not)
         http.addFilterBefore(buildRegistrationStatusFilter("/registration/status"), UsernamePasswordAuthenticationFilter.class);
 
@@ -130,19 +131,21 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         loginFilter.setJwtService(jwtService);
         loginFilter.setLoginIdentityProvider(loginIdentityProvider);
         loginFilter.setUserDetailsService(userDetailsService);
-        loginFilter.setPrincipalExtractor(principalExtractor);
         loginFilter.setCertificateExtractor(certificateExtractor);
+        loginFilter.setPrincipalExtractor(principalExtractor);
+        loginFilter.setCertificateValidator(certificateValidator);
         return loginFilter;
     }
 
     private Filter buildRegistrationFilter(final String url) {
         return null;
     }
-    
+
     private Filter buildRegistrationStatusFilter(final String url) {
         final RegistrationStatusFilter registrationFilter = new RegistrationStatusFilter(url);
         registrationFilter.setCertificateExtractor(certificateExtractor);
         registrationFilter.setPrincipalExtractor(principalExtractor);
+        registrationFilter.setCertificateValidator(certificateValidator);
         registrationFilter.setProperties(properties);
         registrationFilter.setUserDetailsService(userDetailsService);
         return registrationFilter;
@@ -156,8 +159,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         final JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter();
         jwtFilter.setProperties(properties);
         jwtFilter.setJwtService(jwtService);
-        jwtFilter.setCertificateExtractor(certificateExtractor);
-        jwtFilter.setPrincipalExtractor(principalExtractor);
         jwtFilter.setAuthenticationManager(authenticationManager());
         return jwtFilter;
     }
@@ -167,7 +168,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         x509Filter.setProperties(properties);
         x509Filter.setPrincipalExtractor(principalExtractor);
         x509Filter.setCertificateExtractor(certificateExtractor);
-        x509Filter.setCertificateValidator(new OcspCertificateValidator(properties));
+        x509Filter.setCertificateValidator(certificateValidator);
         x509Filter.setAuthenticationManager(authenticationManager());
         return x509Filter;
     }
@@ -201,6 +202,11 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Autowired
     public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
+    }
+
+    @Autowired
+    public void setCertificateValidator(X509CertificateValidator certificateValidator) {
+        this.certificateValidator = certificateValidator;
     }
 
     @Autowired

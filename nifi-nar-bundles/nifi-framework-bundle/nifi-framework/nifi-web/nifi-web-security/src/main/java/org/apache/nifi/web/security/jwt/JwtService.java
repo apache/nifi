@@ -25,9 +25,9 @@ import org.springframework.security.core.Authentication;
  *
  */
 public class JwtService {
-    
+
     private final static String AUTHORIZATION = "Authorization";
-    
+
     /**
      * Gets the Authentication by extracting a JWT token from the specified request.
      *
@@ -36,7 +36,7 @@ public class JwtService {
      */
     public String getAuthentication(final HttpServletRequest request) {
         // TODO : actually extract/verify token
-        
+
         // extract/verify token from incoming request
         final String authorization = request.getHeader(AUTHORIZATION);
         final String username = StringUtils.substringAfterLast(authorization, " ");
@@ -51,10 +51,10 @@ public class JwtService {
      */
     public void addToken(final HttpServletResponse response, final Authentication authentication) {
         // TODO : actually create real token
-        
+
         // create a token the specified authentication
         String token = authentication.getName();
-        
+
         // add the token as a response header
         response.setHeader(AUTHORIZATION, "Bearer " + token);
     }

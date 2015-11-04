@@ -18,6 +18,8 @@ package org.apache.nifi.web.security.form;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import javax.servlet.FilterChain;
@@ -31,6 +33,7 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
+import org.apache.nifi.web.security.x509.X509CertificateValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -52,6 +55,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
     private AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService;
 
+    private X509CertificateValidator certificateValidator;
     private X509CertificateExtractor certificateExtractor;
     private X509PrincipalExtractor principalExtractor;
 
@@ -61,7 +65,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
     public LoginAuthenticationFilter(final String defaultFilterProcessesUrl) {
         super(defaultFilterProcessesUrl);
 
-        // do not continue filter chain... simply exchaning authentication for token
+        // do not continue filter chain... simply exchanging authentication for token
         setContinueChainBeforeSuccessfulAuthentication(false);
     }
 
@@ -83,28 +87,40 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
             if (certificate == null) {
                 throw new PreAuthenticatedCredentialsNotFoundException("Unable to extract client certificate after processing request with no login credentials specified.");
             }
-            
-            // TODO - certificate validation
+
+            // extract the principal
+            final String principal = extractPrincipal(certificate);
+
+            try {
+                certificateValidator.validateClientCertificate(request, certificate);
+            } catch (CertificateExpiredException cee) {
+                final String message = String.format("Client certificate for (%s) is expired.", principal);
+                logger.info(message, cee);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("", cee);
+                }
+                return null;
+            } catch (CertificateNotYetValidException cnyve) {
+                final String message = String.format("Client certificate for (%s) is not yet valid.", principal);
+                logger.info(message, cnyve);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("", cnyve);
+                }
+                return null;
+            } catch (final Exception e) {
+                logger.info(e.getMessage());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("", e);
+                }
+                return null;
+            }
 
             // authorize the proxy if necessary
-            final String principal = extractPrincipal(certificate);
             authorizeProxyIfNecessary(ProxiedEntitiesUtils.buildProxyChain(request, principal));
 
             final LoginCredentials preAuthenticatedCredentials = new LoginCredentials(principal, null);
             return new LoginAuthenticationToken(preAuthenticatedCredentials);
         } else {
-            // look for a certificate
-            final X509Certificate certificate = certificateExtractor.extractClientCertificate(request);
-
-            // if there was a certificate with this request see if it was proxying an end user request
-            if (certificate != null) {
-                // TODO - certificate validation
-                
-                // authorize the proxy if necessary
-                final String principal = extractPrincipal(certificate);
-                authorizeProxyIfNecessary(ProxiedEntitiesUtils.buildProxyChain(request, principal));
-            }
-
             if (loginIdentityProvider.authenticate(credentials)) {
                 return new LoginAuthenticationToken(credentials);
             } else {
@@ -204,6 +220,10 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
     public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
+    }
+
+    public void setCertificateValidator(X509CertificateValidator certificateValidator) {
+        this.certificateValidator = certificateValidator;
     }
 
     public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {

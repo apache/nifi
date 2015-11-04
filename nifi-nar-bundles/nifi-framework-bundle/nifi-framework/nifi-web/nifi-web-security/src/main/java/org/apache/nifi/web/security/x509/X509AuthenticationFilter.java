@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.x509;
 
-import org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
@@ -42,7 +41,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
 
     private X509PrincipalExtractor principalExtractor;
     private X509CertificateExtractor certificateExtractor;
-    private OcspCertificateValidator certificateValidator;
+    private X509CertificateValidator certificateValidator;
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
@@ -64,8 +63,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
         final String principal = ProxiedEntitiesUtils.formatProxyDn(certificatePrincipal.toString());
 
         try {
-            // ensure the cert is valid
-            certificate.checkValidity();
+            certificateValidator.validateClientCertificate(request, certificate);
         } catch (CertificateExpiredException cee) {
             final String message = String.format("Client certificate for (%s) is expired.", principal);
             logger.info(message, cee);
@@ -80,11 +78,6 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
                 logger.debug("", cnyve);
             }
             return null;
-        }
-
-        // validate the certificate in question
-        try {
-            certificateValidator.validate(request);
         } catch (final Exception e) {
             logger.info(e.getMessage());
             if (logger.isDebugEnabled()) {
@@ -102,7 +95,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
     }
 
     /* setters */
-    public void setCertificateValidator(OcspCertificateValidator certificateValidator) {
+    public void setCertificateValidator(X509CertificateValidator certificateValidator) {
         this.certificateValidator = certificateValidator;
     }
 

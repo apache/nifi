@@ -18,8 +18,9 @@ package org.apache.nifi.web.security;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javax.servlet.FilterChain;
@@ -31,6 +32,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
+import org.apache.nifi.web.security.x509.X509CertificateValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -53,6 +55,7 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
 
     private NiFiProperties properties;
     private AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService;
+    private X509CertificateValidator certificateValidator;
     private X509CertificateExtractor certificateExtractor;
     private X509PrincipalExtractor principalExtractor;
 
@@ -72,29 +75,54 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
 
         // look for a certificate
         final X509Certificate certificate = certificateExtractor.extractClientCertificate(request);
-        
+
         // if no certificate, just check the credentials
         if (certificate == null) {
             final LoginCredentials credentials = getLoginCredentials(request);
-            
+
             // ensure we have something we can work with (certificate or crendentials)
             if (credentials == null) {
                 throw new BadCredentialsException("Unable to check registration status as no credentials were included with the request.");
             }
-            
+
             // without a certificate, this is not a proxied request
             final List<String> chain = Arrays.asList(credentials.getUsername());
-            
+
             // check authorization for this user
             checkAuthorization(chain);
-            
+
             // no issues with authorization
             return new RegistrationStatusAuthenticationToken(credentials);
         } else {
-            // TODO - certificate validation
-            
             // we have a certificate so let's consider a proxy chain
             final String principal = extractPrincipal(certificate);
+
+            try {
+                // validate the certificate
+                certificateValidator.validateClientCertificate(request, certificate);
+            } catch (CertificateExpiredException cee) {
+                final String message = String.format("Client certificate for (%s) is expired.", principal);
+                logger.info(message, cee);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("", cee);
+                }
+                return null;
+            } catch (CertificateNotYetValidException cnyve) {
+                final String message = String.format("Client certificate for (%s) is not yet valid.", principal);
+                logger.info(message, cnyve);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("", cnyve);
+                }
+                return null;
+            } catch (final Exception e) {
+                logger.info(e.getMessage());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("", e);
+                }
+                return null;
+            }
+
+            // ensure the proxy chain is authorized
             checkAuthorization(ProxiedEntitiesUtils.buildProxyChain(request, principal));
 
             // no issues with authorization
@@ -208,6 +236,10 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
         public Object getPrincipal() {
             return credentials.getUsername();
         }
+    }
+
+    public void setCertificateValidator(X509CertificateValidator certificateValidator) {
+        this.certificateValidator = certificateValidator;
     }
 
     public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {

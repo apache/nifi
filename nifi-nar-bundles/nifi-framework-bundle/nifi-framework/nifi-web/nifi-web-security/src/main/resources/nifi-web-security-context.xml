@@ -17,49 +17,22 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-<!--    <sec:http create-session="stateless" auto-config="false" entry-point-ref="entryPoint">
-        <sec:anonymous enabled="false"/>
-        <sec:custom-filter ref="nodeAuthorizedUserFilter" before="PRE_AUTH_FILTER"/>
-        <sec:custom-filter ref="x509Filter" position="PRE_AUTH_FILTER"/>
-        <sec:custom-filter ref="anonymousFilter" position="ANONYMOUS_FILTER"/>
-    </sec:http>-->
-
-    <!-- enable method level security -->
-    <!--<sec:global-method-security pre-post-annotations="enabled"/>-->
-
-    <!--<bean class="org.apache.nifi.web.security.NiFiSecurityWebApplicationInitializer"></bean>-->
-
-    <!-- security config -->
-<!--    <bean id="securityConfig" class="org.apache.nifi.web.security.NiFiSecurityConfig">
-        <property name="properties" ref="nifiProperties"/>
-        <property name="userDetailsService" ref="userAuthorizationService"/>
-        <property name="authorizedUserFilter" ref="nodeAuthorizedUserFilter"/>
-        <property name="entryPoint" ref="entryPoint"/>
-    </bean>-->
-
-    <!-- entry point reference -->
-    <!--<bean id="entryPoint" class="org.apache.nifi.web.security.authentication.NiFiAuthenticationEntryPoint"/>-->
-    
-    <!-- authentication manager -->
-<!--    <sec:authentication-manager alias="authenticationManager">
-        <sec:authentication-provider ref="preauthAuthProvider"/>
-    </sec:authentication-manager>-->
-
-    <!-- pre-authentication provider -->
-<!--    <bean id="preauthAuthProvider" class="org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider">
-        <property name="preAuthenticatedUserDetailsService">
-            <bean class="org.springframework.security.core.userdetails.UserDetailsByNameServiceWrapper">
-                <property name="userDetailsService" ref="userAuthorizationService"/>
-            </bean>
-        </property>
-    </bean>-->
-
     <!-- certificate extractor -->
     <bean id="certificateExtractor" class="org.apache.nifi.web.security.x509.X509CertificateExtractor"/>
 
     <!-- principal extractor -->
     <bean id="principalExtractor" class="org.apache.nifi.web.security.x509.SubjectDnX509PrincipalExtractor"/>
+    
+    <!-- ocsp validator -->
+    <bean id="ocspValidator" class="org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator">
+        <constructor-arg ref="nifiProperties"/>
+    </bean>
         
+    <!-- x509 validator -->
+    <bean id="x509Validator" class="org.apache.nifi.web.security.x509.X509CertificateValidator">
+        <property name="ocspValidator" ref="ocspValidator"/> 
+    </bean>
+    
     <!-- user details service -->
     <bean id="userDetailsService" class="org.apache.nifi.web.security.authorization.NiFiAuthorizationService">
         <property name="userService" ref="userService"/>
@@ -73,26 +46,5 @@
     <bean id="loginIdentityProvider" class="org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean">
         <property name="properties" ref="nifiProperties"/>
     </bean>
-    
-    <!-- performs ocsp certificate validation -->
-<!--    <bean id="ocspCertificateValidator" class="org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator">
-        <constructor-arg ref="nifiProperties"/>
-    </bean>-->
-
-    <!-- custom x509 filter for checking for proxied users -->
-<!--    <bean id="x509Filter" class="org.apache.nifi.web.security.x509.X509AuthenticationFilter">
-        <property name="certificateValidator" ref="ocspCertificateValidator"/>
-    </bean>-->
-
-    <!-- custom filter for checking for proxied users that are already authenticated -->
-<!--    <bean id="nodeAuthorizedUserFilter" class="org.apache.nifi.web.security.authorization.NodeAuthorizedUserFilter">
-        <property name="properties" ref="nifiProperties"/>
-    </bean>-->
-
-    <!-- custom anonymous filter to assign default roles based on current operating mode -->
-<!--    <bean id="anonymousFilter" class="org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter">
-        <property name="userService" ref="userService"/>
-        <property name="properties" ref="nifiProperties"/>
-    </bean>-->
     
 </beans>
