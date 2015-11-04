@@ -26,7 +26,7 @@ public class Connectables {
 
     public static boolean flowFilesQueued(final Connectable connectable) {
         for (final Connection conn : connectable.getIncomingConnections()) {
-            if (!conn.getFlowFileQueue().isEmpty()) {
+            if (!conn.getFlowFileQueue().isActiveQueueEmpty()) {
                 return true;
             }
         }

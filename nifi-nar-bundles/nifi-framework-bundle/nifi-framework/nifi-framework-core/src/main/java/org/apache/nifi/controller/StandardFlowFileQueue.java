@@ -210,7 +210,8 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
     @Override
     public boolean isActiveQueueEmpty() {
-        return size.get().activeQueueCount == 0;
+        final FlowFileQueueSize queueSize = size.get();
+        return queueSize.activeQueueCount == 0 && queueSize.swappedCount == 0;
     }
 
     public QueueSize getActiveQueueSize() {

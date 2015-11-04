@@ -100,10 +100,9 @@ public interface FlowFileQueue {
     boolean isEmpty();
 
     /**
-     * @return true if the active queue is empty; false otherwise. The Active
-     *         queue contains those FlowFiles that can be processed immediately and does
-     *         not include those FlowFiles that have been swapped out or are currently
-     *         being processed
+     * @return <code>true</code> if the queue is empty or contains only FlowFiles that already are being processed
+     *         by others, <code>false</code> if the queue contains at least one FlowFile that is available for processing,
+     *         regardless of whether that FlowFile(s) is in-memory or swapped out.
      */
     boolean isActiveQueueEmpty();
 
