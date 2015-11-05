@@ -206,7 +206,14 @@ nf.Common = {
         
         // if an error occurs while the splash screen is visible close the canvas show the error message
         if ($('#splash').is(':visible')) {
-            $('#message-title').text('An unexpected error has occurred');
+            if (xhr.status === 401) {
+                $('#message-title').text('Unauthorized');
+            } else if (xhr.status === 403) {
+                $('#message-title').text('Access Denied');
+            } else {
+                $('#message-title').text('An unexpected error has occurred');
+            }
+            
             if ($.trim(xhr.responseText) === '') {
                 $('#message-content').text('Please check the logs.');
             } else {
@@ -249,7 +256,7 @@ nf.Common = {
                     $('#message-content').text(xhr.responseText);
                 }
             } else if (xhr.status === 403) {
-                $('#message-title').text('Forbidden');
+                $('#message-title').text('Access Denied');
                 if ($.trim(xhr.responseText) === '') {
                     $('#message-content').text('Unable to authorize you to use this NiFi.');
                 } else {

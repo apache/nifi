@@ -16,9 +16,22 @@
  */
 package org.apache.nifi.web.security.jwt;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.impl.TextCodec;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Calendar;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.springframework.security.core.Authentication;
 
 /**
@@ -28,6 +41,16 @@ public class JwtService {
 
     private final static String AUTHORIZATION = "Authorization";
 
+    private final String key;
+    private final Integer expires;
+
+    public JwtService(final NiFiProperties properties) {
+        // TODO - load key (and algo/provider?) and expiration from properties
+
+        key = TextCodec.BASE64.encode("nififtw!");
+        expires = 1;
+    }
+
     /**
      * Gets the Authentication by extracting a JWT token from the specified request.
      *
@@ -35,12 +58,16 @@ public class JwtService {
      * @return The user identifier from the token
      */
     public String getAuthentication(final HttpServletRequest request) {
-        // TODO : actually extract/verify token
-
         // extract/verify token from incoming request
         final String authorization = request.getHeader(AUTHORIZATION);
-        final String username = StringUtils.substringAfterLast(authorization, " ");
-        return username;
+        final String token = StringUtils.substringAfterLast(authorization, " ");
+
+        try {
+            final Jws<Claims> jwt = Jwts.parser().setSigningKey(key).parseClaimsJws(token);
+            return jwt.getBody().getSubject();
+        } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /**
@@ -48,14 +75,25 @@ public class JwtService {
      *
      * @param response The response to add the token to
      * @param authentication The authentication to generate a token for
+     * @throws java.io.IOException if an io exception occurs
      */
-    public void addToken(final HttpServletResponse response, final Authentication authentication) {
-        // TODO : actually create real token... in header or response body?
+    public void addToken(final HttpServletResponse response, final Authentication authentication) throws IOException {
+        // set expiration to one day from now
+        final Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DATE, expires);
 
         // create a token the specified authentication
-        String token = authentication.getName();
+        final String identity = authentication.getPrincipal().toString();
+        final String username = authentication.getName();
+        final String token = Jwts.builder().setSubject(identity).claim("preferred_username", username).setExpiration(calendar.getTime()).signWith(SignatureAlgorithm.HS512, key).compact();
 
         // add the token as a response header
-        response.setHeader(AUTHORIZATION, "Bearer " + token);
+        final PrintWriter out = response.getWriter();
+        out.print(token);
+
+        // mark the response as successful
+        response.setStatus(HttpServletResponse.SC_CREATED);
+        response.setContentType("text/plain");
     }
+
 }

@@ -98,7 +98,7 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
             return new RegistrationStatusAuthenticationToken(tokenCredentials);
         } else {
             // we have a certificate so let's consider a proxy chain
-            final String principal = extractPrincipal(certificate);
+            final String principal = principalExtractor.extractPrincipal(certificate).toString();
 
             try {
                 // validate the certificate
@@ -142,12 +142,6 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
      */
     private void checkAuthorization(final List<String> proxyChain) throws AuthenticationException {
         userDetailsService.loadUserDetails(new NiFiAuthenticationRequestToken(proxyChain));
-    }
-
-    private String extractPrincipal(final X509Certificate certificate) {
-        // extract the principal
-        final Object certificatePrincipal = principalExtractor.extractPrincipal(certificate);
-        return ProxiedEntitiesUtils.formatProxyDn(certificatePrincipal.toString());
     }
 
     @Override

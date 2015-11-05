@@ -73,8 +73,22 @@ body.login-body input, body.login-body textarea {
 */
 
 #nifi-registration-container {
-    margin-top: 10px;
     width: 412px;
+}
+
+#nifi-user-submit-justification-container {
+    margin-bottom: 10px;
+}
+
+#nifi-user-submit-justification {
+    float: left;
+    font-weight: bold;
+}
+
+#nifi-user-submit-justification-logout {
+    margin-left: 10px;
+    float: left;
+    text-decoration: underline;
 }
 
 #nifi-registration-justification {

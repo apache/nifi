@@ -40,7 +40,9 @@
     </bean>
     
     <!-- jwt service -->
-    <bean id="jwtService" class="org.apache.nifi.web.security.jwt.JwtService"></bean>
+    <bean id="jwtService" class="org.apache.nifi.web.security.jwt.JwtService">
+        <constructor-arg ref="nifiProperties"/>
+    </bean>
     
     <!-- login identity provider -->
     <bean id="loginIdentityProvider" class="org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean">

@@ -75,7 +75,7 @@ nf.Login = (function () {
     var showUserRegistration = function () {
         showNiFiRegistration();
 
-        $('#nifi-registration-title').hide();
+        $('div.nifi-submit-justification').hide();
         $('#user-registration-container').show();
         $('#login-submission-button').text('Create');
     };
@@ -109,41 +109,15 @@ nf.Login = (function () {
                 'username': $('#username').val(),
                 'password': $('#password').val()
             }
-        }).done(function (response, status, xhr) {
-            var authorization = xhr.getResponseHeader('Authorization');
-            var badToken = false;
+        }).done(function (jwt) {
+            // store the jwt and reload the page
+            nf.Storage.setItem('jwt', jwt);
 
-            // ensure there was a token in the response
-            if (authorization) {
-                var tokens = authorization.split(/ /);
-
-                // ensure the token is the appropriate length
-                if (tokens.length === 2) {
-                    // store the jwt and reload the page
-                    nf.Storage.setItem('jwt', tokens[1]);
-
-                    // reload as appropriate
-                    if (top !== window) {
-                        parent.window.location = '/nifi';
-                    } else {
-                        window.location = '/nifi';
-                    }
-                    return;
-                } else {
-                    badToken = true;
-                }
+            // reload as appropriate
+            if (top !== window) {
+                parent.window.location = '/nifi';
             } else {
-                badToken = true;
-            }
-
-            if (badToken === true) {
-                $('#login-message-title').text('An unexpected error has occurred');
-                $('#login-message').text('The user token could not be parsed.');
-
-                // update visibility
-                $('#login-container').hide();
-                $('#login-submission-container').hide();
-                $('#login-message-container').show();
+                window.location = '/nifi';
             }
         }).fail(function (xhr, status, error) {
             if (xhr.status === 400) {
@@ -164,13 +138,25 @@ nf.Login = (function () {
     };
 
     var createUserAccount = function () {
+        var password = $('#registration-password').val();
+        var passwordConfirmation = $('#registration-password-confirmation').val();
+
+        // ensure the password matches
+        if (password !== passwordConfirmation) {
+            nf.Dialog.showOkDialog({
+                dialogContent: 'The specified passwords do not match.',
+                overlayBackground: false
+            });
+            return;
+        }
+
         // attempt to create the user account registration
         $.ajax({
             type: 'POST',
             url: config.urls.registration,
             data: {
                 'username': $('#registration-username').val(),
-                'password': $('#registration-password').val(),
+                'password': password,
                 'justification': $('#nifi-registration-justification').val()
             }
         }).done(function (response, status, xhr) {
@@ -220,6 +206,33 @@ nf.Login = (function () {
         });
     };
 
+    /**
+     * Extracts the subject from the specified jwt. If the jwt is not as expected
+     * an empty string is returned.
+     * 
+     * @param {string} jwt
+     * @returns {string}
+     */
+    var getJwtSubject = function (jwt) {
+        if (nf.Common.isDefinedAndNotNull(jwt)) {
+            var segments = jwt.split(/\./);
+            if (segments.length !== 3) {
+                return '';
+            }
+
+            var rawPayload = $.base64.atob(segments[1]);
+            var payload = JSON.parse(rawPayload);
+
+            if (nf.Common.isDefinedAndNotNull(payload['preferred_username'])) {
+                return payload['preferred_username'];
+            } else {
+                '';
+            }
+        }
+
+        return '';
+    };
+
     return {
         /**
          * Initializes the login page.
@@ -230,6 +243,16 @@ nf.Login = (function () {
             var showMessage = false;
             var needsLogin = false;
             var needsNiFiRegistration = false;
+
+            var logout = function () {
+                nf.Storage.removeItem('jwt');
+            };
+            
+            // handle logout
+            $('#nifi-user-submit-justification-logout').on('click', function () {
+                logout();
+                window.location = '/nifi/login';
+            });
 
             var token = $.ajax({
                 type: 'GET',
@@ -250,7 +273,8 @@ nf.Login = (function () {
                         isAnonymous = true;
 
                         // request a token without including credentials, if successful then the user is using a certificate
-                        token.done(function () {
+                        token.done(function (jwt) {
+
                             // the user is using a certificate/token, see if their account is active/pending/revoked/etc
                             $.ajax({
                                 type: 'GET',
@@ -263,6 +287,16 @@ nf.Login = (function () {
                                 $('#login-message').text('Your account is active and you are already logged in.');
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 401) {
+                                    var user = getJwtSubject(jwt);
+                                    
+                                    // show the user
+                                    $('#nifi-user-submit-justification').text(user);
+
+                                    // render the logout button if there is a token locally
+                                    if (nf.Storage.getItem('jwt') !== null) {
+                                        $('#nifi-user-submit-justification-logout').show();
+                                    }
+
                                     // anonymous user and 401 means they need nifi registration
                                     needsNiFiRegistration = true;
                                 } else {
@@ -279,7 +313,12 @@ nf.Login = (function () {
                             }).always(function () {
                                 deferred.resolve();
                             });
-                        }).fail(function () {
+                        }).fail(function (tokenXhr) {
+                            if (tokenXhr.status === 400) {
+                                // no credentials supplied so 400 must be due to an invalid/expired token
+                                logout();
+                            }
+
                             // no token granted, user has no certificate and needs to login with their credentials
                             needsLogin = true;
                             deferred.resolve();
@@ -296,10 +335,25 @@ nf.Login = (function () {
                     // unable to get identity (and no anonymous user) see if we can offer login
                     if (xhr.status === 401) {
                         // attempt to get a token for the current user without passing login credentials
-                        token.done(function () {
+                        token.done(function (jwt) {
+                            var user = getJwtSubject(jwt);
+
+                            // show the user
+                            $('#nifi-user-submit-justification').text(user);
+
+                            // render the logout button if there is a token locally
+                            if (nf.Storage.getItem('jwt') !== null) {
+                                $('#nifi-user-submit-justification-logout').show();
+                            }
+
                             // 401 from identity request and 200 from token means they have a certificate/token but have not yet requested an account 
                             needsNiFiRegistration = true;
-                        }).fail(function () {
+                        }).fail(function (tokenXhr) {
+                            if (tokenXhr.status === 400) {
+                                // no credentials supplied so 400 must be due to an invalid/expired token
+                                logout();
+                            }
+
                             // no token granted, user needs to login with their credentials
                             needsLogin = true;
                         }).always(function () {

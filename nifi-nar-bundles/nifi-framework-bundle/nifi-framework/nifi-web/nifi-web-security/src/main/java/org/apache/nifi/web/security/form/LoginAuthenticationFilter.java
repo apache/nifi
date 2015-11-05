@@ -44,7 +44,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 /**
@@ -88,16 +87,16 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
             // if there is no certificate, look for an existing token
             if (certificate == null) {
                 final String principal = jwtService.getAuthentication(request);
-                
+
                 if (principal == null) {
                     throw new AuthenticationCredentialsNotFoundException("Unable to issue token as issue token as no credentials were found in the request.");
                 }
-                
+
                 final LoginCredentials tokenCredentials = new LoginCredentials(principal, null);
                 return new LoginAuthenticationToken(tokenCredentials);
             } else {
                 // extract the principal
-                final String principal = extractPrincipal(certificate);
+                final String principal = principalExtractor.extractPrincipal(certificate).toString();
 
                 try {
                     certificateValidator.validateClientCertificate(request, certificate);
@@ -151,14 +150,12 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
             } catch (final UsernameNotFoundException unfe) {
                 // if a username not found exception was thrown, the proxies were authorized and now
                 // we can issue a new ID token to the end user
+            } catch (final Exception e) {
+                // any other issue we're going to treat as an authentication exception which will return 401
+                throw new AuthenticationException(e.getMessage(), e) {
+                };
             }
         }
-    }
-
-    private String extractPrincipal(final X509Certificate certificate) {
-        // extract the principal
-        final Object certificatePrincipal = principalExtractor.extractPrincipal(certificate);
-        return ProxiedEntitiesUtils.formatProxyDn(certificatePrincipal.toString());
     }
 
     private LoginCredentials getLoginCredentials(HttpServletRequest request) {
@@ -178,20 +175,15 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
         // generate JWT for response
         jwtService.addToken(response, authentication);
-
-        // mark as successful
-        response.setStatus(HttpServletResponse.SC_CREATED);
-        response.setContentType("text/plain");
-        response.setContentLength(0);
     }
 
     @Override
     protected void unsuccessfulAuthentication(final HttpServletRequest request, final HttpServletResponse response, final AuthenticationException failed) throws IOException, ServletException {
         response.setContentType("text/plain");
-        
+
         final PrintWriter out = response.getWriter();
         out.println(failed.getMessage());
-        
+
         if (failed instanceof BadCredentialsException || failed instanceof AuthenticationCredentialsNotFoundException) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         } else {

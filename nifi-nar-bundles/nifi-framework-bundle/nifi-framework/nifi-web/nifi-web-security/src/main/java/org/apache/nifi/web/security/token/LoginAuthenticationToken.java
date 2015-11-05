@@ -17,6 +17,7 @@
 package org.apache.nifi.web.security.token;
 
 import org.apache.nifi.authentication.LoginCredentials;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 /**
@@ -45,4 +46,11 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
     public Object getPrincipal() {
         return credentials.getUsername();
     }
+
+    @Override
+    public String getName() {
+        // if the username is a DN this will extract the username or CN... if not will return what was passed
+        return CertificateUtils.extractUsername(credentials.getUsername());
+    }
+
 }

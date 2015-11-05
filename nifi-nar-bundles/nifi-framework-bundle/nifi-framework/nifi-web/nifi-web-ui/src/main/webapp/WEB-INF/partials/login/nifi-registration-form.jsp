@@ -16,7 +16,17 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="nifi-registration-container" class="hidden">
-    <div id="nifi-registration-title" class="login-title">Submit Justification</div>
+    <div id="nifi-registration-title" class="login-title nifi-submit-justification">Submit Justification</div>
+    <div id="nifi-user-submit-justification-container" class="nifi-submit-justification">
+        <div class="setting">
+            <div class="setting-name">User</div>
+            <div class="setting-field">
+                <div id="nifi-user-submit-justification"></div>
+                <span id="nifi-user-submit-justification-logout" class="link hidden">logout</span>
+                <div class="clear"></div>
+            </div>
+        </div>
+    </div>
     <div class="setting">
         <div class="setting-name">Justification</div>
         <div class="setting-field">
