@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.processor.Relationship;
@@ -45,7 +46,7 @@ public class TestRouteText {
         runner.run();
 
         Set<Relationship> relationshipSet = runner.getProcessor().getRelationships();
-        Set<String> expectedRelationships = new HashSet<>(Arrays.asList("matched", "unmatched"));
+        Set<String> expectedRelationships = new HashSet<>(Arrays.asList("matched", "unmatched", "original"));
 
         assertEquals(expectedRelationships.size(), relationshipSet.size());
         for (Relationship relationship : relationshipSet) {
@@ -56,7 +57,7 @@ public class TestRouteText {
         runner.setProperty(RouteText.ROUTE_STRATEGY, RouteText.ROUTE_TO_MATCHING_PROPERTY_NAME);
 
         relationshipSet = runner.getProcessor().getRelationships();
-        expectedRelationships = new HashSet<>(Arrays.asList("simple", "unmatched"));
+        expectedRelationships = new HashSet<>(Arrays.asList("simple", "unmatched", "original"));
 
         assertEquals(expectedRelationships.size(), relationshipSet.size());
         for (Relationship relationship : relationshipSet) {
@@ -81,7 +82,7 @@ public class TestRouteText {
         runner.setProperty("simple", "start");
 
         Set<Relationship> relationshipSet = runner.getProcessor().getRelationships();
-        Set<String> expectedRelationships = new HashSet<>(Arrays.asList("simple", "unmatched"));
+        Set<String> expectedRelationships = new HashSet<>(Arrays.asList("simple", "unmatched", "original"));
 
         assertEquals(expectedRelationships.size(), relationshipSet.size());
         for (Relationship relationship : relationshipSet) {
@@ -172,6 +173,132 @@ public class TestRouteText {
         runner.getFlowFilesForRelationship("e").get(0).assertContentEquals("start middle end\n");
         runner.getFlowFilesForRelationship("z").isEmpty();
         runner.getFlowFilesForRelationship("original").get(0).assertContentEquals(originalText);
+    }
+
+    @Test
+    public void testGroupSameRelationship() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new RouteText());
+        runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS);
+        runner.setProperty(RouteText.GROUPING_REGEX, "(.*?),.*");
+        runner.setProperty("o", "o");
+
+        final String originalText = "1,hello\n2,world\n1,good-bye";
+        runner.enqueue(originalText.getBytes("UTF-8"));
+        runner.run();
+
+        runner.assertTransferCount("o", 2);
+        runner.assertTransferCount("unmatched", 0);
+        runner.assertTransferCount("original", 1);
+
+        final List<MockFlowFile> list = runner.getFlowFilesForRelationship("o");
+
+        boolean found1 = false;
+        boolean found2 = false;
+
+        for (final MockFlowFile mff : list) {
+            if (mff.getAttribute(RouteText.GROUP_ATTRIBUTE_KEY).equals("1")) {
+                mff.assertContentEquals("1,hello\n1,good-bye");
+                found1 = true;
+            } else {
+                mff.assertAttributeEquals(RouteText.GROUP_ATTRIBUTE_KEY, "2");
+                mff.assertContentEquals("2,world\n");
+                found2 = true;
+            }
+        }
+
+        assertTrue(found1);
+        assertTrue(found2);
+    }
+
+    @Test
+    public void testMultipleGroupsSameRelationship() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new RouteText());
+        runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS);
+        runner.setProperty(RouteText.GROUPING_REGEX, "(.*?),(.*?),.*");
+        runner.setProperty("o", "o");
+
+        final String originalText = "1,5,hello\n2,5,world\n1,8,good-bye\n1,5,overt";
+        runner.enqueue(originalText.getBytes("UTF-8"));
+        runner.run();
+
+        runner.assertTransferCount("o", 3);
+        runner.assertTransferCount("unmatched", 0);
+        runner.assertTransferCount("original", 1);
+
+        final List<MockFlowFile> list = runner.getFlowFilesForRelationship("o");
+
+        boolean found1 = false;
+        boolean found2 = false;
+        boolean found3 = false;
+
+        for (final MockFlowFile mff : list) {
+            if (mff.getAttribute(RouteText.GROUP_ATTRIBUTE_KEY).equals("1, 5")) {
+                mff.assertContentEquals("1,5,hello\n1,5,overt");
+                found1 = true;
+            } else if (mff.getAttribute(RouteText.GROUP_ATTRIBUTE_KEY).equals("2, 5")) {
+                mff.assertContentEquals("2,5,world\n");
+                found2 = true;
+            } else {
+                mff.assertAttributeEquals(RouteText.GROUP_ATTRIBUTE_KEY, "1, 8");
+                mff.assertContentEquals("1,8,good-bye\n");
+                found3 = true;
+            }
+        }
+
+        assertTrue(found1);
+        assertTrue(found2);
+        assertTrue(found3);
+    }
+
+    @Test
+    public void testGroupDifferentRelationships() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new RouteText());
+        runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS);
+        runner.setProperty(RouteText.GROUPING_REGEX, "(.*?),.*");
+        runner.setProperty("l", "l");
+
+        final String originalText = "1,hello\n2,world\n1,good-bye\n3,ciao";
+        runner.enqueue(originalText.getBytes("UTF-8"));
+        runner.run();
+
+        runner.assertTransferCount("l", 2);
+        runner.assertTransferCount("unmatched", 2);
+        runner.assertTransferCount("original", 1);
+
+        List<MockFlowFile> lFlowFiles = runner.getFlowFilesForRelationship("l");
+        boolean found1 = false;
+        boolean found2 = false;
+        for (final MockFlowFile mff : lFlowFiles) {
+            if (mff.getAttribute(RouteText.GROUP_ATTRIBUTE_KEY).equals("1")) {
+                mff.assertContentEquals("1,hello\n");
+                found1 = true;
+            } else {
+                mff.assertAttributeEquals(RouteText.GROUP_ATTRIBUTE_KEY, "2");
+                mff.assertContentEquals("2,world\n");
+                found2 = true;
+            }
+        }
+
+        assertTrue(found1);
+        assertTrue(found2);
+
+        List<MockFlowFile> unmatchedFlowFiles = runner.getFlowFilesForRelationship("unmatched");
+        found1 = false;
+        boolean found3 = false;
+        for (final MockFlowFile mff : unmatchedFlowFiles) {
+            if (mff.getAttribute(RouteText.GROUP_ATTRIBUTE_KEY).equals("1")) {
+                mff.assertContentEquals("1,good-bye\n");
+                found1 = true;
+            } else {
+                mff.assertAttributeEquals(RouteText.GROUP_ATTRIBUTE_KEY, "3");
+                mff.assertContentEquals("3,ciao");
+                found3 = true;
+            }
+        }
+
+        assertTrue(found1);
+        assertTrue(found3);
+
     }
 
     @Test
