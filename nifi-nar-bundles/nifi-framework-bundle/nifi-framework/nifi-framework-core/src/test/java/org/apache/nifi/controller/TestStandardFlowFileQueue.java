@@ -89,6 +89,7 @@ public class TestStandardFlowFileQueue {
         try {
             Thread.sleep(100L);
         } catch (final InterruptedException ie) {
+        	Thread.currentThread().interrupt();
         }
 
         final Set<FlowFileRecord> expiredRecords = new HashSet<>(100);

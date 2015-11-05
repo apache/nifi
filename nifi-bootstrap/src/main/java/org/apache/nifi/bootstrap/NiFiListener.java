@@ -84,6 +84,7 @@ public class NiFiListener {
             try {
                 executor.awaitTermination(3, TimeUnit.SECONDS);
             } catch (final InterruptedException ie) {
+            	Thread.currentThread().interrupt();
             }
 
             serverSocket.close();

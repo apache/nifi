@@ -689,6 +689,7 @@ public class RunNiFi {
                             try {
                                 Thread.sleep(2000L);
                             } catch (final InterruptedException ie) {
+                            	Thread.currentThread().interrupt();
                             }
                         }
                     }
@@ -950,6 +951,7 @@ public class RunNiFi {
                 try {
                     Thread.sleep(1000L);
                 } catch (final InterruptedException ie) {
+                	Thread.currentThread().interrupt();
                 }
             } else {
                 try {
@@ -1097,6 +1099,7 @@ public class RunNiFi {
                 try {
                     startupCondition.await(1, TimeUnit.SECONDS);
                 } catch (final InterruptedException ie) {
+                	Thread.currentThread().interrupt();
                     return false;
                 }
 

@@ -816,6 +816,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             try {
                 Thread.sleep(100L);
             } catch (final InterruptedException ie) {
+            	Thread.currentThread().interrupt();
             }
         }
 
@@ -1120,6 +1121,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             try {
                 Thread.sleep(100L);
             } catch (final InterruptedException e) {
+            	Thread.currentThread().interrupt();
             }
         }
     }
@@ -1228,6 +1230,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                             try {
                                 Thread.sleep(10L);
                             } catch (final InterruptedException ie) {
+                            	Thread.currentThread().interrupt();
                             }
                         }
 
@@ -1289,6 +1292,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                         try {
                             Thread.sleep(100L);
                         } catch (final InterruptedException ie) {
+                        	Thread.currentThread().interrupt();
                         }
                     }
 
@@ -1598,6 +1602,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                                         try {
                                             tuple = eventQueue.poll(10, TimeUnit.MILLISECONDS);
                                         } catch (final InterruptedException ie) {
+                                        	Thread.currentThread().interrupt();
                                             continue;
                                         }
 
@@ -1629,6 +1634,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                                 try {
                                     accepted = eventQueue.offer(new Tuple<>(record, blockIndex), 10, TimeUnit.MILLISECONDS);
                                 } catch (final InterruptedException ie) {
+                                	Thread.currentThread().interrupt();
                                 }
                             }
                             maxId = record.getEventId();
@@ -1667,6 +1673,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
                             throw new RuntimeException(t);
                         } catch (final InterruptedException e) {
+                        	Thread.currentThread().interrupt();
                             throw new RuntimeException("Thread interrupted");
                         }
                     }
@@ -1784,6 +1791,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             try {
                 Thread.sleep(100L);
             } catch (final InterruptedException ie) {
+            	Thread.currentThread().interrupt();
             }
         }
 
@@ -1916,6 +1924,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     docs.clear();
                 }
             } catch (final ExecutionException | InterruptedException ee) {
+            	Thread.currentThread().interrupt();
                 throw new RuntimeException(ee);
             }
         }
@@ -2035,6 +2044,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             try {
                 Thread.sleep(100L);
             } catch (final InterruptedException ie) {
+            	Thread.currentThread().interrupt();
             }
         }
 

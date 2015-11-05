@@ -1124,6 +1124,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 this.timerDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds / 2, TimeUnit.SECONDS);
                 this.eventDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds / 2, TimeUnit.SECONDS);
             } catch (final InterruptedException ie) {
+            	Thread.currentThread().interrupt();
                 LOG.info("Interrupted while waiting for controller termination.");
             }
 

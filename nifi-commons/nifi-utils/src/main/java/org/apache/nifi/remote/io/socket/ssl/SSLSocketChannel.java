@@ -131,6 +131,7 @@ public class SSLSocketChannel implements Closeable {
                         try {
                             Thread.sleep(50L);
                         } catch (final InterruptedException e) {
+                        	Thread.currentThread().interrupt();
                         }
                     }
                 }
