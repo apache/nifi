@@ -207,6 +207,14 @@ public final class AuthorizedUsers {
         saveUsers(users);
     }
 
+    public synchronized void createOrUpdateUser(final FindUser finder, final CreateUser creator, final UpdateUser updater) {
+        try {
+            updateUser(finder, updater);
+        } catch (final UnknownIdentityException uie) {
+            createUser(creator);
+        }
+    }
+
     public synchronized void updateUser(final FindUser finder, final UpdateUser updater) {
         // update the user
         final Users users = getUsers();

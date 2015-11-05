@@ -48,7 +48,7 @@
     <xs:complexType name="User">
         <xs:complexContent>
             <xs:extension base="NiFiUser">
-                <xs:attribute name="dn">
+                <xs:attribute name="dn" use="required">
                     <xs:simpleType>
                         <xs:restriction base="xs:string">
                             <xs:minLength value="1"/>
@@ -64,7 +64,7 @@
     <xs:complexType name="LoginUser">
         <xs:complexContent>
             <xs:extension base="NiFiUser">
-                <xs:attribute name="username">
+                <xs:attribute name="username" use="required">
                     <xs:simpleType>
                         <xs:restriction base="xs:string">
                             <xs:minLength value="1"/>
@@ -72,7 +72,7 @@
                         </xs:restriction>
                     </xs:simpleType>
                 </xs:attribute>
-                <xs:attribute name="password">
+                <xs:attribute name="password" use="required">
                     <xs:simpleType>
                         <xs:restriction base="xs:string">
                             <xs:minLength value="1"/>
@@ -80,6 +80,7 @@
                         </xs:restriction>
                     </xs:simpleType>
                 </xs:attribute>
+                <xs:attribute name="pending" type="xs:boolean" use="required"/>
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>

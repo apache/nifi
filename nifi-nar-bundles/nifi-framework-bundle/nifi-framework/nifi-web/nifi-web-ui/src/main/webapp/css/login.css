@@ -19,7 +19,7 @@
     Login Styles
 */
 
-body.login-body {
+#login-contents-container {
     position: absolute;
     top: 0px;
     left: 0px;
@@ -27,13 +27,8 @@ body.login-body {
     right: 0px;
     background: #fff url(../images/bg-error.png) left top no-repeat;
     font-family: Verdana, Geneva, sans-serif;
-    color: #191919;
-    z-index: 999999;
-}
-
-#login-contents-container {
-    margin-top: 100px;
-    margin-left: 100px;
+    padding-top: 100px;
+    padding-left: 100px;
 }
 
 #login-message-title {
@@ -59,6 +54,14 @@ body.login-body {
 
 body.login-body input, body.login-body textarea {
     width: 400px;
+}
+
+#create-account-message {
+    margin-top: 2px;
+}
+
+#create-account-link {
+    text-decoration: underline;
 }
 
 /*

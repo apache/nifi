@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.form;
 
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.cert.CertificateExpiredException;
@@ -36,7 +37,7 @@ import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.web.security.x509.X509CertificateValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -84,42 +85,50 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
             // look for a certificate
             final X509Certificate certificate = certificateExtractor.extractClientCertificate(request);
 
+            // if there is no certificate, look for an existing token
             if (certificate == null) {
-                throw new PreAuthenticatedCredentialsNotFoundException("Unable to extract client certificate after processing request with no login credentials specified.");
+                final String principal = jwtService.getAuthentication(request);
+                
+                if (principal == null) {
+                    throw new AuthenticationCredentialsNotFoundException("Unable to issue token as issue token as no credentials were found in the request.");
+                }
+                
+                final LoginCredentials tokenCredentials = new LoginCredentials(principal, null);
+                return new LoginAuthenticationToken(tokenCredentials);
+            } else {
+                // extract the principal
+                final String principal = extractPrincipal(certificate);
+
+                try {
+                    certificateValidator.validateClientCertificate(request, certificate);
+                } catch (CertificateExpiredException cee) {
+                    final String message = String.format("Client certificate for (%s) is expired.", principal);
+                    logger.info(message, cee);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("", cee);
+                    }
+                    return null;
+                } catch (CertificateNotYetValidException cnyve) {
+                    final String message = String.format("Client certificate for (%s) is not yet valid.", principal);
+                    logger.info(message, cnyve);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("", cnyve);
+                    }
+                    return null;
+                } catch (final Exception e) {
+                    logger.info(e.getMessage());
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("", e);
+                    }
+                    return null;
+                }
+
+                // authorize the proxy if necessary
+                authorizeProxyIfNecessary(ProxiedEntitiesUtils.buildProxyChain(request, principal));
+
+                final LoginCredentials preAuthenticatedCredentials = new LoginCredentials(principal, null);
+                return new LoginAuthenticationToken(preAuthenticatedCredentials);
             }
-
-            // extract the principal
-            final String principal = extractPrincipal(certificate);
-
-            try {
-                certificateValidator.validateClientCertificate(request, certificate);
-            } catch (CertificateExpiredException cee) {
-                final String message = String.format("Client certificate for (%s) is expired.", principal);
-                logger.info(message, cee);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("", cee);
-                }
-                return null;
-            } catch (CertificateNotYetValidException cnyve) {
-                final String message = String.format("Client certificate for (%s) is not yet valid.", principal);
-                logger.info(message, cnyve);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("", cnyve);
-                }
-                return null;
-            } catch (final Exception e) {
-                logger.info(e.getMessage());
-                if (logger.isDebugEnabled()) {
-                    logger.debug("", e);
-                }
-                return null;
-            }
-
-            // authorize the proxy if necessary
-            authorizeProxyIfNecessary(ProxiedEntitiesUtils.buildProxyChain(request, principal));
-
-            final LoginCredentials preAuthenticatedCredentials = new LoginCredentials(principal, null);
-            return new LoginAuthenticationToken(preAuthenticatedCredentials);
         } else {
             if (loginIdentityProvider.authenticate(credentials)) {
                 return new LoginAuthenticationToken(credentials);
@@ -178,39 +187,15 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
     @Override
     protected void unsuccessfulAuthentication(final HttpServletRequest request, final HttpServletResponse response, final AuthenticationException failed) throws IOException, ServletException {
-        // set the response status
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("text/plain");
-
+        
         final PrintWriter out = response.getWriter();
-        out.println("Unable to authenticate.");
-    }
-
-    /**
-     * This is an Authentication Token for logging in. Once a user is authenticated, they can be issues an ID token.
-     */
-    public static class LoginAuthenticationToken extends AbstractAuthenticationToken {
-
-        final LoginCredentials credentials;
-
-        public LoginAuthenticationToken(final LoginCredentials credentials) {
-            super(null);
-            setAuthenticated(true);
-            this.credentials = credentials;
-        }
-
-        public LoginCredentials getLoginCredentials() {
-            return credentials;
-        }
-
-        @Override
-        public Object getCredentials() {
-            return credentials.getPassword();
-        }
-
-        @Override
-        public Object getPrincipal() {
-            return credentials.getUsername();
+        out.println(failed.getMessage());
+        
+        if (failed instanceof BadCredentialsException || failed instanceof AuthenticationCredentialsNotFoundException) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        } else {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
 

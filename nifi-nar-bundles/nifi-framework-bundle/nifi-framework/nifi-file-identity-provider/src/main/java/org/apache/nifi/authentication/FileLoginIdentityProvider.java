@@ -19,9 +19,11 @@ package org.apache.nifi.authentication;
 import java.io.IOException;
 import java.util.List;
 import org.apache.nifi.authentication.annotation.LoginIdentityProviderContext;
+import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.ProviderDestructionException;
 import org.apache.nifi.authorized.users.AuthorizedUsers;
+import org.apache.nifi.authorized.users.AuthorizedUsers.CreateUser;
 import org.apache.nifi.authorized.users.AuthorizedUsers.HasUser;
 import org.apache.nifi.user.generated.LoginUser;
 import org.apache.nifi.user.generated.NiFiUser;
@@ -57,11 +59,43 @@ public class FileLoginIdentityProvider implements LoginIdentityProvider {
 
     @Override
     public boolean supportsRegistration() {
-        return false;
+        return true;
     }
 
     @Override
-    public void register(LoginCredentials credentials) {
+    public void register(final LoginCredentials credentials) throws IdentityAlreadyExistsException {
+        authorizedUsers.createUser(new CreateUser() {
+            @Override
+            public NiFiUser createUser() {
+                final HasUser hasUser = new HasUser() {
+                    @Override
+                    public boolean hasUser(List<NiFiUser> users) {
+                        for (final NiFiUser user : users) {
+                            // only consider LoginUsers
+                            if (LoginUser.class.isAssignableFrom(user.getClass())) {
+                                final LoginUser loginUser = (LoginUser) user;
+                                if (credentials.getUsername().equals(loginUser.getUsername())) {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                    }
+                };
+
+                // if the user already exists
+                if (authorizedUsers.hasUser(hasUser)) {
+                    throw new IdentityAlreadyExistsException(String.format("A user account for %s already exists.", credentials.getUsername()));
+                }
+
+                // TODO - need to properly encrypt and hash the user password for storage
+                final LoginUser user = new LoginUser();
+                user.setUsername(credentials.getUsername());
+                user.setPassword(credentials.getPassword());
+                user.setPending(true);
+                return user;
+            }
+        });
     }
 
     @Override
@@ -78,7 +112,7 @@ public class FileLoginIdentityProvider implements LoginIdentityProvider {
                     if (LoginUser.class.isAssignableFrom(user.getClass())) {
                         final LoginUser loginUser = (LoginUser) user;
 
-                        // TODO - need to properly encrypt and hash password
+                        // TODO - need to properly encrypt and hash the supplied password for comparison
                         final String loginUserPassword = loginUser.getPassword();
                         if (credentials.getUsername().equals(loginUser.getUsername()) && credentials.getPassword().equals(loginUserPassword)) {
                             return true;

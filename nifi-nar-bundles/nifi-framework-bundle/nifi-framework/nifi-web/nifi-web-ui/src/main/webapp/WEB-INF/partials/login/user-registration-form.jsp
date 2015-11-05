@@ -16,18 +16,19 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="user-registration-container" class="hidden">
-    <div class="login-title">Log In</div>
+    <div class="login-title">Create Account</div>
     <div class="setting">
         <div class="setting-name">Username</div>
         <div class="setting-field">
-            <input type="text" id="username"/>
+            <input type="text" id="registration-username"/>
         </div>
     </div>
     <div class="setting">
         <div class="setting-name">Password</div>
         <div class="setting-field">
-            <input type="password" id="password"/><br/>
-            <input type="password" id="password-confirmation" placeholder="Confirm password"/>
+            <input type="password" id="registration-password" style="margin-bottom: 5px;"/>
+            <br/>
+            <input type="password" id="registration-password-confirmation" placeholder="Confirm password"/>
         </div>
     </div>
 </div>

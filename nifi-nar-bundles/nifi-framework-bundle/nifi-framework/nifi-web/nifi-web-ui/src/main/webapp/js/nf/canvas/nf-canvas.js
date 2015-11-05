@@ -1044,7 +1044,6 @@ nf.Canvas = (function () {
                 dataType: 'json'
             });
             
-            
             // load the identity and authorities for the current user
             var userXhr = $.Deferred(function(deferred) {
                 $.when(authoritiesXhr, identityXhr).done(function (authoritiesResult, identityResult) {
@@ -1059,22 +1058,15 @@ nf.Canvas = (function () {
                     // if the user is logged, we want to determine if they were logged in using a certificate
                     if (identityResponse.identity !== 'anonymous') {
                         $('#current-user').text(identityResponse.identity).show();
-                        
-                        // attempt to get a token for the current user without passing login credentials
-                        $.ajax({
-                            type: 'GET',
-                            url: config.urls.token
-                        }).fail(function () {
-                            // if this request succeeds, it means the user is logged in using their certificate.
-                            // if this request fails, it means the user is logged in with login credentials so we want to render a logout button.
+
+                        // render the logout button if there is a token locally
+                        if (nf.Storage.getItem('jwt') !== null) {
                             $('#logout-link-container').show();
-                        }).always(function () {
-                            deferred.resolve();
-                        });
+                        }
                     } else {
                         $('#current-user').text(nf.Canvas.ANONYMOUS_USER_TEXT).show();
-                        deferred.resolve();
                     }
+                    deferred.resolve();
                 }).fail(function (xhr, status, error) {
                     // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
                     if (xhr.status === 401) {

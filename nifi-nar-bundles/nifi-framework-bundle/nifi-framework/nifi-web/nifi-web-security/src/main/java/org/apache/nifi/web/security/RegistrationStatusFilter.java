@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.web.security.x509.X509CertificateValidator;
@@ -54,6 +55,7 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
     private static final Logger logger = LoggerFactory.getLogger(RegistrationStatusFilter.class);
 
     private NiFiProperties properties;
+    private JwtService jwtService;
     private AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService;
     private X509CertificateValidator certificateValidator;
     private X509CertificateExtractor certificateExtractor;
@@ -78,21 +80,22 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
 
         // if no certificate, just check the credentials
         if (certificate == null) {
-            final LoginCredentials credentials = getLoginCredentials(request);
+            final String principal = jwtService.getAuthentication(request);
 
             // ensure we have something we can work with (certificate or crendentials)
-            if (credentials == null) {
+            if (principal == null) {
                 throw new BadCredentialsException("Unable to check registration status as no credentials were included with the request.");
             }
 
             // without a certificate, this is not a proxied request
-            final List<String> chain = Arrays.asList(credentials.getUsername());
+            final List<String> chain = Arrays.asList(principal);
 
             // check authorization for this user
             checkAuthorization(chain);
 
             // no issues with authorization
-            return new RegistrationStatusAuthenticationToken(credentials);
+            final LoginCredentials tokenCredentials = new LoginCredentials(principal, null);
+            return new RegistrationStatusAuthenticationToken(tokenCredentials);
         } else {
             // we have a certificate so let's consider a proxy chain
             final String principal = extractPrincipal(certificate);
@@ -145,17 +148,6 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
         // extract the principal
         final Object certificatePrincipal = principalExtractor.extractPrincipal(certificate);
         return ProxiedEntitiesUtils.formatProxyDn(certificatePrincipal.toString());
-    }
-
-    private LoginCredentials getLoginCredentials(HttpServletRequest request) {
-        final String username = request.getParameter("username");
-        final String password = request.getParameter("password");
-
-        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
-            return null;
-        } else {
-            return new LoginCredentials(username, password);
-        }
     }
 
     @Override
@@ -236,6 +228,10 @@ public class RegistrationStatusFilter extends AbstractAuthenticationProcessingFi
         public Object getPrincipal() {
             return credentials.getUsername();
         }
+    }
+
+    public void setJwtService(JwtService jwtService) {
+        this.jwtService = jwtService;
     }
 
     public void setCertificateValidator(X509CertificateValidator certificateValidator) {

@@ -40,6 +40,7 @@ import org.apache.nifi.authorized.users.AuthorizedUsers.FindUsers;
 import org.apache.nifi.authorized.users.AuthorizedUsers.HasUser;
 import org.apache.nifi.authorized.users.AuthorizedUsers.UpdateUser;
 import org.apache.nifi.authorized.users.AuthorizedUsers.UpdateUsers;
+import org.apache.nifi.user.generated.LoginUser;
 import org.apache.nifi.user.generated.NiFiUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,15 +183,37 @@ public class FileAuthorizationProvider implements AuthorityProvider {
 
     @Override
     public void addUser(final String dn, final String group) throws IdentityAlreadyExistsException, AuthorityAccessException {
-        authorizedUsers.createUser(new CreateUser() {
+        authorizedUsers.createOrUpdateUser(new FindUser() {
             @Override
-            public NiFiUser createUser() {
-                // ensure the user doesn't already exist
-                if (authorizedUsers.hasUser(new HasUserByIdentity(dn))) {
-                    throw new IdentityAlreadyExistsException(String.format("User identity already exists: %s", dn));
+            public NiFiUser findUser(final List<NiFiUser> users) throws UnknownIdentityException {
+                // attempt to get the user and ensure it was located
+                NiFiUser desiredUser = null;
+                for (final NiFiUser user : users) {
+                    if (dn.equalsIgnoreCase(authorizedUsers.getUserIdentity(user))) {
+                        desiredUser = user;
+                        break;
+                    }
                 }
 
-                // only support adding PreAuthenticatedUser's via this API - LoginUser's are added
+                // user does not exist, will create
+                if (desiredUser == null) {
+                    throw new UnknownIdentityException("This exception will trigger the creator to be invoked.");
+                }
+
+                // user exists, verify its still pending
+                if (LoginUser.class.isAssignableFrom(desiredUser.getClass())) {
+                    if (((LoginUser) desiredUser).isPending()) {
+                        return desiredUser;
+                    }
+                }
+
+                // user exists and account is valid... no good
+                throw new IdentityAlreadyExistsException(String.format("User identity already exists: %s", dn));
+            }
+        }, new CreateUser() {
+            @Override
+            public NiFiUser createUser() {
+                // only support adding PreAuthenticated User's via this API - LoginUser's are added
                 // via the LoginIdentityProvider
                 final ObjectFactory objFactory = new ObjectFactory();
                 final User newUser = objFactory.createUser();
@@ -211,6 +234,13 @@ public class FileAuthorizationProvider implements AuthorityProvider {
                 }
 
                 return newUser;
+            }
+        }, new UpdateUser() {
+            @Override
+            public void updateUser(final NiFiUser user) {
+                // only support updating Login Users's via this API - need to mark the account as non pending
+                LoginUser loginUser = (LoginUser) user;
+                loginUser.setPending(false);
             }
         });
     }
@@ -306,6 +336,13 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         this.properties = properties;
     }
 
+    private boolean isPendingLoginUser(final NiFiUser user) {
+        if (LoginUser.class.isAssignableFrom(user.getClass())) {
+            return ((LoginUser) user).isPending();
+        }
+        return false;
+    }
+
     public class HasUserByIdentity implements HasUser {
 
         private final String identity;
@@ -324,7 +361,7 @@ public class FileAuthorizationProvider implements AuthorityProvider {
             // attempt to get the user and ensure it was located
             NiFiUser desiredUser = null;
             for (final NiFiUser user : users) {
-                if (identity.equalsIgnoreCase(authorizedUsers.getUserIdentity(user))) {
+                if (identity.equalsIgnoreCase(authorizedUsers.getUserIdentity(user)) && !isPendingLoginUser(user)) {
                     desiredUser = user;
                     break;
                 }
@@ -352,7 +389,7 @@ public class FileAuthorizationProvider implements AuthorityProvider {
             // attempt to get the user and ensure it was located
             NiFiUser desiredUser = null;
             for (final NiFiUser user : users) {
-                if (identity.equalsIgnoreCase(authorizedUsers.getUserIdentity(user))) {
+                if (identity.equalsIgnoreCase(authorizedUsers.getUserIdentity(user)) && !isPendingLoginUser(user)) {
                     desiredUser = user;
                     break;
                 }
@@ -366,7 +403,7 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         }
     }
 
-    public static class FindUsersByGroup implements FindUsers {
+    public class FindUsersByGroup implements FindUsers {
 
         private final String group;
 
@@ -384,7 +421,7 @@ public class FileAuthorizationProvider implements AuthorityProvider {
             // get all users with this group
             List<NiFiUser> userGroup = new ArrayList<>();
             for (final NiFiUser user : users) {
-                if (group.equals(user.getGroup())) {
+                if (group.equals(user.getGroup()) && !isPendingLoginUser(user)) {
                     userGroup.add(user);
                 }
             }
@@ -419,7 +456,7 @@ public class FileAuthorizationProvider implements AuthorityProvider {
             List<NiFiUser> userList = new ArrayList<>();
             for (final NiFiUser user : users) {
                 final String userIdentity = authorizedUsers.getUserIdentity(user);
-                if (copy.contains(userIdentity)) {
+                if (copy.contains(userIdentity) && !isPendingLoginUser(user)) {
                     copy.remove(userIdentity);
                     userList.add(user);
                 }

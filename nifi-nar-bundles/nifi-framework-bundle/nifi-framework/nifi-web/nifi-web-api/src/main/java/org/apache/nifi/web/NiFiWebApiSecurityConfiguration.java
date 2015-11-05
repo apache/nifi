@@ -25,6 +25,7 @@ import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.NiFiAuthenticationEntryPoint;
 import org.apache.nifi.web.security.RegistrationStatusFilter;
 import org.apache.nifi.web.security.form.LoginAuthenticationFilter;
+import org.apache.nifi.web.security.form.RegistrationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
@@ -138,17 +139,22 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     }
 
     private Filter buildRegistrationFilter(final String url) {
-        return null;
+        final RegistrationFilter registrationFilter = new RegistrationFilter(url);
+        registrationFilter.setJwtService(jwtService);
+        registrationFilter.setLoginIdentityProvider(loginIdentityProvider);
+        registrationFilter.setUserService(userService);
+        return registrationFilter;
     }
 
     private Filter buildRegistrationStatusFilter(final String url) {
-        final RegistrationStatusFilter registrationFilter = new RegistrationStatusFilter(url);
-        registrationFilter.setCertificateExtractor(certificateExtractor);
-        registrationFilter.setPrincipalExtractor(principalExtractor);
-        registrationFilter.setCertificateValidator(certificateValidator);
-        registrationFilter.setProperties(properties);
-        registrationFilter.setUserDetailsService(userDetailsService);
-        return registrationFilter;
+        final RegistrationStatusFilter registrationStatusFilter = new RegistrationStatusFilter(url);
+        registrationStatusFilter.setCertificateExtractor(certificateExtractor);
+        registrationStatusFilter.setPrincipalExtractor(principalExtractor);
+        registrationStatusFilter.setCertificateValidator(certificateValidator);
+        registrationStatusFilter.setProperties(properties);
+        registrationStatusFilter.setJwtService(jwtService);
+        registrationStatusFilter.setUserDetailsService(userDetailsService);
+        return registrationStatusFilter;
     }
 
     private NodeAuthorizedUserFilter buildNodeAuthorizedUserFilter() {

@@ -50,7 +50,7 @@ public class JwtService {
      * @param authentication The authentication to generate a token for
      */
     public void addToken(final HttpServletResponse response, final Authentication authentication) {
-        // TODO : actually create real token
+        // TODO : actually create real token... in header or response body?
 
         // create a token the specified authentication
         String token = authentication.getName();

@@ -44,131 +44,180 @@ nf.Login = (function () {
         // if this nifi supports registration, render the registration form
         if (supportsRegistration === true) {
             initializeUserRegistration();
-
-            // automatically include support for nifi registration
             initializeNiFiRegistration();
 
-            // hide the submit justification title
-            $('#nifi-registration-title').hide();
+            // show the create account message
+            $('#create-account-message').show();
 
-            // update the submit button text
-            $('#login-submission-button').text('Create');
+            // toggle between login and signup
+            $('#create-account-link').on('click', function () {
+                showUserRegistration();
+            });
         }
-        
-        // show the login form
+    };
+
+    var showLogin = function () {
         $('#login-container').show();
+        $('#user-registration-container').hide();
+        $('#nifi-registration-container').hide();
+        $('#login-submission-button').text('Log in');
     };
 
     var initializeUserRegistration = function () {
-
-        // show the user registration form
-        $('#user-registration-container').show();
     };
 
     var initializeNiFiRegistration = function () {
         $('#nifi-registration-justification').count({
             charCountField: '#remaining-characters'
         });
+    };
 
-        // update the button text
-        $('#login-submission-button').text('Submit');
+    var showUserRegistration = function () {
+        showNiFiRegistration();
 
-        // show the nifi registration container
+        $('#nifi-registration-title').hide();
+        $('#user-registration-container').show();
+        $('#login-submission-button').text('Create');
+    };
+
+    var showNiFiRegistration = function () {
+        $('#login-container').hide();
         $('#nifi-registration-container').show();
+        $('#login-submission-button').text('Submit');
     };
 
     var initializeSubmission = function () {
-        $('#login-submission-button').one('click', function () {
+        $('#login-submission-button').on('click', function () {
             if ($('#login-container').is(':visible')) {
-                var username = $('#username').val();
-                var password = $('#password').val();
-
-                // login submit
-                $.ajax({
-                    type: 'POST',
-                    url: '../nifi-api/token',
-                    data: {
-                        'username': username,
-                        'password': password
-                    }
-                }).done(function (response, status, xhr) {
-                    var authorization = xhr.getResponseHeader('Authorization');
-                    var badToken = false;
-
-                    // ensure there was a token in the response
-                    if (authorization) {
-                        var tokens = authorization.split(/ /);
-
-                        // ensure the token is the appropriate length
-                        if (tokens.length === 2) {
-                            // store the jwt and reload the page
-                            nf.Storage.setItem('jwt', tokens[1]);
-                            
-                            // reload as appropriate
-                            if (top !== window) {
-                                parent.window.location = '/nifi';
-                            } else {
-                                window.location = '/nifi';
-                            }
-                            return;
-                        } else {
-                            badToken = true;
-                        }
-                    } else {
-                        badToken = true;
-                    }
-
-                    if (badToken === true) {
-                        $('#login-message-title').text('An unexpected error has occurred');
-                        $('#login-message').text('The id token could not be parsed.');
-                        
-                        // update visibility
-                        $('#login-container').hide();
-                        $('#login-submission-container').hide();
-                        $('#login-message-container').show();
-                    }
-                }).fail(function (xhr, status, error) {
-                    $('#login-message-title').text('An unexpected error has occurred');
-                    $('#login-message').text(xhr.responseText);
-                    
-                    // update visibility
-                    $('#login-container').hide();
-                    $('#login-submission-container').hide();
-                    $('#login-message-container').show();
-                });
+                login();
             } else if ($('#user-registration-container').is(':visible')) {
-                var justification = $('#registration-justification').val();
-                
-                // new user account submit
+                createUserAccount();
             } else if ($('#nifi-registration-container').is(':visible')) {
-                // attempt to create the user account registration
-                $.ajax({
-                    type: 'POST',
-                    url: config.urls.users,
-                    data: {
-                        'justification': $('#registration-justification').val()
-                    }
-                }).done(function (response) {
-                    var markup = 'An administrator will process your request shortly.';
-                    if (isAnonymous === true) {
-                        markup += '<br/><br/>In the meantime you can continue accessing anonymously.';
-                    }
-
-                    $('#login-message-title').text('Thanks!');
-                    $('#login-message').html(markup);
-                }).fail(function (xhr, status, error) {
-                    $('#login-message-title').text('An unexpected error has occurred');
-                    $('#login-message').text(xhr.responseText);
-                }).always(function () {
-                    // update form visibility
-                    $('#nifi-registration-container').hide();
-                    $('#login-submission-container').hide();
-                    $('#login-message-container').show();
-                });
+                submitJustification();
             }
         });
 
         $('#login-submission-container').show();
+    };
+
+    var login = function () {
+        // login submit
+        $.ajax({
+            type: 'POST',
+            url: config.urls.token,
+            data: {
+                'username': $('#username').val(),
+                'password': $('#password').val()
+            }
+        }).done(function (response, status, xhr) {
+            var authorization = xhr.getResponseHeader('Authorization');
+            var badToken = false;
+
+            // ensure there was a token in the response
+            if (authorization) {
+                var tokens = authorization.split(/ /);
+
+                // ensure the token is the appropriate length
+                if (tokens.length === 2) {
+                    // store the jwt and reload the page
+                    nf.Storage.setItem('jwt', tokens[1]);
+
+                    // reload as appropriate
+                    if (top !== window) {
+                        parent.window.location = '/nifi';
+                    } else {
+                        window.location = '/nifi';
+                    }
+                    return;
+                } else {
+                    badToken = true;
+                }
+            } else {
+                badToken = true;
+            }
+
+            if (badToken === true) {
+                $('#login-message-title').text('An unexpected error has occurred');
+                $('#login-message').text('The user token could not be parsed.');
+
+                // update visibility
+                $('#login-container').hide();
+                $('#login-submission-container').hide();
+                $('#login-message-container').show();
+            }
+        }).fail(function (xhr, status, error) {
+            if (xhr.status === 400) {
+                nf.Dialog.showOkDialog({
+                    dialogContent: nf.Common.escapeHtml(xhr.responseText),
+                    overlayBackground: false
+                });
+            } else {
+                $('#login-message-title').text('Unable to log in');
+                $('#login-message').text(xhr.responseText);
+
+                // update visibility
+                $('#login-container').hide();
+                $('#login-submission-container').hide();
+                $('#login-message-container').show();
+            }
+        });
+    };
+
+    var createUserAccount = function () {
+        // attempt to create the user account registration
+        $.ajax({
+            type: 'POST',
+            url: config.urls.registration,
+            data: {
+                'username': $('#registration-username').val(),
+                'password': $('#registration-password').val(),
+                'justification': $('#nifi-registration-justification').val()
+            }
+        }).done(function (response, status, xhr) {
+            var markup = 'An administrator will process your request shortly.';
+            if (isAnonymous === true) {
+                markup += '<br/><br/>In the meantime you can continue accessing anonymously.';
+            }
+
+            $('#login-message-title').text('Thanks!');
+            $('#login-message').html(markup);
+        }).fail(function (xhr, status, error) {
+            $('#login-message-title').text('Unable to create user account');
+            $('#login-message').text(xhr.responseText);
+        }).always(function () {
+            // update form visibility
+            $('#user-registration-container').hide();
+            $('#nifi-registration-container').hide();
+            $('#login-submission-container').hide();
+            $('#login-message-container').show();
+        });
+    };
+
+    var submitJustification = function () {
+        // attempt to create the nifi account registration
+        $.ajax({
+            type: 'POST',
+            url: config.urls.users,
+            data: {
+                'justification': $('#nifi-registration-justification').val()
+            }
+        }).done(function (response) {
+            var markup = 'An administrator will process your request shortly.';
+            if (isAnonymous === true) {
+                markup += '<br/><br/>In the meantime you can continue accessing anonymously.';
+            }
+
+            $('#login-message-title').text('Thanks!');
+            $('#login-message').html(markup);
+        }).fail(function (xhr, status, error) {
+            $('#login-message-title').text('Unable to submit justification');
+            $('#login-message').text(xhr.responseText);
+        }).always(function () {
+            // update form visibility
+            $('#nifi-registration-container').hide();
+            $('#login-submission-container').hide();
+            $('#login-message-container').show();
+        });
     };
 
     return {
@@ -202,7 +251,7 @@ nf.Login = (function () {
 
                         // request a token without including credentials, if successful then the user is using a certificate
                         token.done(function () {
-                            // the user is using a certificate, see if their account is active/pending/revoked/etc
+                            // the user is using a certificate/token, see if their account is active/pending/revoked/etc
                             $.ajax({
                                 type: 'GET',
                                 url: config.urls.registrationStatus
@@ -212,7 +261,6 @@ nf.Login = (function () {
                                 // account is active and good
                                 $('#login-message-title').text('Success');
                                 $('#login-message').text('Your account is active and you are already logged in.');
-                                deferred.resolve();
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 401) {
                                     // anonymous user and 401 means they need nifi registration
@@ -228,6 +276,7 @@ nf.Login = (function () {
                                         $('#login-message').text(xhr.responseText);
                                     }
                                 }
+                            }).always(function () {
                                 deferred.resolve();
                             });
                         }).fail(function () {
@@ -248,7 +297,7 @@ nf.Login = (function () {
                     if (xhr.status === 401) {
                         // attempt to get a token for the current user without passing login credentials
                         token.done(function () {
-                            // 401 from identity request and 200 from token means they have a certificate but have not yet requested an account 
+                            // 401 from identity request and 200 from token means they have a certificate/token but have not yet requested an account 
                             needsNiFiRegistration = true;
                         }).fail(function () {
                             // no token granted, user needs to login with their credentials
@@ -271,7 +320,7 @@ nf.Login = (function () {
                     }
                 });
             }).promise();
-            
+
             var loginConfigXhr = $.ajax({
                 type: 'GET',
                 url: config.urls.loginConfig,
@@ -282,7 +331,7 @@ nf.Login = (function () {
             $.when(loginConfigXhr, pageStateInit).done(function (loginResult) {
                 var loginResponse = loginResult[0];
                 var loginConfig = loginResponse.config;
-                
+
                 // if login is required, verify its supported
                 if (loginConfig.supportsLogin === false && needsLogin === true) {
                     $('#login-message-title').text('Access Denied');
@@ -290,13 +339,15 @@ nf.Login = (function () {
                     showMessage = true;
                     needsLogin = false;
                 }
-                
+
                 if (showMessage === true) {
                     initializeMessage();
                 } else if (needsLogin === true) {
                     initializeLogin(loginConfig.supportsRegistration);
+                    showLogin();
                 } else if (needsNiFiRegistration === true) {
                     initializeNiFiRegistration();
+                    showNiFiRegistration();
                 }
 
                 if (needsLogin === true || needsNiFiRegistration === true) {
