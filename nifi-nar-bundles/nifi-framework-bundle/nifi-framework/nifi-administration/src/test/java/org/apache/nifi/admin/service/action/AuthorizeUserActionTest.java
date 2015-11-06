@@ -54,17 +54,17 @@ public class AuthorizeUserActionTest {
     private static final String USER_ID_10 = "10";
     private static final String USER_ID_11 = "11";
 
-    private static final String USER_DN_1 = "authority access exception while searching for user";
-    private static final String USER_DN_2 = "unknown user";
-    private static final String USER_DN_3 = "user removed after checking existence";
-    private static final String USER_DN_4 = "access exception getting authorities";
-    private static final String USER_DN_5 = "error creating user account";
-    private static final String USER_DN_6 = "create user general sequence";
-    private static final String USER_DN_7 = "existing user requires verification";
-    private static final String USER_DN_8 = "existing user does not require verification";
-    private static final String USER_DN_9 = "existing pending user";
-    private static final String USER_DN_10 = "existing disabled user";
-    private static final String USER_DN_11 = "existing user is now unknown in the authority provider";
+    private static final String USER_IDENTITY_1 = "authority access exception while searching for user";
+    private static final String USER_IDENTITY_2 = "unknown user";
+    private static final String USER_IDENTITY_3 = "user removed after checking existence";
+    private static final String USER_IDENTITY_4 = "access exception getting authorities";
+    private static final String USER_IDENTITY_5 = "error creating user account";
+    private static final String USER_IDENTITY_6 = "create user general sequence";
+    private static final String USER_IDENTITY_7 = "existing user requires verification";
+    private static final String USER_IDENTITY_8 = "existing user does not require verification";
+    private static final String USER_IDENTITY_9 = "existing pending user";
+    private static final String USER_IDENTITY_10 = "existing disabled user";
+    private static final String USER_IDENTITY_11 = "existing user is now unknown in the authority provider";
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
@@ -85,18 +85,18 @@ public class AuthorizeUserActionTest {
                 if (USER_ID_7.equals(id)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_7);
-                    user.setDn(USER_DN_7);
+                    user.setIdentity(USER_IDENTITY_7);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                 } else if (USER_ID_8.equals(id)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_8);
-                    user.setDn(USER_DN_8);
+                    user.setIdentity(USER_IDENTITY_8);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                     user.setLastVerified(new Date());
                 } else if (USER_ID_11.equals(id)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_11);
-                    user.setDn(USER_DN_11);
+                    user.setIdentity(USER_IDENTITY_11);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                     user.setStatus(AccountStatus.ACTIVE);
                 }
@@ -112,35 +112,35 @@ public class AuthorizeUserActionTest {
 
                 NiFiUser user = null;
                 switch (dn) {
-                    case USER_DN_7:
+                    case USER_IDENTITY_7:
                         user = new NiFiUser();
                         user.setId(USER_ID_7);
-                        user.setDn(USER_DN_7);
+                        user.setIdentity(USER_IDENTITY_7);
                         user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                         break;
-                    case USER_DN_8:
+                    case USER_IDENTITY_8:
                         user = new NiFiUser();
                         user.setId(USER_ID_8);
-                        user.setDn(USER_DN_8);
+                        user.setIdentity(USER_IDENTITY_8);
                         user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                         user.setLastVerified(new Date());
                         break;
-                    case USER_DN_9:
+                    case USER_IDENTITY_9:
                         user = new NiFiUser();
                         user.setId(USER_ID_9);
-                        user.setDn(USER_DN_9);
+                        user.setIdentity(USER_IDENTITY_9);
                         user.setStatus(AccountStatus.PENDING);
                         break;
-                    case USER_DN_10:
+                    case USER_IDENTITY_10:
                         user = new NiFiUser();
                         user.setId(USER_ID_10);
-                        user.setDn(USER_DN_10);
+                        user.setIdentity(USER_IDENTITY_10);
                         user.setStatus(AccountStatus.DISABLED);
                         break;
-                    case USER_DN_11:
+                    case USER_IDENTITY_11:
                         user = new NiFiUser();
                         user.setId(USER_ID_11);
-                        user.setDn(USER_DN_11);
+                        user.setIdentity(USER_IDENTITY_11);
                         user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                         user.setStatus(AccountStatus.ACTIVE);
                         break;
@@ -154,10 +154,10 @@ public class AuthorizeUserActionTest {
             public Void answer(InvocationOnMock invocation) throws Throwable {
                 Object[] args = invocation.getArguments();
                 NiFiUser user = (NiFiUser) args[0];
-                switch (user.getDn()) {
-                    case USER_DN_5:
+                switch (user.getIdentity()) {
+                    case USER_IDENTITY_5:
                         throw new DataAccessException();
-                    case USER_DN_6:
+                    case USER_IDENTITY_6:
                         user.setId(USER_ID_6);
                         break;
                 }
@@ -215,9 +215,9 @@ public class AuthorizeUserActionTest {
                 Object[] args = invocation.getArguments();
                 String dn = (String) args[0];
                 switch (dn) {
-                    case USER_DN_1:
+                    case USER_IDENTITY_1:
                         throw new AuthorityAccessException(StringUtils.EMPTY);
-                    case USER_DN_2:
+                    case USER_IDENTITY_2:
                         return false;
                 }
 
@@ -231,21 +231,21 @@ public class AuthorizeUserActionTest {
                 String dn = (String) args[0];
                 Set<Authority> authorities = EnumSet.noneOf(Authority.class);
                 switch (dn) {
-                    case USER_DN_3:
+                    case USER_IDENTITY_3:
                         throw new UnknownIdentityException(StringUtils.EMPTY);
-                    case USER_DN_4:
+                    case USER_IDENTITY_4:
                         throw new AuthorityAccessException(StringUtils.EMPTY);
-                    case USER_DN_6:
+                    case USER_IDENTITY_6:
                         authorities.add(Authority.ROLE_MONITOR);
                         break;
-                    case USER_DN_7:
+                    case USER_IDENTITY_7:
                         authorities.add(Authority.ROLE_DFM);
                         break;
-                    case USER_DN_9:
+                    case USER_IDENTITY_9:
                         throw new UnknownIdentityException(StringUtils.EMPTY);
-                    case USER_DN_10:
+                    case USER_IDENTITY_10:
                         throw new UnknownIdentityException(StringUtils.EMPTY);
-                    case USER_DN_11:
+                    case USER_IDENTITY_11:
                         throw new UnknownIdentityException(StringUtils.EMPTY);
                 }
 
@@ -272,7 +272,7 @@ public class AuthorizeUserActionTest {
      */
     @Test(expected = AdministrationException.class)
     public void testAuthorityAccessExceptionInDoesDnExist() throws Exception {
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_1, 0);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_1, 0);
         authorizeUser.execute(daoFactory, authorityProvider);
     }
 
@@ -283,7 +283,7 @@ public class AuthorizeUserActionTest {
      */
     @Test(expected = AccountNotFoundException.class)
     public void testUnknownUser() throws Exception {
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_2, 0);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_2, 0);
         authorizeUser.execute(daoFactory, authorityProvider);
     }
 
@@ -294,7 +294,7 @@ public class AuthorizeUserActionTest {
      */
     @Test(expected = AccountNotFoundException.class)
     public void testUserRemovedAfterCheckingExistence() throws Exception {
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_3, 0);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_3, 0);
         authorizeUser.execute(daoFactory, authorityProvider);
     }
 
@@ -305,7 +305,7 @@ public class AuthorizeUserActionTest {
      */
     @Test(expected = AdministrationException.class)
     public void testAuthorityAccessException() throws Exception {
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_4, 0);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_4, 0);
         authorizeUser.execute(daoFactory, authorityProvider);
     }
 
@@ -316,7 +316,7 @@ public class AuthorizeUserActionTest {
      */
     @Test(expected = DataAccessException.class)
     public void testErrorCreatingUserAccount() throws Exception {
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_5, 0);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_5, 0);
         authorizeUser.execute(daoFactory, authorityProvider);
     }
 
@@ -327,11 +327,11 @@ public class AuthorizeUserActionTest {
      */
     @Test
     public void testAccountCreation() throws Exception {
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_6, 0);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_6, 0);
         NiFiUser user = authorizeUser.execute(daoFactory, authorityProvider);
 
         // verify the user
-        Assert.assertEquals(USER_DN_6, user.getDn());
+        Assert.assertEquals(USER_IDENTITY_6, user.getIdentity());
         Assert.assertEquals(1, user.getAuthorities().size());
         Assert.assertTrue(user.getAuthorities().contains(Authority.ROLE_MONITOR));
 
@@ -347,11 +347,11 @@ public class AuthorizeUserActionTest {
      */
     @Test
     public void testExistingUserRequiresVerification() throws Exception {
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_7, 0);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_7, 0);
         NiFiUser user = authorizeUser.execute(daoFactory, authorityProvider);
 
         // verify the user
-        Assert.assertEquals(USER_DN_7, user.getDn());
+        Assert.assertEquals(USER_IDENTITY_7, user.getIdentity());
         Assert.assertEquals(1, user.getAuthorities().size());
         Assert.assertTrue(user.getAuthorities().contains(Authority.ROLE_DFM));
 
@@ -369,11 +369,11 @@ public class AuthorizeUserActionTest {
     @Test
     public void testExistingUserNoVerification() throws Exception {
         // disabling verification by passing in a large cache duration
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_8, Integer.MAX_VALUE);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_8, Integer.MAX_VALUE);
         NiFiUser user = authorizeUser.execute(daoFactory, authorityProvider);
 
         // verify the user
-        Assert.assertEquals(USER_DN_8, user.getDn());
+        Assert.assertEquals(USER_IDENTITY_8, user.getIdentity());
         Assert.assertEquals(1, user.getAuthorities().size());
         Assert.assertTrue(user.getAuthorities().contains(Authority.ROLE_MONITOR));
 
@@ -391,7 +391,7 @@ public class AuthorizeUserActionTest {
     @Test(expected = AccountPendingException.class)
     public void testExistingPendingUser() throws Exception {
         // disabling verification by passing in a large cache duration
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_9, Integer.MAX_VALUE);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_9, Integer.MAX_VALUE);
         authorizeUser.execute(daoFactory, authorityProvider);
     }
 
@@ -403,7 +403,7 @@ public class AuthorizeUserActionTest {
     @Test(expected = AccountDisabledException.class)
     public void testExistingDisabledUser() throws Exception {
         // disabling verification by passing in a large cache duration
-        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_10, Integer.MAX_VALUE);
+        AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_10, Integer.MAX_VALUE);
         authorizeUser.execute(daoFactory, authorityProvider);
     }
 
@@ -416,7 +416,7 @@ public class AuthorizeUserActionTest {
     @Test
     public void testExistingActiveUserNotFoundInProvider() throws Exception {
         try {
-            AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_DN_11, 0);
+            AuthorizeUserAction authorizeUser = new AuthorizeUserAction(USER_IDENTITY_11, 0);
             authorizeUser.execute(daoFactory, authorityProvider);
 
             Assert.fail();

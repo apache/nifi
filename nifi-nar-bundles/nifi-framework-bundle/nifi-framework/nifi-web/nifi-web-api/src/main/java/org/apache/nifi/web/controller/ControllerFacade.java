@@ -841,7 +841,7 @@ public class ControllerFacade {
             final String type = event.getAttributes().get(CoreAttributes.MIME_TYPE.key());
 
             // get the content
-            final InputStream content = flowController.getContent(event, contentDirection, user.getDn(), uri);
+            final InputStream content = flowController.getContent(event, contentDirection, user.getIdentity(), uri);
             return new DownloadableContent(filename, type, content);
         } catch (final ContentNotFoundException cnfe) {
             throw new ResourceNotFoundException("Unable to find the specified content.");
@@ -871,7 +871,7 @@ public class ControllerFacade {
             }
 
             // replay the flow file
-            final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user.getDn());
+            final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user.getIdentity());
 
             // convert the event record
             return createProvenanceEventDto(event);

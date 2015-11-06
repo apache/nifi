@@ -70,6 +70,11 @@ nf.Login = (function () {
         $('#nifi-registration-justification').count({
             charCountField: '#remaining-characters'
         });
+        
+        // toggle between signup and login
+        $('#login-to-account-link').on('click', function () {
+            showLogin();
+        });
     };
 
     var showUserRegistration = function () {
@@ -77,6 +82,7 @@ nf.Login = (function () {
 
         $('div.nifi-submit-justification').hide();
         $('#user-registration-container').show();
+        $('#login-to-account-message').show();
         $('#login-submission-button').text('Create');
     };
 

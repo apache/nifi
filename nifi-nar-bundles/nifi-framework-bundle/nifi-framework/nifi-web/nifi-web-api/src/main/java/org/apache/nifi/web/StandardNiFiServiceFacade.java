@@ -765,7 +765,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (user == null) {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
-        final String userDn = user.getDn();
+        final String userDn = user.getIdentity();
 
         if (Node.Status.CONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
             clusterManager.requestReconnection(nodeDTO.getNodeId(), userDn);
@@ -1775,7 +1775,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // create a purge action to record that records are being removed
         FlowChangeAction purgeAction = new FlowChangeAction();
-        purgeAction.setUserIdentity(user.getDn());
+        purgeAction.setUserIdentity(user.getIdentity());
         purgeAction.setUserName(user.getUserName());
         purgeAction.setOperation(Operation.Purge);
         purgeAction.setTimestamp(new Date());
@@ -2261,7 +2261,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final Set<String> allowedUsers = port.getUserAccessControl();
-        if (allowedUsers.contains(user.getDn())) {
+        if (allowedUsers.contains(user.getIdentity())) {
             return true;
         }
 
@@ -2653,7 +2653,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final UserDTO groupedUser = groupedUserDTOs.get(user.getUserGroup());
                         groupedUser.setId(groupedUser.getId() + "," + String.valueOf(user.getId()));
                         groupedUser.setUserName(groupedUser.getUserName() + ", " + user.getUserName());
-                        groupedUser.setDn(groupedUser.getDn() + ", " + user.getDn());
+                        groupedUser.setDn(groupedUser.getDn() + ", " + user.getIdentity());
                         groupedUser.setCreation(getOldestDate(groupedUser.getCreation(), user.getCreation()));
                         groupedUser.setLastAccessed(getNewestDate(groupedUser.getLastAccessed(), user.getLastAccessed()));
                         groupedUser.setLastVerified(getNewestDate(groupedUser.getLastVerified(), user.getLastVerified()));
@@ -2752,7 +2752,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
 
-        final String userDn = user.getDn();
+        final String userDn = user.getIdentity();
         clusterManager.deleteNode(nodeId, userDn);
     }
 

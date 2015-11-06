@@ -167,7 +167,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
                     // create a configuration action
                     FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getDn());
+                    configurationAction.setUserIdentity(user.getIdentity());
                     configurationAction.setUserName(user.getUserName());
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
@@ -187,7 +187,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             if (isDisabled != updateIsDisabled) {
                 // create a controller service action
                 FlowChangeAction serviceAction = new FlowChangeAction();
-                serviceAction.setUserIdentity(user.getDn());
+                serviceAction.setUserIdentity(user.getIdentity());
                 serviceAction.setUserName(user.getUserName());
                 serviceAction.setTimestamp(new Date());
                 serviceAction.setSourceId(controllerService.getIdentifier());
@@ -271,7 +271,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
                 // create a processor action
                 FlowChangeAction processorAction = new FlowChangeAction();
-                processorAction.setUserIdentity(user.getDn());
+                processorAction.setUserIdentity(user.getIdentity());
                 processorAction.setUserName(user.getUserName());
                 processorAction.setTimestamp(new Date());
                 processorAction.setSourceId(processor.getIdentifier());
@@ -289,7 +289,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
                 // create a reporting task action
                 FlowChangeAction reportingTaskAction = new FlowChangeAction();
-                reportingTaskAction.setUserIdentity(user.getDn());
+                reportingTaskAction.setUserIdentity(user.getIdentity());
                 reportingTaskAction.setUserName(user.getUserName());
                 reportingTaskAction.setTimestamp(new Date());
                 reportingTaskAction.setSourceId(reportingTask.getIdentifier());
@@ -307,7 +307,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
                 // create a controller service action
                 FlowChangeAction serviceAction = new FlowChangeAction();
-                serviceAction.setUserIdentity(user.getDn());
+                serviceAction.setUserIdentity(user.getIdentity());
                 serviceAction.setUserName(user.getUserName());
                 serviceAction.setTimestamp(new Date());
                 serviceAction.setSourceId(controllerService.getIdentifier());
@@ -387,7 +387,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
             // create the controller service action for adding this controller service
             action = new FlowChangeAction();
-            action.setUserIdentity(user.getDn());
+            action.setUserIdentity(user.getIdentity());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());

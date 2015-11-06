@@ -106,7 +106,7 @@ public class NodeAuthorizedUserFilter extends GenericFilterBean {
                                 final NiFiUser user = userDetails.getNiFiUser();
 
                                 // log the request attempt - response details will be logged later
-                                logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", user.getDn(), httpServletRequest.getMethod(),
+                                logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", user.getIdentity(), httpServletRequest.getMethod(),
                                         httpServletRequest.getRequestURL().toString(), request.getRemoteAddr()));
 
                                 // we do not create the authentication token with the X509 certificate because the certificate is from the sending system, not the proxied user

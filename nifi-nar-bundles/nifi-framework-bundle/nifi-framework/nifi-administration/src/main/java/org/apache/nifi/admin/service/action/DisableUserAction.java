@@ -63,12 +63,12 @@ public class DisableUserAction implements AdministrationAction<NiFiUser> {
 
         try {
             // revoke the user in the authority provider
-            authorityProvider.revokeUser(user.getDn());
+            authorityProvider.revokeUser(user.getIdentity());
         } catch (UnknownIdentityException uie) {
             // user identity is not known
-            logger.info(String.format("User %s has already been removed from the authority provider.", user.getDn()));
+            logger.info(String.format("User %s has already been removed from the authority provider.", user.getIdentity()));
         } catch (AuthorityAccessException aae) {
-            throw new AdministrationException(String.format("Unable to revoke user '%s': %s", user.getDn(), aae.getMessage()), aae);
+            throw new AdministrationException(String.format("Unable to revoke user '%s': %s", user.getIdentity(), aae.getMessage()), aae);
         }
 
         return user;

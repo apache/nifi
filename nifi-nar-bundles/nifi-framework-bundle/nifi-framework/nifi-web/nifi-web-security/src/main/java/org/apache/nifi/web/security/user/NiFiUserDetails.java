@@ -73,7 +73,7 @@ public class NiFiUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user.getDn();
+        return user.getIdentity();
     }
 
     @Override

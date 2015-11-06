@@ -80,7 +80,7 @@ public abstract class NiFiAuthenticationFilter implements Filter {
 
     private boolean isAnonymousUser() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        return user != null && NiFiUser.ANONYMOUS_USER_DN.equals(user.getDn());
+        return user != null && NiFiUser.ANONYMOUS_USER_IDENTITY.equals(user.getIdentity());
     }
 
     private void authenticate(final HttpServletRequest request, final HttpServletResponse response) throws IOException {

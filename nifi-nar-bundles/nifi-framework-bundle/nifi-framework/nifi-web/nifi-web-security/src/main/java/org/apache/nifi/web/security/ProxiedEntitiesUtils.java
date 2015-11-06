@@ -70,19 +70,19 @@ public class ProxiedEntitiesUtils {
      */
     public static List<String> getXProxiedEntitiesChain(final NiFiUser user) {
         // calculate the dn chain
-        final List<String> dnChain = new ArrayList<>();
+        final List<String> proxyChain = new ArrayList<>();
 
         // build the dn chain
         NiFiUser chainedUser = user;
         do {
             // add the entry for this user
-            dnChain.add(chainedUser.getDn());
+            proxyChain.add(chainedUser.getIdentity());
 
             // go to the next user in the chain
             chainedUser = chainedUser.getChain();
         } while (chainedUser != null);
 
-        return dnChain;
+        return proxyChain;
     }
 
     /**

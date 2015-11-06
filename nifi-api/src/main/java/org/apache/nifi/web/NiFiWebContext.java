@@ -51,7 +51,7 @@ public interface NiFiWebContext {
     void saveActions(Collection<ProcessorConfigurationAction> actions);
 
     /**
-     * @return the current user dn. Returns null if no user is found
+     * @return the current user identity. It may be a dn, an email, a username, or any string that identities the user. Returns null if no user is found
      */
     String getCurrentUserDn();
 

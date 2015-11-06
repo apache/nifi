@@ -95,6 +95,15 @@ body.login-body input, body.login-body textarea {
     height: 200px;
 }
 
+#login-to-account-message {
+    float: left;
+    margin-top: 2px;
+}
+
+#login-to-account-link {
+    text-decoration: underline;
+}
+
 /*
     Submission
 */

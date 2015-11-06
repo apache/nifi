@@ -39,7 +39,7 @@ public class AccessDeniedExceptionMapper implements ExceptionMapper<AccessDenied
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
-            logger.info(String.format("%s does not have permission to access the requested resource. Returning %s response.", user.getDn(), Response.Status.FORBIDDEN));
+            logger.info(String.format("%s does not have permission to access the requested resource. Returning %s response.", user.getIdentity(), Response.Status.FORBIDDEN));
         } else {
             logger.info(String.format("User does not have permission to access the requested resource. Returning %s response.", Response.Status.FORBIDDEN));
         }

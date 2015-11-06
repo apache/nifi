@@ -76,14 +76,14 @@ public abstract class AbstractUserAction<T> implements AdministrationAction<T> {
      */
     protected void verifyAccount(AuthorityProvider authorityProvider, NiFiUser user) {
         // load the roles for the user
-        Set<Authority> authorities = authorityProvider.getAuthorities(user.getDn());
+        Set<Authority> authorities = authorityProvider.getAuthorities(user.getIdentity());
 
         // update the user's authorities
         user.getAuthorities().clear();
         user.getAuthorities().addAll(authorities);
 
         // get the user group
-        user.setUserGroup(authorityProvider.getGroupForUser(user.getDn()));
+        user.setUserGroup(authorityProvider.getGroupForUser(user.getIdentity()));
 
         // update the users status in case they were previously pending or disabled
         user.setStatus(AccountStatus.ACTIVE);

@@ -67,8 +67,8 @@ public class UserDataSourceFactoryBean implements FactoryBean {
             + "ID, IDENTITY, USER_NAME, CREATION, LAST_VERIFIED, JUSTIFICATION, STATUS"
             + ") VALUES ("
             + "'" + UUID.randomUUID().toString() + "', "
-            + "'" + NiFiUser.ANONYMOUS_USER_DN + "', "
-            + "'" + NiFiUser.ANONYMOUS_USER_DN + "', "
+            + "'" + NiFiUser.ANONYMOUS_USER_IDENTITY + "', "
+            + "'" + NiFiUser.ANONYMOUS_USER_IDENTITY + "', "
             + "NOW(), "
             + "NOW(), "
             + "'Anonymous user needs no justification', "
@@ -78,12 +78,12 @@ public class UserDataSourceFactoryBean implements FactoryBean {
     private static final String INSERT_ANONYMOUS_AUTHORITY = "INSERT INTO AUTHORITY ("
             + "USER_ID, ROLE"
             + ") VALUES ("
-            + "(SELECT ID FROM USER WHERE IDENTITY = '" + NiFiUser.ANONYMOUS_USER_DN + "'), "
+            + "(SELECT ID FROM USER WHERE IDENTITY = '" + NiFiUser.ANONYMOUS_USER_IDENTITY + "'), "
             + "'%s'"
             + ")";
 
     private static final String DELETE_ANONYMOUS_AUTHORITIES = "DELETE FROM AUTHORITY "
-            + "WHERE USER_ID = (SELECT ID FROM USER WHERE IDENTITY = '" + NiFiUser.ANONYMOUS_USER_DN + "')";
+            + "WHERE USER_ID = (SELECT ID FROM USER WHERE IDENTITY = '" + NiFiUser.ANONYMOUS_USER_IDENTITY + "')";
 
     private static final String RENAME_DN_COLUMN = "ALTER TABLE USER ALTER COLUMN DN RENAME TO IDENTITY";
     private static final String RESIZE_IDENTITY_COLUMN = "ALTER TABLE USER MODIFY IDENTITY VARCHAR(4096)";

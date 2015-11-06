@@ -132,7 +132,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
             if (loginIdentityProvider.authenticate(credentials)) {
                 return new LoginAuthenticationToken(credentials);
             } else {
-                throw new BadCredentialsException("User could not be authenticated with the configured identity provider.");
+                throw new BadCredentialsException("The supplied username and password are not valid.");
             }
         }
     }

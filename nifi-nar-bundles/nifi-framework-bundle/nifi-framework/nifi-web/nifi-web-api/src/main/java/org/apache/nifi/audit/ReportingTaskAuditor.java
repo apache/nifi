@@ -160,7 +160,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
 
                     // create a configuration action
                     FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getDn());
+                    configurationAction.setUserIdentity(user.getIdentity());
                     configurationAction.setUserName(user.getUserName());
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
@@ -180,7 +180,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
             if (scheduledState != updatedScheduledState) {
                 // create a reporting task action
                 FlowChangeAction taskAction = new FlowChangeAction();
-                taskAction.setUserIdentity(user.getDn());
+                taskAction.setUserIdentity(user.getIdentity());
                 taskAction.setUserName(user.getUserName());
                 taskAction.setTimestamp(new Date());
                 taskAction.setSourceId(reportingTask.getIdentifier());
@@ -276,7 +276,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
 
             // create the reporting task action for adding this reporting task
             action = new FlowChangeAction();
-            action.setUserIdentity(user.getDn());
+            action.setUserIdentity(user.getIdentity());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());

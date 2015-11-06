@@ -2338,7 +2338,7 @@ public final class DtoFactory {
         // create the user
         UserDTO userDTO = new UserDTO();
         userDTO.setId(String.valueOf(user.getId()));
-        userDTO.setDn(user.getDn());
+        userDTO.setDn(user.getIdentity());
         userDTO.setUserName(user.getUserName());
         userDTO.setUserGroup(user.getUserGroup());
         userDTO.setJustification(user.getJustification());

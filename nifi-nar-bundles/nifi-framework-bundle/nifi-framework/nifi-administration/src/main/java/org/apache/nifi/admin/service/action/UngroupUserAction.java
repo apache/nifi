@@ -56,11 +56,11 @@ public class UngroupUserAction extends AbstractUserAction<Void> {
 
         try {
             // update the authority provider
-            authorityProvider.ungroupUser(user.getDn());
+            authorityProvider.ungroupUser(user.getIdentity());
         } catch (UnknownIdentityException uie) {
-            throw new AccountNotFoundException(String.format("Unable to ungroup user '%s': %s", user.getDn(), uie.getMessage()), uie);
+            throw new AccountNotFoundException(String.format("Unable to ungroup user '%s': %s", user.getIdentity(), uie.getMessage()), uie);
         } catch (AuthorityAccessException aae) {
-            throw new AdministrationException(String.format("Unable to ungroup user '%s': %s", user.getDn(), aae.getMessage()), aae);
+            throw new AdministrationException(String.format("Unable to ungroup user '%s': %s", user.getIdentity(), aae.getMessage()), aae);
         }
 
         return null;

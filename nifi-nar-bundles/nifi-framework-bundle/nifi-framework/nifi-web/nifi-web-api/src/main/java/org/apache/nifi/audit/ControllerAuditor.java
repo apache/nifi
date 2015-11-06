@@ -78,7 +78,7 @@ public class ControllerAuditor extends NiFiAuditor {
 
                 // create the config action
                 FlowChangeAction configAction = new FlowChangeAction();
-                configAction.setUserIdentity(user.getDn());
+                configAction.setUserIdentity(user.getIdentity());
                 configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());
@@ -131,7 +131,7 @@ public class ControllerAuditor extends NiFiAuditor {
 
                 // create the config action
                 FlowChangeAction configAction = new FlowChangeAction();
-                configAction.setUserIdentity(user.getDn());
+                configAction.setUserIdentity(user.getIdentity());
                 configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());
@@ -184,7 +184,7 @@ public class ControllerAuditor extends NiFiAuditor {
 
                 // create the config action
                 FlowChangeAction configAction = new FlowChangeAction();
-                configAction.setUserIdentity(user.getDn());
+                configAction.setUserIdentity(user.getIdentity());
                 configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());
@@ -237,7 +237,7 @@ public class ControllerAuditor extends NiFiAuditor {
 
                 // create the config action
                 FlowChangeAction configAction = new FlowChangeAction();
-                configAction.setUserIdentity(user.getDn());
+                configAction.setUserIdentity(user.getIdentity());
                 configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());

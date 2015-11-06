@@ -177,7 +177,7 @@ public class ProcessorAuditor extends NiFiAuditor {
 
                     // create a configuration action
                     FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getDn());
+                    configurationAction.setUserIdentity(user.getIdentity());
                     configurationAction.setUserName(user.getUserName());
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
@@ -197,7 +197,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             if (scheduledState != updatedScheduledState) {
                 // create a processor action
                 FlowChangeAction processorAction = new FlowChangeAction();
-                processorAction.setUserIdentity(user.getDn());
+                processorAction.setUserIdentity(user.getIdentity());
                 processorAction.setUserName(user.getUserName());
                 processorAction.setTimestamp(new Date());
                 processorAction.setSourceId(processor.getIdentifier());
@@ -294,7 +294,7 @@ public class ProcessorAuditor extends NiFiAuditor {
 
             // create the processor action for adding this processor
             action = new FlowChangeAction();
-            action.setUserIdentity(user.getDn());
+            action.setUserIdentity(user.getIdentity());
             action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());

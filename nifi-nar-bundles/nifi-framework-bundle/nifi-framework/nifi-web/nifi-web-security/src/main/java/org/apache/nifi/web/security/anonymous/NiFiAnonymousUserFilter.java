@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.web.security.anonymous;
 
+import java.util.EnumSet;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.apache.nifi.web.security.token.NiFiAuthorizationToken;
@@ -49,8 +51,13 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
 
         try {
             // load the anonymous user from the database
-            NiFiUser user = userService.getUserByDn(NiFiUser.ANONYMOUS_USER_DN);
+            NiFiUser user = userService.getUserByDn(NiFiUser.ANONYMOUS_USER_IDENTITY);
 
+            // if this is an unsecure request allow full access
+            if (!request.isSecure()) {
+                user.getAuthorities().addAll(EnumSet.allOf(Authority.class));
+            }
+            
             // only create an authentication token if the anonymous user has some authorities
             if (!user.getAuthorities().isEmpty()) {
                 NiFiUserDetails userDetails = new NiFiUserDetails(user);

@@ -103,7 +103,7 @@ public class UserResource extends ApplicationResource {
 
         final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
         if (nifiUser != null) {
-            throw new IllegalArgumentException("User account already created " + nifiUser.getDn());
+            throw new IllegalArgumentException("User account already created " + nifiUser.getIdentity());
         }
 
         // create an account request for the current user
