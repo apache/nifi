@@ -22,8 +22,6 @@
             <div class="setting-name">User</div>
             <div class="setting-field">
                 <div id="nifi-user-submit-justification"></div>
-                <span id="nifi-user-submit-justification-logout" class="link hidden">logout</span>
-                <div class="clear"></div>
             </div>
         </div>
     </div>

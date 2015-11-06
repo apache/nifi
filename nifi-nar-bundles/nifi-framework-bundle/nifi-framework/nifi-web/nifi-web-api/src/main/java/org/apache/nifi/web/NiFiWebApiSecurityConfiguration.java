@@ -88,16 +88,15 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-        // verify that login authentication is enabled
         if (loginIdentityProvider != null) {
-            // login authentication for /token - exchanges for JWT for subsequent API usage
-            http.addFilterBefore(buildLoginFilter("/token"), UsernamePasswordAuthenticationFilter.class);
-
             // verify the configured login authenticator supports user login registration
             if (loginIdentityProvider.supportsRegistration()) {
                 http.addFilterBefore(buildRegistrationFilter("/registration"), UsernamePasswordAuthenticationFilter.class);
             }
         }
+        
+        // login authentication for /token - exchanges for JWT for subsequent API usage
+        http.addFilterBefore(buildLoginFilter("/token"), UsernamePasswordAuthenticationFilter.class);
 
         // registration status - will check the status of a user's account registration (regardless if its based on login or not)
         http.addFilterBefore(buildRegistrationStatusFilter("/registration/status"), UsernamePasswordAuthenticationFilter.class);
@@ -111,8 +110,10 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // x509
         http.addFilterAfter(buildX509Filter(), AnonymousAuthenticationFilter.class);
 
-        // jwt
-        http.addFilterAfter(buildJwtFilter(), AnonymousAuthenticationFilter.class);
+        // jwt - consider when configured for log in
+        if (loginIdentityProvider != null) {
+            http.addFilterAfter(buildJwtFilter(), AnonymousAuthenticationFilter.class);
+        }
     }
 
     @Bean

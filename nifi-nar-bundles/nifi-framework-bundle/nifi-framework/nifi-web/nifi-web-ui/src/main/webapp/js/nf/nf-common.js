@@ -63,6 +63,23 @@ $(document).ready(function () {
 
     // initialize the tooltips
     $('img.setting-icon').qtip(nf.Common.config.tooltipConfig);
+    
+    // shows the logout link in the message-pane when appropriate
+    if (nf.Storage.getItem('jwt')) {
+        $('#user-logout-container').show();
+    }
+    
+    // handle logout
+    $('#user-logout').on('click', function () {
+        nf.Storage.removeItem('jwt');
+        
+        // reload as appropriate
+        if (top !== window) {
+            parent.window.location = '/nifi';
+        } else {
+            window.location = '/nifi';
+        }
+    });
 });
 
 // Define a common utility class used across the entire application.
@@ -219,7 +236,7 @@ nf.Common = {
             } else {
                 $('#message-content').text(xhr.responseText);
             }
-
+            
             // show the error pane
             $('#message-pane').show();
 

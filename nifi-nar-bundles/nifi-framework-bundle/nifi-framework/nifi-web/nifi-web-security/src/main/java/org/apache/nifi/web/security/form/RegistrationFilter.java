@@ -120,11 +120,6 @@ public class RegistrationFilter extends AbstractAuthenticationProcessingFilter {
 
         // generate JWT for response
         jwtService.addToken(response, authentication);
-
-        // mark as successful
-        response.setStatus(HttpServletResponse.SC_CREATED);
-        response.setContentType("text/plain");
-        response.setContentLength(0);
     }
 
     @Override

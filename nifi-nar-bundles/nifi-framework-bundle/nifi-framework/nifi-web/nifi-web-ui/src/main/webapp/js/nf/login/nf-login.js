@@ -23,7 +23,7 @@ $(document).ready(function () {
 
 nf.Login = (function () {
 
-    var isAnonymous = false;
+    var supportsAnonymous = false;
 
     var config = {
         urls: {
@@ -70,7 +70,7 @@ nf.Login = (function () {
         $('#nifi-registration-justification').count({
             charCountField: '#remaining-characters'
         });
-        
+
         // toggle between signup and login
         $('#login-to-account-link').on('click', function () {
             showLogin();
@@ -165,9 +165,14 @@ nf.Login = (function () {
                 'password': password,
                 'justification': $('#nifi-registration-justification').val()
             }
-        }).done(function (response, status, xhr) {
+        }).done(function (jwt) {
+            // store the jwt
+            nf.Storage.setItem('jwt', jwt);
+            showLogoutLink();
+
+            // inform the user of their pending request
             var markup = 'An administrator will process your request shortly.';
-            if (isAnonymous === true) {
+            if (supportsAnonymous === true) {
                 markup += '<br/><br/>In the meantime you can continue accessing anonymously.';
             }
 
@@ -195,7 +200,7 @@ nf.Login = (function () {
             }
         }).done(function (response) {
             var markup = 'An administrator will process your request shortly.';
-            if (isAnonymous === true) {
+            if (supportsAnonymous === true) {
                 markup += '<br/><br/>In the meantime you can continue accessing anonymously.';
             }
 
@@ -239,6 +244,20 @@ nf.Login = (function () {
         return '';
     };
 
+    var logout = function () {
+        nf.Storage.removeItem('jwt');
+    };
+    
+    var showLogoutLink = function () {
+        $('#user-logout-container').show();
+
+        // handle logout
+        $('#user-logout').on('click', function () {
+            logout();
+            window.location = '/nifi/login';
+        });
+    };
+
     return {
         /**
          * Initializes the login page.
@@ -250,15 +269,9 @@ nf.Login = (function () {
             var needsLogin = false;
             var needsNiFiRegistration = false;
 
-            var logout = function () {
-                nf.Storage.removeItem('jwt');
-            };
-            
-            // handle logout
-            $('#nifi-user-submit-justification-logout').on('click', function () {
-                logout();
-                window.location = '/nifi/login';
-            });
+            if (nf.Storage.getItem('jwt') !== null) {
+                showLogoutLink();
+            }
 
             var token = $.ajax({
                 type: 'GET',
@@ -276,7 +289,7 @@ nf.Login = (function () {
                 identity.done(function (response) {
                     // if the user is anonymous see if they need to login or if they are working with a certificate
                     if (response.identity === 'anonymous') {
-                        isAnonymous = true;
+                        supportsAnonymous = true;
 
                         // request a token without including credentials, if successful then the user is using a certificate
                         token.done(function (jwt) {
@@ -294,7 +307,7 @@ nf.Login = (function () {
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 401) {
                                     var user = getJwtSubject(jwt);
-                                    
+
                                     // show the user
                                     $('#nifi-user-submit-justification').text(user);
 

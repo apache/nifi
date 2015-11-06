@@ -86,6 +86,11 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
             // if there is no certificate, look for an existing token
             if (certificate == null) {
+                // if not configured for login, don't consider existing tokens
+                if (loginIdentityProvider == null) {
+                    throw new BadCredentialsException("Login not supported.");
+                }
+
                 final String principal = jwtService.getAuthentication(request);
 
                 if (principal == null) {
@@ -129,6 +134,11 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
                 return new LoginAuthenticationToken(preAuthenticatedCredentials);
             }
         } else {
+            // if not configuration for login, don't consider credentials 
+            if (loginIdentityProvider == null) {
+                throw new BadCredentialsException("Login not supported.");
+            }
+
             if (loginIdentityProvider.authenticate(credentials)) {
                 return new LoginAuthenticationToken(credentials);
             } else {

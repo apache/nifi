@@ -37,6 +37,9 @@
         ${nf.login.script.tags}
     </head>
     <body class="login-body">
+        <div id="user-logout-container" class="hidden">
+            <span id="user-logout" class="link">logout</span>
+        </div>
         <div id="login-contents-container">
             <jsp:include page="/WEB-INF/partials/login/login-message.jsp"/>
             <jsp:include page="/WEB-INF/partials/login/login-form.jsp"/>

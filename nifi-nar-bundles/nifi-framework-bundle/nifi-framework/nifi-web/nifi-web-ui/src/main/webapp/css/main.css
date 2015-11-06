@@ -77,6 +77,17 @@ div.context-menu-provenance {
     background-position: top left;
 }
 
+#user-logout-container {
+    position: absolute;
+    left: 478px;
+    top: 100px;
+    z-index: 1300;
+}
+
+#user-logout {
+    text-decoration: underline;
+}
+
 /*
     General Styles
 */
