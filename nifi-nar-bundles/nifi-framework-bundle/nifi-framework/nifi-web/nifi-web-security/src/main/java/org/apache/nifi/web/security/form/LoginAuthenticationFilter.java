@@ -134,7 +134,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
                 return new LoginAuthenticationToken(preAuthenticatedCredentials);
             }
         } else {
-            // if not configuration for login, don't consider credentials 
+            // if not configuration for login, don't consider credentials
             if (loginIdentityProvider == null) {
                 throw new BadCredentialsException("Login not supported.");
             }

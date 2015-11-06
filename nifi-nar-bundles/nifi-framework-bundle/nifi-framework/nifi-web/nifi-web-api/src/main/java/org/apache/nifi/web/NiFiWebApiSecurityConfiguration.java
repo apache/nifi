@@ -94,7 +94,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 http.addFilterBefore(buildRegistrationFilter("/registration"), UsernamePasswordAuthenticationFilter.class);
             }
         }
-        
+
         // login authentication for /token - exchanges for JWT for subsequent API usage
         http.addFilterBefore(buildLoginFilter("/token"), UsernamePasswordAuthenticationFilter.class);
 
