@@ -1233,8 +1233,8 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     }
 
     private void logIfNegative(final FlowFileQueueSize original, final FlowFileQueueSize newSize, final String counterName) {
-        if (newSize.activeQueueBytes < 0 || newSize.activeQueueCount < 0 || newSize.swappedBytes < 0 || newSize.swappedCount < 0 ||
-            newSize.unacknowledgedBytes < 0 || newSize.unacknowledgedCount < 0) {
+        if (newSize.activeQueueBytes < 0 || newSize.activeQueueCount < 0 || newSize.swappedBytes < 0 || newSize.swappedCount < 0
+                || newSize.unacknowledgedBytes < 0 || newSize.unacknowledgedCount < 0) {
 
             logger.error("Updated Size of Queue " + counterName + " from " + original + " to " + newSize, new RuntimeException("Cannot create negative queue size"));
 
