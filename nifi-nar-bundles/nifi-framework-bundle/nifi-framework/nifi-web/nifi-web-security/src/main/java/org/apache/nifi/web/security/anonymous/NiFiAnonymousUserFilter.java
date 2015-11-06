@@ -57,7 +57,7 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
             if (!request.isSecure()) {
                 user.getAuthorities().addAll(EnumSet.allOf(Authority.class));
             }
-            
+
             // only create an authentication token if the anonymous user has some authorities
             if (!user.getAuthorities().isEmpty()) {
                 NiFiUserDetails userDetails = new NiFiUserDetails(user);
