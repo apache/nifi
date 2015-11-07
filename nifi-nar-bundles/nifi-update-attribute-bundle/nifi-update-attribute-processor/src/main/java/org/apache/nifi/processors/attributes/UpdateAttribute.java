@@ -136,7 +136,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .name("Delete Attributes Expression")
             .description("Regular expression for attributes to be deleted from flowfiles.")
             .required(false)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     // relationships
@@ -477,7 +478,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 }
             } else {
                 try {
-                    final String regex = action.getValue();
+                    final String actionValue = action.getValue();
+                    final String regex = (actionValue == null) ? null :
+                            getPropertyValue(actionValue, context).evaluateAttributeExpressions(flowfile).getValue();
                     if (regex != null) {
                         Pattern pattern = Pattern.compile(regex);
                         final Set<String> attributeKeys = flowfile.getAttributes().keySet();
