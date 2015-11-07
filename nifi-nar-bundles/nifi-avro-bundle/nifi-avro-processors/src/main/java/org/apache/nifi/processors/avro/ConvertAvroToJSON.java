@@ -61,6 +61,8 @@ public class ConvertAvroToJSON extends AbstractProcessor {
     protected static final String CONTAINER_ARRAY = "array";
     protected static final String CONTAINER_NONE = "none";
 
+    private static final byte [] EMPTY_JSON_OBJECT = "{}".getBytes(StandardCharsets.UTF_8);
+
     static final PropertyDescriptor CONTAINER_OPTIONS = new PropertyDescriptor.Builder()
         .name("JSON container options")
         .description("Determines how stream of records is exposed: either as a sequence of single Objects (" + CONTAINER_NONE
@@ -123,16 +125,18 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
 
                         final GenericData genericData = GenericData.get();
-                        GenericRecord record = reader.next();
-                        final String json = genericData.toString(record);
 
-                        int recordCount = 0;
-                        if (reader.hasNext() && containerOption.equals(CONTAINER_ARRAY)) {
+                        if (reader.hasNext() == false ) {
+                            out.write(EMPTY_JSON_OBJECT);
+                            return;
+                        }
+                        int recordCount = 1;
+                        GenericRecord reuse = reader.next();
+                        // Only open container if more than one record
+                        if(reader.hasNext() && containerOption.equals(CONTAINER_ARRAY)){
                             out.write('[');
                         }
-
-                        out.write(json.getBytes(StandardCharsets.UTF_8));
-                        recordCount++;
+                        out.write(genericData.toString(reuse).getBytes(StandardCharsets.UTF_8));
 
                         while (reader.hasNext()) {
                             if (containerOption.equals(CONTAINER_ARRAY)) {
@@ -141,11 +145,12 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                                 out.write('\n');
                             }
 
-                            final GenericRecord nextRecord = reader.next(record);
-                            out.write(genericData.toString(nextRecord).getBytes(StandardCharsets.UTF_8));
+                            reuse = reader.next(reuse);
+                            out.write(genericData.toString(reuse).getBytes(StandardCharsets.UTF_8));
                             recordCount++;
                         }
 
+                        // Only close container if more than one record
                         if (recordCount > 1 && containerOption.equals(CONTAINER_ARRAY)) {
                             out.write(']');
                         }

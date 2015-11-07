@@ -218,7 +218,7 @@ public class SplitAvro extends AbstractProcessor {
     /**
      * Splits the incoming Avro datafile into batches of records by reading and de-serializing each record.
      */
-    private class RecordSplitter implements Splitter {
+    static private class RecordSplitter implements Splitter {
 
         private final int splitSize;
         private final boolean transferMetadata;
@@ -300,7 +300,7 @@ public class SplitAvro extends AbstractProcessor {
     /**
      * Writes a binary Avro Datafile to the OutputStream.
      */
-    private class DatafileSplitWriter implements SplitWriter {
+    static private class DatafileSplitWriter implements SplitWriter {
 
         private final boolean transferMetadata;
         private DataFileWriter<GenericRecord> writer;
@@ -344,7 +344,7 @@ public class SplitAvro extends AbstractProcessor {
     /**
      * Writes bare Avro records to the OutputStream.
      */
-    private class BareRecordSplitWriter implements SplitWriter {
+    static private class BareRecordSplitWriter implements SplitWriter {
         private Encoder encoder;
         private DatumWriter<GenericRecord> writer;
 
