@@ -65,7 +65,7 @@ public class PutSQS extends AbstractSQSProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, REGION, DELAY, TIMEOUT));
+            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, REGION, DELAY, TIMEOUT));
 
     private volatile List<PropertyDescriptor> userDefinedProperties = Collections.emptyList();
 
@@ -136,6 +136,7 @@ public class PutSQS extends AbstractSQSProcessor {
             client.sendMessageBatch(request);
         } catch (final Exception e) {
             getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
+            flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

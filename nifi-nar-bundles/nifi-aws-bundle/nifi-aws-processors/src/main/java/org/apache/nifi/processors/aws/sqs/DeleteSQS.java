@@ -91,7 +91,11 @@ public class DeleteSQS extends AbstractSQSProcessor {
             session.transfer(flowFiles, REL_SUCCESS);
         } catch (final Exception e) {
             getLogger().error("Failed to delete {} objects from SQS due to {}", new Object[]{flowFiles.size(), e});
-            session.transfer(flowFiles, REL_FAILURE);
+            final List<FlowFile> penalizedFlowFiles = new ArrayList<>();
+            for (final FlowFile flowFile : flowFiles) {
+                penalizedFlowFiles.add(session.penalize(flowFile));
+            }
+            session.transfer(penalizedFlowFiles, REL_FAILURE);
         }
     }
 

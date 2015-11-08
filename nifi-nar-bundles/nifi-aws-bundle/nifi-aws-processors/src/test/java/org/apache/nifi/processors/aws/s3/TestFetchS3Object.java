@@ -36,7 +36,7 @@ public class TestFetchS3Object extends AbstractS3Test {
 
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
-        runner.setProperty(FetchS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(FetchS3Object.REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
@@ -53,7 +53,7 @@ public class TestFetchS3Object extends AbstractS3Test {
     public void testTryToFetchNotExistingFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
-        runner.setProperty(FetchS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(FetchS3Object.REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
@@ -73,7 +73,7 @@ public class TestFetchS3Object extends AbstractS3Test {
 
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
-        runner.setProperty(FetchS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(FetchS3Object.REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 

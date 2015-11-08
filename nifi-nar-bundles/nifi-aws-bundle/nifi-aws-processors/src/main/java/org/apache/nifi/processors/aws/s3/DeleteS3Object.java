@@ -53,7 +53,7 @@ public class DeleteS3Object extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, REGION, TIMEOUT, VERSION_ID,
+            Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, REGION, TIMEOUT, VERSION_ID,
                     FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER));
 
     @Override
@@ -88,6 +88,7 @@ public class DeleteS3Object extends AbstractS3Processor {
             }
         } catch (final AmazonServiceException ase) {
             getLogger().error("Failed to delete S3 Object for {}; routing to failure", new Object[]{flowFile, ase});
+            flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

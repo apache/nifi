@@ -36,7 +36,7 @@ public class TestPutSQS {
     @Test
     public void testSimplePut() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
-        runner.setProperty(PutSNS.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutSQS.TIMEOUT, "30 secs");
         runner.setProperty(PutSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/100515378163/test-queue-000000000");
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());

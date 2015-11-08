@@ -35,7 +35,7 @@ public class TestPutS3Object extends AbstractS3Test {
     public void testSimplePut() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
 
-        runner.setProperty(PutS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutS3Object.REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
 
@@ -55,7 +55,7 @@ public class TestPutS3Object extends AbstractS3Test {
     public void testPutInFolder() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
 
-        runner.setProperty(PutS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutS3Object.REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
 
@@ -74,7 +74,7 @@ public class TestPutS3Object extends AbstractS3Test {
     public void testStorageClass() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
 
-        runner.setProperty(PutS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutS3Object.REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.STORAGE_CLASS, StorageClass.ReducedRedundancy.name());
@@ -94,7 +94,7 @@ public class TestPutS3Object extends AbstractS3Test {
     public void testPermissions() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
 
-        runner.setProperty(PutS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.FULL_CONTROL_USER_LIST,"28545acd76c35c7e91f8409b95fd1aa0c0914bfa1ac60975d9f48bc3c5e090b5");
         runner.setProperty(PutS3Object.REGION, REGION);

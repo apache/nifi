@@ -58,7 +58,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
-    public static final PropertyDescriptor CREDENTAILS_FILE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor CREDENTIALS_FILE = new PropertyDescriptor.Builder()
             .name("Credentials File")
             .expressionLanguageSupported(false)
             .required(false)
@@ -127,7 +127,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("If setting Secret Key or Access Key, must set both").build());
         }
 
-        final boolean credentialsFileSet = validationContext.getProperty(CREDENTAILS_FILE).isSet();
+        final boolean credentialsFileSet = validationContext.getProperty(CREDENTIALS_FILE).isSet();
         if ((secretKeySet || accessKeySet) && credentialsFileSet) {
             problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
         }
@@ -180,7 +180,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         final String accessKey = context.getProperty(ACCESS_KEY).getValue();
         final String secretKey = context.getProperty(SECRET_KEY).getValue();
 
-        final String credentialsFile = context.getProperty(CREDENTAILS_FILE).getValue();
+        final String credentialsFile = context.getProperty(CREDENTIALS_FILE).getValue();
 
         if (credentialsFile != null) {
             try {

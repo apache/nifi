@@ -84,7 +84,7 @@ public class PutS3Object extends AbstractS3Processor {
         .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
+        Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
             FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER));
 
     @Override
@@ -177,6 +177,7 @@ public class PutS3Object extends AbstractS3Processor {
             getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", new Object[] {ff, millis});
         } catch (final ProcessException | AmazonClientException pe) {
             getLogger().error("Failed to put {} to Amazon S3 due to {}", new Object[] {flowFile, pe});
+            flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

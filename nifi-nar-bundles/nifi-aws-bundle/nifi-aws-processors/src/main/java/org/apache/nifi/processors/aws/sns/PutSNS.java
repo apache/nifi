@@ -74,7 +74,7 @@ public class PutSNS extends AbstractSNSProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(ARN, ARN_TYPE, SUBJECT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, TIMEOUT,
+            Arrays.asList(ARN, ARN_TYPE, SUBJECT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, TIMEOUT,
                     USE_JSON_STRUCTURE, CHARACTER_ENCODING));
 
     public static final int MAX_SIZE = 256 * 1024;
@@ -151,6 +151,7 @@ public class PutSNS extends AbstractSNSProcessor {
             getLogger().info("Successfully published notification for {}", new Object[]{flowFile});
         } catch (final Exception e) {
             getLogger().error("Failed to publish Amazon SNS message for {} due to {}", new Object[]{flowFile, e});
+            flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

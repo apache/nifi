@@ -33,7 +33,7 @@ public class TestGetSQS {
     @Test
     public void testSimpleGet() {
         final TestRunner runner = TestRunners.newTestRunner(new GetSQS());
-        runner.setProperty(PutSNS.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(GetSQS.TIMEOUT, "30 secs");
         runner.setProperty(GetSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/100515378163/test-queue-000000000");
 

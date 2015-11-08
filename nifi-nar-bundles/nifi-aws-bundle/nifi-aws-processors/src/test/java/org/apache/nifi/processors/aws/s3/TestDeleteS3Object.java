@@ -35,7 +35,7 @@ public class TestDeleteS3Object extends AbstractS3Test {
 
         final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
 
-        runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(DeleteS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(DeleteS3Object.REGION, REGION);
         runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
 
@@ -55,7 +55,7 @@ public class TestDeleteS3Object extends AbstractS3Test {
 
         final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
 
-        runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(DeleteS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(DeleteS3Object.REGION, REGION);
         runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
 
@@ -75,7 +75,7 @@ public class TestDeleteS3Object extends AbstractS3Test {
 
         final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
 
-        runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(DeleteS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(DeleteS3Object.REGION, REGION);
         runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(DeleteS3Object.KEY, "folder/delete-me");
@@ -93,7 +93,7 @@ public class TestDeleteS3Object extends AbstractS3Test {
     public void testTryToDeleteNotExistingFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
 
-        runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(DeleteS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(DeleteS3Object.REGION, REGION);
         runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
 
