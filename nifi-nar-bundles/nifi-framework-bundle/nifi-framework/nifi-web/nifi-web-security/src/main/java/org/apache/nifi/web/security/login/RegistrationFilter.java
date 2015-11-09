@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.form;
+package org.apache.nifi.web.security.login;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -30,6 +30,7 @@ import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
+import org.apache.nifi.authentication.exception.IdentityRegistrationException;
 import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -38,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -80,6 +82,9 @@ public class RegistrationFilter extends AbstractAuthenticationProcessingFilter {
                 loginIdentityProvider.register(credentials);
             } catch (final IdentityAlreadyExistsException iaee) {
                 // if the identity already exists, try to create the nifi account request
+            } catch (final IdentityRegistrationException ire) {
+                // the credentials are not acceptable for some reason
+                throw new BadCredentialsException(ire.getMessage(), ire);
             } catch (final IdentityAccessException iae) {
                 throw new AuthenticationServiceException(iae.getMessage(), iae);
             }
@@ -133,7 +138,7 @@ public class RegistrationFilter extends AbstractAuthenticationProcessingFilter {
         out.println(failed.getMessage());
 
         // set the appropriate response status
-        if (failed instanceof UsernameNotFoundException) {
+        if (failed instanceof UsernameNotFoundException || failed instanceof BadCredentialsException) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         } else if (failed instanceof AccountStatusException) {
             // account exists (maybe valid, pending, revoked)

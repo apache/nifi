@@ -130,7 +130,7 @@ public final class AuthorizedUsers {
      * @return The user identity
      */
     public String getUserIdentity(final NiFiUser user) {
-        if (User.class.isAssignableFrom(user.getClass())) {
+        if (user instanceof User) {
             return ((User) user).getDn();
         } else {
             return ((LoginUser) user).getUsername();
@@ -233,7 +233,7 @@ public final class AuthorizedUsers {
 
         // create the user
         final NiFiUser newUser = creator.createUser();
-        if (User.class.isAssignableFrom(newUser.getClass())) {
+        if (newUser instanceof User) {
             users.getUser().add((User) newUser);
         } else {
             users.getLoginUser().add((LoginUser) newUser);
@@ -323,7 +323,7 @@ public final class AuthorizedUsers {
 
         // find the desired user
         final NiFiUser user = finder.findUser(nifiUsers);
-        if (User.class.isAssignableFrom(user.getClass())) {
+        if (user instanceof User) {
             users.getUser().remove((User) user);
         } else {
             users.getLoginUser().remove((LoginUser) user);
@@ -350,7 +350,7 @@ public final class AuthorizedUsers {
         // find the desired user
         final List<NiFiUser> usersToRemove = finder.findUsers(nifiUsers);
         for (final NiFiUser user : usersToRemove) {
-            if (User.class.isAssignableFrom(user.getClass())) {
+            if (user instanceof User) {
                 users.getUser().remove((User) user);
             } else {
                 users.getLoginUser().remove((LoginUser) user);

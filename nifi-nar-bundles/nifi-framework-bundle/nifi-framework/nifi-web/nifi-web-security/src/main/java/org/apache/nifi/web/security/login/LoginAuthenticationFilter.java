@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.form;
+package org.apache.nifi.web.security.login;
 
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import java.io.IOException;
