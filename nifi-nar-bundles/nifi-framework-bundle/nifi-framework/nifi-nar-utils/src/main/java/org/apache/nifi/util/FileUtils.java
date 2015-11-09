@@ -180,7 +180,7 @@ public class FileUtils {
         try {
             Thread.sleep(millis);
         } catch (final InterruptedException ex) {
-            /* do nothing */
+        	Thread.currentThread().interrupt();
         }
     }
 }

@@ -116,6 +116,7 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
             while (!destructableClaims.offer(claim, 30, TimeUnit.MINUTES)) {
             }
         } catch (final InterruptedException ie) {
+        	Thread.currentThread().interrupt();
         }
     }
 

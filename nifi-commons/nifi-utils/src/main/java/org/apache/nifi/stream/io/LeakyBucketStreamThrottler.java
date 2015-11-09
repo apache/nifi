@@ -52,6 +52,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
             // we will just ignore it and return
             executorService.awaitTermination(2, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
+        	Thread.currentThread().interrupt();
         }
     }
 
@@ -161,6 +162,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
                 try {
                     transferred = requestQueue.offer(request, 1000, TimeUnit.MILLISECONDS);
                 } catch (final InterruptedException e) {
+                	Thread.currentThread().interrupt();
                     throw new IOException("Interrupted", e);
                 }
             }
@@ -174,6 +176,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
                     }
                     response = responseQueue.poll(1000L, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
+                	Thread.currentThread().interrupt();
                     throw new IOException("Interrupted", e);
                 }
             }
@@ -245,6 +248,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
                         responseQueue.put(response);
                     }
                 } catch (InterruptedException e) {
+                	Thread.currentThread().interrupt();
                 }
             }
         }

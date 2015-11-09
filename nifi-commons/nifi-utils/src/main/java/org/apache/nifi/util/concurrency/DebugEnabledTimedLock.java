@@ -71,6 +71,7 @@ public class DebugEnabledTimedLock implements DebuggableTimedLock {
         try {
             success = lock.tryLock(timeout, timeUnit);
         } catch (final InterruptedException ie) {
+        	Thread.currentThread().interrupt();
             return false;
         }
 

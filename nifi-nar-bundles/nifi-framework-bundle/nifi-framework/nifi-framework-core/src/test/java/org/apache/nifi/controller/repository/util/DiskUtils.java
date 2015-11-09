@@ -70,6 +70,7 @@ public class DiskUtils {
             try {
                 Thread.sleep(100L);
             } catch (final InterruptedException e) {
+            	Thread.currentThread().interrupt();
             }
         }
         return toDelete;

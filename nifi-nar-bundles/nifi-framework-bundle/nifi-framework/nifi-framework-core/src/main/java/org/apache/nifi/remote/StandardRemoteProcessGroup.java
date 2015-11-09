@@ -952,6 +952,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     try {
                         Thread.sleep(50L);
                     } catch (final InterruptedException e) {
+                    	Thread.currentThread().interrupt();
                     }
                 }
             }
@@ -961,6 +962,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     try {
                         Thread.sleep(50L);
                     } catch (final InterruptedException e) {
+                    	Thread.currentThread().interrupt();
                     }
                 }
             }
@@ -988,6 +990,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 try {
                     Thread.sleep(50L);
                 } catch (final InterruptedException e) {
+                	Thread.currentThread().interrupt();
                 }
             }
 

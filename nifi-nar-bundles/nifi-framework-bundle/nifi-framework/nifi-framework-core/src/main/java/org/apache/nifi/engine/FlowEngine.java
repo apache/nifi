@@ -106,6 +106,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
                     logger.debug("A flow controller execution task '{}' has been cancelled.", runnable);
                 }
             } catch (final InterruptedException ie) {
+            	Thread.currentThread().interrupt();
                 if (logger.isDebugEnabled()) {
                     logger.debug("A flow controller execution task has been interrupted.", ie);
                 }

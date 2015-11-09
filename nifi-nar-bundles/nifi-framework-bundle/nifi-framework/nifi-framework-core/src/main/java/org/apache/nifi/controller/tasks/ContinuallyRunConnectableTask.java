@@ -88,6 +88,7 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
                     try {
                         Thread.sleep(10000L);
                     } catch (final InterruptedException e) {
+                    	Thread.currentThread().interrupt();
                     }
 
                 }

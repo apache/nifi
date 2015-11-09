@@ -106,6 +106,7 @@ public class TestStandardControllerServiceProvider {
             try {
                 Thread.sleep(50L);
             } catch (final InterruptedException e) {
+            	Thread.currentThread().interrupt();
             }
         }
     }

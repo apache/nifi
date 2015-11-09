@@ -215,6 +215,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         try {
                             Thread.sleep(administrativeYieldMillis);
                         } catch (final InterruptedException ie) {
+                        	Thread.currentThread().interrupt();
                         }
                     }
                 }
@@ -262,6 +263,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         try {
                             Thread.sleep(administrativeYieldMillis);
                         } catch (final InterruptedException ie) {
+                        	Thread.currentThread().interrupt();
                         }
                     }
 
@@ -750,6 +752,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             try {
                                 Thread.sleep(administrativeYieldMillis);
                             } catch (final InterruptedException ie) {
+                            	Thread.currentThread().interrupt();
                             }
                         } finally {
                             service.setState(ControllerServiceState.DISABLED);

@@ -190,6 +190,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
             try {
                 Thread.sleep(100L);
             } catch (final InterruptedException ie) {
+            	Thread.currentThread().interrupt();
             }
         }
 
@@ -383,6 +384,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
             try {
                 Thread.sleep(100L);
             } catch (final InterruptedException ie) {
+            	Thread.currentThread().interrupt();
             }
         }
 

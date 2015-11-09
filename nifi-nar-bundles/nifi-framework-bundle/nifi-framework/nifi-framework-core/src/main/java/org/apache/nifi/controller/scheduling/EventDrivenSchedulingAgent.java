@@ -289,6 +289,7 @@ public class EventDrivenSchedulingAgent implements SchedulingAgent {
                     try {
                         Thread.sleep(FormatUtils.getTimeDuration(adminYieldDuration, TimeUnit.MILLISECONDS));
                     } catch (final InterruptedException e) {
+                    	Thread.currentThread().interrupt();
                     }
 
                 }

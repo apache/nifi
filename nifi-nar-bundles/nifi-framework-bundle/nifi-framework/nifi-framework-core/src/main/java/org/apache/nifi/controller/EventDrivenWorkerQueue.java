@@ -69,6 +69,7 @@ public class EventDrivenWorkerQueue implements WorkerQueue {
                     try {
                         workMonitor.wait(timeLeft);
                     } catch (final InterruptedException ignored) {
+                    	Thread.currentThread().interrupt();
                     }
                 } else {
                     // Decrement the amount of work there is to do for this worker.

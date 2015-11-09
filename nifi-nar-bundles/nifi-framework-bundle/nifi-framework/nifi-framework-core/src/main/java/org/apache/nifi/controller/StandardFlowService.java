@@ -303,6 +303,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 try {
                     graceful = executorService.awaitTermination(gracefulShutdownSeconds, TimeUnit.SECONDS);
                 } catch (final InterruptedException e) {
+                	Thread.currentThread().interrupt();
                     graceful = false;
                 }
 
@@ -660,6 +661,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                         try {
                             Thread.sleep(response.getTryLaterSeconds() * 1000);
                         } catch (final InterruptedException ie) {
+                        	Thread.currentThread().interrupt();
                             // we were interrupted, so finish quickly
                             break;
                         }
@@ -675,6 +677,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                         try {
                             Thread.sleep(connectionRetryMillis);
                         } catch (final InterruptedException ie) {
+                        	Thread.currentThread().interrupt();
                             break;
                         }
                     } else {

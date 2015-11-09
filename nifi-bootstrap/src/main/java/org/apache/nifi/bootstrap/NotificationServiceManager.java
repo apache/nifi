@@ -226,6 +226,7 @@ public class NotificationServiceManager {
                     try {
                         Thread.sleep(1000L);
                     } catch (final InterruptedException ie) {
+                    	Thread.currentThread().interrupt();
                     }
                 }
             }

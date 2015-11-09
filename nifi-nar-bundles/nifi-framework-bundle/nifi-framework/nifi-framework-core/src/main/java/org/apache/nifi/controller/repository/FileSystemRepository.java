@@ -353,12 +353,14 @@ public class FileSystemRepository implements ContentRepository {
                 if (oldestDate < oldestArchiveDate.get()) {
                     oldestArchiveDate.set(oldestDate);
                 }
-            } catch (final ExecutionException | InterruptedException e) {
+            } catch (final ExecutionException e) {
                 if (e.getCause() instanceof IOException) {
                     throw (IOException) e.getCause();
                 } else {
                     throw new RuntimeException(e);
                 }
+            } catch (InterruptedException e){
+            	Thread.currentThread().interrupt();
             }
         }
 
@@ -1063,6 +1065,7 @@ public class FileSystemRepository implements ContentRepository {
                                 }
                             }
                         } catch (final InterruptedException ie) {
+                        	Thread.currentThread().interrupt();
                             LOG.warn("Failed to clean up {} because thread was interrupted", claim);
                         }
                     }
@@ -1609,6 +1612,7 @@ public class FileSystemRepository implements ContentRepository {
                         LOG.info("Unable to write to container {} due to archive file size constraints; waiting for archive cleanup", containerName);
                         condition.await();
                     } catch (final InterruptedException e) {
+                    	Thread.currentThread().interrupt();
                     }
                 }
             } finally {

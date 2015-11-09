@@ -361,6 +361,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                                 try {
                                     Thread.sleep(100L);
                                 } catch (final InterruptedException ie) {
+                                	Thread.currentThread().interrupt();
                                 }
                             }
 
