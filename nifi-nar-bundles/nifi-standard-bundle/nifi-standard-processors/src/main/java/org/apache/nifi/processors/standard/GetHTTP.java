@@ -80,6 +80,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ProcessorLog;
@@ -117,6 +118,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .name("URL")
             .description("The URL to pull from")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .build();
@@ -149,7 +151,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("Filename")
             .description("The filename to assign to the file when pulled")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .required(true)
             .build();
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
@@ -296,7 +299,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
-        if (context.getProperty(URL).getValue().startsWith("https") && context.getProperty(SSL_CONTEXT_SERVICE).getValue() == null) {
+        if (context.getProperty(URL).evaluateAttributeExpressions().getValue().startsWith("https") && context.getProperty(SSL_CONTEXT_SERVICE).getValue() == null) {
             results.add(new ValidationResult.Builder()
                     .explanation("URL is set to HTTPS protocol but no SSLContext has been specified")
                     .valid(false)
@@ -344,7 +347,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         }
 
         // get the URL
-        final String url = context.getProperty(URL).getValue();
+        final String url = context.getProperty(URL).evaluateAttributeExpressions().getValue();
         final URI uri;
         String source = url;
         try {
@@ -462,7 +465,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 }
 
                 FlowFile flowFile = session.create();
-                flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), context.getProperty(FILENAME).getValue());
+                flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
                 flowFile = session.putAttribute(flowFile, this.getClass().getSimpleName().toLowerCase() + ".remote.source", source);
                 flowFile = session.importFrom(response.getEntity().getContent(), flowFile);
 
