@@ -40,6 +40,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -54,7 +55,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("FlowFiles are routed to failure if unable to be copied to Amazon S3").build();
 
-    public static Set<Relationship> relationships = Collections.unmodifiableSet(
+    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
     public static final PropertyDescriptor CREDENTAILS_FILE = new PropertyDescriptor.Builder()
@@ -92,6 +93,11 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .build();
 
     private volatile ClientType client;
+    private volatile Region region;
+
+    // If protocol is changed to be a property, ensure other uses are also changed
+    protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
+    protected static final String DEFAULT_USER_AGENT = "NiFi";
 
     private static AllowableValue createAllowableValue(final Regions regions) {
         return new AllowableValue(regions.getName(), regions.getName(), regions.getName());
@@ -133,8 +139,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         final ClientConfiguration config = new ClientConfiguration();
         config.setMaxConnections(context.getMaxConcurrentTasks());
         config.setMaxErrorRetry(0);
-        config.setUserAgent("NiFi");
-
+        config.setUserAgent(DEFAULT_USER_AGENT);
+        // If this is changed to be a property, ensure other uses are also changed
+        config.setProtocol(DEFAULT_PROTOCOL);
         final int commsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         config.setConnectionTimeout(commsTimeout);
         config.setSocketTimeout(commsTimeout);
@@ -151,7 +158,10 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         if (getSupportedPropertyDescriptors().contains(REGION)) {
             final String region = context.getProperty(REGION).getValue();
             if (region != null) {
-                client.setRegion(Region.getRegion(Regions.fromName(region)));
+                this.region = Region.getRegion(Regions.fromName(region));
+                client.setRegion(this.region);
+            } else{
+                this.region = null;
             }
         }
     }
@@ -160,6 +170,10 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     protected ClientType getClient() {
         return client;
+    }
+
+    protected Region getRegion() {
+        return region;
     }
 
     protected AWSCredentials getCredentials(final ProcessContext context) {

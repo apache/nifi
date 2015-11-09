@@ -170,7 +170,7 @@ public class PutS3Object extends AbstractS3Processor {
             }
             session.transfer(flowFile, REL_SUCCESS);
 
-            final String url = "http://" + bucket + ".s3.amazonaws.com/" + key;
+            final String url = getUrlForObject(bucket, key);
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, url, millis);
 

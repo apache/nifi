@@ -28,6 +28,7 @@ import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
@@ -132,6 +133,17 @@ public abstract class AbstractS3Processor extends AbstractAWSProcessor<AmazonS3C
             }
         }
         return grantees;
+    }
+
+    protected String getUrlForObject(final String bucket, final String key) {
+        Region region = getRegion();
+
+        if (region == null) {
+            return  DEFAULT_PROTOCOL.toString() + "://s3.amazonaws.com/" + bucket + "/" + key;
+        } else {
+            final String endpoint = region.getServiceEndpoint("s3");
+            return DEFAULT_PROTOCOL.toString() + "://" + endpoint + "/" + bucket + "/" + key;
+        }
     }
 
     protected final AccessControlList createACL(final ProcessContext context, final FlowFile flowFile) {
