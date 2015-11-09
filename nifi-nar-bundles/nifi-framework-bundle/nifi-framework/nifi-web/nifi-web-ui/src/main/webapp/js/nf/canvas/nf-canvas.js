@@ -1087,13 +1087,6 @@ nf.Canvas = (function () {
                     dataType: 'json'
                 });
 
-                // get the login config
-                var loginXhr = $.ajax({
-                    type: 'GET',
-                    url: config.urls.loginConfig,
-                    dataType: 'json'
-                });
-
                 // create the deferred cluster request
                 var isClusteredRequest = $.Deferred(function (deferred) {
                     $.ajax({
@@ -1113,9 +1106,8 @@ nf.Canvas = (function () {
                 }).promise();
 
                 // ensure the config requests are loaded
-                $.when(configXhr, loginXhr, userXhr).done(function (configResult, loginResult) {
+                $.when(configXhr, userXhr).done(function (configResult) {
                     var configResponse = configResult[0];
-                    var loginResponse = loginResult[0];
 
                     // calculate the canvas offset
                     var canvasContainer = $('#canvas-container');
@@ -1123,7 +1115,6 @@ nf.Canvas = (function () {
 
                     // get the config details
                     var configDetails = configResponse.config;
-                    var loginDetails = loginResponse.config;
 
                     // when both request complete, load the application
                     isClusteredRequest.done(function () {
@@ -1143,7 +1134,7 @@ nf.Canvas = (function () {
                             nf.ContextMenu.init();
                             nf.CanvasToolbar.init();
                             nf.CanvasToolbox.init();
-                            nf.CanvasHeader.init(loginDetails.supportsLogin);
+                            nf.CanvasHeader.init();
                             nf.GraphControl.init();
                             nf.Search.init();
                             nf.Settings.init();

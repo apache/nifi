@@ -19,9 +19,4 @@
     must be specified in the nifi.properties file.
 -->
 <loginIdentityProviders>
-    <provider>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authentication.FileLoginIdentityProvider</class>
-        <property name="Authenticated Users File">./conf/authorized-users.xml</property>
-    </provider>
 </loginIdentityProviders>

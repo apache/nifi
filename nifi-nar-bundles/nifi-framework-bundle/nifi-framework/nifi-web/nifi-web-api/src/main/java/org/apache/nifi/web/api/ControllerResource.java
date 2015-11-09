@@ -688,7 +688,6 @@ public class ControllerResource extends ApplicationResource {
 
         // only support login/registration when running securely
         loginConfig.setSupportsLogin(loginConfig.getSupportsLogin() && httpServletRequest.isSecure());
-        loginConfig.setSupportsRegistration(loginConfig.getSupportsRegistration() && httpServletRequest.isSecure());
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();

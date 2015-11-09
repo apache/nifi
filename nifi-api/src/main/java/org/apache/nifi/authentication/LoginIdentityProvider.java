@@ -17,7 +17,6 @@
 package org.apache.nifi.authentication;
 
 import org.apache.nifi.authentication.exception.IdentityAccessException;
-import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.ProviderDestructionException;
 
@@ -27,24 +26,11 @@ import org.apache.nifi.authorization.exception.ProviderDestructionException;
 public interface LoginIdentityProvider {
 
     /**
-     * Returns whether this provider supports user registration.
-     *
-     * @return whether user registration is supported
-     */
-    boolean supportsRegistration();
-
-    /**
-     * Invoked to register the user with the specified login credentials.
-     *
-     * @param credentials the login credentials
-     */
-    void register(LoginCredentials credentials) throws IdentityAlreadyExistsException, IdentityAccessException;
-
-    /**
      * Authenticates the specified login credentials.
      *
      * @param credentials the credentials
-     * @return whether the user was authenticated
+     * @return was able to check the user credentials and returns whether the user was authenticated
+     * @throws IdentityAccessException Unable to register the user due to an issue accessing the underlying storage
      */
     boolean authenticate(LoginCredentials credentials) throws IdentityAccessException;
 
@@ -52,6 +38,7 @@ public interface LoginIdentityProvider {
      * Called immediately after instance creation for implementers to perform additional setup
      *
      * @param initializationContext in which to initialize
+     * @throws ProviderCreationException Unable to initialize
      */
     void initialize(LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException;
 

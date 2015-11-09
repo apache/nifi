@@ -27,10 +27,6 @@
         <div class="setting-name">Password</div>
         <div class="setting-field">
             <input type="password" id="password"/>
-            <div id="create-account-message" class="hidden">
-                <div style="font-style: italic;">Don't have an account?</div>
-                <div><span id="create-account-link" class="link">Create one</span> to request access.</div>
-            </div>
         </div>
     </div>
 </div>

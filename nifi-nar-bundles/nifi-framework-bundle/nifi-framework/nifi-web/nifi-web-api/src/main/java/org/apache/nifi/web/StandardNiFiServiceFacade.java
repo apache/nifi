@@ -2354,14 +2354,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public LoginConfigurationDTO getLoginConfiguration() {
         final LoginConfigurationDTO loginConfiguration = new LoginConfigurationDTO();
 
-        // specify whether login/registration should be supported
-        if (loginIdentityProvider == null) {
-            loginConfiguration.setSupportsLogin(false);
-            loginConfiguration.setSupportsRegistration(false);
-        } else {
-            loginConfiguration.setSupportsLogin(true);
-            loginConfiguration.setSupportsRegistration(loginIdentityProvider.supportsRegistration());
-        }
+        // specify whether login should be supported
+        loginConfiguration.setSupportsLogin(loginIdentityProvider != null);
 
         return loginConfiguration;
     }

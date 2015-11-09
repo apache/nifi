@@ -141,21 +141,15 @@ nf.CanvasHeader = (function () {
                 nf.Shell.showPage(config.urls.helpDocument);
             });
 
-            // show the login link if supported and user is currently anonymous
-            var isAnonymous = $('#current-user').text() === nf.Canvas.ANONYMOUS_USER_TEXT;
-            if (supportsLogin === true && isAnonymous) {
-                // login link
-                $('#login-link').click(function () {
-                    nf.Shell.showPage('login', false);
-                });
-            } else {
+            // hide the login link if the user is already logged in
+            if ($('#current-user').text() !== nf.Canvas.ANONYMOUS_USER_TEXT) {
                 $('#login-link-container').css('display', 'none');
             }
             
-            // if login is not supported, don't show the current user
-            if (supportsLogin !== true) {
-                $('#current-user-container').css('display', 'none');
-            }
+            // login link
+            $('#login-link').click(function () {
+                nf.Shell.showPage('login', false);
+            });
             
             // logout link
             $('#logout-link').click(function () {

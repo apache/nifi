@@ -35,10 +35,6 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-file-authorization-provider</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-file-identity-provider</artifactId>
-        </dependency>
 
         <!-- mark these nifi artifacts as provided since it is included in the lib -->
         <dependency>

@@ -26,7 +26,6 @@ import javax.xml.bind.annotation.XmlType;
 public class LoginConfigurationDTO {
 
     private Boolean supportsLogin;
-    private Boolean supportsRegistration;
 
     /**
      * @return Indicates whether or not this NiFi supports user login.
@@ -41,20 +40,5 @@ public class LoginConfigurationDTO {
 
     public void setSupportsLogin(Boolean supportsLogin) {
         this.supportsLogin = supportsLogin;
-    }
-
-    /**
-     * @return If this NiFi supports login, indicates whether or not registration is supported.
-     */
-    @ApiModelProperty(
-            value = "If this NiFi supports login, indicates whether or not registration is supported.",
-            readOnly = true
-    )
-    public Boolean getSupportsRegistration() {
-        return supportsRegistration;
-    }
-
-    public void setSupportsRegistration(Boolean supportsRegistration) {
-        this.supportsRegistration = supportsRegistration;
     }
 }

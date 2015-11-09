@@ -25,7 +25,6 @@ import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.NiFiAuthenticationEntryPoint;
 import org.apache.nifi.web.security.RegistrationStatusFilter;
 import org.apache.nifi.web.security.login.LoginAuthenticationFilter;
-import org.apache.nifi.web.security.login.RegistrationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
@@ -88,13 +87,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-        if (loginIdentityProvider != null) {
-            // verify the configured login authenticator supports user login registration
-            if (loginIdentityProvider.supportsRegistration()) {
-                http.addFilterBefore(buildRegistrationFilter("/registration"), UsernamePasswordAuthenticationFilter.class);
-            }
-        }
-
         // login authentication for /token - exchanges for JWT for subsequent API usage
         http.addFilterBefore(buildLoginFilter("/token"), UsernamePasswordAuthenticationFilter.class);
 
@@ -137,14 +129,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         loginFilter.setPrincipalExtractor(principalExtractor);
         loginFilter.setCertificateValidator(certificateValidator);
         return loginFilter;
-    }
-
-    private Filter buildRegistrationFilter(final String url) {
-        final RegistrationFilter registrationFilter = new RegistrationFilter(url);
-        registrationFilter.setJwtService(jwtService);
-        registrationFilter.setLoginIdentityProvider(loginIdentityProvider);
-        registrationFilter.setUserService(userService);
-        return registrationFilter;
     }
 
     private Filter buildRegistrationStatusFilter(final String url) {

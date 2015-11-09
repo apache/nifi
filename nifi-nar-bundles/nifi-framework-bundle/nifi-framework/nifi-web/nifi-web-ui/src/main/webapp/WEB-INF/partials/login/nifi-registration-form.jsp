@@ -30,10 +30,6 @@
         <div class="setting-field">
             <textarea cols="30" rows="4" id="nifi-registration-justification" maxlength="500" class="setting-input"></textarea>
         </div>
-        <div id="login-to-account-message" class="hidden">
-            <div style="font-style: italic;">Already have an account?</div>
-            <div style="margin-top: 2px;"><span id="login-to-account-link" class="link">Log in</span></div>
-        </div>
         <div style="text-align: right; color: #666; margin-top: 2px; float: right;">
             <span id="remaining-characters"></span>&nbsp;characters remaining
         </div>

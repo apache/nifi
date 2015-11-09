@@ -16,34 +16,38 @@
  */
 package org.apache.nifi.authorization;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.nifi.authorization.annotation.AuthorityProviderContext;
 import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.UnknownIdentityException;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.user.generated.ObjectFactory;
 import org.apache.nifi.user.generated.Role;
 import org.apache.nifi.user.generated.User;
+import org.apache.nifi.user.generated.Users;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorized.users.AuthorizedUsers;
-import org.apache.nifi.authorized.users.AuthorizedUsers.CreateUser;
-import org.apache.nifi.authorized.users.AuthorizedUsers.FindUser;
-import org.apache.nifi.authorized.users.AuthorizedUsers.FindUsers;
-import org.apache.nifi.authorized.users.AuthorizedUsers.HasUser;
-import org.apache.nifi.authorized.users.AuthorizedUsers.UpdateUser;
-import org.apache.nifi.authorized.users.AuthorizedUsers.UpdateUsers;
-import org.apache.nifi.user.generated.LoginUser;
-import org.apache.nifi.user.generated.NiFiUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 /**
  * Provides identity checks and grants authorities.
@@ -51,11 +55,26 @@ import org.slf4j.LoggerFactory;
 public class FileAuthorizationProvider implements AuthorityProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(FileAuthorizationProvider.class);
+    private static final String USERS_XSD = "/users.xsd";
+    private static final String JAXB_GENERATED_PATH = "org.apache.nifi.user.generated";
+    private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
+
+    /**
+     * Load the JAXBContext.
+     */
+    private static JAXBContext initializeJaxbContext() {
+        try {
+            return JAXBContext.newInstance(JAXB_GENERATED_PATH, FileAuthorizationProvider.class.getClassLoader());
+        } catch (JAXBException e) {
+            throw new RuntimeException("Unable to create JAXBContext.");
+        }
+    }
 
     private NiFiProperties properties;
+    private File usersFile;
+    private File restoreUsersFile;
+    private Users users;
     private final Set<String> defaultAuthorities = new HashSet<>();
-
-    private AuthorizedUsers authorizedUsers;
 
     @Override
     public void initialize(final AuthorityProviderInitializationContext initializationContext) throws ProviderCreationException {
@@ -63,14 +82,57 @@ public class FileAuthorizationProvider implements AuthorityProvider {
 
     @Override
     public void onConfigured(final AuthorityProviderConfigurationContext configurationContext) throws ProviderCreationException {
-        final String usersFilePath = configurationContext.getProperty("Authorized Users File");
-        if (usersFilePath == null || usersFilePath.trim().isEmpty()) {
-            throw new ProviderCreationException("The authorized users file must be specified.");
-        }
-
         try {
-            // initialize the authorized users
-            authorizedUsers = AuthorizedUsers.getInstance(usersFilePath, properties);
+            final String usersFilePath = configurationContext.getProperty("Authorized Users File");
+            if (usersFilePath == null || usersFilePath.trim().isEmpty()) {
+                throw new ProviderCreationException("The authorized users file must be specified.");
+            }
+
+            // the users file instance will never be null because a default is used
+            usersFile = new File(usersFilePath);
+            final File usersFileDirectory = usersFile.getParentFile();
+
+            // the restore directory is optional and may be null
+            final File restoreDirectory = properties.getRestoreDirectory();
+
+            if (restoreDirectory != null) {
+
+                // sanity check that restore directory is a directory, creating it if necessary
+                FileUtils.ensureDirectoryExistAndCanAccess(restoreDirectory);
+
+                // check that restore directory is not the same as the primary directory
+                if (usersFileDirectory.getAbsolutePath().equals(restoreDirectory.getAbsolutePath())) {
+                    throw new ProviderCreationException(String.format("Authorized User's directory '%s' is the same as restore directory '%s' ",
+                            usersFileDirectory.getAbsolutePath(), restoreDirectory.getAbsolutePath()));
+                }
+
+                // the restore copy will have same file name, but reside in a different directory
+                restoreUsersFile = new File(restoreDirectory, usersFile.getName());
+
+                // sync the primary copy with the restore copy
+                try {
+                    FileUtils.syncWithRestore(usersFile, restoreUsersFile, logger);
+                } catch (final IOException | IllegalStateException ioe) {
+                    throw new ProviderCreationException(ioe);
+                }
+
+            }
+
+            // load the users from the specified file
+            if (usersFile.exists()) {
+                // find the schema
+                final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+                final Schema schema = schemaFactory.newSchema(FileAuthorizationProvider.class.getResource(USERS_XSD));
+
+                // attempt to unmarshal
+                final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
+                unmarshaller.setSchema(schema);
+                final JAXBElement<Users> element = unmarshaller.unmarshal(new StreamSource(usersFile), Users.class);
+                users = element.getValue();
+            } else {
+                final ObjectFactory objFactory = new ObjectFactory();
+                users = objFactory.createUsers();
+            }
 
             // attempt to load a default roles
             final String rawDefaultAuthorities = configurationContext.getProperty("Default User Roles");
@@ -95,9 +157,10 @@ public class FileAuthorizationProvider implements AuthorityProvider {
                             StringUtils.join(invalidDefaultAuthorities, ", "), StringUtils.join(Authority.getRawAuthorities(), ", ")));
                 }
             }
-        } catch (IOException | IllegalStateException | ProviderCreationException e) {
+        } catch (IOException | ProviderCreationException | SAXException | JAXBException e) {
             throw new ProviderCreationException(e);
         }
+
     }
 
     @Override
@@ -109,64 +172,67 @@ public class FileAuthorizationProvider implements AuthorityProvider {
     }
 
     @Override
-    public boolean doesDnExist(final String dn) throws AuthorityAccessException {
+    public boolean doesDnExist(String dn) throws AuthorityAccessException {
         if (hasDefaultRoles()) {
             return true;
         }
 
-        return authorizedUsers.hasUser(new HasUserByIdentity(dn));
+        final User user = getUser(dn);
+        return user != null;
     }
 
     @Override
-    public Set<Authority> getAuthorities(final String dn) throws UnknownIdentityException, AuthorityAccessException {
+    public synchronized Set<Authority> getAuthorities(String dn) throws UnknownIdentityException, AuthorityAccessException {
         final Set<Authority> authorities = EnumSet.noneOf(Authority.class);
 
         // get the user
-        final NiFiUser user = authorizedUsers.getUser(new FindUser() {
-            @Override
-            public NiFiUser findUser(List<NiFiUser> users) {
-                final FindUser byDn = new FindUserByIdentity(dn);
-                NiFiUser user = byDn.findUser(users);
+        final User user = getUser(dn);
 
-                // if the user is not found, add them and locate them
-                if (user == null) {
-                    if (hasDefaultRoles()) {
-                        logger.debug(String.format("User identity not found: %s. Creating new user with default roles.", dn));
+        // ensure the user was located
+        if (user == null) {
+            if (hasDefaultRoles()) {
+                logger.debug(String.format("User DN not found: %s. Creating new user with default roles.", dn));
 
-                        // create the user (which will automatically add any default authorities)
-                        addUser(dn, null);
+                // create the user (which will automatically add any default authorities)
+                addUser(dn, null);
 
-                        // find the user that was just added
-                        user = byDn.findUser(users);
-                    } else {
-                        throw new UnknownIdentityException(String.format("User identity not found: %s.", dn));
-                    }
-                }
-
-                return user;
+                // get the authorities for the newly created user
+                authorities.addAll(getAuthorities(dn));
+            } else {
+                throw new UnknownIdentityException(String.format("User DN not found: %s.", dn));
             }
-        });
-
-        // create the authorities that this user has
-        for (final Role role : user.getRole()) {
-            authorities.add(Authority.valueOfAuthority(role.getName()));
+        } else {
+            // create the authorities that this user has
+            for (final Role role : user.getRole()) {
+                authorities.add(Authority.valueOfAuthority(role.getName()));
+            }
         }
 
         return authorities;
     }
 
     @Override
-    public void setAuthorities(final String dn, final Set<Authority> authorities) throws UnknownIdentityException, AuthorityAccessException {
-        authorizedUsers.updateUser(new FindUserByIdentity(dn), new UpdateUser() {
-            @Override
-            public void updateUser(NiFiUser user) {
-                // add the user authorities
-                setUserAuthorities(user, authorities);
-            }
-        });
+    public synchronized void setAuthorities(String dn, Set<Authority> authorities) throws UnknownIdentityException, AuthorityAccessException {
+        // get the user
+        final User user = getUser(dn);
+
+        // ensure the user was located
+        if (user == null) {
+            throw new UnknownIdentityException(String.format("User DN not found: %s.", dn));
+        }
+
+        // add the user authorities
+        setUserAuthorities(user, authorities);
+
+        try {
+            // save the file
+            save();
+        } catch (Exception e) {
+            throw new AuthorityAccessException(e.getMessage(), e);
+        }
     }
 
-    private void setUserAuthorities(final NiFiUser user, final Set<Authority> authorities) {
+    private void setUserAuthorities(final User user, final Set<Authority> authorities) {
         // clear the existing rules
         user.getRole().clear();
 
@@ -182,145 +248,186 @@ public class FileAuthorizationProvider implements AuthorityProvider {
     }
 
     @Override
-    public void addUser(final String dn, final String group) throws IdentityAlreadyExistsException, AuthorityAccessException {
-        authorizedUsers.createOrUpdateUser(new FindUser() {
-            @Override
-            public NiFiUser findUser(final List<NiFiUser> users) throws UnknownIdentityException {
-                // attempt to get the user and ensure it was located
-                NiFiUser desiredUser = null;
-                for (final NiFiUser user : users) {
-                    if (dn.equalsIgnoreCase(authorizedUsers.getUserIdentity(user))) {
-                        desiredUser = user;
-                        break;
-                    }
-                }
+    public synchronized void addUser(String dn, String group) throws IdentityAlreadyExistsException, AuthorityAccessException {
+        final User user = getUser(dn);
 
-                // user does not exist, will create
-                if (desiredUser == null) {
-                    throw new UnknownIdentityException("This exception will trigger the creator to be invoked.");
-                }
+        // ensure the user doesn't already exist
+        if (user != null) {
+            throw new IdentityAlreadyExistsException(String.format("User DN already exists: %s", dn));
+        }
 
-                // user exists, verify its still pending
-                if (LoginUser.class.isAssignableFrom(desiredUser.getClass())) {
-                    if (((LoginUser) desiredUser).isPending()) {
-                        return desiredUser;
-                    }
-                }
+        // create the new user
+        final ObjectFactory objFactory = new ObjectFactory();
+        final User newUser = objFactory.createUser();
 
-                // user exists and account is valid... no good
-                throw new IdentityAlreadyExistsException(String.format("User identity already exists: %s", dn));
+        // set the user properties
+        newUser.setDn(dn);
+        newUser.setGroup(group);
+
+        // add default roles if appropriate
+        if (hasDefaultRoles()) {
+            for (final String authority : defaultAuthorities) {
+                Role role = objFactory.createRole();
+                role.setName(authority);
+
+                // add the role
+                newUser.getRole().add(role);
             }
-        }, new CreateUser() {
-            @Override
-            public NiFiUser createUser() {
-                // only support adding PreAuthenticated User's via this API - LoginUser's are added
-                // via the LoginIdentityProvider
-                final ObjectFactory objFactory = new ObjectFactory();
-                final User newUser = objFactory.createUser();
+        }
 
-                // set the user properties
-                newUser.setDn(dn);
-                newUser.setGroup(group);
+        // add the user
+        users.getUser().add(newUser);
 
-                // add default roles if appropriate
-                if (hasDefaultRoles()) {
-                    for (final String authority : defaultAuthorities) {
-                        Role role = objFactory.createRole();
-                        role.setName(authority);
-
-                        // add the role
-                        newUser.getRole().add(role);
-                    }
-                }
-
-                return newUser;
-            }
-        }, new UpdateUser() {
-            @Override
-            public void updateUser(final NiFiUser user) {
-                // only support updating Login Users's via this API - need to mark the account as non pending
-                LoginUser loginUser = (LoginUser) user;
-                loginUser.setPending(false);
-            }
-        });
+        try {
+            // save the file
+            save();
+        } catch (Exception e) {
+            throw new AuthorityAccessException(e.getMessage(), e);
+        }
     }
 
     @Override
-    public Set<String> getUsers(final Authority authority) throws AuthorityAccessException {
-        final List<NiFiUser> matchingUsers = authorizedUsers.getUsers(new FindUsers() {
-            @Override
-            public List<NiFiUser> findUsers(List<NiFiUser> users) throws UnknownIdentityException {
-                final List<NiFiUser> matchingUsers = new ArrayList<>();
-                for (final NiFiUser user : users) {
-                    for (final Role role : user.getRole()) {
-                        if (role.getName().equals(authority.toString())) {
-                            matchingUsers.add(user);
-                        }
-                    }
-                }
-                return matchingUsers;
-            }
-        });
-
+    public synchronized Set<String> getUsers(Authority authority) throws AuthorityAccessException {
         final Set<String> userSet = new HashSet<>();
-        for (final NiFiUser user : matchingUsers) {
-            userSet.add(authorizedUsers.getUserIdentity(user));
+        for (final User user : users.getUser()) {
+            for (final Role role : user.getRole()) {
+                if (role.getName().equals(authority.toString())) {
+                    userSet.add(user.getDn());
+                }
+            }
         }
-
         return userSet;
     }
 
     @Override
-    public void revokeUser(final String dn) throws UnknownIdentityException, AuthorityAccessException {
-        authorizedUsers.removeUser(new FindUserByIdentity(dn));
+    public synchronized void revokeUser(String dn) throws UnknownIdentityException, AuthorityAccessException {
+        // get the user
+        final User user = getUser(dn);
+
+        // ensure the user was located
+        if (user == null) {
+            throw new UnknownIdentityException(String.format("User DN not found: %s.", dn));
+        }
+
+        // remove the specified user
+        users.getUser().remove(user);
+
+        try {
+            // save the file
+            save();
+        } catch (Exception e) {
+            throw new AuthorityAccessException(e.getMessage(), e);
+        }
     }
 
     @Override
-    public void setUsersGroup(final Set<String> dns, final String group) throws UnknownIdentityException, AuthorityAccessException {
-        authorizedUsers.updateUsers(new FindUsersByIdentity(dns), new UpdateUsers() {
-            @Override
-            public void updateUsers(List<NiFiUser> users) {
-                // update each user group
-                for (final NiFiUser user : users) {
-                    user.setGroup(group);
-                }
+    public void setUsersGroup(Set<String> dns, String group) throws UnknownIdentityException, AuthorityAccessException {
+        final Collection<User> groupedUsers = new HashSet<>();
+
+        // get the specified users
+        for (final String dn : dns) {
+            // get the user
+            final User user = getUser(dn);
+
+            // ensure the user was located
+            if (user == null) {
+                throw new UnknownIdentityException(String.format("User DN not found: %s.", dn));
             }
-        });
+
+            groupedUsers.add(user);
+        }
+
+        // update each user group
+        for (final User user : groupedUsers) {
+            user.setGroup(group);
+        }
+
+        try {
+            // save the file
+            save();
+        } catch (Exception e) {
+            throw new AuthorityAccessException(e.getMessage(), e);
+        }
     }
 
     @Override
     public void ungroupUser(String dn) throws UnknownIdentityException, AuthorityAccessException {
-        authorizedUsers.updateUser(new FindUserByIdentity(dn), new UpdateUser() {
-            @Override
-            public void updateUser(NiFiUser user) {
-                // remove the users group
-                user.setGroup(null);
-            }
-        });
+        // get the user
+        final User user = getUser(dn);
+
+        // ensure the user was located
+        if (user == null) {
+            throw new UnknownIdentityException(String.format("User DN not found: %s.", dn));
+        }
+
+        // remove the users group
+        user.setGroup(null);
+
+        try {
+            // save the file
+            save();
+        } catch (Exception e) {
+            throw new AuthorityAccessException(e.getMessage(), e);
+        }
     }
 
     @Override
-    public void ungroup(final String group) throws AuthorityAccessException {
-        authorizedUsers.updateUsers(new FindUsersByGroup(group), new UpdateUsers() {
-            @Override
-            public void updateUsers(List<NiFiUser> users) {
-                // update each user group
-                for (final NiFiUser user : users) {
-                    user.setGroup(null);
-                }
-            }
-        });
+    public void ungroup(String group) throws AuthorityAccessException {
+        // get the user group
+        final Collection<User> userGroup = getUserGroup(group);
+
+        // ensure the user group was located
+        if (userGroup == null) {
+            return;
+        }
+
+        // update each user group
+        for (final User user : userGroup) {
+            user.setGroup(null);
+        }
+
+        try {
+            // save the file
+            save();
+        } catch (Exception e) {
+            throw new AuthorityAccessException(e.getMessage(), e);
+        }
     }
 
     @Override
-    public String getGroupForUser(final String dn) throws UnknownIdentityException, AuthorityAccessException {
-        final NiFiUser user = authorizedUsers.getUser(new FindUserByIdentity(dn));
+    public String getGroupForUser(String dn) throws UnknownIdentityException, AuthorityAccessException {
+        // get the user
+        final User user = getUser(dn);
+
+        // ensure the user was located
+        if (user == null) {
+            throw new UnknownIdentityException(String.format("User DN not found: %s.", dn));
+        }
+
         return user.getGroup();
     }
 
     @Override
     public void revokeGroup(String group) throws UnknownIdentityException, AuthorityAccessException {
-        authorizedUsers.removeUsers(new FindUsersByGroup(group));
+        // get the user group
+        final Collection<User> userGroup = getUserGroup(group);
+
+        // ensure the user group was located
+        if (userGroup == null) {
+            throw new UnknownIdentityException(String.format("User group not found: %s.", group));
+        }
+
+        // remove each user in the group
+        for (final User user : userGroup) {
+            users.getUser().remove(user);
+        }
+
+        try {
+            // save the file
+            save();
+        } catch (Exception e) {
+            throw new AuthorityAccessException(e.getMessage(), e);
+        }
     }
 
     /**
@@ -331,143 +438,59 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         return DownloadAuthorization.approved();
     }
 
+    private User getUser(String dn) throws UnknownIdentityException {
+        // ensure the DN was specified
+        if (dn == null) {
+            throw new UnknownIdentityException("User DN not specified.");
+        }
+
+        // attempt to get the user and ensure it was located
+        User desiredUser = null;
+        for (final User user : users.getUser()) {
+            if (dn.equalsIgnoreCase(user.getDn())) {
+                desiredUser = user;
+                break;
+            }
+        }
+
+        return desiredUser;
+    }
+
+    private Collection<User> getUserGroup(String group) throws UnknownIdentityException {
+        // ensure the DN was specified
+        if (group == null) {
+            throw new UnknownIdentityException("User group not specified.");
+        }
+
+        // get all users with this group
+        Collection<User> userGroup = null;
+        for (final User user : users.getUser()) {
+            if (group.equals(user.getGroup())) {
+                if (userGroup == null) {
+                    userGroup = new HashSet<>();
+                }
+                userGroup.add(user);
+            }
+        }
+
+        return userGroup;
+    }
+
+    private void save() throws Exception {
+        final Marshaller marshaller = JAXB_CONTEXT.createMarshaller();
+        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+
+        // save users to restore directory before primary directory
+        if (restoreUsersFile != null) {
+            marshaller.marshal(users, restoreUsersFile);
+        }
+
+        // save users to primary directory
+        marshaller.marshal(users, usersFile);
+    }
+
     @AuthorityProviderContext
     public void setNiFiProperties(NiFiProperties properties) {
         this.properties = properties;
     }
-
-    private boolean isPendingLoginUser(final NiFiUser user) {
-        if (LoginUser.class.isAssignableFrom(user.getClass())) {
-            return ((LoginUser) user).isPending();
-        }
-        return false;
-    }
-
-    public class HasUserByIdentity implements HasUser {
-
-        private final String identity;
-
-        public HasUserByIdentity(String identity) {
-            // ensure the identity was specified
-            if (identity == null) {
-                throw new UnknownIdentityException("User identity not specified.");
-            }
-
-            this.identity = identity;
-        }
-
-        @Override
-        public boolean hasUser(List<NiFiUser> users) {
-            // attempt to get the user and ensure it was located
-            NiFiUser desiredUser = null;
-            for (final NiFiUser user : users) {
-                if (identity.equalsIgnoreCase(authorizedUsers.getUserIdentity(user)) && !isPendingLoginUser(user)) {
-                    desiredUser = user;
-                    break;
-                }
-            }
-
-            return desiredUser != null;
-        }
-    }
-
-    public class FindUserByIdentity implements FindUser {
-
-        private final String identity;
-
-        public FindUserByIdentity(String identity) {
-            // ensure the identity was specified
-            if (identity == null) {
-                throw new UnknownIdentityException("User identity not specified.");
-            }
-
-            this.identity = identity;
-        }
-
-        @Override
-        public NiFiUser findUser(List<NiFiUser> users) {
-            // attempt to get the user and ensure it was located
-            NiFiUser desiredUser = null;
-            for (final NiFiUser user : users) {
-                if (identity.equalsIgnoreCase(authorizedUsers.getUserIdentity(user)) && !isPendingLoginUser(user)) {
-                    desiredUser = user;
-                    break;
-                }
-            }
-
-            if (desiredUser == null) {
-                throw new UnknownIdentityException(String.format("User identity not found: %s.", identity));
-            }
-
-            return desiredUser;
-        }
-    }
-
-    public class FindUsersByGroup implements FindUsers {
-
-        private final String group;
-
-        public FindUsersByGroup(String group) {
-            // ensure the group was specified
-            if (group == null) {
-                throw new UnknownIdentityException("User group not specified.");
-            }
-
-            this.group = group;
-        }
-
-        @Override
-        public List<NiFiUser> findUsers(List<NiFiUser> users) throws UnknownIdentityException {
-            // get all users with this group
-            List<NiFiUser> userGroup = new ArrayList<>();
-            for (final NiFiUser user : users) {
-                if (group.equals(user.getGroup()) && !isPendingLoginUser(user)) {
-                    userGroup.add(user);
-                }
-            }
-
-            // ensure the user group was located
-            if (userGroup.isEmpty()) {
-                throw new UnknownIdentityException(String.format("User group not found: %s.", group));
-            }
-
-            return userGroup;
-        }
-    }
-
-    public class FindUsersByIdentity implements FindUsers {
-
-        private final Set<String> identities;
-
-        public FindUsersByIdentity(Set<String> identities) {
-            // ensure the group was specified
-            if (identities == null) {
-                throw new UnknownIdentityException("User identities not specified.");
-            }
-
-            this.identities = identities;
-        }
-
-        @Override
-        public List<NiFiUser> findUsers(List<NiFiUser> users) throws UnknownIdentityException {
-            final Set<String> copy = new HashSet<>(identities);
-
-            // get all users with this group
-            List<NiFiUser> userList = new ArrayList<>();
-            for (final NiFiUser user : users) {
-                final String userIdentity = authorizedUsers.getUserIdentity(user);
-                if (copy.contains(userIdentity) && !isPendingLoginUser(user)) {
-                    copy.remove(userIdentity);
-                    userList.add(user);
-                }
-            }
-
-            if (!copy.isEmpty()) {
-                throw new UnknownIdentityException("Unable to find users with identities: " + StringUtils.join(copy, ", "));
-            }
-
-            return userList;
-        }
-    }
-
 }

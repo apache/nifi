@@ -40,20 +40,7 @@ nf.Login = (function () {
         $('#login-message-container').show();
     };
 
-    var initializeLogin = function (supportsRegistration) {
-        // if this nifi supports registration, render the registration form
-        if (supportsRegistration === true) {
-            initializeUserRegistration();
-            initializeNiFiRegistration();
-
-            // show the create account message
-            $('#create-account-message').show();
-
-            // toggle between login and signup
-            $('#create-account-link').on('click', function () {
-                showUserRegistration();
-            });
-        }
+    var initializeLogin = function () {
     };
 
     var showLogin = function () {
@@ -82,7 +69,6 @@ nf.Login = (function () {
 
         $('div.nifi-submit-justification').hide();
         $('#user-registration-container').show();
-        $('#login-to-account-message').show();
         $('#login-submission-button').text('Create');
     };
 
@@ -416,7 +402,7 @@ nf.Login = (function () {
                 if (showMessage === true) {
                     initializeMessage();
                 } else if (needsLogin === true) {
-                    initializeLogin(loginConfig.supportsRegistration);
+                    initializeLogin();
                     showLogin();
                 } else if (needsNiFiRegistration === true) {
                     initializeNiFiRegistration();

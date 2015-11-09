@@ -56,18 +56,6 @@ body.login-body input, body.login-body textarea {
     width: 400px;
 }
 
-#create-account-message {
-    margin-top: 2px;
-}
-
-#create-account-link {
-    text-decoration: underline;
-}
-
-/*
-    User Registration
-*/
-
 /*
     NiFi Registration
 */
@@ -86,15 +74,6 @@ body.login-body input, body.login-body textarea {
 
 #nifi-registration-justification {
     height: 200px;
-}
-
-#login-to-account-message {
-    float: left;
-    margin-top: 2px;
-}
-
-#login-to-account-link {
-    text-decoration: underline;
 }
 
 /*
