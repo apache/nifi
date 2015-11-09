@@ -339,7 +339,7 @@ language governing permissions and limitations under the License. -->
         <nifi.security.authorizedUsers.file>./conf/authorized-users.xml</nifi.security.authorizedUsers.file>
         <nifi.security.user.credential.cache.duration>24 hours</nifi.security.user.credential.cache.duration>
         <nifi.security.user.authority.provider>file-provider</nifi.security.user.authority.provider>
-        <nifi.security.user.login.identity.provider>file-provider</nifi.security.user.login.identity.provider>
+        <nifi.security.user.login.identity.provider></nifi.security.user.login.identity.provider>
         <nifi.security.x509.principal.extractor />
         <nifi.security.support.new.account.requests />
         <nifi.security.anonymous.authorities>ROLE_MONITOR,ROLE_DFM,ROLE_ADMIN,ROLE_PROVENANCE,ROLE_NIFI</nifi.security.anonymous.authorities>

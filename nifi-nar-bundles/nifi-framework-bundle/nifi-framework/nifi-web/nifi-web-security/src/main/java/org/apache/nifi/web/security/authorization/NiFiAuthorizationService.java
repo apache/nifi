@@ -111,7 +111,7 @@ public class NiFiAuthorizationService implements AuthenticationUserDetailsServic
                             userService.createPendingUserAccount(dn, "Automatic account request generated for unknown proxy.");
 
                             // propagate the exception to return the appropriate response
-                            throw new UntrustedProxyException(String.format("An account request was generated for the proxy '%s'.", dn));
+                            throw new UsernameNotFoundException(String.format("An account request was generated for the proxy '%s'.", dn));
                         } catch (AdministrationException ae) {
                             throw new AuthenticationServiceException(String.format("Unable to create an account request for '%s': %s", dn, ae.getMessage()), ae);
                         } catch (IllegalArgumentException iae) {
