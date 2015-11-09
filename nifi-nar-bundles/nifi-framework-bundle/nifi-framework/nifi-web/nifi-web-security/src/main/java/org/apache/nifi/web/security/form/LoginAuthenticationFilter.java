@@ -29,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -38,6 +39,7 @@ import org.apache.nifi.web.security.x509.X509CertificateValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -139,10 +141,14 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
                 throw new BadCredentialsException("Login not supported.");
             }
 
-            if (loginIdentityProvider.authenticate(credentials)) {
-                return new LoginAuthenticationToken(credentials);
-            } else {
-                throw new BadCredentialsException("The supplied username and password are not valid.");
+            try {
+                if (loginIdentityProvider.authenticate(credentials)) {
+                    return new LoginAuthenticationToken(credentials);
+                } else {
+                    throw new BadCredentialsException("The supplied username and password are not valid.");
+                }
+            } catch (final IdentityAccessException iae) {
+                throw new AuthenticationServiceException(iae.getMessage(), iae);
             }
         }
     }
@@ -196,6 +202,8 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
         if (failed instanceof BadCredentialsException || failed instanceof AuthenticationCredentialsNotFoundException) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        } else if (failed instanceof AuthenticationServiceException) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         } else {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }

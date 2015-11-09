@@ -123,6 +123,12 @@ public final class AuthorizedUsers {
         return authorizedUsers;
     }
 
+    /**
+     * Gets the user identity.
+     * 
+     * @param user  The user
+     * @return      The user identity
+     */
     public String getUserIdentity(final NiFiUser user) {
         if (User.class.isAssignableFrom(user.getClass())) {
             return ((User) user).getDn();
@@ -131,6 +137,11 @@ public final class AuthorizedUsers {
         }
     }
 
+    /**
+     * Gets all users from configured file.
+     * 
+     * @return The Users
+     */
     public synchronized Users getUsers() {
         try {
             // ensure the directory exists and it can be created
@@ -152,6 +163,12 @@ public final class AuthorizedUsers {
         }
     }
 
+    /**
+     * Determines if a user exists through the specified HasUser.
+     * 
+     * @param finder    The finder
+     * @return          Whether the user exists
+     */
     public synchronized boolean hasUser(final HasUser finder) {
         // load the users
         final Users users = getUsers();
@@ -165,6 +182,13 @@ public final class AuthorizedUsers {
         return finder.hasUser(nifiUsers);
     }
 
+    /**
+     * Gets the desired user.
+     * 
+     * @param finder    The finder
+     * @return          The NiFiUser
+     * @throws UnknownIdentityException If the desired user could not be found
+     */
     public synchronized NiFiUser getUser(final FindUser finder) {
         // load the users
         final Users users = getUsers();
@@ -178,6 +202,13 @@ public final class AuthorizedUsers {
         return finder.findUser(nifiUsers);
     }
 
+    /**
+     * Gets the desired users.
+     * 
+     * @param finder    The finder
+     * @return          The NiFiUsers
+     * @throws UnknownIdentityException If the users could not be found
+     */
     public synchronized List<NiFiUser> getUsers(final FindUsers finder) {
         // load the users
         final Users users = getUsers();
@@ -191,6 +222,11 @@ public final class AuthorizedUsers {
         return finder.findUsers(nifiUsers);
     }
 
+    /**
+     * Creates the user via the specified CreateUser.
+     * 
+     * @param creator   The creator
+     */
     public synchronized void createUser(final CreateUser creator) {
         // add the user
         final Users users = getUsers();
@@ -207,6 +243,13 @@ public final class AuthorizedUsers {
         saveUsers(users);
     }
 
+    /**
+     * Creates or Updates a user identified by the finder. If the user exists, it's updated otherwise it's created.
+     * 
+     * @param finder    The finder
+     * @param creator   The creator
+     * @param updater   The updater
+     */
     public synchronized void createOrUpdateUser(final FindUser finder, final CreateUser creator, final UpdateUser updater) {
         try {
             updateUser(finder, updater);
@@ -215,6 +258,12 @@ public final class AuthorizedUsers {
         }
     }
 
+    /**
+     * Updates the user identified by the finder.
+     * 
+     * @param finder    The finder
+     * @param updater   The updater
+     */
     public synchronized void updateUser(final FindUser finder, final UpdateUser updater) {
         // update the user
         final Users users = getUsers();
@@ -234,6 +283,12 @@ public final class AuthorizedUsers {
         saveUsers(users);
     }
 
+    /**
+     * Updates the users identified by the finder.
+     * 
+     * @param finder    The finder
+     * @param updater   The updater
+     */
     public synchronized void updateUsers(final FindUsers finder, final UpdateUsers updater) {
         // update the user
         final Users users = getUsers();
@@ -252,7 +307,12 @@ public final class AuthorizedUsers {
         saveUsers(users);
     }
 
-    public synchronized Users removeUser(final FindUser finder) {
+    /**
+     * Removes the user identified by the finder.
+     * 
+     * @param finder    The finder
+     */
+    public synchronized void removeUser(final FindUser finder) {
         // load the users
         final Users users = getUsers();
 
@@ -271,11 +331,14 @@ public final class AuthorizedUsers {
 
         // save the users
         saveUsers(users);
-
-        return users;
     }
 
-    public synchronized Users removeUsers(final FindUsers finder) {
+    /**
+     * Removes the users identified by the finder.
+     * 
+     * @param finder    The finder
+     */
+    public synchronized void removeUsers(final FindUsers finder) {
         // load the users
         final Users users = getUsers();
 
@@ -296,8 +359,6 @@ public final class AuthorizedUsers {
 
         // save the users
         saveUsers(users);
-
-        return users;
     }
 
     private synchronized void saveUsers(final Users users) {

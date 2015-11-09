@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authentication;
 
+import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.ProviderDestructionException;
@@ -37,7 +38,7 @@ public interface LoginIdentityProvider {
      *
      * @param credentials the login credentials
      */
-    void register(LoginCredentials credentials) throws IdentityAlreadyExistsException;
+    void register(LoginCredentials credentials) throws IdentityAlreadyExistsException, IdentityAccessException;
 
     /**
      * Authenticates the specified login credentials.
@@ -45,7 +46,7 @@ public interface LoginIdentityProvider {
      * @param credentials the credentials
      * @return whether the user was authenticated
      */
-    boolean authenticate(LoginCredentials credentials);
+    boolean authenticate(LoginCredentials credentials) throws IdentityAccessException;
 
     /**
      * Called immediately after instance creation for implementers to perform additional setup

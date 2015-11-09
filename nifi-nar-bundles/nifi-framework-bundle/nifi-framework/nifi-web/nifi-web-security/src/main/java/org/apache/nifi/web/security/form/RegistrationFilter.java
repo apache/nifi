@@ -29,6 +29,7 @@ import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -79,6 +80,8 @@ public class RegistrationFilter extends AbstractAuthenticationProcessingFilter {
                 loginIdentityProvider.register(credentials);
             } catch (final IdentityAlreadyExistsException iaee) {
                 // if the identity already exists, try to create the nifi account request
+            } catch (final IdentityAccessException iae) {
+                throw new AuthenticationServiceException(iae.getMessage(), iae);
             }
 
             try {
