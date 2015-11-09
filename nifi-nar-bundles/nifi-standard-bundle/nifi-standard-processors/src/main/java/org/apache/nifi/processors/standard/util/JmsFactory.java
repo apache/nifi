@@ -481,7 +481,13 @@ public class JmsFactory {
             attributes.put(ATTRIBUTE_PREFIX + JMS_CORRELATION_ID, message.getJMSCorrelationID());
         }
         if (message.getJMSDestination() != null) {
-            attributes.put(ATTRIBUTE_PREFIX + JMS_DESTINATION, message.getJMSDestination().toString());
+            String destinationName;
+            if (message.getJMSDestination() instanceof Queue) {
+                destinationName = ((Queue) message.getJMSDestination()).getQueueName();
+            } else {
+                destinationName = ((Topic) message.getJMSDestination()).getTopicName();
+            }
+            attributes.put(ATTRIBUTE_PREFIX + JMS_DESTINATION, destinationName);
         }
         if (message.getJMSMessageID() != null) {
             attributes.put(ATTRIBUTE_PREFIX + JMS_MESSAGE_ID, message.getJMSMessageID());

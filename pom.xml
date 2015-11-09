@@ -511,8 +511,8 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
-                <artifactId>activemq-client</artifactId>
-                <version>5.12.0</version>
+                <artifactId>activemq-all</artifactId>
+                <version>5.12.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.lucene</groupId>
