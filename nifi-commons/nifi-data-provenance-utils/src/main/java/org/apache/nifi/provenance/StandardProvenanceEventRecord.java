@@ -71,7 +71,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
     private final Map<String, String> previousAttributes;
     private final Map<String, String> updatedAttributes;
 
-    private volatile long eventId = -1L;
+    private volatile long eventId;
 
     private StandardProvenanceEventRecord(final Builder builder) {
         this.eventTime = builder.eventTime;
@@ -105,8 +105,8 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         contentClaimOffset = builder.contentClaimOffset;
         contentSize = builder.contentSize;
 
-        previousAttributes = builder.previousAttributes == null ? Collections.<String, String> emptyMap() : Collections.unmodifiableMap(builder.previousAttributes);
-        updatedAttributes = builder.updatedAttributes == null ? Collections.<String, String> emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
+        previousAttributes = builder.previousAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.previousAttributes);
+        updatedAttributes = builder.updatedAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
 
         sourceQueueIdentifier = builder.sourceQueueIdentifier;
 
@@ -198,12 +198,12 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
 
     @Override
     public List<String> getParentUuids() {
-        return parentUuids == null ? Collections.<String> emptyList() : parentUuids;
+        return parentUuids == null ? Collections.<String>emptyList() : parentUuids;
     }
 
     @Override
     public List<String> getChildUuids() {
-        return childrenUuids == null ? Collections.<String> emptyList() : childrenUuids;
+        return childrenUuids == null ? Collections.<String>emptyList() : childrenUuids;
     }
 
     @Override
@@ -298,7 +298,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         }
 
         return -37423 + 3 * componentId.hashCode() + (transitUri == null ? 0 : 41 * transitUri.hashCode())
-            + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode;
+                + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode;
     }
 
     @Override
@@ -316,7 +316,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         final StandardProvenanceEventRecord other = (StandardProvenanceEventRecord) obj;
         // If event ID's are populated and not equal, return false. If they have not yet been populated, do not
         // use them in the comparison.
-        if (eventId >= 0L && other.getEventId() >= 0L && eventId != other.getEventId()) {
+        if (eventId > 0L && other.getEventId() > 0L && eventId != other.getEventId()) {
             return false;
         }
         if (eventType != other.eventType) {
@@ -397,16 +397,16 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
     @Override
     public String toString() {
         return "ProvenanceEventRecord ["
-            + "eventId=" + eventId
-            + ", eventType=" + eventType
-            + ", eventTime=" + new Date(eventTime)
-            + ", uuid=" + uuid
-            + ", fileSize=" + contentSize
-            + ", componentId=" + componentId
-            + ", transitUri=" + transitUri
-            + ", sourceSystemFlowFileIdentifier=" + sourceSystemFlowFileIdentifier
-            + ", parentUuids=" + parentUuids
-            + ", alternateIdentifierUri=" + alternateIdentifierUri + "]";
+                + "eventId=" + eventId
+                + ", eventType=" + eventType
+                + ", eventTime=" + new Date(eventTime)
+                + ", uuid=" + uuid
+                + ", fileSize=" + contentSize
+                + ", componentId=" + componentId
+                + ", transitUri=" + transitUri
+                + ", sourceSystemFlowFileIdentifier=" + sourceSystemFlowFileIdentifier
+                + ", parentUuids=" + parentUuids
+                + ", alternateIdentifierUri=" + alternateIdentifierUri + "]";
     }
 
     public static class Builder implements ProvenanceEventBuilder {
@@ -663,7 +663,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
             setFlowFileEntryDate(flowFile.getEntryDate());
             setLineageIdentifiers(flowFile.getLineageIdentifiers());
             setLineageStartDate(flowFile.getLineageStartDate());
-            setAttributes(Collections.<String, String> emptyMap(), flowFile.getAttributes());
+            setAttributes(Collections.<String, String>emptyMap(), flowFile.getAttributes());
             uuid = flowFile.getAttribute(CoreAttributes.UUID.key());
             this.contentSize = flowFile.getSize();
             return this;

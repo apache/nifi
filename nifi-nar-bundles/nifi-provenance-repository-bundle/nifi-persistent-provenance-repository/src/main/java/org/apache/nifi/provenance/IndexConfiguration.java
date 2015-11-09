@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,9 +173,6 @@ public class IndexConfiguration {
             for (final List<File> list : indexDirectoryMap.values()) {
                 files.addAll(list);
             }
-
-            Collections.sort(files, new IndexDirectoryComparator());
-
             return files;
         } finally {
             lock.unlock();
@@ -200,11 +198,11 @@ public class IndexConfiguration {
      * span (times inclusive).
      *
      * @param startTime the start time of the query for which the indices are
-     *            desired
+     * desired
      * @param endTime the end time of the query for which the indices are
-     *            desired
+     * desired
      * @return the index directories that are applicable only for the given time
-     *         span (times inclusive).
+     * span (times inclusive).
      */
     public List<File> getIndexDirectories(final Long startTime, final Long endTime) {
         if (startTime == null && endTime == null) {
@@ -215,7 +213,14 @@ public class IndexConfiguration {
         lock.lock();
         try {
             final List<File> sortedIndexDirectories = getIndexDirectories();
-            Collections.sort(sortedIndexDirectories, new IndexDirectoryComparator());
+            Collections.sort(sortedIndexDirectories, new Comparator<File>() {
+                @Override
+                public int compare(final File o1, final File o2) {
+                    final long epochTimestamp1 = getIndexStartTime(o1);
+                    final long epochTimestamp2 = getIndexStartTime(o2);
+                    return Long.compare(epochTimestamp1, epochTimestamp2);
+                }
+            });
 
             for (final File indexDir : sortedIndexDirectories) {
                 // If the index was last modified before the start time, we know that it doesn't
@@ -247,9 +252,9 @@ public class IndexConfiguration {
      * event log
      *
      * @param provenanceLogFile the provenance log file for which the index
-     *            directories are desired
+     * directories are desired
      * @return the index directories that are applicable only for the given
-     *         event log
+     * event log
      */
     public List<File> getIndexDirectories(final File provenanceLogFile) {
         final List<File> dirs = new ArrayList<>();
@@ -257,16 +262,23 @@ public class IndexConfiguration {
         try {
             final List<File> indices = indexDirectoryMap.get(provenanceLogFile.getParentFile());
             if (indices == null) {
-                return Collections.<File> emptyList();
+                return Collections.<File>emptyList();
             }
 
             final List<File> sortedIndexDirectories = new ArrayList<>(indices);
-            Collections.sort(sortedIndexDirectories, new IndexDirectoryComparator());
+            Collections.sort(sortedIndexDirectories, new Comparator<File>() {
+                @Override
+                public int compare(final File o1, final File o2) {
+                    final long epochTimestamp1 = getIndexStartTime(o1);
+                    final long epochTimestamp2 = getIndexStartTime(o2);
+                    return Long.compare(epochTimestamp1, epochTimestamp2);
+                }
+            });
 
             final Long firstEntryTime = getFirstEntryTime(provenanceLogFile);
             if (firstEntryTime == null) {
                 logger.debug("Found no records in {} so returning no Indices for it", provenanceLogFile);
-                return Collections.<File> emptyList();
+                return Collections.<File>emptyList();
             }
 
             boolean foundIndexCreatedLater = false;
@@ -364,7 +376,7 @@ public class IndexConfiguration {
         lock.lock();
         try {
             if (minIndexedId == null || id > minIndexedId) {
-                if (maxIndexedId == null || id > maxIndexedId) { // id will be > maxIndexedId if all records were expired
+                if (maxIndexedId == null || id > maxIndexedId) {  // id will be > maxIndexedId if all records were expired
                     minIndexedId = maxIndexedId;
                 } else {
                     minIndexedId = id;
@@ -381,15 +393,6 @@ public class IndexConfiguration {
             return minIndexedId;
         } finally {
             lock.unlock();
-        }
-    }
-
-    private class IndexDirectoryComparator implements Comparator<File> {
-        @Override
-        public int compare(final File o1, final File o2) {
-            final long epochTimestamp1 = getIndexStartTime(o1);
-            final long epochTimestamp2 = getIndexStartTime(o2);
-            return -Long.compare(epochTimestamp1, epochTimestamp2);
         }
     }
 }

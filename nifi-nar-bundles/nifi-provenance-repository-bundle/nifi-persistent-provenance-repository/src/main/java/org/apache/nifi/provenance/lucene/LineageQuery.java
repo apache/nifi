@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -94,11 +95,11 @@ public class LineageQuery {
 
                 final DocsReader docsReader = new DocsReader(repo.getConfiguration().getStorageDirectories());
                 final Set<ProvenanceEventRecord> recs = docsReader.read(uuidQueryTopDocs, searcher.getIndexReader(), repo.getAllLogFiles(),
-                    Integer.MAX_VALUE, maxAttributeChars);
+                    new AtomicInteger(0), Integer.MAX_VALUE, maxAttributeChars);
 
                 final long readDocsEnd = System.nanoTime();
                 logger.debug("Finished Lineage Query against {}; Lucene search took {} millis, reading records took {} millis",
-                    indexDirectory, TimeUnit.NANOSECONDS.toMillis(searchEnd - searchStart), TimeUnit.NANOSECONDS.toMillis(readDocsEnd - searchEnd));
+                        indexDirectory, TimeUnit.NANOSECONDS.toMillis(searchEnd - searchStart), TimeUnit.NANOSECONDS.toMillis(readDocsEnd - searchEnd));
 
                 return recs;
             } finally {
@@ -107,7 +108,7 @@ public class LineageQuery {
         } catch (final FileNotFoundException fnfe) {
             // nothing has been indexed yet, or the data has already aged off
             logger.warn("Attempted to search Provenance Index {} but could not find the file due to {}", indexDirectory, fnfe);
-            if (logger.isDebugEnabled()) {
+            if ( logger.isDebugEnabled() ) {
                 logger.warn("", fnfe);
             }
 

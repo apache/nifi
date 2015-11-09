@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -118,16 +117,16 @@ public class TestPersistentProvenanceRepository {
         // Delete all of the storage files. We do this in order to clean up the tons of files that
         // we create but also to ensure that we have closed all of the file handles. If we leave any
         // streams open, for instance, this will throw an IOException, causing our unit test to fail.
-        for (final File storageDir : config.getStorageDirectories()) {
+        for ( final File storageDir : config.getStorageDirectories() ) {
             int i;
-            for (i = 0; i < 3; i++) {
+            for (i=0; i < 3; i++) {
                 try {
                     FileUtils.deleteFile(storageDir, true);
                     break;
                 } catch (final IOException ioe) {
                     // if there is a virus scanner, etc. running in the background we may not be able to
                     // delete the file. Wait a sec and try again.
-                    if (i == 2) {
+                    if ( i == 2 ) {
                         throw ioe;
                     } else {
                         try {
@@ -442,7 +441,7 @@ public class TestPersistentProvenanceRepository {
         repo.waitForRollover();
 
         final Query query = new Query(UUID.randomUUID().toString());
-        // query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000000-0000-0000-0000*"));
+        //        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000000-0000-0000-0000*"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
@@ -604,7 +603,7 @@ public class TestPersistentProvenanceRepository {
 
         repo.purgeOldEvents();
 
-        Thread.sleep(2000L); // purge is async. Give it time to do its job.
+        Thread.sleep(2000L);    // purge is async. Give it time to do its job.
 
         query.setMaxResults(100);
         final QuerySubmission noResultSubmission = repo.submitQuery(query);
@@ -614,152 +613,6 @@ public class TestPersistentProvenanceRepository {
 
         assertEquals(0, noResultSubmission.getResult().getTotalHitCount());
     }
-
-
-    @Test
-    public void testEventsAreOrdered() throws IOException, InterruptedException, ParseException {
-        final RepositoryConfiguration config = createConfiguration();
-        config.setMaxRecordLife(30, TimeUnit.SECONDS);
-        config.setMaxStorageCapacity(1024L * 1024L);
-        config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
-        config.setMaxEventFileCapacity(1024L * 1024L);
-        config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
-
-        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
-
-        final String uuid = "00000000-0000-0000-0000-000000000000";
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("abc", "xyz");
-        attributes.put("xyz", "abc");
-        attributes.put("filename", "file-" + uuid);
-
-        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
-        builder.setEventTime(System.currentTimeMillis());
-        builder.setEventType(ProvenanceEventType.RECEIVE);
-        builder.setTransitUri("nifi://unit-test");
-        attributes.put("uuid", uuid);
-        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
-        builder.setComponentId("1234");
-        builder.setComponentType("dummy processor");
-
-        for (int i = 0; i < 10; i++) {
-            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
-            builder.setEventTime(System.currentTimeMillis());
-            repo.registerEvent(builder.build());
-            Thread.sleep(20);
-        }
-
-        // Give time for rollover to happen
-        repo.waitForRollover();
-
-        // Perform a "Most Recent Events" Query
-        final Query query = new Query(UUID.randomUUID().toString());
-        query.setMaxResults(100);
-
-        final QueryResult result = repo.queryEvents(query);
-        assertEquals(10, result.getMatchingEvents().size());
-
-        final List<ProvenanceEventRecord> matchingEvents = result.getMatchingEvents();
-        long timestamp = matchingEvents.get(0).getEventTime();
-
-        for (final ProvenanceEventRecord record : matchingEvents) {
-            assertTrue(record.getEventTime() <= timestamp);
-            timestamp = record.getEventTime();
-        }
-
-        // Perform a Query for a particular component, so that this doesn't just get the most recent events
-        // and has to actually hit Lucene.
-        final Query query2 = new Query(UUID.randomUUID().toString());
-        query2.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "1234"));
-        query2.setMaxResults(100);
-        final QueryResult result2 = repo.queryEvents(query2);
-        assertEquals(10, result2.getMatchingEvents().size());
-
-        final List<ProvenanceEventRecord> matchingEvents2 = result2.getMatchingEvents();
-        timestamp = matchingEvents2.get(0).getEventTime();
-
-        for (final ProvenanceEventRecord record : matchingEvents2) {
-            assertTrue(record.getEventTime() <= timestamp);
-            timestamp = record.getEventTime();
-        }
-    }
-
-
-    @Test
-    public void testEventsAreOrderedAcrossMultipleIndexes() throws IOException, InterruptedException, ParseException {
-        final RepositoryConfiguration config = createConfiguration();
-        config.setMaxRecordLife(30, TimeUnit.SECONDS);
-        config.setMaxStorageCapacity(1024L * 1024L);
-        config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
-        config.setMaxEventFileCapacity(1024L * 1024L);
-        config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
-        config.setDesiredIndexSize(1L);
-
-        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
-
-        final String uuid = "00000000-0000-0000-0000-000000000000";
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("abc", "xyz");
-        attributes.put("xyz", "abc");
-        attributes.put("filename", "file-" + uuid);
-
-        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
-        builder.setEventTime(System.currentTimeMillis());
-        builder.setEventType(ProvenanceEventType.RECEIVE);
-        builder.setTransitUri("nifi://unit-test");
-        attributes.put("uuid", uuid);
-        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
-        builder.setComponentId("1234");
-        builder.setComponentType("dummy processor");
-
-        for (int i = 0; i < 10; i++) {
-            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
-            builder.setEventTime(System.currentTimeMillis());
-            repo.registerEvent(builder.build());
-            Thread.sleep(20);
-        }
-
-        // Give time for rollover to happen
-        repo.waitForRollover();
-
-        for (int i = 0; i < 10; i++) {
-            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
-            builder.setEventTime(System.currentTimeMillis());
-            repo.registerEvent(builder.build());
-            Thread.sleep(20);
-        }
-
-        repo.waitForRollover();
-
-        // Verify that multiple indexes exist
-        final File storageDir = config.getStorageDirectories().get(0);
-        final File[] subDirs = storageDir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(final File dir, final String name) {
-                return name.startsWith("index-");
-            }
-        });
-        assertEquals(2, subDirs.length);
-
-        // Perform a Query for a particular component, so that this doesn't just get the most recent events
-        // and has to actually hit Lucene.
-        final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "1234"));
-        query.setMaxResults(100);
-        final QueryResult result = repo.queryEvents(query);
-        assertEquals(20, result.getMatchingEvents().size());
-
-        final List<ProvenanceEventRecord> matchingEvents = result.getMatchingEvents();
-        long timestamp = matchingEvents.get(0).getEventTime();
-
-        for (final ProvenanceEventRecord record : matchingEvents) {
-            assertTrue(record.getEventTime() <= timestamp);
-            timestamp = record.getEventTime();
-        }
-    }
-
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentEmptySearch() throws IOException, InterruptedException, ParseException {
@@ -1086,7 +939,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
-        config.setDesiredIndexSize(10); // force new index to be created for each rollover
+        config.setDesiredIndexSize(10);  // force new index to be created for each rollover
 
         repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
@@ -1108,7 +961,7 @@ public class TestPersistentProvenanceRepository {
         for (int i = 0; i < 10; i++) {
             attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + i);
             builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
-            builder.setEventTime(10L); // make sure the events are destroyed when we call purge
+            builder.setEventTime(10L);  // make sure the events are destroyed when we call purge
             repo.registerEvent(builder.build());
         }
 
@@ -1166,7 +1019,7 @@ public class TestPersistentProvenanceRepository {
     @Test
     public void testBackPressure() throws IOException, InterruptedException {
         final RepositoryConfiguration config = createConfiguration();
-        config.setMaxEventFileCapacity(1L); // force rollover on each record.
+        config.setMaxEventFileCapacity(1L);  // force rollover on each record.
         config.setJournalCount(1);
 
         final AtomicInteger journalCountRef = new AtomicInteger(0);
