@@ -17,7 +17,7 @@
     <requiredProperties>
         <requiredProperty key="artifactBaseName" />
         <requiredProperty key="nifiVersion" >
-            <defaultValue>0.3.0-SNAPSHOT</defaultValue>
+            <defaultValue>NIFIVERSION</defaultValue>
         </requiredProperty>
         <requiredProperty key="package">
             <defaultValue>${groupId}.${artifactBaseName}</defaultValue>
