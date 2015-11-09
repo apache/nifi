@@ -330,7 +330,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private final OptimisticLockingManager optimisticLockingManager;
     private final StringEncryptor encryptor;
     private final Queue<Heartbeat> pendingHeartbeats = new ConcurrentLinkedQueue<>();
-    private final ReentrantReadWriteLock resourceRWLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock resourceRWLock = new ReentrantReadWriteLock(true);
     private final ClusterManagerLock readLock = new ClusterManagerLock(resourceRWLock.readLock(), "Read");
     private final ClusterManagerLock writeLock = new ClusterManagerLock(resourceRWLock.writeLock(), "Write");
 
@@ -480,7 +480,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             try {
                 // setup heartbeat monitoring
                 heartbeatMonitor = new Timer("Heartbeat Monitor", /* is daemon */ true);
-                heartbeatMonitor.scheduleAtFixedRate(new HeartbeatMonitoringTimerTask(), 0, getHeartbeatMonitoringIntervalSeconds() * 1000);
+                heartbeatMonitor.schedule(new HeartbeatMonitoringTimerTask(), 0, getHeartbeatMonitoringIntervalSeconds() * 1000);
 
                 heartbeatProcessor = new Timer("Process Pending Heartbeats", true);
                 final int processPendingHeartbeatDelay = 1000 * Math.max(1, getClusterProtocolHeartbeatSeconds() / 2);
