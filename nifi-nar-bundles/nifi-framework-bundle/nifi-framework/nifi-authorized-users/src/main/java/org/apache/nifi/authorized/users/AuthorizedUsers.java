@@ -125,9 +125,9 @@ public final class AuthorizedUsers {
 
     /**
      * Gets the user identity.
-     * 
-     * @param user  The user
-     * @return      The user identity
+     *
+     * @param user The user
+     * @return The user identity
      */
     public String getUserIdentity(final NiFiUser user) {
         if (User.class.isAssignableFrom(user.getClass())) {
@@ -139,7 +139,7 @@ public final class AuthorizedUsers {
 
     /**
      * Gets all users from configured file.
-     * 
+     *
      * @return The Users
      */
     public synchronized Users getUsers() {
@@ -165,9 +165,9 @@ public final class AuthorizedUsers {
 
     /**
      * Determines if a user exists through the specified HasUser.
-     * 
-     * @param finder    The finder
-     * @return          Whether the user exists
+     *
+     * @param finder The finder
+     * @return Whether the user exists
      */
     public synchronized boolean hasUser(final HasUser finder) {
         // load the users
@@ -184,9 +184,9 @@ public final class AuthorizedUsers {
 
     /**
      * Gets the desired user.
-     * 
-     * @param finder    The finder
-     * @return          The NiFiUser
+     *
+     * @param finder The finder
+     * @return The NiFiUser
      * @throws UnknownIdentityException If the desired user could not be found
      */
     public synchronized NiFiUser getUser(final FindUser finder) {
@@ -204,9 +204,9 @@ public final class AuthorizedUsers {
 
     /**
      * Gets the desired users.
-     * 
-     * @param finder    The finder
-     * @return          The NiFiUsers
+     *
+     * @param finder The finder
+     * @return The NiFiUsers
      * @throws UnknownIdentityException If the users could not be found
      */
     public synchronized List<NiFiUser> getUsers(final FindUsers finder) {
@@ -224,8 +224,8 @@ public final class AuthorizedUsers {
 
     /**
      * Creates the user via the specified CreateUser.
-     * 
-     * @param creator   The creator
+     *
+     * @param creator The creator
      */
     public synchronized void createUser(final CreateUser creator) {
         // add the user
@@ -245,10 +245,10 @@ public final class AuthorizedUsers {
 
     /**
      * Creates or Updates a user identified by the finder. If the user exists, it's updated otherwise it's created.
-     * 
-     * @param finder    The finder
-     * @param creator   The creator
-     * @param updater   The updater
+     *
+     * @param finder The finder
+     * @param creator The creator
+     * @param updater The updater
      */
     public synchronized void createOrUpdateUser(final FindUser finder, final CreateUser creator, final UpdateUser updater) {
         try {
@@ -260,9 +260,9 @@ public final class AuthorizedUsers {
 
     /**
      * Updates the user identified by the finder.
-     * 
-     * @param finder    The finder
-     * @param updater   The updater
+     *
+     * @param finder The finder
+     * @param updater The updater
      */
     public synchronized void updateUser(final FindUser finder, final UpdateUser updater) {
         // update the user
@@ -285,9 +285,9 @@ public final class AuthorizedUsers {
 
     /**
      * Updates the users identified by the finder.
-     * 
-     * @param finder    The finder
-     * @param updater   The updater
+     *
+     * @param finder The finder
+     * @param updater The updater
      */
     public synchronized void updateUsers(final FindUsers finder, final UpdateUsers updater) {
         // update the user
@@ -309,8 +309,8 @@ public final class AuthorizedUsers {
 
     /**
      * Removes the user identified by the finder.
-     * 
-     * @param finder    The finder
+     *
+     * @param finder The finder
      */
     public synchronized void removeUser(final FindUser finder) {
         // load the users
@@ -335,8 +335,8 @@ public final class AuthorizedUsers {
 
     /**
      * Removes the users identified by the finder.
-     * 
-     * @param finder    The finder
+     *
+     * @param finder The finder
      */
     public synchronized void removeUsers(final FindUsers finder) {
         // load the users

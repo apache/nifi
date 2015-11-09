@@ -107,7 +107,7 @@ public class NiFiAuthorizationServiceTest {
     private NiFiAuthenticationRequestToken createRequestAuthentication(final String... identities) {
         return new NiFiAuthenticationRequestToken(Arrays.asList(identities));
     }
-    
+
     /**
      * Ensures the authorization service correctly handles users invalid identity chain.
      *
@@ -183,8 +183,7 @@ public class NiFiAuthorizationServiceTest {
     }
 
     /**
-     * Ensures the authorization service correctly handles proxy not found by
-     * attempting to create an account request for the proxy.
+     * Ensures the authorization service correctly handles proxy not found by attempting to create an account request for the proxy.
      *
      * @throws Exception ex
      */

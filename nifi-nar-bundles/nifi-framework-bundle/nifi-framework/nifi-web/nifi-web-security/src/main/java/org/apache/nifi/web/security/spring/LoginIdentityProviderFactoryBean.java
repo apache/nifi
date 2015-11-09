@@ -48,17 +48,14 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.xml.sax.SAXException;
 
 /**
  *
  */
-public class LoginIdentityProviderFactoryBean implements FactoryBean, ApplicationContextAware, DisposableBean, LoginIdentityProviderLookup {
+public class LoginIdentityProviderFactoryBean implements FactoryBean, DisposableBean, LoginIdentityProviderLookup {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginIdentityProviderFactoryBean.class);
     private static final String LOGIN_IDENTITY_PROVIDERS_XSD = "/login-identity-providers.xsd";
@@ -76,7 +73,6 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Applicatio
         }
     }
 
-    private ApplicationContext context;
     private NiFiProperties properties;
     private LoginIdentityProvider loginIdentityProvider;
     private final Map<String, LoginIdentityProvider> loginIdentityProviders = new HashMap<>();
@@ -325,10 +321,5 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Applicatio
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext context) throws BeansException {
-        this.context = context;
     }
 }
