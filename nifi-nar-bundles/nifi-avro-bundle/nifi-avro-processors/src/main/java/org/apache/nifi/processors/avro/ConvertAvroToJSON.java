@@ -138,7 +138,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                             if (containerOption.equals(CONTAINER_ARRAY)) {
                                 out.write(',');
                             } else {
-                                out.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
+                                out.write('\n');
                             }
 
                             final GenericRecord nextRecord = reader.next(record);

@@ -41,7 +41,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SeeAlso({PutS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Delete"})
 @CapabilityDescription("Deletes FlowFiles on an Amazon S3 Bucket. " +
-        "And the FlowFiles are checked if exists or not before deleting.")
+        "If attempting to delete a file that does not exist, FlowFile is routed to success.")
 public class DeleteS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
@@ -80,6 +80,7 @@ public class DeleteS3Object extends AbstractS3Processor {
         try {
             if (versionId == null) {
                 final DeleteObjectRequest r = new DeleteObjectRequest(bucket, key);
+                // This call returns success if object doesn't exist
                 s3.deleteObject(r);
             } else {
                 final DeleteVersionRequest r = new DeleteVersionRequest(bucket, key, versionId);

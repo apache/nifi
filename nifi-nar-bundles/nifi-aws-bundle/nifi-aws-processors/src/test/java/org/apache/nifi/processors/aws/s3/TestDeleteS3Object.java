@@ -16,77 +16,33 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.amazonaws.services.s3.model.DeleteBucketRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
+import org.junit.Ignore;
+import org.junit.Test;
 
 @Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
-public class TestDeleteS3Object {
-
-    private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
-
-    // When you want to test this, you should create a bucket on Amazon S3 as follows.
-    private static final String TEST_REGION = "ap-northeast-1";
-    private static final String TEST_BUCKET = "test-bucket-00000000-0000-0000-0000-1234567890123";
-
-    @BeforeClass
-    public static void oneTimeSetUp() {
-        // Creates a new bucket for this test
-        try {
-            PropertiesCredentials credentials = new PropertiesCredentials(new FileInputStream(CREDENTIALS_FILE));
-            AmazonS3Client client = new AmazonS3Client(credentials);
-            CreateBucketRequest request = new CreateBucketRequest(TEST_BUCKET, TEST_REGION);
-            client.createBucket(request);
-        } catch (final AmazonS3Exception e) {
-            System.out.println("Can't create the key " + TEST_BUCKET + ":" + e.toString());
-        } catch (final IOException e) {
-            System.out.println(CREDENTIALS_FILE + " doesn't exist.");
-        }
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws IOException {
-        // Delete a bucket for this test
-        PropertiesCredentials credentials = new PropertiesCredentials(new FileInputStream(CREDENTIALS_FILE));
-        AmazonS3Client client = new AmazonS3Client(credentials);
-        DeleteBucketRequest dbr = new DeleteBucketRequest(TEST_BUCKET);
-        client.deleteBucket(dbr);
-    }
+public class TestDeleteS3Object extends AbstractS3Test {
 
     @Test
     public void testSimpleDelete() throws IOException {
         // Prepares for this test
-        uploadTestFile("hello.txt");
+        putTestFile("delete-me", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        DeleteS3Object deleter = new DeleteS3Object();
-        final TestRunner runner = TestRunners.newTestRunner(deleter);
+        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
+
         runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(DeleteS3Object.REGION, TEST_REGION);
-        runner.setProperty(DeleteS3Object.BUCKET, TEST_BUCKET);
-        runner.setProperty(DeleteS3Object.KEY, "hello.txt");
+        runner.setProperty(DeleteS3Object.REGION, REGION);
+        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename", "hello.txt");
+        attrs.put("filename", "delete-me");
         runner.enqueue(new byte[0], attrs);
+
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
@@ -95,18 +51,39 @@ public class TestDeleteS3Object {
     @Test
     public void testDeleteFolder() throws IOException {
         // Prepares for this test
-        uploadTestFile("folder/1.txt");
+        putTestFile("folder/delete-me", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        DeleteS3Object deleter = new DeleteS3Object();
-        final TestRunner runner = TestRunners.newTestRunner(deleter);
+        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
+
         runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(DeleteS3Object.REGION, TEST_REGION);
-        runner.setProperty(DeleteS3Object.BUCKET, TEST_BUCKET);
-        runner.setProperty(DeleteS3Object.KEY, "folder/1.txt");
+        runner.setProperty(DeleteS3Object.REGION, REGION);
+        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename", "hello.txt");
+        attrs.put("filename", "folder/delete-me");
         runner.enqueue(new byte[0], attrs);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testDeleteFolderNoExpressionLanguage() throws IOException {
+        // Prepares for this test
+        putTestFile("folder/delete-me", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+
+        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
+
+        runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(DeleteS3Object.REGION, REGION);
+        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
+        runner.setProperty(DeleteS3Object.KEY, "folder/delete-me");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "a-different-name");
+        runner.enqueue(new byte[0], attrs);
+
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
@@ -114,28 +91,19 @@ public class TestDeleteS3Object {
 
     @Test
     public void testTryToDeleteNotExistingFile() throws IOException {
-        DeleteS3Object deleter = new DeleteS3Object();
-        final TestRunner runner = TestRunners.newTestRunner(deleter);
+        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
+
         runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(DeleteS3Object.REGION, TEST_REGION);
-        runner.setProperty(DeleteS3Object.BUCKET, TEST_BUCKET);
-        runner.setProperty(DeleteS3Object.BUCKET, "no-such-a-key");
+        runner.setProperty(DeleteS3Object.REGION, REGION);
+        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "no-such-a-file");
         runner.enqueue(new byte[0], attrs);
+
         runner.run(1);
 
-        runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
     }
 
-    // Uploads a test file
-    private void uploadTestFile(String key) throws IOException {
-        PropertiesCredentials credentials = new PropertiesCredentials(new FileInputStream(CREDENTIALS_FILE));
-        AmazonS3Client client = new AmazonS3Client(credentials);
-        URL fileURL = this.getClass().getClassLoader().getResource("hello.txt");
-        File file = new File(fileURL.getPath());
-        PutObjectRequest putRequest = new PutObjectRequest(TEST_BUCKET, key, file);
-        PutObjectResult result = client.putObject(putRequest);
-    }
 }

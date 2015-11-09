@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.3.1-SNAPSHOT</version>
+        <version>0.4.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-aws-bundle</artifactId>
@@ -29,15 +29,5 @@
         <module>nifi-aws-processors</module>
         <module>nifi-aws-nar</module>
     </modules>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk</artifactId>
-                <version>1.9.24</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
 </project>
