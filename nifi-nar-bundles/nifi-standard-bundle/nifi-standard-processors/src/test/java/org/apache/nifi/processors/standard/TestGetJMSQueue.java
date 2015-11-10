@@ -46,14 +46,13 @@ public class TestGetJMSQueue {
     @Test
     public void testSendTextToQueue() throws Exception {
         GetJMSQueue getJmsQueue = new GetJMSQueue();
-        StandardProcessorTestRunner runner = (StandardProcessorTestRunner) TestRunners.newTestRunner(getJmsQueue);
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
         runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
         runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
         runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
         runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
 
-        MockProcessSession pSession = (MockProcessSession) runner.getProcessSessionFactory().createSession();
         WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
@@ -62,16 +61,15 @@ public class TestGetJMSQueue {
         producer.send(message);
         jmsSession.commit();
 
-        getJmsQueue.onTrigger(runner.getProcessContext(), pSession);
+        runner.run();
 
-        List<MockFlowFile> flowFiles = pSession
+        List<MockFlowFile> flowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("success").build());
 
         assertTrue(flowFiles.size() == 1);
         MockFlowFile successFlowFile = flowFiles.get(0);
-        String receivedMessage = new String(runner.getContentAsByteArray(successFlowFile));
-        assertEquals("Hello World", receivedMessage);
-        assertEquals("queue.testing", successFlowFile.getAttribute("jms.JMSDestination"));
+        successFlowFile.assertContentEquals("Hello World");
+        successFlowFile.assertAttributeEquals("jms.JMSDestination", "queue.testing");
         producer.close();
         jmsSession.close();
     }
@@ -79,7 +77,7 @@ public class TestGetJMSQueue {
     @Test
     public void testSendBytesToQueue() throws Exception {
         GetJMSQueue getJmsQueue = new GetJMSQueue();
-        StandardProcessorTestRunner runner = (StandardProcessorTestRunner) TestRunners.newTestRunner(getJmsQueue);
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
         runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
         runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
         runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
@@ -88,23 +86,21 @@ public class TestGetJMSQueue {
         WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
-        MockProcessSession pSession = (MockProcessSession) runner.getProcessSessionFactory().createSession();
         final BytesMessage message = jmsSession.createBytesMessage();
         message.writeBytes("Hello Bytes".getBytes());
 
         producer.send(message);
         jmsSession.commit();
 
-        getJmsQueue.onTrigger(runner.getProcessContext(), pSession);
+        runner.run();
 
-        List<MockFlowFile> flowFiles = pSession
+        List<MockFlowFile> flowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("success").build());
 
         assertTrue(flowFiles.size() == 1);
         MockFlowFile successFlowFile = flowFiles.get(0);
-        String receivedMessage = new String(runner.getContentAsByteArray(successFlowFile));
-        assertEquals("Hello Bytes", receivedMessage);
-        assertEquals("queue.testing", successFlowFile.getAttribute("jms.JMSDestination"));
+        successFlowFile.assertContentEquals("Hello Bytes");
+        successFlowFile.assertAttributeEquals("jms.JMSDestination", "queue.testing");
         producer.close();
         jmsSession.close();
     }
@@ -112,7 +108,7 @@ public class TestGetJMSQueue {
     @Test
     public void testSendStreamToQueue() throws Exception {
         GetJMSQueue getJmsQueue = new GetJMSQueue();
-        StandardProcessorTestRunner runner = (StandardProcessorTestRunner) TestRunners.newTestRunner(getJmsQueue);
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
         runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
         runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
         runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
@@ -121,23 +117,22 @@ public class TestGetJMSQueue {
         WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
-        MockProcessSession pSession = (MockProcessSession) runner.getProcessSessionFactory().createSession();
+
         final StreamMessage message = jmsSession.createStreamMessage();
         message.writeBytes("Hello Stream".getBytes());
 
         producer.send(message);
         jmsSession.commit();
 
-        getJmsQueue.onTrigger(runner.getProcessContext(), pSession);
+        runner.run();
 
-        List<MockFlowFile> flowFiles = pSession
+        List<MockFlowFile> flowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("success").build());
 
         assertTrue(flowFiles.size() == 1);
         MockFlowFile successFlowFile = flowFiles.get(0);
-        String receivedMessage = new String(runner.getContentAsByteArray(successFlowFile));
-        assertEquals("Hello Stream", receivedMessage);
-        assertEquals("queue.testing", successFlowFile.getAttribute("jms.JMSDestination"));
+        successFlowFile.assertContentEquals("Hello Stream");
+        successFlowFile.assertAttributeEquals("jms.JMSDestination", "queue.testing");
 
         producer.close();
         jmsSession.close();
