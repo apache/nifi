@@ -345,7 +345,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 }
             }
             getLogger().error("Failed to write to HDFS due to {}", t);
-            session.rollback();
+            session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }
     }
