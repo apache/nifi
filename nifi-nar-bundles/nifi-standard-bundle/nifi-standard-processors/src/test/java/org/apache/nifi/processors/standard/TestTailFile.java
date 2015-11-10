@@ -42,6 +42,8 @@ public class TestTailFile {
 
     @Before
     public void setup() throws IOException {
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "TRACE");
+
         final File targetDir = new File("target");
         final File[] files = targetDir.listFiles(new FilenameFilter() {
             @Override
@@ -238,6 +240,89 @@ public class TestTailFile {
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("world");
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("1\n");
+    }
+
+    @Test
+    public void testRolloverAfterHavingReadAllData() throws IOException, InterruptedException {
+        // If we have read all data in a file, and that file does not end with a new-line, then the last line
+        // in the file will have been read, added to the checksum, and then we would re-seek to "unread" that
+        // last line since it didn't have a new-line. We need to ensure that if the data is then rolled over
+        // that our checksum does not take into account those bytes that have been "unread."
+
+        // this mimics the case when we are reading a log file that rolls over while processor is running.
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        raf.write("hello\n".getBytes());
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
+        runner.clearTransferState();
+
+        raf.write("world".getBytes());
+
+        Thread.sleep(1000L);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0); // should not pull in data because no \n
+
+        raf.close();
+        file.renameTo(new File("target/log.1"));
+
+        raf = new RandomAccessFile(new File("target/log.txt"), "rw");
+        raf.write("1\n".getBytes());
+        runner.run(1, false, false);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("world");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("1\n");
+    }
+
+
+    @Test
+    public void testMultipleRolloversAfterHavingReadAllData() throws IOException, InterruptedException {
+        // this mimics the case when we are reading a log file that rolls over while processor is running.
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        raf.write("hello\n".getBytes());
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
+        runner.clearTransferState();
+
+        raf.write("world".getBytes());
+        runner.run(1); // ensure that we've read 'world' but not consumed it into a flowfile.
+
+        Thread.sleep(1000L);
+
+        // rename file to log.2
+        raf.close();
+        file.renameTo(new File("target/log.2"));
+
+        // write to a new file.
+        file = new File("target/log.txt");
+        raf = new RandomAccessFile(file, "rw");
+        raf.write("abc\n".getBytes());
+
+        // rename file to log.1
+        raf.close();
+        file.renameTo(new File("target/log.1"));
+
+        // write to a new file.
+        file = new File("target/log.txt");
+        raf = new RandomAccessFile(file, "rw");
+        raf.write("1\n".getBytes());
+        raf.close();
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("world");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("abc\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertContentEquals("1\n");
     }
 
 
