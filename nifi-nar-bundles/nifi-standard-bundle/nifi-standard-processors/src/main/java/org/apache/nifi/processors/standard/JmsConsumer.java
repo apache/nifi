@@ -21,6 +21,7 @@ import static org.apache.nifi.processors.standard.util.JmsProperties.ACK_MODE_CL
 import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
 import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
+import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROPS_TO_ATTRIBUTES;
 import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
 import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
@@ -89,6 +90,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
+        descriptors.add(DESTINATION_TYPE);
         descriptors.add(ACKNOWLEDGEMENT_MODE);
         descriptors.add(MESSAGE_SELECTOR);
         descriptors.add(JMS_PROPS_TO_ATTRIBUTES);
@@ -158,8 +160,8 @@ public abstract class JmsConsumer extends AbstractProcessor {
 
         stopWatch.stop();
         if (processingSummary.getFlowFilesCreated() > 0) {
-            final float secs = ((float) stopWatch.getDuration(TimeUnit.MILLISECONDS) / 1000F);
-            float messagesPerSec = ((float) processingSummary.getMessagesReceived()) / secs;
+            final float secs = (stopWatch.getDuration(TimeUnit.MILLISECONDS) / 1000F);
+            float messagesPerSec = (processingSummary.getMessagesReceived()) / secs;
             final String dataRate = stopWatch.calculateDataRate(processingSummary.getBytesReceived());
             logger.info("Received {} messages in {} milliseconds, at a rate of {} messages/sec or {}",
                     new Object[]{processingSummary.getMessagesReceived(), stopWatch.getDuration(TimeUnit.MILLISECONDS), messagesPerSec, dataRate});
