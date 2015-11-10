@@ -40,17 +40,18 @@ nf.Login = (function () {
         $('#login-message-container').show();
     };
 
-    var initializeLogin = function () {
-    };
-
     var showLogin = function () {
-        $('#login-container').show();
-        $('#user-registration-container').hide();
-        $('#nifi-registration-container').hide();
+        // reset the forms
+        $('#username').val('');
+        $('#password').val('');
         $('#login-submission-button').text('Log in');
-    };
-
-    var initializeUserRegistration = function () {
+        
+        // update the form visibility
+        $('#login-container').show();
+        $('#nifi-registration-container').hide();
+        
+        // set the focus
+        $('#username').focus();
     };
 
     var initializeNiFiRegistration = function () {
@@ -64,26 +65,20 @@ nf.Login = (function () {
         });
     };
 
-    var showUserRegistration = function () {
-        showNiFiRegistration();
-
-        $('div.nifi-submit-justification').hide();
-        $('#user-registration-container').show();
-        $('#login-submission-button').text('Create');
-    };
-
     var showNiFiRegistration = function () {
+        // reset the forms
+        $('#login-submission-button').text('Submit');
+        $('#nifi-registration-justification').val('');
+        
+        // update the form visibility
         $('#login-container').hide();
         $('#nifi-registration-container').show();
-        $('#login-submission-button').text('Submit');
     };
 
     var initializeSubmission = function () {
         $('#login-submission-button').on('click', function () {
             if ($('#login-container').is(':visible')) {
                 login();
-            } else if ($('#user-registration-container').is(':visible')) {
-                createUserAccount();
             } else if ($('#nifi-registration-container').is(':visible')) {
                 submitJustification();
             }
@@ -104,13 +99,51 @@ nf.Login = (function () {
         }).done(function (jwt) {
             // store the jwt and reload the page
             nf.Storage.setItem('jwt', jwt);
+            
+            // check to see if they actually have access now
+            $.ajax({
+                type: 'GET',
+                url: config.urls.identity,
+                dataType: 'json'
+            }).done(function (response) {
+                if (response.identity === 'anonymous') {
+                    showLogoutLink();
 
-            // reload as appropriate
-            if (top !== window) {
-                parent.window.location = '/nifi';
-            } else {
-                window.location = '/nifi';
-            }
+                    // show the user
+                    var user = getJwtSubject(jwt);
+                    $('#nifi-user-submit-justification').text(user);
+            
+                    // show the registration form
+                    initializeNiFiRegistration();
+                    showNiFiRegistration();
+                } else {
+                    // reload as appropriate
+                    if (top !== window) {
+                        parent.window.location = '/nifi';
+                    } else {
+                        window.location = '/nifi';
+                    }
+                }
+            }).fail(function (xhr, status, error) {
+                showLogoutLink();
+
+                // show the user
+                var user = getJwtSubject(jwt);
+                $('#nifi-user-submit-justification').text(user);
+            
+                if (xhr.status === 401) {
+                    initializeNiFiRegistration();
+                    showNiFiRegistration();
+                } else {
+                    $('#login-message-title').text('Unable to log in');
+                    $('#login-message').text(xhr.responseText);
+
+                    // update visibility
+                    $('#login-container').hide();
+                    $('#login-submission-container').hide();
+                    $('#login-message-container').show();
+                }
+            });
         }).fail(function (xhr, status, error) {
             if (xhr.status === 400) {
                 nf.Dialog.showOkDialog({
@@ -126,53 +159,6 @@ nf.Login = (function () {
                 $('#login-submission-container').hide();
                 $('#login-message-container').show();
             }
-        });
-    };
-
-    var createUserAccount = function () {
-        var password = $('#registration-password').val();
-        var passwordConfirmation = $('#registration-password-confirmation').val();
-
-        // ensure the password matches
-        if (password !== passwordConfirmation) {
-            nf.Dialog.showOkDialog({
-                dialogContent: 'The specified passwords do not match.',
-                overlayBackground: false
-            });
-            return;
-        }
-
-        // attempt to create the user account registration
-        $.ajax({
-            type: 'POST',
-            url: config.urls.registration,
-            data: {
-                'username': $('#registration-username').val(),
-                'password': password,
-                'justification': $('#nifi-registration-justification').val()
-            }
-        }).done(function (jwt) {
-            // store the jwt
-            nf.Storage.setItem('jwt', jwt);
-            showLogoutLink();
-
-            // inform the user of their pending request
-            var markup = 'An administrator will process your request shortly.';
-            if (supportsAnonymous === true) {
-                markup += '<br/><br/>In the meantime you can continue accessing anonymously.';
-            }
-
-            $('#login-message-title').text('Thanks!');
-            $('#login-message').html(markup);
-        }).fail(function (xhr, status, error) {
-            $('#login-message-title').text('Unable to create user account');
-            $('#login-message').text(xhr.responseText);
-        }).always(function () {
-            // update form visibility
-            $('#user-registration-container').hide();
-            $('#nifi-registration-container').hide();
-            $('#login-submission-container').hide();
-            $('#login-message-container').show();
         });
     };
 
@@ -236,12 +222,6 @@ nf.Login = (function () {
     
     var showLogoutLink = function () {
         $('#user-logout-container').show();
-
-        // handle logout
-        $('#user-logout').on('click', function () {
-            logout();
-            window.location = '/nifi/login';
-        });
     };
 
     return {
@@ -297,11 +277,6 @@ nf.Login = (function () {
                                     // show the user
                                     $('#nifi-user-submit-justification').text(user);
 
-                                    // render the logout button if there is a token locally
-                                    if (nf.Storage.getItem('jwt') !== null) {
-                                        $('#nifi-user-submit-justification-logout').show();
-                                    }
-
                                     // anonymous user and 401 means they need nifi registration
                                     needsNiFiRegistration = true;
                                 } else {
@@ -345,11 +320,6 @@ nf.Login = (function () {
 
                             // show the user
                             $('#nifi-user-submit-justification').text(user);
-
-                            // render the logout button if there is a token locally
-                            if (nf.Storage.getItem('jwt') !== null) {
-                                $('#nifi-user-submit-justification-logout').show();
-                            }
 
                             // 401 from identity request and 200 from token means they have a certificate/token but have not yet requested an account 
                             needsNiFiRegistration = true;
@@ -402,7 +372,6 @@ nf.Login = (function () {
                 if (showMessage === true) {
                     initializeMessage();
                 } else if (needsLogin === true) {
-                    initializeLogin();
                     showLogin();
                 } else if (needsNiFiRegistration === true) {
                     initializeNiFiRegistration();

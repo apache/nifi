@@ -141,16 +141,22 @@ nf.CanvasHeader = (function () {
                 nf.Shell.showPage(config.urls.helpDocument);
             });
 
-            // hide the login link if the user is already logged in
-            if ($('#current-user').text() !== nf.Canvas.ANONYMOUS_USER_TEXT) {
+            // show the login link if supported and user is currently anonymous
+            var isAnonymous = $('#current-user').text() === nf.Canvas.ANONYMOUS_USER_TEXT;
+            if (supportsLogin === true && isAnonymous) {
+                // login link
+                $('#login-link').click(function () {
+                    nf.Shell.showPage('login', false);
+                });
+            } else {
                 $('#login-link-container').css('display', 'none');
             }
-            
-            // login link
-            $('#login-link').click(function () {
-                nf.Shell.showPage('login', false);
-            });
-            
+
+            // if login is not supported, don't show the current user
+            if (supportsLogin === false) {
+                $('#current-user-container').css('display', 'none');
+            }
+
             // logout link
             $('#logout-link').click(function () {
                 nf.Storage.removeItem("jwt");
@@ -172,11 +178,11 @@ nf.CanvasHeader = (function () {
                         handler: {
                             click: function () {
                                 var selection = nf.CanvasUtils.getSelection();
-                                
+
                                 // color the selected components
                                 selection.each(function (d) {
                                     var selected = d3.select(this);
-                                    
+
                                     var revision = nf.Client.getRevision();
                                     var selectedData = selected.datum();
 
@@ -215,7 +221,7 @@ nf.CanvasHeader = (function () {
                                         });
                                     }
                                 });
-                                
+
                                 // close the dialog
                                 $('#fill-color-dialog').modal('hide');
                             }
@@ -256,20 +262,20 @@ nf.CanvasHeader = (function () {
                     });
                 }
             });
-            
+
             // updates the color if its a valid hex color string
             var updateColor = function () {
                 var hex = $('#fill-color-value').val();
-                
+
                 // only update the fill color when its a valid hex color string
                 // #[six hex characters|three hex characters] case insensitive
                 if (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(hex)) {
                     $('#fill-color').minicolors('value', hex);
                 }
             };
-            
+
             // apply fill color from field on blur and enter press
-            $('#fill-color-value').on('blur', updateColor).on('keyup', function(e) {
+            $('#fill-color-value').on('blur', updateColor).on('keyup', function (e) {
                 var code = e.keyCode ? e.keyCode : e.which;
                 if (code === $.ui.keyCode.ENTER) {
                     updateColor();
@@ -328,23 +334,22 @@ nf.CanvasHeader = (function () {
                     }
                 }
             });
-            
+
             var toolbar = $('#toolbar');
             var groupButton = $('#action-group');
-            $(window).on('resize', function() {
+            $(window).on('resize', function () {
                 if (toolbar.width() < MIN_TOOLBAR_WIDTH && groupButton.is(':visible')) {
                     toolbar.find('.secondary').hide();
                 } else if (toolbar.width() > MIN_TOOLBAR_WIDTH && groupButton.is(':hidden')) {
                     toolbar.find('.secondary').show();
                 }
             });
-            
+
             // set up the initial visibility
             if (toolbar.width() < MIN_TOOLBAR_WIDTH) {
                 toolbar.find('.secondary').hide();
             }
         },
-        
         /**
          * Reloads and clears any warnings.
          */
@@ -359,7 +364,7 @@ nf.CanvasHeader = (function () {
                 // hide the refresh link on the canvas
                 $('#stats-last-refreshed').removeClass('alert');
                 $('#refresh-required-container').hide();
-                
+
                 // hide the refresh link on the settings
                 $('#settings-last-refreshed').removeClass('alert');
                 $('#settings-refresh-required-icon').hide();

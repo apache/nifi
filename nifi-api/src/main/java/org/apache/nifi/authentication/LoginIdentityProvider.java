@@ -17,6 +17,7 @@
 package org.apache.nifi.authentication;
 
 import org.apache.nifi.authentication.exception.IdentityAccessException;
+import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.ProviderDestructionException;
 
@@ -29,10 +30,10 @@ public interface LoginIdentityProvider {
      * Authenticates the specified login credentials.
      *
      * @param credentials the credentials
-     * @return was able to check the user credentials and returns whether the user was authenticated
+     * @throws InvalidLoginCredentialsException The login credentials were invalid
      * @throws IdentityAccessException Unable to register the user due to an issue accessing the underlying storage
      */
-    boolean authenticate(LoginCredentials credentials) throws IdentityAccessException;
+    void authenticate(LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException;
 
     /**
      * Called immediately after instance creation for implementers to perform additional setup

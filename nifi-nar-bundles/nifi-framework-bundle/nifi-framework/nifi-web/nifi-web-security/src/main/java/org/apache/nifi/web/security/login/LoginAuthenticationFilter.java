@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
+import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -142,11 +143,13 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
             }
 
             try {
-                if (loginIdentityProvider.authenticate(credentials)) {
-                    return new LoginAuthenticationToken(credentials);
-                } else {
-                    throw new BadCredentialsException("The supplied username and password are not valid.");
-                }
+                // attempt to authenticate
+                loginIdentityProvider.authenticate(credentials);
+
+                // create the authentication token
+                return new LoginAuthenticationToken(credentials);
+            } catch (final InvalidLoginCredentialsException ilce) {
+                throw new BadCredentialsException("The supplied username and password are not valid.", ilce);
             } catch (final IdentityAccessException iae) {
                 throw new AuthenticationServiceException(iae.getMessage(), iae);
             }
@@ -195,11 +198,6 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
     @Override
     protected void unsuccessfulAuthentication(final HttpServletRequest request, final HttpServletResponse response, final AuthenticationException failed) throws IOException, ServletException {
-        response.setContentType("text/plain");
-
-        final PrintWriter out = response.getWriter();
-        out.println(failed.getMessage());
-
         if (failed instanceof BadCredentialsException || failed instanceof AuthenticationCredentialsNotFoundException) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         } else if (failed instanceof AuthenticationServiceException) {
@@ -207,6 +205,11 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
         } else {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
+        
+        response.setContentType("text/plain");
+
+        final PrintWriter out = response.getWriter();
+        out.println(failed.getMessage());
     }
 
     public void setJwtService(JwtService jwtService) {

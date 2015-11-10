@@ -259,9 +259,9 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
         return new LoginIdentityProvider() {
 
             @Override
-            public boolean authenticate(LoginCredentials credentials) {
+            public void authenticate(LoginCredentials credentials) {
                 try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    return baseProvider.authenticate(credentials);
+                    baseProvider.authenticate(credentials);
                 }
             }
 

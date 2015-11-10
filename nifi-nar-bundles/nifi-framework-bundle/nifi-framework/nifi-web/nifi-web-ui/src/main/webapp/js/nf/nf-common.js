@@ -72,13 +72,7 @@ $(document).ready(function () {
     // handle logout
     $('#user-logout').on('click', function () {
         nf.Storage.removeItem('jwt');
-        
-        // reload as appropriate
-        if (top !== window) {
-            parent.window.location = '/nifi';
-        } else {
-            window.location = '/nifi';
-        }
+        window.location = '/nifi/login';
     });
 });
 
