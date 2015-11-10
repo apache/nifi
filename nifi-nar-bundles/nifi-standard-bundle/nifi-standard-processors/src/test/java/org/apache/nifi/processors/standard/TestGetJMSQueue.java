@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
 import javax.jms.BytesMessage;
 import javax.jms.MapMessage;
 import javax.jms.Message;
@@ -24,61 +28,86 @@ import javax.jms.ObjectMessage;
 import javax.jms.Session;
 import javax.jms.StreamMessage;
 
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.JmsProperties;
 import org.apache.nifi.processors.standard.util.WrappedMessageProducer;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.Revision;
+import org.junit.Test;
 
 public class TestGetJMSQueue {
 
-    @org.junit.Ignore
+    @Test
     public void testSendTextToQueue() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(GetJMSQueue.class);
+        GetJMSQueue getJmsQueue = new GetJMSQueue();
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
         runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL, "tcp://localhost:61616");
+        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
         runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
         runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+
         WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
-
         final Message message = jmsSession.createTextMessage("Hello World");
 
         producer.send(message);
         jmsSession.commit();
+
+        runner.run();
+
+        List<MockFlowFile> flowFiles = runner
+                .getFlowFilesForRelationship(new Relationship.Builder().name("success").build());
+
+        assertTrue(flowFiles.size() == 1);
+        MockFlowFile successFlowFile = flowFiles.get(0);
+        successFlowFile.assertContentEquals("Hello World");
+        successFlowFile.assertAttributeEquals("jms.JMSDestination", "queue.testing");
         producer.close();
         jmsSession.close();
     }
 
-    @org.junit.Ignore
+    @Test
     public void testSendBytesToQueue() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(GetJMSQueue.class);
+        GetJMSQueue getJmsQueue = new GetJMSQueue();
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
         runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL, "tcp://localhost:61616");
+        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
         runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
         runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
         WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
-
         final BytesMessage message = jmsSession.createBytesMessage();
         message.writeBytes("Hello Bytes".getBytes());
 
         producer.send(message);
         jmsSession.commit();
+
+        runner.run();
+
+        List<MockFlowFile> flowFiles = runner
+                .getFlowFilesForRelationship(new Relationship.Builder().name("success").build());
+
+        assertTrue(flowFiles.size() == 1);
+        MockFlowFile successFlowFile = flowFiles.get(0);
+        successFlowFile.assertContentEquals("Hello Bytes");
+        successFlowFile.assertAttributeEquals("jms.JMSDestination", "queue.testing");
         producer.close();
         jmsSession.close();
     }
 
-    @org.junit.Ignore
+    @Test
     public void testSendStreamToQueue() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(GetJMSQueue.class);
+        GetJMSQueue getJmsQueue = new GetJMSQueue();
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
         runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL, "tcp://localhost:61616");
+        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
         runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
         runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
@@ -91,6 +120,17 @@ public class TestGetJMSQueue {
 
         producer.send(message);
         jmsSession.commit();
+
+        runner.run();
+
+        List<MockFlowFile> flowFiles = runner
+                .getFlowFilesForRelationship(new Relationship.Builder().name("success").build());
+
+        assertTrue(flowFiles.size() == 1);
+        MockFlowFile successFlowFile = flowFiles.get(0);
+        successFlowFile.assertContentEquals("Hello Stream");
+        successFlowFile.assertAttributeEquals("jms.JMSDestination", "queue.testing");
+
         producer.close();
         jmsSession.close();
     }
