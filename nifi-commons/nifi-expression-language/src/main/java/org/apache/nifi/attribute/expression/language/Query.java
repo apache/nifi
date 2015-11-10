@@ -1153,7 +1153,7 @@ public class Query {
                 return addToken(new IsNullEvaluator(toStringEvaluator(subjectEvaluator)), "isNull");
             }
             case IS_EMPTY: {
-                verifyArgCount(argEvaluators, 0, "isNull");
+                verifyArgCount(argEvaluators, 0, "isEmpty");
                 return addToken(new IsEmptyEvaluator(toStringEvaluator(subjectEvaluator)), "isEmpty");
             }
             case NOT_NULL: {
