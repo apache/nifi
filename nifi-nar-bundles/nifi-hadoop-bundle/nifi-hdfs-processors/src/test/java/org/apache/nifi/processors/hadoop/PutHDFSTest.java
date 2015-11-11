@@ -208,6 +208,7 @@ public class PutHDFSTest {
         List<MockFlowFile> failedFlowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
         assertFalse(failedFlowFiles.isEmpty());
+        assertTrue(failedFlowFiles.get(0).isPenalized());
 
         fs.setPermission(p, new FsPermission(FsAction.EXECUTE, FsAction.EXECUTE, FsAction.EXECUTE));
         fs.delete(p, true);
