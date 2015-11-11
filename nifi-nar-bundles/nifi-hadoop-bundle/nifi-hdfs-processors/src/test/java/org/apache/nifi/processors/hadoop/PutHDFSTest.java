@@ -157,19 +157,18 @@ public class PutHDFSTest {
         }
     }
 
-    // The following only seems to work from cygwin...something about not finding the 'chmod' command.
     @Test
     public void testPutFile() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(PutHDFS.class);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setValidateExpressionUsage(false);
-        FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");
-        Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
-        runner.enqueue(fis, attributes);
-        runner.run();
-        fis.close();
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
+            Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
 
         Configuration config = new Configuration();
         FileSystem fs = FileSystem.get(config);
@@ -198,12 +197,13 @@ public class PutHDFSTest {
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setValidateExpressionUsage(false);
-        FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");
-        Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
-        runner.enqueue(fis, attributes);
-        runner.run();
-        fis.close();
+
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
+            Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
 
         List<MockFlowFile> failedFlowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
