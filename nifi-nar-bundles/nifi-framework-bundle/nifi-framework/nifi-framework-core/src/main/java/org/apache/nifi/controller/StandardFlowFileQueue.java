@@ -80,19 +80,30 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowFileQueue.class);
 
     private PriorityQueue<FlowFileRecord> activeQueue = null;
+
+    // guarded by lock
     private ArrayList<FlowFileRecord> swapQueue = null;
 
     private final AtomicReference<FlowFileQueueSize> size = new AtomicReference<>(new FlowFileQueueSize(0, 0L, 0, 0L, 0, 0L));
 
     private boolean swapMode = false;
+
+    // TODO: Need to create a single object that houses these 3 and then create an AtomicReference for it and use a CAS operation to set it.
     private volatile String maximumQueueDataSize;
     private volatile long maximumQueueByteCount;
     private volatile long maximumQueueObjectCount;
 
-    private final EventReporter eventReporter;
+    // TODO: Need to create a single object that houses these 2 and then create an AtomicReference for it and use CAS operation to set it.
     private final AtomicLong flowFileExpirationMillis;
-    private final Connection connection;
     private final AtomicReference<String> flowFileExpirationPeriod;
+
+    // TODO: Need to eliminate this all together. Since we are not locking on the size, can just get the size and compare to max
+    private final AtomicBoolean queueFullRef = new AtomicBoolean(false);
+
+    // TODO: Unit test better!
+
+    private final EventReporter eventReporter;
+    private final Connection connection;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
     private final List<FlowFilePrioritizer> priorities;
     private final int swapThreshold;
@@ -105,8 +116,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     private final FlowFileRepository flowFileRepository;
     private final ProvenanceEventRepository provRepository;
     private final ResourceClaimManager resourceClaimManager;
-
-    private final AtomicBoolean queueFullRef = new AtomicBoolean(false);
 
     // SCHEDULER CANNOT BE NOTIFIED OF EVENTS WITH THE WRITE LOCK HELD! DOING SO WILL RESULT IN A DEADLOCK!
     private final ProcessScheduler scheduler;
@@ -683,13 +692,14 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
         long bytesPulled = 0L;
         int flowFilesPulled = 0;
+        boolean queueFullAtStart = false;
 
         writeLock.lock();
         try {
             migrateSwapToActive();
 
             final long expirationMillis = this.flowFileExpirationMillis.get();
-            final boolean queueFullAtStart = queueFullRef.get();
+            queueFullAtStart = queueFullRef.get();
 
             final List<FlowFileRecord> selectedFlowFiles = new ArrayList<>();
             final List<FlowFileRecord> unselected = new ArrayList<>();
@@ -735,17 +745,20 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
             this.activeQueue.addAll(unselected);
 
-            // if at least 1 FlowFile was expired & the queue was full before we started, then
-            // we need to determine whether or not the queue is full again. If no FlowFile was expired,
-            // then the queue will still be full until the appropriate #acknowledge method is called.
-            if (queueFullAtStart && !expiredRecords.isEmpty()) {
-                queueFullRef.set(determineIfFull());
-            }
-
             return selectedFlowFiles;
         } finally {
-            incrementActiveQueueSize(-flowFilesPulled, -bytesPulled);
-            writeLock.unlock("poll(Filter, Set)");
+            try {
+                incrementActiveQueueSize(-flowFilesPulled, -bytesPulled);
+
+                // if at least 1 FlowFile was expired & the queue was full before we started, then
+                // we need to determine whether or not the queue is full again. If no FlowFile was expired,
+                // then the queue will still be full until the appropriate #acknowledge method is called.
+                if (queueFullAtStart && !expiredRecords.isEmpty()) {
+                    queueFullRef.set(determineIfFull());
+                }
+            } finally {
+                writeLock.unlock("poll(Filter, Set)");
+            }
         }
     }
 

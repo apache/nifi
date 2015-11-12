@@ -18,6 +18,7 @@
 package org.apache.nifi.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -48,6 +49,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.junit.Before;
@@ -104,6 +106,127 @@ public class TestStandardFlowFileQueue {
         final QueueSize unackSize = queue.getUnacknowledgedQueueSize();
         assertEquals(0, unackSize.getObjectCount());
         assertEquals(0L, unackSize.getByteCount());
+    }
+
+    @Test
+    public void testBackPressure() {
+        queue.setBackPressureObjectThreshold(10);
+
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
+        assertFalse(queue.isFull());
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+            assertFalse(queue.isEmpty());
+            assertFalse(queue.isActiveQueueEmpty());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+        assertFalse(queue.isEmpty());
+        assertFalse(queue.isActiveQueueEmpty());
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final FlowFileRecord polled = queue.poll(expiredRecords);
+        assertNotNull(polled);
+        assertTrue(expiredRecords.isEmpty());
+
+        assertFalse(queue.isEmpty());
+        assertFalse(queue.isActiveQueueEmpty());
+
+        // queue is still full because FlowFile has not yet been acknowledged.
+        assertTrue(queue.isFull());
+        queue.acknowledge(polled);
+
+        // FlowFile has been acknowledged; queue should no longer be full.
+        assertFalse(queue.isFull());
+        assertFalse(queue.isEmpty());
+        assertFalse(queue.isActiveQueueEmpty());
+    }
+
+    @Test
+    public void testBackPressureAfterPollFilter() throws InterruptedException {
+        queue.setBackPressureObjectThreshold(10);
+        queue.setFlowFileExpiration("10 millis");
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+
+        Thread.sleep(100L);
+
+
+        final FlowFileFilter filter = new FlowFileFilter() {
+            @Override
+            public FlowFileFilterResult filter(final FlowFile flowFile) {
+                return FlowFileFilterResult.REJECT_AND_CONTINUE;
+            }
+        };
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final List<FlowFileRecord> polled = queue.poll(filter, expiredRecords);
+        assertTrue(polled.isEmpty());
+        assertEquals(10, expiredRecords.size());
+
+        assertFalse(queue.isFull());
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
+    }
+
+    @Test
+    public void testBackPressureAfterPollSingle() throws InterruptedException {
+        queue.setBackPressureObjectThreshold(10);
+        queue.setFlowFileExpiration("10 millis");
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+
+        Thread.sleep(100L);
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final FlowFileRecord polled = queue.poll(expiredRecords);
+        assertNull(polled);
+        assertEquals(10, expiredRecords.size());
+
+        assertFalse(queue.isFull());
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
+    }
+
+    @Test
+    public void testBackPressureAfterPollMultiple() throws InterruptedException {
+        queue.setBackPressureObjectThreshold(10);
+        queue.setFlowFileExpiration("10 millis");
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+
+        Thread.sleep(100L);
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final List<FlowFileRecord> polled = queue.poll(10, expiredRecords);
+        assertTrue(polled.isEmpty());
+        assertEquals(10, expiredRecords.size());
+
+        assertFalse(queue.isFull());
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
     }
 
     @Test
