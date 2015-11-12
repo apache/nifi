@@ -44,6 +44,8 @@ import org.springframework.security.ldap.search.LdapUserSearch;
  */
 public class LdapProvider extends AbstractLdapProvider {
 
+    private static final String TLS = "TLS";
+    
     @Override
     protected AbstractLdapAuthenticationProvider getLdapAuthenticationProvider(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
         final LdapContextSource context = new LdapContextSource();
@@ -90,17 +92,23 @@ public class LdapProvider extends AbstractLdapProvider {
                         final String rawTruststore = configurationContext.getProperty("TLS - Truststore");
                         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
                         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type");
+                        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth");
 
                         try {
                             final SSLContext sslContext;
                             if (StringUtils.isBlank(rawKeystore)) {
-                                sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, "TLS");
+                                sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, TLS);
                             } else {
                                 if (StringUtils.isBlank(rawTruststore)) {
-                                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, "TLS");
+                                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, TLS);
                                 } else {
-                                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
-                                            rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, ClientAuth.REQUIRED, "TLS");
+                                    try {
+                                        final ClientAuth clientAuth = ClientAuth.valueOf(rawClientAuth);
+                                        sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
+                                                rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, TLS);
+                                    } catch (final IllegalArgumentException iae) {
+                                        throw new ProviderCreationException(String.format("Unrecgonized client auth '%s'", rawClientAuth));
+                                    }
                                 }
                             }
                             tlsAuthenticationStrategy.setSslSocketFactory(sslContext.getSocketFactory());
@@ -133,7 +141,7 @@ public class LdapProvider extends AbstractLdapProvider {
         // query
         final LdapUserSearch userSearch = new FilterBasedLdapUserSearch(userSearchBase, userSearchFilter, context);
 
-        // bind vs password?
+        // bind
         final BindAuthenticator authenticator = new BindAuthenticator(context);
         authenticator.setUserSearch(userSearch);
 
