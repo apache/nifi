@@ -50,18 +50,27 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TestStandardFlowFileQueue {
     private TestSwapManager swapManager = null;
     private StandardFlowFileQueue queue = null;
 
+    private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
+
     @Before
+    @SuppressWarnings("unchecked")
     public void setup() {
+        provRecords.clear();
+
         final Connection connection = Mockito.mock(Connection.class);
         Mockito.when(connection.getSource()).thenReturn(Mockito.mock(Connectable.class));
         Mockito.when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
@@ -74,6 +83,16 @@ public class TestStandardFlowFileQueue {
         final ResourceClaimManager claimManager = Mockito.mock(ResourceClaimManager.class);
 
         Mockito.when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(final InvocationOnMock invocation) throws Throwable {
+                final Iterable<ProvenanceEventRecord> iterable = (Iterable<ProvenanceEventRecord>) invocation.getArguments()[0];
+                for (final ProvenanceEventRecord record : iterable) {
+                    provRecords.add(record);
+                }
+                return null;
+            }
+        }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
 
         queue = new StandardFlowFileQueue("id", connection, flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000);
         TestFlowFile.idGenerator.set(0L);
@@ -177,6 +196,39 @@ public class TestStandardFlowFileQueue {
         assertFalse(queue.isFull());
         assertTrue(queue.isEmpty());
         assertTrue(queue.isActiveQueueEmpty());
+    }
+
+    @Test(timeout = 10000)
+    public void testBackPressureAfterDrop() throws InterruptedException {
+        queue.setBackPressureObjectThreshold(10);
+        queue.setFlowFileExpiration("10 millis");
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+
+        Thread.sleep(100L);
+
+        final String requestId = UUID.randomUUID().toString();
+        final DropFlowFileStatus status = queue.dropFlowFiles(requestId, "Unit Test");
+
+        while (status.getState() != DropFlowFileState.COMPLETE) {
+            Thread.sleep(10L);
+        }
+
+        assertFalse(queue.isFull());
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
+
+        assertEquals(10, provRecords.size());
+        for (final ProvenanceEventRecord event : provRecords) {
+            assertNotNull(event);
+            assertEquals(ProvenanceEventType.DROP, event.getEventType());
+        }
     }
 
     @Test
