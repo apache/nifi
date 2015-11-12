@@ -205,7 +205,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
         } else {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
-        
+
         response.setContentType("text/plain");
 
         final PrintWriter out = response.getWriter();

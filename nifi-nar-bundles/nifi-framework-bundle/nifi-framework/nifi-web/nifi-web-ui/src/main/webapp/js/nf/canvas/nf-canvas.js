@@ -1071,7 +1071,7 @@ nf.Canvas = (function () {
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
                     // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
-                    if (xhr.status === 401) {
+                    if (xhr.status === 401 || xhr.status === 403) {
                         window.location = '/nifi/login';
                     } else {
                         deferred.reject(xhr, status, error);

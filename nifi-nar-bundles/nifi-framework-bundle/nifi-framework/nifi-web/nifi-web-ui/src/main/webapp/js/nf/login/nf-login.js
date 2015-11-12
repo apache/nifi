@@ -45,11 +45,11 @@ nf.Login = (function () {
         $('#username').val('');
         $('#password').val('');
         $('#login-submission-button').text('Log in');
-        
+
         // update the form visibility
         $('#login-container').show();
         $('#nifi-registration-container').hide();
-        
+
         // set the focus
         $('#username').focus();
     };
@@ -69,7 +69,7 @@ nf.Login = (function () {
         // reset the forms
         $('#login-submission-button').text('Submit');
         $('#nifi-registration-justification').val('');
-        
+
         // update the form visibility
         $('#login-container').hide();
         $('#nifi-registration-container').show();
@@ -99,7 +99,7 @@ nf.Login = (function () {
         }).done(function (jwt) {
             // store the jwt and reload the page
             nf.Storage.setItem('jwt', jwt);
-            
+
             // check to see if they actually have access now
             $.ajax({
                 type: 'GET',
@@ -112,7 +112,7 @@ nf.Login = (function () {
                     // show the user
                     var user = getJwtSubject(jwt);
                     $('#nifi-user-submit-justification').text(user);
-            
+
                     // show the registration form
                     initializeNiFiRegistration();
                     showNiFiRegistration();
@@ -130,7 +130,7 @@ nf.Login = (function () {
                 // show the user
                 var user = getJwtSubject(jwt);
                 $('#nifi-user-submit-justification').text(user);
-            
+
                 if (xhr.status === 401) {
                     initializeNiFiRegistration();
                     showNiFiRegistration();
@@ -219,7 +219,7 @@ nf.Login = (function () {
     var logout = function () {
         nf.Storage.removeItem('jwt');
     };
-    
+
     var showLogoutLink = function () {
         $('#user-logout-container').show();
     };
@@ -323,6 +323,29 @@ nf.Login = (function () {
 
                             // 401 from identity request and 200 from token means they have a certificate/token but have not yet requested an account 
                             needsNiFiRegistration = true;
+                        }).fail(function (tokenXhr) {
+                            if (tokenXhr.status === 400) {
+                                // no credentials supplied so 400 must be due to an invalid/expired token
+                                logout();
+                            }
+
+                            // no token granted, user needs to login with their credentials
+                            needsLogin = true;
+                        }).always(function () {
+                            deferred.resolve();
+                        });
+                    } else if (xhr.status === 403) {
+                        // attempt to get a token for the current user without passing login credentials
+                        token.done(function () {
+                            showMessage = true;
+                            
+                            // the user is logged in with certificate or credentials but their account is pending/revoked. error message should indicate
+                            $('#login-message-title').text('Access Denied');
+                            if ($.trim(xhr.responseText) === '') {
+                                $('#login-message').text('Unable to authorize you to use this NiFi and anonymous access is disabled.');
+                            } else {
+                                $('#login-message').text(xhr.responseText);
+                            }
                         }).fail(function (tokenXhr) {
                             if (tokenXhr.status === 400) {
                                 // no credentials supplied so 400 must be due to an invalid/expired token
