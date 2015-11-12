@@ -30,10 +30,18 @@ public interface LoginIdentityProvider {
      * Authenticates the specified login credentials.
      *
      * @param credentials the credentials
+     * @return The authentication response
      * @throws InvalidLoginCredentialsException The login credentials were invalid
      * @throws IdentityAccessException Unable to register the user due to an issue accessing the underlying storage
      */
-    void authenticate(LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException;
+    AuthenticationResponse authenticate(LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException;
+
+    /**
+     * Returns the expiration of a given authentication in milliseconds.
+     *
+     * @return The expiration in milliseconds
+     */
+    long getExpiration();
 
     /**
      * Called immediately after instance creation for implementers to perform additional setup

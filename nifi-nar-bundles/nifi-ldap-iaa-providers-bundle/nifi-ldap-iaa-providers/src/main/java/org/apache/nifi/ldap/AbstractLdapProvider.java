@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.ldap;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
@@ -25,11 +27,13 @@ import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.ProviderDestructionException;
+import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.ldap.authentication.AbstractLdapAuthenticationProvider;
 
 /**
@@ -40,6 +44,7 @@ public abstract class AbstractLdapProvider implements LoginIdentityProvider {
     private static final Logger logger = LoggerFactory.getLogger(AbstractLdapProvider.class);
 
     private AbstractLdapAuthenticationProvider provider;
+    private long expiration;
 
     @Override
     public final void initialize(final LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
@@ -47,21 +52,32 @@ public abstract class AbstractLdapProvider implements LoginIdentityProvider {
 
     @Override
     public final void onConfigured(final LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
-        System.out.println(Thread.currentThread().getContextClassLoader());
+        final String rawExpiration = configurationContext.getProperty("Expiration Duration");
+        if (StringUtils.isBlank(rawExpiration)) {
+            throw new ProviderCreationException("The Expiration Duration must be specified.");
+        }
+
+        try {
+            expiration = FormatUtils.getTimeDuration(rawExpiration, TimeUnit.MILLISECONDS);
+        } catch (final NumberFormatException nfe) {
+            throw new ProviderCreationException(String.format("The Expiration Duration '%s' is not a valid time duration", rawExpiration));
+        }
+
         provider = getLdapAuthenticationProvider(configurationContext);
     }
 
     protected abstract AbstractLdapAuthenticationProvider getLdapAuthenticationProvider(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException;
 
     @Override
-    public final void authenticate(final LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException {
+    public final AuthenticationResponse authenticate(final LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException {
         if (provider == null) {
             throw new IdentityAccessException("The LDAP authentication provider is not initialized.");
         }
 
         try {
             final UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(credentials.getUsername(), credentials.getPassword());
-            provider.authenticate(token);
+            final Authentication authentication = provider.authenticate(token);
+            return new AuthenticationResponse(authentication.getPrincipal().toString(), credentials.getUsername());
         } catch (final AuthenticationServiceException ase) {
             logger.error(ase.getMessage());
             if (logger.isDebugEnabled()) {
@@ -71,6 +87,11 @@ public abstract class AbstractLdapProvider implements LoginIdentityProvider {
         } catch (final BadCredentialsException bce) {
             throw new InvalidLoginCredentialsException(bce.getMessage(), bce);
         }
+    }
+
+    @Override
+    public long getExpiration() {
+        return expiration;
     }
 
     @Override

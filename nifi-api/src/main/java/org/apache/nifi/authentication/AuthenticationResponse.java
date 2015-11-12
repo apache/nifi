@@ -14,18 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao;
+package org.apache.nifi.authentication;
 
 /**
- *
+ * Authentication response for a user login attempt.
  */
-public interface DAOFactory {
+public class AuthenticationResponse {
 
-    UserDAO getUserDAO();
+    private final String identity;
+    private final String username;
 
-    ActionDAO getActionDAO();
+    /**
+     * Creates an authentication response. The username and how long the authentication is valid in milliseconds
+     *
+     * @param identity The user identity
+     * @param username The username
+     */
+    public AuthenticationResponse(final String identity, final String username) {
+        this.identity = identity;
+        this.username = username;
+    }
 
-    AuthorityDAO getAuthorityDAO();
+    public String getIdentity() {
+        return identity;
+    }
 
-    KeyDAO getKeyDAO();
+    public String getUsername() {
+        return username;
+    }
+
 }

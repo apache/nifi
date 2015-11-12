@@ -32,6 +32,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
@@ -259,9 +260,16 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
         return new LoginIdentityProvider() {
 
             @Override
-            public void authenticate(LoginCredentials credentials) {
+            public AuthenticationResponse authenticate(LoginCredentials credentials) {
                 try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    baseProvider.authenticate(credentials);
+                    return baseProvider.authenticate(credentials);
+                }
+            }
+
+            @Override
+            public long getExpiration() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return baseProvider.getExpiration();
                 }
             }
 

@@ -27,6 +27,8 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.nifi.admin.service.AdministrationException;
+import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
@@ -100,8 +102,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
                     throw new AuthenticationCredentialsNotFoundException("Unable to issue token as issue token as no credentials were found in the request.");
                 }
 
-                final LoginCredentials tokenCredentials = new LoginCredentials(principal, null);
-                return new LoginAuthenticationToken(tokenCredentials);
+                return new LoginAuthenticationToken(principal, loginIdentityProvider.getExpiration());
             } else {
                 // extract the principal
                 final String principal = principalExtractor.extractPrincipal(certificate).toString();
@@ -133,8 +134,7 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
                 // authorize the proxy if necessary
                 authorizeProxyIfNecessary(ProxiedEntitiesUtils.buildProxyChain(request, principal));
 
-                final LoginCredentials preAuthenticatedCredentials = new LoginCredentials(principal, null);
-                return new LoginAuthenticationToken(preAuthenticatedCredentials);
+                return new LoginAuthenticationToken(principal, loginIdentityProvider.getExpiration());
             }
         } else {
             // if not configuration for login, don't consider credentials
@@ -144,10 +144,10 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
 
             try {
                 // attempt to authenticate
-                loginIdentityProvider.authenticate(credentials);
+                final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(credentials);
 
                 // create the authentication token
-                return new LoginAuthenticationToken(credentials);
+                return new LoginAuthenticationToken(authenticationResponse.getUsername(), loginIdentityProvider.getExpiration());
             } catch (final InvalidLoginCredentialsException ilce) {
                 throw new BadCredentialsException("The supplied username and password are not valid.", ilce);
             } catch (final IdentityAccessException iae) {
@@ -192,8 +192,12 @@ public class LoginAuthenticationFilter extends AbstractAuthenticationProcessingF
     protected void successfulAuthentication(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain, final Authentication authentication)
             throws IOException, ServletException {
 
-        // generate JWT for response
-        jwtService.addToken(response, authentication);
+        try {
+            // generate JWT for response
+            jwtService.addToken(response, (LoginAuthenticationToken) authentication);
+        } catch (final AdministrationException ae) {
+            unsuccessfulAuthentication(request, response, new AuthenticationServiceException(ae.getMessage(), ae));
+        }
     }
 
     @Override

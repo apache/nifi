@@ -14,44 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao.impl;
+package org.apache.nifi.admin.service.action;
 
-import java.sql.Connection;
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.AuthorityDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.authorization.AuthorityProvider;
+
 import org.apache.nifi.admin.dao.KeyDAO;
-import org.apache.nifi.admin.dao.UserDAO;
 
 /**
- *
+ * Gets a key for the specified user identity.
  */
-public class DAOFactoryImpl implements DAOFactory {
+public class GetOrCreateKeyAction implements AdministrationAction<String> {
 
-    private final Connection connection;
+    private final String identity;
 
-    public DAOFactoryImpl(Connection connection) {
-        this.connection = connection;
+    public GetOrCreateKeyAction(String identity) {
+        this.identity = identity;
     }
 
     @Override
-    public ActionDAO getActionDAO() {
-        return new StandardActionDAO(connection);
-    }
+    public String execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
+        final KeyDAO keyDao = daoFactory.getKeyDAO();
 
-    @Override
-    public AuthorityDAO getAuthorityDAO() {
-        return new StandardAuthorityDAO(connection);
-    }
+        String key = keyDao.getKey(identity);
+        if (key == null) {
+            key = keyDao.createKey(identity);
+        }
 
-    @Override
-    public UserDAO getUserDAO() {
-        return new StandardUserDAO(connection);
-    }
-
-    @Override
-    public KeyDAO getKeyDAO() {
-        return new StandardKeyDAO(connection);
+        return key;
     }
 
 }

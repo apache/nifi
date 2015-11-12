@@ -45,7 +45,7 @@ import org.springframework.security.ldap.search.LdapUserSearch;
 public class LdapProvider extends AbstractLdapProvider {
 
     private static final String TLS = "TLS";
-    
+
     @Override
     protected AbstractLdapAuthenticationProvider getLdapAuthenticationProvider(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
         final LdapContextSource context = new LdapContextSource();

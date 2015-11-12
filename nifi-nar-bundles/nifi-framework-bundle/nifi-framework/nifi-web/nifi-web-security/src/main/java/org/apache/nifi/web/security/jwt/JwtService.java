@@ -19,20 +19,23 @@ package org.apache.nifi.web.security.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.impl.TextCodec;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.springframework.security.core.Authentication;
+import org.apache.nifi.admin.service.AdministrationException;
+import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 
 /**
  *
@@ -41,14 +44,10 @@ public class JwtService {
 
     private final static String AUTHORIZATION = "Authorization";
 
-    private final String key;
-    private final Integer expires;
+    private final KeyService keyService;
 
-    public JwtService(final NiFiProperties properties) {
-        // TODO - load key (and algo/provider?) and expiration from properties
-
-        key = TextCodec.BASE64.encode("nififtw!");
-        expires = 1;
+    public JwtService(final KeyService keyService) {
+        this.keyService = keyService;
     }
 
     /**
@@ -63,9 +62,22 @@ public class JwtService {
         final String token = StringUtils.substringAfterLast(authorization, " ");
 
         try {
-            final Jws<Claims> jwt = Jwts.parser().setSigningKey(key).parseClaimsJws(token);
+            final Jws<Claims> jwt = Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+                @Override
+                public byte[] resolveSigningKeyBytes(JwsHeader header, Claims claims) {
+                    final String identity = claims.getSubject();
+                    final String key = keyService.getKey(identity);
+
+                    // ensure we were able to find a key that was previously issued by this key service for this user
+                    if (key == null) {
+                        throw new UnsupportedJwtException("Unable to determine signing key for " + identity);
+                    }
+
+                    return key.getBytes(StandardCharsets.UTF_8);
+                }
+            }).parseClaimsJws(token);
             return jwt.getBody().getSubject();
-        } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException e) {
+        } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException | AdministrationException e) {
             return null;
         }
     }
@@ -77,15 +89,21 @@ public class JwtService {
      * @param authentication The authentication to generate a token for
      * @throws java.io.IOException if an io exception occurs
      */
-    public void addToken(final HttpServletResponse response, final Authentication authentication) throws IOException {
+    public void addToken(final HttpServletResponse response, final LoginAuthenticationToken authentication) throws IOException {
         // set expiration to one day from now
         final Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DATE, expires);
+        calendar.setTimeInMillis(calendar.getTimeInMillis() + authentication.getExpiration());
 
         // create a token the specified authentication
         final String identity = authentication.getPrincipal().toString();
         final String username = authentication.getName();
-        final String token = Jwts.builder().setSubject(identity).claim("preferred_username", username).setExpiration(calendar.getTime()).signWith(SignatureAlgorithm.HS512, key).compact();
+
+        // get/create the key for this user
+        final String key = keyService.getOrCreateKey(identity);
+        final byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+
+        // build the token
+        final String token = Jwts.builder().setSubject(identity).claim("preferred_username", username).setExpiration(calendar.getTime()).signWith(SignatureAlgorithm.HS512, keyBytes).compact();
 
         // add the token as a response header
         final PrintWriter out = response.getWriter();

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.token;
 
-import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
@@ -25,32 +24,44 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
  */
 public class LoginAuthenticationToken extends AbstractAuthenticationToken {
 
-    final LoginCredentials credentials;
+    private final String identity;
+    private final String username;
+    private final long expiration;
 
-    public LoginAuthenticationToken(final LoginCredentials credentials) {
-        super(null);
-        setAuthenticated(true);
-        this.credentials = credentials;
+    public LoginAuthenticationToken(final String identity, final long expiration) {
+        this(identity, null, expiration);
     }
 
-    public LoginCredentials getLoginCredentials() {
-        return credentials;
+    public LoginAuthenticationToken(final String identity, final String username, final long expiration) {
+        super(null);
+        setAuthenticated(true);
+        this.identity = identity;
+        this.username = username;
+        this.expiration = expiration;
     }
 
     @Override
     public Object getCredentials() {
-        return credentials.getPassword();
+        return null;
     }
 
     @Override
     public Object getPrincipal() {
-        return credentials.getUsername();
+        return identity;
+    }
+
+    public long getExpiration() {
+        return expiration;
     }
 
     @Override
     public String getName() {
-        // if the username is a DN this will extract the username or CN... if not will return what was passed
-        return CertificateUtils.extractUsername(credentials.getUsername());
+        if (username == null) {
+            // if the username is a DN this will extract the username or CN... if not will return what was passed
+            return CertificateUtils.extractUsername(identity);
+        } else {
+            return username;
+        }
     }
 
 }

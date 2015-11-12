@@ -17,15 +17,23 @@
 package org.apache.nifi.admin.dao;
 
 /**
- *
+ * Key data access.
  */
-public interface DAOFactory {
+public interface KeyDAO {
 
-    UserDAO getUserDAO();
+    /**
+     * Gets the key for the specified user identity. Returns null if no key exists for the user identity.
+     *
+     * @param identity The user identity
+     * @return The key or null
+     */
+    String getKey(String identity);
 
-    ActionDAO getActionDAO();
-
-    AuthorityDAO getAuthorityDAO();
-
-    KeyDAO getKeyDAO();
+    /**
+     * Creates a key for the specified user identity.
+     *
+     * @param identity The user identity
+     * @return The key
+     */
+    String createKey(String identity);
 }
