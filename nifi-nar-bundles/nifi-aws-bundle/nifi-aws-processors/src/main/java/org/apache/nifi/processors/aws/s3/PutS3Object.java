@@ -55,12 +55,12 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.StorageClass;
 
 @SupportsBatching
-@SeeAlso({FetchS3Object.class})
+@SeeAlso({FetchS3Object.class, PutS3ObjectMultipart.class, DeleteS3Object.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "S3", "AWS", "Archive", "Put"})
 @CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket")
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the S3 Object", value = "The value of a User-Defined Metadata field to add to the S3 Object",
-    description = "Allows user-defined metadata to be added to the S3 object as key/value pairs", supportsExpressionLanguage = true)
+        description = "Allows user-defined metadata to be added to the S3 object as key/value pairs", supportsExpressionLanguage = true)
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the S3 object")
 @WritesAttributes({
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
@@ -84,8 +84,8 @@ public class PutS3Object extends AbstractS3Processor {
         .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
-            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER));
+            Arrays.asList(KEY, BUCKET, ENDPOINT_OVERRIDE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, SSL_CONTEXT_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
+                    FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -174,7 +174,7 @@ public class PutS3Object extends AbstractS3Processor {
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, url, millis);
 
-            getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", new Object[] {ff, millis});
+            getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", new Object[]{ff, millis});
         } catch (final ProcessException | AmazonClientException pe) {
             getLogger().error("Failed to put {} to Amazon S3 due to {}", new Object[] {flowFile, pe});
             flowFile = session.penalize(flowFile);
