@@ -1359,6 +1359,7 @@ language governing permissions and limitations under the License. -->
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
+                        <exclude>.travis.yml</exclude> <!-- Travis CI Build Descriptor File -->
                     </excludes>
                 </configuration>
                 <dependencies>
