@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -274,6 +275,42 @@ public class TestGetHTTP {
             controller.run();
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
 
+            // shutdown web service
+        } finally {
+            server.shutdownServer();
+        }
+    }
+
+    @Test
+    public final void testExpressionLanguage() throws Exception {
+        // set up web service
+        ServletHandler handler = new ServletHandler();
+        handler.addServletWithMapping(UserAgentTestingServlet.class, "/*");
+
+        // create the service
+        TestServer server = new TestServer();
+        server.addHandler(handler);
+
+        try {
+            server.startServer();
+
+            String destination = server.getUrl();
+
+            // set up NiFi mock controller
+            controller = TestRunners.newTestRunner(GetHTTP.class);
+            controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
+            controller.setProperty(GetHTTP.URL, destination+"/test_${literal(1)}.pdf");
+            controller.setProperty(GetHTTP.FILENAME, "test_${now():format('yyyy/MM/dd_HH:mm:ss')}");
+            controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+            controller.setProperty(GetHTTP.USER_AGENT, "testUserAgent");
+
+            controller.run();
+            controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
+
+            MockFlowFile response = controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0);
+            response.assertAttributeEquals("gethttp.remote.source","localhost");
+            String fileName = response.getAttribute(CoreAttributes.FILENAME.key());
+            assertTrue(fileName.matches("test_\\d\\d\\d\\d/\\d\\d/\\d\\d_\\d\\d:\\d\\d:\\d\\d"));
             // shutdown web service
         } finally {
             server.shutdownServer();

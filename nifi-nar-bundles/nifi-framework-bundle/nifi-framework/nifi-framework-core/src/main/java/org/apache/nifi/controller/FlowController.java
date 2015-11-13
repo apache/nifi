@@ -3397,7 +3397,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .addParentUuid(parentUUID)
             .setFlowFileUUID(parentUUID)
             .setAttributes(Collections.<String, String> emptyMap(), flowFileRecord.getAttributes())
-            .setCurrentContentClaim(event.getContentClaimSection(), event.getContentClaimContainer(), event.getContentClaimIdentifier(), event.getContentClaimOffset(), event.getFileSize())
+            .setCurrentContentClaim(event.getContentClaimContainer(), event.getContentClaimSection(), event.getContentClaimIdentifier(), event.getContentClaimOffset(), event.getFileSize())
             .setDetails("Replay requested by " + requestor)
             .setEventTime(System.currentTimeMillis())
             .setFlowFileEntryDate(System.currentTimeMillis())
