@@ -54,39 +54,36 @@ import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.Document;
 import com.couchbase.client.java.document.RawJsonDocument;
 
-@Tags({ "nosql", "couchbase", "database", "put" })
+@Tags({"nosql", "couchbase", "database", "put"})
 @CapabilityDescription("Put a document to Couchbase Server via Key/Value access.")
 @SeeAlso({CouchbaseClusterControllerService.class})
 @ReadsAttributes({
     @ReadsAttribute(attribute = "uuid", description = "Used as a document id if 'Document Id' is not specified"),
-    @ReadsAttribute(attribute = "*", description = "Any attribute can be used as part of a document id by 'Document Id' expression.")
-    })
+})
 @WritesAttributes({
-    @WritesAttribute(attribute="couchbase.cluster", description="Cluster where the document was stored."),
-    @WritesAttribute(attribute="couchbase.bucket", description="Bucket where the document was stored."),
-    @WritesAttribute(attribute="couchbase.doc.id", description="Id of the document."),
-    @WritesAttribute(attribute="couchbase.doc.cas", description="CAS of the document."),
-    @WritesAttribute(attribute="couchbase.doc.expiry", description="Expiration of the document."),
-    @WritesAttribute(attribute="couchbase.exception", description="If Couchbase related error occurs the CouchbaseException class name will be captured here.")
-    })
+    @WritesAttribute(attribute = "couchbase.cluster", description = "Cluster where the document was stored."),
+    @WritesAttribute(attribute = "couchbase.bucket", description = "Bucket where the document was stored."),
+    @WritesAttribute(attribute = "couchbase.doc.id", description = "Id of the document."),
+    @WritesAttribute(attribute = "couchbase.doc.cas", description = "CAS of the document."),
+    @WritesAttribute(attribute = "couchbase.doc.expiry", description = "Expiration of the document."),
+    @WritesAttribute(attribute = "couchbase.exception", description = "If Couchbase related error occurs the CouchbaseException class name will be captured here.")
+})
 public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
 
 
-    public static final PropertyDescriptor PERSIST_TO = new PropertyDescriptor
-            .Builder().name("Persist To")
-            .description("Durability constraint about disk persistence.")
-            .required(true)
-            .allowableValues(PersistTo.values())
-            .defaultValue(PersistTo.NONE.toString())
-            .build();
+    public static final PropertyDescriptor PERSIST_TO = new PropertyDescriptor.Builder().name("Persist To")
+        .description("Durability constraint about disk persistence.")
+        .required(true)
+        .allowableValues(PersistTo.values())
+        .defaultValue(PersistTo.NONE.toString())
+        .build();
 
-    public static final PropertyDescriptor REPLICATE_TO = new PropertyDescriptor
-            .Builder().name("Replicate To")
-            .description("Durability constraint about replication.")
-            .required(true)
-            .allowableValues(ReplicateTo.values())
-            .defaultValue(ReplicateTo.NONE.toString())
-            .build();
+    public static final PropertyDescriptor REPLICATE_TO = new PropertyDescriptor.Builder().name("Replicate To")
+        .description("Durability constraint about replication.")
+        .required(true)
+        .allowableValues(ReplicateTo.values())
+        .defaultValue(ReplicateTo.NONE.toString())
+        .build();
 
     @Override
     protected void addSupportedProperties(List<PropertyDescriptor> descriptors) {
@@ -107,7 +104,7 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ProcessorLog logger = getLogger();
         FlowFile flowFile = session.get();
-        if ( flowFile == null ) {
+        if (flowFile == null) {
             return;
         }
 
@@ -119,41 +116,42 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
             }
         });
 
-        String docId = String.valueOf(flowFile.getAttribute(CoreAttributes.UUID.key()));
-        if(!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())){
+        String docId = flowFile.getAttribute(CoreAttributes.UUID.key());
+        if (!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())) {
             docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(flowFile).getValue();
         }
 
         try {
             Document<?> doc = null;
-            DocumentType documentType = DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
-            switch (documentType){
-                case Json : {
+            final DocumentType documentType = DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
+            switch (documentType) {
+                case Json: {
                     doc = RawJsonDocument.create(docId, new String(content, StandardCharsets.UTF_8));
                     break;
                 }
-                case Binary : {
-                    ByteBuf buf = Unpooled.copiedBuffer(content);
+                case Binary: {
+                    final ByteBuf buf = Unpooled.copiedBuffer(content);
                     doc = BinaryDocument.create(docId, buf);
                     break;
                 }
             }
 
-            PersistTo persistTo = PersistTo.valueOf(context.getProperty(PERSIST_TO).getValue());
-            ReplicateTo replicateTo = ReplicateTo.valueOf(context.getProperty(REPLICATE_TO).getValue());
+            final PersistTo persistTo = PersistTo.valueOf(context.getProperty(PERSIST_TO).getValue());
+            final ReplicateTo replicateTo = ReplicateTo.valueOf(context.getProperty(REPLICATE_TO).getValue());
             doc = openBucket(context).upsert(doc, persistTo, replicateTo);
-            Map<String, String> updatedAttrs = new HashMap<>();
+
+            final Map<String, String> updatedAttrs = new HashMap<>();
             updatedAttrs.put(CouchbaseAttributes.Cluster.key(), context.getProperty(COUCHBASE_CLUSTER_SERVICE).getValue());
             updatedAttrs.put(CouchbaseAttributes.Bucket.key(), context.getProperty(BUCKET_NAME).getValue());
             updatedAttrs.put(CouchbaseAttributes.DocId.key(), docId);
             updatedAttrs.put(CouchbaseAttributes.Cas.key(), String.valueOf(doc.cas()));
             updatedAttrs.put(CouchbaseAttributes.Expiry.key(), String.valueOf(doc.expiry()));
-            flowFile = session.putAllAttributes(flowFile, updatedAttrs);
-            session.getProvenanceReporter().send(flowFile, getTransitUrl(context));
-            session.transfer(flowFile, REL_SUCCESS);
 
-        } catch (CouchbaseException e) {
-            String errMsg = String.format("Writing docuement %s to Couchbase Server using %s failed due to %s", docId, flowFile, e);
+            flowFile = session.putAllAttributes(flowFile, updatedAttrs);
+            session.getProvenanceReporter().send(flowFile, getTransitUrl(context, docId));
+            session.transfer(flowFile, REL_SUCCESS);
+        } catch (final CouchbaseException e) {
+            String errMsg = String.format("Writing document %s to Couchbase Server using %s failed due to %s", docId, flowFile, e);
             handleCouchbaseException(context, session, logger, flowFile, e, errMsg);
         }
     }
