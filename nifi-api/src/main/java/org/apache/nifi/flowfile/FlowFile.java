@@ -31,7 +31,12 @@ public interface FlowFile extends Comparable<FlowFile> {
 
     /**
      * @return the unique identifier for this flow file
+     * @deprecated This method has been deprecated in favor of using the attribute
+     *             {@link org.apache.nifi.flowfile.attributes.CoreAttributes.UUID CoreAttributes.UUID}.
+     *             If an identifier is needed use {@link #getAttribute(String)} to retrieve the value for this attribute.
+     *             For example, by calling getAttribute(CoreAttributes.UUID.getKey()).
      */
+    @Deprecated
     long getId();
 
     /**

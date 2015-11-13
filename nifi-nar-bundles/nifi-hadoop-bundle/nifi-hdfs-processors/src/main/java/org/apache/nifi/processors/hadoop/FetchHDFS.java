@@ -83,6 +83,9 @@ public class FetchHDFS extends AbstractHadoopProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(HADOOP_CONFIGURATION_RESOURCES);
         properties.add(FILENAME);
+        properties.add(KERBEROS_PRINCIPAL);
+        properties.add(KERBEROS_KEYTAB);
+        properties.add(KERBEROS_RELOGIN_PERIOD);
         return properties;
     }
 

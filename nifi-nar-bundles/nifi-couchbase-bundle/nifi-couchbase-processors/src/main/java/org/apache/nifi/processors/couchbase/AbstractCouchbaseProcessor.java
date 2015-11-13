@@ -43,21 +43,18 @@ import com.couchbase.client.java.Bucket;
  */
 public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
-    public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor
-            .Builder().name("Document Type")
-            .description("The type of contents.")
-            .required(true)
-            .allowableValues(DocumentType.values())
-            .defaultValue(DocumentType.Json.toString())
-            .build();
+    public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder().name("Document Type")
+        .description("The type of contents.")
+        .required(true)
+        .allowableValues(DocumentType.values())
+        .defaultValue(DocumentType.Json.toString())
+        .build();
 
-    public static final PropertyDescriptor DOC_ID = new PropertyDescriptor
-            .Builder().name("Document Id")
-            .description("A static, fixed Couchbase document id."
-                    + "Or an expression to construct the Couchbase document id.")
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    public static final PropertyDescriptor DOC_ID = new PropertyDescriptor.Builder().name("Document Id")
+        .description("A static, fixed Couchbase document id, or an expression to construct the Couchbase document id.")
+        .expressionLanguageSupported(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -77,15 +74,13 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         .description("All FlowFiles that cannot written to Couchbase Server and can't be retried are routed to this relationship.")
         .build();
 
-    public static final PropertyDescriptor COUCHBASE_CLUSTER_SERVICE = new PropertyDescriptor
-        .Builder().name("Couchbase Cluster Controller Service")
+    public static final PropertyDescriptor COUCHBASE_CLUSTER_SERVICE = new PropertyDescriptor.Builder().name("Couchbase Cluster Controller Service")
         .description("A Couchbase Cluster Controller Service which manages connections to a Couchbase cluster.")
         .required(true)
         .identifiesControllerService(CouchbaseClusterControllerService.class)
         .build();
 
-    public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor
-        .Builder().name("Bucket Name")
+    public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor.Builder().name("Bucket Name")
         .description("The name of bucket to access.")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -115,6 +110,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     /**
      * Add processor specific properties.
+     *
      * @param descriptors add properties to this list
      */
     protected void addSupportedProperties(List<PropertyDescriptor> descriptors) {
@@ -123,6 +119,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     /**
      * Add processor specific relationships.
+     *
      * @param relationships add relationships to this list
      */
     protected void addSupportedRelationships(Set<Relationship> relationships) {
@@ -140,11 +137,11 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
     }
 
     private CouchbaseClusterControllerService getClusterService(final ProcessContext context) {
-        if(clusterService == null){
-            synchronized(AbstractCouchbaseProcessor.class){
-                if(clusterService == null){
+        if (clusterService == null) {
+            synchronized (AbstractCouchbaseProcessor.class) {
+                if (clusterService == null) {
                     clusterService = context.getProperty(COUCHBASE_CLUSTER_SERVICE)
-                            .asControllerService(CouchbaseClusterControllerService.class);
+                        .asControllerService(CouchbaseClusterControllerService.class);
                 }
             }
         }
@@ -154,6 +151,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     /**
      * Open a bucket connection using a CouchbaseClusterControllerService.
+     *
      * @param context a process context
      * @return a bucket instance
      */
@@ -163,18 +161,17 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     /**
      * Generate a transit url.
+     *
      * @param context a process context
      * @return a transit url based on the bucket name and the CouchbaseClusterControllerService name
      */
-    protected String getTransitUrl(final ProcessContext context) {
-        return new StringBuilder(context.getProperty(BUCKET_NAME).getValue())
-            .append('@')
-            .append(context.getProperty(COUCHBASE_CLUSTER_SERVICE).getValue())
-            .toString();
+    protected String getTransitUrl(final ProcessContext context, final String docId) {
+        return "couchbase://" + context.getProperty(BUCKET_NAME).getValue() + "/" + docId;
     }
 
     /**
-     * Handles the thrown CocuhbaseException accordingly.
+     * Handles the thrown CouchbaseException accordingly.
+     *
      * @param context a process context
      * @param session a process session
      * @param logger a logger
@@ -183,35 +180,39 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
      * @param errMsg a message to be logged
      */
     protected void handleCouchbaseException(final ProcessContext context, final ProcessSession session,
-            final ProcessorLog logger, FlowFile inFile, CouchbaseException e,
-            String errMsg) {
+        final ProcessorLog logger, FlowFile inFile, CouchbaseException e,
+        String errMsg) {
         logger.error(errMsg, e);
-        if(inFile != null){
+        if (inFile != null) {
             ErrorHandlingStrategy strategy = CouchbaseExceptionMappings.getStrategy(e);
-            switch(strategy.penalty()) {
-            case Penalize:
-                if(logger.isDebugEnabled()) logger.debug("Penalized: {}", new Object[]{inFile});
-                inFile = session.penalize(inFile);
-                break;
-            case Yield:
-                if(logger.isDebugEnabled()) logger.debug("Yielded context: {}", new Object[]{inFile});
-                context.yield();
-                break;
-            case None:
-                break;
+            switch (strategy.penalty()) {
+                case Penalize:
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Penalized: {}", new Object[] {inFile});
+                    }
+                    inFile = session.penalize(inFile);
+                    break;
+                case Yield:
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Yielded context: {}", new Object[] {inFile});
+                    }
+                    context.yield();
+                    break;
+                case None:
+                    break;
             }
 
-            switch(strategy.result()) {
-            case ProcessException:
-                throw new ProcessException(errMsg, e);
-            case Failure:
-                inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), e.getClass().getName());
-                session.transfer(inFile, REL_FAILURE);
-                break;
-            case Retry:
-                inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), e.getClass().getName());
-                session.transfer(inFile, REL_RETRY);
-                break;
+            switch (strategy.result()) {
+                case ProcessException:
+                    throw new ProcessException(errMsg, e);
+                case Failure:
+                    inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), e.getClass().getName());
+                    session.transfer(inFile, REL_FAILURE);
+                    break;
+                case Retry:
+                    inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), e.getClass().getName());
+                    session.transfer(inFile, REL_RETRY);
+                    break;
             }
         }
     }

@@ -114,6 +114,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
                     "\"yyyy-MM-dd'T'HH:mm:ss.SZ\" or \"yyyy-MM-dd'T'HH:mm:ss.S+hh:mm\", \" or it can be an RFC3164 timestamp " +
                     "with a format of \"MMM d HH:mm:ss\".")
             .required(true)
+            .defaultValue("${now():format('MMM d HH:mm:ss')}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();

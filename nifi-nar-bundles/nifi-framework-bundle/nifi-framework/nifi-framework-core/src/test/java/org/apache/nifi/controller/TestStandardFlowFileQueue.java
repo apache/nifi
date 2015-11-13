@@ -18,6 +18,7 @@
 package org.apache.nifi.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -48,18 +49,28 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TestStandardFlowFileQueue {
     private TestSwapManager swapManager = null;
     private StandardFlowFileQueue queue = null;
 
+    private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
+
     @Before
+    @SuppressWarnings("unchecked")
     public void setup() {
+        provRecords.clear();
+
         final Connection connection = Mockito.mock(Connection.class);
         Mockito.when(connection.getSource()).thenReturn(Mockito.mock(Connectable.class));
         Mockito.when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
@@ -72,6 +83,16 @@ public class TestStandardFlowFileQueue {
         final ResourceClaimManager claimManager = Mockito.mock(ResourceClaimManager.class);
 
         Mockito.when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(final InvocationOnMock invocation) throws Throwable {
+                final Iterable<ProvenanceEventRecord> iterable = (Iterable<ProvenanceEventRecord>) invocation.getArguments()[0];
+                for (final ProvenanceEventRecord record : iterable) {
+                    provRecords.add(record);
+                }
+                return null;
+            }
+        }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
 
         queue = new StandardFlowFileQueue("id", connection, flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000);
         TestFlowFile.idGenerator.set(0L);
@@ -104,6 +125,160 @@ public class TestStandardFlowFileQueue {
         final QueueSize unackSize = queue.getUnacknowledgedQueueSize();
         assertEquals(0, unackSize.getObjectCount());
         assertEquals(0L, unackSize.getByteCount());
+    }
+
+    @Test
+    public void testBackPressure() {
+        queue.setBackPressureObjectThreshold(10);
+
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
+        assertFalse(queue.isFull());
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+            assertFalse(queue.isEmpty());
+            assertFalse(queue.isActiveQueueEmpty());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+        assertFalse(queue.isEmpty());
+        assertFalse(queue.isActiveQueueEmpty());
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final FlowFileRecord polled = queue.poll(expiredRecords);
+        assertNotNull(polled);
+        assertTrue(expiredRecords.isEmpty());
+
+        assertFalse(queue.isEmpty());
+        assertFalse(queue.isActiveQueueEmpty());
+
+        // queue is still full because FlowFile has not yet been acknowledged.
+        assertTrue(queue.isFull());
+        queue.acknowledge(polled);
+
+        // FlowFile has been acknowledged; queue should no longer be full.
+        assertFalse(queue.isFull());
+        assertFalse(queue.isEmpty());
+        assertFalse(queue.isActiveQueueEmpty());
+    }
+
+    @Test
+    public void testBackPressureAfterPollFilter() throws InterruptedException {
+        queue.setBackPressureObjectThreshold(10);
+        queue.setFlowFileExpiration("10 millis");
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+
+        Thread.sleep(100L);
+
+
+        final FlowFileFilter filter = new FlowFileFilter() {
+            @Override
+            public FlowFileFilterResult filter(final FlowFile flowFile) {
+                return FlowFileFilterResult.REJECT_AND_CONTINUE;
+            }
+        };
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final List<FlowFileRecord> polled = queue.poll(filter, expiredRecords);
+        assertTrue(polled.isEmpty());
+        assertEquals(10, expiredRecords.size());
+
+        assertFalse(queue.isFull());
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
+    }
+
+    @Test(timeout = 10000)
+    public void testBackPressureAfterDrop() throws InterruptedException {
+        queue.setBackPressureObjectThreshold(10);
+        queue.setFlowFileExpiration("10 millis");
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+
+        Thread.sleep(100L);
+
+        final String requestId = UUID.randomUUID().toString();
+        final DropFlowFileStatus status = queue.dropFlowFiles(requestId, "Unit Test");
+
+        while (status.getState() != DropFlowFileState.COMPLETE) {
+            Thread.sleep(10L);
+        }
+
+        assertFalse(queue.isFull());
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
+
+        assertEquals(10, provRecords.size());
+        for (final ProvenanceEventRecord event : provRecords) {
+            assertNotNull(event);
+            assertEquals(ProvenanceEventType.DROP, event.getEventType());
+        }
+    }
+
+    @Test
+    public void testBackPressureAfterPollSingle() throws InterruptedException {
+        queue.setBackPressureObjectThreshold(10);
+        queue.setFlowFileExpiration("10 millis");
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+
+        Thread.sleep(100L);
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final FlowFileRecord polled = queue.poll(expiredRecords);
+        assertNull(polled);
+        assertEquals(10, expiredRecords.size());
+
+        assertFalse(queue.isFull());
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
+    }
+
+    @Test
+    public void testBackPressureAfterPollMultiple() throws InterruptedException {
+        queue.setBackPressureObjectThreshold(10);
+        queue.setFlowFileExpiration("10 millis");
+
+        for (int i = 0; i < 9; i++) {
+            queue.put(new TestFlowFile());
+            assertFalse(queue.isFull());
+        }
+
+        queue.put(new TestFlowFile());
+        assertTrue(queue.isFull());
+
+        Thread.sleep(100L);
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final List<FlowFileRecord> polled = queue.poll(10, expiredRecords);
+        assertTrue(polled.isEmpty());
+        assertEquals(10, expiredRecords.size());
+
+        assertFalse(queue.isFull());
+        assertTrue(queue.isEmpty());
+        assertTrue(queue.isActiveQueueEmpty());
     }
 
     @Test

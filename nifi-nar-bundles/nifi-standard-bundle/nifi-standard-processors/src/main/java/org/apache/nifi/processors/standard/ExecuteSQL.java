@@ -168,8 +168,12 @@ public class ExecuteSQL extends AbstractProcessor {
             session.getProvenanceReporter().modifyContent(outgoing, "Retrieved " + nrOfRows.get() + " rows", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(outgoing, REL_SUCCESS);
         } catch (final ProcessException | SQLException e) {
-            logger.error("Unable to execute SQL select query {} for {} due to {}; routing to failure", new Object[] { selectQuery, incoming, e });
-            session.transfer(incoming, REL_FAILURE);
+            if (incoming == null) {
+                logger.error("Unable to execute SQL select query {} due to {}. No incoming flow file to route to failure", new Object[] {selectQuery, e});
+            } else {
+                logger.error("Unable to execute SQL select query {} for {} due to {}; routing to failure", new Object[] {selectQuery, incoming, e});
+                session.transfer(incoming, REL_FAILURE);
+            }
         }
     }
 }
