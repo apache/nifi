@@ -64,9 +64,10 @@ $(document).ready(function () {
     // initialize the tooltips
     $('img.setting-icon').qtip(nf.Common.config.tooltipConfig);
     
-    // shows the logout link in the message-pane when appropriate
-    if (nf.Storage.getItem('jwt')) {
+    // shows the logout link in the message-pane when appropriate and schedule token refresh
+    if (nf.Storage.getItem('jwt') !== null) {
         $('#user-logout-container').show();
+        nf.Common.scheduleTokenRefresh();
     }
     
     // handle logout
@@ -74,11 +75,6 @@ $(document).ready(function () {
         nf.Storage.removeItem('jwt');
         window.location = '/nifi/login';
     });
-    
-    // schedule token refresh when a token is present
-    if (nf.Storage.getItem('jwt') !== null) {
-        nf.Common.scheduleTokenRefresh();
-    }
 });
 
 // Define a common utility class used across the entire application.
@@ -411,6 +407,13 @@ nf.Common = (function () {
                 // hide the splash screen if required
                 if ($('#splash').is(':visible')) {
                     nf.Canvas.hideSplash();
+                }
+                
+                // update the log out link accordingly
+                if (nf.Storage.getItem('jwt') === null) {
+                    $('#user-logout-container').hide();
+                } else {
+                    $('#user-logout-container').show();
                 }
 
                 // hide the context menu
