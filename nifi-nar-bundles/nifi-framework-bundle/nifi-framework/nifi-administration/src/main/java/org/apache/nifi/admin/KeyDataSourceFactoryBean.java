@@ -45,7 +45,7 @@ public class KeyDataSourceFactoryBean implements FactoryBean {
     // ----------
     private static final String CREATE_KEY_TABLE = "CREATE TABLE KEY ("
             + "ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT, "
-            + "IDENTITY VARCHAR2(4096) NOT NULL, "
+            + "IDENTITY VARCHAR2(4096) NOT NULL UNIQUE, "
             + "KEY VARCHAR2(100) NOT NULL"
             + ")";
 
