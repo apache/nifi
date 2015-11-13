@@ -98,7 +98,7 @@ nf.Login = (function () {
             }
         }).done(function (jwt) {
             // store the jwt and reload the page
-            nf.Storage.setItem('jwt', jwt);
+            nf.Storage.setItem('jwt', jwt, nf.Common.getJwtExpiration(jwt));
 
             // check to see if they actually have access now
             $.ajax({
@@ -109,15 +109,18 @@ nf.Login = (function () {
                 if (response.identity === 'anonymous') {
                     showLogoutLink();
 
+                    // schedule automatic token refresh
+                    nf.Common.scheduleTokenRefresh();
+            
                     // show the user
-                    var user = getJwtSubject(jwt);
+                    var user = nf.Common.getJwtSubject(jwt);
                     $('#nifi-user-submit-justification').text(user);
 
                     // show the registration form
                     initializeNiFiRegistration();
                     showNiFiRegistration();
                 } else {
-                    // reload as appropriate
+                    // reload as appropriate - no need to schedule token refresh as the page is reloading
                     if (top !== window) {
                         parent.window.location = '/nifi';
                     } else {
@@ -127,8 +130,11 @@ nf.Login = (function () {
             }).fail(function (xhr, status, error) {
                 showLogoutLink();
 
+                // schedule automatic token refresh
+                nf.Common.scheduleTokenRefresh();
+
                 // show the user
-                var user = getJwtSubject(jwt);
+                var user = nf.Common.getJwtSubject(jwt);
                 $('#nifi-user-submit-justification').text(user);
 
                 if (xhr.status === 401) {
@@ -189,33 +195,6 @@ nf.Login = (function () {
         });
     };
 
-    /**
-     * Extracts the subject from the specified jwt. If the jwt is not as expected
-     * an empty string is returned.
-     * 
-     * @param {string} jwt
-     * @returns {string}
-     */
-    var getJwtSubject = function (jwt) {
-        if (nf.Common.isDefinedAndNotNull(jwt)) {
-            var segments = jwt.split(/\./);
-            if (segments.length !== 3) {
-                return '';
-            }
-
-            var rawPayload = $.base64.atob(segments[1]);
-            var payload = JSON.parse(rawPayload);
-
-            if (nf.Common.isDefinedAndNotNull(payload['preferred_username'])) {
-                return payload['preferred_username'];
-            } else {
-                '';
-            }
-        }
-
-        return '';
-    };
-
     var logout = function () {
         nf.Storage.removeItem('jwt');
     };
@@ -272,7 +251,7 @@ nf.Login = (function () {
                                 $('#login-message').text('Your account is active and you are already logged in.');
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 401) {
-                                    var user = getJwtSubject(jwt);
+                                    var user = nf.Common.getJwtSubject(jwt);
 
                                     // show the user
                                     $('#nifi-user-submit-justification').text(user);
@@ -316,7 +295,7 @@ nf.Login = (function () {
                     if (xhr.status === 401) {
                         // attempt to get a token for the current user without passing login credentials
                         token.done(function (jwt) {
-                            var user = getJwtSubject(jwt);
+                            var user = nf.Common.getJwtSubject(jwt);
 
                             // show the user
                             $('#nifi-user-submit-justification').text(user);

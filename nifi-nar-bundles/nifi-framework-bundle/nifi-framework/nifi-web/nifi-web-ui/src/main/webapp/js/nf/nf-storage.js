@@ -20,7 +20,61 @@
 nf.Storage = (function () {
 
     // Store items for two days before being eligible for removal.
-    var TWO_DAYS = 86400000 * 2;
+    var TWO_DAYS = nf.Common.MILLIS_PER_DAY * 2;
+
+    /**
+     * Checks the expiration for the specified entry.
+     * 
+     * @param {object} entry
+     * @returns {boolean}
+     */
+    var checkExpiration = function (entry) {
+        if (nf.Common.isDefinedAndNotNull(entry.expires)) {
+            // get the expiration
+            var expires = new Date(entry.expires);
+            var now = new Date();
+
+            // return whether the expiration date has passed
+            return expires.valueOf() < now.valueOf();
+        } else {
+            return false;
+        }
+    };
+    
+    /**
+     * If the item at key is not expired, the value of field is returned. Otherwise, null.
+     * 
+     * @param {string} key
+     * @param {string} field
+     * @return {object} the value
+     */
+    var getEntryField = function (key, field) {
+        try {
+            // parse the entry
+            var entry = JSON.parse(localStorage.getItem(key));
+
+            // ensure the entry and item are present
+            if (nf.Common.isDefinedAndNotNull(entry)) {
+                
+                // if the entry is expired, drop it and return null
+                if (checkExpiration(entry)) {
+                    nf.Storage.removeItem(key);
+                    return null;
+                }
+
+                // if the entry has the specified field return its value
+                if (nf.Common.isDefinedAndNotNull(entry[field])) {
+                    return entry[field];
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        } catch (e) {
+            return null;
+        }
+    };
 
     return {
         /**
@@ -34,16 +88,10 @@ nf.Storage = (function () {
                     var key = localStorage.key(i);
                     var entry = JSON.parse(localStorage.getItem(key));
 
-                    // get the expiration
-                    var expires = new Date(entry.expires);
-                    var now = new Date();
-
-                    // if the expiration date has passed, remove it
-                    if (expires.valueOf() < now.valueOf()) {
-                        localStorage.removeItem(key);
+                    if (checkExpiration(entry)) {
+                        nf.Storage.removeItem(key);
                     }
                 } catch (e) {
-                    // likely unable to parse the item
                 }
             }
         },
@@ -51,12 +99,13 @@ nf.Storage = (function () {
         /**
          * Stores the specified item.
          * 
-         * @param {type} key
-         * @param {type} item
+         * @param {string} key
+         * @param {object} item
+         * @param {integer} expires
          */
-        setItem: function (key, item) {
+        setItem: function (key, item, expires) {
             // calculate the expiration
-            var expires = new Date().valueOf() + TWO_DAYS;
+            expires = nf.Common.isDefinedAndNotNull(expires) ? expires : new Date().valueOf() + TWO_DAYS;
 
             // create the entry
             var entry = {
@@ -76,19 +125,18 @@ nf.Storage = (function () {
          * @param {type} key
          */
         getItem: function (key) {
-            try {
-                // parse the entry
-                var entry = JSON.parse(localStorage.getItem(key));
-
-                // ensure the entry and item are present
-                if (nf.Common.isDefinedAndNotNull(entry) && nf.Common.isDefinedAndNotNull(entry.item)) {
-                    return entry.item;
-                } else {
-                    return null;
-                }
-            } catch (e) {
-                return null;
-            }
+            return getEntryField(key, 'item');
+        },
+        
+        /**
+         * Gets the expiration for the specified item. If the item does not exists our could 
+         * not be parsed, returns null.
+         * 
+         * @param {string} key
+         * @returns {integer}
+         */
+        getItemExpiration: function (key) {
+            return getEntryField(key, 'expires');
         },
         
         /**
