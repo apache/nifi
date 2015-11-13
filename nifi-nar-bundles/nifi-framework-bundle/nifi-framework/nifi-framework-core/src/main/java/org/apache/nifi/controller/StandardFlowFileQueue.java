@@ -764,7 +764,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         if (millis < 0) {
             throw new IllegalArgumentException("FlowFile Expiration Period must be positive");
         }
-        
+
         expirationPeriod.set(new TimePeriod(flowExpirationPeriod, millis));
     }
 
