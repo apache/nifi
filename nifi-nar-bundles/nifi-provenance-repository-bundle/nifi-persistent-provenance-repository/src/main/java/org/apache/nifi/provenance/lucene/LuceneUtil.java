@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.provenance.SearchableFields;
@@ -159,5 +161,26 @@ public class LuceneUtil {
                 return Long.compare(offset1, offset2);
             }
         });
+    }
+
+    /**
+     * Will group documents based on the {@link FieldNames#STORAGE_FILENAME}.
+     *
+     * @param documents
+     *            list of {@link Document}s
+     * @return a {@link Map} of document groups with
+     *         {@link FieldNames#STORAGE_FILENAME} as key and {@link List} of
+     *         {@link Document}s as value.
+     */
+    public static Map<String, List<Document>> groupDocsByStorageFileName(final List<Document> documents) {
+        Map<String, List<Document>> documentGroups = new HashMap<>();
+        for (Document document : documents) {
+            String fileName = document.get(FieldNames.STORAGE_FILENAME);
+            if (!documentGroups.containsKey(fileName)) {
+                documentGroups.put(fileName, new ArrayList<Document>());
+            }
+            documentGroups.get(fileName).add(document);
+        }
+        return documentGroups;
     }
 }
