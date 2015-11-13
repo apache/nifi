@@ -44,7 +44,9 @@ import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -71,6 +73,7 @@ import org.apache.nifi.util.LongHolder;
     + "new line is encountered (carriage return or new-line character or combination). If the file to tail is periodically \"rolled over\", as is generally the case "
     + "with log files, an optional Rolling Filename Pattern can be used to retrieve data from files that have rolled over, even if the rollover occurred while NiFi "
     + "was not running (provided that the data still exists upon restart of NiFi).")
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 public class TailFile extends AbstractProcessor {
 
     static final AllowableValue START_BEGINNING_OF_TIME = new AllowableValue("Beginning of Time", "Beginning of Time",
