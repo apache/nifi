@@ -37,15 +37,15 @@ public class ActiveDirectoryProvider extends AbstractLdapProvider {
 
         final String domain = configurationContext.getProperty("Domain");
         final String userSearchBase = configurationContext.getProperty("User Search Base");
-        
-        final ActiveDirectoryLdapAuthenticationProvider activeDirectoryAuthenticationProvider = 
-                new ActiveDirectoryLdapAuthenticationProvider(StringUtils.isBlank(domain) ? null : domain, url, StringUtils.isBlank(userSearchBase) ? null : userSearchBase);
-        
+
+        final ActiveDirectoryLdapAuthenticationProvider activeDirectoryAuthenticationProvider
+                = new ActiveDirectoryLdapAuthenticationProvider(StringUtils.isBlank(domain) ? null : domain, url, StringUtils.isBlank(userSearchBase) ? null : userSearchBase);
+
         final String userSearchFilter = configurationContext.getProperty("User Search Filter");
         if (StringUtils.isNotBlank(userSearchFilter)) {
             activeDirectoryAuthenticationProvider.setSearchFilter(userSearchFilter);
         }
-        
+
         return activeDirectoryAuthenticationProvider;
     }
 }
