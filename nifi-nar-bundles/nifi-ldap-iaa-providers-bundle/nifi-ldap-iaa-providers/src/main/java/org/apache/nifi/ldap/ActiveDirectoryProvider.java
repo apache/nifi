@@ -29,18 +29,23 @@ public class ActiveDirectoryProvider extends AbstractLdapProvider {
 
     @Override
     protected AbstractLdapAuthenticationProvider getLdapAuthenticationProvider(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
-        final String domain = configurationContext.getProperty("Domain");
-        if (StringUtils.isBlank(domain)) {
-            throw new ProviderCreationException("The Active Directory Domain must be specified.");
-        }
 
         final String url = configurationContext.getProperty("Url");
         if (StringUtils.isBlank(url)) {
-            throw new ProviderCreationException("The Active Directory Url must be specified.");
+            throw new ProviderCreationException("The Active Directory 'Url' must be specified.");
         }
 
-        final String rootDn = configurationContext.getProperty("Root DN");
-
-        return new ActiveDirectoryLdapAuthenticationProvider(domain, url, StringUtils.isBlank(rootDn) ? null : rootDn);
+        final String domain = configurationContext.getProperty("Domain");
+        final String userSearchBase = configurationContext.getProperty("User Search Base");
+        
+        final ActiveDirectoryLdapAuthenticationProvider activeDirectoryAuthenticationProvider = 
+                new ActiveDirectoryLdapAuthenticationProvider(StringUtils.isBlank(domain) ? null : domain, url, StringUtils.isBlank(userSearchBase) ? null : userSearchBase);
+        
+        final String userSearchFilter = configurationContext.getProperty("User Search Filter");
+        if (StringUtils.isNotBlank(userSearchFilter)) {
+            activeDirectoryAuthenticationProvider.setSearchFilter(userSearchFilter);
+        }
+        
+        return activeDirectoryAuthenticationProvider;
     }
 }
