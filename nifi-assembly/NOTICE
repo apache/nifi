@@ -765,6 +765,13 @@ The following binary components are provided under the Apache Software License v
         is a distributed tracing system that is Apache 2.0 Licensed.
         Copyright 2012 Twitter, Inc.
 
+    (ASLv2) Apache Qpid AMQP 1.0 Client
+      The following NOTICE information applies:
+        Copyright 2006-2015 The Apache Software Foundation
+
+    (ASLv2) EventHubs Client (com.microsoft.eventhubs.client:eventhubs-client:0.9.1 - https://github.com/hdinsight/eventhubs-client/)
+
+
 ************************
 Common Development and Distribution License 1.1
 ************************

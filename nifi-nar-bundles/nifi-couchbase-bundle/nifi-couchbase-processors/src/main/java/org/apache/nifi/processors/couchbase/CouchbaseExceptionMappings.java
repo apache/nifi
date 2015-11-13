@@ -78,7 +78,7 @@ public class CouchbaseExceptionMappings {
         mapping.put(ReplicaNotConfiguredException.class, ConfigurationError);
         // when a particular Service(KV, View, Query, DCP) isn't running in a cluster
         mapping.put(ServiceNotAvailableException.class, ConfigurationError);
-        // SSL configuration error, such as key store mis configuration.
+        // SSL configuration error, such as key store misconfiguration.
         mapping.put(SSLException.class, ConfigurationError);
 
         /*

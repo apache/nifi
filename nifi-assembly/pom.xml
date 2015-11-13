@@ -242,6 +242,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-hbase_1_1_2-client-service-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-azure-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
     <properties>

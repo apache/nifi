@@ -138,6 +138,9 @@ public class ListHDFS extends AbstractHadoopProcessor {
         properties.add(DISTRIBUTED_CACHE_SERVICE);
         properties.add(DIRECTORY);
         properties.add(RECURSE_SUBDIRS);
+        properties.add(KERBEROS_PRINCIPAL);
+        properties.add(KERBEROS_KEYTAB);
+        properties.add(KERBEROS_RELOGIN_PERIOD);
         return properties;
     }
 
