@@ -69,8 +69,13 @@ import kafka.message.MessageAndMetadata;
     @WritesAttribute(attribute = "kafka.key", description = "The key of the Kafka message, if it exists and batch size is 1. If"
             + " the message does not have a key, or if the batch size is greater than 1, this attribute will not be added"),
     @WritesAttribute(attribute = "kafka.partition", description = "The partition of the Kafka Topic from which the message was received. This attribute is added only if the batch size is 1"),
-    @WritesAttribute(attribute = "kafka.offset", description = "The offset of the message within the Kafka partition. This attribute is added only if the batch size is 1")})
+    @WritesAttribute(attribute = "kafka.offset", description = "The offset of the message within the Kafka partition. This attribute is added only if the batch size is 1"),
+    @WritesAttribute(attribute = "auto.offset.reset", description = "If this is set to largest, the consumer may lose some messages when the number of partitions, " +
+            "for the topics it subscribes to, changes on the broker. To prevent data loss during partition addition, set auto.offset.reset to smallest")})
 public class GetKafka extends AbstractProcessor {
+
+    public static final String SMALLEST = "smallest";
+    public static final String LARGEST = "largest";
 
     public static final PropertyDescriptor ZOOKEEPER_CONNECTION_STRING = new PropertyDescriptor.Builder()
             .name("ZooKeeper Connection String")
@@ -148,6 +153,14 @@ public class GetKafka extends AbstractProcessor {
         .expressionLanguageSupported(false)
         .build();
 
+    public static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
+            .name("Auto Offset Reset")
+            .description("Auto Offset Reset indicator")
+            .required(true)
+            .allowableValues(SMALLEST, LARGEST)
+            .defaultValue(LARGEST)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are created are routed to this relationship")
@@ -181,6 +194,7 @@ public class GetKafka extends AbstractProcessor {
         props.add(groupIdWithDefault);
         props.add(KAFKA_TIMEOUT);
         props.add(ZOOKEEPER_TIMEOUT);
+        props.add(AUTO_OFFSET_RESET);
         return props;
     }
 
@@ -204,7 +218,7 @@ public class GetKafka extends AbstractProcessor {
         props.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
         props.setProperty("auto.commit.interval.ms", String.valueOf(context.getProperty(ZOOKEEPER_COMMIT_DELAY).asTimePeriod(TimeUnit.MILLISECONDS)));
         props.setProperty("auto.commit.enable", "true"); // just be explicit
-        props.setProperty("auto.offset.reset", "smallest");
+        props.setProperty("auto.offset.reset", context.getProperty(AUTO_OFFSET_RESET).getValue());
         props.setProperty("zk.connectiontimeout.ms", context.getProperty(ZOOKEEPER_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).toString());
         props.setProperty("socket.timeout.ms", context.getProperty(KAFKA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).toString());
 
