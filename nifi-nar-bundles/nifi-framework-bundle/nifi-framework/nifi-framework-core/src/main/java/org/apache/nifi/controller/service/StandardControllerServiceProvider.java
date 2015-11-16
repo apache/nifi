@@ -38,6 +38,7 @@ import java.util.concurrent.Executors;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
@@ -545,23 +546,32 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     private void enableReferencingServices(final ControllerServiceNode serviceNode, final List<ControllerServiceNode> recursiveReferences) {
-        if (serviceNode.getState() != ControllerServiceState.ENABLED && serviceNode.getState() != ControllerServiceState.ENABLING) {
+        if (serviceNode.getState() != ControllerServiceState.ENABLING && serviceNode.getState() != ControllerServiceState.ENABLED) {
             serviceNode.verifyCanEnable(new HashSet<>(recursiveReferences));
         }
 
+        /*
+         * TODO The logic will be improved, for nor now just a simple note:
+         * Iterate over all services that are not enabled and verify that they
+         * are enableble. As soon as there is at least one un-enableble service,
+         * fail.
+         *
+         * Then iterate over all services and enable *only* the once that are
+         * not yet enabled
+         */
+
         final Set<ControllerServiceNode> ifEnabled = new HashSet<>();
-        final List<ControllerServiceNode> toEnable = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
-        for (final ControllerServiceNode nodeToEnable : toEnable) {
+        for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
             final ControllerServiceState state = nodeToEnable.getState();
-            if (state != ControllerServiceState.ENABLED && state != ControllerServiceState.ENABLING) {
+            if (state != ControllerServiceState.ENABLING && state != ControllerServiceState.ENABLED) {
                 nodeToEnable.verifyCanEnable(ifEnabled);
                 ifEnabled.add(nodeToEnable);
             }
         }
 
-        for (final ControllerServiceNode nodeToEnable : toEnable) {
+        for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
             final ControllerServiceState state = nodeToEnable.getState();
-            if (state != ControllerServiceState.ENABLED && state != ControllerServiceState.ENABLING) {
+            if (state != ControllerServiceState.ENABLING && state != ControllerServiceState.ENABLED) {
                 enableControllerService(nodeToEnable);
             }
         }

@@ -168,8 +168,9 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     @Override
     public void verifyCanEnable() {
-        if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(implementation + " cannot be enabled because it is not disabled");
+        if (this.getState() == ControllerServiceState.ENABLING || this.getState() == ControllerServiceState.ENABLED) {
+            throw new IllegalStateException(
+                    implementation + " cannot be enabled because it is already " + this.getState().name());
         }
 
         if (!isValid()) {
@@ -179,9 +180,6 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     @Override
     public void verifyCanEnable(final Set<ControllerServiceNode> ignoredReferences) {
-        if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(implementation + " cannot be enabled because it is not disabled");
-        }
 
         final Set<String> ids = new HashSet<>();
         for (final ControllerServiceNode node : ignoredReferences) {
