@@ -1018,7 +1018,7 @@ nf.Actions = (function () {
                         $('#drop-request-status-message').text(dropRequest.state);
                         
                         // update the current number of enqueued flowfiles
-                        if (nf.Common.isDefinedAndNotNull(dropRequest.currentCount)) {
+                        if (nf.Common.isDefinedAndNotNull(connection.status) && nf.Common.isDefinedAndNotNull(dropRequest.currentCount)) {
                             connection.status.queued = dropRequest.current;
                             nf.Connection.refresh(connection.id);
                         }

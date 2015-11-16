@@ -499,7 +499,13 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     public DropFlowFileStatus deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
         final Connection connection = locateConnection(groupId, connectionId);
         final FlowFileQueue queue = connection.getFlowFileQueue();
-        return queue.cancelDropFlowFileRequest(dropRequestId);
+
+        final DropFlowFileStatus dropFlowFileStatus = queue.cancelDropFlowFileRequest(dropRequestId);
+        if (dropFlowFileStatus == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find drop request with id '%s'.", dropRequestId));
+        }
+
+        return dropFlowFileStatus;
     }
 
     /* setters */
