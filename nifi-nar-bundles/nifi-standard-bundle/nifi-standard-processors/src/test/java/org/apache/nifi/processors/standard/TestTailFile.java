@@ -37,6 +37,7 @@ import org.junit.Test;
 
 public class TestTailFile {
     private File file;
+    private TailFile processor;
     private RandomAccessFile raf;
     private TestRunner runner;
 
@@ -64,7 +65,8 @@ public class TestTailFile {
         stateFile.delete();
         Assert.assertFalse(stateFile.exists());
 
-        runner = TestRunners.newTestRunner(new TailFile());
+        processor = new TailFile();
+        runner = TestRunners.newTestRunner(processor);
         runner.setProperty(TailFile.FILENAME, "target/log.txt");
         runner.setProperty(TailFile.STATE_FILE, "target/tail-file.state");
         runner.assertValid();
@@ -77,6 +79,8 @@ public class TestTailFile {
         if (raf != null) {
             raf.close();
         }
+
+        processor.cleanup();
     }
 
 
@@ -153,6 +157,7 @@ public class TestTailFile {
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_TIME.getValue());
 
         raf.write("hello world\n".getBytes());
+        Thread.sleep(1000);
         runner.run(100);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
     }
@@ -231,7 +236,9 @@ public class TestTailFile {
 
         raf.write("world".getBytes());
         raf.close();
-        file.renameTo(new File("target/log1.txt"));
+
+        processor.cleanup(); // Need to do this for Windows because otherwise we cannot rename the file because we have the file open still in the same process.
+        assertTrue(file.renameTo(new File("target/log1.txt")));
 
         raf = new RandomAccessFile(new File("target/log.txt"), "rw");
         raf.write("1\n".getBytes());
@@ -255,7 +262,7 @@ public class TestTailFile {
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
 
         raf.write("hello\n".getBytes());
-        runner.run(1, false, false);
+        runner.run(1, true, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
@@ -288,7 +295,7 @@ public class TestTailFile {
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
 
         raf.write("hello\n".getBytes());
-        runner.run(1, false, false);
+        runner.run(1, true, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
@@ -305,6 +312,8 @@ public class TestTailFile {
         // write to a new file.
         file = new File("target/log.txt");
         raf = new RandomAccessFile(file, "rw");
+
+        Thread.sleep(1000L);
         raf.write("abc\n".getBytes());
 
         // rename file to log.1
@@ -331,9 +340,6 @@ public class TestTailFile {
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
 
-        final long start = System.currentTimeMillis();
-        Thread.sleep(1100L);
-
         raf.write("Hello, World".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
@@ -346,7 +352,6 @@ public class TestTailFile {
         assertNotNull(state);
         assertEquals("target/log.txt", state.getFilename());
         assertTrue(state.getTimestamp() <= System.currentTimeMillis());
-        assertTrue(state.getTimestamp() >= start);
         assertEquals(14, state.getPosition());
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("Hello, World\r\n");
 
