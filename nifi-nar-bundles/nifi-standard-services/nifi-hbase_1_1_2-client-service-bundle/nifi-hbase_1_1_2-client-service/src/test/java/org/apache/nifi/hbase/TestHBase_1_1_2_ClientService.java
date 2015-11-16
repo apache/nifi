@@ -56,6 +56,73 @@ import static org.mockito.Mockito.when;
 public class TestHBase_1_1_2_ClientService {
 
     @Test
+    public void testCustomValidate() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+
+        final String tableName = "nifi";
+        final Table table = Mockito.mock(Table.class);
+        when(table.getName()).thenReturn(TableName.valueOf(tableName));
+
+        // no conf file or zk properties so should be invalid
+        MockHBaseClientService service = new MockHBaseClientService(table);
+        runner.addControllerService("hbaseClientService", service);
+        runner.enableControllerService(service);
+
+        runner.assertNotValid(service);
+        runner.removeControllerService(service);
+
+        // conf file with no zk properties should be valid
+        service = new MockHBaseClientService(table);
+        runner.addControllerService("hbaseClientService", service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/core-site.xml");
+        runner.enableControllerService(service);
+
+        runner.assertValid(service);
+        runner.removeControllerService(service);
+
+        // only quorum and no conf file should be invalid
+        service = new MockHBaseClientService(table);
+        runner.addControllerService("hbaseClientService", service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
+        runner.enableControllerService(service);
+
+        runner.assertNotValid(service);
+        runner.removeControllerService(service);
+
+        // quorum and port, no znode, no conf file, should be invalid
+        service = new MockHBaseClientService(table);
+        runner.addControllerService("hbaseClientService", service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "2181");
+        runner.enableControllerService(service);
+
+        runner.assertNotValid(service);
+        runner.removeControllerService(service);
+
+        // quorum, port, and znode, no conf file, should be valid
+        service = new MockHBaseClientService(table);
+        runner.addControllerService("hbaseClientService", service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "2181");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_ZNODE_PARENT, "/hbase");
+        runner.enableControllerService(service);
+
+        runner.assertValid(service);
+        runner.removeControllerService(service);
+
+        // quorum and port with conf file should be valid
+        service = new MockHBaseClientService(table);
+        runner.addControllerService("hbaseClientService", service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/core-site.xml");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "2181");
+        runner.enableControllerService(service);
+
+        runner.assertValid(service);
+        runner.removeControllerService(service);
+    }
+
+    @Test
     public void testSinglePut() throws InitializationException, IOException {
         final String tableName = "nifi";
         final String row = "row1";
