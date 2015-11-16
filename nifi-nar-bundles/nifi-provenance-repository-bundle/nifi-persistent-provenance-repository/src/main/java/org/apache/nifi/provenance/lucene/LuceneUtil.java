@@ -130,8 +130,14 @@ public class LuceneUtil {
         return luceneQuery;
     }
 
+    /**
+     * Will sort documents by filename and then file offset so that we can
+     * retrieve the records efficiently
+     *
+     * @param documents
+     *            list of {@link Document}s
+     */
     public static void sortDocsForRetrieval(final List<Document> documents) {
-        // sort by filename and then file offset so that we can retrieve the records efficiently
         Collections.sort(documents, new Comparator<Document>() {
             @Override
             public int compare(final Document o1, final Document o2) {
@@ -167,7 +173,9 @@ public class LuceneUtil {
      * Will group documents based on the {@link FieldNames#STORAGE_FILENAME}.
      *
      * @param documents
-     *            list of {@link Document}s
+     *            list of {@link Document}s which will be sorted via
+     *            {@link #sortDocsForRetrieval(List)} for more efficient record
+     *            retrieval.
      * @return a {@link Map} of document groups with
      *         {@link FieldNames#STORAGE_FILENAME} as key and {@link List} of
      *         {@link Document}s as value.
@@ -180,6 +188,9 @@ public class LuceneUtil {
                 documentGroups.put(fileName, new ArrayList<Document>());
             }
             documentGroups.get(fileName).add(document);
+        }
+        for (List<Document> groupedDocuments : documentGroups.values()) {
+            sortDocsForRetrieval(groupedDocuments);
         }
         return documentGroups;
     }

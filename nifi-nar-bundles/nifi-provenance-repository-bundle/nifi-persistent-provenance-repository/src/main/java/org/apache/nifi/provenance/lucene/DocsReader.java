@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,7 @@ import org.apache.lucene.search.TopDocs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DocsReader {
+class DocsReader {
     private final Logger logger = LoggerFactory.getLogger(DocsReader.class);
 
     public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles,
@@ -106,12 +107,13 @@ public class DocsReader {
     public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles,
             final AtomicInteger retrievalCount, final int maxResults, final int maxAttributeChars) throws IOException {
 
+        if (retrievalCount.get() >= maxResults) {
+            return Collections.emptySet();
+        }
+
         final long start = System.nanoTime();
 
         Set<ProvenanceEventRecord> matchingRecords = new LinkedHashSet<>();
-        if (retrievalCount.get() >= maxResults) {
-            return matchingRecords;
-        }
 
         Map<String, List<Document>> byStorageNameDocGroups = LuceneUtil.groupDocsByStorageFileName(docs);
 
@@ -123,17 +125,16 @@ public class DocsReader {
             if (provenanceEventFile != null) {
                 try (RecordReader reader = RecordReaders.newRecordReader(provenanceEventFile, allProvenanceLogFiles,
                         maxAttributeChars)) {
-                    for (Document document : byStorageNameDocGroups.get(storageFileName)) {
-                        ProvenanceEventRecord eRec = this.getRecord(document, reader);
+
+                    Iterator<Document> docIter = byStorageNameDocGroups.get(storageFileName).iterator();
+                    while (docIter.hasNext() && retrievalCount.incrementAndGet() < maxResults){
+                        ProvenanceEventRecord eRec = this.getRecord(docIter.next(), reader);
                         if (eRec != null) {
                             matchingRecords.add(eRec);
                             eventsReadThisFile++;
-
-                            if (retrievalCount.incrementAndGet() >= maxResults) {
-                                break;
-                            }
                         }
                     }
+
                 } catch (Exception e) {
                     logger.warn("Failed while trying to read Provenance Events. The event file '"
                             + provenanceEventFile.getAbsolutePath() +
