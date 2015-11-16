@@ -69,9 +69,7 @@ import kafka.message.MessageAndMetadata;
         @WritesAttribute(attribute = "kafka.key", description = "The key of the Kafka message, if it exists and batch size is 1. If"
                 + " the message does not have a key, or if the batch size is greater than 1, this attribute will not be added"),
         @WritesAttribute(attribute = "kafka.partition", description = "The partition of the Kafka Topic from which the message was received. This attribute is added only if the batch size is 1"),
-        @WritesAttribute(attribute = "kafka.offset", description = "The offset of the message within the Kafka partition. This attribute is added only if the batch size is 1"),
-        @WritesAttribute(attribute = "auto.offset.reset", description = "If this is set to largest, the consumer may lose some messages when the number of partitions, " +
-                "for the topics it subscribes to, changes on the broker. To prevent data loss during partition addition, set auto.offset.reset to smallest")})
+        @WritesAttribute(attribute = "kafka.offset", description = "The offset of the message within the Kafka partition. This attribute is added only if the batch size is 1")})
 public class GetKafka extends AbstractProcessor {
 
     public static final String SMALLEST = "smallest";
@@ -155,7 +153,7 @@ public class GetKafka extends AbstractProcessor {
 
     public static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
             .name("Auto Offset Reset")
-            .description("Auto Offset Reset indicator")
+            .description("Automatically reset the offset to the smallest or largest offset available on the broker")
             .required(true)
             .allowableValues(SMALLEST, LARGEST)
             .defaultValue(LARGEST)
