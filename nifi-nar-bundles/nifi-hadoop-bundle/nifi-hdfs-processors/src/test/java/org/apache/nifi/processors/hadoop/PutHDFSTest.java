@@ -19,6 +19,7 @@ package org.apache.nifi.processors.hadoop;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,9 +45,22 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class PutHDFSTest {
+
+    @BeforeClass
+    public static void setUp() throws Exception{
+        /*
+         * Running Hadoop on Windows requires a special build which will produce required binaries and native modules [1]. Since functionality
+         * provided by this module and validated by these test does not have any native implication we do not distribute required binaries and native modules
+         * to support running these tests in Windows environment, therefore they are ignored. You can also get more info from this StackOverflow thread [2]
+         *
+         * [1] https://wiki.apache.org/hadoop/Hadoop2OnWindows
+         * [2] http://stackoverflow.com/questions/19620642/failed-to-locate-the-winutils-binary-in-the-hadoop-binary-path
+         */
+    }
 
     @Test
     public void testValidators() {
@@ -159,6 +173,9 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFile() throws IOException {
+        // Refer to comment in the BeforeClass method for an explanation
+        assumeTrue(isNotWindows());
+
         TestRunner runner = TestRunners.newTestRunner(PutHDFS.class);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
@@ -182,6 +199,9 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWithException() throws IOException {
+        // Refer to comment in the BeforeClass method for an explanation
+        assumeTrue(isNotWindows());
+
         String dirName = "target/testPutFileWrongPermissions";
         File file = new File(dirName);
         file.mkdirs();
@@ -212,5 +232,9 @@ public class PutHDFSTest {
 
         fs.setPermission(p, new FsPermission(FsAction.EXECUTE, FsAction.EXECUTE, FsAction.EXECUTE));
         fs.delete(p, true);
+    }
+
+    private boolean isNotWindows() {
+        return !System.getProperty("os.name").startsWith("Windows");
     }
 }
