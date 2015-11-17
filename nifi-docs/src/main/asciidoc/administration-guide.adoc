@@ -769,7 +769,9 @@ Only configure these properties for the cluster manager.
 
 |====
 |*Property*|*Description*
-|nifi.kerberos.krb5.file*|The location of the krb5 file, if used. It is blank by default.
+|nifi.kerberos.krb5.file*|The location of the krb5 file, if used. It is blank by default. Note that this property is not used to authenticate NiFi users. 
+    Rather, it is made available for extension points, such as Hadoop-based Processors, to use. At this time, only a single krb5 file is allowed to
+    be specified per NiFi instance, so this property is configured here rather than in individual Processors. 
 |====
 
 
