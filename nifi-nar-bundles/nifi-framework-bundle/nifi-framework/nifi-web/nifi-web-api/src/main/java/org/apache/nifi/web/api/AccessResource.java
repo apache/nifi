@@ -33,6 +33,7 @@ import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
@@ -316,9 +317,24 @@ public class AccessResource extends ApplicationResource {
             try {
                 // attempt to authenticate
                 final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
-
+                final long maxExpiration = TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS);
+                final long minExpiration = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
+                
+                long expiration = authenticationResponse.getExpiration();
+                if (expiration > maxExpiration) {
+                    expiration = maxExpiration;
+                    
+                    logger.warn(String.format("Max token expiration exceeded. Setting expiration to %s from %s for %s", expiration, 
+                            authenticationResponse.getExpiration(), authenticationResponse.getIdentity()));
+                } else if (expiration < minExpiration) {
+                    expiration = minExpiration;
+                    
+                    logger.warn(String.format("Min token expiration not met. Setting expiration to %s from %s for %s", expiration, 
+                            authenticationResponse.getExpiration(), authenticationResponse.getIdentity()));
+                }
+                
                 // create the authentication token
-                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getUsername(), authenticationResponse.getExpiration());
+                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getUsername(), expiration);
             } catch (final InvalidLoginCredentialsException ilce) {
                 throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
             } catch (final IdentityAccessException iae) {
