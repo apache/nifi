@@ -22,12 +22,16 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
+import org.apache.nifi.util.FormatUtils;
 import org.springframework.ldap.core.support.AbstractTlsDirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.DefaultTlsDirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.DigestMd5DirContextAuthenticationStrategy;
@@ -50,12 +54,43 @@ public class LdapProvider extends AbstractLdapProvider {
     protected AbstractLdapAuthenticationProvider getLdapAuthenticationProvider(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
         final LdapContextSource context = new LdapContextSource();
 
+        final Map<String, Object> baseEnvironment = new HashMap<>();
+
+        // connection time out
+        final String rawConnectTimeout = configurationContext.getProperty("Connect Timeout");
+        if (StringUtils.isNotBlank(rawConnectTimeout)) {
+            try {
+                final Long connectTimeout = FormatUtils.getTimeDuration(rawConnectTimeout, TimeUnit.MILLISECONDS);
+                baseEnvironment.put("com.sun.jndi.ldap.connect.timeout", connectTimeout.toString());
+            } catch (final IllegalArgumentException iae) {
+                throw new ProviderCreationException(String.format("The Connect Timeout '%s' is not a valid time duration", rawConnectTimeout));
+            }
+        }
+
+        // read time out
+        final String rawReadTimeout = configurationContext.getProperty("Read Timeout");
+        if (StringUtils.isNotBlank(rawReadTimeout)) {
+            try {
+                final Long readTimeout = FormatUtils.getTimeDuration(rawReadTimeout, TimeUnit.MILLISECONDS);
+                baseEnvironment.put("com.sun.jndi.ldap.read.timeout", readTimeout.toString());
+            } catch (final IllegalArgumentException iae) {
+                throw new ProviderCreationException(String.format("The Read Timeout '%s' is not a valid time duration", rawReadTimeout));
+            }
+        }
+
+        // set the base environment is necessary
+        if (!baseEnvironment.isEmpty()) {
+            context.setBaseEnvironmentProperties(baseEnvironment);
+        }
+
+        // authentication strategy
         final String rawAuthenticationStrategy = configurationContext.getProperty("Authentication Strategy");
         final LdapAuthenticationStrategy authenticationStrategy;
         try {
             authenticationStrategy = LdapAuthenticationStrategy.valueOf(rawAuthenticationStrategy);
         } catch (final IllegalArgumentException iae) {
-            throw new ProviderCreationException(String.format("Unrecgonized authentication strategy '%s'", rawAuthenticationStrategy));
+            throw new ProviderCreationException(String.format("Unrecgonized authentication strategy '%s'. Possible values are [%s]",
+                    rawAuthenticationStrategy, StringUtils.join(LdapAuthenticationStrategy.values(), ", ")));
         }
 
         switch (authenticationStrategy) {
@@ -63,8 +98,8 @@ public class LdapProvider extends AbstractLdapProvider {
                 context.setAnonymousReadOnly(true);
                 break;
             default:
-                final String userDn = configurationContext.getProperty("Bind DN");
-                final String password = configurationContext.getProperty("Bind Password");
+                final String userDn = configurationContext.getProperty("Manager DN");
+                final String password = configurationContext.getProperty("Manager Password");
 
                 context.setUserDn(userDn);
                 context.setPassword(password);
@@ -122,6 +157,20 @@ public class LdapProvider extends AbstractLdapProvider {
                 break;
         }
 
+        // referrals
+        final String rawReferralStrategy = configurationContext.getProperty("Referral Strategy");
+
+        final ReferralStrategy referralStrategy;
+        try {
+            referralStrategy = ReferralStrategy.valueOf(rawReferralStrategy);
+        } catch (final IllegalArgumentException iae) {
+            throw new ProviderCreationException(String.format("Unrecgonized authentication strategy '%s'. Possible values are [%s]",
+                    rawAuthenticationStrategy, StringUtils.join(ReferralStrategy.values(), ", ")));
+        }
+
+        context.setReferral(referralStrategy.toString());
+
+        // url
         final String url = configurationContext.getProperty("Url");
 
         if (StringUtils.isBlank(url)) {
@@ -131,6 +180,7 @@ public class LdapProvider extends AbstractLdapProvider {
         // connection
         context.setUrl(url);
 
+        // search criteria
         final String userSearchBase = configurationContext.getProperty("User Search Base");
         final String userSearchFilter = configurationContext.getProperty("User Search Filter");
 
@@ -138,7 +188,6 @@ public class LdapProvider extends AbstractLdapProvider {
             throw new ProviderCreationException("LDAP identity provider 'User Search Base' and 'User Search Filter' must be specified.");
         }
 
-        // query
         final LdapUserSearch userSearch = new FilterBasedLdapUserSearch(userSearchBase, userSearchFilter, context);
 
         // bind
@@ -154,6 +203,7 @@ public class LdapProvider extends AbstractLdapProvider {
         }
 
         // create the underlying provider
-        return new LdapAuthenticationProvider(authenticator);
+        final LdapAuthenticationProvider ldapAuthenticationProvider = new LdapAuthenticationProvider(authenticator);
+        return ldapAuthenticationProvider;
     }
 }
