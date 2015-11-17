@@ -37,13 +37,6 @@ public interface LoginIdentityProvider {
     AuthenticationResponse authenticate(LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException;
 
     /**
-     * Returns the expiration of a given authentication in milliseconds.
-     *
-     * @return The expiration in milliseconds
-     */
-    long getExpiration();
-
-    /**
      * Called immediately after instance creation for implementers to perform additional setup
      *
      * @param initializationContext in which to initialize

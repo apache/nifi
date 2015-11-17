@@ -25,7 +25,6 @@ import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
 
 /**
  */
@@ -36,7 +35,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
     private JwtService jwtService;
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
+    public NiFiAuthenticationRequestToken attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
         // only suppport jwt login when running securely
         if (!request.isSecure()) {
             return null;

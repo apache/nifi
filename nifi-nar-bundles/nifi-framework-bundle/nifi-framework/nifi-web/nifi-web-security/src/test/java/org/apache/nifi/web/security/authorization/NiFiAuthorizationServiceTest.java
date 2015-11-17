@@ -187,7 +187,7 @@ public class NiFiAuthorizationServiceTest {
      *
      * @throws Exception ex
      */
-    @Test(expected = UsernameNotFoundException.class)
+    @Test(expected = UntrustedProxyException.class)
     public void testProxyNotFound() throws Exception {
         try {
             authorizationService.loadUserDetails(createRequestAuthentication(USER, PROXY_NOT_FOUND));

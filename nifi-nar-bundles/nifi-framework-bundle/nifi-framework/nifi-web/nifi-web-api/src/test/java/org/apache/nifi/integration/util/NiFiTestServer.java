@@ -78,8 +78,12 @@ public class NiFiTestServer {
     private void createSecureConnector() {
         org.eclipse.jetty.util.ssl.SslContextFactory contextFactory = new org.eclipse.jetty.util.ssl.SslContextFactory();
 
-        // need client auth
-        contextFactory.setNeedClientAuth(properties.getNeedClientAuth());
+        // require client auth when not supporting login or anonymous access
+        if (StringUtils.isBlank(properties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && properties.getAnonymousAuthorities().isEmpty()) {
+            contextFactory.setNeedClientAuth(true);
+        } else {
+            contextFactory.setWantClientAuth(true);
+        }
 
         /* below code sets JSSE system properties when values are provided */
         // keystore properties
@@ -163,7 +167,6 @@ public class NiFiTestServer {
     }
 
     public Client getClient() {
-        // create the client
         return WebUtils.createClient(null, SslContextFactory.createSslContext(properties));
     }
 

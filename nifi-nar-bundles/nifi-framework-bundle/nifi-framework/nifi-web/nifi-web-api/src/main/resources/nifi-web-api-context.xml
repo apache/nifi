@@ -243,9 +243,8 @@
     </bean>
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
         <property name="properties" ref="nifiProperties"/>
-        <property name="certificateValidator" ref="certificateValidator"/>
         <property name="certificateExtractor" ref="certificateExtractor"/>
-        <property name="principalExtractor" ref="principalExtractor"/>
+        <property name="certificateIdentityProvider" ref="certificateIdentityProvider"/>
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
         <property name="jwtService" ref="jwtService"/>
         <property name="userDetailsService" ref="userDetailsService"/>

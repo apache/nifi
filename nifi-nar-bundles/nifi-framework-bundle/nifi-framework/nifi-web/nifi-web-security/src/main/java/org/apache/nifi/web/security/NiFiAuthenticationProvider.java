@@ -47,10 +47,12 @@ public class NiFiAuthenticationProvider implements AuthenticationProvider {
             final UserDetails userDetails = userDetailsService.loadUserDetails(request);
 
             // build an authentication for accesing nifi
-            return new NiFiAuthorizationToken(userDetails);
+            final NiFiAuthorizationToken result = new NiFiAuthorizationToken(userDetails);
+            result.setDetails(request.getDetails());
+            return result;
         } catch (final UsernameNotFoundException unfe) {
-            // if the result was an authenticated new account request and it could not be authorized because the user was not found,
-            // return the token so the new account could be created. this must go here to ensure that any proxies have been authorized
+            // if the authentication request is for a new account and it could not be authorized because the user was not found,
+            // return the token so the new account could be created. this must go here toe nsure that any proxies have been authorized
             if (isNewAccountAuthenticationToken(request)) {
                 return new NewAccountAuthenticationToken(((NewAccountAuthenticationRequestToken) authentication).getNewAccountRequest());
             } else {

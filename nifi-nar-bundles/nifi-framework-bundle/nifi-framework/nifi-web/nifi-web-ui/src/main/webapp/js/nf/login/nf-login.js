@@ -27,8 +27,6 @@ nf.Login = (function () {
 
     var config = {
         urls: {
-            registrationStatus: '../nifi-api/registration/status',
-            registration: '../nifi-api/registration',
             identity: '../nifi-api/controller/identity',
             users: '../nifi-api/controller/users',
             token: '../nifi-api/access/token',

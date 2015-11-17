@@ -33,6 +33,12 @@
         <property name="ocspValidator" ref="ocspValidator"/> 
     </bean>
     
+    <!-- x509 identity provider -->
+    <bean id="certificateIdentityProvider" class="org.apache.nifi.web.security.x509.X509IdentityProvider">
+        <property name="principalExtractor" ref="principalExtractor"/>
+        <property name="certificateValidator" ref="certificateValidator"/>
+    </bean>
+    
     <!-- user details service -->
     <bean id="userDetailsService" class="org.apache.nifi.web.security.authorization.NiFiAuthorizationService">
         <property name="userService" ref="userService"/>

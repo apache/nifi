@@ -82,7 +82,7 @@ public class JwtService {
     /**
      * Generates a signed JWT token from the provided (Spring Security) login authentication token.
      *
-     * @param authenticationToken
+     * @param authenticationToken the authentication token
      * @return a signed JWT containing the user identity and the identity provider, Base64-encoded
      */
     public String generateSignedToken(final LoginAuthenticationToken authenticationToken) {

@@ -84,9 +84,9 @@ public abstract class AbstractLdapProvider implements LoginIdentityProvider {
             // attempt to get the ldap user details to get the DN
             if (authentication.getPrincipal() instanceof LdapUserDetails) {
                 final LdapUserDetails userDetails = (LdapUserDetails) authentication.getPrincipal();
-                return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername());
+                return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername(), expiration);
             } else {
-                return new AuthenticationResponse(authentication.getName(), credentials.getUsername());
+                return new AuthenticationResponse(authentication.getName(), credentials.getUsername(), expiration);
             }
         } catch (final CommunicationException | AuthenticationServiceException e) {
             logger.error(e.getMessage());
@@ -97,11 +97,6 @@ public abstract class AbstractLdapProvider implements LoginIdentityProvider {
         } catch (final BadCredentialsException bce) {
             throw new InvalidLoginCredentialsException(bce.getMessage(), bce);
         }
-    }
-
-    @Override
-    public long getExpiration() {
-        return expiration;
     }
 
     @Override

@@ -267,13 +267,6 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
             }
 
             @Override
-            public long getExpiration() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    return baseProvider.getExpiration();
-                }
-            }
-
-            @Override
             public void initialize(LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
                 try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                     baseProvider.initialize(initializationContext);

@@ -823,7 +823,7 @@ public class ControllerFacade {
             final Map<String, String> attributes = event.getAttributes();
 
             // calculate the dn chain
-            final List<String> dnChain = ProxiedEntitiesUtils.getXProxiedEntitiesChain(user);
+            final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
 
             // ensure the users in this chain are allowed to download this content
             final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);

@@ -16,15 +16,12 @@
  */
 package org.apache.nifi.web.security;
 
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.nifi.web.security.x509.SubjectDnX509PrincipalExtractor;
-import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.springframework.security.core.Authentication;
@@ -42,33 +39,50 @@ public class ProxiedEntitiesUtils {
     private static final Pattern proxyChainPattern = Pattern.compile("<(.*?)>");
 
     /**
-     * @param request http request
-     * @return the X-ProxiedEntitiesChain from the specified request
+     * Formats the specified DN to be set as a HTTP header using well known conventions.
+     *
+     * @param dn raw dn
+     * @return the dn formatted as an HTTP header
      */
-    public static String getXProxiedEntitiesChain(final HttpServletRequest request) {
-        String xProxiedEntitiesChain = request.getHeader("X-ProxiedEntitiesChain");
-        final X509Certificate cert = new X509CertificateExtractor().extractClientCertificate(request);
-        if (cert != null) {
-            final SubjectDnX509PrincipalExtractor principalExtractor = new SubjectDnX509PrincipalExtractor();
-            final String extractedPrincipal = principalExtractor.extractPrincipal(cert).toString();
-            final String formattedPrincipal = formatProxyDn(extractedPrincipal);
-            if (StringUtils.isBlank(xProxiedEntitiesChain)) {
-                xProxiedEntitiesChain = formattedPrincipal;
-            } else {
-                xProxiedEntitiesChain += formattedPrincipal;
-            }
-        }
-
-        return xProxiedEntitiesChain;
+    public static String formatProxyDn(String dn) {
+        return "<" + dn + ">";
     }
 
     /**
-     * Builds the dn chain for the specified user.
+     * Tokenizes the specified proxy chain.
+     *
+     * @param rawProxyChain raw chain
+     * @return tokenized proxy chain
+     */
+    public static List<String> tokenizeProxiedEntitiesChain(String rawProxyChain) {
+        final List<String> proxyChain = new ArrayList<>();
+        final Matcher rawProxyChainMatcher = proxyChainPattern.matcher(rawProxyChain);
+        while (rawProxyChainMatcher.find()) {
+            proxyChain.add(rawProxyChainMatcher.group(1));
+        }
+
+        return proxyChain;
+    }
+
+    /**
+     * Builds the proxy chain for the specified user.
      *
      * @param user The current user
-     * @return The dn chain for that user
+     * @return The proxy chain for that user in String form
      */
-    public static List<String> getXProxiedEntitiesChain(final NiFiUser user) {
+    public static String buildProxiedEntitiesChainString(final NiFiUser user) {
+        // calculate the dn chain
+        final List<String> proxyChain = buildProxiedEntitiesChain(user);
+        return formatProxyDn(StringUtils.join(proxyChain, "><"));
+    }
+
+    /**
+     * Builds the proxy chain for the specified user.
+     *
+     * @param user The current user
+     * @return The proxy chain for that user in List form
+     */
+    public static List<String> buildProxiedEntitiesChain(final NiFiUser user) {
         // calculate the dn chain
         final List<String> proxyChain = new ArrayList<>();
 
@@ -86,56 +100,25 @@ public class ProxiedEntitiesUtils {
     }
 
     /**
-     * Formats the specified DN to be set as a HTTP header using well known conventions.
+     * Builds the proxy chain from the specified request and user.
      *
-     * @param dn raw dn
-     * @return the dn formatted as an HTTP header
+     * @param request the request
+     * @param username the username
+     * @return the proxy chain in list form
      */
-    public static String formatProxyDn(String dn) {
-        return "<" + dn + ">";
+    public static List<String> buildProxiedEntitiesChain(final HttpServletRequest request, final String username) {
+        final String chain = buildProxiedEntitiesChainString(request, username);
+        return tokenizeProxiedEntitiesChain(chain);
     }
 
-//    /**
-//     * Tokenizes the specified proxy chain.
-//     *
-//     * @param rawProxyChain raw chain
-//     * @return tokenized proxy chain
-//     */
-//    public static Deque<String> tokenizeProxyChain(String rawProxyChain) {
-//        final Deque<String> dnList = new ArrayDeque<>();
-//
-//        // parse the proxy chain
-//        final Matcher rawProxyChainMatcher = proxyChainPattern.matcher(rawProxyChain);
-//        while (rawProxyChainMatcher.find()) {
-//            dnList.push(rawProxyChainMatcher.group(1));
-//        }
-//
-//        return dnList;
-//    }
-    public static List<String> buildProxyChain(final HttpServletRequest request, final String username) {
-        String principal;
-        if (username.startsWith("<") && username.endsWith(">")) {
-            principal = username;
-        } else {
-            principal = formatProxyDn(username);
-        }
-
-        // look for a proxied user
-        if (StringUtils.isNotBlank(request.getHeader(PROXY_ENTITIES_CHAIN))) {
-            principal = request.getHeader(PROXY_ENTITIES_CHAIN) + principal;
-        }
-
-        // parse the proxy chain
-        final List<String> proxyChain = new ArrayList<>();
-        final Matcher rawProxyChainMatcher = proxyChainPattern.matcher(principal);
-        while (rawProxyChainMatcher.find()) {
-            proxyChain.add(rawProxyChainMatcher.group(1));
-        }
-
-        return proxyChain;
-    }
-
-    public static String extractProxiedEntitiesChain(final HttpServletRequest request, final String username) {
+    /**
+     * Builds the dn chain from the specified request and user.
+     *
+     * @param request the request
+     * @param username the username
+     * @return the dn chain in string form
+     */
+    public static String buildProxiedEntitiesChainString(final HttpServletRequest request, final String username) {
         String principal;
         if (username.startsWith("<") && username.endsWith(">")) {
             principal = username;

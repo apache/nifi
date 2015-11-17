@@ -54,10 +54,8 @@ public class NiFiAuthorizationService implements AuthenticationUserDetailsServic
     /**
      * Loads the user details for the specified dn.
      *
-     * Synchronizing because we want each request to be authorized atomically
-     * since each may contain any number of DNs. We wanted an access decision
-     * made for each individual request as a whole (without other request
-     * potentially impacting it).
+     * Synchronizing because we want each request to be authorized atomically since each may contain any number of DNs. We wanted an access decision made for each individual request as a whole
+     * (without other request potentially impacting it).
      *
      * @param request request
      * @return user details
@@ -109,9 +107,6 @@ public class NiFiAuthorizationService implements AuthenticationUserDetailsServic
 
                             // attempt to create a new user account for the proxying client
                             userService.createPendingUserAccount(dn, "Automatic account request generated for unknown proxy.");
-
-                            // propagate the exception to return the appropriate response
-                            throw new UsernameNotFoundException(String.format("An account request was generated for the proxy '%s'.", dn));
                         } catch (AdministrationException ae) {
                             throw new AuthenticationServiceException(String.format("Unable to create an account request for '%s': %s", dn, ae.getMessage()), ae);
                         } catch (IllegalArgumentException iae) {
@@ -122,10 +117,10 @@ public class NiFiAuthorizationService implements AuthenticationUserDetailsServic
                             throw new AccountStatusException(message) {
                             };
                         }
-                    } else {
-                        logger.warn(String.format("Untrusted proxy '%s' must be authorized with '%s' authority: %s", dn, Authority.ROLE_PROXY.toString(), unfe.getMessage()));
-                        throw new UntrustedProxyException(String.format("Untrusted proxy '%s' must be authorized with '%s'.", dn, Authority.ROLE_PROXY.toString()));
                     }
+
+                    logger.warn(String.format("Untrusted proxy '%s' must be authorized with '%s' authority: %s", dn, Authority.ROLE_PROXY.toString(), unfe.getMessage()));
+                    throw new UntrustedProxyException(String.format("Untrusted proxy '%s' must be authorized with '%s'.", dn, Authority.ROLE_PROXY.toString()));
                 } catch (AuthenticationException ae) {
                     logger.warn(String.format("Untrusted proxy '%s' must be authorized with '%s' authority: %s", dn, Authority.ROLE_PROXY.toString(), ae.getMessage()));
                     throw new UntrustedProxyException(String.format("Untrusted proxy '%s' must be authorized with '%s'.", dn, Authority.ROLE_PROXY.toString()));

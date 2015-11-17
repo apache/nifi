@@ -53,6 +53,8 @@ import org.apache.nifi.web.util.WebUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -363,9 +365,9 @@ public abstract class ApplicationResource {
         if (httpServletRequest.isSecure()) {
 
             // add the certificate DN to the proxy chain
-            final String xProxiedEntitiesChain = ProxiedEntitiesUtils.getXProxiedEntitiesChain(httpServletRequest);
-            if (StringUtils.isNotBlank(xProxiedEntitiesChain)) {
-                result.put(PROXIED_ENTITIES_CHAIN_HTTP_HEADER, xProxiedEntitiesChain);
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+            if (user != null) {
+                result.put(PROXIED_ENTITIES_CHAIN_HTTP_HEADER, ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user));
             }
 
             // add the user's authorities (if any) to the headers

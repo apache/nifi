@@ -29,12 +29,14 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -85,8 +87,13 @@ public abstract class NiFiAuthenticationFilter implements Filter {
 
     private void authenticate(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
         try {
-            final Authentication authenticated = attemptAuthentication(request, response);
+            final NiFiAuthenticationRequestToken authenticated = attemptAuthentication(request, response);
             if (authenticated != null) {
+                // log the request attempt - response details will be logged later
+                logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)",
+                        ProxiedEntitiesUtils.formatProxyDn(StringUtils.join(authenticated.getChain(), "><")), request.getMethod(),
+                        request.getRequestURL().toString(), request.getRemoteAddr()));
+
                 final Authentication authorized = authenticationManager.authenticate(authenticated);
                 successfulAuthorization(request, response, authorized);
             }
@@ -97,7 +104,7 @@ public abstract class NiFiAuthenticationFilter implements Filter {
         }
     }
 
-    public abstract Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response);
+    public abstract NiFiAuthenticationRequestToken attemptAuthentication(HttpServletRequest request, HttpServletResponse response);
 
     protected void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
         if (logger.isDebugEnabled()) {
@@ -127,6 +134,9 @@ public abstract class NiFiAuthenticationFilter implements Filter {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 out.println("Access is denied.");
             }
+        } else if (ae instanceof BadCredentialsException) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            out.println(ae.getMessage());
         } else if (ae instanceof AccountStatusException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             out.println(ae.getMessage());
