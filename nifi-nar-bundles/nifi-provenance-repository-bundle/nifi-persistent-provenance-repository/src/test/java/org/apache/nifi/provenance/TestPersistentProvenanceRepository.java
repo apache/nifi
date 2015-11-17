@@ -20,9 +20,11 @@ import static org.apache.nifi.provenance.TestUtil.createFlowFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
@@ -48,6 +51,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.lineage.EventNode;
 import org.apache.nifi.provenance.lineage.Lineage;
 import org.apache.nifi.provenance.lineage.LineageEdge;
@@ -867,6 +871,72 @@ public class TestPersistentProvenanceRepository {
         } finally {
             secondRepo.close();
         }
+    }
+
+    /**
+     * Here the event file is simply corrupted by virtue of not having any event
+     * records while having correct headers
+     */
+    @Test
+    public void testWithWithEventFileMissingRecord() throws Exception {
+        File eventFile = this.prepCorruptedEventFileTests();
+
+        final Query query = new Query(UUID.randomUUID().toString());
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "foo-*"));
+        query.setMaxResults(100);
+
+        DataOutputStream in = new DataOutputStream(new GZIPOutputStream(new FileOutputStream(eventFile)));
+        in.writeUTF("BlahBlah");
+        in.writeInt(4);
+        in.close();
+        assertTrue(eventFile.exists());
+        final QueryResult result = repo.queryEvents(query);
+        assertEquals(10, result.getMatchingEvents().size());
+    }
+
+    /**
+     * Here the event file is simply corrupted by virtue of being empty (0
+     * bytes)
+     */
+    @Test
+    public void testWithWithEventFileCorrupted() throws Exception {
+        File eventFile = this.prepCorruptedEventFileTests();
+
+        final Query query = new Query(UUID.randomUUID().toString());
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "foo-*"));
+        query.setMaxResults(100);
+        DataOutputStream in = new DataOutputStream(new GZIPOutputStream(new FileOutputStream(eventFile)));
+        in.close();
+        final QueryResult result = repo.queryEvents(query);
+        assertEquals(10, result.getMatchingEvents().size());
+    }
+
+    private File prepCorruptedEventFileTests() throws Exception {
+        RepositoryConfiguration config = createConfiguration();
+        config.setMaxStorageCapacity(1024L * 1024L);
+        config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
+        config.setMaxEventFileCapacity(1024L * 1024L);
+        config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
+        config.setDesiredIndexSize(10);
+
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
+        repo.initialize(getEventReporter());
+
+        String uuid = UUID.randomUUID().toString();
+        for (int i = 0; i < 20; i++) {
+            ProvenanceEventRecord record = repo.eventBuilder().fromFlowFile(mock(FlowFile.class))
+                    .setEventType(ProvenanceEventType.CREATE).setComponentId("foo-" + i).setComponentType("myComponent")
+                    .setFlowFileUUID(uuid).build();
+            repo.registerEvent(record);
+            if (i == 9) {
+                repo.waitForRollover();
+                Thread.sleep(2000L);
+            }
+        }
+        repo.waitForRollover();
+        File eventFile = new File(config.getStorageDirectories().get(0), "10.prov.gz");
+        assertTrue(eventFile.delete());
+        return eventFile;
     }
 
     @Test
