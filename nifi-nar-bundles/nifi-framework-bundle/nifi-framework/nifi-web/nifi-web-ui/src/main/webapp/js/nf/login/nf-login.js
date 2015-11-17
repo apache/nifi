@@ -31,8 +31,9 @@ nf.Login = (function () {
             registration: '../nifi-api/registration',
             identity: '../nifi-api/controller/identity',
             users: '../nifi-api/controller/users',
-            token: '../nifi-api/token',
-            loginConfig: '../nifi-api/controller/login/config'
+            token: '../nifi-api/access/token',
+            accessStatus: '../nifi-api/access',
+            accessConfig: '../nifi-api/access/config'
         }
     };
 
@@ -210,167 +211,71 @@ nf.Login = (function () {
         init: function () {
             nf.Storage.init();
 
-            var showMessage = false;
-            var needsLogin = false;
-            var needsNiFiRegistration = false;
-
             if (nf.Storage.getItem('jwt') !== null) {
                 showLogoutLink();
             }
 
-            var token = $.ajax({
+            // access status
+            var accessStatus = $.ajax({
                 type: 'GET',
-                url: config.urls.token
+                url: config.urls.accessStatus,
+                dataType: 'json'
+            }).fail(function (xhr, status, error) {
+                $('#login-message-title').text('Unable to check Access Status');
+                $('#login-message').text(xhr.responseText);
+                initializeMessage();
             });
-
-            var identity = $.ajax({
+            
+            // access config
+            var accessConfigXhr = $.ajax({
                 type: 'GET',
-                url: config.urls.identity,
+                url: config.urls.accessConfig,
                 dataType: 'json'
             });
-
-            var pageStateInit = $.Deferred(function (deferred) {
-                // get the current user's identity
-                identity.done(function (response) {
-                    // if the user is anonymous see if they need to login or if they are working with a certificate
-                    if (response.identity === 'anonymous') {
-                        supportsAnonymous = true;
-
-                        // request a token without including credentials, if successful then the user is using a certificate
-                        token.done(function (jwt) {
-
-                            // the user is using a certificate/token, see if their account is active/pending/revoked/etc
-                            $.ajax({
-                                type: 'GET',
-                                url: config.urls.registrationStatus
-                            }).done(function () {
-                                showMessage = true;
-
-                                // account is active and good
-                                $('#login-message-title').text('Success');
-                                $('#login-message').text('Your account is active and you are already logged in.');
-                            }).fail(function (xhr, status, error) {
-                                if (xhr.status === 401) {
-                                    var user = nf.Common.getJwtSubject(jwt);
-
-                                    // show the user
-                                    $('#nifi-user-submit-justification').text(user);
-
-                                    // anonymous user and 401 means they need nifi registration
-                                    needsNiFiRegistration = true;
-                                } else {
-                                    showMessage = true;
-
-                                    // anonymous user and non-401 means they already have an account and it's pending/revoked
-                                    $('#login-message-title').text('Access Denied');
-                                    if ($.trim(xhr.responseText) === '') {
-                                        $('#login-message').text('Unable to check registration status.');
-                                    } else {
-                                        $('#login-message').text(xhr.responseText);
-                                    }
-                                }
-                            }).always(function () {
-                                deferred.resolve();
-                            });
-                        }).fail(function (tokenXhr) {
-                            if (tokenXhr.status === 400) {
-                                // no credentials supplied so 400 must be due to an invalid/expired token
-                                logout();
-                            }
-
-                            // no token granted, user has no certificate and needs to login with their credentials
-                            needsLogin = true;
-                            deferred.resolve();
-                        });
-                    } else {
-                        showMessage = true;
-
-                        // the user is not anonymous and has an active account (though maybe role-less)
-                        $('#login-message-title').text('Success');
-                        $('#login-message').text('Your account is active and you are already logged in.');
-                        deferred.resolve();
-                    }
-                }).fail(function (xhr, status, error) {
-                    // unable to get identity (and no anonymous user) see if we can offer login
-                    if (xhr.status === 401) {
-                        // attempt to get a token for the current user without passing login credentials
-                        token.done(function (jwt) {
-                            var user = nf.Common.getJwtSubject(jwt);
-
-                            // show the user
-                            $('#nifi-user-submit-justification').text(user);
-
-                            // 401 from identity request and 200 from token means they have a certificate/token but have not yet requested an account 
-                            needsNiFiRegistration = true;
-                        }).fail(function (tokenXhr) {
-                            if (tokenXhr.status === 400) {
-                                // no credentials supplied so 400 must be due to an invalid/expired token
-                                logout();
-                            }
-
-                            // no token granted, user needs to login with their credentials
-                            needsLogin = true;
-                        }).always(function () {
-                            deferred.resolve();
-                        });
-                    } else if (xhr.status === 403) {
-                        // attempt to get a token for the current user without passing login credentials
-                        token.done(function () {
-                            showMessage = true;
-                            
-                            // the user is logged in with certificate or credentials but their account is pending/revoked. error message should indicate
-                            $('#login-message-title').text('Access Denied');
-                            if ($.trim(xhr.responseText) === '') {
-                                $('#login-message').text('Unable to authorize you to use this NiFi and anonymous access is disabled.');
-                            } else {
-                                $('#login-message').text(xhr.responseText);
-                            }
-                        }).fail(function (tokenXhr) {
-                            if (tokenXhr.status === 400) {
-                                // no credentials supplied so 400 must be due to an invalid/expired token
-                                logout();
-                            }
-
-                            // no token granted, user needs to login with their credentials
-                            needsLogin = true;
-                        }).always(function () {
-                            deferred.resolve();
-                        });
-                    } else {
-                        showMessage = true;
-
-                        // the user is logged in with certificate or credentials but their account is pending/revoked. error message should indicate
-                        $('#login-message-title').text('Access Denied');
-                        if ($.trim(xhr.responseText) === '') {
-                            $('#login-message').text('Unable to authorize you to use this NiFi and anonymous access is disabled.');
-                        } else {
-                            $('#login-message').text(xhr.responseText);
-                        }
-
-                        deferred.resolve();
-                    }
-                });
-            }).promise();
-
-            var loginConfigXhr = $.ajax({
-                type: 'GET',
-                url: config.urls.loginConfig,
-                dataType: 'json'
-            });
-
-            // render the page accordingly
-            $.when(loginConfigXhr, pageStateInit).done(function (loginResult) {
-                var loginResponse = loginResult[0];
-                var loginConfig = loginResponse.config;
-
+            
+            $.when(accessStatus, accessConfigXhr).done(function (accessStatusResult, accessConfigResult) {
+                var accessStatusResponse = accessStatusResult[0];
+                var accessStatus = accessStatusResponse.accessStatus;
+                
+                var accessConfigResponse = accessConfigResult[0];
+                var accessConfig = accessConfigResponse.config;
+                
+                // record whether this NiFi supports anonymous access
+                supportsAnonymous = accessConfig.supportsAnonymous;
+            
+                // possible login states
+                var needsLogin = false;
+                var needsNiFiRegistration = false;
+                var showMessage = false;
+                
+                // handle the status appropriately
+                if (accessStatus.status === 'UNKNOWN') {
+                    needsLogin = true;
+                } else if (accessStatus.status === 'UNREGISTERED') {
+                    needsNiFiRegistration = true;
+                    
+                    $('#nifi-user-submit-justification').text(accessStatus.username);
+                } else if (accessStatus.status === 'NOT_ACTIVE') {
+                    showMessage = true;
+                    
+                    $('#login-message-title').text('Access Denied');
+                    $('#login-message').text(accessStatus.message);
+                } else if (accessStatus.status === 'ACTIVE') {
+                    showMessage = true;
+                    
+                    $('#login-message-title').text('Success');
+                    $('#login-message').text('Your account is active and you are already logged in.');
+                }
+                
                 // if login is required, verify its supported
-                if (loginConfig.supportsLogin === false && needsLogin === true) {
+                if (accessConfig.supportsLogin === false && needsLogin === true) {
                     $('#login-message-title').text('Access Denied');
                     $('#login-message').text('This NiFi is not configured to support login.');
                     showMessage = true;
                     needsLogin = false;
                 }
 
+                // initialize the page as appropriate
                 if (showMessage === true) {
                     initializeMessage();
                 } else if (needsLogin === true) {

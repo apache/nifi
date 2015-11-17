@@ -14,31 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.dto;
+package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 
 /**
- * Details for the login configuration.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a AccessConfigurationDTO.
  */
-@XmlType(name = "loginConfig")
-public class LoginConfigurationDTO {
+@XmlRootElement(name = "accessConfigurationEntity")
+public class AccessConfigurationEntity extends Entity {
 
-    private Boolean supportsLogin;
+    private AccessConfigurationDTO config;
 
     /**
-     * @return Indicates whether or not this NiFi supports user login.
+     * The AccessConfigurationDTO that is being serialized.
+     *
+     * @return The AccessConfigurationDTO object
      */
-    @ApiModelProperty(
-            value = "Indicates whether or not this NiFi supports user login.",
-            readOnly = true
-    )
-    public Boolean getSupportsLogin() {
-        return supportsLogin;
+    public AccessConfigurationDTO getConfig() {
+        return config;
     }
 
-    public void setSupportsLogin(Boolean supportsLogin) {
-        this.supportsLogin = supportsLogin;
+    public void setConfig(AccessConfigurationDTO config) {
+        this.config = config;
     }
+
 }

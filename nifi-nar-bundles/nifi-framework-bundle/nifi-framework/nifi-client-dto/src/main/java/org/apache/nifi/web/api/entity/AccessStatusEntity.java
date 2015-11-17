@@ -17,27 +17,27 @@
 package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.LoginConfigurationDTO;
+import org.apache.nifi.web.api.dto.AccessStatusDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a LoginConfigurationDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a AccessStatusDTO.
  */
-@XmlRootElement(name = "loginConfigurationEntity")
-public class LoginConfigurationEntity extends Entity {
+@XmlRootElement(name = "accessStatusEntity")
+public class AccessStatusEntity extends Entity {
 
-    private LoginConfigurationDTO config;
+    private AccessStatusDTO accessStatus;
 
     /**
-     * The LoginConfigurationDTO that is being serialized.
+     * The AccessStatusDTO that is being serialized.
      *
-     * @return The LoginConfigurationDTO object
+     * @return The AccessStatusDTO object
      */
-    public LoginConfigurationDTO getConfig() {
-        return config;
+    public AccessStatusDTO getAccessStatus() {
+        return accessStatus;
     }
 
-    public void setConfig(LoginConfigurationDTO config) {
-        this.config = config;
+    public void setAccessStatus(AccessStatusDTO accessStatus) {
+        this.accessStatus = accessStatus;
     }
 
 }

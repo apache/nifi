@@ -122,7 +122,6 @@
         <property name="optimisticLockingManager" ref="webOptimisticLockingManager"/>
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="clusterManager" ref="clusterManager"/>
-        <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
     </bean>
 
     <!-- depecrated -->
@@ -241,6 +240,15 @@
     </bean>
     <bean id="systemDiagnosticsResource" class="org.apache.nifi.web.api.SystemDiagnosticsResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
+    </bean>
+    <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
+        <property name="properties" ref="nifiProperties"/>
+        <property name="certificateValidator" ref="certificateValidator"/>
+        <property name="certificateExtractor" ref="certificateExtractor"/>
+        <property name="principalExtractor" ref="principalExtractor"/>
+        <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
+        <property name="jwtService" ref="jwtService"/>
+        <property name="userDetailsService" ref="userDetailsService"/>
     </bean>
 
     <!-- configuration for jaxb serialization -->

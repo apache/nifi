@@ -65,7 +65,7 @@ nf.Canvas = (function () {
             banners: '../nifi-api/controller/banners',
             controller: '../nifi-api/controller',
             controllerConfig: '../nifi-api/controller/config',
-            loginConfig: '../nifi-api/controller/login/config',
+            accessConfig: '../nifi-api/access/config',
             cluster: '../nifi-api/cluster',
             d3Script: 'js/d3/d3.min.js'
         }
@@ -1090,7 +1090,7 @@ nf.Canvas = (function () {
                 // get the login config
                 var loginXhr = $.ajax({
                     type: 'GET',
-                    url: config.urls.loginConfig,
+                    url: config.urls.accessConfig,
                     dataType: 'json'
                 });
 

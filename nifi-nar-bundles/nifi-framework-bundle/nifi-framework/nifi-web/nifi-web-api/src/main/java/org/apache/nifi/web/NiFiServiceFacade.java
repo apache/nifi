@@ -43,7 +43,6 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
-import org.apache.nifi.web.api.dto.LoginConfigurationDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -177,13 +176,6 @@ public interface NiFiServiceFacade {
      * @return Controller configuration transfer object
      */
     ControllerConfigurationDTO getControllerConfiguration();
-
-    /**
-     * Gets the login configuration for this controller.
-     *
-     * @return The login configuration
-     */
-    LoginConfigurationDTO getLoginConfiguration();
 
     /**
      * Updates the configuration for this controller.

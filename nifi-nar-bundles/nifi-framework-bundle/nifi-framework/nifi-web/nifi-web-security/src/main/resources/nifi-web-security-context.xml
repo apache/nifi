@@ -29,7 +29,7 @@
     </bean>
         
     <!-- x509 validator -->
-    <bean id="x509Validator" class="org.apache.nifi.web.security.x509.X509CertificateValidator">
+    <bean id="certificateValidator" class="org.apache.nifi.web.security.x509.X509CertificateValidator">
         <property name="ocspValidator" ref="ocspValidator"/> 
     </bean>
     

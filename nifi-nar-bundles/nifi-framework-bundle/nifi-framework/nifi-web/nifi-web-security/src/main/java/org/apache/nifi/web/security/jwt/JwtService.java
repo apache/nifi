@@ -26,12 +26,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
@@ -83,35 +80,25 @@ public class JwtService {
     }
 
     /**
-     * Adds a token for the specified authentication in the specified response.
+     * Generates a signed JWT token from the provided (Spring Security) login authentication token.
      *
-     * @param response The response to add the token to
-     * @param authentication The authentication to generate a token for
-     * @throws java.io.IOException if an io exception occurs
+     * @param authenticationToken
+     * @return a signed JWT containing the user identity and the identity provider, Base64-encoded
      */
-    public void addToken(final HttpServletResponse response, final LoginAuthenticationToken authentication) throws IOException {
+    public String generateSignedToken(final LoginAuthenticationToken authenticationToken) {
         // set expiration to one day from now
         final Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(calendar.getTimeInMillis() + authentication.getExpiration());
+        calendar.setTimeInMillis(calendar.getTimeInMillis() + authenticationToken.getExpiration());
 
         // create a token the specified authentication
-        final String identity = authentication.getPrincipal().toString();
-        final String username = authentication.getName();
+        final String identity = authenticationToken.getPrincipal().toString();
+        final String username = authenticationToken.getName();
 
         // get/create the key for this user
         final String key = keyService.getOrCreateKey(identity);
         final byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
 
         // build the token
-        final String token = Jwts.builder().setSubject(identity).claim("preferred_username", username).setExpiration(calendar.getTime()).signWith(SignatureAlgorithm.HS512, keyBytes).compact();
-
-        // add the token as a response header
-        final PrintWriter out = response.getWriter();
-        out.print(token);
-
-        // mark the response as successful
-        response.setStatus(HttpServletResponse.SC_CREATED);
-        response.setContentType("text/plain");
+        return Jwts.builder().setSubject(identity).claim("preferred_username", username).setExpiration(calendar.getTime()).signWith(SignatureAlgorithm.HS512, keyBytes).compact();
     }
-
 }

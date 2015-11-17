@@ -16,15 +16,12 @@
  */
 package org.apache.nifi.web;
 
-import javax.servlet.Filter;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.NiFiAuthenticationEntryPoint;
-import org.apache.nifi.web.security.RegistrationStatusFilter;
-import org.apache.nifi.web.security.login.LoginAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
@@ -35,7 +32,6 @@ import org.apache.nifi.web.security.x509.X509CertificateValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -46,7 +42,6 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 /**
@@ -72,7 +67,9 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     @Override
     public void configure(WebSecurity webSecurity) throws Exception {
-        webSecurity.ignoring().antMatchers(HttpMethod.GET, "/controller/login/config");
+        webSecurity
+                .ignoring()
+                    .antMatchers("/access/**");
     }
 
     @Override
@@ -80,19 +77,13 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         http
                 .rememberMe().disable()
                 .exceptionHandling()
-                .authenticationEntryPoint(new NiFiAuthenticationEntryPoint(properties))
-                .and()
+                    .authenticationEntryPoint(new NiFiAuthenticationEntryPoint(properties))
+                    .and()
                 .authorizeRequests()
-                .anyRequest().fullyAuthenticated()
-                .and()
+                    .anyRequest().fullyAuthenticated()
+                    .and()
                 .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-
-        // login authentication for /token - exchanges for JWT for subsequent API usage
-        http.addFilterBefore(buildLoginFilter("/token"), UsernamePasswordAuthenticationFilter.class);
-
-        // registration status - will check the status of a user's account registration (regardless if its based on login or not)
-        http.addFilterBefore(buildRegistrationStatusFilter("/registration/status"), UsernamePasswordAuthenticationFilter.class);
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
         // cluster authorized user
         http.addFilterBefore(buildNodeAuthorizedUserFilter(), AnonymousAuthenticationFilter.class);
@@ -119,28 +110,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.authenticationProvider(new NiFiAuthenticationProvider(userDetailsService));
-    }
-
-    private LoginAuthenticationFilter buildLoginFilter(final String url) {
-        final LoginAuthenticationFilter loginFilter = new LoginAuthenticationFilter(url);
-        loginFilter.setJwtService(jwtService);
-        loginFilter.setLoginIdentityProvider(loginIdentityProvider);
-        loginFilter.setUserDetailsService(userDetailsService);
-        loginFilter.setCertificateExtractor(certificateExtractor);
-        loginFilter.setPrincipalExtractor(principalExtractor);
-        loginFilter.setCertificateValidator(certificateValidator);
-        return loginFilter;
-    }
-
-    private Filter buildRegistrationStatusFilter(final String url) {
-        final RegistrationStatusFilter registrationStatusFilter = new RegistrationStatusFilter(url);
-        registrationStatusFilter.setCertificateExtractor(certificateExtractor);
-        registrationStatusFilter.setPrincipalExtractor(principalExtractor);
-        registrationStatusFilter.setCertificateValidator(certificateValidator);
-        registrationStatusFilter.setProperties(properties);
-        registrationStatusFilter.setJwtService(jwtService);
-        registrationStatusFilter.setUserDetailsService(userDetailsService);
-        return registrationStatusFilter;
     }
 
     private NodeAuthorizedUserFilter buildNodeAuthorizedUserFilter() {

@@ -78,10 +78,8 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.web.api.dto.LoginConfigurationDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.IdentityEntity;
-import org.apache.nifi.web.api.entity.LoginConfigurationEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -651,52 +649,6 @@ public class ControllerResource extends ApplicationResource {
         final CounterEntity entity = new CounterEntity();
         entity.setRevision(revision);
         entity.setCounter(counter);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Retrieves the login configuration for this NiFi.
-     *
-     * @param httpServletRequest the servlet request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @return A loginConfigurationEntity
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/login/config")
-    @ApiOperation(
-            value = "Retrieves the login configuration for this NiFi",
-            response = LoginConfigurationEntity.class
-    )
-    public Response getLoginConfig(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        final LoginConfigurationDTO loginConfig = serviceFacade.getLoginConfiguration();
-
-        // only support login/registration when running securely
-        loginConfig.setSupportsLogin(loginConfig.getSupportsLogin() && httpServletRequest.isSecure());
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final LoginConfigurationEntity entity = new LoginConfigurationEntity();
-        entity.setRevision(revision);
-        entity.setConfig(loginConfig);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

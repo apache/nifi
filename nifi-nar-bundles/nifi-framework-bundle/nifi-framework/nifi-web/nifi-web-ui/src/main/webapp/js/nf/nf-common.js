@@ -102,7 +102,7 @@ nf.Common = (function () {
                 }
             },
             urls: {
-                token: '../nifi-api/token'
+                token: '../nifi-api/access/token'
             }
         },
 
@@ -163,7 +163,7 @@ nf.Common = (function () {
                     if (timeRemaining < interval) {
                         // if the token will expire before the next interval minus some bonus time, refresh now
                         $.ajax({
-                            type: 'GET',
+                            type: 'POST',
                             url: nf.Common.config.urls.token
                         }).done(function (jwt) {
                             nf.Storage.setItem('jwt', jwt, nf.Common.getJwtExpiration(jwt));
