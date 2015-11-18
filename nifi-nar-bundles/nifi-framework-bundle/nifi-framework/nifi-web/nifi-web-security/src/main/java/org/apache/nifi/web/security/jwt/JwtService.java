@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
+import org.apache.nifi.key.Key;
 
 /**
  *
@@ -88,17 +89,16 @@ public class JwtService {
                 public byte[] resolveSigningKeyBytes(JwsHeader header, Claims claims) {
                     final String identity = claims.getSubject();
 
-                    // TODO: Currently the kid field is identical to identity, but will be a unique key ID when key rotation is implemented
-                    final String keyId = claims.get(KEY_ID_CLAIM, String.class);
-                    // The key is unique per identity and should be retrieved from the key service
-                    final String key = keyService.getKey(keyId);
+                    // Get the key based on the key id in the claims
+                    final Integer keyId = claims.get(KEY_ID_CLAIM, Integer.class);
+                    final Key key = keyService.getKey(keyId);
 
                     // Ensure we were able to find a key that was previously issued by this key service for this user
-                    if (key == null) {
+                    if (key == null || key.getKey() == null) {
                         throw new UnsupportedJwtException("Unable to determine signing key for " + identity + " [kid: " + keyId + "]");
                     }
 
-                    return key.getBytes(StandardCharsets.UTF_8);
+                    return key.getKey().getBytes(StandardCharsets.UTF_8);
                 }
             }).parseClaimsJws(base64EncodedToken);
         } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException | AdministrationException e) {
@@ -137,21 +137,19 @@ public class JwtService {
 
         try {
             // Get/create the key for this user
-            final String key = keyService.getOrCreateKey(identity);
-            final byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+            final Key key = keyService.getOrCreateKey(identity);
+            final byte[] keyBytes = key.getKey().getBytes(StandardCharsets.UTF_8);
 
             logger.trace("Generating JWT for " + authenticationToken);
 
             // TODO: Implement "jti" claim with nonce to prevent replay attacks and allow blacklisting of revoked tokens
-
-            // TODO: Change kid field to key ID when KeyService is refactored
 
             // Build the token
             return Jwts.builder().setSubject(identity)
                     .setIssuer(authenticationToken.getIssuer())
                     .setAudience(authenticationToken.getIssuer())
                     .claim(USERNAME_CLAIM, username)
-                    .claim(KEY_ID_CLAIM, identity)
+                    .claim(KEY_ID_CLAIM, key.getId())
                     .setExpiration(expiration.getTime())
                     .setIssuedAt(Calendar.getInstance().getTime())
                     .signWith(SIGNATURE_ALGORITHM, keyBytes).compact();

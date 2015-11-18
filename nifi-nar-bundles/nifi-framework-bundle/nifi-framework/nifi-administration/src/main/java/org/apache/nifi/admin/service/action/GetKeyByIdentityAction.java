@@ -14,36 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao;
+package org.apache.nifi.admin.service.action;
 
+import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.authorization.AuthorityProvider;
+
+import org.apache.nifi.admin.dao.KeyDAO;
 import org.apache.nifi.key.Key;
 
 /**
- * Key data access.
+ * Gets a key for the specified key id.
  */
-public interface KeyDAO {
+public class GetKeyByIdentityAction implements AdministrationAction<Key> {
 
-    /**
-     * Gets the key for the specified user identity. Returns null if no key exists for the key id.
-     *
-     * @param id The key id
-     * @return The key or null
-     */
-    Key findKeyById(int id);
+    private final String identity;
 
-    /**
-     * Gets the latest key for the specified identity. Returns null if no key exists for the user identity.
-     *
-     * @param identity The identity
-     * @return The key or null
-     */
-    Key findLatestKeyByIdentity(String identity);
+    public GetKeyByIdentityAction(String identity) {
+        this.identity = identity;
+    }
 
-    /**
-     * Creates a key for the specified user identity.
-     *
-     * @param identity The user identity
-     * @return The key
-     */
-    Key createKey(String identity);
+    @Override
+    public Key execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
+        final KeyDAO keyDao = daoFactory.getKeyDAO();
+        return keyDao.findLatestKeyByIdentity(identity);
+    }
+
 }

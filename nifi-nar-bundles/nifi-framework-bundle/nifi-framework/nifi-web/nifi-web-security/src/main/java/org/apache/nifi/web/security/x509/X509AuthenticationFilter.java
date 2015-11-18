@@ -21,6 +21,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.authentication.AuthenticationResponse;
+import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.token.NewAccountAuthenticationRequestToken;
@@ -28,7 +29,6 @@ import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
 import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.BadCredentialsException;
 
 /**
  * Custom X509 filter that will inspect the HTTP headers for a proxied user before extracting the user details from the client certificate.
@@ -58,7 +58,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
         try {
             authenticationResponse = certificateIdentityProvider.authenticate(certificates);
         } catch (final IllegalArgumentException iae) {
-            throw new BadCredentialsException(iae.getMessage(), iae);
+            throw new InvalidAuthenticationException(iae.getMessage(), iae);
         }
 
         final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(request, authenticationResponse.getIdentity());

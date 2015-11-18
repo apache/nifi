@@ -27,58 +27,71 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.AuthenticationResponse;
+import org.apache.nifi.authentication.LoginCredentials;
+import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
+import org.apache.nifi.authentication.LoginIdentityProviderInitializationContext;
+import org.apache.nifi.authentication.exception.IdentityAccessException;
+import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
+import org.apache.nifi.authorization.exception.ProviderDestructionException;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.util.FormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ldap.CommunicationException;
 import org.springframework.ldap.core.support.AbstractTlsDirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.DefaultTlsDirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.DigestMd5DirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.ldap.authentication.AbstractLdapAuthenticationProvider;
 import org.springframework.security.ldap.authentication.BindAuthenticator;
 import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 /**
- * LDAP based implementation of a login identity provider.
+ * Abstract LDAP based implementation of a login identity provider.
  */
-public class LdapProvider extends AbstractLdapProvider {
+public class LdapProvider implements LoginIdentityProvider {
 
+    private static final Logger logger = LoggerFactory.getLogger(LdapProvider.class);
     private static final String TLS = "TLS";
 
+    private AbstractLdapAuthenticationProvider provider;
+    private long expiration;
+
     @Override
-    protected AbstractLdapAuthenticationProvider getLdapAuthenticationProvider(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
+    public final void initialize(final LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
+    }
+
+    @Override
+    public final void onConfigured(final LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
+        final String rawExpiration = configurationContext.getProperty("Expiration Duration");
+        if (StringUtils.isBlank(rawExpiration)) {
+            throw new ProviderCreationException("The Expiration Duration must be specified.");
+        }
+
+        try {
+            expiration = FormatUtils.getTimeDuration(rawExpiration, TimeUnit.MILLISECONDS);
+        } catch (final IllegalArgumentException iae) {
+            throw new ProviderCreationException(String.format("The Expiration Duration '%s' is not a valid time duration", rawExpiration));
+        }
+
         final LdapContextSource context = new LdapContextSource();
 
         final Map<String, Object> baseEnvironment = new HashMap<>();
 
-        // connection time out
-        final String rawConnectTimeout = configurationContext.getProperty("Connect Timeout");
-
-        // TODO: Refactor to utility method to remove duplicate code
-        if (StringUtils.isNotBlank(rawConnectTimeout)) {
-            try {
-                final Long connectTimeout = FormatUtils.getTimeDuration(rawConnectTimeout, TimeUnit.MILLISECONDS);
-                baseEnvironment.put("com.sun.jndi.ldap.connect.timeout", connectTimeout.toString());
-            } catch (final IllegalArgumentException iae) {
-                throw new ProviderCreationException(String.format("The Connect Timeout '%s' is not a valid time duration", rawConnectTimeout));
-            }
-        }
-
-        // read time out
-        final String rawReadTimeout = configurationContext.getProperty("Read Timeout");
-        if (StringUtils.isNotBlank(rawReadTimeout)) {
-            try {
-                final Long readTimeout = FormatUtils.getTimeDuration(rawReadTimeout, TimeUnit.MILLISECONDS);
-                baseEnvironment.put("com.sun.jndi.ldap.read.timeout", readTimeout.toString());
-            } catch (final IllegalArgumentException iae) {
-                throw new ProviderCreationException(String.format("The Read Timeout '%s' is not a valid time duration", rawReadTimeout));
-            }
-        }
+        // connect/read time out
+        setTimeout(configurationContext, baseEnvironment, "Connect Timeout", "com.sun.jndi.ldap.connect.timeout");
+        setTimeout(configurationContext, baseEnvironment, "Read Timeout", "com.sun.jndi.ldap.read.timeout");
 
         // set the base environment is necessary
         if (!baseEnvironment.isEmpty()) {
@@ -140,7 +153,7 @@ public class LdapProvider extends AbstractLdapProvider {
                                     sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, TLS);
                                 } else {
                                     try {
-                                        final ClientAuth clientAuth = ClientAuth.valueOf(rawClientAuth);
+                                        final SslContextFactory.ClientAuth clientAuth = SslContextFactory.ClientAuth.valueOf(rawClientAuth);
                                         sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
                                                 rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, TLS);
                                     } catch (final IllegalArgumentException iae) {
@@ -205,7 +218,56 @@ public class LdapProvider extends AbstractLdapProvider {
         }
 
         // create the underlying provider
-        final LdapAuthenticationProvider ldapAuthenticationProvider = new LdapAuthenticationProvider(authenticator);
-        return ldapAuthenticationProvider;
+        provider = new LdapAuthenticationProvider(authenticator);
     }
+
+    private void setTimeout(final LoginIdentityProviderConfigurationContext configurationContext,
+            final Map<String, Object> baseEnvironment,
+            final String configurationProperty,
+            final String environmentKey) {
+        
+        final String rawTimeout = configurationContext.getProperty(configurationProperty);
+        if (StringUtils.isNotBlank(rawTimeout)) {
+            try {
+                final Long timeout = FormatUtils.getTimeDuration(rawTimeout, TimeUnit.MILLISECONDS);
+                baseEnvironment.put(environmentKey, timeout.toString());
+            } catch (final IllegalArgumentException iae) {
+                throw new ProviderCreationException(String.format("The %s '%s' is not a valid time duration", configurationProperty, rawTimeout));
+            }
+        }
+    }
+    
+    @Override
+    public final AuthenticationResponse authenticate(final LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException {
+        if (provider == null) {
+            throw new IdentityAccessException("The LDAP authentication provider is not initialized.");
+        }
+
+        try {
+            // perform the authentication
+            final UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(credentials.getUsername(), credentials.getPassword());
+            final Authentication authentication = provider.authenticate(token);
+
+            // attempt to get the ldap user details to get the DN
+            if (authentication.getPrincipal() instanceof LdapUserDetails) {
+                final LdapUserDetails userDetails = (LdapUserDetails) authentication.getPrincipal();
+                return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername(), expiration);
+            } else {
+                return new AuthenticationResponse(authentication.getName(), credentials.getUsername(), expiration);
+            }
+        } catch (final CommunicationException | AuthenticationServiceException e) {
+            logger.error(e.getMessage());
+            if (logger.isDebugEnabled()) {
+                logger.debug(StringUtils.EMPTY, e);
+            }
+            throw new IdentityAccessException("Unable to query the configured directory server. See the logs for additional details.", e);
+        } catch (final BadCredentialsException bce) {
+            throw new InvalidLoginCredentialsException(bce.getMessage(), bce);
+        }
+    }
+
+    @Override
+    public final void preDestruction() throws ProviderDestructionException {
+    }
+
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.admin.service;
 
+import org.apache.nifi.key.Key;
+
 /**
  * Supports retrieving and issues keys for signing user tokens.
  */
@@ -24,10 +26,10 @@ public interface KeyService {
     /**
      * Gets a key for the specified user identity. Returns null if the user has not had a key issued
      *
-     * @param identity The user identity
+     * @param id The key id
      * @return The key or null
      */
-    String getKey(String identity);
+    Key getKey(int id);
 
     /**
      * Gets a key for the specified user identity. If a key does not exist, one will be created.
@@ -36,5 +38,5 @@ public interface KeyService {
      * @return The key
      * @throws AdministrationException if it failed to get/create the key
      */
-    String getOrCreateKey(String identity);
+    Key getOrCreateKey(String identity);
 }

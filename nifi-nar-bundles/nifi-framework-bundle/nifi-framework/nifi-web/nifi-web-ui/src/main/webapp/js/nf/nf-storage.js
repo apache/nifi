@@ -42,32 +42,18 @@ nf.Storage = (function () {
     };
     
     /**
-     * If the item at key is not expired, the value of field is returned. Otherwise, null.
+     * Gets an enty for the key. The entry expiration is not checked.
      * 
      * @param {string} key
-     * @param {string} field
-     * @return {object} the value
      */
-    var getEntryField = function (key, field) {
+    var getEntry = function (key) {
         try {
             // parse the entry
             var entry = JSON.parse(localStorage.getItem(key));
 
             // ensure the entry and item are present
             if (nf.Common.isDefinedAndNotNull(entry)) {
-                
-                // if the entry is expired, drop it and return null
-                if (checkExpiration(entry)) {
-                    nf.Storage.removeItem(key);
-                    return null;
-                }
-
-                // if the entry has the specified field return its value
-                if (nf.Common.isDefinedAndNotNull(entry[field])) {
-                    return entry[field];
-                } else {
-                    return null;
-                }
+                return entry;
             } else {
                 return null;
             }
@@ -75,7 +61,7 @@ nf.Storage = (function () {
             return null;
         }
     };
-
+    
     return {
         /**
          * Initializes the storage. Items will be persisted for two days. Once the scripts runs
@@ -86,11 +72,9 @@ nf.Storage = (function () {
                 try {
                     // get the next item
                     var key = localStorage.key(i);
-                    var entry = JSON.parse(localStorage.getItem(key));
-
-                    if (checkExpiration(entry)) {
-                        nf.Storage.removeItem(key);
-                    }
+                    
+                    // attempt to get the item which will expire if necessary
+                    nf.Storage.getItem(key);
                 } catch (e) {
                 }
             }
@@ -118,6 +102,17 @@ nf.Storage = (function () {
         },
         
         /**
+         * Returns whether there is an entry for this key. This will not check the expiration. If
+         * the entry is expired, it will return null on a subsequent getItem invocation.
+         * 
+         * @param {string} key
+         * @returns {boolean}
+         */
+        hasItem: function (key) {
+            return getEntry(key) !== null;
+        },
+        
+        /**
          * Gets the item with the specified key. If an item with this key does
          * not exist, null is returned. If an item exists but cannot be parsed
          * or is malformed/unrecognized, null is returned.
@@ -125,18 +120,44 @@ nf.Storage = (function () {
          * @param {type} key
          */
         getItem: function (key) {
-            return getEntryField(key, 'item');
+            var entry = getEntry(key);
+            if (entry === null) {
+                return null;
+            }
+
+            // if the entry is expired, drop it and return null
+            if (checkExpiration(entry)) {
+                nf.Storage.removeItem(key);
+                return null;
+            }
+
+            // if the entry has the specified field return its value
+            if (nf.Common.isDefinedAndNotNull(entry['item'])) {
+                return entry['item'];
+            } else {
+                return null;
+            }
         },
         
         /**
-         * Gets the expiration for the specified item. If the item does not exists our could 
-         * not be parsed, returns null.
+         * Gets the expiration for the specified item. This will not check the expiration. If
+         * the entry is expired, it will return null on a subsequent getItem invocation.
          * 
          * @param {string} key
          * @returns {integer}
          */
         getItemExpiration: function (key) {
-            return getEntryField(key, 'expires');
+            var entry = getEntry(key);
+            if (entry === null) {
+                return null;
+            }
+
+            // if the entry has the specified field return its value
+            if (nf.Common.isDefinedAndNotNull(entry['expires'])) {
+                return entry['expires'];
+            } else {
+                return null;
+            }
         },
         
         /**

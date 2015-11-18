@@ -19,7 +19,7 @@ package org.apache.nifi.admin.service.impl;
 import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
-import org.apache.nifi.admin.service.action.GetKeyAction;
+import org.apache.nifi.admin.service.action.GetKeyByIdAction;
 import org.apache.nifi.admin.service.action.GetOrCreateKeyAction;
 import org.apache.nifi.admin.service.transaction.Transaction;
 import org.apache.nifi.admin.service.transaction.TransactionBuilder;
@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.nifi.key.Key;
 
 /**
  *
@@ -44,19 +45,17 @@ public class StandardKeyService implements KeyService {
     private TransactionBuilder transactionBuilder;
 
     @Override
-    public String getKey(String identity) {
-        // TODO: Change this service to look up by "key ID" instead of identity
-        // TODO: Change the return type to a Key POJO to support key rotation
+    public Key getKey(int id) {
         Transaction transaction = null;
-        String key = null;
+        Key key = null;
 
         readLock.lock();
         try {
             // start the transaction
             transaction = transactionBuilder.start();
 
-            // seed the accounts
-            GetKeyAction addActions = new GetKeyAction(identity);
+            // get the key
+            GetKeyByIdAction addActions = new GetKeyByIdAction(id);
             key = transaction.execute(addActions);
 
             // commit the transaction
@@ -76,11 +75,9 @@ public class StandardKeyService implements KeyService {
     }
 
     @Override
-    public String getOrCreateKey(String identity) {
-        // TODO: Change this service to look up by "key ID" instead of identity
-        // TODO: Change the return type to a Key POJO to support key rotation
+    public Key getOrCreateKey(String identity) {
         Transaction transaction = null;
-        String key = null;
+        Key key = null;
 
         writeLock.lock();
         try {

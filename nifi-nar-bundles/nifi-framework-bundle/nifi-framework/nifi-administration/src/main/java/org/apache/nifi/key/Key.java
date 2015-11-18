@@ -14,36 +14,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao;
+package org.apache.nifi.key;
 
-import org.apache.nifi.key.Key;
+import java.io.Serializable;
 
 /**
- * Key data access.
+ * An signing key for a NiFi user.
  */
-public interface KeyDAO {
+public class Key implements Serializable {
+
+    private int id;
+    private String identity;
+    private String key;
 
     /**
-     * Gets the key for the specified user identity. Returns null if no key exists for the key id.
-     *
-     * @param id The key id
-     * @return The key or null
+     * The key id.
+     * 
+     * @return the id
      */
-    Key findKeyById(int id);
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     /**
-     * Gets the latest key for the specified identity. Returns null if no key exists for the user identity.
-     *
-     * @param identity The identity
-     * @return The key or null
+     * The identity of the user this key is associated with.
+     * 
+     * @return the identity
      */
-    Key findLatestKeyByIdentity(String identity);
+    public String getIdentity() {
+        return identity;
+    }
+
+    public void setIdentity(String identity) {
+        this.identity = identity;
+    }
 
     /**
-     * Creates a key for the specified user identity.
-     *
-     * @param identity The user identity
-     * @return The key
+     * The signing key.
+     * 
+     * @return the signing key
      */
-    Key createKey(String identity);
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
 }

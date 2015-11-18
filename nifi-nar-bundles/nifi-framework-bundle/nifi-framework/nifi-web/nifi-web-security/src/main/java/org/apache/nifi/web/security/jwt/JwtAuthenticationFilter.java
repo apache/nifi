@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
+import org.apache.nifi.web.security.InvalidAuthenticationException;
 
 /**
  */
@@ -49,7 +50,6 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         // TODO: Refactor request header extraction logic to shared utility as it is duplicated in AccessResource
 
         // get the principal out of the user token
-        // look for an authorization token
         final String authorization = request.getHeader(AUTHORIZATION);
 
         // if there is no authorization header, we don't know the user
@@ -61,9 +61,6 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
             try {
                 final String jwtPrincipal = jwtService.getAuthenticationFromToken(token);
-                if (jwtPrincipal == null) {
-                    return null;
-                }
 
                 if (isNewAccountRequest(request)) {
                     return new NewAccountAuthenticationRequestToken(new NewAccountRequest(Arrays.asList(jwtPrincipal), getJustification(request)));
@@ -71,9 +68,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
                     return new NiFiAuthenticationRequestToken(Arrays.asList(jwtPrincipal));
                 }
             } catch (JwtException e) {
-                // TODO: Is this the correct way to handle an unverified token?
-                logger.error("Could not verify JWT", e);
-                return null;
+                throw new InvalidAuthenticationException(e.getMessage(), e);
             }
         }
     }

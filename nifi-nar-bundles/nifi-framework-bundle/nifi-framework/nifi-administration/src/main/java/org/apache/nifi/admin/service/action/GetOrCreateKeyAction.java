@@ -20,11 +20,12 @@ import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.authorization.AuthorityProvider;
 
 import org.apache.nifi.admin.dao.KeyDAO;
+import org.apache.nifi.key.Key;
 
 /**
  * Gets a key for the specified user identity.
  */
-public class GetOrCreateKeyAction implements AdministrationAction<String> {
+public class GetOrCreateKeyAction implements AdministrationAction<Key> {
 
     private final String identity;
 
@@ -33,10 +34,10 @@ public class GetOrCreateKeyAction implements AdministrationAction<String> {
     }
 
     @Override
-    public String execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
+    public Key execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
         final KeyDAO keyDao = daoFactory.getKeyDAO();
 
-        String key = keyDao.getKey(identity);
+        Key key = keyDao.findLatestKeyByIdentity(identity);
         if (key == null) {
             key = keyDao.createKey(identity);
         }

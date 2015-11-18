@@ -936,7 +936,6 @@ nf.Canvas = (function () {
     };
 
     return {
-        ANONYMOUS_USER_TEXT: 'Anonymous user',
         CANVAS_OFFSET: 0,
         /**
          * Determines if the current broswer supports SVG.
@@ -1056,17 +1055,8 @@ nf.Canvas = (function () {
                             $('#logout-link-container').show();
                         }
                     } else {
-                        // alert user's of anonymous access
-                        $('#anonymous-user-alert').show().qtip($.extend({}, nf.Common.config.tooltipConfig, {
-                            content: 'You are accessing with limited authority. Log in or request an account to access with additional authority granted to you by an administrator.',
-                            position: {
-                                my: 'top right',
-                                at: 'bottom left'
-                            }
-                        }));
-
-                        // render the anonymous user text
-                        $('#current-user').text(nf.Canvas.ANONYMOUS_USER_TEXT).show();
+                        // set the anonymous user label
+                        nf.Common.setAnonymousUserLabel();
                     }
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {

@@ -22,10 +22,12 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.apache.nifi.key.Key;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.when;
 
 /**
@@ -117,9 +119,14 @@ public class JwtServiceTest {
 
     @Before
     public void setUp() throws Exception {
+        final Key key = new Key();
+        key.setId(0);
+        key.setIdentity(HMAC_SECRET);
+        key.setKey(HMAC_SECRET);
+        
         mockKeyService = Mockito.mock(KeyService.class);
-        when(mockKeyService.getKey(anyString())).thenReturn(HMAC_SECRET);
-        when(mockKeyService.getOrCreateKey(anyString())).thenReturn(HMAC_SECRET);
+        when(mockKeyService.getKey(anyInt())).thenReturn(key);
+        when(mockKeyService.getOrCreateKey(anyString())).thenReturn(key);
         jwtService = new JwtService(mockKeyService);
     }
 

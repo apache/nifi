@@ -55,6 +55,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AccessStatusEntity;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -185,55 +186,52 @@ public class AccessResource extends ApplicationResource {
                     accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
                     accessStatus.setMessage("No credentials supplied, unknown user.");
                 } else {
-                    // Extract the Base64 encoded token from the Authorization header
-                    final String token = StringUtils.substringAfterLast(authorization, " ");
-
                     try {
+                        // Extract the Base64 encoded token from the Authorization header
+                        final String token = StringUtils.substringAfterLast(authorization, " ");
                         final String principal = jwtService.getAuthenticationFromToken(token);
 
-                        // ensure we have something we can work with (certificate or credentials)
-                        if (principal == null) {
-                            throw new IllegalArgumentException("The specific token is not valid.");
-                        } else {
-                            // set the user identity
-                            accessStatus.setIdentity(principal);
-                            accessStatus.setUsername(CertificateUtils.extractUsername(principal));
+                        // set the user identity
+                        accessStatus.setIdentity(principal);
+                        accessStatus.setUsername(CertificateUtils.extractUsername(principal));
 
-                            // without a certificate, this is not a proxied request
-                            final List<String> chain = Arrays.asList(principal);
+                        // without a certificate, this is not a proxied request
+                        final List<String> chain = Arrays.asList(principal);
 
-                            // check authorization for this user
-                            checkAuthorization(chain);
+                        // check authorization for this user
+                        checkAuthorization(chain);
 
-                            // no issues with authorization
-                            accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                            accessStatus.setMessage("Account is active and authorized");
-                        }
+                        // no issues with authorization
+                        accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
+                        accessStatus.setMessage("Account is active and authorized");
                     } catch (JwtException e) {
-                        // TODO: Handle the exception from a failed JWT verification
-                        throw new AccessDeniedException("The JWT could not be verified", e);
+                        throw new InvalidAuthenticationException(e.getMessage(), e);
                     }
                 }
             } else {
-                final AuthenticationResponse authenticationResponse = certificateIdentityProvider.authenticate(certificates);
+                try {
+                    final AuthenticationResponse authenticationResponse = certificateIdentityProvider.authenticate(certificates);
 
-                // get the proxy chain and ensure its populated
-                final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(httpServletRequest, authenticationResponse.getIdentity());
-                if (proxyChain.isEmpty()) {
-                    logger.error(String.format("Unable to parse the proxy chain %s from the incoming request.", authenticationResponse.getIdentity()));
-                    throw new IllegalArgumentException("Unable to determine the user from the incoming request.");
+                    // get the proxy chain and ensure its populated
+                    final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(httpServletRequest, authenticationResponse.getIdentity());
+                    if (proxyChain.isEmpty()) {
+                        logger.error(String.format("Unable to parse the proxy chain %s from the incoming request.", authenticationResponse.getIdentity()));
+                        throw new IllegalArgumentException("Unable to determine the user from the incoming request.");
+                    }
+
+                    // set the user identity
+                    accessStatus.setIdentity(proxyChain.get(0));
+                    accessStatus.setUsername(CertificateUtils.extractUsername(proxyChain.get(0)));
+
+                    // ensure the proxy chain is authorized
+                    checkAuthorization(proxyChain);
+
+                    // no issues with authorization
+                    accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
+                    accessStatus.setMessage("Account is active and authorized");
+                } catch (final IllegalArgumentException iae) {
+                    throw new InvalidAuthenticationException(iae.getMessage(), iae);
                 }
-
-                // ensure the proxy chain is authorized
-                checkAuthorization(proxyChain);
-
-                // set the user identity
-                accessStatus.setIdentity(proxyChain.get(0));
-                accessStatus.setUsername(CertificateUtils.extractUsername(proxyChain.get(0)));
-
-                // no issues with authorization
-                accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                accessStatus.setMessage("Account is active and authorized");
             }
         } catch (final UsernameNotFoundException unfe) {
             accessStatus.setStatus(AccessStatusDTO.Status.UNREGISTERED.name());
@@ -323,20 +321,20 @@ public class AccessResource extends ApplicationResource {
                 final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
                 final long maxExpiration = TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS);
                 final long minExpiration = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
-                
+
                 long expiration = authenticationResponse.getExpiration();
                 if (expiration > maxExpiration) {
                     expiration = maxExpiration;
-                    
-                    logger.warn(String.format("Max token expiration exceeded. Setting expiration to %s from %s for %s", expiration, 
+
+                    logger.warn(String.format("Max token expiration exceeded. Setting expiration to %s from %s for %s", expiration,
                             authenticationResponse.getExpiration(), authenticationResponse.getIdentity()));
                 } else if (expiration < minExpiration) {
                     expiration = minExpiration;
-                    
-                    logger.warn(String.format("Min token expiration not met. Setting expiration to %s from %s for %s", expiration, 
+
+                    logger.warn(String.format("Min token expiration not met. Setting expiration to %s from %s for %s", expiration,
                             authenticationResponse.getExpiration(), authenticationResponse.getIdentity()));
                 }
-                
+
                 // create the authentication token
                 // TODO: Some Spring beans return "" for getClass().getSimpleName(). Using getName() temporarily
                 loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, loginIdentityProvider.getClass().getName());

@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -134,8 +133,8 @@ public abstract class NiFiAuthenticationFilter implements Filter {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 out.println("Access is denied.");
             }
-        } else if (ae instanceof BadCredentialsException) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        } else if (ae instanceof InvalidAuthenticationException) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             out.println(ae.getMessage());
         } else if (ae instanceof AccountStatusException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);

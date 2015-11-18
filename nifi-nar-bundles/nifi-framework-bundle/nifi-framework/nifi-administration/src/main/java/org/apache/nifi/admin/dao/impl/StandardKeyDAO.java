@@ -20,17 +20,23 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.UUID;
 import org.apache.nifi.admin.RepositoryUtils;
 import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.dao.KeyDAO;
+import org.apache.nifi.key.Key;
 
 /**
  *
  */
 public class StandardKeyDAO implements KeyDAO {
 
-    private static final String SELECT_KEY_FOR_USER = "SELECT KEY "
+    private static final String SELECT_KEY_FOR_USER_BY_ID = "SELECT ID, IDENTITY, KEY "
+            + "FROM KEY "
+            + "WHERE ID = ?";
+
+    private static final String SELECT_KEY_FOR_USER_BY_IDENTITY = "SELECT ID, IDENTITY, KEY "
             + "FROM KEY "
             + "WHERE IDENTITY = ?";
 
@@ -47,26 +53,25 @@ public class StandardKeyDAO implements KeyDAO {
     }
 
     @Override
-    public String getKey(String identity) {
-        if (identity == null) {
-            throw new IllegalArgumentException("Specified identity cannot be null.");
-        }
-
-        String key = null;
+    public Key findKeyById(int id) {
+        Key key = null;
 
         PreparedStatement statement = null;
         ResultSet rs = null;
         try {
             // add each authority for the specified user
-            statement = connection.prepareStatement(SELECT_KEY_FOR_USER);
-            statement.setString(1, identity);
+            statement = connection.prepareStatement(SELECT_KEY_FOR_USER_BY_ID);
+            statement.setInt(1, id);
 
             // execute the query
             rs = statement.executeQuery();
 
             // if the key was found, add it
             if (rs.next()) {
-                key = rs.getString("KEY");
+                key = new Key();
+                key.setId(rs.getInt("ID"));
+                key.setIdentity(rs.getString("IDENTITY"));
+                key.setKey(rs.getString("KEY"));
             }
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);
@@ -79,20 +84,62 @@ public class StandardKeyDAO implements KeyDAO {
     }
 
     @Override
-    public String createKey(final String identity) {
+    public Key findLatestKeyByIdentity(String identity) {
+        if (identity == null) {
+            throw new IllegalArgumentException("Specified identity cannot be null.");
+        }
+
+        Key key = null;
+
         PreparedStatement statement = null;
         ResultSet rs = null;
         try {
-            final String key = UUID.randomUUID().toString();
+            // add each authority for the specified user
+            statement = connection.prepareStatement(SELECT_KEY_FOR_USER_BY_IDENTITY);
+            statement.setString(1, identity);
+
+            // execute the query
+            rs = statement.executeQuery();
+
+            // if the key was found, add it
+            if (rs.next()) {
+                key = new Key();
+                key.setId(rs.getInt("ID"));
+                key.setIdentity(rs.getString("IDENTITY"));
+                key.setKey(rs.getString("KEY"));
+            }
+        } catch (SQLException sqle) {
+            throw new DataAccessException(sqle);
+        } finally {
+            RepositoryUtils.closeQuietly(rs);
+            RepositoryUtils.closeQuietly(statement);
+        }
+
+        return key;
+    }
+
+    @Override
+    public Key createKey(final String identity) {
+        PreparedStatement statement = null;
+        ResultSet rs = null;
+        try {
+            final String keyValue = UUID.randomUUID().toString();
 
             // add each authority for the specified user
-            statement = connection.prepareStatement(INSERT_KEY);
+            statement = connection.prepareStatement(INSERT_KEY, Statement.RETURN_GENERATED_KEYS);
             statement.setString(1, identity);
-            statement.setString(2, key);
+            statement.setString(2, keyValue);
 
             // insert the key
             int updateCount = statement.executeUpdate();
-            if (updateCount == 1) {
+            rs = statement.getGeneratedKeys();
+
+            // verify the results
+            if (updateCount == 1 && rs.next()) {
+                final Key key = new Key();
+                key.setId(rs.getInt(1));
+                key.setIdentity(identity);
+                key.setKey(keyValue);
                 return key;
             } else {
                 throw new DataAccessException("Unable to add key for user.");

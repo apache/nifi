@@ -54,9 +54,17 @@ $(document).ready(function () {
     // include jwt when possible
     $.ajaxSetup({
         'beforeSend': function(xhr) {
+            var hadToken = nf.Storage.hasItem('jwt');
+            
+            // get the token to include in all requests
             var token = nf.Storage.getItem('jwt');
-            if (token) {
+            if (token !== null) {
                 xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            } else {
+                // if the current user was logged in with a token and the token just expired, reload
+                if (hadToken === true) {
+                    return false;
+                }
             }
         }
     });
@@ -83,6 +91,8 @@ nf.Common = (function () {
     var tokenRefreshInterval = null;
     
     return {
+        ANONYMOUS_USER_TEXT: 'Anonymous user',
+        
         config: {
             sensitiveText: 'Sensitive value set',
             tooltipConfig: {
@@ -100,9 +110,6 @@ nf.Common = (function () {
                     at: 'top right',
                     my: 'bottom left'
                 }
-            },
-            urls: {
-                token: '../nifi-api/access/token'
             }
         },
 
@@ -148,7 +155,7 @@ nf.Common = (function () {
             }
             
             // set the interval to one hour
-            var interval = nf.Common.MILLIS_PER_HOUR;
+            var interval = 10 * nf.Common.MILLIS_PER_MINUTE;
             
             var checkExpiration = function () {
                 var expiration = nf.Storage.getItemExpiration('jwt');
@@ -161,13 +168,16 @@ nf.Common = (function () {
                     // get the time remainging plus a little bonus time to reload the token
                     var timeRemaining = expirationDate.valueOf() - now.valueOf() - nf.Common.MILLIS_PER_MINUTE;
                     if (timeRemaining < interval) {
-                        // if the token will expire before the next interval minus some bonus time, refresh now
-                        $.ajax({
-                            type: 'POST',
-                            url: nf.Common.config.urls.token
-                        }).done(function (jwt) {
-                            nf.Storage.setItem('jwt', jwt, nf.Common.getJwtExpiration(jwt));
-                        });
+                        if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT && !$('#anonymous-user-alert').is(':visible')) {
+                            // if the token will expire before the next interval minus some bonus time, notify the user to re-login
+                            $('#anonymous-user-alert').show().qtip($.extend({}, nf.Common.config.tooltipConfig, {
+                                content: 'Your session will expire soon. Please log in again to avoid being automatically logged out.',
+                                position: {
+                                    my: 'top right',
+                                    at: 'bottom left'
+                                }
+                            }));
+                        }
                     }
                 }
             };
@@ -180,13 +190,35 @@ nf.Common = (function () {
         },
 
         /**
+         * Sets the anonymous user label.
+         */
+        setAnonymousUserLabel: function () {
+            var anonymousUserAlert = $('#anonymous-user-alert');
+            if (anonymousUserAlert.data('qtip')) {
+                anonymousUserAlert.qtip('api').destroy(true);
+            }
+                        
+            // alert user's of anonymous access
+            anonymousUserAlert.show().qtip($.extend({}, nf.Common.config.tooltipConfig, {
+                content: 'You are accessing with limited authority. Log in or request an account to access with additional authority granted to you by an administrator.',
+                position: {
+                    my: 'top right',
+                    at: 'bottom left'
+                }
+            }));
+
+            // render the anonymous user text
+            $('#current-user').text(nf.Common.ANONYMOUS_USER_TEXT).show();  
+        },
+
+        /**
          * Extracts the subject from the specified jwt. If the jwt is not as expected
          * an empty string is returned.
          * 
          * @param {string} jwt
          * @returns {string}
          */
-        getJwtSubject: function (jwt) {
+        getJwtPayload: function (jwt) {
             if (nf.Common.isDefinedAndNotNull(jwt)) {
                 var segments = jwt.split(/\./);
                 if (segments.length !== 3) {
@@ -196,40 +228,8 @@ nf.Common = (function () {
                 var rawPayload = $.base64.atob(segments[1]);
                 var payload = JSON.parse(rawPayload);
 
-                if (nf.Common.isDefinedAndNotNull(payload['preferred_username'])) {
-                    return payload['preferred_username'];
-                } else {
-                    '';
-                }
-            }
-
-            return '';
-        },
-
-        /**
-         * Extracts the expiration from the specified jwt. If the jwt is not as expected
-         * a null value is returned.
-         * 
-         * @param {string} jwt
-         * @returns {integer}
-         */
-        getJwtExpiration: function (jwt) {
-            if (nf.Common.isDefinedAndNotNull(jwt)) {
-                var segments = jwt.split(/\./);
-                if (segments.length !== 3) {
-                    return null;
-                }
-
-                var rawPayload = $.base64.atob(segments[1]);
-                var payload = JSON.parse(rawPayload);
-
-                if (nf.Common.isDefinedAndNotNull(payload['exp'])) {
-                    try {
-                        // jwt exp is in seconds
-                        return parseInt(payload['exp'], 10) * nf.Common.MILLIS_PER_SECOND;
-                    } catch (e) {
-                        return null;
-                    }
+                if (nf.Common.isDefinedAndNotNull(payload)) {
+                    return payload;
                 } else {
                     return null;
                 }
@@ -313,6 +313,28 @@ nf.Common = (function () {
          * @argument {string} error     The error
          */
         handleAjaxError: function (xhr, status, error) {
+            if (status === 'canceled') {
+                if ($('#splash').is(':visible')) {
+                    $('#message-title').text('Session Expired');
+                    $('#message-content').text('Your session has expired. Please reload to log in again.');
+
+                    // show the error pane
+                    $('#message-pane').show();
+
+                    // close the canvas
+                    nf.Common.closeCanvas();
+                } else {
+                    nf.Dialog.showOkDialog({
+                        dialogContent: 'Your session has expired. Please press Ok to log in again.',
+                        overlayBackground: false,
+                        okHandler: function () {
+                            window.location = '/nifi';
+                        }
+                    });
+                }
+                return;
+            }
+            
             // if an error occurs while the splash screen is visible close the canvas show the error message
             if ($('#splash').is(':visible')) {
                 if (xhr.status === 401) {

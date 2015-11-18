@@ -142,7 +142,7 @@ nf.CanvasHeader = (function () {
             });
 
             // show the login link if supported and user is currently anonymous
-            var isAnonymous = $('#current-user').text() === nf.Canvas.ANONYMOUS_USER_TEXT;
+            var isAnonymous = $('#current-user').text() === nf.Common.ANONYMOUS_USER_TEXT;
             if (supportsLogin === true && isAnonymous) {
                 // login link
                 $('#login-link').click(function () {

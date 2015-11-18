@@ -14,28 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
+package org.apache.nifi.web.security;
 
-import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.authorization.AuthorityProvider;
-
-import org.apache.nifi.admin.dao.KeyDAO;
+import org.springframework.security.core.AuthenticationException;
 
 /**
- * Gets a key for the specified user identity.
+ * Thrown if the authentication of a given request is invalid. For instance,
+ * an expired certificate or token.
  */
-public class GetKeyAction implements AdministrationAction<String> {
+public class InvalidAuthenticationException extends AuthenticationException {
 
-    private final String identity;
-
-    public GetKeyAction(String identity) {
-        this.identity = identity;
+    public InvalidAuthenticationException(String msg) {
+        super(msg);
     }
 
-    @Override
-    public String execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
-        final KeyDAO keyDao = daoFactory.getKeyDAO();
-        return keyDao.getKey(identity);
+    public InvalidAuthenticationException(String msg, Throwable t) {
+        super(msg, t);
     }
 
 }

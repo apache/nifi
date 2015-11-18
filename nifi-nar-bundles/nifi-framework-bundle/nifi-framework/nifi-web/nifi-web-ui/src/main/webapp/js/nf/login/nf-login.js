@@ -96,8 +96,10 @@ nf.Login = (function () {
                 'password': $('#password').val()
             }
         }).done(function (jwt) {
-            // store the jwt and reload the page
-            nf.Storage.setItem('jwt', jwt, nf.Common.getJwtExpiration(jwt));
+            // get the payload and store the token with the appropirate expiration
+            var token = nf.Common.getJwtPayload(jwt);
+            var expiration = parseInt(token['exp'], 10) * nf.Common.MILLIS_PER_SECOND;
+            nf.Storage.setItem('jwt', jwt, expiration);
 
             // check to see if they actually have access now
             $.ajax({
@@ -112,8 +114,7 @@ nf.Login = (function () {
                     nf.Common.scheduleTokenRefresh();
             
                     // show the user
-                    var user = nf.Common.getJwtSubject(jwt);
-                    $('#nifi-user-submit-justification').text(user);
+                    $('#nifi-user-submit-justification').text(token['preferred_username']);
 
                     // show the registration form
                     initializeNiFiRegistration();
@@ -133,8 +134,7 @@ nf.Login = (function () {
                 nf.Common.scheduleTokenRefresh();
 
                 // show the user
-                var user = nf.Common.getJwtSubject(jwt);
-                $('#nifi-user-submit-justification').text(user);
+                $('#nifi-user-submit-justification').text(token['preferred_username']);
 
                 if (xhr.status === 401) {
                     initializeNiFiRegistration();

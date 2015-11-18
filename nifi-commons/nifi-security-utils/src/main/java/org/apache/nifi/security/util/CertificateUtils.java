@@ -87,30 +87,21 @@ public final class CertificateUtils {
      */
     public static String extractUsername(String dn) {
         String username = dn;
-        String cn = "";
 
         // ensure the dn is specified
         if (StringUtils.isNotBlank(dn)) {
-
-            // attempt to locate the cn
-            if (dn.startsWith("CN=")) {
-                cn = StringUtils.substringBetween(dn, "CN=", ",");
-            } else if (dn.startsWith("/CN=")) {
-                cn = StringUtils.substringBetween(dn, "CN=", "/");
-            } else if (dn.startsWith("C=") || dn.startsWith("/C=")) {
-                cn = StringUtils.substringAfter(dn, "CN=");
-            } else if (dn.startsWith("/") && StringUtils.contains(dn, "CN=")) {
-                cn = StringUtils.substringAfter(dn, "CN=");
-            }
-
-            // attempt to get the username from the cn
-            if (StringUtils.isNotBlank(cn)) {
-                if (cn.endsWith(")")) {
-                    username = StringUtils.substringBetween(cn, "(", ")");
-                } else if (cn.contains(" ")) {
-                    username = StringUtils.substringAfterLast(cn, " ");
+            // determine the separate
+            final String separator = StringUtils.indexOfIgnoreCase(dn, "/cn=") > 0 ? "/" : ",";
+            
+            // attempt to locate the cd
+            final String cnPattern = "cn=";
+            final int cnIndex = StringUtils.indexOfIgnoreCase(dn, cnPattern);
+            if (cnIndex >= 0) {
+                int separatorIndex = StringUtils.indexOf(dn, separator, cnIndex);
+                if (separatorIndex > 0) {
+                    username = StringUtils.substring(dn, cnIndex + cnPattern.length(), separatorIndex);
                 } else {
-                    username = cn;
+                    username = StringUtils.substring(dn, cnIndex + cnPattern.length());
                 }
             }
         }
