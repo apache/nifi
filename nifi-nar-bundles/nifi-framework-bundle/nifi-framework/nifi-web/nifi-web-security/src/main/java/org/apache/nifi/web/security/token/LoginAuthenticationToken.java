@@ -72,7 +72,9 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     /**
-     * Returns the expiration instant in milliseconds. This value is an absolute point in time (i.e. Nov 16, 2015 11:30:00.000 GMT), not a relative time (i.e. 60 minutes). It is calculated by adding the relative expiration from the constructor to the timestamp at object creation.
+     * Returns the expiration instant in milliseconds. This value is an absolute point in time (i.e. Nov
+     * 16, 2015 11:30:00.000 GMT), not a relative time (i.e. 60 minutes). It is calculated by adding the
+     * relative expiration from the constructor to the timestamp at object creation.
      *
      * @return the expiration in millis
      */

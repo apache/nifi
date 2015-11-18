@@ -336,7 +336,7 @@ public class AccessResource extends ApplicationResource {
                 }
 
                 // create the authentication token
-                // TODO: Some Spring beans return "" for getClass().getSimpleName(). Using getName() temporarily
+                // TODO: Some Spring beans return "" for getClass().getSimpleName(). Using getName() temporarily, the way that NAR loader works, this value will always be an anonymous inner class
                 loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, loginIdentityProvider.getClass().getName());
             } catch (final InvalidLoginCredentialsException ilce) {
                 throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
@@ -358,7 +358,7 @@ public class AccessResource extends ApplicationResource {
             authorizeProxyIfNecessary(proxyChain);
 
             // create the authentication token
-            // TODO: Some Spring beans return "" for getClass().getSimpleName(). Using getName() temporarily
+            // TODO: Some Spring beans return "" for getClass().getSimpleName(). Using getName() temporarilyy, the way that NAR loader works, this value will always be an anonymous inner class
             loginAuthenticationToken = new LoginAuthenticationToken(proxyChain.get(0), authenticationResponse.getExpiration(), certificateIdentityProvider.getClass().getName());
         }
 
