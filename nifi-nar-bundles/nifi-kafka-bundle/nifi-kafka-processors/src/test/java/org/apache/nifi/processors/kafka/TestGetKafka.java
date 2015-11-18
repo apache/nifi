@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.processors.kafka;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import kafka.consumer.ConsumerIterator;
-import kafka.message.MessageAndMetadata;
+import java.util.Properties;
 
 import org.apache.log4j.BasicConfigurator;
 import org.apache.nifi.processor.ProcessContext;
@@ -34,6 +36,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import kafka.consumer.ConsumerIterator;
+import kafka.message.MessageAndMetadata;
 
 public class TestGetKafka {
 
@@ -51,7 +56,7 @@ public class TestGetKafka {
         runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "192.168.0.101:2181");
         runner.setProperty(GetKafka.TOPIC, "testX");
         runner.setProperty(GetKafka.KAFKA_TIMEOUT, "3 secs");
-        runner.setProperty(GetKafka.ZOOKEEPER_TIMEOUT, "3 secs");
+        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_TIMEOUT, "3 secs");
 
         runner.run(20, false);
 
@@ -61,6 +66,30 @@ public class TestGetKafka {
             System.out.println(new String(flowFile.toByteArray()));
             System.out.println();
         }
+    }
+
+    @Test
+    public void testKafkaDefaultConfigurationProperties() throws Exception {
+        GetKafka getKafkaProcessor = new GetKafka();
+        TestRunner runner = TestRunners.newTestRunner(getKafkaProcessor);
+        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "localhost:2181");
+
+        Method createConfigMethod = GetKafka.class.getDeclaredMethod("createConfig", ProcessContext.class);
+        createConfigMethod.setAccessible(true);
+
+        Properties configProperties = (Properties) createConfigMethod.invoke(getKafkaProcessor,
+                runner.getProcessContext());
+
+        assertEquals(7, configProperties.size());
+        // assert that property names correspond to the 7 actual properties from Kafka configuration
+        // http://kafka.apache.org/documentation.html#configuration
+        assertEquals("30000", configProperties.get("zookeeper.connection.timeout.ms"));
+        assertEquals("largest", configProperties.get("auto.offset.reset"));
+        assertEquals("60000", configProperties.get("auto.commit.interval.ms"));
+        assertEquals("30000", configProperties.get("socket.timeout.ms"));
+        assertTrue(configProperties.containsKey("group.id"));
+        assertEquals("localhost:2181", configProperties.get("zookeeper.connect"));
+        assertTrue(configProperties.getProperty("client.id").startsWith("NiFi-"));
     }
 
     @Test
@@ -74,7 +103,7 @@ public class TestGetKafka {
         runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "localhost:2181");
         runner.setProperty(GetKafka.TOPIC, "testX");
         runner.setProperty(GetKafka.KAFKA_TIMEOUT, "3 secs");
-        runner.setProperty(GetKafka.ZOOKEEPER_TIMEOUT, "3 secs");
+        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_TIMEOUT, "3 secs");
         runner.setProperty(GetKafka.MESSAGE_DEMARCATOR, "\\n");
         runner.setProperty(GetKafka.BATCH_SIZE, "2");
 
@@ -96,7 +125,7 @@ public class TestGetKafka {
         runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "localhost:2181");
         runner.setProperty(GetKafka.TOPIC, "testX");
         runner.setProperty(GetKafka.KAFKA_TIMEOUT, "3 secs");
-        runner.setProperty(GetKafka.ZOOKEEPER_TIMEOUT, "3 secs");
+        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_TIMEOUT, "3 secs");
         runner.setProperty(GetKafka.MESSAGE_DEMARCATOR, "\\n");
         runner.setProperty(GetKafka.BATCH_SIZE, "3");
 
