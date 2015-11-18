@@ -1410,14 +1410,18 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
 
-        final String originalUuid = flowFile.getAttribute(CoreAttributes.UUID.key());
+        final Map<String, String> updatedAttributes;
+        if (attributes.containsKey(CoreAttributes.UUID.key())) {
+            updatedAttributes = new HashMap<>(attributes);
+            updatedAttributes.remove(CoreAttributes.UUID.key());
+        } else {
+            updatedAttributes = attributes;
+        }
 
-        final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).addAttributes(attributes);
-        // Ignore the uuid attribute, if passed in
-        ffBuilder.addAttribute(CoreAttributes.UUID.key(), originalUuid);
+        final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).addAttributes(updatedAttributes);
         final FlowFileRecord newFile = ffBuilder.build();
 
-        record.setWorking(newFile, attributes);
+        record.setWorking(newFile, updatedAttributes);
         return newFile;
     }
 
@@ -1443,19 +1447,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             return flowFile;
         }
 
-        final Set<String> keysToRemove;
-        if (keys.contains(CoreAttributes.UUID.key())) {
-            keysToRemove = new HashSet<>(keys);
-            keysToRemove.remove(CoreAttributes.UUID.key());
-        } else {
-            keysToRemove = keys;
-        }
-
         final StandardRepositoryRecord record = records.get(flowFile);
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).removeAttributes(keys).build();
 
         final Map<String, String> updatedAttrs = new HashMap<>();
         for (final String key : keys) {
+            if (CoreAttributes.UUID.key().equals(key)) {
+                continue;
+            }
+
             updatedAttrs.put(key, null);
         }
 
