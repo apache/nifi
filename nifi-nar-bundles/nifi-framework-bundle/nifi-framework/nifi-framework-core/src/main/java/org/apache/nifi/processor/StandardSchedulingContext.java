@@ -118,6 +118,11 @@ public class StandardSchedulingContext implements SchedulingContext {
     }
 
     @Override
+    public boolean hasNonLoopConnection() {
+        return processContext.hasNonLoopConnection();
+    }
+
+    @Override
     public boolean hasConnection(Relationship relationship) {
         return processContext.hasConnection(relationship);
     }

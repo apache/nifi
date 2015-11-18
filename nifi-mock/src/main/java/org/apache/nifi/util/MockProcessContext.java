@@ -48,7 +48,8 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private boolean yieldCalled = false;
     private boolean enableExpressionValidation = false;
     private boolean allowExpressionValidation = true;
-    private boolean incomingConnection = true;
+    private volatile boolean incomingConnection = true;
+    private volatile boolean nonLoopConnection = true;
 
     private volatile Set<Relationship> connections = new HashSet<>();
     private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
@@ -303,6 +304,15 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     @Override
     public boolean hasConnection(Relationship relationship) {
         return this.connections.contains(relationship);
+    }
+
+    public void setNonLoopConnection(final boolean hasNonLoopConnection) {
+        this.nonLoopConnection = hasNonLoopConnection;
+    }
+
+    @Override
+    public boolean hasNonLoopConnection() {
+        return nonLoopConnection;
     }
 
     public void addConnection(final Relationship relationship) {

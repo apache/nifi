@@ -24,14 +24,30 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * <p>
  * Marker annotation a {@link org.apache.nifi.processor.Processor Processor}
  * implementation can use to indicate that the Processor should still be
- * triggered even when it has no data in its work queue. By default, Processors
- * which have no non-self incoming edges will be triggered even if there is no
- * work in its queue. However, Processors that have non-self incoming edges will
- * only be triggered if they have work in their queue or they present this
- * annotation.
+ * triggered even when it has no data in its work queue.
+ * </p>
  *
+ * <p>
+ * A Processor is scheduled to be triggered based on its configured Scheduling Period
+ * and Scheduling Strategy. However, when the scheduling period elapses, the Processor
+ * will not be scheduled if it has no work to do. Normally, a Processor is said to have
+ * work to do if one of the following circumstances is true:
+ * </p>
+ *
+ * <ul>
+ * <li>An incoming Connection has data in its queue</li>
+ * <li>The Processor has no incoming Connections.</li>
+ * <li>All incoming Connections are self-loops (both the source and destination of the Connection are the same Processor).
+ * </ul>
+ *
+ * <p>
+ * If the Processor needs to be triggered to run even when the above conditions are all
+ * <code>false</code>, the Processor's class can be annotated with this annotation, which
+ * will cause the Processor to be triggered, even if its incoming queues are empty.
+ * </p>
  */
 @Documented
 @Target({ElementType.TYPE})

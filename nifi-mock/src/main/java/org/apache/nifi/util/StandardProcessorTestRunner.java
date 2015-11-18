@@ -524,6 +524,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void setNonLoopConnection(final boolean hasNonLoopConnection) {
+        context.setNonLoopConnection(hasNonLoopConnection);
+    }
+
+    @Override
     public void addConnection(Relationship relationship) {
         context.addConnection(relationship);
     }

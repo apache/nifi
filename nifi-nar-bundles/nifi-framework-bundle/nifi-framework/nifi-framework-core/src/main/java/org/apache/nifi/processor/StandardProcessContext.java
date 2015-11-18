@@ -32,6 +32,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.util.Connectables;
 
 public class StandardProcessContext implements ProcessContext, ControllerServiceLookup {
 
@@ -182,6 +183,11 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public boolean hasIncomingConnection() {
         return procNode.hasIncomingConnection();
+    }
+
+    @Override
+    public boolean hasNonLoopConnection() {
+        return Connectables.hasNonLoopConnection(procNode);
     }
 
     @Override

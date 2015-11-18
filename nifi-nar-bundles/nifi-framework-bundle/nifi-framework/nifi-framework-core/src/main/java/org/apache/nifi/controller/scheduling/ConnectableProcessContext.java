@@ -37,6 +37,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.Connectables;
 
 /**
  * This class is essentially an empty shell for {@link Connectable}s that are not Processors
@@ -194,6 +195,11 @@ public class ConnectableProcessContext implements ProcessContext {
     @Override
     public boolean hasIncomingConnection() {
         return connectable.hasIncomingConnection();
+    }
+
+    @Override
+    public boolean hasNonLoopConnection() {
+        return Connectables.hasNonLoopConnection(connectable);
     }
 
     @Override

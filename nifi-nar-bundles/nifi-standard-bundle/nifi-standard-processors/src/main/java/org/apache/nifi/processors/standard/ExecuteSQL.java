@@ -129,7 +129,11 @@ public class ExecuteSQL extends AbstractProcessor {
         FlowFile incoming = null;
         if (context.hasIncomingConnection()) {
             incoming = session.get();
-            if (incoming == null) {
+
+            // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
+            // However, if we have no FlowFile and we have connections coming from other Processors, then
+            // we know that we should run only if we have a FlowFile.
+            if (incoming == null && context.hasNonLoopConnection()) {
                 return;
             }
         }

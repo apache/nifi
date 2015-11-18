@@ -133,9 +133,17 @@ public interface ProcessContext {
     boolean hasIncomingConnection();
 
     /**
+     * @return <code>true</code> if the processor has one or more incoming connections for
+     *         which the source of the connection is NOT the processor; returns <code>false</code> if
+     *         the processor has no incoming connections or if all incoming connections are self-loops
+     *         (i.e., the processor is also the source of all incoming connections).
+     */
+    boolean hasNonLoopConnection();
+
+    /**
      * @param relationship a relationship to check for connections
      * @return true if the relationship has one or more outbound connections,
-     * false otherwise
+     *         false otherwise
      */
     boolean hasConnection(Relationship relationship);
 
