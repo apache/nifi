@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.PatternSyntaxException;
 
 import org.apache.nifi.processors.attributes.UpdateAttribute;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
@@ -32,6 +33,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -530,7 +533,7 @@ public class TestUpdateAttribute {
     @Test
     public void testExpressionLiteralDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "attribute\\.${literal(6)}");
+        runner.setProperty("Delete Attributes Expression", "${literal('attribute\\.'):append(${literal(6)})}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -556,7 +559,7 @@ public class TestUpdateAttribute {
     @Test
     public void testExpressionRegexDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "(attribute\\.${literal('[2-5]')}|sample.*)");
+        runner.setProperty("Delete Attributes Expression", "${literal('(attribute\\.'):append(${literal('[2-5]')}):append(${literal('|sample.*)')})}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -603,5 +606,28 @@ public class TestUpdateAttribute {
         result.get(0).assertAttributeExists("sampleSize");
         result.get(0).assertAttributeNotExists("sample.1");
         result.get(0).assertAttributeNotExists("simple.1");
+    }
+
+    @Test
+    public void testInvalidRegex() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "(");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testInvalidRegexInAttribute() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "${butter}");
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("butter", "(");
+        runner.enqueue(new byte[0], attributes);
+        try {
+            runner.run();
+        } catch (Throwable t) {
+            assertEquals(t.getCause().getClass(), PatternSyntaxException.class);
+        }
     }
 }
