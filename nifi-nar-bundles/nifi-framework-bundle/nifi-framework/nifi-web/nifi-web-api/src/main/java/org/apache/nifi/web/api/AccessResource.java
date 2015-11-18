@@ -191,7 +191,7 @@ public class AccessResource extends ApplicationResource {
                     final String principal = jwtService.getAuthentication(httpServletRequest);
 
                     // TODO - catch jwt exception?
-                    // ensure we have something we can work with (certificate or crendentials)
+                    // ensure we have something we can work with (certificate or credentials)
                     if (principal == null) {
                         throw new IllegalArgumentException("The specific token is not valid.");
                     } else {
@@ -334,7 +334,7 @@ public class AccessResource extends ApplicationResource {
                 }
                 
                 // create the authentication token
-                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration);
+                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, loginIdentityProvider.getClass().getSimpleName());
             } catch (final InvalidLoginCredentialsException ilce) {
                 throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
             } catch (final IdentityAccessException iae) {
@@ -355,7 +355,7 @@ public class AccessResource extends ApplicationResource {
             authorizeProxyIfNecessary(proxyChain);
 
             // create the authentication token
-            loginAuthenticationToken = new LoginAuthenticationToken(proxyChain.get(0), authenticationResponse.getExpiration());
+            loginAuthenticationToken = new LoginAuthenticationToken(proxyChain.get(0), authenticationResponse.getExpiration(), certificateIdentityProvider.getClass().getSimpleName());
         }
 
         // generate JWT for response
