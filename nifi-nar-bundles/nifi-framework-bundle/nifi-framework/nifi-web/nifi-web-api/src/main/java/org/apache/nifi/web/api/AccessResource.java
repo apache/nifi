@@ -334,7 +334,7 @@ public class AccessResource extends ApplicationResource {
                 }
                 
                 // create the authentication token
-                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getUsername(), expiration);
+                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration);
             } catch (final InvalidLoginCredentialsException ilce) {
                 throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
             } catch (final IdentityAccessException iae) {
