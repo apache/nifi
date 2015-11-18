@@ -58,6 +58,8 @@ public class LdapProvider extends AbstractLdapProvider {
 
         // connection time out
         final String rawConnectTimeout = configurationContext.getProperty("Connect Timeout");
+
+        // TODO: Refactor to utility method to remove duplicate code
         if (StringUtils.isNotBlank(rawConnectTimeout)) {
             try {
                 final Long connectTimeout = FormatUtils.getTimeDuration(rawConnectTimeout, TimeUnit.MILLISECONDS);
@@ -89,7 +91,7 @@ public class LdapProvider extends AbstractLdapProvider {
         try {
             authenticationStrategy = LdapAuthenticationStrategy.valueOf(rawAuthenticationStrategy);
         } catch (final IllegalArgumentException iae) {
-            throw new ProviderCreationException(String.format("Unrecgonized authentication strategy '%s'. Possible values are [%s]",
+            throw new ProviderCreationException(String.format("Unrecognized authentication strategy '%s'. Possible values are [%s]",
                     rawAuthenticationStrategy, StringUtils.join(LdapAuthenticationStrategy.values(), ", ")));
         }
 
@@ -142,7 +144,7 @@ public class LdapProvider extends AbstractLdapProvider {
                                         sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
                                                 rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, TLS);
                                     } catch (final IllegalArgumentException iae) {
-                                        throw new ProviderCreationException(String.format("Unrecgonized client auth '%s'", rawClientAuth));
+                                        throw new ProviderCreationException(String.format("Unrecognized client auth '%s'", rawClientAuth));
                                     }
                                 }
                             }
