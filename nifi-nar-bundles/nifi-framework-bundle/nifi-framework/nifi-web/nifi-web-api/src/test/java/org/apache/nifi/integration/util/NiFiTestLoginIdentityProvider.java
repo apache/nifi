@@ -57,7 +57,7 @@ public class NiFiTestLoginIdentityProvider implements LoginIdentityProvider {
     @Override
     public AuthenticationResponse authenticate(LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException {
         checkUser(credentials.getUsername(), credentials.getPassword());
-        return new AuthenticationResponse(credentials.getUsername(), credentials.getUsername(), TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS));
+        return new AuthenticationResponse(credentials.getUsername(), credentials.getUsername(), TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS), getClass().getSimpleName());
     }
 
     @Override

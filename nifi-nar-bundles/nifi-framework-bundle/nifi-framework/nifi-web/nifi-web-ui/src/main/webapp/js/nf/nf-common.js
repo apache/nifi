@@ -155,7 +155,7 @@ nf.Common = (function () {
             }
             
             // set the interval to one hour
-            var interval = 10 * nf.Common.MILLIS_PER_MINUTE;
+            var interval = nf.Common.MILLIS_PER_MINUTE;
             
             var checkExpiration = function () {
                 var expiration = nf.Storage.getItemExpiration('jwt');
@@ -166,7 +166,7 @@ nf.Common = (function () {
                     var now = new Date();
 
                     // get the time remainging plus a little bonus time to reload the token
-                    var timeRemaining = expirationDate.valueOf() - now.valueOf() - nf.Common.MILLIS_PER_MINUTE;
+                    var timeRemaining = expirationDate.valueOf() - now.valueOf() - (30 * nf.Common.MILLIS_PER_SECOND);
                     if (timeRemaining < interval) {
                         if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT && !$('#anonymous-user-alert').is(':visible')) {
                             // if the token will expire before the next interval minus some bonus time, notify the user to re-login
@@ -320,9 +320,6 @@ nf.Common = (function () {
 
                     // show the error pane
                     $('#message-pane').show();
-
-                    // close the canvas
-                    nf.Common.closeCanvas();
                 } else {
                     nf.Dialog.showOkDialog({
                         dialogContent: 'Your session has expired. Please press Ok to log in again.',
@@ -332,6 +329,9 @@ nf.Common = (function () {
                         }
                     });
                 }
+                
+                // close the canvas
+                nf.Common.closeCanvas();
                 return;
             }
             
@@ -424,18 +424,17 @@ nf.Common = (function () {
          * Closes the canvas by removing the splash screen and stats poller.
          */
         closeCanvas: function () {
+            if (nf.Storage.getItem('jwt') === null) {
+                $('#user-logout-container').hide();
+            } else {
+                $('#user-logout-container').show();
+            }
+            
             // ensure this javascript has been loaded in the nf canvas page
             if (nf.Common.isDefinedAndNotNull(nf.Canvas)) {
                 // hide the splash screen if required
                 if ($('#splash').is(':visible')) {
                     nf.Canvas.hideSplash();
-                }
-                
-                // update the log out link accordingly
-                if (nf.Storage.getItem('jwt') === null) {
-                    $('#user-logout-container').hide();
-                } else {
-                    $('#user-logout-container').show();
                 }
 
                 // hide the context menu

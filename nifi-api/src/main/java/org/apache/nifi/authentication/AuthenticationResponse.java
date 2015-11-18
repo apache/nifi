@@ -24,6 +24,7 @@ public class AuthenticationResponse {
     private final String identity;
     private final String username;
     private final long expiration;
+    private final String issuer;
 
     /**
      * Creates an authentication response. The username and how long the authentication is valid in milliseconds
@@ -31,11 +32,13 @@ public class AuthenticationResponse {
      * @param identity The user identity
      * @param username The username
      * @param expiration The expiration in milliseconds
+     * @param issuer The issuer of the token
      */
-    public AuthenticationResponse(final String identity, final String username, final long expiration) {
+    public AuthenticationResponse(final String identity, final String username, final long expiration, final String issuer) {
         this.identity = identity;
         this.username = username;
         this.expiration = expiration;
+        this.issuer = issuer;
     }
 
     public String getIdentity() {
@@ -44,6 +47,10 @@ public class AuthenticationResponse {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getIssuer() {
+        return issuer;
     }
 
     /**

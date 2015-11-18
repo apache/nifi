@@ -31,7 +31,9 @@ import org.springframework.security.web.authentication.preauth.x509.X509Principa
 public class X509IdentityProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(X509IdentityProvider.class);
-
+    
+    private final String issuer = getClass().getSimpleName();
+    
     private X509CertificateValidator certificateValidator;
     private X509PrincipalExtractor principalExtractor;
 
@@ -77,7 +79,7 @@ public class X509IdentityProvider {
         }
 
         // build the authentication response
-        return new AuthenticationResponse(principal, principal, TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS));
+        return new AuthenticationResponse(principal, principal, TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS), issuer);
     }
 
     /* setters */

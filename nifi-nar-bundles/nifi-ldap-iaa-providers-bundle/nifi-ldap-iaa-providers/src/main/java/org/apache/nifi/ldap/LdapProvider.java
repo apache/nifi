@@ -66,10 +66,12 @@ public class LdapProvider implements LoginIdentityProvider {
     private static final String TLS = "TLS";
 
     private AbstractLdapAuthenticationProvider provider;
+    private String issuer;
     private long expiration;
 
     @Override
     public final void initialize(final LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
+        this.issuer = getClass().getSimpleName();
     }
 
     @Override
@@ -251,9 +253,9 @@ public class LdapProvider implements LoginIdentityProvider {
             // attempt to get the ldap user details to get the DN
             if (authentication.getPrincipal() instanceof LdapUserDetails) {
                 final LdapUserDetails userDetails = (LdapUserDetails) authentication.getPrincipal();
-                return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername(), expiration);
+                return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername(), expiration, issuer);
             } else {
-                return new AuthenticationResponse(authentication.getName(), credentials.getUsername(), expiration);
+                return new AuthenticationResponse(authentication.getName(), credentials.getUsername(), expiration, issuer);
             }
         } catch (final CommunicationException | AuthenticationServiceException e) {
             logger.error(e.getMessage());
