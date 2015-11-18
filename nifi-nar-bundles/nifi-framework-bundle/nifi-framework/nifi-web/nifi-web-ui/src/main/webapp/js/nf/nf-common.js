@@ -424,11 +424,7 @@ nf.Common = (function () {
          * Closes the canvas by removing the splash screen and stats poller.
          */
         closeCanvas: function () {
-            if (nf.Storage.getItem('jwt') === null) {
-                $('#user-logout-container').hide();
-            } else {
-                $('#user-logout-container').show();
-            }
+            nf.Common.showLogoutLink();
             
             // ensure this javascript has been loaded in the nf canvas page
             if (nf.Common.isDefinedAndNotNull(nf.Canvas)) {
@@ -443,6 +439,17 @@ nf.Common = (function () {
                 // shut off the auto refresh
                 nf.Canvas.stopRevisionPolling();
                 nf.Canvas.stopStatusPolling();
+            }
+        },
+
+        /**
+         * Shows the logout link if appropriate.
+         */
+        showLogoutLink: function () {
+            if (nf.Storage.getItem('jwt') === null) {
+                $('#user-logout-container').hide();
+            } else {
+                $('#user-logout-container').show();
             }
         },
 

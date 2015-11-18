@@ -87,6 +87,10 @@ nf.Login = (function () {
     };
 
     var login = function () {
+        // show the logging message...
+        $('#login-progress-container').show();
+        $('#login-submission-container').hide();
+        
         // login submit
         $.ajax({
             type: 'POST',
@@ -119,6 +123,10 @@ nf.Login = (function () {
                     // show the registration form
                     initializeNiFiRegistration();
                     showNiFiRegistration();
+                    
+                    // update the form visibility
+                    $('#login-submission-container').show();
+                    $('#login-progress-container').hide();
                 } else {
                     // reload as appropriate - no need to schedule token refresh as the page is reloading
                     if (top !== window) {
@@ -139,6 +147,10 @@ nf.Login = (function () {
                 if (xhr.status === 401) {
                     initializeNiFiRegistration();
                     showNiFiRegistration();
+                    
+                    // update the form visibility
+                    $('#login-submission-container').show();
+                    $('#login-progress-container').hide();
                 } else {
                     $('#login-message-title').text('Unable to log in');
                     $('#login-message').text(xhr.responseText);
@@ -146,6 +158,7 @@ nf.Login = (function () {
                     // update visibility
                     $('#login-container').hide();
                     $('#login-submission-container').hide();
+                    $('#login-progress-container').hide();
                     $('#login-message-container').show();
                 }
             });
@@ -155,6 +168,10 @@ nf.Login = (function () {
                     dialogContent: nf.Common.escapeHtml(xhr.responseText),
                     overlayBackground: false
                 });
+                
+                // update the form visibility
+                $('#login-submission-container').show();
+                $('#login-progress-container').hide();
             } else {
                 $('#login-message-title').text('Unable to log in');
                 $('#login-message').text(xhr.responseText);
@@ -162,6 +179,7 @@ nf.Login = (function () {
                 // update visibility
                 $('#login-container').hide();
                 $('#login-submission-container').hide();
+                $('#login-progress-container').hide();
                 $('#login-message-container').show();
             }
         });
@@ -194,12 +212,8 @@ nf.Login = (function () {
         });
     };
 
-    var logout = function () {
-        nf.Storage.removeItem('jwt');
-    };
-
     var showLogoutLink = function () {
-        $('#user-logout-container').show();
+        nf.Common.showLogoutLink();
     };
 
     return {

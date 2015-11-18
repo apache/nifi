@@ -56,13 +56,13 @@ body.login-body input, body.login-body textarea {
     width: 400px;
 }
 
+div.login-container {
+    width: 412px;
+}
+
 /*
     NiFi Registration
 */
-
-#nifi-registration-container {
-    width: 412px;
-}
 
 #nifi-user-submit-justification-container {
     margin-bottom: 10px;
@@ -77,13 +77,19 @@ body.login-body input, body.login-body textarea {
 }
 
 /*
-    Submission
+    Login Progress
 */
 
-#login-submission-container {
-    width: 412px;
+#login-progress-label {
+    float: right;
+    font-weight: bold;
+    line-height: 16px;
 }
 
-#login-submission-button {
-    
+#login-progress-spinner {
+    float: right;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-left: 3px;
 }

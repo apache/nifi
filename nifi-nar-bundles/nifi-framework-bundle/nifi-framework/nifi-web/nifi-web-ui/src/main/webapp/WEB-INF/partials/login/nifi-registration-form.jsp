@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="nifi-registration-container" class="hidden">
+<div id="nifi-registration-container" class="login-container hidden">
     <div id="nifi-registration-title" class="login-title nifi-submit-justification">Submit Justification</div>
     <div id="nifi-user-submit-justification-container" class="nifi-submit-justification">
         <div class="setting">

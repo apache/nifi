@@ -15,6 +15,8 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="login-submission-container" class="login-container hidden">
-    <div id="login-submission-button" class="button">Log in</div>
+<div id="login-progress-container" class="login-container hidden">
+    <div id="login-progress-spinner" class="loading-container ajax-loading"></div>
+    <div id="login-progress-label">Logging in...</div>
+    <div class="clear"></div>
 </div>
