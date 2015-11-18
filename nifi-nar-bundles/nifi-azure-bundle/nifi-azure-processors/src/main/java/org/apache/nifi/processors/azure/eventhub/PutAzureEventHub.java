@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.jms.DeliveryMode;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -53,6 +55,7 @@ import com.microsoft.eventhubs.client.EventHubSender;
 
 @SupportsBatching
 @Tags({ "microsoft", "azure", "cloud", "eventhub", "events", "streams", "streaming" })
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends the contents of a FlowFile to a Windows Azure Event Hub. Note: the content of the FlowFile will be buffered into memory before being sent, "
     + "so care should be taken to avoid sending FlowFiles to this Processor that exceed the amount of Java Heap Space available.")
 public class PutAzureEventHub extends AbstractProcessor {

@@ -29,6 +29,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -54,6 +56,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 @SideEffectFree
 @SupportsBatching
 @Tags({"deprecated"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("WARNING: This has been deprecated and will be removed in 0.2.0.  \n\n Use ExtractText instead.")
 @SeeAlso(ExtractText.class)
 @Deprecated
