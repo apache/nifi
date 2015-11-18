@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.hbase;
 
+import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -43,7 +44,7 @@ public class TestPutHBaseCell {
 
         final TestRunner runner = TestRunners.newTestRunner(PutHBaseCell.class);
         runner.setProperty(PutHBaseCell.TABLE_NAME, tableName);
-        runner.setProperty(PutHBaseCell.ROW, row);
+        runner.setProperty(PutHBaseCell.ROW_ID, row);
         runner.setProperty(PutHBaseCell.COLUMN_FAMILY, columnFamily);
         runner.setProperty(PutHBaseCell.COLUMN_QUALIFIER, columnQualifier);
         runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
@@ -58,12 +59,14 @@ public class TestPutHBaseCell {
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(PutHBaseCell.REL_SUCCESS).get(0);
         outFile.assertContentEquals(content);
 
-        assertNotNull(hBaseClient.getPuts());
-        assertEquals(1, hBaseClient.getPuts().size());
+        assertNotNull(hBaseClient.getFlowFilePuts());
+        assertEquals(1, hBaseClient.getFlowFilePuts().size());
 
-        List<PutFlowFile> puts = hBaseClient.getPuts().get(tableName);
+        List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(1, puts.size());
         verifyPut(row, columnFamily, columnQualifier, content, puts.get(0));
+
+        assertEquals(1, runner.getProvenanceEvents().size());
     }
 
     @Test
@@ -89,12 +92,14 @@ public class TestPutHBaseCell {
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(PutHBaseCell.REL_SUCCESS).get(0);
         outFile.assertContentEquals(content);
 
-        assertNotNull(hBaseClient.getPuts());
-        assertEquals(1, hBaseClient.getPuts().size());
+        assertNotNull(hBaseClient.getFlowFilePuts());
+        assertEquals(1, hBaseClient.getFlowFilePuts().size());
 
-        List<PutFlowFile> puts = hBaseClient.getPuts().get(tableName);
+        List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(1, puts.size());
         verifyPut(row, columnFamily, columnQualifier, content, puts.get(0));
+
+        assertEquals(1, runner.getProvenanceEvents().size());
     }
 
     @Test
@@ -115,7 +120,9 @@ public class TestPutHBaseCell {
         runner.run();
 
         runner.assertTransferCount(PutHBaseCell.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutHBaseCell.FAILURE, 1);
+        runner.assertTransferCount(PutHBaseCell.REL_FAILURE, 1);
+
+        assertEquals(0, runner.getProvenanceEvents().size());
     }
 
     @Test
@@ -142,7 +149,9 @@ public class TestPutHBaseCell {
 
         runner.run();
         runner.assertTransferCount(PutHBaseCell.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutHBaseCell.FAILURE, 1);
+        runner.assertTransferCount(PutHBaseCell.REL_FAILURE, 1);
+
+        assertEquals(1, runner.getProvenanceEvents().size());
     }
 
     @Test
@@ -171,13 +180,15 @@ public class TestPutHBaseCell {
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(PutHBaseCell.REL_SUCCESS).get(0);
         outFile.assertContentEquals(content1);
 
-        assertNotNull(hBaseClient.getPuts());
-        assertEquals(1, hBaseClient.getPuts().size());
+        assertNotNull(hBaseClient.getFlowFilePuts());
+        assertEquals(1, hBaseClient.getFlowFilePuts().size());
 
-        List<PutFlowFile> puts = hBaseClient.getPuts().get(tableName);
+        List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(2, puts.size());
         verifyPut(row1, columnFamily, columnQualifier, content1, puts.get(0));
         verifyPut(row2, columnFamily, columnQualifier, content2, puts.get(1));
+
+        assertEquals(2, runner.getProvenanceEvents().size());
     }
 
     @Test
@@ -202,7 +213,9 @@ public class TestPutHBaseCell {
         runner.enqueue(content2.getBytes("UTF-8"), attributes2);
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(PutHBaseCell.FAILURE, 2);
+        runner.assertAllFlowFilesTransferred(PutHBaseCell.REL_FAILURE, 2);
+
+        assertEquals(0, runner.getProvenanceEvents().size());
     }
 
     @Test
@@ -229,13 +242,15 @@ public class TestPutHBaseCell {
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(PutHBaseCell.REL_SUCCESS).get(0);
         outFile.assertContentEquals(content1);
 
-        assertNotNull(hBaseClient.getPuts());
-        assertEquals(1, hBaseClient.getPuts().size());
+        assertNotNull(hBaseClient.getFlowFilePuts());
+        assertEquals(1, hBaseClient.getFlowFilePuts().size());
 
-        List<PutFlowFile> puts = hBaseClient.getPuts().get(tableName);
+        List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(2, puts.size());
         verifyPut(row, columnFamily, columnQualifier, content1, puts.get(0));
         verifyPut(row, columnFamily, columnQualifier, content2, puts.get(1));
+
+        assertEquals(2, runner.getProvenanceEvents().size());
     }
 
     private Map<String, String> getAtrributeMapWithEL(String tableName, String row, String columnFamily, String columnQualifier) {
@@ -250,7 +265,7 @@ public class TestPutHBaseCell {
     private TestRunner getTestRunnerWithEL(PutHBaseCell proc) {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHBaseCell.TABLE_NAME, "${hbase.tableName}");
-        runner.setProperty(PutHBaseCell.ROW, "${hbase.row}");
+        runner.setProperty(PutHBaseCell.ROW_ID, "${hbase.row}");
         runner.setProperty(PutHBaseCell.COLUMN_FAMILY, "${hbase.columnFamily}");
         runner.setProperty(PutHBaseCell.COLUMN_QUALIFIER, "${hbase.columnQualifier}");
         return runner;
@@ -266,9 +281,14 @@ public class TestPutHBaseCell {
 
     private void verifyPut(String row, String columnFamily, String columnQualifier, String content, PutFlowFile put) {
         assertEquals(row, put.getRow());
-        assertEquals(columnFamily, put.getColumnFamily());
-        assertEquals(columnQualifier, put.getColumnQualifier());
-        assertEquals(content, new String(put.getBuffer(), StandardCharsets.UTF_8));
+
+        assertNotNull(put.getColumns());
+        assertEquals(1, put.getColumns().size());
+
+        final PutColumn column = put.getColumns().iterator().next();
+        assertEquals(columnFamily, column.getColumnFamily());
+        assertEquals(columnQualifier, column.getColumnQualifier());
+        assertEquals(content, new String(column.getBuffer(), StandardCharsets.UTF_8));
     }
 
 }

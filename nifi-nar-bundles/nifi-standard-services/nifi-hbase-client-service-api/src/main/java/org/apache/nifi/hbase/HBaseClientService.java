@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultHandler;
@@ -72,6 +73,16 @@ public interface HBaseClientService extends ControllerService {
      * @throws IOException thrown when there are communication errors with HBase
      */
     void put(String tableName, Collection<PutFlowFile> puts) throws IOException;
+
+    /**
+     * Puts the given row to HBase with the provided columns.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowId the id of the row to put
+     * @param columns the columns of the row to put
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void put(String tableName, String rowId, Collection<PutColumn> columns) throws IOException;
 
     /**
      * Scans the given table using the optional filter criteria and passing each result to the provided handler.

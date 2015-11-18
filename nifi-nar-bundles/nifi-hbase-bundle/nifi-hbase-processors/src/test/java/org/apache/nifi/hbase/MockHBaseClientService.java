@@ -17,6 +17,7 @@
 package org.apache.nifi.hbase;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
@@ -33,7 +34,7 @@ import java.util.Map;
 public class MockHBaseClientService extends AbstractControllerService implements HBaseClientService {
 
     private Map<String,ResultCell[]> results = new HashMap<>();
-    private Map<String, List<PutFlowFile>> puts = new HashMap<>();
+    private Map<String, List<PutFlowFile>> flowFilePuts = new HashMap<>();
     private boolean throwException = false;
 
     @Override
@@ -42,7 +43,12 @@ public class MockHBaseClientService extends AbstractControllerService implements
             throw new IOException("exception");
         }
 
-        this.puts.put(tableName, new ArrayList<>(puts));
+        this.flowFilePuts.put(tableName, new ArrayList<>(puts));
+    }
+
+    @Override
+    public void put(String tableName, String rowId, Collection<PutColumn> columns) throws IOException {
+       throw new UnsupportedOperationException();
     }
 
     @Override
@@ -92,8 +98,8 @@ public class MockHBaseClientService extends AbstractControllerService implements
         results.put(rowKey, cellArray);
     }
 
-    public Map<String, List<PutFlowFile>> getPuts() {
-        return puts;
+    public Map<String, List<PutFlowFile>> getFlowFilePuts() {
+        return flowFilePuts;
     }
 
     public void setThrowException(boolean throwException) {
