@@ -59,12 +59,8 @@ public class FlowFileEvent implements Event {
 
   @Override
   public Map<String, String> getHeaders() {
-    if (!headersLoaded) {
-      synchronized (headers) {
-        if (headersLoaded) {
-          return headers;
-        }
-
+    synchronized (headers) {
+      if (!headersLoaded) {
         headers.putAll(flowFile.getAttributes());
         headers.put(ENTRY_DATE_HEADER, Long.toString(flowFile.getEntryDate()));
         headers.put(ID_HEADER, Long.toString(flowFile.getId()));
@@ -76,7 +72,6 @@ public class FlowFileEvent implements Event {
         }
         headers.put(LINEAGE_START_DATE_HEADER, Long.toString(flowFile.getLineageStartDate()));
         headers.put(SIZE_HEADER, Long.toString(flowFile.getSize()));
-
         headersLoaded = true;
       }
     }
@@ -94,11 +89,7 @@ public class FlowFileEvent implements Event {
 
   @Override
   public byte[] getBody() {
-    if (bodyLoaded) {
-      return body;
-    }
-
-    synchronized (bodyLock ) {
+    synchronized (bodyLock) {
       if (!bodyLoaded) {
         if (flowFile.getSize() > Integer.MAX_VALUE) {
           throw new RuntimeException("Can't get body of Event because the backing FlowFile is too large (" + flowFile.getSize() + " bytes)");
