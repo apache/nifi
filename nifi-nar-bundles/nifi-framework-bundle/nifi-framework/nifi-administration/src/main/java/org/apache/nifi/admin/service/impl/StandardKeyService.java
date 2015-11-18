@@ -18,6 +18,9 @@ package org.apache.nifi.admin.service.impl;
 
 import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.service.AdministrationException;
+import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.admin.service.action.GetKeyAction;
+import org.apache.nifi.admin.service.action.GetOrCreateKeyAction;
 import org.apache.nifi.admin.service.transaction.Transaction;
 import org.apache.nifi.admin.service.transaction.TransactionBuilder;
 import org.apache.nifi.admin.service.transaction.TransactionException;
@@ -26,9 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.nifi.admin.service.KeyService;
-import org.apache.nifi.admin.service.action.GetKeyAction;
-import org.apache.nifi.admin.service.action.GetOrCreateKeyAction;
 
 /**
  *
@@ -45,6 +45,8 @@ public class StandardKeyService implements KeyService {
 
     @Override
     public String getKey(String identity) {
+        // TODO: Change this service to look up by "key ID" instead of identity
+        // TODO: Change the return type to a Key POJO to support key rotation
         Transaction transaction = null;
         String key = null;
 
@@ -75,6 +77,8 @@ public class StandardKeyService implements KeyService {
 
     @Override
     public String getOrCreateKey(String identity) {
+        // TODO: Change this service to look up by "key ID" instead of identity
+        // TODO: Change the return type to a Key POJO to support key rotation
         Transaction transaction = null;
         String key = null;
 

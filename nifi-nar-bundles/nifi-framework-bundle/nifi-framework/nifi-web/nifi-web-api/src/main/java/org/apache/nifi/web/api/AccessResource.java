@@ -23,6 +23,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import io.jsonwebtoken.JwtException;
 import org.apache.nifi.util.NiFiProperties;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -184,30 +185,33 @@ public class AccessResource extends ApplicationResource {
                     accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
                     accessStatus.setMessage("No credentials supplied, unknown user.");
                 } else {
-                    // TODO - use this token with the JWT service
+                    // Extract the Base64 encoded token from the Authorization header
                     final String token = StringUtils.substringAfterLast(authorization, " ");
 
-                    // TODO - do not call this method of the jwt service
-                    final String principal = jwtService.getAuthentication(httpServletRequest);
+                    try {
+                        final String principal = jwtService.getAuthenticationFromToken(token);
 
-                    // TODO - catch jwt exception?
-                    // ensure we have something we can work with (certificate or credentials)
-                    if (principal == null) {
-                        throw new IllegalArgumentException("The specific token is not valid.");
-                    } else {
-                        // set the user identity
-                        accessStatus.setIdentity(principal);
-                        accessStatus.setUsername(CertificateUtils.extractUsername(principal));
+                        // ensure we have something we can work with (certificate or credentials)
+                        if (principal == null) {
+                            throw new IllegalArgumentException("The specific token is not valid.");
+                        } else {
+                            // set the user identity
+                            accessStatus.setIdentity(principal);
+                            accessStatus.setUsername(CertificateUtils.extractUsername(principal));
 
-                        // without a certificate, this is not a proxied request
-                        final List<String> chain = Arrays.asList(principal);
+                            // without a certificate, this is not a proxied request
+                            final List<String> chain = Arrays.asList(principal);
 
-                        // check authorization for this user
-                        checkAuthorization(chain);
+                            // check authorization for this user
+                            checkAuthorization(chain);
 
-                        // no issues with authorization
-                        accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                        accessStatus.setMessage("Account is active and authorized");
+                            // no issues with authorization
+                            accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
+                            accessStatus.setMessage("Account is active and authorized");
+                        }
+                    } catch (JwtException e) {
+                        // TODO: Handle the exception from a failed JWT verification
+                        throw new AccessDeniedException("The JWT could not be verified", e);
                     }
                 }
             } else {
@@ -334,7 +338,8 @@ public class AccessResource extends ApplicationResource {
                 }
                 
                 // create the authentication token
-                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, loginIdentityProvider.getClass().getSimpleName());
+                // TODO: Some Spring beans return "" for getClass().getSimpleName(). Using getName() temporarily
+                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, loginIdentityProvider.getClass().getName());
             } catch (final InvalidLoginCredentialsException ilce) {
                 throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
             } catch (final IdentityAccessException iae) {
@@ -355,7 +360,8 @@ public class AccessResource extends ApplicationResource {
             authorizeProxyIfNecessary(proxyChain);
 
             // create the authentication token
-            loginAuthenticationToken = new LoginAuthenticationToken(proxyChain.get(0), authenticationResponse.getExpiration(), certificateIdentityProvider.getClass().getSimpleName());
+            // TODO: Some Spring beans return "" for getClass().getSimpleName(). Using getName() temporarily
+            loginAuthenticationToken = new LoginAuthenticationToken(proxyChain.get(0), authenticationResponse.getExpiration(), certificateIdentityProvider.getClass().getName());
         }
 
         // generate JWT for response

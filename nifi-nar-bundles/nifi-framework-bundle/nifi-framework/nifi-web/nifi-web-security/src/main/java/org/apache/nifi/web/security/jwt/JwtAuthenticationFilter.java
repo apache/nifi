@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.web.security.jwt;
 
-import java.util.Arrays;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import io.jsonwebtoken.JwtException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.token.NewAccountAuthenticationRequestToken;
 import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
@@ -26,11 +25,17 @@ import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+
 /**
  */
 public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
+    private static final String AUTHORIZATION = "Authorization";
 
     private JwtService jwtService;
 
@@ -41,16 +46,35 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
             return null;
         }
 
-        // get the principal out of the user token
-        final String jwtPrincipal = jwtService.getAuthentication(request);
-        if (jwtPrincipal == null) {
-            return null;
-        }
+        // TODO: Refactor request header extraction logic to shared utility as it is duplicated in AccessResource
 
-        if (isNewAccountRequest(request)) {
-            return new NewAccountAuthenticationRequestToken(new NewAccountRequest(Arrays.asList(jwtPrincipal), getJustification(request)));
+        // get the principal out of the user token
+        // look for an authorization token
+        final String authorization = request.getHeader(AUTHORIZATION);
+
+        // if there is no authorization header, we don't know the user
+        if (authorization == null) {
+            return null;
         } else {
-            return new NiFiAuthenticationRequestToken(Arrays.asList(jwtPrincipal));
+            // Extract the Base64 encoded token from the Authorization header
+            final String token = StringUtils.substringAfterLast(authorization, " ");
+
+            try {
+                final String jwtPrincipal = jwtService.getAuthenticationFromToken(token);
+                if (jwtPrincipal == null) {
+                    return null;
+                }
+
+                if (isNewAccountRequest(request)) {
+                    return new NewAccountAuthenticationRequestToken(new NewAccountRequest(Arrays.asList(jwtPrincipal), getJustification(request)));
+                } else {
+                    return new NiFiAuthenticationRequestToken(Arrays.asList(jwtPrincipal));
+                }
+            } catch (JwtException e) {
+                // TODO: Is this the correct way to handle an unverified token?
+                logger.error("Could not verify JWT", e);
+                return null;
+            }
         }
     }
 

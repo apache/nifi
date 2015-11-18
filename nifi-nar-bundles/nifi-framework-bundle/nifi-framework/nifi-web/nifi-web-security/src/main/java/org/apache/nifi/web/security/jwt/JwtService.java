@@ -33,7 +33,6 @@ import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 
@@ -44,7 +43,8 @@ public class JwtService {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(JwtService.class);
 
     private static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
-    private final static String AUTHORIZATION = "Authorization";
+    private static final String KEY_ID_CLAIM = "kid";
+    private static final String USERNAME_CLAIM = "preferred_username";
 
     private final KeyService keyService;
 
@@ -52,49 +52,50 @@ public class JwtService {
         this.keyService = keyService;
     }
 
-    /**
-     * Gets the Authentication by extracting a JWT token from the specified request.
-     *
-     * @param request Request to extract the token from
-     * @return The user identifier from the token
-     */
-    public String getAuthentication(final HttpServletRequest request) {
-        // TODO: Refactor request token extraction out of this service
-        // extract/verify token from incoming request
-        final String authorization = request.getHeader(AUTHORIZATION);
-        final String base64EncodedToken = StringUtils.substringAfterLast(authorization, " ");
-
-        return getAuthenticationFromToken(base64EncodedToken);
-    }
-
-    public String getAuthenticationFromToken(final String base64EncodedToken) {
+    public String getAuthenticationFromToken(final String base64EncodedToken) throws JwtException {
         // The library representations of the JWT should be kept internal to this service.
         try {
             final Jws<Claims> jws = parseTokenFromBase64EncodedString(base64EncodedToken);
+
+            if (jws == null) {
+                throw new JwtException("Unable to parse token");
+            }
+
+            // Additional validation that subject is present
+            if (StringUtils.isEmpty(jws.getBody().getSubject())) {
+                throw new JwtException("No subject available in token");
+            }
+
+            // TODO: Validate issuer against active registry?
+            if (StringUtils.isEmpty(jws.getBody().getIssuer())) {
+                // TODO: Remove after testing
+//                logger.info("Decoded JWT payload: " + jws.toString());
+                throw new JwtException("No issuer available in token");
+            }
             return jws.getBody().getSubject();
         } catch (JwtException e) {
             logger.debug("The Base64 encoded JWT: " + base64EncodedToken);
-            final String errorMessage = "There was an error parsing the Base64-encoded JWT";
+            final String errorMessage = "There was an error validating the JWT";
             logger.error(errorMessage, e);
-            throw new JwtException(errorMessage, e);
+            throw e;
         }
     }
 
     private Jws<Claims> parseTokenFromBase64EncodedString(final String base64EncodedToken) throws JwtException {
         try {
-            // TODO: Check algorithm for validity
-            // TODO: Ensure signature verification occurs
             return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
                 @Override
                 public byte[] resolveSigningKeyBytes(JwsHeader header, Claims claims) {
                     final String identity = claims.getSubject();
 
+                    // TODO: Currently the kid field is identical to identity, but will be a unique key ID when key rotation is implemented
+                    final String keyId = claims.get(KEY_ID_CLAIM, String.class);
                     // The key is unique per identity and should be retrieved from the key service
-                    final String key = keyService.getKey(identity);
+                    final String key = keyService.getKey(keyId);
 
                     // Ensure we were able to find a key that was previously issued by this key service for this user
                     if (key == null) {
-                        throw new UnsupportedJwtException("Unable to determine signing key for " + identity);
+                        throw new UnsupportedJwtException("Unable to determine signing key for " + identity + " [kid: " + keyId + "]");
                     }
 
                     return key.getBytes(StandardCharsets.UTF_8);
@@ -102,8 +103,7 @@ public class JwtService {
             }).parseClaimsJws(base64EncodedToken);
         } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException | AdministrationException e) {
             // TODO: Exercise all exceptions to ensure none leak key material to logs
-            final String errorMessage = "There was an error parsing the Base64-encoded JWT";
-            logger.error(errorMessage, e);
+            final String errorMessage = "There was an error validating the JWT";
             throw new JwtException(errorMessage, e);
         }
     }
@@ -111,9 +111,9 @@ public class JwtService {
     /**
      * Generates a signed JWT token from the provided (Spring Security) login authentication token.
      *
-     * @param authenticationToken
+     * @param authenticationToken an instance of the Spring Security token after login credentials have been verified against the respective information source
      * @return a signed JWT containing the user identity and the identity provider, Base64-encoded
-     * @throws JwtException
+     * @throws JwtException if there is a problem generating the signed token
      */
     public String generateSignedToken(final LoginAuthenticationToken authenticationToken) throws JwtException {
         if (authenticationToken == null) {
@@ -144,17 +144,19 @@ public class JwtService {
 
             // TODO: Implement "jti" claim with nonce to prevent replay attacks and allow blacklisting of revoked tokens
 
+            // TODO: Change kid field to key ID when KeyService is refactored
+
             // Build the token
             return Jwts.builder().setSubject(identity)
                     .setIssuer(authenticationToken.getIssuer())
                     .setAudience(authenticationToken.getIssuer())
-                    .claim("preferred_username", username)
+                    .claim(USERNAME_CLAIM, username)
+                    .claim(KEY_ID_CLAIM, identity)
                     .setExpiration(expiration.getTime())
                     .setIssuedAt(Calendar.getInstance().getTime())
                     .signWith(SIGNATURE_ALGORITHM, keyBytes).compact();
         } catch (NullPointerException | AdministrationException e) {
-            // TODO: Remove exception handling and pass through
-            final String errorMessage = "Could not retrieve the signing key for JWT";
+            final String errorMessage = "Could not retrieve the signing key for JWT for " + identity;
             logger.error(errorMessage, e);
             throw new JwtException(errorMessage, e);
         }

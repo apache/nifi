@@ -9,6 +9,7 @@ import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.codehaus.jettison.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -38,14 +39,38 @@ public class JwtServiceTest {
      * These constant strings were generated using the tool at http://jwt.io
      */
 
-    private static final String VALID_SIGNED_TOKEN = "";
-    private static final String INVALID_SIGNED_TOKEN = "";
-    private static final String VALID_UNSIGNED_TOKEN = "";
-    private static final String INVALID_UNSIGNED_TOKEN = "";
-    private static final String VALID_MALSIGNED_TOKEN = "";
-    private static final String INVALID_MALSIGNED_TOKEN = "";
+    private static final String VALID_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.8fUgH9jLvE1essgrcoV8OCyDhXvSXUH_1xqeqDqWycU";
+
+    // This token has an empty subject field
+    private static final String INVALID_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.jcjRBLtDzREmdjkJf3xry-ucyCmSRygBaP-HCWBkwlI";
+
+    private static final String VALID_UNSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9";
+
+    // This token has an empty subject field
+    private static final String INVALID_UNSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9";
+
+    // Algorithm field is "none"
+    private static final String VALID_MALSIGNED_TOKEN = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoxNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.mPO_wMNMl_zjMNevhNvUoXbSJ9Kx6jAe5OxDIAzKQbI";
+
+    // Algorithm field is "none" and no signature is present
+    private static final String VALID_MALSIGNED_NO_SIG_TOKEN = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.";
+
+    // This token has an empty subject field
+    private static final String INVALID_MALSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoxNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.WAwmUY4KHKV2oARNodkqDkbZsfRXGZfD2Ccy64GX9QF";
+
+    private static final String EXPIRED_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoxNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.y3M1TlzXZ80cVTkfcNxaHpq6aAlM1y2HGCZWEOcvmSU";
+
+    // Subject is "mgilman" but signed with "alopresto" key
+    private static final String IMPOSTER_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtZ2lsbWFuIiwiaXNzIjoiTW9ja0lkZW50aXR5UHJvdmlkZXIiLCJhdWQiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsInByZWZlcnJlZF91c2VybmFtZSI6ImFsb3ByZXN0byIsImtpZCI6ImFsb3ByZXN0byIsImV4cCI6MjQ0NzgwODc2MSwiaWF0IjoxNDQ3ODA4NzAxfQ.l-9nHmYTEMgLshX8qCEqbc2O4BH_GYBVQIFkUKsJvLA";
+
+    // Issuer field is set to unknown provider
+    private static final String UNKNOWN_ISSUER_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJVbmtub3duSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.SAd9tyNwSaijWet9wvAWSNmpxmPSK4XQuLx7h3ARqBo";
+
+    // Issuer field is absent
+    private static final String NO_ISSUER_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbG9wcmVzdG8iLCJhdWQiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsInByZWZlcnJlZF91c2VybmFtZSI6ImFsb3ByZXN0byIsImtpZCI6ImFsb3ByZXN0byIsImV4cCI6MjQ0NzgwODc2MSwiaWF0IjoxNDQ3ODA4NzAxfQ.Hdha7K69sz6224vidvuZ6A6UdGLdZ_U1egS0txuVXAk";
 
     private static final String DEFAULT_HEADER = "{\"alg\":\"HS256\"}";
+    private static final String DEFAULT_IDENTITY = "alopresto";
 
     private static final String TOKEN_DELIMITER = ".";
 
@@ -93,6 +118,7 @@ public class JwtServiceTest {
     @Before
     public void setUp() throws Exception {
         mockKeyService = Mockito.mock(KeyService.class);
+        when(mockKeyService.getKey(anyString())).thenReturn(HMAC_SECRET);
         when(mockKeyService.getOrCreateKey(anyString())).thenReturn(HMAC_SECRET);
         jwtService = new JwtService(mockKeyService);
     }
@@ -104,45 +130,156 @@ public class JwtServiceTest {
 
     @Test
     public void testShouldGetAuthenticationForValidToken() throws Exception {
+        // Arrange
+        String token = VALID_SIGNED_TOKEN;
 
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+        assertEquals("Identity", DEFAULT_IDENTITY, identity);
     }
 
-    @Test
+    @Test(expected = JwtException.class)
     public void testShouldNotGetAuthenticationForInvalidToken() throws Exception {
         // Arrange
         String token = INVALID_SIGNED_TOKEN;
 
-        String header = "{" +
-                "  \"alg\":\"HS256\"" +
-                "}";
-        String payload = "{" +
-                "  \"sub\":\"alopresto\"," +
-                "  \"preferred_username\":\"alopresto\"," +
-                "  \"exp\":2895419760" +
-                "}";
-
         // Act
-        logger.info("Test token: " + generateHS256Token(header, payload, true, true));
-
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
 
         // Assert
 
-
+        // Should fail
     }
 
-    @Test
+    @Test(expected = JwtException.class)
     public void testShouldNotGetAuthenticationForEmptyToken() throws Exception {
+        // Arrange
+        String token = "";
 
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
     }
 
-    @Test
+    @Test(expected = JwtException.class)
     public void testShouldNotGetAuthenticationForUnsignedToken() throws Exception {
+        // Arrange
+        String token = VALID_UNSIGNED_TOKEN;
 
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
     }
 
-    @Test
-    public void testShouldNotGetAuthenticationForTokenWithWrongAlgorithm() throws Exception {
+    @Test(expected = JwtException.class)
+    public void testShouldNotGetAuthenticationForMalsignedToken() throws Exception {
+        // Arrange
+        String token = VALID_MALSIGNED_TOKEN;
 
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
+    }
+
+    @Test(expected = JwtException.class)
+    public void testShouldNotGetAuthenticationForTokenWithWrongAlgorithm() throws Exception {
+        // Arrange
+        String token = VALID_MALSIGNED_TOKEN;
+
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
+    }
+
+    @Test(expected = JwtException.class)
+    public void testShouldNotGetAuthenticationForTokenWithWrongAlgorithmAndNoSignature() throws Exception {
+        // Arrange
+        String token = VALID_MALSIGNED_NO_SIG_TOKEN;
+
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
+    }
+
+    @Ignore("Not yet implemented")
+    @Test(expected = JwtException.class)
+    public void testShouldNotGetAuthenticationForTokenFromUnknownIdentityProvider() throws Exception {
+        // Arrange
+        String token = UNKNOWN_ISSUER_TOKEN;
+
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
+    }
+
+    @Test(expected = JwtException.class)
+    public void testShouldNotGetAuthenticationForTokenFromEmptyIdentityProvider() throws Exception {
+        // Arrange
+        String token = NO_ISSUER_TOKEN;
+
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
+    }
+
+    @Test(expected = JwtException.class)
+    public void testShouldNotGetAuthenticationForExpiredToken() throws Exception {
+        // Arrange
+        String token = EXPIRED_SIGNED_TOKEN;
+
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
+    }
+
+    @Test(expected = JwtException.class)
+    public void testShouldNotGetAuthenticationForImposterToken() throws Exception {
+        // Arrange
+        String token = IMPOSTER_SIGNED_TOKEN;
+
+        // Act
+        String identity = jwtService.getAuthenticationFromToken(token);
+        logger.debug("Extracted identity: " + identity);
+
+        // Assert
+
+        // Should fail
     }
 
     @Test
@@ -176,6 +313,7 @@ public class JwtServiceTest {
         claims.put("iss", "MockIdentityProvider");
         claims.put("aud", "MockIdentityProvider");
         claims.put("preferred_username", "alopresto");
+        claims.put("kid", "alopresto");
         claims.put("exp", TOKEN_EXPIRATION_SEC);
         claims.put("iat", ISSUED_AT_SEC);
         logger.trace("JSON Object to String: " + new JSONObject(claims).toString());
