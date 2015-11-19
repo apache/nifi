@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -59,6 +60,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
+import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -126,7 +128,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
 @DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @WritesAttributes({
-    @WritesAttribute(attribute = "execution.command", description = "The name of the command executed to create the new FlowFile"),
+    @WritesAttribute(attribute = "execution.command", description = "The name of the command executed"),
     @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
     @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
     @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
@@ -140,14 +142,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .name("output stream")
             .description("The destination path for the flow file created from the command's output")
             .build();
-    private static final Set<Relationship> RELATIONSHIPS;
+    private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
-    static {
-        Set<Relationship> rels = new HashSet<>();
-        rels.add(OUTPUT_STREAM_RELATIONSHIP);
-        rels.add(ORIGINAL_RELATIONSHIP);
-        RELATIONSHIPS = Collections.unmodifiableSet(rels);
-    }
+    private final static Set<Relationship> OUTPUT_STREAM_RELATIONSHIP_SET;
+    private final static Set<Relationship> ATTRIBUTE_RELATIONSHIP_SET;
 
     private static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true);
     static final PropertyDescriptor EXECUTION_COMMAND = new PropertyDescriptor.Builder()
@@ -195,6 +193,22 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    static final PropertyDescriptor PUT_OUTPUT_IN_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("Output Destination Attribute")
+            .description("If set, the output of the stream command will be put into an attribute of the original FlowFile instead of a separate "
+                    + "FlowFile. There will no longer be a relationship for 'output stream'. The value of this property will be the key for the output attribute.")
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor PUT_ATTRIBUTE_MAX_LENGTH = new PropertyDescriptor.Builder()
+            .name("Max Attribute Length")
+            .description("If routing the output of the stream command to an attribute, the number of characters put to the attribute value "
+                    + "will be at most this amount. This is important because attributes are held in memory and large attributes will quickly "
+                    + "cause out of memory issues. If the output goes longer than this value, it will truncated to fit. Consider making this smaller if able.")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("256")
+            .build();
+
     private static final Validator characterValidator = new StandardValidators.StringLengthValidator(1, 1);
 
     static final PropertyDescriptor ARG_DELIMITER = new PropertyDescriptor.Builder()
@@ -216,19 +230,44 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         props.add(IGNORE_STDIN);
         props.add(WORKING_DIR);
         props.add(ARG_DELIMITER);
+        props.add(PUT_OUTPUT_IN_ATTRIBUTE);
+        props.add(PUT_ATTRIBUTE_MAX_LENGTH);
         PROPERTIES = Collections.unmodifiableList(props);
+
+
+        Set<Relationship> outputStreamRelationships = new HashSet<>();
+        outputStreamRelationships.add(OUTPUT_STREAM_RELATIONSHIP);
+        outputStreamRelationships.add(ORIGINAL_RELATIONSHIP);
+        OUTPUT_STREAM_RELATIONSHIP_SET = Collections.unmodifiableSet(outputStreamRelationships);
+
+        Set<Relationship> attributeRelationships = new HashSet<>();
+        attributeRelationships.add(ORIGINAL_RELATIONSHIP);
+        ATTRIBUTE_RELATIONSHIP_SET = Collections.unmodifiableSet(attributeRelationships);
     }
 
     private ProcessorLog logger;
 
     @Override
     public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
+        return relationships.get();
     }
 
     @Override
     protected void init(ProcessorInitializationContext context) {
         logger = getLogger();
+
+        relationships.set(OUTPUT_STREAM_RELATIONSHIP_SET);
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (descriptor.equals(PUT_OUTPUT_IN_ATTRIBUTE)) {
+            if (newValue != null) {
+                relationships.set(ATTRIBUTE_RELATIONSHIP_SET);
+            } else {
+                relationships.set(OUTPUT_STREAM_RELATIONSHIP_SET);
+            }
+        }
     }
 
     @Override
@@ -254,6 +293,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         }
 
         final ArrayList<String> args = new ArrayList<>();
+        final boolean putToAttribute = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).isSet();
+        final Integer attributeSize = context.getProperty(PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
+        final String attributeName = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).getValue();
+
         final String executeCommand = context.getProperty(EXECUTION_COMMAND).evaluateAttributeExpressions(inputFlowFile).getValue();
         args.add(executeCommand);
         final String commandArguments = context.getProperty(EXECUTION_ARGUMENTS).getValue();
@@ -300,10 +343,17 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(pes))) {
             int exitCode = -1;
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
-            FlowFile outputStreamFlowFile = session.create(inputFlowFile);
-            ProcessStreamWriterCallback callback = new ProcessStreamWriterCallback(ignoreStdin, bos, bis, logger, session, outputStreamFlowFile, process);
+            FlowFile outputFlowFile = putToAttribute ? inputFlowFile : session.create(inputFlowFile);
+
+            ProcessStreamWriterCallback callback = new ProcessStreamWriterCallback(ignoreStdin, bos, bis, logger,
+                    attributeName, session, outputFlowFile, process,putToAttribute,attributeSize);
             session.read(inputFlowFile, callback);
-            outputStreamFlowFile = callback.outputStreamFlowFile;
+
+            outputFlowFile = callback.outputFlowFile;
+            if (putToAttribute) {
+                outputFlowFile = session.putAttribute(outputFlowFile, attributeName, new String(callback.outputBuffer, 0, callback.size));
+            }
+
             exitCode = callback.exitCode;
             logger.debug("Execution complete for command: {}.  Exited with code: {}", new Object[]{executeCommand, exitCode});
 
@@ -321,21 +371,29 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             int length = strBldr.length() > 4000 ? 4000 : strBldr.length();
             attributes.put("execution.error", strBldr.substring(0, length));
 
+            final Relationship outputFlowFileRelationship = putToAttribute ? ORIGINAL_RELATIONSHIP : OUTPUT_STREAM_RELATIONSHIP;
             if (exitCode == 0) {
-                logger.info("Transferring flow file {} to 'output stream'", new Object[]{outputStreamFlowFile});
+                logger.info("Transferring flow file {} to {}",
+                        new Object[]{outputFlowFile,outputFlowFileRelationship.getName()});
             } else {
-                logger.error("Transferring flow file {} to 'output stream'. Executable command {} ended in an error: {}",
-                        new Object[]{outputStreamFlowFile, executeCommand, strBldr.toString()});
+                logger.error("Transferring flow file {} to {}. Executable command {} ended in an error: {}",
+                        new Object[]{outputFlowFile,outputFlowFileRelationship.getName(), executeCommand, strBldr.toString()});
             }
 
             attributes.put("execution.status", Integer.toString(exitCode));
             attributes.put("execution.command", executeCommand);
             attributes.put("execution.command.args", commandArguments);
-            outputStreamFlowFile = session.putAllAttributes(outputStreamFlowFile, attributes);
-            session.transfer(outputStreamFlowFile, OUTPUT_STREAM_RELATIONSHIP);
-            logger.info("Transferring flow file {} to original", new Object[]{inputFlowFile});
-            inputFlowFile = session.putAllAttributes(inputFlowFile, attributes);
-            session.transfer(inputFlowFile, ORIGINAL_RELATIONSHIP);
+            outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
+
+            // This transfer will transfer the FlowFile that received the stream out put to it's destined relationship.
+            // In the event the stream is put to the an attribute of the original, it will be transferred here.
+            session.transfer(outputFlowFile, outputFlowFileRelationship);
+
+            if (!putToAttribute) {
+                logger.info("Transferring flow file {} to original", new Object[]{inputFlowFile});
+                inputFlowFile = session.putAllAttributes(inputFlowFile, attributes);
+                session.transfer(inputFlowFile, ORIGINAL_RELATIONSHIP);
+            }
 
         } catch (final IOException ex) {
             // could not close Process related streams
@@ -348,59 +406,97 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static class ProcessStreamWriterCallback implements InputStreamCallback {
 
         final boolean ignoreStdin;
-        final OutputStream stdInWritable;
-        final InputStream stdOutReadable;
+        final OutputStream stdinWritable;
+        final InputStream stdoutReadable;
         final ProcessorLog logger;
         final ProcessSession session;
         final Process process;
-        FlowFile outputStreamFlowFile;
+        FlowFile outputFlowFile;
         int exitCode;
+        final boolean putToAttribute;
+        final int attributeSize;
+        final String attributeName;
 
-        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdInWritable, InputStream stdOutReadable,
-                                           ProcessorLog logger, ProcessSession session, FlowFile outputStreamFlowFile, Process process) {
+        byte[] outputBuffer;
+        int size;
+
+        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdinWritable, InputStream stdoutReadable,ProcessorLog logger, String attributeName,
+                                           ProcessSession session, FlowFile outputFlowFile, Process process, boolean putToAttribute, int attributeSize) {
             this.ignoreStdin = ignoreStdin;
-            this.stdInWritable = stdInWritable;
-            this.stdOutReadable = stdOutReadable;
+            this.stdinWritable = stdinWritable;
+            this.stdoutReadable = stdoutReadable;
             this.logger = logger;
             this.session = session;
-            this.outputStreamFlowFile = outputStreamFlowFile;
+            this.outputFlowFile = outputFlowFile;
             this.process = process;
+            this.putToAttribute = putToAttribute;
+            this.attributeSize = attributeSize;
+            this.attributeName = attributeName;
         }
 
         @Override
         public void process(final InputStream incomingFlowFileIS) throws IOException {
-            outputStreamFlowFile = session.write(outputStreamFlowFile, new OutputStreamCallback() {
+            if (putToAttribute) {
+                try (SoftLimitBoundedByteArrayOutputStream softLimitBoundedBAOS = new SoftLimitBoundedByteArrayOutputStream(attributeSize)) {
+                    readStdoutReadable(ignoreStdin, stdinWritable, logger, incomingFlowFileIS);
+                    final long longSize = StreamUtils.copy(stdoutReadable, softLimitBoundedBAOS);
 
-                @Override
-                public void process(OutputStream out) throws IOException {
+                    // Because the outputstream has a cap that the copy doesn't know about, adjust
+                    // the actual size
+                    if (longSize > (long) attributeSize) { // Explicit cast for readability
+                        size = attributeSize;
+                    } else{
+                        size = (int) longSize; // Note: safe cast, longSize is limited by attributeSize
+                    }
 
-                    Thread writerThread = new Thread(new Runnable() {
+                    outputBuffer = softLimitBoundedBAOS.getBuffer();
+                    stdoutReadable.close();
 
-                        @Override
-                        public void run() {
-                            if (!ignoreStdin) {
-                                try {
-                                    StreamUtils.copy(incomingFlowFileIS, stdInWritable);
-                                } catch (IOException e) {
-                                    logger.error("Failed to write flow file to stdIn due to {}", new Object[]{e}, e);
-                                }
-                            }
-                            // MUST close the output stream to the stdIn so that whatever is reading knows
-                            // there is no more data
-                            IOUtils.closeQuietly(stdInWritable);
-                        }
-                    });
-                    writerThread.setDaemon(true);
-                    writerThread.start();
-                    StreamUtils.copy(stdOutReadable, out);
                     try {
                         exitCode = process.waitFor();
                     } catch (InterruptedException e) {
                         logger.warn("Command Execution Process was interrupted", e);
                     }
                 }
-            });
+            } else {
+                outputFlowFile = session.write(outputFlowFile, new OutputStreamCallback() {
+                    @Override
+                    public void process(OutputStream out) throws IOException {
+
+                        readStdoutReadable(ignoreStdin, stdinWritable, logger, incomingFlowFileIS);
+                        StreamUtils.copy(stdoutReadable, out);
+                        try {
+                            exitCode = process.waitFor();
+                        } catch (InterruptedException e) {
+                            logger.warn("Command Execution Process was interrupted", e);
+                        }
+                    }
+                });
+            }
         }
     }
 
+    private static void readStdoutReadable(final boolean ignoreStdin, final OutputStream stdinWritable,
+                                           final ProcessorLog logger, final InputStream incomingFlowFileIS) throws IOException {
+        Thread writerThread = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                if (!ignoreStdin) {
+                    try {
+                        StreamUtils.copy(incomingFlowFileIS, stdinWritable);
+                    } catch (IOException e) {
+                        // This is unlikely to occur, and isn't handled at the moment
+                        // Bug captured in NIFI-1194
+                        logger.error("Failed to write flow file to stdin due to {}", new Object[]{e}, e);
+                    }
+                }
+                // MUST close the output stream to the stdin so that whatever is reading knows
+                // there is no more data.
+                IOUtils.closeQuietly(stdinWritable);
+            }
+        });
+        writerThread.setDaemon(true);
+        writerThread.start();
+    }
 }
