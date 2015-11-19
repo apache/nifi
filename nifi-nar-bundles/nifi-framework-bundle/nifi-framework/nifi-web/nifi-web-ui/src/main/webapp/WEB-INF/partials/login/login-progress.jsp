@@ -17,6 +17,6 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="login-progress-container" class="login-container hidden">
     <div id="login-progress-spinner" class="loading-container"></div>
-    <div id="login-progress-label">Logging in...</div>
+    <div id="login-progress-label"></div>
     <div class="clear"></div>
 </div>

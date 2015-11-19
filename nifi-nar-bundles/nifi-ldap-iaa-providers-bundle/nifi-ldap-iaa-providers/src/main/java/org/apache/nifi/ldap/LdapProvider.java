@@ -227,7 +227,7 @@ public class LdapProvider implements LoginIdentityProvider {
             final Map<String, Object> baseEnvironment,
             final String configurationProperty,
             final String environmentKey) {
-        
+
         final String rawTimeout = configurationContext.getProperty(configurationProperty);
         if (StringUtils.isNotBlank(rawTimeout)) {
             try {
@@ -238,7 +238,7 @@ public class LdapProvider implements LoginIdentityProvider {
             }
         }
     }
-    
+
     @Override
     public final AuthenticationResponse authenticate(final LoginCredentials credentials) throws InvalidLoginCredentialsException, IdentityAccessException {
         if (provider == null) {

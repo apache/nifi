@@ -53,77 +53,76 @@ public class JwtServiceTest {
     /**
      * These constant strings were generated using the tool at http://jwt.io
      */
-
-    private static final String VALID_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRl" +
-            "ciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZ" +
-            "XJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoxLCJleHAiOjI0NDc4MDg3NjEsIm" +
-            "lhdCI6MTQ0NzgwODcwMX0.r6aGZ6FNNYMOpcXW8BK2VYaQeX1uO0Aw1KJfjB3Q1DU";
-
-    // This token has an empty subject field
-    private static final String INVALID_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZG" +
-            "VudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvI" +
-            "iwia2lkIjoxLCJleHAiOjI0NDc4MDg3NjEsImlhdCI6MTQ0NzgwODcwMX0" +
-            ".x_1p2M6E0vwWHWMujIUnSL3GkFoDqqICllRxo2SMNaw";
-
-    private static final String VALID_UNSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZC" +
-            "I6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJl" +
-            "c3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9";
+    private static final String VALID_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRl"
+            + "ciIsImF1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZ"
+            + "XJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoxLCJleHAiOjI0NDc4MDg3NjEsIm"
+            + "lhdCI6MTQ0NzgwODcwMX0.r6aGZ6FNNYMOpcXW8BK2VYaQeX1uO0Aw1KJfjB3Q1DU";
 
     // This token has an empty subject field
-    private static final String INVALID_UNSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVu" +
-            "dGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoi" +
-            "YWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9";
+    private static final String INVALID_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZG"
+            + "VudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvI"
+            + "iwia2lkIjoxLCJleHAiOjI0NDc4MDg3NjEsImlhdCI6MTQ0NzgwODcwMX0"
+            + ".x_1p2M6E0vwWHWMujIUnSL3GkFoDqqICllRxo2SMNaw";
+
+    private static final String VALID_UNSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZC"
+            + "I6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJl"
+            + "c3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9";
+
+    // This token has an empty subject field
+    private static final String INVALID_UNSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVu"
+            + "dGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoi"
+            + "YWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9";
 
     // Algorithm field is "none"
-    private static final String VALID_MALSIGNED_TOKEN = "eyJhbGciOiJub25lIn0" +
-            ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZC" +
-            "I6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJl" +
-            "c3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoxNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9" +
-            ".mPO_wMNMl_zjMNevhNvUoXbSJ9Kx6jAe5OxDIAzKQbI";
+    private static final String VALID_MALSIGNED_TOKEN = "eyJhbGciOiJub25lIn0"
+            + ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZC"
+            + "I6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJl"
+            + "c3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoxNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9"
+            + ".mPO_wMNMl_zjMNevhNvUoXbSJ9Kx6jAe5OxDIAzKQbI";
 
     // Algorithm field is "none" and no signature is present
-    private static final String VALID_MALSIGNED_NO_SIG_TOKEN = "eyJhbGciOiJub25lIn0" +
-            ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY" +
-            "2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIj" +
-            "oiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.";
+    private static final String VALID_MALSIGNED_NO_SIG_TOKEN = "eyJhbGciOiJub25lIn0"
+            + ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY"
+            + "2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIj"
+            + "oiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.";
 
     // This token has an empty subject field
-    private static final String INVALID_MALSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVud" +
-            "Gl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYW" +
-            "xvcHJlc3RvIiwiZXhwIjoxNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.WAwmUY4KHKV2oARNodkqDkbZsfRXGZfD2Ccy64GX9QF";
+    private static final String INVALID_MALSIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik1vY2tJZGVud"
+            + "Gl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvcHJlc3RvIiwia2lkIjoiYW"
+            + "xvcHJlc3RvIiwiZXhwIjoxNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.WAwmUY4KHKV2oARNodkqDkbZsfRXGZfD2Ccy64GX9QF";
 
     // This token is signed but expired
-    private static final String EXPIRED_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik" +
-            "1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvc" +
-            "HJlc3RvIiwia2lkIjoxLCJleHAiOjE0NDc4MDg3NjEsImlhdCI6MTQ0NzgwODcw" +
-            "MX0.ZPDIhNKuL89vTGXcuztOYaGifwcrQy_gid4j8Sspmto";
+    private static final String EXPIRED_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiIiLCJpc3MiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsImF1ZCI6Ik"
+            + "1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxvc"
+            + "HJlc3RvIiwia2lkIjoxLCJleHAiOjE0NDc4MDg3NjEsImlhdCI6MTQ0NzgwODcw"
+            + "MX0.ZPDIhNKuL89vTGXcuztOYaGifwcrQy_gid4j8Sspmto";
 
     // Subject is "mgilman" but signed with "alopresto" key
-    private static final String IMPOSTER_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiJtZ2lsbWFuIiwiaXNzIjoiTW9ja0lkZW50aXR5UHJvdmlkZXIiLCJ" +
-            "hdWQiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsInByZWZlcnJlZF91c2VybmFtZSI" +
-            "6ImFsb3ByZXN0byIsImtpZCI6MSwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc" +
-            "4MDg3MDF9.aw5OAvLTnb_sHmSQOQzW-A7NImiZgXJ2ngbbNL2Ymkc";
+    private static final String IMPOSTER_SIGNED_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiJtZ2lsbWFuIiwiaXNzIjoiTW9ja0lkZW50aXR5UHJvdmlkZXIiLCJ"
+            + "hdWQiOiJNb2NrSWRlbnRpdHlQcm92aWRlciIsInByZWZlcnJlZF91c2VybmFtZSI"
+            + "6ImFsb3ByZXN0byIsImtpZCI6MSwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc"
+            + "4MDg3MDF9.aw5OAvLTnb_sHmSQOQzW-A7NImiZgXJ2ngbbNL2Ymkc";
 
     // Issuer field is set to unknown provider
-    private static final String UNKNOWN_ISSUER_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJVbmtub3duSWRlbnRpdHlQcm92aWRlciIsIm" +
-            "F1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxv" +
-            "cHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9" +
-            ".SAd9tyNwSaijWet9wvAWSNmpxmPSK4XQuLx7h3ARqBo";
+    private static final String UNKNOWN_ISSUER_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiJhbG9wcmVzdG8iLCJpc3MiOiJVbmtub3duSWRlbnRpdHlQcm92aWRlciIsIm"
+            + "F1ZCI6Ik1vY2tJZGVudGl0eVByb3ZpZGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxv"
+            + "cHJlc3RvIiwia2lkIjoiYWxvcHJlc3RvIiwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9"
+            + ".SAd9tyNwSaijWet9wvAWSNmpxmPSK4XQuLx7h3ARqBo";
 
     // Issuer field is absent
-    private static final String NO_ISSUER_TOKEN = "eyJhbGciOiJIUzI1NiJ9" +
-            ".eyJzdWIiOiJhbG9wcmVzdG8iLCJhdWQiOiJNb2NrSWRlbnRpdHlQcm92a" +
-            "WRlciIsInByZWZlcnJlZF91c2VybmFtZSI6ImFsb3ByZXN0byIsImtpZCI" +
-            "6MSwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.6kDjDanA" +
-            "g0NQDb3C8FmgbBAYDoIfMAEkF4WMVALsbJA";
+    private static final String NO_ISSUER_TOKEN = "eyJhbGciOiJIUzI1NiJ9"
+            + ".eyJzdWIiOiJhbG9wcmVzdG8iLCJhdWQiOiJNb2NrSWRlbnRpdHlQcm92a"
+            + "WRlciIsInByZWZlcnJlZF91c2VybmFtZSI6ImFsb3ByZXN0byIsImtpZCI"
+            + "6MSwiZXhwIjoyNDQ3ODA4NzYxLCJpYXQiOjE0NDc4MDg3MDF9.6kDjDanA"
+            + "g0NQDb3C8FmgbBAYDoIfMAEkF4WMVALsbJA";
 
     private static final String DEFAULT_HEADER = "{\"alg\":\"HS256\"}";
     private static final String DEFAULT_IDENTITY = "alopresto";
@@ -136,7 +135,6 @@ public class JwtServiceTest {
 
     // Class under test
     private JwtService jwtService;
-
 
     private String generateHS256Token(String rawHeader, String rawPayload, boolean isValid, boolean isSigned) {
         return generateHS256Token(rawHeader, rawPayload, HMAC_SECRET, isValid, isSigned);
@@ -172,14 +170,13 @@ public class JwtServiceTest {
         return Base64.encodeBase64URLSafeString(hmacSHA256.doFinal(body.getBytes("UTF-8")));
     }
 
-
     @Before
     public void setUp() throws Exception {
         final Key key = new Key();
         key.setId(1);
         key.setIdentity(DEFAULT_IDENTITY);
         key.setKey(HMAC_SECRET);
-        
+
         mockKeyService = Mockito.mock(KeyService.class);
         when(mockKeyService.getKey(anyInt())).thenReturn(key);
         when(mockKeyService.getOrCreateKey(anyString())).thenReturn(key);
@@ -214,7 +211,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -228,7 +224,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -242,7 +237,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -256,7 +250,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -270,7 +263,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -284,7 +276,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -299,7 +290,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -313,7 +303,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -327,7 +316,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -341,7 +329,6 @@ public class JwtServiceTest {
         logger.debug("Extracted identity: " + identity);
 
         // Assert
-
         // Should fail
     }
 
@@ -366,7 +353,6 @@ public class JwtServiceTest {
         logger.debug("Generated JWT: " + token);
 
         // Run after the SUT generates the token to ensure the same issued at time
-
         // Split the token, decode the middle section, and form a new String
         final String DECODED_PAYLOAD = new String(Base64.decodeBase64(token.split("\\.")[1].getBytes()));
         final long ISSUED_AT_SEC = Long.valueOf(DECODED_PAYLOAD.substring(DECODED_PAYLOAD.lastIndexOf(":") + 1,
@@ -402,7 +388,6 @@ public class JwtServiceTest {
         jwtService.generateSignedToken(nullLoginAuthenticationToken);
 
         // Assert
-
         // Should throw exception
     }
 
@@ -418,7 +403,6 @@ public class JwtServiceTest {
         jwtService.generateSignedToken(emptyIdentityLoginAuthenticationToken);
 
         // Assert
-
         // Should throw exception
     }
 
@@ -434,7 +418,6 @@ public class JwtServiceTest {
         jwtService.generateSignedToken(nullIdentityLoginAuthenticationToken);
 
         // Assert
-
         // Should throw exception
     }
 
@@ -449,15 +432,14 @@ public class JwtServiceTest {
 
         // Set up the bad key service
         KeyService missingKeyService = Mockito.mock(KeyService.class);
-        when(missingKeyService.getOrCreateKey(anyString())).thenThrow(new AdministrationException("Could not find a " +
-                "key for that user"));
+        when(missingKeyService.getOrCreateKey(anyString())).thenThrow(new AdministrationException("Could not find a "
+                + "key for that user"));
         jwtService = new JwtService(missingKeyService);
 
         // Act
         jwtService.generateSignedToken(loginAuthenticationToken);
 
         // Assert
-
         // Should throw exception
     }
 }

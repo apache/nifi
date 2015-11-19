@@ -31,9 +31,9 @@ import org.springframework.security.web.authentication.preauth.x509.X509Principa
 public class X509IdentityProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(X509IdentityProvider.class);
-    
+
     private final String issuer = getClass().getSimpleName();
-    
+
     private X509CertificateValidator certificateValidator;
     private X509PrincipalExtractor principalExtractor;
 

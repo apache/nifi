@@ -88,6 +88,7 @@ nf.Login = (function () {
 
     var login = function () {
         // show the logging message...
+        $('#login-progress-label').text('Logging in...');
         $('#login-progress-container').show();
         $('#login-submission-container').hide();
         
@@ -186,6 +187,11 @@ nf.Login = (function () {
     };
 
     var submitJustification = function () {
+        // show the logging message...
+        $('#login-progress-label').text('Submitting...');
+        $('#login-progress-container').show();
+        $('#login-submission-container').hide();
+        
         // attempt to create the nifi account registration
         $.ajax({
             type: 'POST',
@@ -208,6 +214,7 @@ nf.Login = (function () {
             // update form visibility
             $('#nifi-registration-container').hide();
             $('#login-submission-container').hide();
+            $('#login-progress-container').hide();
             $('#login-message-container').show();
         });
     };

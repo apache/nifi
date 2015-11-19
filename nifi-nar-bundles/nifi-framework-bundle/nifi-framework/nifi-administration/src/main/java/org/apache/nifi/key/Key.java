@@ -29,7 +29,7 @@ public class Key implements Serializable {
 
     /**
      * The key id.
-     * 
+     *
      * @return the id
      */
     public int getId() {
@@ -42,7 +42,7 @@ public class Key implements Serializable {
 
     /**
      * The identity of the user this key is associated with.
-     * 
+     *
      * @return the identity
      */
     public String getIdentity() {
@@ -55,7 +55,7 @@ public class Key implements Serializable {
 
     /**
      * The signing key.
-     * 
+     *
      * @return the signing key
      */
     public String getKey() {
