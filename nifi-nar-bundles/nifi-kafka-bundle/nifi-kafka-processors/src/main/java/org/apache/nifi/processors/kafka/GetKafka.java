@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -32,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -70,19 +72,24 @@ import kafka.message.MessageAndMetadata;
                 + " the message does not have a key, or if the batch size is greater than 1, this attribute will not be added"),
         @WritesAttribute(attribute = "kafka.partition", description = "The partition of the Kafka Topic from which the message was received. This attribute is added only if the batch size is 1"),
         @WritesAttribute(attribute = "kafka.offset", description = "The offset of the message within the Kafka partition. This attribute is added only if the batch size is 1")})
+@DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
+                 description = "These properties will be set on the Kafka configuration after loading any provided configuration properties."
+                             + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.")
 public class GetKafka extends AbstractProcessor {
 
     public static final String SMALLEST = "smallest";
     public static final String LARGEST = "largest";
 
     public static final PropertyDescriptor ZOOKEEPER_CONNECTION_STRING = new PropertyDescriptor.Builder()
-            .name("ZooKeeper Connection String")
+            .displayName("ZooKeeper Connection String")
+            .name("zookeeper.connect")
             .description("The Connection String to use in order to connect to ZooKeeper. This is often a comma-separated list of <host>:<port>"
-                    + " combinations. For example, host1:2181,host2:2181,host3:2188")
+                            + " combinations. For example, host1:2181,host2:2181,host3:2188. Corresponds to 'zookeeper.connect' configuration property.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
+
     public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
             .name("Topic Name")
             .description("The Kafka Topic to pull messages from")
@@ -90,31 +97,41 @@ public class GetKafka extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
-    public static final PropertyDescriptor ZOOKEEPER_COMMIT_DELAY = new PropertyDescriptor.Builder()
-            .name("Zookeeper Commit Frequency")
+
+    public static final PropertyDescriptor ZOOKEEPER_COMMIT_INTERVAL = new PropertyDescriptor.Builder()
+            .displayName("Zookeeper Commit Interval")
+            .name("auto.commit.interval.ms")
             .description("Specifies how often to communicate with ZooKeeper to indicate which messages have been pulled. A longer time period will"
-                    + " result in better overall performance but can result in more data duplication if a NiFi node is lost")
+                            + " result in better overall performance but can result in more data duplication if a NiFi node is lost. "
+                            + "Corresponds to 'auto.commit.interval.ms' configuration property.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(false)
             .defaultValue("60 secs")
             .build();
-    public static final PropertyDescriptor ZOOKEEPER_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("ZooKeeper Communications Timeout")
-            .description("The amount of time to wait for a response from ZooKeeper before determining that there is a communications error")
+
+    public static final PropertyDescriptor ZOOKEEPER_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+            .displayName("ZooKeeper Connection Timeout")
+            .name("zookeeper.connection.timeout.ms")
+            .description("The maximum amount of time that the client waits to establish a connection to zookeeper. "
+                    + "Corresponds to 'zookeeper.connection.timeout.ms' configuration property.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(false)
             .defaultValue("30 secs")
             .build();
+
     public static final PropertyDescriptor KAFKA_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Kafka Communications Timeout")
-            .description("The amount of time to wait for a response from Kafka before determining that there is a communications error")
+            .displayName("Kafka Communication Timeout")
+            .name("socket.timeout.ms")
+            .description("The amount of time to wait for a response from Kafka before determining that there is a communications error. "
+                    + "Corresponds to 'socket.timeout.ms' configuration property.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(false)
             .defaultValue("30 secs")
             .build();
+
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
             .description("Specifies the maximum number of messages to combine into a single FlowFile. These messages will be "
@@ -125,6 +142,7 @@ public class GetKafka extends AbstractProcessor {
             .expressionLanguageSupported(false)
             .defaultValue("1")
             .build();
+
     public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
             .name("Message Demarcator")
             .description("Specifies the characters to use in order to demarcate multiple messages from Kafka. If the <Batch Size> "
@@ -136,24 +154,29 @@ public class GetKafka extends AbstractProcessor {
             .defaultValue("\\n")
             .build();
 
-    public static final PropertyDescriptor CLIENT_NAME = new PropertyDescriptor.Builder()
-            .name("Client Name")
-            .description("Client Name to use when communicating with Kafka")
+    public static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
+            .displayName("Client ID")
+            .name("client.id")
+            .description("Client identifier to use when communicating with Kafka. Corresponds to 'client.id' configuration property.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
+
     public static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
-            .name("Group ID")
-            .description("A Group ID is used to identify consumers that are within the same consumer group")
+            .displayName("Group ID")
+            .name("group.id")
+            .description("A Group ID is used to identify consumers that are within the same consumer group. Corresponds to 'group.id' configuration property")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
 
     public static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
-            .name("Auto Offset Reset")
-            .description("Automatically reset the offset to the smallest or largest offset available on the broker")
+            .displayName("Auto Offset Reset")
+            .name("auto.offset.reset")
+            .description("Automatically reset the offset to the smallest or largest offset available on the broker. "
+                    + "Corresponds to 'auto.offset.reset' configuration property.")
             .required(true)
             .allowableValues(SMALLEST, LARGEST)
             .defaultValue(LARGEST)
@@ -174,7 +197,7 @@ public class GetKafka extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final PropertyDescriptor clientNameWithDefault = new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(CLIENT_NAME)
+                .fromPropertyDescriptor(CLIENT_ID)
                 .defaultValue("NiFi-" + getIdentifier())
                 .build();
         final PropertyDescriptor groupIdWithDefault = new PropertyDescriptor.Builder()
@@ -185,13 +208,13 @@ public class GetKafka extends AbstractProcessor {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(ZOOKEEPER_CONNECTION_STRING);
         props.add(TOPIC);
-        props.add(ZOOKEEPER_COMMIT_DELAY);
+        props.add(ZOOKEEPER_COMMIT_INTERVAL);
         props.add(BATCH_SIZE);
         props.add(MESSAGE_DEMARCATOR);
         props.add(clientNameWithDefault);
         props.add(groupIdWithDefault);
         props.add(KAFKA_TIMEOUT);
-        props.add(ZOOKEEPER_TIMEOUT);
+        props.add(ZOOKEEPER_CONNECTION_TIMEOUT);
         props.add(AUTO_OFFSET_RESET);
         return props;
     }
@@ -210,15 +233,7 @@ public class GetKafka extends AbstractProcessor {
         final Map<String, Integer> topicCountMap = new HashMap<>(1);
         topicCountMap.put(topic, context.getMaxConcurrentTasks());
 
-        final Properties props = new Properties();
-        props.setProperty("zookeeper.connect", context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue());
-        props.setProperty("group.id", context.getProperty(GROUP_ID).getValue());
-        props.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
-        props.setProperty("auto.commit.interval.ms", String.valueOf(context.getProperty(ZOOKEEPER_COMMIT_DELAY).asTimePeriod(TimeUnit.MILLISECONDS)));
-        props.setProperty("auto.commit.enable", "true"); // just be explicit
-        props.setProperty("auto.offset.reset", context.getProperty(AUTO_OFFSET_RESET).getValue());
-        props.setProperty("zk.connectiontimeout.ms", context.getProperty(ZOOKEEPER_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).toString());
-        props.setProperty("socket.timeout.ms", context.getProperty(KAFKA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).toString());
+        final Properties props = this.createConfig(context);
 
         final ConsumerConfig consumerConfig = new ConsumerConfig(props);
         consumer = Consumer.createJavaConsumerConnector(consumerConfig);
@@ -259,6 +274,14 @@ public class GetKafka extends AbstractProcessor {
         } finally {
             interruptionLock.unlock();
         }
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
+                .name(propertyDescriptorName).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).dynamic(true)
+                .build();
     }
 
     protected ConsumerIterator<byte[], byte[]> getStreamIterator() {
@@ -368,4 +391,28 @@ public class GetKafka extends AbstractProcessor {
         }
     }
 
+    /**
+     * Will create an instance of {@link Properties} used to create Kafka
+     * ConsumerConfig. Each property name corresponds to Kafka configuration
+     * properties found here:
+     * http://kafka.apache.org/documentation.html#configuration
+     */
+    private Properties createConfig(ProcessContext processContext) {
+        Properties props = new Properties();
+        props.setProperty(ZOOKEEPER_CONNECTION_STRING.getName(), processContext.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue());
+        props.setProperty(GROUP_ID.getName(), processContext.getProperty(GROUP_ID).getValue());
+        props.setProperty(CLIENT_ID.getName(), processContext.getProperty(CLIENT_ID).getValue());
+        props.setProperty(ZOOKEEPER_COMMIT_INTERVAL.getName(), String.valueOf(processContext.getProperty(ZOOKEEPER_COMMIT_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS)));
+        props.setProperty(AUTO_OFFSET_RESET.getName(), processContext.getProperty(AUTO_OFFSET_RESET).getValue());
+        props.setProperty(ZOOKEEPER_CONNECTION_TIMEOUT.getName(), processContext.getProperty(ZOOKEEPER_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).toString());
+        props.setProperty(KAFKA_TIMEOUT.getName(), processContext.getProperty(KAFKA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).toString());
+
+        for (final Entry<PropertyDescriptor, String> entry : processContext.getProperties().entrySet()) {
+            PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                props.setProperty(descriptor.getName(), entry.getValue());
+            }
+        }
+        return props;
+    }
 }

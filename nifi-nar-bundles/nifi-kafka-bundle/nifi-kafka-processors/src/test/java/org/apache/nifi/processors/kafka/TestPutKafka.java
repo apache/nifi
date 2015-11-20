@@ -19,6 +19,7 @@ package org.apache.nifi.processors.kafka;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Future;
 
 import org.apache.kafka.clients.producer.BufferExhaustedException;
@@ -39,6 +41,7 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -53,12 +56,39 @@ import kafka.common.FailedToSendMessageException;
 public class TestPutKafka {
 
     @Test
+    public void testKafkaDefaultConfigurationProperties() throws Exception {
+        PutKafka putKafkaProcessor = new PutKafka();
+        TestRunner runner = TestRunners.newTestRunner(putKafkaProcessor);
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
+
+        Method createConfigMethod = PutKafka.class.getDeclaredMethod("createConfig", ProcessContext.class);
+        createConfigMethod.setAccessible(true);
+
+        Properties configProperties = (Properties) createConfigMethod.invoke(putKafkaProcessor,
+                runner.getProcessContext());
+
+        assertEquals(10, configProperties.size());
+        // assert that property names correspond to the 10 actual properties from Kafka configuration
+        // http://kafka.apache.org/documentation.html#configuration
+        assertEquals("localhost:1234", configProperties.get("bootstrap.servers"));
+        assertEquals("1048576", configProperties.get("max.request.size"));
+        assertEquals("false", configProperties.get("block.on.buffer.full"));
+        assertEquals("5242880", configProperties.get("buffer.memory"));
+        assertEquals("5000", configProperties.get("linger.ms"));
+        assertTrue(configProperties.getProperty("client.id").startsWith("NiFi-"));
+        assertEquals("200", configProperties.get("batch.size"));
+        assertEquals("30000", configProperties.get("timeout.ms"));
+        assertEquals("none", configProperties.get("compression.type"));
+        assertEquals("0", configProperties.get("acks"));
+    }
+
+    @Test
     public void testMultipleKeyValuePerFlowFile() {
         final TestableProcessor proc = new TestableProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
 
         runner.enqueue("Hello World\nGoodbye\n1\n2\n3\n4\n5\n6\n7\n8\n9".getBytes());
@@ -83,7 +113,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
 
         final String text = "Hello World\nGoodbye\n1\n2\n3\n4\n5\n6\n7\n8\n9";
@@ -101,7 +131,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
         runner.setProperty(PutKafka.MAX_BUFFER_SIZE, "1 B");
 
@@ -125,7 +155,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
         runner.setProperty(PutKafka.MAX_BUFFER_SIZE, "1 B");
 
@@ -158,7 +188,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
 
         final byte[] bytes = "\n\n\n1\n2\n\n\n\n3\n4\n\n\n".getBytes();
@@ -183,7 +213,7 @@ public class TestPutKafka {
 
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
 
         final byte[] bytes = "\n\n\n1\n2\n\n\n\n3\n4\n\n\n".getBytes();
@@ -205,7 +235,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
 
         final byte[] bytes = "\n\n\n1\n2\n\n\n\n3\n4\n\n\n".getBytes();
         runner.enqueue(bytes);
@@ -225,7 +255,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.PARTITION_STRATEGY, PutKafka.ROUND_ROBIN_PARTITIONING);
 
         runner.enqueue("hello".getBytes());
@@ -252,7 +282,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.PARTITION_STRATEGY, PutKafka.ROUND_ROBIN_PARTITIONING);
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
 
@@ -278,7 +308,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.PARTITION_STRATEGY, PutKafka.USER_DEFINED_PARTITIONING);
         runner.setProperty(PutKafka.PARTITION, "${part}");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
@@ -306,7 +336,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.PARTITION_STRATEGY, PutKafka.USER_DEFINED_PARTITIONING);
         runner.setProperty(PutKafka.PARTITION, "${part}");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
@@ -336,7 +366,7 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.KAFKA_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
         runner.setProperty(PutKafka.MAX_BUFFER_SIZE, "5 B");
         proc.setMaxQueueSize(10L); // will take 4 bytes for key and 1 byte for value.

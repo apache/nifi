@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -44,6 +45,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -81,6 +83,9 @@ import scala.actors.threadpool.Arrays;
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka. The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line.")
 @TriggerWhenEmpty // because we have a queue of sessions that are ready to be committed
+@DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
+                description = "These properties will be set on the Kafka configuration after loading any provided configuration properties."
+                            + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.")
 public class PutKafka extends AbstractSessionFactoryProcessor {
 
     private static final String SINGLE_BROKER_REGEX = ".*?\\:\\d{3,5}";
@@ -119,13 +124,24 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         "The <Partition> property will be used to determine the partition. All messages within the same FlowFile will be assigned to the same partition.");
 
 
-    public static final PropertyDescriptor SEED_BROKERS = new PropertyDescriptor.Builder()
-        .name("Known Brokers")
-        .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
+    public static final PropertyDescriptor KAFKA_BROKERS = new PropertyDescriptor.Builder()
+        .displayName("Known Brokers")
+        .name("bootstrap.servers")
+        .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>. Corresponds to 'bootstrap.servers' configuration property.")
         .required(true)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile(BROKER_REGEX)))
         .expressionLanguageSupported(false)
         .build();
+
+    public static final PropertyDescriptor BLOCK_ON_FULL_BUFFER = new PropertyDescriptor.Builder()
+        .displayName("Block when buffer is full")
+        .name("block.on.buffer.full")
+        .description("Specifies wether to stop accepting new records or not if the memory buffer is full. Corresponds to 'block.on.buffer.full' configuration property.")
+        .required(false)
+        .defaultValue("false")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .build();
+
     public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
         .name("Topic Name")
         .description("The Kafka Topic of interest")
@@ -133,6 +149,7 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(true)
         .build();
+
     static final PropertyDescriptor PARTITION_STRATEGY = new PropertyDescriptor.Builder()
         .name("Partition Strategy")
         .description("Specifies how messages should be partitioned when sent to Kafka")
@@ -140,6 +157,7 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         .defaultValue(ROUND_ROBIN_PARTITIONING.getValue())
         .required(true)
         .build();
+
     public static final PropertyDescriptor PARTITION = new PropertyDescriptor.Builder()
         .name("Partition")
         .description("Specifies which Kafka Partition to add the message to. If using a message delimiter, all messages in the same FlowFile will be sent to the same partition. "
@@ -148,6 +166,7 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         .expressionLanguageSupported(true)
         .required(false)
         .build();
+
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
         .name("Kafka Key")
         .description("The Key to use for the Message")
@@ -155,14 +174,17 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(true)
         .build();
+
     public static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
-        .name("Delivery Guarantee")
-        .description("Specifies the requirement for guaranteeing that a message is sent to Kafka")
+        .displayName("Delivery Guarantee")
+        .name("acks")
+        .description("Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds to 'acks' configuration property.")
         .required(true)
         .expressionLanguageSupported(false)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
         .defaultValue(DELIVERY_BEST_EFFORT.getValue())
         .build();
+
     public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
         .name("Message Delimiter")
         .description("Specifies the delimiter to use for splitting apart multiple messages within a single FlowFile. "
@@ -176,58 +198,72 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(true)
         .build();
+
     public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
-        .name("Max Buffer Size")
-        .description("The maximum amount of data to buffer in memory before sending to Kafka")
+        .displayName("Max Buffer Size")
+        .name("buffer.memory")
+        .description("The maximum amount of data to buffer in memory before sending to Kafka. Corresponds to 'buffer.memory' configuration property.")
         .required(true)
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .expressionLanguageSupported(false)
         .defaultValue("5 MB")
         .build();
+
     static final PropertyDescriptor MAX_RECORD_SIZE = new PropertyDescriptor.Builder()
-        .name("Max Record Size")
-        .description("The maximum size that any individual record can be.")
+        .displayName("Max Record Size")
+        .name("max.request.size")
+        .description("The maximum size that any individual record can be. Corresponds to 'max.request.size' configuration property.")
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .required(true)
         .defaultValue("1 MB")
         .build();
+
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-        .name("Communications Timeout")
-        .description("The amount of time to wait for a response from Kafka before determining that there is a communications error")
+        .name("Communication Timeout")
+        .name("timeout.ms")
+        .description("The amount of time to wait for a response from Kafka before determining that there is a communication error. "
+                + "Corresponds to 'timeout.ms' configuration property.")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .expressionLanguageSupported(false)
         .defaultValue("30 secs")
         .build();
-    public static final PropertyDescriptor CLIENT_NAME = new PropertyDescriptor.Builder()
-        .name("Client Name")
-        .description("Client Name to use when communicating with Kafka")
+
+    public static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
+        .displayName("Client ID")
+        .name("client.id")
+        .description("Client ID to use when communicating with Kafka. Corresponds to 'client.id' configuration property.")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(false)
         .build();
+
     public static final PropertyDescriptor BATCH_NUM_MESSAGES = new PropertyDescriptor.Builder()
-        .name("Async Batch Size")
+        .name("batch.size")
         .displayName("Batch Size")
         .description("The number of messages to send in one batch. The producer will wait until either this number of messages are ready"
-            + " to send or \"Queue Buffering Max Time\" is reached.")
+            + " to send or \"Queue Buffering Max Time\" is reached. Corresponds to 'batch.size' configuration property.")
         .required(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .defaultValue("200")
         .build();
+
     public static final PropertyDescriptor QUEUE_BUFFERING_MAX = new PropertyDescriptor.Builder()
-        .name("Queue Buffering Max Time")
+        .displayName("Queue Buffering Max Time")
+        .name("linger.ms")
         .description("Maximum time to buffer data before sending to Kafka. For example a setting of 100 ms"
             + " will try to batch together 100 milliseconds' worth of messages to send at once. This will improve"
-            + " throughput but adds message delivery latency due to the buffering.")
+            + " throughput but adds message delivery latency due to the buffering. Corresponds to 'linger.ms' configuration property.")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .defaultValue("5 secs")
         .build();
+
     public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
-        .name("Compression Codec")
+        .displayName("Compression Codec")
+        .name("compression.type")
         .description("This parameter allows you to specify the compression codec for all"
-            + " data generated by this producer.")
+            + " data generated by this producer. Corresponds to 'compression.type' configuration property.")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .allowableValues(COMPRESSION_CODEC_NONE, COMPRESSION_CODEC_GZIP, COMPRESSION_CODEC_SNAPPY)
@@ -254,12 +290,12 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final PropertyDescriptor clientName = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(CLIENT_NAME)
+            .fromPropertyDescriptor(CLIENT_ID)
             .defaultValue("NiFi-" + getIdentifier())
             .build();
 
         final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(SEED_BROKERS);
+        props.add(KAFKA_BROKERS);
         props.add(TOPIC);
         props.add(PARTITION_STRATEGY);
         props.add(PARTITION);
@@ -272,6 +308,7 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         props.add(BATCH_NUM_MESSAGES);
         props.add(QUEUE_BUFFERING_MAX);
         props.add(COMPRESSION_CODEC);
+        props.add(BLOCK_ON_FULL_BUFFER);
         props.add(clientName);
         return props;
     }
@@ -327,36 +364,47 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         return completeBatches.size();
     }
 
+    /**
+     * Will create an instance of {@link Properties} used to create Kafka
+     * KafkaProducer. Each property name corresponds to Kafka configuration
+     * properties found here:
+     * http://kafka.apache.org/documentation.html#configuration
+     */
     protected Properties createConfig(final ProcessContext context) {
-        final String brokers = context.getProperty(SEED_BROKERS).getValue();
-
         final Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", brokers);
-        properties.setProperty("acks", context.getProperty(DELIVERY_GUARANTEE).getValue());
-        properties.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
 
-        final String timeout = String.valueOf(context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).longValue());
-        properties.setProperty("timeout.ms", timeout);
-        properties.setProperty("metadata.fetch.timeout.ms", timeout);
-
-        properties.setProperty("batch.size", context.getProperty(BATCH_NUM_MESSAGES).getValue());
-        properties.setProperty("max.request.size", String.valueOf(context.getProperty(MAX_RECORD_SIZE).asDataSize(DataUnit.B).longValue()));
-
-        final long maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).longValue();
-        properties.setProperty("buffer.memory", String.valueOf(maxBufferSize));
-
-        final String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
-        properties.setProperty("compression.type", compressionCodec);
+        properties.setProperty(KAFKA_BROKERS.getName(), context.getProperty(KAFKA_BROKERS).getValue());
+        properties.setProperty(DELIVERY_GUARANTEE.getName(), context.getProperty(DELIVERY_GUARANTEE).getValue());
+        properties.setProperty(CLIENT_ID.getName(), context.getProperty(CLIENT_ID).getValue());
+        properties.setProperty(TIMEOUT.getName(), String.valueOf(context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).longValue()));
+        properties.setProperty(BATCH_NUM_MESSAGES.getName(), context.getProperty(BATCH_NUM_MESSAGES).getValue());
+        properties.setProperty(MAX_RECORD_SIZE.getName(), String.valueOf(context.getProperty(MAX_RECORD_SIZE).asDataSize(DataUnit.B).longValue()));
+        properties.setProperty(MAX_BUFFER_SIZE.getName(), String.valueOf(context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).longValue()));
+        properties.setProperty(COMPRESSION_CODEC.getName(), context.getProperty(COMPRESSION_CODEC).getValue());
 
         final Long queueBufferingMillis = context.getProperty(QUEUE_BUFFERING_MAX).asTimePeriod(TimeUnit.MILLISECONDS);
         if (queueBufferingMillis != null) {
-            properties.setProperty("linger.ms", String.valueOf(queueBufferingMillis));
+            properties.setProperty(QUEUE_BUFFERING_MAX.getName(), String.valueOf(queueBufferingMillis));
         }
 
-        properties.setProperty("retries", "0");
-        properties.setProperty("block.on.buffer.full", "false");
+        properties.setProperty(BLOCK_ON_FULL_BUFFER.getName(), context.getProperty(BLOCK_ON_FULL_BUFFER).getValue());
+
+        for (final Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                properties.setProperty(descriptor.getName(), entry.getValue());
+            }
+        }
 
         return properties;
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
+                .name(propertyDescriptorName).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).dynamic(true)
+                .build();
     }
 
     private Integer getPartition(final ProcessContext context, final FlowFile flowFile, final String topic) {
