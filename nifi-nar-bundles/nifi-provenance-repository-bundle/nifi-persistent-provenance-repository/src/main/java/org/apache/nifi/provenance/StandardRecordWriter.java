@@ -235,6 +235,8 @@ public class StandardRecordWriter implements RecordWriter {
             } else if (recordType == ProvenanceEventType.RECEIVE) {
                 writeNullableString(out, record.getTransitUri());
                 writeNullableString(out, record.getSourceSystemFlowFileIdentifier());
+            } else if (recordType == ProvenanceEventType.FETCH) {
+                writeNullableString(out, record.getTransitUri());
             } else if (recordType == ProvenanceEventType.SEND) {
                 writeNullableString(out, record.getTransitUri());
             } else if (recordType == ProvenanceEventType.ADDINFO) {

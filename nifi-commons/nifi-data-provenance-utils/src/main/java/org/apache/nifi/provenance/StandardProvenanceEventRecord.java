@@ -728,6 +728,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
                     }
                     break;
                 case RECEIVE:
+                case FETCH:
                 case SEND:
                     assertSet(transitUri, "Transit URI");
                     break;

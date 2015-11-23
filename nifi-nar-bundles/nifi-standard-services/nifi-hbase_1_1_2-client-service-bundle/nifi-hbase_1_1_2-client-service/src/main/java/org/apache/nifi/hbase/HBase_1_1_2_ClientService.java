@@ -43,6 +43,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
@@ -195,12 +196,30 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                     put = new Put(putFlowFile.getRow().getBytes(StandardCharsets.UTF_8));
                     rowPuts.put(putFlowFile.getRow(), put);
                 }
-                put.addColumn(putFlowFile.getColumnFamily().getBytes(StandardCharsets.UTF_8),
-                        putFlowFile.getColumnQualifier().getBytes(StandardCharsets.UTF_8),
-                        putFlowFile.getBuffer());
+
+                for (final PutColumn column : putFlowFile.getColumns()) {
+                    put.addColumn(
+                            column.getColumnFamily().getBytes(StandardCharsets.UTF_8),
+                            column.getColumnQualifier().getBytes(StandardCharsets.UTF_8),
+                            column.getBuffer());
+                }
             }
 
             table.put(new ArrayList<>(rowPuts.values()));
+        }
+    }
+
+    @Override
+    public void put(final String tableName, final String rowId, final Collection<PutColumn> columns) throws IOException {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            Put put = new Put(rowId.getBytes(StandardCharsets.UTF_8));
+            for (final PutColumn column : columns) {
+                put.addColumn(
+                        column.getColumnFamily().getBytes(StandardCharsets.UTF_8),
+                        column.getColumnQualifier().getBytes(StandardCharsets.UTF_8),
+                        column.getBuffer());
+            }
+            table.put(put);
         }
     }
 

@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
@@ -41,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -130,8 +132,9 @@ public class TestHBase_1_1_2_ClientService {
         final String columnQualifier = "qualifier1";
         final String content = "content1";
 
-        final PutFlowFile putFlowFile = new PutFlowFile(tableName, row, columnFamily, columnQualifier,
-                content.getBytes(StandardCharsets.UTF_8), null);
+        final Collection<PutColumn> columns = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+                content.getBytes(StandardCharsets.UTF_8)));
+        final PutFlowFile putFlowFile = new PutFlowFile(tableName, row, columns, null);
 
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 
@@ -168,11 +171,13 @@ public class TestHBase_1_1_2_ClientService {
         final String content1 = "content1";
         final String content2 = "content2";
 
-        final PutFlowFile putFlowFile1 = new PutFlowFile(tableName, row, columnFamily, columnQualifier,
-                content1.getBytes(StandardCharsets.UTF_8), null);
+        final Collection<PutColumn> columns1 = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+                content1.getBytes(StandardCharsets.UTF_8)));
+        final PutFlowFile putFlowFile1 = new PutFlowFile(tableName, row, columns1, null);
 
-        final PutFlowFile putFlowFile2 = new PutFlowFile(tableName, row, columnFamily, columnQualifier,
-                content2.getBytes(StandardCharsets.UTF_8), null);
+        final Collection<PutColumn> columns2 = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+                content2.getBytes(StandardCharsets.UTF_8)));
+        final PutFlowFile putFlowFile2 = new PutFlowFile(tableName, row, columns2, null);
 
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 
@@ -214,11 +219,13 @@ public class TestHBase_1_1_2_ClientService {
         final String content1 = "content1";
         final String content2 = "content2";
 
-        final PutFlowFile putFlowFile1 = new PutFlowFile(tableName, row1, columnFamily, columnQualifier,
-                content1.getBytes(StandardCharsets.UTF_8), null);
+        final Collection<PutColumn> columns1 = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+                content1.getBytes(StandardCharsets.UTF_8)));
+        final PutFlowFile putFlowFile1 = new PutFlowFile(tableName, row1, columns1, null);
 
-        final PutFlowFile putFlowFile2 = new PutFlowFile(tableName, row2, columnFamily, columnQualifier,
-                content2.getBytes(StandardCharsets.UTF_8), null);
+        final Collection<PutColumn> columns2 = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+                content2.getBytes(StandardCharsets.UTF_8)));
+        final PutFlowFile putFlowFile2 = new PutFlowFile(tableName, row2, columns2, null);
 
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 

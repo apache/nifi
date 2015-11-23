@@ -41,6 +41,7 @@ import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.hbase.util.ObjectSerDe;
 import org.apache.nifi.hbase.util.StringSerDe;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -83,7 +84,7 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "hbase.table", description = "The name of the HBase table that the data was pulled from"),
     @WritesAttribute(attribute = "mime.type", description = "Set to application/json to indicate that output is JSON")
 })
-public class GetHBase extends AbstractHBaseProcessor {
+public class GetHBase extends AbstractProcessor {
 
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:\\w+)?(?:,\\w+(:\\w+)?)*");
 

@@ -457,6 +457,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     bytesSent += event.getFileSize();
                     break;
                 case RECEIVE:
+                case FETCH:
                     flowFilesReceived++;
                     bytesReceived += event.getFileSize();
                     break;
@@ -616,7 +617,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     if (registeredTypes.contains(ProvenanceEventType.CREATE)
                         || registeredTypes.contains(ProvenanceEventType.FORK)
                         || registeredTypes.contains(ProvenanceEventType.JOIN)
-                        || registeredTypes.contains(ProvenanceEventType.RECEIVE)) {
+                        || registeredTypes.contains(ProvenanceEventType.RECEIVE)
+                        || registeredTypes.contains(ProvenanceEventType.FETCH)) {
                         creationEventRegistered = true;
                     }
                 }

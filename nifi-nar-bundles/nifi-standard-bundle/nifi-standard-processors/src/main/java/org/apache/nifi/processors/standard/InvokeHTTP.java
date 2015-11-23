@@ -67,7 +67,6 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -96,7 +95,6 @@ import org.joda.time.format.DateTimeFormatter;
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
-@TriggerWhenEmpty
 @CapabilityDescription("An HTTP client processor which converts FlowFile attributes to HTTP headers, with configurable HTTP method, url, etc.")
 @WritesAttributes({
     @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
@@ -610,7 +608,11 @@ public final class InvokeHTTP extends AbstractProcessor {
 
                         // emit provenance event
                         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                        session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis);
+                        if(requestFlowFile != null) {
+                            session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis);
+                        } else {
+                            session.getProvenanceReporter().receive(responseFlowFile, url.toExternalForm(), millis);
+                        }
                     }
                 }
 
@@ -775,13 +777,9 @@ public final class InvokeHTTP extends AbstractProcessor {
 
 
     private void route(FlowFile request, FlowFile response, ProcessSession session, ProcessContext context, int statusCode){
-        // check if we should penalize the request
-        if (!isSuccess(statusCode)) {
-            if (request == null) {
-                context.yield();
-            } else {
-                request = session.penalize(request);
-            }
+        // check if we should yield the processor
+        if (!isSuccess(statusCode) && request == null) {
+            context.yield();
         }
 
         // If the property to output the response flowfile regardless of status code is set then transfer it
@@ -805,6 +803,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             // 5xx -> RETRY
         } else if (statusCode / 100 == 5) {
             if (request != null) {
+                request = session.penalize(request);
                 session.transfer(request, REL_RETRY);
             }
 
