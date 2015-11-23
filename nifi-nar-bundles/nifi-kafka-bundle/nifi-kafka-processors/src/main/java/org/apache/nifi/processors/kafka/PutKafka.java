@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -44,6 +45,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -81,6 +83,11 @@ import scala.actors.threadpool.Arrays;
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka. The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line.")
 @TriggerWhenEmpty // because we have a queue of sessions that are ready to be committed
+@DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
+            description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
+        + " In the event a dynamic property represents a property that was already set as part of the static properties, its value wil be"
+        + " overriden with warning message describing the override."
+        + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.")
 public class PutKafka extends AbstractSessionFactoryProcessor {
 
     private static final String SINGLE_BROKER_REGEX = ".*?\\:\\d{3,5}";
@@ -356,6 +363,18 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         properties.setProperty("retries", "0");
         properties.setProperty("block.on.buffer.full", "false");
 
+        for (final Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                if (properties.containsKey(descriptor.getName())) {
+                    this.getLogger().warn("Overriding existing property '" + descriptor.getName() + "' which had value of '"
+                                    + properties.getProperty(descriptor.getName()) + "' with dynamically set value '"
+                                    + entry.getValue() + "'.");
+                }
+                properties.setProperty(descriptor.getName(), entry.getValue());
+            }
+        }
+
         return properties;
     }
 
@@ -395,6 +414,14 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         final List<PartitionInfo> partitionInfos = producer.partitionsFor(topic);
         final int partitionIdx = (int) (unnormalizedIndex % partitionInfos.size());
         return partitionInfos.get(partitionIdx).partition();
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
+                .name(propertyDescriptorName).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).dynamic(true)
+                .build();
     }
 
     @Override
