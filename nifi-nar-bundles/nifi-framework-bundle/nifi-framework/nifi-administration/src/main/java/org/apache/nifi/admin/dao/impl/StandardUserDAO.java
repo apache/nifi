@@ -466,6 +466,11 @@ public class StandardUserDAO implements UserDAO {
         if (user.getIdentity() == null) {
             throw new IllegalArgumentException("User identity must be specified.");
         }
+        
+        // ensure the user identity is not too lengthy
+        if (user.getIdentity().length() > 4096) {
+            throw new IllegalArgumentException("User identity must be less than 4096 characters.");
+        }
 
         PreparedStatement statement = null;
         ResultSet rs = null;
