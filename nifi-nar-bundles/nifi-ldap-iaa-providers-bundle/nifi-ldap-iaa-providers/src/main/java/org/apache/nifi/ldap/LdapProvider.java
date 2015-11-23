@@ -75,9 +75,9 @@ public class LdapProvider implements LoginIdentityProvider {
 
     @Override
     public final void onConfigured(final LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
-        final String rawExpiration = configurationContext.getProperty("Expiration Duration");
+        final String rawExpiration = configurationContext.getProperty("Authentication Expiration");
         if (StringUtils.isBlank(rawExpiration)) {
-            throw new ProviderCreationException("The Expiration Duration must be specified.");
+            throw new ProviderCreationException("The Authentication Expiration must be specified.");
         }
 
         try {
@@ -98,7 +98,7 @@ public class LdapProvider implements LoginIdentityProvider {
         if (!baseEnvironment.isEmpty()) {
             context.setBaseEnvironmentProperties(baseEnvironment);
         }
-        
+
         // authentication strategy
         final String rawAuthenticationStrategy = configurationContext.getProperty("Authentication Strategy");
         final LdapAuthenticationStrategy authenticationStrategy;
