@@ -20,8 +20,8 @@ package org.apache.nifi.ldap;
  *
  */
 public enum LdapAuthenticationStrategy {
+
     ANONYMOUS,
     SIMPLE,
-    DIGEST_MD5,
-    TLS
+    START_TLS
 }

@@ -37,13 +37,13 @@ import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.ProviderDestructionException;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.CommunicationException;
 import org.springframework.ldap.core.support.AbstractTlsDirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.DefaultTlsDirContextAuthenticationStrategy;
-import org.springframework.ldap.core.support.DigestMd5DirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -63,7 +63,6 @@ import org.springframework.security.ldap.userdetails.LdapUserDetails;
 public class LdapProvider implements LoginIdentityProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(LdapProvider.class);
-    private static final String TLS = "TLS";
 
     private AbstractLdapAuthenticationProvider provider;
     private String issuer;
@@ -99,7 +98,7 @@ public class LdapProvider implements LoginIdentityProvider {
         if (!baseEnvironment.isEmpty()) {
             context.setBaseEnvironmentProperties(baseEnvironment);
         }
-
+        
         // authentication strategy
         final String rawAuthenticationStrategy = configurationContext.getProperty("Authentication Strategy");
         final LdapAuthenticationStrategy authenticationStrategy;
@@ -125,10 +124,7 @@ public class LdapProvider implements LoginIdentityProvider {
                     case SIMPLE:
                         context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
                         break;
-                    case DIGEST_MD5:
-                        context.setAuthenticationStrategy(new DigestMd5DirContextAuthenticationStrategy());
-                        break;
-                    case TLS:
+                    case START_TLS:
                         final AbstractTlsDirContextAuthenticationStrategy tlsAuthenticationStrategy = new DefaultTlsDirContextAuthenticationStrategy();
 
                         // shutdown gracefully
@@ -145,22 +141,30 @@ public class LdapProvider implements LoginIdentityProvider {
                         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
                         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type");
                         final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth");
+                        final String rawProtocol = configurationContext.getProperty("TLS - Protocol");
+
+                        final ClientAuth clientAuth;
+                        if (StringUtils.isBlank(rawClientAuth)) {
+                            clientAuth = ClientAuth.NONE;
+                        } else {
+                            try {
+                                clientAuth = ClientAuth.valueOf(rawClientAuth);
+                            } catch (final IllegalArgumentException iae) {
+                                throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
+                                        rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
+                            }
+                        }
 
                         try {
                             final SSLContext sslContext;
                             if (StringUtils.isBlank(rawKeystore)) {
-                                sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, TLS);
+                                sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, rawProtocol);
                             } else {
                                 if (StringUtils.isBlank(rawTruststore)) {
-                                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, TLS);
+                                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, rawProtocol);
                                 } else {
-                                    try {
-                                        final SslContextFactory.ClientAuth clientAuth = SslContextFactory.ClientAuth.valueOf(rawClientAuth);
-                                        sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
-                                                rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, TLS);
-                                    } catch (final IllegalArgumentException iae) {
-                                        throw new ProviderCreationException(String.format("Unrecognized client auth '%s'", rawClientAuth));
-                                    }
+                                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
+                                            rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
                                 }
                             }
                             tlsAuthenticationStrategy.setSslSocketFactory(sslContext.getSocketFactory());
