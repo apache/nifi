@@ -86,7 +86,7 @@
         <property name="User Search Base"></property>
         <property name="User Search Filter"></property>
 
-        <property name="Expiration Duration">12 hours</property>
+        <property name="Authentication Expiration">12 hours</property>
     </provider>
     To enable the ldap-provider remove 2 lines. This is 2 of 2. -->
 </loginIdentityProviders>
