@@ -19,7 +19,6 @@ package org.apache.nifi.admin;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
@@ -151,10 +150,11 @@ public class UserDataSourceFactoryBean implements FactoryBean {
                     statement.execute(INSERT_ANONYMOUS_USER);
                 } else {
                     logger.info("Existing database found and connected to at: " + databaseUrl);
+                    RepositoryUtils.closeQuietly(rs);
 
-                    // get the RS metadata to see if we need to transform the table
-                    final ResultSetMetaData rsMetadata = rs.getMetaData();
-                    if (hasDnColumn(rsMetadata)) {
+                    // if the DN column exists, transform the table
+                    rs = connection.getMetaData().getColumns(null, null, "USER", "DN");
+                    if (rs.next()) {
                         statement.execute(RENAME_DN_COLUMN);
                         statement.execute(RESIZE_IDENTITY_COLUMN);
                         statement.execute(RESIZE_USER_NAME_COLUMN);
@@ -182,16 +182,6 @@ public class UserDataSourceFactoryBean implements FactoryBean {
         }
 
         return connectionPool;
-    }
-
-    private boolean hasDnColumn(final ResultSetMetaData rsMetadata) throws SQLException {
-        boolean hasDn = false;
-        for (int i = 1; i <= rsMetadata.getColumnCount() && !hasDn; i++) {
-            if ("DN".equals(rsMetadata.getColumnName(i))) {
-                hasDn = true;
-            }
-        }
-        return hasDn;
     }
 
     private String getDatabaseUrl(File databaseFile) {
