@@ -155,7 +155,10 @@ public class AccessResource extends ApplicationResource {
     @ApiResponses(
             value = {
                 @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                @ApiResponse(code = 401, message = "Unable to determine access status because the client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Unable to determine access status because the client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "Unable to determine access status because NiFi is not in the appropriate state."),
+                @ApiResponse(code = 500, message = "Unable to determine access status because an unexpected error occurred.")
             }
     )
     public Response getAccessStatus(
@@ -287,7 +290,8 @@ public class AccessResource extends ApplicationResource {
             value = {
                 @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
                 @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                @ApiResponse(code = 409, message = "Unable to create access token because NiFi is not in the appropriate state. (i.e. may not be configured to support username/password login."),
+                @ApiResponse(code = 500, message = "Unable to create access token because an unexpected error occurred.")
             }
     )
     public Response createAccessToken(
