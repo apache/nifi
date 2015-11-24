@@ -43,7 +43,7 @@
         </div>
     </div>
     <div id="header-links-container">
-        <ul>
+        <ul class="links">
             <li id="current-user-container">
                 <div id="anonymous-user-alert" class="hidden"></div>
                 <div id="current-user"></div>

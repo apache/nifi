@@ -74,7 +74,7 @@ $(document).ready(function () {
     
     // shows the logout link in the message-pane when appropriate and schedule token refresh
     if (nf.Storage.getItem('jwt') !== null) {
-        $('#user-logout-container').show();
+        $('#user-logout-container').css('display', 'block');
         nf.Common.scheduleTokenRefresh();
     }
     
@@ -82,6 +82,15 @@ $(document).ready(function () {
     $('#user-logout').on('click', function () {
         nf.Storage.removeItem('jwt');
         window.location = '/nifi/login';
+    });
+    
+    // handle home
+    $('#user-home').on('click', function () {
+        if (top !== window) {
+            parent.window.location = '/nifi';
+        } else {
+            window.location = '/nifi';
+        }
     });
 });
 
@@ -447,9 +456,9 @@ nf.Common = (function () {
          */
         showLogoutLink: function () {
             if (nf.Storage.getItem('jwt') === null) {
-                $('#user-logout-container').hide();
+                $('#user-logout-container').css('display', 'none');
             } else {
-                $('#user-logout-container').show();
+                $('#user-logout-container').css('display', 'block');
             }
         },
 

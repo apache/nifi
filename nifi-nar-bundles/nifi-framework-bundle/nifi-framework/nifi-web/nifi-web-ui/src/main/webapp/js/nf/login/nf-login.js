@@ -109,12 +109,25 @@ nf.Login = (function () {
             // check to see if they actually have access now
             $.ajax({
                 type: 'GET',
-                url: config.urls.identity,
+                url: config.urls.accessStatus,
                 dataType: 'json'
             }).done(function (response) {
-                if (response.identity === 'anonymous') {
-                    showLogoutLink();
+                var accessStatus = response.accessStatus;
+                
+                // update the logout link appropriately
+                showLogoutLink();
+                
+                // update according to the access status
+                if (accessStatus.status === 'UNKNOWN' || accessStatus.status === 'NOT_ACTIVE') {
+                    $('#login-message-title').text('Unable to log in');
+                    $('#login-message').text(accessStatus.message);
 
+                    // update visibility
+                    $('#login-container').hide();
+                    $('#login-submission-container').hide();
+                    $('#login-progress-container').hide();
+                    $('#login-message-container').show();
+                } else if (accessStatus.status === 'UNREGISTERED') {
                     // schedule automatic token refresh
                     nf.Common.scheduleTokenRefresh();
             
@@ -128,7 +141,7 @@ nf.Login = (function () {
                     // update the form visibility
                     $('#login-submission-container').show();
                     $('#login-progress-container').hide();
-                } else {
+                } else if (accessStatus.status === 'ACTIVE') {
                     // reload as appropriate - no need to schedule token refresh as the page is reloading
                     if (top !== window) {
                         parent.window.location = '/nifi';
@@ -137,31 +150,14 @@ nf.Login = (function () {
                     }
                 }
             }).fail(function (xhr, status, error) {
-                showLogoutLink();
+                $('#login-message-title').text('Unable to log in');
+                $('#login-message').text(xhr.responseText);
 
-                // schedule automatic token refresh
-                nf.Common.scheduleTokenRefresh();
-
-                // show the user
-                $('#nifi-user-submit-justification').text(token['preferred_username']);
-
-                if (xhr.status === 401) {
-                    initializeNiFiRegistration();
-                    showNiFiRegistration();
-                    
-                    // update the form visibility
-                    $('#login-submission-container').show();
-                    $('#login-progress-container').hide();
-                } else {
-                    $('#login-message-title').text('Unable to log in');
-                    $('#login-message').text(xhr.responseText);
-
-                    // update visibility
-                    $('#login-container').hide();
-                    $('#login-submission-container').hide();
-                    $('#login-progress-container').hide();
-                    $('#login-message-container').show();
-                }
+                // update visibility
+                $('#login-container').hide();
+                $('#login-submission-container').hide();
+                $('#login-progress-container').hide();
+                $('#login-message-container').show();
             });
         }).fail(function (xhr, status, error) {
             nf.Dialog.showOkDialog({

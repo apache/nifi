@@ -658,25 +658,8 @@ div.bulletin-board-hover {
 
 #header-links-container {
     position: absolute;
-    top: 1px;
-    right: 0px;
+    right: 10px;
     z-index: 100;
-}
-
-#header-links-container li {
-    float: left;
-    display: block;
-    margin-right: 10px;
-    padding: 4px;
-    text-align: center;
-    font-size: .8em;
-    font-weight: normal;
-    text-decoration: none;
-}
-
-#header-links-container span.header-link-over {
-    color: #264c58;
-    text-decoration: underline;
 }
 
 #has-pending-accounts {
