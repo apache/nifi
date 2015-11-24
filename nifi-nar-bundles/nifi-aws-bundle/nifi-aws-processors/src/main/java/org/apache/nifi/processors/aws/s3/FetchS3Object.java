@@ -46,10 +46,10 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 
 @SupportsBatching
-@SeeAlso({PutS3Object.class})
+@SeeAlso({PutS3Object.class, DeleteS3Object.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "S3", "AWS", "Get", "Fetch"})
-@CapabilityDescription("Retrieves the contents of an S3 Object and writes it to the content of a FlowFile")
+@CapabilityDescription("Retrieves the contents of an S3 Object and writes it to the content of a FlowFile.")
 @WritesAttributes({
     @WritesAttribute(attribute = "s3.bucket", description = "The name of the S3 bucket"),
     @WritesAttribute(attribute = "path", description = "The path of the file"),
@@ -73,7 +73,7 @@ public class FetchS3Object extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, TIMEOUT, VERSION_ID));
+            Arrays.asList(BUCKET, KEY, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, REGION, TIMEOUT, VERSION_ID));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
