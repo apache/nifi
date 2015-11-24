@@ -238,8 +238,9 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             initialEvent = syslogEvents.poll();
         }
 
-        // if nothing in either queue then just return
+        // if nothing in either queue then yield and return
         if (initialEvent == null) {
+            context.yield();
             return;
         }
 
