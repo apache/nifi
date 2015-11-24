@@ -860,21 +860,8 @@ nf.ConnectionConfiguration = (function () {
                     'connections': [response.connection]
                 }, true);
 
-                // update the source component accordingly
-                if (nf.CanvasUtils.isProcessor(source)) {
-                    nf.Processor.reload(sourceData.component);
-                } else if (nf.CanvasUtils.isInputPort(source)) {
-                    nf.Port.reload(sourceData.component);
-                } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
-                    nf.RemoteProcessGroup.reload(sourceData.component);
-                }
-
-                // update the destination component accordingly
-                if (nf.CanvasUtils.isProcessor(destination)) {
-                    nf.Processor.reload(destinationData.component);
-                } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-                    nf.RemoteProcessGroup.reload(destinationData.component);
-                }
+                // reload the connections source/destination components
+                nf.CanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
 
                 // update component visibility
                 nf.Canvas.View.updateVisibility();
@@ -899,13 +886,10 @@ nf.ConnectionConfiguration = (function () {
 
         // get the source details
         var sourceComponentId = $('#connection-source-component-id').val();
-        var source = d3.select('#id-' + sourceComponentId);
-        var sourceData = source.datum();
 
         // get the destination details
         var destinationComponentId = $('#connection-destination-component-id').val();
         var destination = d3.select('#id-' + destinationComponentId);
-        var destinationData = destination.datum();
         var destinationType = nf.CanvasUtils.getConnectableTypeForDestination(destination);
 
         // get the destination details
@@ -950,21 +934,8 @@ nf.ConnectionConfiguration = (function () {
                     // update this connection
                     nf.Connection.set(connection);
 
-                    // update the source component accordingly
-                    if (nf.CanvasUtils.isProcessor(source)) {
-                        nf.Processor.reload(sourceData.component);
-                    } else if (nf.CanvasUtils.isInputPort(source)) {
-                        nf.Port.reload(sourceData.component);
-                    } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
-                        nf.RemoteProcessGroup.reload(sourceData.component);
-                    }
-
-                    // update the destination component accordingly
-                    if (nf.CanvasUtils.isProcessor(destination)) {
-                        nf.Processor.reload(destinationData.component);
-                    } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-                        nf.RemoteProcessGroup.reload(destinationData.component);
-                    }
+                    // reload the connections source/destination components
+                    nf.CanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
                 }
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {

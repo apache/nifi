@@ -768,34 +768,8 @@ nf.Actions = (function () {
                         // remove the component/connection in question
                         nf[selectionData.type].remove(selectionData.component.id);
 
-                        // if the source processor is part of the response, we
-                        // have just removed a relationship. must update the status
-                        // of the source processor in case its validity has changed
-                        if (nf.CanvasUtils.isConnection(selection)) {
-                            var sourceComponentId = nf.CanvasUtils.getConnectionSourceComponentId(selectionData.component);
-                            var source = d3.select('#id-' + sourceComponentId);
-                            var sourceData = source.datum();
-
-                            // update the source status if necessary
-                            if (nf.CanvasUtils.isProcessor(source)) {
-                                nf.Processor.reload(sourceData.component);
-                            } else if (nf.CanvasUtils.isInputPort(source)) {
-                                nf.Port.reload(sourceData.component);
-                            } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
-                                nf.RemoteProcessGroup.reload(sourceData.component);
-                            }
-
-                            var destinationComponentId = nf.CanvasUtils.getConnectionDestinationComponentId(selectionData.component);
-                            var destination = d3.select('#id-' + destinationComponentId);
-                            var destinationData = destination.datum();
-
-                            // update the destination component accordingly
-                            if (nf.CanvasUtils.isProcessor(destination)) {
-                                nf.Processor.reload(destinationData.component);
-                            } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-                                nf.RemoteProcessGroup.reload(destinationData.component);
-                            }
-                        } else {
+                        // if the selection is a connection, reload the source and destination accordingly
+                        if (nf.CanvasUtils.isConnection(selection) === false) {
                             var connections = nf.Connection.getComponentConnections(selectionData.component.id);
                             if (connections.length > 0) {
                                 var ids = [];
@@ -846,40 +820,16 @@ nf.Actions = (function () {
                                 }
                             });
 
-                            // refresh all component types as necessary (handle components that have been removed)
+                            // remove all the non connections in the snippet first
                             components.forEach(function (type, ids) {
-                                nf[type].remove(ids);
+                                if (type !== 'Connection') {
+                                    nf[type].remove(ids);
+                                }
                             });
-
-                            // if some connections were removed
-                            if (snippet.connections > 0) {
-                                selection.filter(function (d) {
-                                    return d.type === 'Connection';
-                                }).each(function (d) {
-                                    // add the source to refresh if its not already going to be refreshed
-                                    var sourceComponentId = nf.CanvasUtils.getConnectionSourceComponentId(d.component);
-                                    var source = d3.select('#id-' + sourceComponentId);
-                                    var sourceData = source.datum();
-
-                                    // update the source status if necessary - if the source was already removed
-                                    // as part of this operation the reloading has no affect
-                                    if (nf.CanvasUtils.isProcessor(source)) {
-                                        nf.Processor.reload(sourceData.component);
-                                    } else if (nf.CanvasUtils.isInputPort(source)) {
-                                        nf.Port.reload(sourceData.component);
-                                    } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
-                                        nf.RemoteProcessGroup.reload(sourceData.component);
-                                    }
-
-                                    // add the destination to refresh if its not already going to be refreshed
-                                    var destinationComponentId = nf.CanvasUtils.getConnectionDestinationComponentId(d.component);
-                                    var destination = d3.select('#id-' + destinationComponentId);
-                                    var destinationData = destination.datum();
-
-                                    if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-                                        nf.RemoteProcessGroup.reload(destinationData.component);
-                                    }
-                                });
+                            
+                            // then remove all the connections
+                            if (components.has('Connection')) {
+                                nf.Connection.remove(components.get('Connection'));
                             }
 
                             // refresh the birdseye/toolbar
