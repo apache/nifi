@@ -63,10 +63,11 @@ public abstract class NiFiAuthenticationFilter implements Filter {
         }
 
         if (requiresAuthentication((HttpServletRequest) request)) {
-            authenticate((HttpServletRequest) request, (HttpServletResponse) response);
+            authenticate((HttpServletRequest) request, (HttpServletResponse) response, chain);
+        } else {
+            chain.doFilter(request, response);
         }
 
-        chain.doFilter(request, response);
     }
 
     private boolean requiresAuthentication(final HttpServletRequest request) {
@@ -84,7 +85,7 @@ public abstract class NiFiAuthenticationFilter implements Filter {
         return user != null && NiFiUser.ANONYMOUS_USER_IDENTITY.equals(user.getIdentity());
     }
 
-    private void authenticate(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
+    private void authenticate(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain) throws IOException, ServletException {
         try {
             final NiFiAuthenticationRequestToken authenticated = attemptAuthentication(request, response);
             if (authenticated != null) {
@@ -93,11 +94,21 @@ public abstract class NiFiAuthenticationFilter implements Filter {
                         ProxiedEntitiesUtils.formatProxyDn(StringUtils.join(authenticated.getChain(), "><")), request.getMethod(),
                         request.getRequestURL().toString(), request.getRemoteAddr()));
 
+                // attempt to authorize the user
                 final Authentication authorized = authenticationManager.authenticate(authenticated);
                 successfulAuthorization(request, response, authorized);
             }
+
+            // continue
+            chain.doFilter(request, response);
+        } catch (final InvalidAuthenticationException iae) {
+            // invalid authentication - always error out
+            unsuccessfulAuthorization(request, response, iae);
         } catch (final AuthenticationException ae) {
-            if (!isAnonymousUser()) {
+            // other authentication exceptions... if we are already the anonymous user, allow through otherwise error out
+            if (isAnonymousUser()) {
+                chain.doFilter(request, response);
+            } else {
                 unsuccessfulAuthorization(request, response, ae);
             }
         }

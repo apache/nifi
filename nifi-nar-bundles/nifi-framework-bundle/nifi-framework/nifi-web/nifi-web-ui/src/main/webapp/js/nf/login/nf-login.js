@@ -262,13 +262,13 @@ nf.Login = (function () {
                 } else if (accessStatus.status === 'NOT_ACTIVE') {
                     showMessage = true;
                     
-                    $('#login-message-title').text('Access Denied');
+                    $('#login-message-title').text('Unable to log in');
                     $('#login-message').text(accessStatus.message);
                 } else if (accessStatus.status === 'ACTIVE') {
                     showMessage = true;
                     
                     $('#login-message-title').text('Success');
-                    $('#login-message').text('Your account is active and you are already logged in.');
+                    $('#login-message').text(accessStatus.message);
                 }
                 
                 // if login is required, verify its supported

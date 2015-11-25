@@ -46,6 +46,9 @@ public class StandardKeyDAO implements KeyDAO {
             + "?, ?"
             + ")";
 
+    private static final String DELETE_KEYS = "DELETE FROM KEY "
+            + "WHERE IDENTITY = ?";
+
     private final Connection connection;
 
     public StandardKeyDAO(Connection connection) {
@@ -151,4 +154,26 @@ public class StandardKeyDAO implements KeyDAO {
             RepositoryUtils.closeQuietly(statement);
         }
     }
+
+    @Override
+    public void deleteKeys(String identity) {
+        // ensure there are some authorities to create
+        PreparedStatement statement = null;
+        try {
+            // add each authority for the specified user
+            statement = connection.prepareStatement(DELETE_KEYS);
+            statement.setString(1, identity);
+
+            // insert the authorities
+            int count = statement.executeUpdate();
+            System.out.println();
+        } catch (SQLException sqle) {
+            throw new DataAccessException(sqle);
+        } catch (DataAccessException dae) {
+            throw dae;
+        } finally {
+            RepositoryUtils.closeQuietly(statement);
+        }
+    }
+
 }

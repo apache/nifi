@@ -21,7 +21,6 @@ import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
-import org.apache.nifi.web.security.NiFiAuthenticationEntryPoint;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
@@ -74,9 +73,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .rememberMe().disable()
-                .exceptionHandling()
-                    .authenticationEntryPoint(new NiFiAuthenticationEntryPoint(properties))
-                    .and()
                 .authorizeRequests()
                     .anyRequest().fullyAuthenticated()
                     .and()

@@ -362,7 +362,7 @@ language governing permissions and limitations under the License. -->
         <nifi.security.user.login.identity.provider></nifi.security.user.login.identity.provider>
         <nifi.security.x509.principal.extractor />
         <nifi.security.support.new.account.requests />
-        <nifi.security.anonymous.authorities>ROLE_MONITOR,ROLE_DFM,ROLE_ADMIN,ROLE_PROVENANCE,ROLE_NIFI</nifi.security.anonymous.authorities>
+        <nifi.security.anonymous.authorities></nifi.security.anonymous.authorities>
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
 

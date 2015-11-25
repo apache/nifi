@@ -29,28 +29,29 @@ import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
-import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
+import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.key.Key;
 
 /**
  *
  */
 public class JwtService {
+
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(JwtService.class);
 
     private static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
     private static final String KEY_ID_CLAIM = "kid";
     private static final String USERNAME_CLAIM = "preferred_username";
 
-    private final KeyService keyService;
+    private final UserService userService;
 
-    public JwtService(final KeyService keyService) {
-        this.keyService = keyService;
+    public JwtService(final UserService userService) {
+        this.userService = userService;
     }
 
     public String getAuthenticationFromToken(final String base64EncodedToken) throws JwtException {
@@ -91,7 +92,7 @@ public class JwtService {
 
                     // Get the key based on the key id in the claims
                     final Integer keyId = claims.get(KEY_ID_CLAIM, Integer.class);
-                    final Key key = keyService.getKey(keyId);
+                    final Key key = userService.getKey(keyId);
 
                     // Ensure we were able to find a key that was previously issued by this key service for this user
                     if (key == null || key.getKey() == null) {
@@ -103,7 +104,7 @@ public class JwtService {
             }).parseClaimsJws(base64EncodedToken);
         } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException | AdministrationException e) {
             // TODO: Exercise all exceptions to ensure none leak key material to logs
-            final String errorMessage = "There was an error validating the JWT";
+            final String errorMessage = "Unable to validate the access token.";
             throw new JwtException(errorMessage, e);
         }
     }
@@ -137,13 +138,12 @@ public class JwtService {
 
         try {
             // Get/create the key for this user
-            final Key key = keyService.getOrCreateKey(identity);
+            final Key key = userService.getOrCreateKey(identity);
             final byte[] keyBytes = key.getKey().getBytes(StandardCharsets.UTF_8);
 
             logger.trace("Generating JWT for " + authenticationToken);
 
             // TODO: Implement "jti" claim with nonce to prevent replay attacks and allow blacklisting of revoked tokens
-
             // Build the token
             return Jwts.builder().setSubject(identity)
                     .setIssuer(authenticationToken.getIssuer())

@@ -26,9 +26,11 @@ import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.user.AccountStatus;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.admin.dao.KeyDAO;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -45,6 +47,7 @@ public class DisableUserActionTest {
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
+    private KeyDAO keyDao;
     private AuthorityProvider authorityProvider;
 
     @Before
@@ -92,8 +95,13 @@ public class DisableUserActionTest {
         }).when(userDao).updateUser(Mockito.any(NiFiUser.class));
 
         // mock the dao factory
+        keyDao = Mockito.mock(KeyDAO.class);
+        Mockito.doNothing().when(keyDao).deleteKeys(Matchers.anyString());
+
+        // mock the dao factory
         daoFactory = Mockito.mock(DAOFactory.class);
         Mockito.when(daoFactory.getUserDAO()).thenReturn(userDao);
+        Mockito.when(daoFactory.getKeyDAO()).thenReturn(keyDao);
 
         // mock the authority provider
         authorityProvider = Mockito.mock(AuthorityProvider.class);

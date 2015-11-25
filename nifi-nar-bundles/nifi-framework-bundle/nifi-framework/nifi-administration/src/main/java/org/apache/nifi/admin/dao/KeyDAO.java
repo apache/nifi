@@ -46,4 +46,11 @@ public interface KeyDAO {
      * @return The key
      */
     Key createKey(String identity);
+
+    /**
+     * Deletes all keys for the specified user identity.
+     *
+     * @param identity The user identity
+     */
+    void deleteKeys(String identity);
 }

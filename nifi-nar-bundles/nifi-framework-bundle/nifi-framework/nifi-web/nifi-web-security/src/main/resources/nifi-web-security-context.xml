@@ -47,7 +47,7 @@
     
     <!-- jwt service -->
     <bean id="jwtService" class="org.apache.nifi.web.security.jwt.JwtService">
-        <constructor-arg ref="keyService"/>
+        <constructor-arg ref="userService"/>
     </bean>
     
     <!-- login identity provider -->

@@ -70,6 +70,7 @@ import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
@@ -201,12 +202,16 @@ public class AccessResource extends ApplicationResource {
                         // without a certificate, this is not a proxied request
                         final List<String> chain = Arrays.asList(principal);
 
-                        // check authorization for this user
-                        checkAuthorization(chain);
+                        // ensure the proxy chain is authorized
+                        final UserDetails userDetails = checkAuthorization(chain);
 
-                        // no issues with authorization
+                        // no issues with authorization... verify authorities
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                        accessStatus.setMessage("Account is active and authorized");
+                        if (userDetails.getAuthorities().isEmpty()) {
+                            accessStatus.setMessage("Your account is active but is unauthorized as no authorities have been granted.");
+                        } else {
+                            accessStatus.setMessage("Your account is active and you are already logged in.");
+                        }
                     } catch (JwtException e) {
                         throw new InvalidAuthenticationException(e.getMessage(), e);
                     }
@@ -227,18 +232,27 @@ public class AccessResource extends ApplicationResource {
                     accessStatus.setUsername(CertificateUtils.extractUsername(proxyChain.get(0)));
 
                     // ensure the proxy chain is authorized
-                    checkAuthorization(proxyChain);
+                    final UserDetails userDetails = checkAuthorization(proxyChain);
 
-                    // no issues with authorization
+                    // no issues with authorization... verify authorities
                     accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                    accessStatus.setMessage("Account is active and authorized");
+                    if (userDetails.getAuthorities().isEmpty()) {
+                        accessStatus.setMessage("Your account is active but is unauthorized as no authorities have been granted.");
+                    } else {
+                        accessStatus.setMessage("Your account is active and you are already logged in.");
+                    }
                 } catch (final IllegalArgumentException iae) {
                     throw new InvalidAuthenticationException(iae.getMessage(), iae);
                 }
             }
         } catch (final UsernameNotFoundException unfe) {
-            accessStatus.setStatus(AccessStatusDTO.Status.UNREGISTERED.name());
-            accessStatus.setMessage(String.format("Unregistered user %s", accessStatus.getIdentity()));
+            if (properties.getSupportNewAccountRequests()) {
+                accessStatus.setStatus(AccessStatusDTO.Status.UNREGISTERED.name());
+                accessStatus.setMessage(String.format("Unregistered user %s", accessStatus.getIdentity()));
+            } else {
+                accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
+                accessStatus.setMessage("This NiFi does not support new account requests.");
+            }
         } catch (final AccountStatusException ase) {
             accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
             accessStatus.setMessage(ase.getMessage());
@@ -266,8 +280,8 @@ public class AccessResource extends ApplicationResource {
      * @param proxyChain the proxy chain
      * @throws AuthenticationException if the proxy chain is not authorized
      */
-    private void checkAuthorization(final List<String> proxyChain) throws AuthenticationException {
-        userDetailsService.loadUserDetails(new NiFiAuthenticationRequestToken(proxyChain));
+    private UserDetails checkAuthorization(final List<String> proxyChain) throws AuthenticationException {
+        return userDetailsService.loadUserDetails(new NiFiAuthenticationRequestToken(proxyChain));
     }
 
     /**

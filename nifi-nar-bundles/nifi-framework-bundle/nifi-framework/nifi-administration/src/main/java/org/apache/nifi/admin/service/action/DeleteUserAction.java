@@ -19,6 +19,7 @@ package org.apache.nifi.admin.service.action;
 import org.apache.nifi.admin.dao.AuthorityDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.admin.dao.DataAccessException;
+import org.apache.nifi.admin.dao.KeyDAO;
 import org.apache.nifi.admin.dao.UserDAO;
 import org.apache.nifi.admin.service.AccountNotFoundException;
 import org.apache.nifi.authorization.AuthorityProvider;
@@ -58,6 +59,10 @@ public class DeleteUserAction implements AdministrationAction<Void> {
         if (AccountStatus.ACTIVE.equals(user.getStatus())) {
             throw new IllegalStateException(String.format("An active user cannot be removed. Revoke user access before attempting to remove."));
         }
+
+        // remove the user's keys
+        final KeyDAO keyDao = daoFactory.getKeyDAO();
+        keyDao.deleteKeys(user.getIdentity());
 
         // remove the user and their authorities
         authorityDAO.deleteAuthorities(userId);

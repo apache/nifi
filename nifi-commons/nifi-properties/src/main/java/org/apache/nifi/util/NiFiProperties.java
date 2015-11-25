@@ -530,7 +530,13 @@ public class NiFiProperties extends Properties {
 
         final String rawAnonymousAuthorities = getProperty(SECURITY_ANONYMOUS_AUTHORITIES);
         if (!StringUtils.isEmpty(rawAnonymousAuthorities)) {
-            authorities = new HashSet<>(Arrays.asList(rawAnonymousAuthorities.split(",")));
+            authorities = new HashSet<>();
+
+            // parse the raw authorities and trim them
+            final List<String> authoritiesList = Arrays.asList(rawAnonymousAuthorities.split(","));
+            for (final String authority : authoritiesList) {
+                authorities.add(authority.trim());
+            }
         } else {
             authorities = Collections.EMPTY_SET;
         }

@@ -88,6 +88,15 @@ public class UserDataSourceFactoryBean implements FactoryBean {
     private static final String RESIZE_IDENTITY_COLUMN = "ALTER TABLE USER MODIFY IDENTITY VARCHAR(4096)";
     private static final String RESIZE_USER_NAME_COLUMN = "ALTER TABLE USER MODIFY USER_NAME VARCHAR(4096)";
 
+    // ----------
+    // keys table
+    // ----------
+    private static final String CREATE_KEY_TABLE = "CREATE TABLE KEY ("
+            + "ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT, "
+            + "IDENTITY VARCHAR2(4096) NOT NULL UNIQUE, "
+            + "KEY VARCHAR2(100) NOT NULL"
+            + ")";
+
     private JdbcConnectionPool connectionPool;
 
     private NiFiProperties properties;
@@ -112,7 +121,8 @@ public class UserDataSourceFactoryBean implements FactoryBean {
             if (rawAnonymousAuthorities.size() != anonymousAuthorities.size()) {
                 final Set<String> validAuthorities = Authority.convertAuthorities(anonymousAuthorities);
                 rawAnonymousAuthorities.removeAll(validAuthorities);
-                throw new IllegalStateException("Invalid authorities specified: " + StringUtils.join(rawAnonymousAuthorities, ", "));
+                throw new IllegalStateException(String.format("Invalid authorities specified for anonymous access: [%s]. Valid values are: [%s].",
+                        StringUtils.join(rawAnonymousAuthorities, ", "), StringUtils.join(Authority.values(), ", ")));
             }
 
             // create a handle to the repository directory
@@ -167,6 +177,14 @@ public class UserDataSourceFactoryBean implements FactoryBean {
                 // add all authorities for the anonymous user
                 for (final Authority authority : anonymousAuthorities) {
                     statement.execute(String.format(INSERT_ANONYMOUS_AUTHORITY, authority.name()));
+                }
+
+                RepositoryUtils.closeQuietly(rs);
+
+                // determine if the key table need to be created
+                rs = connection.getMetaData().getTables(null, null, "KEY", null);
+                if (!rs.next()) {
+                    statement.execute(CREATE_KEY_TABLE);
                 }
 
                 // commit any changes

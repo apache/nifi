@@ -18,6 +18,7 @@ package org.apache.nifi.admin.service.action;
 
 import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.admin.dao.DataAccessException;
+import org.apache.nifi.admin.dao.KeyDAO;
 import org.apache.nifi.admin.dao.UserDAO;
 import org.apache.nifi.admin.service.AccountNotFoundException;
 import org.apache.nifi.admin.service.AdministrationException;
@@ -60,6 +61,10 @@ public class DisableUserAction implements AdministrationAction<NiFiUser> {
 
         // update the user locally
         userDao.updateUser(user);
+
+        // remove the user's keys
+        KeyDAO keyDao = daoFactory.getKeyDAO();
+        keyDao.deleteKeys(user.getIdentity());
 
         try {
             // revoke the user in the authority provider

@@ -16,14 +16,17 @@
  */
 package org.apache.nifi.admin.service.action;
 
+import java.util.Set;
 import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.admin.dao.DataAccessException;
+import org.apache.nifi.admin.dao.KeyDAO;
 import org.apache.nifi.admin.dao.UserDAO;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authorization.AuthorityProvider;
 import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.authorization.exception.UnknownIdentityException;
 import org.apache.nifi.user.AccountStatus;
+import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.user.NiFiUserGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,14 +46,20 @@ public class DisableUserGroupAction implements AdministrationAction<NiFiUserGrou
 
     @Override
     public NiFiUserGroup execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) throws DataAccessException {
-        final NiFiUserGroup userGroup = new NiFiUserGroup();
-
         final UserDAO userDao = daoFactory.getUserDAO();
+        final Set<NiFiUser> users = userDao.findUsersForGroup(group);
+
+        // delete the keys for each user
+        final KeyDAO keyDao = daoFactory.getKeyDAO();
+        for (final NiFiUser user : users) {
+            keyDao.deleteKeys(user.getIdentity());
+        }
 
         // update the user group locally
         userDao.updateGroupStatus(group, AccountStatus.DISABLED);
 
         // populate the group details
+        final NiFiUserGroup userGroup = new NiFiUserGroup();
         userGroup.setGroup(group);
         userGroup.setUsers(userDao.findUsersForGroup(group));
 
