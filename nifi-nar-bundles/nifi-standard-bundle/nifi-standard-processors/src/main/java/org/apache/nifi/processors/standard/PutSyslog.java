@@ -20,6 +20,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -64,6 +65,7 @@ import java.util.regex.Pattern;
         "or it can be an RFC3164 timestamp with a format of \"MMM d HH:mm:ss\". If a message is constructed that does not form a valid Syslog message according to the " +
         "above description, then it is routed to the invalid relationship. Valid messages are sent to the Syslog server and successes are routed to the success relationship, " +
         "failures routed to the failure relationship.")
+@SeeAlso({ListenSyslog.class, ParseSyslog.class})
 public class PutSyslog extends AbstractSyslogProcessor {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()

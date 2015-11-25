@@ -53,6 +53,7 @@ org.apache.nifi.processors.standard.LogAttribute
 org.apache.nifi.processors.standard.MergeContent
 org.apache.nifi.processors.standard.ModifyBytes
 org.apache.nifi.processors.standard.MonitorActivity
+org.apache.nifi.processors.standard.ParseSyslog
 org.apache.nifi.processors.standard.PostHTTP
 org.apache.nifi.processors.standard.PutEmail
 org.apache.nifi.processors.standard.PutDistributedMapCache
