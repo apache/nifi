@@ -72,11 +72,16 @@ import org.apache.nifi.processors.standard.util.FileInfo;
         "GetFile, this Processor does not delete any data from the local filesystem.")
 @WritesAttributes({
         @WritesAttribute(attribute="filename", description="The name of the file that was read from filesystem."),
-        @WritesAttribute(attribute="path", description="The path is set to the absolute path of the file's directory " +
-                "on filesystem. For example, if the Directory property is set to /tmp, then files picked up from " +
-                "/tmp will have the path attribute set to \"./\". If the Recurse Subdirectories property is set to " +
-                "true and a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to " +
-                "\"/tmp/abc/1/2/3\"."),
+        @WritesAttribute(attribute="path", description="The path is set to the relative path of the file's directory " +
+                "on filesystem compared to the Input Directory property.  For example, if Input Directory is set to " +
+                "/tmp, then files picked up from /tmp will have the path attribute set to \"/\". If the Recurse " +
+                "Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path " +
+                "attribute will be set to \"abc/1/2/3/\"."),
+        @WritesAttribute(attribute="absolute.path", description="The absolute.path is set to the absolute path of " +
+                "the file's directory on filesystem. For example, if the Input Directory property is set to /tmp, " +
+                "then files picked up from /tmp will have the path attribute set to \"/tmp/\". If the Recurse " +
+                "Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path " +
+                "attribute will be set to \"/tmp/abc/1/2/3/\"."),
         @WritesAttribute(attribute="fs.owner", description="The user that owns the file in filesystem"),
         @WritesAttribute(attribute="fs.group", description="The group that owns the file in filesystem"),
         @WritesAttribute(attribute="fs.lastModified", description="The timestamp of when the file in filesystem was " +
@@ -217,9 +222,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
         final Path relativePath = directoryPath.relativize(filePath.getParent());
         String relativePathString = relativePath.toString() + "/";
-        if (relativePathString.isEmpty()) {
-            relativePathString = "./";
-        }
+
         final Path absPath = filePath.toAbsolutePath();
         final String absPathString = absPath.getParent().toString() + "/";
 

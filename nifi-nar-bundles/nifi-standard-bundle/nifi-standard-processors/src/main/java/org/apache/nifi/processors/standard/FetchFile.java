@@ -73,7 +73,7 @@ public class FetchFile extends AbstractProcessor {
         .description("The fully-qualified filename of the file to fetch from the file system")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(true)
-        .defaultValue("${path}/${filename}")
+        .defaultValue("${absolute.path}/${filename}")
         .required(true)
         .build();
     static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
