@@ -87,6 +87,9 @@ nf.Login = (function () {
     };
 
     var login = function () {
+        // remove focus
+        $('#username, #password').blur();
+        
         // show the logging message...
         $('#login-progress-label').text('Logging in...');
         $('#login-progress-container').show();
@@ -218,6 +221,14 @@ nf.Login = (function () {
             if (nf.Storage.getItem('jwt') !== null) {
                 showLogoutLink();
             }
+            
+            // supporting logging in via enter press
+            $('#username, #password').on('keyup', function (e) {
+                var code = e.keyCode ? e.keyCode : e.which;
+                if (code === $.ui.keyCode.ENTER) {
+                    login();
+                }
+            });
 
             // access status
             var accessStatus = $.ajax({

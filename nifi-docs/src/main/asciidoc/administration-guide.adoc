@@ -150,8 +150,8 @@ NiFi provides several different configuration options for security purposes. The
                                 by the NiFi cluster protocol. If the Truststore properties are not set, this must be `false`. Otherwise, a value
                                 of `true` indicates that nodes in the cluster will be authenticated and must have certificates that are trusted 
                                 by the Truststores.
-|`nifi.security.anonymous.authorities` | Specifies the roles that should be granted to users that connect over HTTPS anonymously. All users will
-                                be given this level access, however if they have been granted a particular level of access by an administrator
+|`nifi.security.anonymous.authorities` | Specifies the roles that should be granted to users that connect over HTTPS anonymously. All users can make 
+                                use of anonymous access, however if they have been granted a particular level of access by an administrator
                                 it will take precedence if they access NiFi using a client certificate or once they have logged in. 
 |==================================================================================================================================================
 

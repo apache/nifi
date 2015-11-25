@@ -208,7 +208,7 @@ public class AccessResource extends ApplicationResource {
                         // no issues with authorization... verify authorities
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
                         if (userDetails.getAuthorities().isEmpty()) {
-                            accessStatus.setMessage("Your account is active but is unauthorized as no authorities have been granted.");
+                            accessStatus.setMessage("Your account is active but currently does not have any level of access.");
                         } else {
                             accessStatus.setMessage("Your account is active and you are already logged in.");
                         }
@@ -237,7 +237,7 @@ public class AccessResource extends ApplicationResource {
                     // no issues with authorization... verify authorities
                     accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
                     if (userDetails.getAuthorities().isEmpty()) {
-                        accessStatus.setMessage("Your account is active but is unauthorized as no authorities have been granted.");
+                        accessStatus.setMessage("Your account is active but currently does not have any level of access.");
                     } else {
                         accessStatus.setMessage("Your account is active and you are already logged in.");
                     }
