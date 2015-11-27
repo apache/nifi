@@ -56,6 +56,10 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         if (authorization == null) {
             return null;
         } else {
+            if (jwtService == null) {
+                throw new InvalidAuthenticationException("NiFi is not configured to support username/password logins.");
+            }
+
             // Extract the Base64 encoded token from the Authorization header
             final String token = StringUtils.substringAfterLast(authorization, " ");
 

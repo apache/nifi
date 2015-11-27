@@ -141,27 +141,26 @@ nf.CanvasHeader = (function () {
                 nf.Shell.showPage(config.urls.helpDocument);
             });
 
-            // show the login link if supported and user is currently anonymous
-            var isAnonymous = $('#current-user').text() === nf.Common.ANONYMOUS_USER_TEXT;
-            if (supportsLogin === true && isAnonymous) {
-                // login link
-                $('#login-link').click(function () {
-                    nf.Shell.showPage('login', false);
-                });
-            } else {
-                $('#login-link-container').css('display', 'none');
-            }
-
-            // if login is not supported, don't show the current user
-            if (supportsLogin === false) {
-                $('#current-user-container').css('display', 'none');
-            }
-
+            // login link
+            $('#login-link').click(function () {
+                nf.Shell.showPage('login', false);
+            });
+            
             // logout link
             $('#logout-link').click(function () {
                 nf.Storage.removeItem("jwt");
                 window.location = '/nifi';
             });
+
+            // if the user is not anonymous or accessing via http
+            if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
+                $('#login-link-container').css('display', 'none');
+            }
+
+            // if accessing via http, don't show the current user
+            if (location.protocol === 'http:') {
+                $('#current-user-container').css('display', 'none');
+            }
 
             // initialize the new template dialog
             $('#new-template-dialog').modal({

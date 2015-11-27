@@ -93,10 +93,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // x509
         http.addFilterAfter(x509FilterBean(), AnonymousAuthenticationFilter.class);
 
-        // jwt - consider when configured for log in
-        if (loginIdentityProvider != null) {
-            http.addFilterAfter(jwtFilterBean(), AnonymousAuthenticationFilter.class);
-        }
+        // jwt
+        http.addFilterAfter(jwtFilterBean(), AnonymousAuthenticationFilter.class);
     }
 
     @Bean
@@ -124,12 +122,15 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     @Bean
     public JwtAuthenticationFilter jwtFilterBean() throws Exception {
-        // only consider the jwt authentication filter when configured for login
-        if (jwtAuthenticationFilter == null && loginIdentityProvider != null) {
+        if (jwtAuthenticationFilter == null) {
             jwtAuthenticationFilter = new JwtAuthenticationFilter();
             jwtAuthenticationFilter.setProperties(properties);
-            jwtAuthenticationFilter.setJwtService(jwtService);
             jwtAuthenticationFilter.setAuthenticationManager(authenticationManager());
+
+            // only consider the tokens when configured for login
+            if (loginIdentityProvider != null) {
+                jwtAuthenticationFilter.setJwtService(jwtService);
+            }
         }
         return jwtAuthenticationFilter;
     }

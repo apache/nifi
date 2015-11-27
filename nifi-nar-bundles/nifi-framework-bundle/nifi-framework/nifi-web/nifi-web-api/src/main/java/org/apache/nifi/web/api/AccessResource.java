@@ -190,6 +190,11 @@ public class AccessResource extends ApplicationResource {
                     accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
                     accessStatus.setMessage("No credentials supplied, unknown user.");
                 } else {
+                    // not currently configured for username/password login, don't accept existing tokens
+                    if (loginIdentityProvider == null) {
+                        throw new IllegalStateException("This NiFi is not configured to support username/password logins.");
+                    }
+
                     try {
                         // Extract the Base64 encoded token from the Authorization header
                         final String token = StringUtils.substringAfterLast(authorization, " ");
