@@ -58,6 +58,11 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private X509IdentityProvider certificateIdentityProvider;
     private LoginIdentityProvider loginIdentityProvider;
 
+    private NodeAuthorizedUserFilter nodeAuthorizedUserFilter;
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private X509AuthenticationFilter x509AuthenticationFilter;
+    private NiFiAnonymousUserFilter anonymousAuthenticationFilter;
+
     public NiFiWebApiSecurityConfiguration() {
         super(true); // disable defaults
     }
@@ -80,17 +85,17 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
         // cluster authorized user
-        http.addFilterBefore(buildNodeAuthorizedUserFilter(), AnonymousAuthenticationFilter.class);
+        http.addFilterBefore(nodeAuthorizedUserFilterBean(), AnonymousAuthenticationFilter.class);
 
         // anonymous
-        http.anonymous().authenticationFilter(buildAnonymousFilter());
+        http.anonymous().authenticationFilter(anonymousFilterBean());
 
         // x509
-        http.addFilterAfter(buildX509Filter(), AnonymousAuthenticationFilter.class);
+        http.addFilterAfter(x509FilterBean(), AnonymousAuthenticationFilter.class);
 
         // jwt - consider when configured for log in
         if (loginIdentityProvider != null) {
-            http.addFilterAfter(buildJwtFilter(), AnonymousAuthenticationFilter.class);
+            http.addFilterAfter(jwtFilterBean(), AnonymousAuthenticationFilter.class);
         }
     }
 
@@ -106,35 +111,48 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         auth.authenticationProvider(new NiFiAuthenticationProvider(userDetailsService));
     }
 
-    private NodeAuthorizedUserFilter buildNodeAuthorizedUserFilter() {
-        final NodeAuthorizedUserFilter nodeFilter = new NodeAuthorizedUserFilter();
-        nodeFilter.setProperties(properties);
-        nodeFilter.setCertificateExtractor(certificateExtractor);
-        nodeFilter.setCertificateIdentityProvider(certificateIdentityProvider);
-        return nodeFilter;
+    @Bean
+    public NodeAuthorizedUserFilter nodeAuthorizedUserFilterBean() throws Exception {
+        if (nodeAuthorizedUserFilter == null) {
+            nodeAuthorizedUserFilter = new NodeAuthorizedUserFilter();
+            nodeAuthorizedUserFilter.setProperties(properties);
+            nodeAuthorizedUserFilter.setCertificateExtractor(certificateExtractor);
+            nodeAuthorizedUserFilter.setCertificateIdentityProvider(certificateIdentityProvider);
+        }
+        return nodeAuthorizedUserFilter;
     }
 
-    private JwtAuthenticationFilter buildJwtFilter() throws Exception {
-        final JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter();
-        jwtFilter.setProperties(properties);
-        jwtFilter.setJwtService(jwtService);
-        jwtFilter.setAuthenticationManager(authenticationManager());
-        return jwtFilter;
+    @Bean
+    public JwtAuthenticationFilter jwtFilterBean() throws Exception {
+        // only consider the jwt authentication filter when configured for login
+        if (jwtAuthenticationFilter == null && loginIdentityProvider != null) {
+            jwtAuthenticationFilter = new JwtAuthenticationFilter();
+            jwtAuthenticationFilter.setProperties(properties);
+            jwtAuthenticationFilter.setJwtService(jwtService);
+            jwtAuthenticationFilter.setAuthenticationManager(authenticationManager());
+        }
+        return jwtAuthenticationFilter;
     }
 
-    private X509AuthenticationFilter buildX509Filter() throws Exception {
-        final X509AuthenticationFilter x509Filter = new X509AuthenticationFilter();
-        x509Filter.setProperties(properties);
-        x509Filter.setCertificateExtractor(certificateExtractor);
-        x509Filter.setCertificateIdentityProvider(certificateIdentityProvider);
-        x509Filter.setAuthenticationManager(authenticationManager());
-        return x509Filter;
+    @Bean
+    public X509AuthenticationFilter x509FilterBean() throws Exception {
+        if (x509AuthenticationFilter == null) {
+            x509AuthenticationFilter = new X509AuthenticationFilter();
+            x509AuthenticationFilter.setProperties(properties);
+            x509AuthenticationFilter.setCertificateExtractor(certificateExtractor);
+            x509AuthenticationFilter.setCertificateIdentityProvider(certificateIdentityProvider);
+            x509AuthenticationFilter.setAuthenticationManager(authenticationManager());
+        }
+        return x509AuthenticationFilter;
     }
 
-    private AnonymousAuthenticationFilter buildAnonymousFilter() {
-        final NiFiAnonymousUserFilter anonymousFilter = new NiFiAnonymousUserFilter();
-        anonymousFilter.setUserService(userService);
-        return anonymousFilter;
+    @Bean
+    public NiFiAnonymousUserFilter anonymousFilterBean() throws Exception {
+        if (anonymousAuthenticationFilter == null) {
+            anonymousAuthenticationFilter = new NiFiAnonymousUserFilter();
+            anonymousAuthenticationFilter.setUserService(userService);
+        }
+        return anonymousAuthenticationFilter;
     }
 
     @Autowired

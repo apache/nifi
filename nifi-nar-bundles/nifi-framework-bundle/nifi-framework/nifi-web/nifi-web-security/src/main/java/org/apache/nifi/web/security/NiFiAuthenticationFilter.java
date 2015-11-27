@@ -18,9 +18,7 @@ package org.apache.nifi.web.security;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -40,21 +38,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.filter.GenericFilterBean;
 
 /**
  *
  */
-public abstract class NiFiAuthenticationFilter implements Filter {
+public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiAuthenticationFilter.class);
 
     private AuthenticationManager authenticationManager;
     private NiFiProperties properties;
-
-    @Override
-    public void init(final FilterConfig filterConfig) throws ServletException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
 
     @Override
     public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain) throws IOException, ServletException {
