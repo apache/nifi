@@ -155,6 +155,11 @@ public class LdapProvider implements LoginIdentityProvider {
                             }
                         }
 
+                        // ensure the protocol is specified
+                        if (StringUtils.isBlank(rawProtocol)) {
+                            throw new ProviderCreationException("TLS - Protocol must be specified.");
+                        }
+
                         try {
                             final SSLContext sslContext;
                             if (StringUtils.isBlank(rawKeystore)) {
