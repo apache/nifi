@@ -365,13 +365,6 @@ public abstract class ApplicationResource {
 
         if (httpServletRequest.isSecure()) {
 
-            // add the certificate DN to the proxy chain
-            final NiFiUser user = NiFiUserUtils.getNiFiUser();
-            if (user != null) {
-                // add the proxied user details
-                result.put(PROXIED_ENTITIES_CHAIN_HTTP_HEADER, ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user));
-            }
-
             // add the user's authorities (if any) to the headers
             final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication != null) {
