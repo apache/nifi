@@ -22,6 +22,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Put;
@@ -31,18 +32,23 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.ParseFilter;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
 import java.io.IOException;
@@ -55,8 +61,19 @@ import java.util.List;
 import java.util.Map;
 
 @Tags({ "hbase", "client"})
-@CapabilityDescription("Implementation of HBaseClientService for HBase 1.1.2.")
+@CapabilityDescription("Implementation of HBaseClientService for HBase 1.1.2. This service can be configured by providing " +
+        "a comma-separated list of configuration files, or by specifying values for the other properties. If configuration files " +
+        "are provided, they will be loaded first, and the values of the additional properties will override the values from " +
+        "the configuration files. In addition, any user defined properties on the processor will also be passed to the HBase " +
+        "configuration.")
+@DynamicProperty(name="The name of an HBase configuration property.", value="The value of the given HBase configuration property.",
+        description="These properties will be set on the HBase configuration after loading any provided configuration files.")
 public class HBase_1_1_2_ClientService extends AbstractControllerService implements HBaseClientService {
+
+    static final String HBASE_CONF_ZK_QUORUM = "hbase.zookeeper.quorum";
+    static final String HBASE_CONF_ZK_PORT = "hbase.zookeeper.property.clientPort";
+    static final String HBASE_CONF_ZNODE_PARENT = "zookeeper.znode.parent";
+    static final String HBASE_CONF_CLIENT_RETRIES = "hbase.client.retries.number";
 
     private volatile Connection connection;
     private List<PropertyDescriptor> properties;
@@ -65,6 +82,10 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONF_FILES);
+        props.add(ZOOKEEPER_QUORUM);
+        props.add(ZOOKEEPER_CLIENT_PORT);
+        props.add(ZOOKEEPER_ZNODE_PARENT);
+        props.add(HBASE_CLIENT_RETRIES);
         this.properties = Collections.unmodifiableList(props);
     }
 
@@ -73,16 +94,83 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         return properties;
     }
 
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .description("Specifies the value for '" + propertyDescriptorName + "' in the HBase configuration.")
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .dynamic(true)
+                .build();
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        boolean confFileProvided = validationContext.getProperty(HADOOP_CONF_FILES).isSet();
+        boolean zkQuorumProvided = validationContext.getProperty(ZOOKEEPER_QUORUM).isSet();
+        boolean zkPortProvided = validationContext.getProperty(ZOOKEEPER_CLIENT_PORT).isSet();
+        boolean znodeParentProvided = validationContext.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet();
+        boolean retriesProvided = validationContext.getProperty(HBASE_CLIENT_RETRIES).isSet();
+
+        final List<ValidationResult> problems = new ArrayList<>();
+
+        if (!confFileProvided && (!zkQuorumProvided || !zkPortProvided || !znodeParentProvided || !retriesProvided)) {
+            problems.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(this.getClass().getSimpleName())
+                    .explanation("ZooKeeper Quorum, ZooKeeper Client Port, ZooKeeper ZNode Parent, and HBase Client Retries are required " +
+                            "when Hadoop Configuration Files are not provided.")
+                    .build());
+        }
+
+        return problems;
+    }
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException {
         this.connection = createConnection(context);
+
+        // connection check
+        if (this.connection != null) {
+            final Admin admin = this.connection.getAdmin();
+            if (admin != null) {
+                admin.listTableNames();
+            }
+        }
     }
 
     protected Connection createConnection(final ConfigurationContext context) throws IOException {
         final Configuration hbaseConfig = HBaseConfiguration.create();
-        for (final String configFile : context.getProperty(HADOOP_CONF_FILES).getValue().split(",")) {
-            hbaseConfig.addResource(new Path(configFile.trim()));
+
+        // if conf files are provided, start with those
+        if (context.getProperty(HADOOP_CONF_FILES).isSet()) {
+            for (final String configFile : context.getProperty(HADOOP_CONF_FILES).getValue().split(",")) {
+                hbaseConfig.addResource(new Path(configFile.trim()));
+            }
         }
+
+        // override with any properties that are provided
+        if (context.getProperty(ZOOKEEPER_QUORUM).isSet()) {
+            hbaseConfig.set(HBASE_CONF_ZK_QUORUM, context.getProperty(ZOOKEEPER_QUORUM).getValue());
+        }
+        if (context.getProperty(ZOOKEEPER_CLIENT_PORT).isSet()) {
+            hbaseConfig.set(HBASE_CONF_ZK_PORT, context.getProperty(ZOOKEEPER_CLIENT_PORT).getValue());
+        }
+        if (context.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet()) {
+            hbaseConfig.set(HBASE_CONF_ZNODE_PARENT, context.getProperty(ZOOKEEPER_ZNODE_PARENT).getValue());
+        }
+        if (context.getProperty(HBASE_CLIENT_RETRIES).isSet()) {
+            hbaseConfig.set(HBASE_CONF_CLIENT_RETRIES, context.getProperty(HBASE_CLIENT_RETRIES).getValue());
+        }
+
+        // add any dynamic properties to the HBase configuration
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                hbaseConfig.set(descriptor.getName(), entry.getValue());
+            }
+        }
+
         return ConnectionFactory.createConnection(hbaseConfig);
     }
 
@@ -108,12 +196,30 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                     put = new Put(putFlowFile.getRow().getBytes(StandardCharsets.UTF_8));
                     rowPuts.put(putFlowFile.getRow(), put);
                 }
-                put.addColumn(putFlowFile.getColumnFamily().getBytes(StandardCharsets.UTF_8),
-                        putFlowFile.getColumnQualifier().getBytes(StandardCharsets.UTF_8),
-                        putFlowFile.getBuffer());
+
+                for (final PutColumn column : putFlowFile.getColumns()) {
+                    put.addColumn(
+                            column.getColumnFamily().getBytes(StandardCharsets.UTF_8),
+                            column.getColumnQualifier().getBytes(StandardCharsets.UTF_8),
+                            column.getBuffer());
+                }
             }
 
             table.put(new ArrayList<>(rowPuts.values()));
+        }
+    }
+
+    @Override
+    public void put(final String tableName, final String rowId, final Collection<PutColumn> columns) throws IOException {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            Put put = new Put(rowId.getBytes(StandardCharsets.UTF_8));
+            for (final PutColumn column : columns) {
+                put.addColumn(
+                        column.getColumnFamily().getBytes(StandardCharsets.UTF_8),
+                        column.getColumnQualifier().getBytes(StandardCharsets.UTF_8),
+                        column.getBuffer());
+            }
+            table.put(put);
         }
     }
 

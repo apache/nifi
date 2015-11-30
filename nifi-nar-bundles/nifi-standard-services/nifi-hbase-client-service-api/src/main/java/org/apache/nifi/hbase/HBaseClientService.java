@@ -20,10 +20,12 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.hbase.validate.ConfigFilesValidator;
+import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -34,10 +36,33 @@ public interface HBaseClientService extends ControllerService {
 
     PropertyDescriptor HADOOP_CONF_FILES = new PropertyDescriptor.Builder()
             .name("Hadoop Configuration Files")
-            .description("Comma-separated list of Hadoop Configuration files, such as hbase-site.xml")
-            .required(true)
-            .defaultValue("./conf/hbase-site.xml")
+            .description("Comma-separated list of Hadoop Configuration files, such as hbase-site.xml, including full paths to the files.")
             .addValidator(new ConfigFilesValidator())
+            .build();
+
+    PropertyDescriptor ZOOKEEPER_QUORUM = new PropertyDescriptor.Builder()
+            .name("ZooKeeper Quorum")
+            .description("Comma-separated list of ZooKeeper hosts for HBase. Required if Hadoop Configuration Files are not provided.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    PropertyDescriptor ZOOKEEPER_CLIENT_PORT = new PropertyDescriptor.Builder()
+            .name("ZooKeeper Client Port")
+            .description("The port on which ZooKeeper is accepting client connections. Required if Hadoop Configuration Files are not provided.")
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+
+    PropertyDescriptor ZOOKEEPER_ZNODE_PARENT = new PropertyDescriptor.Builder()
+            .name("ZooKeeper ZNode Parent")
+            .description("The ZooKeeper ZNode Parent value for HBase (example: /hbase). Required if Hadoop Configuration Files are not provided.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    PropertyDescriptor HBASE_CLIENT_RETRIES = new PropertyDescriptor.Builder()
+            .name("HBase Client Retries")
+            .description("The number of times the HBase client will retry connecting. Required if Hadoop Configuration Files are not provided.")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("1")
             .build();
 
     /**
@@ -48,6 +73,16 @@ public interface HBaseClientService extends ControllerService {
      * @throws IOException thrown when there are communication errors with HBase
      */
     void put(String tableName, Collection<PutFlowFile> puts) throws IOException;
+
+    /**
+     * Puts the given row to HBase with the provided columns.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowId the id of the row to put
+     * @param columns the columns of the row to put
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void put(String tableName, String rowId, Collection<PutColumn> columns) throws IOException;
 
     /**
      * Scans the given table using the optional filter criteria and passing each result to the provided handler.

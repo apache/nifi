@@ -24,8 +24,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response.Status;
 
-import org.apache.activemq.util.ByteArrayOutputStream;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.file.FileUtils;
 
 public class CaptureServlet extends HttpServlet {
 
@@ -40,9 +41,12 @@ public class CaptureServlet extends HttpServlet {
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        StreamUtils.copy(request.getInputStream(), baos);
-        this.lastPost = baos.toByteArray();
-
+        try{
+            StreamUtils.copy(request.getInputStream(), baos);
+            this.lastPost = baos.toByteArray();
+        } finally{
+            FileUtils.closeQuietly(baos);
+        }
         response.setStatus(Status.OK.getStatusCode());
     }
 

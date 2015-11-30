@@ -89,6 +89,11 @@ public class MockProcessContext implements ProcessContext {
     }
 
     @Override
+    public boolean hasNonLoopConnection() {
+        return true;
+    }
+
+    @Override
     public boolean hasConnection(Relationship relationship) {
         return false;
     }

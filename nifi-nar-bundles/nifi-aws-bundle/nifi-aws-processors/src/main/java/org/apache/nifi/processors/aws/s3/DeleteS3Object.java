@@ -26,6 +26,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -40,6 +42,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SupportsBatching
 @SeeAlso({PutS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Delete"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Deletes FlowFiles on an Amazon S3 Bucket. " +
         "If attempting to delete a file that does not exist, FlowFile is routed to success.")
 public class DeleteS3Object extends AbstractS3Processor {

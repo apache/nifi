@@ -45,6 +45,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -131,12 +132,40 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     private final Set<Relationship> relationships;
 
+    private static final Validator DELETE_PROPERTY_VALIDATOR = new Validator() {
+        private final Validator DPV_RE_VALIDATOR = StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true);
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                final AttributeExpression.ResultType resultType = context.newExpressionLanguageCompiler().getResultType(input);
+                if (!resultType.equals(AttributeExpression.ResultType.STRING)) {
+                    return new ValidationResult.Builder()
+                            .subject(subject)
+                            .input(input)
+                            .valid(false)
+                            .explanation("Expected property to to return type " + AttributeExpression.ResultType.STRING +
+                                    " but expression returns type " + resultType)
+                            .build();
+                }
+                return new ValidationResult.Builder()
+                        .subject(subject)
+                        .input(input)
+                        .valid(true)
+                        .explanation("Property returns type " + AttributeExpression.ResultType.STRING)
+                        .build();
+            }
+
+            return DPV_RE_VALIDATOR.validate(subject, input, context);
+        }
+    };
+
     // static properties
     public static final PropertyDescriptor DELETE_ATTRIBUTES = new PropertyDescriptor.Builder()
             .name("Delete Attributes Expression")
             .description("Regular expression for attributes to be deleted from flowfiles.")
             .required(false)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .addValidator(DELETE_PROPERTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     // relationships
@@ -477,7 +506,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 }
             } else {
                 try {
-                    final String regex = action.getValue();
+                    final String actionValue = action.getValue();
+                    final String regex = (actionValue == null) ? null :
+                            getPropertyValue(actionValue, context).evaluateAttributeExpressions(flowfile).getValue();
                     if (regex != null) {
                         Pattern pattern = Pattern.compile(regex);
                         final Set<String> attributeKeys = flowfile.getAttributes().keySet();

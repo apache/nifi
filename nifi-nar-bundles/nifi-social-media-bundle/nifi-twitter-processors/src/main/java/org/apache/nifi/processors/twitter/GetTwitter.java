@@ -156,7 +156,7 @@ public class GetTwitter extends AbstractProcessor {
     private final BlockingQueue<Event> eventQueue = new LinkedBlockingQueue<>(1000);
 
     private volatile Client client;
-    private volatile BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>(10000);
+    private volatile BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>(5000);
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -222,8 +222,6 @@ public class GetTwitter extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws MalformedURLException {
-        messageQueue = new LinkedBlockingQueue<>(100000);
-
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).getValue(),
                 context.getProperty(CONSUMER_SECRET).getValue(),

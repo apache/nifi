@@ -492,9 +492,17 @@ public interface TestRunner {
      * Indicates to the framework that the configured processor has one or more
      * incoming connections.
      *
-     * @param hasIncomingConnection whether or not the configured processor has an incoming connection
+     * @param hasIncomingConnection whether or not the configured processor should behave as though it has an incoming connection
      */
     void setIncomingConnection(boolean hasIncomingConnection);
+
+    /**
+     * Indicates to the framework that the configured processor has one or more incoming
+     * connections for which the processor is not also the source.
+     *
+     * @param hasNonLoopConnection whether or not the configured processor should behave as though it has a non-looping incoming connection
+     */
+    void setNonLoopConnection(boolean hasNonLoopConnection);
 
     /**
      * Indicates to the Framework that the configured processor has a connection for the given Relationship.

@@ -260,6 +260,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         final List<FlowFile> flowFiles = session.get(batchSize);
         if (flowFiles == null || flowFiles.isEmpty()) {
             pruneIdleSenders(context.getProperty(IDLE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS).longValue());
+            context.yield();
             return;
         }
 

@@ -93,7 +93,7 @@ public class LineageQuery {
                 final TopDocs uuidQueryTopDocs = searcher.search(query, MAX_QUERY_RESULTS);
                 final long searchEnd = System.nanoTime();
 
-                final DocsReader docsReader = new DocsReader(repo.getConfiguration().getStorageDirectories());
+                final DocsReader docsReader = new DocsReader();
                 final Set<ProvenanceEventRecord> recs = docsReader.read(uuidQueryTopDocs, searcher.getIndexReader(), repo.getAllLogFiles(),
                     new AtomicInteger(0), Integer.MAX_VALUE, maxAttributeChars);
 

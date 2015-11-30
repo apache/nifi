@@ -1033,6 +1033,12 @@ nf.Connection = (function () {
 
     // removes the specified connections
     var removeConnections = function (removed) {
+        // consider reloading source/destination of connection being removed
+        removed.each(function (d) {
+            nf.CanvasUtils.reloadConnectionSourceAndDestination(d.component.source.id, d.component.destination.id);
+        });
+        
+        // remove the connection
         removed.remove();
     };
 
@@ -1142,6 +1148,7 @@ nf.Connection = (function () {
                         // get the corresponding connection
                         var connection = d3.select(this.parentNode);
                         var connectionData = connection.datum();
+                        var previousDestinationId = connectionData.component.destination.id;
 
                         // attempt to select a new destination
                         var destination = d3.select('g.connectable-destination');
@@ -1153,7 +1160,10 @@ nf.Connection = (function () {
                             // prompt for the new port if appropriate
                             if (nf.CanvasUtils.isProcessGroup(destination) || nf.CanvasUtils.isRemoteProcessGroup(destination)) {
                                 // user will select new port and updated connect details will be set accordingly
-                                nf.ConnectionConfiguration.showConfiguration(connection, destination).fail(function () {
+                                nf.ConnectionConfiguration.showConfiguration(connection, destination).done(function () {
+                                    // reload the previous destination
+                                    nf.CanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
+                                }).fail(function () {
                                     // reset the connection
                                     connection.call(updateConnections, true, false);
                                 });
@@ -1192,13 +1202,17 @@ nf.Connection = (function () {
                                     data: updatedConnectionData,
                                     dataType: 'json'
                                 }).done(function (response) {
-                                    var connectionData = response.connection;
+                                    var updatedConnectionData = response.connection;
 
                                     // update the revision
                                     nf.Client.setRevision(response.revision);
 
                                     // refresh to update the label
-                                    nf.Connection.set(connectionData);
+                                    nf.Connection.set(updatedConnectionData);
+                                    
+                                    // reload the previous destination and the new source/destination
+                                    nf.CanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
+                                    nf.CanvasUtils.reloadConnectionSourceAndDestination(updatedConnectionData.source.id, updatedConnectionData.destination.id);
                                 }).fail(function (xhr, status, error) {
                                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                         nf.Dialog.showOkDialog({

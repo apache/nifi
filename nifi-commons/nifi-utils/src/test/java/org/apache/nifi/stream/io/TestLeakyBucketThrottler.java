@@ -41,75 +41,75 @@ public class TestLeakyBucketThrottler {
 
         final byte[] data = new byte[1024 * 1024 * 4];
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final OutputStream throttledOut = throttler.newThrottledOutputStream(baos);
+        try (final OutputStream throttledOut = throttler.newThrottledOutputStream(baos)) {
 
-        final long start = System.currentTimeMillis();
-        throttledOut.write(data);
-        throttler.close();
-        final long millis = System.currentTimeMillis() - start;
-        // should take 4 sec give or take
-        assertTrue(millis > 3000);
-        assertTrue(millis < 6000);
+            final long start = System.currentTimeMillis();
+            throttledOut.write(data);
+            throttler.close();
+            final long millis = System.currentTimeMillis() - start;
+            // should take 4 sec give or take
+            assertTrue(millis > 3000);
+            assertTrue(millis < 6000);
+        }
     }
 
     @Test(timeout = 10000)
     public void testInputStreamInterface() throws IOException {
-        // throttle rate at 1 MB/sec
-        final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
 
         final byte[] data = new byte[1024 * 1024 * 4];
-        final ByteArrayInputStream bais = new ByteArrayInputStream(data);
-        final InputStream throttledIn = throttler.newThrottledInputStream(bais);
+     // throttle rate at 1 MB/sec
+        try ( final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
+                final ByteArrayInputStream bais = new ByteArrayInputStream(data);
+                final InputStream throttledIn = throttler.newThrottledInputStream(bais);
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            final byte[] buffer = new byte[4096];
+            final long start = System.currentTimeMillis();
+            int len;
+            while ((len = throttledIn.read(buffer)) > 0) {
+                baos.write(buffer, 0, len);
+            }
 
-        final byte[] buffer = new byte[4096];
-        final long start = System.currentTimeMillis();
-        int len;
-        while ((len = throttledIn.read(buffer)) > 0) {
-            baos.write(buffer, 0, len);
+            final long millis = System.currentTimeMillis() - start;
+            // should take 4 sec give or take
+            assertTrue(millis > 3000);
+            assertTrue(millis < 6000);
         }
-        throttler.close();
-        final long millis = System.currentTimeMillis() - start;
-        // should take 4 sec give or take
-        assertTrue(millis > 3000);
-        assertTrue(millis < 6000);
-        baos.close();
     }
 
     @Test(timeout = 10000)
     public void testDirectInterface() throws IOException, InterruptedException {
         // throttle rate at 1 MB/sec
-        final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
+        try (final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            // create 3 threads, each sending ~2 MB
+            final List<Thread> threads = new ArrayList<Thread>();
+            for (int i = 0; i < 3; i++) {
+                final Thread t = new WriterThread(i, throttler, baos);
+                threads.add(t);
+            }
 
-        // create 3 threads, each sending ~2 MB
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final List<Thread> threads = new ArrayList<Thread>();
-        for (int i = 0; i < 3; i++) {
-            final Thread t = new WriterThread(i, throttler, baos);
-            threads.add(t);
+            final long start = System.currentTimeMillis();
+            for (final Thread t : threads) {
+                t.start();
+            }
+
+            for (final Thread t : threads) {
+                t.join();
+            }
+            final long elapsed = System.currentTimeMillis() - start;
+
+            throttler.close();
+
+            // To send 15 MB, it should have taken at least 5 seconds and no more than 7 seconds, to
+            // allow for busy-ness and the fact that we could write a tiny bit more than the limit.
+            assertTrue(elapsed > 5000);
+            assertTrue(elapsed < 7000);
+
+            // ensure bytes were copied out appropriately
+            assertEquals(3 * (2 * 1024 * 1024 + 1), baos.getBufferLength());
+            assertEquals((byte) 'A', baos.getUnderlyingBuffer()[baos.getBufferLength() - 1]);
         }
-
-        final long start = System.currentTimeMillis();
-        for (final Thread t : threads) {
-            t.start();
-        }
-
-        for (final Thread t : threads) {
-            t.join();
-        }
-        final long elapsed = System.currentTimeMillis() - start;
-
-        throttler.close();
-
-        // To send 15 MB, it should have taken at least 5 seconds and no more than 7 seconds, to
-        // allow for busy-ness and the fact that we could write a tiny bit more than the limit.
-        assertTrue(elapsed > 5000);
-        assertTrue(elapsed < 7000);
-
-        // ensure bytes were copied out appropriately
-        assertEquals(3 * (2 * 1024 * 1024 + 1), baos.getBufferLength());
-        assertEquals((byte) 'A', baos.getUnderlyingBuffer()[baos.getBufferLength() - 1]);
     }
 
     private static class WriterThread extends Thread {

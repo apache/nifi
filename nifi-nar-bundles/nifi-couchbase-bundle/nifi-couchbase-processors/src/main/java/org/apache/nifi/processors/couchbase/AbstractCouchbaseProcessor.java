@@ -137,12 +137,10 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
     }
 
     private CouchbaseClusterControllerService getClusterService(final ProcessContext context) {
-        if (clusterService == null) {
-            synchronized (AbstractCouchbaseProcessor.class) {
-                if (clusterService == null) {
-                    clusterService = context.getProperty(COUCHBASE_CLUSTER_SERVICE)
+        synchronized (AbstractCouchbaseProcessor.class) {
+            if (clusterService == null) {
+                clusterService = context.getProperty(COUCHBASE_CLUSTER_SERVICE)
                         .asControllerService(CouchbaseClusterControllerService.class);
-                }
             }
         }
 

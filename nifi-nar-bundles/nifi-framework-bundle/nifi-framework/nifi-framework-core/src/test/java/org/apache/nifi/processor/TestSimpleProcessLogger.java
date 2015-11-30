@@ -53,6 +53,13 @@ public class TestSimpleProcessLogger {
             Field loggerField = componentLog.getClass().getDeclaredField("logger");
             loggerField.setAccessible(true);
             logger = mock(Logger.class);
+
+            when(logger.isDebugEnabled()).thenReturn(true);
+            when(logger.isInfoEnabled()).thenReturn(true);
+            when(logger.isWarnEnabled()).thenReturn(true);
+            when(logger.isErrorEnabled()).thenReturn(true);
+            when(logger.isTraceEnabled()).thenReturn(true);
+
             loggerField.set(componentLog, logger);
         } catch (Exception e) {
             e.printStackTrace();

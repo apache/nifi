@@ -72,30 +72,45 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         this.processContext = processContext;
     }
 
+    static boolean isRunOnCluster(final ProcessorNode procNode, final boolean isClustered, final boolean isPrimary) {
+        return !procNode.isIsolated() || !isClustered || isPrimary;
+    }
+
+    static boolean isYielded(final ProcessorNode procNode) {
+        return procNode.getYieldExpiration() >= System.currentTimeMillis();
+    }
+
+    static boolean isWorkToDo(final ProcessorNode procNode) {
+        return procNode.isTriggerWhenEmpty() || !procNode.hasIncomingConnection() || !Connectables.hasNonLoopConnection(procNode) || Connectables.flowFilesQueued(procNode);
+    }
+
     @Override
     @SuppressWarnings("deprecation")
     public Boolean call() {
         // make sure processor is not yielded
-        boolean shouldRun = (procNode.getYieldExpiration() < System.currentTimeMillis());
-        if (!shouldRun) {
+        if (isYielded(procNode)) {
             return false;
         }
 
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
-        shouldRun = !procNode.isIsolated() || !flowController.isClustered() || flowController.isPrimary();
-        if (!shouldRun) {
+        if (!isRunOnCluster(procNode, flowController.isClustered(), flowController.isPrimary())) {
             return false;
         }
 
-        // make sure that either proc has incoming FlowFiles or has no incoming connections or is annotated with @TriggerWhenEmpty
-        shouldRun = procNode.isTriggerWhenEmpty() || !procNode.hasIncomingConnection() || Connectables.flowFilesQueued(procNode);
-        if (!shouldRun) {
+        // Make sure processor has work to do. This means that it meets one of these criteria:
+        // * It is annotated with @TriggerWhenEmpty
+        // * It has data in an incoming Connection
+        // * It has no incoming connections
+        // * All incoming connections are self-loops
+        if (!isWorkToDo(procNode)) {
             return true;
         }
 
         if (numRelationships > 0) {
             final int requiredNumberOfAvailableRelationships = procNode.isTriggerWhenAnyDestinationAvailable() ? 1 : numRelationships;
-            shouldRun = context.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships);
+            if (!context.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships)) {
+                return false;
+            }
         }
 
         final long batchNanos = procNode.getRunDuration(TimeUnit.NANOSECONDS);
@@ -112,10 +127,6 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
             batch = false;
         }
 
-        if (!shouldRun) {
-            return false;
-        }
-
         scheduleState.incrementActiveThreadCount();
 
         final long startNanos = System.nanoTime();
@@ -123,6 +134,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         int invocationCount = 0;
         try {
             try (final AutoCloseable ncl = NarCloseable.withNarLoader()) {
+                boolean shouldRun = true;
                 while (shouldRun) {
                     procNode.onTrigger(processContext, sessionFactory);
                     invocationCount++;
@@ -135,10 +147,14 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
                         return false;
                     }
 
-                    shouldRun = procNode.isTriggerWhenEmpty() || !procNode.hasIncomingConnection() || Connectables.flowFilesQueued(procNode);
-                    shouldRun = shouldRun && (procNode.getYieldExpiration() < System.currentTimeMillis());
+                    if (!isWorkToDo(procNode)) {
+                        break;
+                    }
+                    if (isYielded(procNode)) {
+                        break;
+                    }
 
-                    if (shouldRun && numRelationships > 0) {
+                    if (numRelationships > 0) {
                         final int requiredNumberOfAvailableRelationships = procNode.isTriggerWhenAnyDestinationAvailable() ? 1 : numRelationships;
                         shouldRun = context.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships);
                     }

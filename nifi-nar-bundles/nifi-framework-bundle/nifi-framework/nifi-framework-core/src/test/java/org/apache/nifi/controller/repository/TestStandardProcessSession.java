@@ -37,13 +37,16 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -58,6 +61,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
@@ -467,6 +471,42 @@ public class TestStandardProcessSession {
         session.commit();
 
         assertEquals(1, provenanceRepo.getEvents(0L, 100000).size());
+    }
+
+    @Test
+    public void testUuidAttributeCannotBeUpdated() {
+        String originalUuid = "11111111-1111-1111-1111-111111111111";
+        final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()
+            .id(1L)
+            .addAttribute("uuid", originalUuid)
+            .entryDate(System.currentTimeMillis())
+            .build();
+
+        flowFileQueue.put(flowFileRecord1);
+
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+
+        final String uuid = CoreAttributes.UUID.key();
+        final String newUuid = "22222222-2222-2222-2222-222222222222";
+        flowFile = session.putAttribute(flowFile, uuid, newUuid);
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
+        final Map<String, String> uuidMap = new HashMap<>(1);
+        uuidMap.put(uuid, newUuid);
+
+        flowFile = session.putAllAttributes(flowFile, uuidMap);
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
+        flowFile = session.removeAllAttributes(flowFile, Pattern.compile("uuid"));
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
+        flowFile = session.removeAllAttributes(flowFile, Collections.singleton(uuid));
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
+        flowFile = session.removeAttribute(flowFile, uuid);
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
     }
 
     @Test

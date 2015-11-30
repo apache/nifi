@@ -89,7 +89,7 @@ public class IndexSearch {
                 return sqr;
             }
 
-            final DocsReader docsReader = new DocsReader(repository.getConfiguration().getStorageDirectories());
+            final DocsReader docsReader = new DocsReader();
             matchingRecords = docsReader.read(topDocs, searcher.getIndexReader(), repository.getAllLogFiles(), retrievedCount,
                 provenanceQuery.getMaxResults(), maxAttributeChars);
 

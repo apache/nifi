@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -48,6 +50,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 
 @Tags({ "mongodb", "read", "get" })
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Creates FlowFiles from documents in MongoDB")
 public class GetMongo extends AbstractMongoProcessor {
     public static final Validator DOCUMENT_VALIDATOR = new Validator() {

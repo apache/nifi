@@ -19,21 +19,26 @@ package org.apache.nifi.processors.standard;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
+import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
@@ -72,41 +77,99 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         return new TestServer();
     }
 
+    @Test
+    public void testSslSetHttpRequest() throws Exception {
+
+        final Map<String, String> sslProperties = new HashMap<>();
+        sslProperties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        sslProperties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        sslProperties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        sslProperties.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
+        sslProperties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        sslProperties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+
+        runner = TestRunners.newTestRunner(InvokeHTTP.class);
+        final StandardSSLContextService sslService = new StandardSSLContextService();
+        runner.addControllerService("ssl-context", sslService, sslProperties);
+        runner.enableControllerService(sslService);
+        runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
+
+        addHandler(new GetOrHeadHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+
+        // expected in request status.code and status.message
+        // original flow file (+attributes)
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
+        bundle.assertContentEquals("Hello".getBytes("UTF-8"));
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle.assertAttributeEquals("Foo", "Bar");
+
+        // expected in response
+        // status code, status message, all headers from server response --> ff attributes
+        // server response message body into payload of ff
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle1.assertContentEquals("/status/200".getBytes("UTF-8"));
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals("Foo", "Bar");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("OkHttp-Selected-Protocol", "http/1.1");
+    }
+
     // Currently InvokeHttp does not support Proxy via Https
     @Test
     public void testProxy() throws Exception {
         addHandler(new MyProxyHandler());
         URL proxyURL = new URL(url);
 
-        runner.setProperty(InvokeHTTP.Config.PROP_URL, "http://nifi.apache.org/"); // just a dummy URL no connection goes out
-        runner.setProperty(InvokeHTTP.Config.PROP_PROXY_HOST, proxyURL.getHost());
-        runner.setProperty(InvokeHTTP.Config.PROP_PROXY_PORT, String.valueOf(proxyURL.getPort()));
+        runner.setProperty(InvokeHTTP.PROP_URL, "http://nifi.apache.org/"); // just a dummy URL no connection goes out
+        runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, proxyURL.getHost());
+
+        try{
+            runner.run();
+            Assert.fail();
+        } catch (AssertionError e){
+            // Expect assetion error when proxy port isn't set but host is.
+        }
+        runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, String.valueOf(proxyURL.getPort()));
 
         createFlowFiles(runner);
 
         runner.run();
 
-        runner.assertTransferCount(InvokeHTTP.Config.REL_SUCCESS_REQ, 1);
-        runner.assertTransferCount(InvokeHTTP.Config.REL_SUCCESS_RESP, 1);
-        runner.assertTransferCount(InvokeHTTP.Config.REL_RETRY, 0);
-        runner.assertTransferCount(InvokeHTTP.Config.REL_NO_RETRY, 0);
-        runner.assertTransferCount(InvokeHTTP.Config.REL_FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
 
         //expected in request status.code and status.message
         //original flow file (+attributes)
-        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.Config.REL_SUCCESS_REQ).get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
         bundle.assertContentEquals("Hello".getBytes("UTF-8"));
-        bundle.assertAttributeEquals(InvokeHTTP.Config.STATUS_CODE, "200");
-        bundle.assertAttributeEquals(InvokeHTTP.Config.STATUS_MESSAGE, "OK");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
 
         //expected in response
         //status code, status message, all headers from server response --> ff attributes
         //server response message body into payload of ff
-        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.Config.REL_SUCCESS_RESP).get(0);
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
         bundle1.assertContentEquals("http://nifi.apache.org/".getBytes("UTF-8"));
-        bundle1.assertAttributeEquals(InvokeHTTP.Config.STATUS_CODE, "200");
-        bundle1.assertAttributeEquals(InvokeHTTP.Config.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
         bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
     }

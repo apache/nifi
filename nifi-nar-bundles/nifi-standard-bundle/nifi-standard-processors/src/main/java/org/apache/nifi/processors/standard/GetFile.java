@@ -91,7 +91,7 @@ import org.apache.nifi.processor.util.StandardValidators;
     @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the file. May not work on all file systems"),
     @WritesAttribute(attribute = "absolute.path", description = "The full/absolute path from where a file was picked up. The current 'path' "
             + "attribute is still populated, but may be a relative path")})
-@SeeAlso(PutFile.class)
+@SeeAlso({PutFile.class, FetchFile.class})
 public class GetFile extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()

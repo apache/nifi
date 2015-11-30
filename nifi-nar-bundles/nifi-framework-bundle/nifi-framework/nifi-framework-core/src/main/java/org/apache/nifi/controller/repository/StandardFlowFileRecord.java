@@ -247,6 +247,10 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         public Builder removeAttributes(final String... keys) {
             if (keys != null) {
                 for (final String key : keys) {
+                    if (CoreAttributes.UUID.key().equals(key)) {
+                        continue;
+                    }
+
                     bAttributes.remove(key);
                 }
             }
@@ -256,6 +260,10 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         public Builder removeAttributes(final Set<String> keys) {
             if (keys != null) {
                 for (final String key : keys) {
+                    if (CoreAttributes.UUID.key().equals(key)) {
+                        continue;
+                    }
+
                     bAttributes.remove(key);
                 }
             }
@@ -267,6 +275,11 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
                 final Iterator<String> iterator = bAttributes.keySet().iterator();
                 while (iterator.hasNext()) {
                     final String key = iterator.next();
+
+                    if (CoreAttributes.UUID.key().equals(key)) {
+                        continue;
+                    }
+
                     if (keyPattern.matcher(key).matches()) {
                         iterator.remove();
                     }

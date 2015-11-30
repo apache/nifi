@@ -30,6 +30,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -56,6 +58,7 @@ import com.microsoft.eventhubs.client.ResilientEventHubReceiver;
 
 @Tags({ "azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams" })
 @CapabilityDescription("Receives messages from a Microsoft Azure Event Hub, writing the contents of the Azure message to the content of the FlowFile")
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
     @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the Azure Event Hub"),
     @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),

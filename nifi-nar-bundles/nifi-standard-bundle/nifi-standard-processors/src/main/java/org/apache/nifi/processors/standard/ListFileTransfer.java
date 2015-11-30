@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -92,7 +93,13 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     @Override
     protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
         final FileTransfer transfer = getFileTransfer(context);
-        final List<FileInfo> listing = transfer.getListing();
+        final List<FileInfo> listing;
+        try {
+            listing = transfer.getListing();
+        } finally {
+            IOUtils.closeQuietly(transfer);
+        }
+
         if (minTimestamp == null) {
             return listing;
         }

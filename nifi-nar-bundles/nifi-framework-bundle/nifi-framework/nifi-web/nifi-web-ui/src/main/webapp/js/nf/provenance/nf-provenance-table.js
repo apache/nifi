@@ -1203,6 +1203,11 @@ nf.ProvenanceTable = (function () {
                 formatEventDetail('Relationship', event.relationship);
             }
 
+            // conditionally show FETCH details
+            if (event.eventType === 'FETCH') {
+                formatEventDetail('Transit Uri', event.transitUri);
+            }
+
             // conditionally show the cluster node identifier
             if (nf.Common.isDefinedAndNotNull(event.clusterNodeId)) {
                 // save the cluster node id

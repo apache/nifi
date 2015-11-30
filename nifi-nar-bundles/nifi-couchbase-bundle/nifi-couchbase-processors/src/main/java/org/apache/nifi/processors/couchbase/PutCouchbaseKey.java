@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -57,6 +59,7 @@ import com.couchbase.client.java.document.RawJsonDocument;
 @Tags({"nosql", "couchbase", "database", "put"})
 @CapabilityDescription("Put a document to Couchbase Server via Key/Value access.")
 @SeeAlso({CouchbaseClusterControllerService.class})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @ReadsAttributes({
     @ReadsAttribute(attribute = "uuid", description = "Used as a document id if 'Document Id' is not specified"),
 })

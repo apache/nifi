@@ -956,6 +956,44 @@ nf.CanvasUtils = (function () {
         },
         
         /**
+         * Reloads a connection's source and destination.
+         * 
+         * @param {string} sourceComponentId          The connection source id
+         * @param {string} destinationComponentId     The connection destination id
+         */
+        reloadConnectionSourceAndDestination: function (sourceComponentId, destinationComponentId) {
+            if (nf.Common.isBlank(sourceComponentId) === false) {
+                var source = d3.select('#id-' + sourceComponentId);
+                if (source.empty() === false) {
+                    var sourceData = source.datum();
+
+                    // update the source status if necessary
+                    if (nf.CanvasUtils.isProcessor(source)) {
+                        nf.Processor.reload(sourceData.component);
+                    } else if (nf.CanvasUtils.isInputPort(source)) {
+                        nf.Port.reload(sourceData.component);
+                    } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
+                        nf.RemoteProcessGroup.reload(sourceData.component);
+                    }
+                }
+            }
+
+            if (nf.Common.isBlank(destinationComponentId) === false) {
+                var destination = d3.select('#id-' + destinationComponentId);
+                if (destination.empty() === false) {
+                    var destinationData = destination.datum();
+
+                    // update the destination component accordingly
+                    if (nf.CanvasUtils.isProcessor(destination)) {
+                        nf.Processor.reload(destinationData.component);
+                    } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
+                        nf.RemoteProcessGroup.reload(destinationData.component);
+                    }
+                }
+            }
+        },
+        
+        /**
          * Returns the component id of the source of this processor. If the connection is attached
          * to a port in a [sub|remote] group, the component id will be that of the group. Otherwise
          * it is the component itself.

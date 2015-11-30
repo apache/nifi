@@ -14,10 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.hbase;
+package org.apache.nifi.hbase.put;
 
-import org.apache.nifi.processor.AbstractProcessor;
+/**
+ * Encapsulates the information for one column of a put operation.
+ */
+public class PutColumn {
 
-public abstract class AbstractHBaseProcessor extends AbstractProcessor {
+    private final String columnFamily;
+    private final String columnQualifier;
+    private final byte[] buffer;
+
+
+    public PutColumn(final String columnFamily, final String columnQualifier, final byte[] buffer) {
+        this.columnFamily = columnFamily;
+        this.columnQualifier = columnQualifier;
+        this.buffer = buffer;
+    }
+
+    public String getColumnFamily() {
+        return columnFamily;
+    }
+
+    public String getColumnQualifier() {
+        return columnQualifier;
+    }
+
+    public byte[] getBuffer() {
+        return buffer;
+    }
 
 }

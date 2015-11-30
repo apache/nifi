@@ -63,7 +63,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void warn(String msg, final Throwable t) {
-        //warn("{} " + msg, new Object[]{component}, t);
+        if (!isWarnEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component, t.toString(), t};
         logger.warn(msg, os);
@@ -72,6 +75,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void warn(String msg, Object[] os) {
+        if (!isWarnEnabled()) {
+            return;
+        }
+
         if (lastArgIsException(os)) {
             warn(msg, translateException(os), (Throwable) os[os.length - 1]);
         } else {
@@ -84,6 +91,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void warn(String msg, Object[] os, final Throwable t) {
+        if (!isWarnEnabled()) {
+            return;
+        }
+
         os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
@@ -96,6 +107,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void warn(String msg) {
+        if (!isWarnEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component};
         logger.warn(msg, component);
@@ -104,6 +119,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void trace(String msg, Throwable t) {
+        if (!isTraceEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component, t.toString(), t};
         logger.trace(msg, os);
@@ -112,6 +131,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void trace(String msg, Object[] os) {
+        if (!isTraceEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         os = addProcessor(os);
         logger.trace(msg, os);
@@ -120,6 +143,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void trace(String msg) {
+        if (!isTraceEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component};
         logger.trace(msg, os);
@@ -128,6 +155,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void trace(String msg, Object[] os, Throwable t) {
+        if (!isTraceEnabled()) {
+            return;
+        }
+
         os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
@@ -163,6 +194,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void info(String msg, Throwable t) {
+        if (!isInfoEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component, t.toString()};
 
@@ -175,6 +210,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void info(String msg, Object[] os) {
+        if (!isInfoEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         os = addProcessor(os);
 
@@ -184,6 +223,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void info(String msg) {
+        if (!isInfoEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component};
 
@@ -193,6 +236,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void info(String msg, Object[] os, Throwable t) {
+        if (!isInfoEnabled()) {
+            return;
+        }
+
         os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
@@ -210,6 +257,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void error(String msg, Throwable t) {
+        if (!isErrorEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         Object[] os = {component, t.toString()};
         logger.error(msg, os);
@@ -222,6 +273,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void error(String msg, Object[] os) {
+        if (!isErrorEnabled()) {
+            return;
+        }
+
         if (lastArgIsException(os)) {
             error(msg, translateException(os), (Throwable) os[os.length - 1]);
         } else {
@@ -234,6 +289,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void error(String msg) {
+        if (!isErrorEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component};
 
@@ -254,6 +313,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void error(String msg, Object[] os, Throwable t) {
+        if (!isErrorEnabled()) {
+            return;
+        }
+
         os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
@@ -266,6 +329,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void debug(String msg, Throwable t) {
+        if (!isDebugEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component};
 
@@ -275,6 +342,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void debug(String msg, Object[] os) {
+        if (!isDebugEnabled()) {
+            return;
+        }
+
         os = addProcessor(os);
         msg = "{} " + msg;
 
@@ -284,6 +355,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void debug(String msg, Object[] os, Throwable t) {
+        if (!isDebugEnabled()) {
+            return;
+        }
+
         os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
@@ -296,6 +371,10 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void debug(String msg) {
+        if (!isDebugEnabled()) {
+            return;
+        }
+
         msg = "{} " + msg;
         final Object[] os = {component};
 

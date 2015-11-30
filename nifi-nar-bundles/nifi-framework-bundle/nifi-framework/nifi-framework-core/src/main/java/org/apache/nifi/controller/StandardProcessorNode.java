@@ -964,6 +964,18 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    List<Connection> getIncomingNonLoopConnections() {
+        final List<Connection> connections = getIncomingConnections();
+        final List<Connection> nonLoopConnections = new ArrayList<>(connections.size());
+        for (final Connection connection : connections) {
+            if (!connection.getSource().equals(this)) {
+                nonLoopConnections.add(connection);
+            }
+        }
+
+        return nonLoopConnections;
+    }
+
     @Override
     public boolean isValid() {
         readLock.lock();
@@ -991,13 +1003,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 case INPUT_ALLOWED:
                     break;
                 case INPUT_FORBIDDEN: {
-                    if (!getIncomingConnections().isEmpty()) {
+                    if (!getIncomingNonLoopConnections().isEmpty()) {
                         return false;
                     }
                     break;
                 }
                 case INPUT_REQUIRED: {
-                    if (getIncomingConnections().isEmpty()) {
+                    if (getIncomingNonLoopConnections().isEmpty()) {
                         return false;
                     }
                     break;
@@ -1045,7 +1057,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 case INPUT_ALLOWED:
                     break;
                 case INPUT_FORBIDDEN: {
-                    final int incomingConnCount = getIncomingConnections().size();
+                    final int incomingConnCount = getIncomingNonLoopConnections().size();
                     if (incomingConnCount != 0) {
                         results.add(new ValidationResult.Builder()
                             .explanation("Processor does not allow upstream connections but currently has " + incomingConnCount)
@@ -1056,7 +1068,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     break;
                 }
                 case INPUT_REQUIRED: {
-                    if (getIncomingConnections().isEmpty()) {
+                    if (getIncomingNonLoopConnections().isEmpty()) {
                         results.add(new ValidationResult.Builder()
                             .explanation("Processor requires an upstream connection but currently has none")
                             .subject("Upstream Connections")

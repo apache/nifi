@@ -58,6 +58,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -808,7 +809,13 @@ public class FileSystemRepository implements ContentRepository {
         final Path path = getPath(claim, true);
         final FileInputStream fis = new FileInputStream(path.toFile());
         if (claim.getOffset() > 0L) {
-            StreamUtils.skip(fis, claim.getOffset());
+            try {
+                StreamUtils.skip(fis, claim.getOffset());
+            } catch(IOException ioe) {
+                IOUtils.closeQuietly(fis);
+                throw ioe;
+            }
+
         }
 
         // see javadocs for claim.getLength() as to why we do this.

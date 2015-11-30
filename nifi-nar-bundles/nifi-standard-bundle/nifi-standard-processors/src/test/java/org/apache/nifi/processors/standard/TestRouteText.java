@@ -707,9 +707,22 @@ public class TestRouteText {
         if (str == null || str.isEmpty()) {
             return 0;
         }
+
+        String lineSeparator;
+
+        if(str.contains("\r\n")){
+            lineSeparator = "\r\n";
+        } else if(str.contains("\n")){
+            lineSeparator = "\n";
+        } else if(str.contains("\r")){
+            lineSeparator = "\r";
+        } else {
+            return 1;
+        }
+
         int lines = 0;
         int pos = 0;
-        while ((pos = str.indexOf(System.lineSeparator(), pos) + 1) != 0) {
+        while ((pos = str.indexOf(lineSeparator, pos) + 1) != 0) {
             lines++;
         }
         return lines;

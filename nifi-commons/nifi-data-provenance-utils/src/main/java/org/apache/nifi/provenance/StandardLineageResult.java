@@ -259,6 +259,7 @@ public class StandardLineageResult implements ComputeLineageResult {
                 case FORK:
                 case JOIN:
                 case REPLAY:
+                case FETCH:
                 case CLONE: {
                     // For events that create FlowFile nodes, we need to create the FlowFile Nodes and associated Edges, as appropriate
                     for (final String childUuid : record.getChildUuids()) {

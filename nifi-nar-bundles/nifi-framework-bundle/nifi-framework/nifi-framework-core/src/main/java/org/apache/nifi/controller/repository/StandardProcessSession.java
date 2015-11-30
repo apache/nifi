@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
@@ -102,8 +103,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
     private final Map<Connection, StandardFlowFileEvent> connectionCounts = new HashMap<>();
     private final Map<Connection, Set<FlowFileRecord>> unacknowledgedFlowFiles = new HashMap<>();
-    private final Map<String, Long> localCounters = new HashMap<>();
-    private final Map<String, Long> globalCounters = new HashMap<>();
+    private final Map<String, Long> counters = new HashMap<>();
     private final Map<ContentClaim, ByteCountingOutputStream> appendableStreams = new HashMap<>();
     private final ProcessContext context;
     private final Set<FlowFile> recursionSet = new HashSet<>();// set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
@@ -396,11 +396,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
             }
 
-            for (final Map.Entry<String, Long> entry : checkpoint.localCounters.entrySet()) {
-                adjustCounter(entry.getKey(), entry.getValue(), true);
-            }
-
-            for (final Map.Entry<String, Long> entry : checkpoint.globalCounters.entrySet()) {
+            for (final Map.Entry<String, Long> entry : checkpoint.counters.entrySet()) {
                 adjustCounter(entry.getKey(), entry.getValue(), true);
             }
 
@@ -456,6 +452,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     bytesSent += event.getFileSize();
                     break;
                 case RECEIVE:
+                case FETCH:
                     flowFilesReceived++;
                     bytesReceived += event.getFileSize();
                     break;
@@ -615,7 +612,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     if (registeredTypes.contains(ProvenanceEventType.CREATE)
                         || registeredTypes.contains(ProvenanceEventType.FORK)
                         || registeredTypes.contains(ProvenanceEventType.JOIN)
-                        || registeredTypes.contains(ProvenanceEventType.RECEIVE)) {
+                        || registeredTypes.contains(ProvenanceEventType.RECEIVE)
+                        || registeredTypes.contains(ProvenanceEventType.FETCH)) {
                         creationEventRegistered = true;
                     }
                 }
@@ -990,8 +988,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         connectionCounts.clear();
         createdFlowFiles.clear();
         removedFlowFiles.clear();
-        globalCounters.clear();
-        localCounters.clear();
+        counters.clear();
 
         generatedProvenanceEvents.clear();
         forkEventBuilders.clear();
@@ -1164,8 +1161,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             return;
         }
 
-        adjustCounter(name, delta, localCounters);
-        adjustCounter(name, delta, globalCounters);
+        adjustCounter(name, delta, counters);
     }
 
     private void adjustCounter(final String name, final long delta, final Map<String, Long> map) {
@@ -1409,14 +1405,18 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
 
-        final String originalUuid = flowFile.getAttribute(CoreAttributes.UUID.key());
+        final Map<String, String> updatedAttributes;
+        if (attributes.containsKey(CoreAttributes.UUID.key())) {
+            updatedAttributes = new HashMap<>(attributes);
+            updatedAttributes.remove(CoreAttributes.UUID.key());
+        } else {
+            updatedAttributes = attributes;
+        }
 
-        final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).addAttributes(attributes);
-        // Ignore the uuid attribute, if passed in
-        ffBuilder.addAttribute(CoreAttributes.UUID.key(), originalUuid);
+        final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).addAttributes(updatedAttributes);
         final FlowFileRecord newFile = ffBuilder.build();
 
-        record.setWorking(newFile, attributes);
+        record.setWorking(newFile, updatedAttributes);
         return newFile;
     }
 
@@ -1442,19 +1442,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             return flowFile;
         }
 
-        final Set<String> keysToRemove;
-        if (keys.contains(CoreAttributes.UUID.key())) {
-            keysToRemove = new HashSet<>(keys);
-            keysToRemove.remove(CoreAttributes.UUID.key());
-        } else {
-            keysToRemove = keys;
-        }
-
         final StandardRepositoryRecord record = records.get(flowFile);
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).removeAttributes(keys).build();
 
         final Map<String, String> updatedAttrs = new HashMap<>();
         for (final String key : keys) {
+            if (CoreAttributes.UUID.key().equals(key)) {
+                continue;
+            }
+
             updatedAttrs.put(key, null);
         }
 
@@ -1759,7 +1755,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 return new DisableOnCloseInputStream(currentReadClaimStream);
             } else {
                 final InputStream rawInStream = context.getContentRepository().read(claim);
-                StreamUtils.skip(rawInStream, offset);
+                try {
+                    StreamUtils.skip(rawInStream, offset);
+                } catch(IOException ioe) {
+                    IOUtils.closeQuietly(rawInStream);
+                    throw ioe;
+                }
                 return rawInStream;
             }
         } catch (final ContentNotFoundException cnfe) {
@@ -2546,8 +2547,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
         private final Map<Connection, StandardFlowFileEvent> connectionCounts = new HashMap<>();
         private final Map<Connection, Set<FlowFileRecord>> unacknowledgedFlowFiles = new HashMap<>();
-        private final Map<String, Long> localCounters = new HashMap<>();
-        private final Map<String, Long> globalCounters = new HashMap<>();
+        private final Map<String, Long> counters = new HashMap<>();
 
         private final Set<Path> deleteOnCommit = new HashSet<>();
         private final Set<String> removedFlowFiles = new HashSet<>();
@@ -2573,8 +2573,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             this.records.putAll(session.records);
             this.connectionCounts.putAll(session.connectionCounts);
             this.unacknowledgedFlowFiles.putAll(session.unacknowledgedFlowFiles);
-            this.localCounters.putAll(session.localCounters);
-            this.globalCounters.putAll(session.globalCounters);
+            this.counters.putAll(session.counters);
 
             this.deleteOnCommit.addAll(session.deleteOnCommit);
             this.removedFlowFiles.addAll(session.removedFlowFiles);

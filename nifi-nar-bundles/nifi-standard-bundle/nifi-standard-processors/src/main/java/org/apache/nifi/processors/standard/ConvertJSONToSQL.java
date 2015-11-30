@@ -561,25 +561,27 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         public static TableSchema from(final Connection conn, final String catalog, final String tableName,
                 final boolean translateColumnNames, final boolean includePrimaryKeys) throws SQLException {
-            final ResultSet colrs = conn.getMetaData().getColumns(catalog, null, tableName, "%");
+            try (final ResultSet colrs = conn.getMetaData().getColumns(catalog, null, tableName, "%")) {
 
-            final List<ColumnDescription> cols = new ArrayList<>();
-            while (colrs.next()) {
-                final ColumnDescription col = ColumnDescription.from(colrs);
-                cols.add(col);
-            }
-
-            final Set<String> primaryKeyColumns = new HashSet<>();
-            if (includePrimaryKeys) {
-                final ResultSet pkrs = conn.getMetaData().getPrimaryKeys(catalog, null, tableName);
-
-                while (pkrs.next()) {
-                    final String colName = pkrs.getString("COLUMN_NAME");
-                    primaryKeyColumns.add(normalizeColumnName(colName, translateColumnNames));
+                final List<ColumnDescription> cols = new ArrayList<>();
+                while (colrs.next()) {
+                    final ColumnDescription col = ColumnDescription.from(colrs);
+                    cols.add(col);
                 }
-            }
 
-            return new TableSchema(cols, translateColumnNames, primaryKeyColumns);
+                final Set<String> primaryKeyColumns = new HashSet<>();
+                if (includePrimaryKeys) {
+                    try (final ResultSet pkrs = conn.getMetaData().getPrimaryKeys(catalog, null, tableName)) {
+
+                        while (pkrs.next()) {
+                            final String colName = pkrs.getString("COLUMN_NAME");
+                            primaryKeyColumns.add(normalizeColumnName(colName, translateColumnNames));
+                        }
+                    }
+                }
+
+                return new TableSchema(cols, translateColumnNames, primaryKeyColumns);
+            }
         }
     }
 

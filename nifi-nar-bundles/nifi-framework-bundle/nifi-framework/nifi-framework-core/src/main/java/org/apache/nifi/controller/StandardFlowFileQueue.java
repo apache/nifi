@@ -862,6 +862,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         if (originalSize.getObjectCount() == 0) {
             dropRequest.setDroppedSize(originalSize);
             dropRequest.setState(DropFlowFileState.COMPLETE);
+            dropRequestMap.put(requestIdentifier, dropRequest);
             return dropRequest;
         }
 

@@ -1010,8 +1010,10 @@ public class MockProcessSession implements ProcessSession {
     public MockFlowFile penalize(final FlowFile flowFile) {
         validateState(flowFile);
         final MockFlowFile mockFlowFile = (MockFlowFile) flowFile;
-        mockFlowFile.setPenalized();
-        return mockFlowFile;
+        final MockFlowFile newFlowFile = new MockFlowFile(mockFlowFile.getId(), flowFile);
+        currentVersions.put(newFlowFile.getId(), newFlowFile);
+        newFlowFile.setPenalized();
+        return newFlowFile;
     }
 
     public byte[] getContentAsByteArray(final MockFlowFile flowFile) {

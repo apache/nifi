@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.PatternSyntaxException;
 
 import org.apache.nifi.processors.attributes.UpdateAttribute;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
@@ -32,6 +33,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -499,5 +502,132 @@ public class TestUpdateAttribute {
         result.get(0).assertAttributeNotExists("sampleSize");
         result.get(0).assertAttributeNotExists("sample.1");
         result.get(0).assertAttributeExists("simple.1");
+    }
+
+    @Test
+    public void testAttributeKey() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "(attribute\\.[2-5]|sample.*)");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "value.1");
+        attributes.put("attribute.2", "value.2");
+        attributes.put("attribute.6", "value.6");
+        attributes.put("sampleSize", "value.size");
+        attributes.put("sample.1", "value.sample.1");
+        attributes.put("simple.1", "value.simple.1");
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("attribute.1", "value.1");
+        result.get(0).assertAttributeNotExists("attribute.2");
+        result.get(0).assertAttributeExists("attribute.6");
+        result.get(0).assertAttributeNotExists("sampleSize");
+        result.get(0).assertAttributeNotExists("sample.1");
+        result.get(0).assertAttributeExists("simple.1");
+    }
+
+    @Test
+    public void testExpressionLiteralDelete() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "${literal('attribute\\.'):append(${literal(6)})}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "value.1");
+        attributes.put("attribute.2", "value.2");
+        attributes.put("attribute.6", "value.6");
+        attributes.put("sampleSize", "value.size");
+        attributes.put("sample.1", "value.sample.1");
+        attributes.put("simple.1", "value.simple.1");
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("attribute.1", "value.1");
+        result.get(0).assertAttributeExists("attribute.2");
+        result.get(0).assertAttributeNotExists("attribute.6");
+        result.get(0).assertAttributeExists("sampleSize");
+        result.get(0).assertAttributeExists("sample.1");
+        result.get(0).assertAttributeExists("simple.1");
+    }
+
+    @Test
+    public void testExpressionRegexDelete() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "${literal('(attribute\\.'):append(${literal('[2-5]')}):append(${literal('|sample.*)')})}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "value.1");
+        attributes.put("attribute.2", "value.2");
+        attributes.put("attribute.6", "value.6");
+        attributes.put("sampleSize", "value.size");
+        attributes.put("sample.1", "value.sample.1");
+        attributes.put("simple.1", "value.simple.1");
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("attribute.1", "value.1");
+        result.get(0).assertAttributeNotExists("attribute.2");
+        result.get(0).assertAttributeExists("attribute.6");
+        result.get(0).assertAttributeNotExists("sampleSize");
+        result.get(0).assertAttributeNotExists("sample.1");
+        result.get(0).assertAttributeExists("simple.1");
+    }
+
+    @Test
+    public void testAttributeListDelete() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "attribute.1|attribute.2|sample.1|simple.1");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "value.1");
+        attributes.put("attribute.2", "value.2");
+        attributes.put("attribute.6", "value.6");
+        attributes.put("sampleSize", "value.size");
+        attributes.put("sample.1", "value.sample.1");
+        attributes.put("simple.1", "value.simple.1");
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(0).assertAttributeNotExists("attribute.1");
+        result.get(0).assertAttributeNotExists("attribute.2");
+        result.get(0).assertAttributeExists("attribute.6");
+        result.get(0).assertAttributeExists("sampleSize");
+        result.get(0).assertAttributeNotExists("sample.1");
+        result.get(0).assertAttributeNotExists("simple.1");
+    }
+
+    @Test
+    public void testInvalidRegex() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "(");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testInvalidRegexInAttribute() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("Delete Attributes Expression", "${butter}");
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("butter", "(");
+        runner.enqueue(new byte[0], attributes);
+        try {
+            runner.run();
+        } catch (Throwable t) {
+            assertEquals(t.getCause().getClass(), PatternSyntaxException.class);
+        }
     }
 }
