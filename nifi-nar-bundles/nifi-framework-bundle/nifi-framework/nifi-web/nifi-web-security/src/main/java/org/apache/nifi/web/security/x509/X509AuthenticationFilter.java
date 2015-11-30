@@ -19,7 +19,6 @@ package org.apache.nifi.web.security.x509;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
@@ -41,7 +40,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
     private X509IdentityProvider certificateIdentityProvider;
 
     @Override
-    public NiFiAuthenticationRequestToken attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
+    public NiFiAuthenticationRequestToken attemptAuthentication(final HttpServletRequest request) {
         // only suppport x509 login when running securely
         if (!request.isSecure()) {
             return null;

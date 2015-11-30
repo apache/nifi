@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 
@@ -41,7 +40,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
     private JwtService jwtService;
 
     @Override
-    public NiFiAuthenticationRequestToken attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
+    public NiFiAuthenticationRequestToken attemptAuthentication(final HttpServletRequest request) {
         // only suppport jwt login when running securely
         if (!request.isSecure()) {
             return null;

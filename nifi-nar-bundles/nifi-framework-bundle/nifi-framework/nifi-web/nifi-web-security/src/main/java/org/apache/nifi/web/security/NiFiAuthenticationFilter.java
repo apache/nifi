@@ -81,7 +81,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
     private void authenticate(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain) throws IOException, ServletException {
         try {
-            final NiFiAuthenticationRequestToken authenticated = attemptAuthentication(request, response);
+            final NiFiAuthenticationRequestToken authenticated = attemptAuthentication(request);
             if (authenticated != null) {
                 // log the request attempt - response details will be logged later
                 logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)",
@@ -108,7 +108,16 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         }
     }
 
-    public abstract NiFiAuthenticationRequestToken attemptAuthentication(HttpServletRequest request, HttpServletResponse response);
+    /**
+     * Attempt to authenticate the client making the request. If the request does not contain an authentication attempt, this method should return null. If the request contains an authentication
+     * request, the implementation should convert it to a NiFiAuthenticationRequestToken (which is used when authorizing the client). Implementations should throw InvalidAuthenticationException when
+     * the request contains an authentication request but it could not be authenticated.
+     *
+     * @param request The request
+     * @return The NiFiAuthenticationRequestToken used to later authorized the client
+     * @throws InvalidAuthenticationException If the request contained an authentication attempt, but could not authenticate
+     */
+    public abstract NiFiAuthenticationRequestToken attemptAuthentication(HttpServletRequest request);
 
     protected void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
         if (logger.isDebugEnabled()) {
