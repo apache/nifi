@@ -58,6 +58,7 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
@@ -84,8 +85,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 public class AccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
-
-    private static final String AUTHORIZATION = "Authorization";
 
     private NiFiProperties properties;
 
@@ -183,7 +182,7 @@ public class AccessResource extends ApplicationResource {
             // if there is not certificate, consider a token
             if (certificates == null) {
                 // look for an authorization token
-                final String authorization = httpServletRequest.getHeader(AUTHORIZATION);
+                final String authorization = httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION);
 
                 // if there is no authorization header, we don't know the user
                 if (authorization == null) {

@@ -36,7 +36,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    private static final String AUTHORIZATION = "Authorization";
+    public static final String AUTHORIZATION = "Authorization";
 
     private JwtService jwtService;
 

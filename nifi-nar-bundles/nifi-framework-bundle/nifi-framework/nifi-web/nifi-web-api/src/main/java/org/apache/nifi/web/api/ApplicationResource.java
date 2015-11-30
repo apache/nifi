@@ -54,6 +54,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -367,7 +368,11 @@ public abstract class ApplicationResource {
             // add the certificate DN to the proxy chain
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
             if (user != null) {
+                // add the proxied user details
                 result.put(PROXIED_ENTITIES_CHAIN_HTTP_HEADER, ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user));
+
+                // remove the access token if present, since the user is already authenticated/authorized
+                result.remove(JwtAuthenticationFilter.AUTHORIZATION);
             }
 
             // add the user's authorities (if any) to the headers
