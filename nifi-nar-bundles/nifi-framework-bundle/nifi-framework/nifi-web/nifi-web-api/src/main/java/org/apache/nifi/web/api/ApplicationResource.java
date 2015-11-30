@@ -370,9 +370,6 @@ public abstract class ApplicationResource {
             if (user != null) {
                 // add the proxied user details
                 result.put(PROXIED_ENTITIES_CHAIN_HTTP_HEADER, ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user));
-
-                // remove the access token if present, since the user is already authenticated/authorized
-                result.remove(JwtAuthenticationFilter.AUTHORIZATION);
             }
 
             // add the user's authorities (if any) to the headers
@@ -385,9 +382,11 @@ public abstract class ApplicationResource {
 
                     // put serialized user details in header
                     result.put(PROXIED_ENTITY_USER_DETAILS_HTTP_HEADER, hexEncodedUserDetails);
+
+                    // remove the access token if present, since the user is already authenticated/authorized
+                    result.remove(JwtAuthenticationFilter.AUTHORIZATION);
                 }
             }
-
         }
         return result;
     }
