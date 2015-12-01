@@ -45,15 +45,15 @@ import org.springframework.web.filter.GenericFilterBean;
  */
 public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
-    private static final Logger logger = LoggerFactory.getLogger(NiFiAuthenticationFilter.class);
+    private static final Logger log = LoggerFactory.getLogger(NiFiAuthenticationFilter.class);
 
     private AuthenticationManager authenticationManager;
     private NiFiProperties properties;
 
     @Override
     public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain) throws IOException, ServletException {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Checking secure context token: " + SecurityContextHolder.getContext().getAuthentication());
+        if (log.isDebugEnabled()) {
+            log.debug("Checking secure context token: " + SecurityContextHolder.getContext().getAuthentication());
         }
 
         if (requiresAuthentication((HttpServletRequest) request)) {
@@ -80,12 +80,14 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
     }
 
     private void authenticate(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain) throws IOException, ServletException {
+        String dnChain = null;
         try {
             final NiFiAuthenticationRequestToken authenticated = attemptAuthentication(request);
             if (authenticated != null) {
+                dnChain = ProxiedEntitiesUtils.formatProxyDn(StringUtils.join(authenticated.getChain(), "><"));
+
                 // log the request attempt - response details will be logged later
-                logger.info(String.format("Attempting request for (%s) %s %s (source ip: %s)",
-                        ProxiedEntitiesUtils.formatProxyDn(StringUtils.join(authenticated.getChain(), "><")), request.getMethod(),
+                log.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", dnChain, request.getMethod(),
                         request.getRequestURL().toString(), request.getRemoteAddr()));
 
                 // attempt to authorize the user
@@ -101,6 +103,12 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         } catch (final AuthenticationException ae) {
             // other authentication exceptions... if we are already the anonymous user, allow through otherwise error out
             if (isAnonymousUser()) {
+                if (dnChain == null) {
+                    log.info(String.format("Continuing as anonymous user. Unable to authenticate %s: %s", dnChain, ae));
+                } else {
+                    log.info(String.format("Continuing as anonymous user. Unable to authenticate: %s", ae));
+                }
+
                 chain.doFilter(request, response);
             } else {
                 unsuccessfulAuthorization(request, response, ae);
@@ -120,8 +128,8 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
     public abstract NiFiAuthenticationRequestToken attemptAuthentication(HttpServletRequest request);
 
     protected void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Authentication success: " + authResult);
+        if (log.isDebugEnabled()) {
+            log.debug("Authentication success: " + authResult);
         }
 
         SecurityContextHolder.getContext().setAuthentication(authResult);
@@ -157,21 +165,21 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             out.println(ae.getMessage());
         } else if (ae instanceof AuthenticationServiceException) {
-            logger.error(String.format("Unable to authorize: %s", ae.getMessage()), ae);
+            log.error(String.format("Unable to authorize: %s", ae.getMessage()), ae);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             out.println(String.format("Unable to authorize: %s", ae.getMessage()));
         } else {
-            logger.error(String.format("Unable to authorize: %s", ae.getMessage()), ae);
+            log.error(String.format("Unable to authorize: %s", ae.getMessage()), ae);
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             out.println("Access is denied.");
         }
 
         // log the failure
-        logger.info(String.format("Rejecting access to web api: %s", ae.getMessage()));
+        log.info(String.format("Rejecting access to web api: %s", ae.getMessage()));
 
         // optionally log the stack trace
-        if (logger.isDebugEnabled()) {
-            logger.debug(StringUtils.EMPTY, ae);
+        if (log.isDebugEnabled()) {
+            log.debug(StringUtils.EMPTY, ae);
         }
     }
 
