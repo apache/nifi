@@ -1124,7 +1124,7 @@ language governing permissions and limitations under the License. -->
                     <version>2.18</version>
                     <configuration>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine>-Xmx1G</argLine>
+                        <argLine combine.children="append">-Xmx1G -Djava.net.preferIPv4Stack=true</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
