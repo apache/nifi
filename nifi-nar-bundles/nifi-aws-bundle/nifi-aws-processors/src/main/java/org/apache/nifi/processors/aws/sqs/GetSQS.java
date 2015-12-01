@@ -105,9 +105,10 @@ public class GetSQS extends AbstractSQSProcessor {
 
     public static final PropertyDescriptor RECEIVE_MSG_WAIT_TIME = new PropertyDescriptor.Builder()
             .name("Receive Message Wait Time")
-            .description("The maximum amount of time to wait on a long polling receive call. Setting this to a value of 1 second or greater will reduce the number of SQS requests and decrease fetch latency at the cost of a constantly active thread.")
+            .description("The maximum amount of time to wait on a long polling receive call. Setting this to a value of 1 second or greater will "
+                + "reduce the number of SQS requests and decrease fetch latency at the cost of a constantly active thread.")
             .expressionLanguageSupported(false)
-            .required(false)
+            .required(true)
             .defaultValue("0 sec")
             .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.SECONDS, 20, TimeUnit.SECONDS))  // 20 seconds is the maximum allowed by SQS
             .build();
