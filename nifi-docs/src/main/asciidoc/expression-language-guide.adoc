@@ -1331,7 +1331,7 @@ chaining together the two functions: `${date:toDate('MM-dd-yyyy'):format('yyyy/M
 *Description*: [.description]#The `now` function returns the current date and time as the number of milliseconds since Midnight GMT on
 	January 1, 1970.#
 
-*Subject Type*: [.subject]#No Subject#
+*Subject Type*: [.subjectless]#No Subject#
 
 *Arguments*: No arguments
 
