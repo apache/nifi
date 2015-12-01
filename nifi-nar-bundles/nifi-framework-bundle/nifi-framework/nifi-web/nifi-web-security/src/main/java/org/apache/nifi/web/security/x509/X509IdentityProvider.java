@@ -79,7 +79,7 @@ public class X509IdentityProvider {
         }
 
         // build the authentication response
-        return new AuthenticationResponse(principal, principal, TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS), issuer);
+        return new AuthenticationResponse(principal, principal, TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS), issuer);
     }
 
     /* setters */
