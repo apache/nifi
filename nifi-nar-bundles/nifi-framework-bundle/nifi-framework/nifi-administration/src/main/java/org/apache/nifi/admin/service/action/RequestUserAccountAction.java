@@ -30,11 +30,11 @@ import org.apache.nifi.user.NiFiUser;
  */
 public class RequestUserAccountAction implements AdministrationAction<NiFiUser> {
 
-    private final String dn;
+    private final String identity;
     private final String justification;
 
-    public RequestUserAccountAction(String dn, String justification) {
-        this.dn = dn;
+    public RequestUserAccountAction(String identity, String justification) {
+        this.identity = identity;
         this.justification = justification;
     }
 
@@ -43,15 +43,15 @@ public class RequestUserAccountAction implements AdministrationAction<NiFiUser> 
         UserDAO userDao = daoFactory.getUserDAO();
 
         // determine if this user already exists
-        NiFiUser user = userDao.findUserByDn(dn);
+        NiFiUser user = userDao.findUserByDn(identity);
         if (user != null) {
-            throw new IllegalArgumentException(String.format("User account for %s already exists.", dn));
+            throw new IllegalArgumentException(String.format("User account for %s already exists.", identity));
         }
 
         // create the user
         user = new NiFiUser();
-        user.setDn(dn);
-        user.setUserName(CertificateUtils.extractUsername(dn));
+        user.setIdentity(identity);
+        user.setUserName(CertificateUtils.extractUsername(identity));
         user.setJustification(justification);
         user.setStatus(AccountStatus.PENDING);
 

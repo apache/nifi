@@ -42,7 +42,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
 import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.ValidationStatus;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.VerificationStatus;
@@ -158,8 +157,7 @@ public class OcspCertificateValidator {
     }
 
     /**
-     * Loads the trusted certificate authorities according to the specified
-     * properties.
+     * Loads the trusted certificate authorities according to the specified properties.
      *
      * @param properties properties
      * @return map of certificate authorities
@@ -208,12 +206,10 @@ public class OcspCertificateValidator {
     /**
      * Validates the specified certificate using OCSP if configured.
      *
-     * @param request http request
+     * @param certificates the client certificates
      * @throws CertificateStatusException ex
      */
-    public void validate(final HttpServletRequest request) throws CertificateStatusException {
-        final X509Certificate[] certificates = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-
+    public void validate(final X509Certificate[] certificates) throws CertificateStatusException {
         // only validate if configured to do so
         if (client != null && certificates != null && certificates.length > 0) {
             final X509Certificate subjectCertificate = getSubjectCertificate(certificates);
@@ -395,13 +391,9 @@ public class OcspCertificateValidator {
     }
 
     /**
-     * Gets the trusted responder certificate. The response contains the
-     * responder certificate, however we cannot blindly trust it. Instead, we
-     * use a configured trusted CA. If the responder certificate is a trusted
-     * CA, then we can use it. If the responder certificate is not directly
-     * trusted, we still may be able to trust it if it was issued by the same CA
-     * that issued the subject certificate. Other various checks may be required
-     * (this portion is currently not implemented).
+     * Gets the trusted responder certificate. The response contains the responder certificate, however we cannot blindly trust it. Instead, we use a configured trusted CA. If the responder
+     * certificate is a trusted CA, then we can use it. If the responder certificate is not directly trusted, we still may be able to trust it if it was issued by the same CA that issued the subject
+     * certificate. Other various checks may be required (this portion is currently not implemented).
      *
      * @param responderCertificate cert
      * @param issuerCertificate cert

@@ -157,6 +157,32 @@ are in the cluster and how many are currently connected.
 image::status-bar.png["NiFi Status Bar"]
 
 
+[[logging-in]]
+Logging In
+---------
+
+If NiFi is configured to run securely, users will be able to request access to the DataFlow. For information on configuring NiFi to run 
+securely, see the link:administration-guide.html[Admin Guide]. If NiFi supports anonymous access, users will be given access 
+accordingly and given an option to log in.
+
+image::anonymous-access.png["Anonymous Access"]
+
+Clicking the 'login' link will open the log in page. If the user is logging in with their username/password they will be presented with
+a form to do so. If NiFi is not configured to support anonymous access and the user is logging in with their username/password, they will 
+be immediately sent to the login form bypassing the canvas.
+
+image::login.png["Log In"]
+
+Once the user has logged in or if they are accessing NiFi using a client certificate loaded in their browser, they will be prompted
+to request access by submitting a justification if this is the first time they have accessed this NiFi. Fill in an optional justification 
+that the administrator will review while granting the account access. If NiFi is not configured to support anonymous access and the 
+user is using a client certificate, they will be immediately sent to the form to request access bypassing the canvas and login form.
+
+image::request-access.png["Request Access"]
+
+Press Submit to send the account request. If NiFi supports anonymous access, the user can continue accessing the DataFlow by closing the
+login page. Returning to the login page will check the status of the account request. If access has been granted, press the home link or
+reload the page to assume the new roles.
 
 
 [[building-dataflow]]

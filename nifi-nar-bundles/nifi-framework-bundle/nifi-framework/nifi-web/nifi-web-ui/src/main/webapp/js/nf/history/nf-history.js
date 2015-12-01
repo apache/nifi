@@ -124,6 +124,8 @@ nf.History = (function () {
          * Initializes the status page.
          */
         init: function () {
+            nf.Storage.init();
+            
             // load the users authorities
             loadAuthorities().done(function () {
                 // create the history table

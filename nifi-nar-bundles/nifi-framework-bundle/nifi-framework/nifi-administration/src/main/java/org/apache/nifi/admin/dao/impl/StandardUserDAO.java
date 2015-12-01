@@ -45,9 +45,9 @@ public class StandardUserDAO implements UserDAO {
             + "FROM USER U "
             + "WHERE U.STATUS = 'PENDING'";
 
-    private static final String SELECT_USER_BY_DN = "SELECT "
+    private static final String SELECT_USER_BY_USER = "SELECT "
             + "U.ID, "
-            + "U.DN, "
+            + "U.IDENTITY, "
             + "U.USER_NAME, "
             + "U.USER_GROUP, "
             + "U.CREATION, "
@@ -59,11 +59,11 @@ public class StandardUserDAO implements UserDAO {
             + "FROM USER U "
             + "LEFT JOIN AUTHORITY A " // ensures that users without authorities are still matched
             + "ON U.ID = A.USER_ID "
-            + "WHERE U.DN = ?";
+            + "WHERE U.IDENTITY = ?";
 
     private static final String SELECT_USER_BY_ID = "SELECT "
             + "U.ID, "
-            + "U.DN, "
+            + "U.IDENTITY, "
             + "U.USER_NAME, "
             + "U.USER_GROUP, "
             + "U.CREATION, "
@@ -79,7 +79,7 @@ public class StandardUserDAO implements UserDAO {
 
     private static final String SELECT_USERS = "SELECT "
             + "U.ID, "
-            + "U.DN, "
+            + "U.IDENTITY, "
             + "U.USER_NAME, "
             + "U.USER_GROUP, "
             + "U.CREATION, "
@@ -91,7 +91,7 @@ public class StandardUserDAO implements UserDAO {
             + "FROM USER U "
             + "LEFT JOIN AUTHORITY A " // ensures that users without authorities are still matched
             + "ON U.ID = A.USER_ID "
-            + "WHERE U.DN <> ?";
+            + "WHERE U.IDENTITY <> ?";
 
     private static final String SELECT_USER_GROUPS = "SELECT DISTINCT "
             + "U.USER_GROUP "
@@ -99,7 +99,7 @@ public class StandardUserDAO implements UserDAO {
 
     private static final String SELECT_USER_GROUP = "SELECT "
             + "U.ID, "
-            + "U.DN, "
+            + "U.IDENTITY, "
             + "U.USER_NAME, "
             + "U.USER_GROUP, "
             + "U.CREATION, "
@@ -111,10 +111,10 @@ public class StandardUserDAO implements UserDAO {
             + "FROM USER U "
             + "LEFT JOIN AUTHORITY A " // ensures that users without authorities are still matched
             + "ON U.ID = A.USER_ID "
-            + "WHERE U.DN <> ? AND U.USER_GROUP = ?";
+            + "WHERE U.IDENTITY <> ? AND U.USER_GROUP = ?";
 
     private static final String INSERT_USER = "INSERT INTO USER ("
-            + "ID, DN, USER_NAME, USER_GROUP, CREATION, LAST_VERIFIED, JUSTIFICATION, STATUS"
+            + "ID, IDENTITY, USER_NAME, USER_GROUP, CREATION, LAST_VERIFIED, JUSTIFICATION, STATUS"
             + ") VALUES ("
             + "?, "
             + "?, "
@@ -127,7 +127,7 @@ public class StandardUserDAO implements UserDAO {
             + ")";
 
     private static final String UPDATE_USER = "UPDATE USER SET "
-            + "DN = ?, "
+            + "IDENTITY = ?, "
             + "USER_NAME = ?, "
             + "USER_GROUP = ?, "
             + "LAST_ACCESSED = ?, "
@@ -194,7 +194,7 @@ public class StandardUserDAO implements UserDAO {
         try {
             // create the connection and obtain a statement
             statement = connection.prepareStatement(SELECT_USERS);
-            statement.setString(1, NiFiUser.ANONYMOUS_USER_DN);
+            statement.setString(1, NiFiUser.ANONYMOUS_USER_IDENTITY);
 
             // execute the query
             rs = statement.executeQuery();
@@ -211,7 +211,7 @@ public class StandardUserDAO implements UserDAO {
                 if (user == null || !userId.equals(user.getId())) {
                     user = new NiFiUser();
                     user.setId(userId);
-                    user.setDn(rs.getString("DN"));
+                    user.setIdentity(rs.getString("IDENTITY"));
                     user.setUserName(rs.getString("USER_NAME"));
                     user.setUserGroup(rs.getString("USER_GROUP"));
                     user.setJustification(rs.getString("JUSTIFICATION"));
@@ -287,7 +287,7 @@ public class StandardUserDAO implements UserDAO {
         try {
             // create the connection and obtain a statement
             statement = connection.prepareStatement(SELECT_USER_GROUP);
-            statement.setString(1, NiFiUser.ANONYMOUS_USER_DN);
+            statement.setString(1, NiFiUser.ANONYMOUS_USER_IDENTITY);
             statement.setString(2, group);
 
             // execute the query
@@ -305,7 +305,7 @@ public class StandardUserDAO implements UserDAO {
                 if (user == null || !userId.equals(user.getId())) {
                     user = new NiFiUser();
                     user.setId(userId);
-                    user.setDn(rs.getString("DN"));
+                    user.setIdentity(rs.getString("IDENTITY"));
                     user.setUserName(rs.getString("USER_NAME"));
                     user.setUserGroup(rs.getString("USER_GROUP"));
                     user.setJustification(rs.getString("JUSTIFICATION"));
@@ -366,7 +366,7 @@ public class StandardUserDAO implements UserDAO {
                 if (user == null) {
                     user = new NiFiUser();
                     user.setId(rs.getString("ID"));
-                    user.setDn(rs.getString("DN"));
+                    user.setIdentity(rs.getString("IDENTITY"));
                     user.setUserName(rs.getString("USER_NAME"));
                     user.setUserGroup(rs.getString("USER_GROUP"));
                     user.setJustification(rs.getString("JUSTIFICATION"));
@@ -409,7 +409,7 @@ public class StandardUserDAO implements UserDAO {
         ResultSet rs = null;
         try {
             // create the connection and obtain a statement
-            statement = connection.prepareStatement(SELECT_USER_BY_DN);
+            statement = connection.prepareStatement(SELECT_USER_BY_USER);
             statement.setString(1, dn);
 
             // execute the query
@@ -424,7 +424,7 @@ public class StandardUserDAO implements UserDAO {
                 if (user == null) {
                     user = new NiFiUser();
                     user.setId(rs.getString("ID"));
-                    user.setDn(rs.getString("DN"));
+                    user.setIdentity(rs.getString("IDENTITY"));
                     user.setUserName(rs.getString("USER_NAME"));
                     user.setUserGroup(rs.getString("USER_GROUP"));
                     user.setJustification(rs.getString("JUSTIFICATION"));
@@ -463,20 +463,25 @@ public class StandardUserDAO implements UserDAO {
 
     @Override
     public NiFiUser createUser(NiFiUser user) throws DataAccessException {
-        if (user.getDn() == null) {
-            throw new IllegalArgumentException("User dn must be specified.");
+        if (user.getIdentity() == null) {
+            throw new IllegalArgumentException("User identity must be specified.");
+        }
+
+        // ensure the user identity is not too lengthy
+        if (user.getIdentity().length() > 4096) {
+            throw new IllegalArgumentException("User identity must be less than 4096 characters.");
         }
 
         PreparedStatement statement = null;
         ResultSet rs = null;
         try {
-            final String id = UUID.nameUUIDFromBytes(user.getDn().getBytes(StandardCharsets.UTF_8)).toString();
+            final String id = UUID.nameUUIDFromBytes(user.getIdentity().getBytes(StandardCharsets.UTF_8)).toString();
 
             // create a statement
             statement = connection.prepareStatement(INSERT_USER, Statement.RETURN_GENERATED_KEYS);
             statement.setString(1, id);
-            statement.setString(2, StringUtils.left(user.getDn(), 255));
-            statement.setString(3, StringUtils.left(user.getUserName(), 100));
+            statement.setString(2, StringUtils.left(user.getIdentity(), 4096));
+            statement.setString(3, StringUtils.left(user.getUserName(), 4096));
             statement.setString(4, StringUtils.left(user.getUserGroup(), 100));
             if (user.getLastVerified() != null) {
                 statement.setTimestamp(5, new java.sql.Timestamp(user.getLastVerified().getTime()));
@@ -531,8 +536,8 @@ public class StandardUserDAO implements UserDAO {
         try {
             // create a statement
             statement = connection.prepareStatement(UPDATE_USER);
-            statement.setString(1, StringUtils.left(user.getDn(), 255));
-            statement.setString(2, StringUtils.left(user.getUserName(), 100));
+            statement.setString(1, StringUtils.left(user.getIdentity(), 4096));
+            statement.setString(2, StringUtils.left(user.getUserName(), 4096));
             statement.setString(3, StringUtils.left(user.getUserGroup(), 100));
             statement.setString(6, StringUtils.left(user.getJustification(), 500));
             statement.setString(7, user.getStatus().toString());

@@ -26,9 +26,11 @@ import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.user.AccountStatus;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.admin.dao.KeyDAO;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -40,11 +42,12 @@ public class DisableUserActionTest {
     private static final String USER_ID_3 = "3";
     private static final String USER_ID_4 = "4";
 
-    private static final String USER_DN_3 = "authority access exception";
-    private static final String USER_DN_4 = "general disable user case";
+    private static final String USER_IDENTITY_3 = "authority access exception";
+    private static final String USER_IDENTITY_4 = "general disable user case";
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
+    private KeyDAO keyDao;
     private AuthorityProvider authorityProvider;
 
     @Before
@@ -66,11 +69,11 @@ public class DisableUserActionTest {
                 } else if (USER_ID_3.equals(id)) {
                     user = new NiFiUser();
                     user.setId(id);
-                    user.setDn(USER_DN_3);
+                    user.setIdentity(USER_IDENTITY_3);
                 } else if (USER_ID_4.equals(id)) {
                     user = new NiFiUser();
                     user.setId(id);
-                    user.setDn(USER_DN_4);
+                    user.setIdentity(USER_IDENTITY_4);
                     user.setStatus(AccountStatus.ACTIVE);
                 }
                 return user;
@@ -92,8 +95,13 @@ public class DisableUserActionTest {
         }).when(userDao).updateUser(Mockito.any(NiFiUser.class));
 
         // mock the dao factory
+        keyDao = Mockito.mock(KeyDAO.class);
+        Mockito.doNothing().when(keyDao).deleteKeys(Matchers.anyString());
+
+        // mock the dao factory
         daoFactory = Mockito.mock(DAOFactory.class);
         Mockito.when(daoFactory.getUserDAO()).thenReturn(userDao);
+        Mockito.when(daoFactory.getKeyDAO()).thenReturn(keyDao);
 
         // mock the authority provider
         authorityProvider = Mockito.mock(AuthorityProvider.class);
@@ -103,7 +111,7 @@ public class DisableUserActionTest {
                 Object[] args = invocation.getArguments();
                 String dn = (String) args[0];
 
-                if (USER_DN_3.equals(dn)) {
+                if (USER_IDENTITY_3.equals(dn)) {
                     throw new AuthorityAccessException(StringUtils.EMPTY);
                 }
 
@@ -158,11 +166,11 @@ public class DisableUserActionTest {
 
         // verify the user
         Assert.assertEquals(USER_ID_4, user.getId());
-        Assert.assertEquals(USER_DN_4, user.getDn());
+        Assert.assertEquals(USER_IDENTITY_4, user.getIdentity());
         Assert.assertEquals(AccountStatus.DISABLED, user.getStatus());
 
         // verify the interaction with the dao and provider
         Mockito.verify(userDao, Mockito.times(1)).updateUser(user);
-        Mockito.verify(authorityProvider, Mockito.times(1)).revokeUser(USER_DN_4);
+        Mockito.verify(authorityProvider, Mockito.times(1)).revokeUser(USER_IDENTITY_4);
     }
 }

@@ -36,7 +36,7 @@
     <bean id="auditDataSource" class="org.apache.nifi.admin.AuditDataSourceFactoryBean" destroy-method="shutdown" depends-on="userDataSource">
         <property name="properties" ref="nifiProperties"/>
     </bean>
-
+    
     <!-- initialize the user transaction builder -->
     <bean id="userTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
         <property name="authorityProvider" ref="authorityProvider"/>
@@ -48,7 +48,7 @@
         <property name="authorityProvider" ref="authorityProvider"/>
         <property name="dataSource" ref="auditDataSource"/>
     </bean>
-
+    
     <!-- administration service -->
     <bean id="userService" class="org.apache.nifi.admin.service.impl.StandardUserService" init-method="seedUserAccounts">
         <property name="transactionBuilder" ref="userTransactionBuilder"/>

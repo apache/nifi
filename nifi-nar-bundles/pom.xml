@@ -48,6 +48,7 @@
         <module>nifi-avro-bundle</module>
         <module>nifi-couchbase-bundle</module>
         <module>nifi-azure-bundle</module>
+        <module>nifi-ldap-iaa-providers-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>

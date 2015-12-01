@@ -77,6 +77,29 @@ div.context-menu-provenance {
     background-position: top left;
 }
 
+#user-links-container {
+    position: absolute;
+    left: 550px;
+    top: 100px;
+    z-index: 1300;
+}
+
+ul.links li {
+    float: left;
+    display: block;
+    margin-left: 10px;
+    padding: 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: normal;
+    text-decoration: none;
+}
+
+ul.links span.header-link-over {
+    color: #264c58;
+    text-decoration: underline;
+}
+
 /*
     General Styles
 */
@@ -153,7 +176,7 @@ input.filter-list {
     background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top right;
 }
 
-input[type=text], textarea {
+input[type=text], input[type=password], textarea {
     background: white url(../images/bgInputText.png) repeat-x scroll top;
     border: 1px solid #ccc;
     font-family: Verdana;

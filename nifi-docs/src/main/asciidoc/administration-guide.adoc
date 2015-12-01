@@ -146,10 +146,13 @@ NiFi provides several different configuration options for security purposes. The
                             attempt to connect will be provided access as the 'Anonymous' user.
 |`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.
 |`nifi.security.truststorePasswd` | The password for the Truststore.
-|`nifi.security.needClientAuth` | Specifies whether or not connecting clients must authenticate themselves. If the Truststore properties are not set, 
-                                this must be `false`. Otherwise, a value of `true` indicates that users will be authenticated and must have 
-                                certificates that are trusted by the Truststore loaded into their web browsers. A value of `false` indicates
-                                that all users should be given access as the 'Anonymous' user.  
+|`nifi.security.needClientAuth` | Specifies whether or not connecting clients must authenticate themselves. Specifically this property is used
+                                by the NiFi cluster protocol. If the Truststore properties are not set, this must be `false`. Otherwise, a value
+                                of `true` indicates that nodes in the cluster will be authenticated and must have certificates that are trusted 
+                                by the Truststores.
+|`nifi.security.anonymous.authorities` | Specifies the roles that should be granted to users that connect over HTTPS anonymously. All users can make 
+                                use of anonymous access, however if they have been granted a particular level of access by an administrator
+                                it will take precedence if they access NiFi using a client certificate or once they have logged in. 
 |==================================================================================================================================================
 
 Once the above properties have been configured, we can enable the User Interface to be accessed over HTTPS instead of HTTP. This is accomplished
@@ -159,14 +162,99 @@ be accessible from all network interfaces, a value of `0.0.0.0` should be used.
 
 NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
 
+Similar to `nifi.security.needClientAuth`, the web server can be configured to require certificate based client authentication for users accessing
+the User Interface. In order to do this it must be configured to not support username/password authentication (see below) and not grant access to 
+anonymous users (see `nifi.security.anonymous.authorities` above). Either of these options will configure the web server to WANT certificate based client 
+authentication. This will allow it to support users with certificates and those without that may be logging in with their credentials or those accessing 
+anonymously. If username/password authentication and anonymous access are not configured, the web server will REQUIRE certificate based client authentication.
+
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
+
+
+User Authentication
+-------------------
+
+NiFi supports user authentication via client certificates or via username/password. Username/password authentication is performed by a 'Login Identity
+Provider'. The Login Identity Provider is a pluggable mechanism for authenticating users via their username/password. Which Login Identity Provider
+to use is configured in two properties in the _nifi.properties_ file.
+
+The `nifi.login.identity.provider.configuration.file` property specifies the configuration file for Login Identity Providers. 
+The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
+used. If this property is not configured, NiFi will not support username/password authentication and will require client 
+certificates for authenticating users over HTTPS. By default, this property is not configured meaning that username/password must be
+explicity enabled.
+
+NiFi does not perform user authentication over HTTP. Using HTTP all users will be granted all roles.
+
+Below is an example and description of configuring a Login Identity Provider that integrates with a Directory Server to authenticate users.
+
+----
+<provider>
+    <identifier>ldap-provider</identifier>
+    <class>org.apache.nifi.ldap.LdapProvider</class>
+    <property name="Authentication Strategy">START_TLS</property>
+
+    <property name="Manager DN"></property>
+    <property name="Manager Password"></property>
+
+    <property name="TLS - Keystore"></property>
+    <property name="TLS - Keystore Password"></property>
+    <property name="TLS - Keystore Type"></property>
+    <property name="TLS - Truststore"></property>
+    <property name="TLS - Truststore Password"></property>
+    <property name="TLS - Truststore Type"></property>
+    <property name="TLS - Client Auth"></property>
+    <property name="TLS - Protocol"></property>
+    <property name="TLS - Shutdown Gracefully"></property>
+
+    <property name="Referral Strategy">FOLLOW</property>
+    <property name="Connect Timeout">10 secs</property>
+    <property name="Read Timeout">10 secs</property>
+
+    <property name="Url"></property>
+    <property name="User Search Base"></property>
+    <property name="User Search Filter"></property>
+
+    <property name="Authentication Expiration">12 hours</property>
+</provider>
+----
+
+With this configuration, username/password authentication can be enabled by referencing this provider in _nifi.properties_.
+
+----
+nifi.security.user.login.identity.provider=ldap-provider
+----
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`Authentication Strategy` | How the connection to the LDAP server is authenticated. Possible values are ANONYMOUS, SIMPLE, or START_TLS.
+|`Manager DN` | The DN of the manager that is used to bind to the LDAP server to search for users.
+|`Manager Password` | The password of the manager that is used to bind to the LDAP server to search for users.
+|`TLS - Keystore` | Path to the Keystore that is used when connecting to LDAP using START_TLS.
+|`TLS - Keystore Password` | Password for the Keystore that is used when connecting to LDAP using START_TLS.
+|`TLS - Keystore Type` | Type of the Keystore that is used when connecting to LDAP using START_TLS (i.e. JKS or PKCS12).
+|`TLS - Truststore` | Path to the Truststore that is used when connecting to LDAP using START_TLS.
+|`TLS - Truststore Password` | Password for the Truststore that is used when connecting to LDAP using START_TLS.
+|`TLS - Truststore Type` | Type of the Truststore that is used when connecting to LDAP using START_TLS (i.e. JKS or PKCS12).
+|`TLS - Client Auth` | Client authentication policy when connecting to LDAP using START_TLS. Possible values are REQUIRED, WANT, NONE.
+|`TLS - Protocol` | Protocol to use when connecting to LDAP using START_TLS. (i.e. TLS, TLSv1.1, TLSv1.2, etc).
+|`TLS - Shutdown Gracefully` | Specifies whether the TLS should be shut down gracefully before the target context is closed. Defaults to false.
+|`Referral Strategy` | Strategy for handling referrals. Possible values are FOLLOW, IGNORE, THROW.
+|`Connect Timeout` | Duration of connect timeout. (i.e. 10 secs).
+|`Read Timeout` | Duration of read timeout. (i.e. 10 secs).
+|`Url` | Url of the LDAP servier (i.e. ldap://<hostname>:<port>).
+|`User Search Base` | Base DN for searching for users (i.e. CN=Users,DC=example,DC=com).
+|`User Search Filter` | Filter for searching for users against the 'User Search Base'. (i.e. sAMAccountName={0}). The user specified name is inserted into '{0}'.
+|`Authentication Expiration` | The duration of how long the user authentication is valid for. If the user never logs out, they will be required to log back in following this duration.
+|==================================================================================================================================================
 
 
 Controlling Levels of Access
 ----------------------------
 
-Once NiFi is configured to run securely as discussed in the previous section, it is necessary
+Once NiFi is configured to run securely and an authentication mechanism is configured, it is necessary
 to configure who will have access to the system and what types of access those people will have.
 NiFi controls this through the user of an 'Authority Provider.' The Authority Provider is a pluggable
 mechanism for providing authorizations to different users. Which Authority Provider to use is configured
@@ -510,7 +598,9 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 |nifi.flowservice.writedelay.interval|When many changes are made to the flow.xml, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is 500 ms.
 |nifi.administrative.yield.duration|If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is 30 sec.
 |nifi.bored.yield.duration|When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is 10 millis.
-|nifi.authority.provider.configuration.file*|This is the location of the file that specifies how user access is authenticated. The default value is ./conf/authority-providers.xml.
+|nifi.authority.provider.configuration.file*|This is the location of the file that specifies how user access is authorized. The default value is ./conf/authority-providers.xml.
+|nifi.login.identity.provider.configuration.file*|This is the location of the file that specifies how username/password authentication is performed. This file is 
+only consider if `nifi.security.user.login.identity.provider` configured with a provider identifier. The default value is ./conf/login-identity-providers.xml.
 |nifi.templates.directory*|This is the location of the directory where flow templates are saved. The default value is ./conf/templates.l
 |nifi.ui.banner.text|This is banner text that may be configured to display at the top of the User Interface. It is blank by default.
 |nifi.ui.autorefresh.interval|The interval at which the User Interface auto-refreshes. The default value is 30 sec.
@@ -698,11 +788,16 @@ Security Configuration section of this Administrator's Guide.
 |nifi.security.truststore*|The full path and name of the truststore. It is blank by default.
 |nifi.security.truststoreType|The truststore type. It is blank by default.
 |nifi.security.truststorePasswd|The truststore password. It is blank by default.
-|nifi.security.needClientAuth|This indicates whether client authentication is required. It is blank by default.
+|nifi.security.needClientAuth|This indicates whether client authentication in the cluster protocol. It is blank by default.
 |nifi.security.user.credential.cache.duration|The length of time to cache user credentials. The default value is 24 hours.
 |nifi.security.user.authority.provider|This indicates what type of authority provider to use. The default value is file-provider, which refers to the file
-configured in the core property nifi.authority.provider.configuration.file. Another authority provider may be used, such as when the NiFi instance is part of a cluster. But the default value of file-provider is fine for a standalone instance of NiFi.
+configured in the core property `nifi.authority.provider.configuration.file`. Another authority provider may be used, such as when the NiFi instance is part of a cluster. But the default value of file-provider is fine for a standalone instance of NiFi.
+|nifi.security.user.login.identity.provider|This indicates what type of login identity provider to use. The default value is blank, can be set to the identifier from a provider
+in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication.
 |nifi.security.support.new.account.requests|This indicates whether a secure NiFi is configured to allow users to request access. It is blank by default.
+|nifi.security.anonymous.authorities|This indicates what roles to grant to anonymous users accessing NiFi over HTTPS. It is blank by default, but could be
+set to any combination of ROLE_MONITOR, ROLE_DFM, ROLE_ADMIN, ROLE_PROVENANCE, ROLE_NIFI. Leaving this property blank will require that users accessing NiFi
+over HTTPS be authenticated either using a client certificate or their credentials against the configured log identity provider.
 |nifi.security.ocsp.responder.url|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
 |nifi.security.ocsp.responder.certificate|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
 |====

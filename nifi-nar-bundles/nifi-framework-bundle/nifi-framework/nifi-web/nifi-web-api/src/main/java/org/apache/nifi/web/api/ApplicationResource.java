@@ -23,7 +23,6 @@ import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -45,9 +44,7 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.web.security.DnUtils;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
-import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -55,6 +52,7 @@ import org.apache.nifi.web.util.WebUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -362,15 +360,7 @@ public abstract class ApplicationResource {
             result.put(PROXY_SCHEME_HTTP_HEADER, httpServletRequest.getScheme());
         }
 
-        // if this is a secure request, add the custom headers for proxying user requests
-        final X509Certificate cert = new X509CertificateExtractor().extractClientCertificate(httpServletRequest);
-        if (cert != null) {
-
-            // add the certificate DN to the proxy chain
-            final String xProxiedEntitiesChain = DnUtils.getXProxiedEntitiesChain(httpServletRequest);
-            if (StringUtils.isNotBlank(xProxiedEntitiesChain)) {
-                result.put(PROXIED_ENTITIES_CHAIN_HTTP_HEADER, xProxiedEntitiesChain);
-            }
+        if (httpServletRequest.isSecure()) {
 
             // add the user's authorities (if any) to the headers
             final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -382,9 +372,11 @@ public abstract class ApplicationResource {
 
                     // put serialized user details in header
                     result.put(PROXIED_ENTITY_USER_DETAILS_HTTP_HEADER, hexEncodedUserDetails);
+
+                    // remove the access token if present, since the user is already authenticated/authorized
+                    result.remove(JwtAuthenticationFilter.AUTHORIZATION);
                 }
             }
-
         }
         return result;
     }

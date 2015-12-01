@@ -241,12 +241,21 @@
     <bean id="systemDiagnosticsResource" class="org.apache.nifi.web.api.SystemDiagnosticsResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
     </bean>
+    <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
+        <property name="properties" ref="nifiProperties"/>
+        <property name="certificateExtractor" ref="certificateExtractor"/>
+        <property name="certificateIdentityProvider" ref="certificateIdentityProvider"/>
+        <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
+        <property name="jwtService" ref="jwtService"/>
+        <property name="userDetailsService" ref="userDetailsService"/>
+    </bean>
 
     <!-- configuration for jaxb serialization -->
     <bean class="org.apache.nifi.web.util.ObjectMapperResolver" scope="singleton"/>
 
     <!-- exception mapping -->
     <bean class="org.apache.nifi.web.api.config.AccessDeniedExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.InvalidAuthenticationExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.AccountNotFoundExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.AdministrationExceptionMapper" scope="singleton"/>

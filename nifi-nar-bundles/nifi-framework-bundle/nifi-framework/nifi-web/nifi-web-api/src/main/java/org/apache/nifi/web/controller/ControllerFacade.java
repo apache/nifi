@@ -113,6 +113,7 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -822,17 +823,7 @@ public class ControllerFacade {
             final Map<String, String> attributes = event.getAttributes();
 
             // calculate the dn chain
-            final List<String> dnChain = new ArrayList<>();
-
-            // build the dn chain
-            NiFiUser chainedUser = user;
-            do {
-                // add the entry for this user
-                dnChain.add(chainedUser.getDn());
-
-                // go to the next user in the chain
-                chainedUser = chainedUser.getChain();
-            } while (chainedUser != null);
+            final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
 
             // ensure the users in this chain are allowed to download this content
             final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
@@ -850,7 +841,7 @@ public class ControllerFacade {
             final String type = event.getAttributes().get(CoreAttributes.MIME_TYPE.key());
 
             // get the content
-            final InputStream content = flowController.getContent(event, contentDirection, user.getDn(), uri);
+            final InputStream content = flowController.getContent(event, contentDirection, user.getIdentity(), uri);
             return new DownloadableContent(filename, type, content);
         } catch (final ContentNotFoundException cnfe) {
             throw new ResourceNotFoundException("Unable to find the specified content.");
@@ -880,7 +871,7 @@ public class ControllerFacade {
             }
 
             // replay the flow file
-            final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user.getDn());
+            final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user.getIdentity());
 
             // convert the event record
             return createProvenanceEventDto(event);

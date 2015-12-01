@@ -27,8 +27,8 @@
 
     <body class="message-pane">
         <div class="message-pane-message-box">
-            <p class="message-pane-title"><%= request.getAttribute("title") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("title").toString()) %></p>
-            <p class="message-pane-content"><%= request.getAttribute("messages") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("messages").toString()) %></p>
+            <div class="message-pane-title"><%= request.getAttribute("title") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("title").toString()) %></div>
+            <div class="message-pane-content"><%= request.getAttribute("messages") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("messages").toString()) %></div>
         </div>
     </body>
 </html>

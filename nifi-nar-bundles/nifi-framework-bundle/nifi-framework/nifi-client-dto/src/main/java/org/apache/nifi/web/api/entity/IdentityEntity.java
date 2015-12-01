@@ -14,32 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
-    Registration form styles.
-*/
+package org.apache.nifi.web.api.entity;
 
-#registration-pane {
-    z-index: 1299;
-}
+import javax.xml.bind.annotation.XmlRootElement;
 
-#registration-form {
-    margin-top: 10px;
-    width: 610px;
-}
+/**
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds the users identity.
+ */
+@XmlRootElement(name = "identityEntity")
+public class IdentityEntity extends Entity {
 
-#expand-registration-button {
-    width: 10px;
-    height: 10px;
-    float: left;
-    margin-right: 5px;
-}
+    private String userId;
+    private String identity;
 
-#expand-registration-text {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
+    /**
+     * @return current user id
+     */
+    public String getUserId() {
+        return userId;
+    }
 
-#registration-justification {
-    width: 600px;
-    height: 200px;
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    /**
+     * @return the user identity being serialized
+     */
+    public String getIdentity() {
+        return identity;
+    }
+
+    public void setIdentity(String identity) {
+        this.identity = identity;
+    }
+
 }

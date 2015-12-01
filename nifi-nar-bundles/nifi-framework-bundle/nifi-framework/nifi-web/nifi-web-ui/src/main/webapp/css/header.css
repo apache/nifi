@@ -506,6 +506,25 @@ div.search-glass-pane {
 
 /* styles for the status link */
 
+#anonymous-user-alert {
+    float: left;
+    margin-top: -2px;
+    margin-right: 6px;
+    width: 18px;
+    height: 16px;
+    background-image: url(../images/iconAlert.png);
+}
+
+#current-user {
+    float: left;
+    margin-right: 8px;
+    font-weight: bold;
+    max-width: 250px;
+    text-overflow: ellipsis;
+    line-height: normal;
+    overflow: hidden;
+}
+
 #utilities-container {
     float: right;
 }
@@ -640,25 +659,8 @@ div.bulletin-board-hover {
 
 #header-links-container {
     position: absolute;
-    top: 1px;
-    right: 0px;
+    right: 10px;
     z-index: 100;
-}
-
-#header-links-container li {
-    float: left;
-    display: block;
-    margin-right: 10px;
-    padding: 4px;
-    text-align: center;
-    font-size: .8em;
-    font-weight: normal;
-    text-decoration: none;
-}
-
-#header-links-container span.header-link-over {
-    color: #264c58;
-    text-decoration: underline;
 }
 
 #has-pending-accounts {

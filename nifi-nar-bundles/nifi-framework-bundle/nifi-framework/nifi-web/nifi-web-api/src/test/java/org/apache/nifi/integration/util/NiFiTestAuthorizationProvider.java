@@ -37,7 +37,7 @@ import org.apache.nifi.authorization.DownloadAuthorization;
  */
 public class NiFiTestAuthorizationProvider implements AuthorityProvider {
 
-    private Map<String, Set<Authority>> users;
+    private final Map<String, Set<Authority>> users;
 
     /**
      * Creates a new FileAuthorizationProvider.
@@ -48,6 +48,7 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
         users.put("CN=Lastname Firstname Middlename monitor, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown", EnumSet.of(Authority.ROLE_MONITOR));
         users.put("CN=Lastname Firstname Middlename dfm, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown", EnumSet.of(Authority.ROLE_DFM));
         users.put("CN=Lastname Firstname Middlename admin, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown", EnumSet.of(Authority.ROLE_ADMIN));
+        users.put("user@nifi", EnumSet.of(Authority.ROLE_DFM));
     }
 
     @Override

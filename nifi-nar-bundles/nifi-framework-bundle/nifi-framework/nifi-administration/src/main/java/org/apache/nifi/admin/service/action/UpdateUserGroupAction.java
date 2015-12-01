@@ -61,7 +61,7 @@ public class UpdateUserGroupAction extends AbstractUserAction<Void> {
 
         // record the new users being added to this group
         final Set<NiFiUser> newUsers = new HashSet<>();
-        final Set<String> newUserDns = new HashSet<>();
+        final Set<String> newUserIdentities = new HashSet<>();
 
         // if the user ids have been specified we need to create/update a group using the specified group name
         if (userIds != null) {
@@ -81,13 +81,13 @@ public class UpdateUserGroupAction extends AbstractUserAction<Void> {
 
                 try {
                     // if the user is unknown to the authority provider we cannot continue
-                    if (!authorityProvider.doesDnExist(user.getDn()) || AccountStatus.DISABLED.equals(user.getStatus())) {
-                        throw new IllegalStateException(String.format("Unable to group these users because access for '%s' is not %s.", user.getDn(), AccountStatus.ACTIVE.toString()));
+                    if (!authorityProvider.doesDnExist(user.getIdentity()) || AccountStatus.DISABLED.equals(user.getStatus())) {
+                        throw new IllegalStateException(String.format("Unable to group these users because access for '%s' is not %s.", user.getIdentity(), AccountStatus.ACTIVE.toString()));
                     }
 
                     // record the user being added to this group
                     newUsers.add(user);
-                    newUserDns.add(user.getDn());
+                    newUserIdentities.add(user.getIdentity());
                 } catch (final AuthorityAccessException aae) {
                     throw new AdministrationException(String.format("Unable to access authority details: %s", aae.getMessage()), aae);
                 }
@@ -95,11 +95,11 @@ public class UpdateUserGroupAction extends AbstractUserAction<Void> {
 
             try {
                 // update the authority provider
-                authorityProvider.setUsersGroup(newUserDns, group);
+                authorityProvider.setUsersGroup(newUserIdentities, group);
             } catch (UnknownIdentityException uie) {
-                throw new AccountNotFoundException(String.format("Unable to set user group '%s': %s", StringUtils.join(newUserDns, ", "), uie.getMessage()), uie);
+                throw new AccountNotFoundException(String.format("Unable to set user group '%s': %s", StringUtils.join(newUserIdentities, ", "), uie.getMessage()), uie);
             } catch (AuthorityAccessException aae) {
-                throw new AdministrationException(String.format("Unable to set user group '%s': %s", StringUtils.join(newUserDns, ", "), aae.getMessage()), aae);
+                throw new AdministrationException(String.format("Unable to set user group '%s': %s", StringUtils.join(newUserIdentities, ", "), aae.getMessage()), aae);
             }
         }
 
@@ -118,35 +118,35 @@ public class UpdateUserGroupAction extends AbstractUserAction<Void> {
             if (authorities != null) {
                 try {
                     // update the authority provider as approprivate
-                    authorityProvider.setAuthorities(user.getDn(), authorities);
+                    authorityProvider.setAuthorities(user.getIdentity(), authorities);
 
                     // since all the authorities were updated accordingly, set the authorities
                     user.getAuthorities().clear();
                     user.getAuthorities().addAll(authorities);
                 } catch (UnknownIdentityException uie) {
-                    throw new AccountNotFoundException(String.format("Unable to modify authorities for '%s': %s.", user.getDn(), uie.getMessage()), uie);
+                    throw new AccountNotFoundException(String.format("Unable to modify authorities for '%s': %s.", user.getIdentity(), uie.getMessage()), uie);
                 } catch (AuthorityAccessException aae) {
-                    throw new AdministrationException(String.format("Unable to access authorities for '%s': %s.", user.getDn(), aae.getMessage()), aae);
+                    throw new AdministrationException(String.format("Unable to access authorities for '%s': %s.", user.getIdentity(), aae.getMessage()), aae);
                 }
             } else {
                 try {
                     // refresh the authorities according to the provider
                     user.getAuthorities().clear();
-                    user.getAuthorities().addAll(authorityProvider.getAuthorities(user.getDn()));
+                    user.getAuthorities().addAll(authorityProvider.getAuthorities(user.getIdentity()));
                 } catch (UnknownIdentityException uie) {
-                    throw new AccountNotFoundException(String.format("Unable to determine the authorities for '%s': %s.", user.getDn(), uie.getMessage()), uie);
+                    throw new AccountNotFoundException(String.format("Unable to determine the authorities for '%s': %s.", user.getIdentity(), uie.getMessage()), uie);
                 } catch (AuthorityAccessException aae) {
-                    throw new AdministrationException(String.format("Unable to access authorities for '%s': %s.", user.getDn(), aae.getMessage()), aae);
+                    throw new AdministrationException(String.format("Unable to access authorities for '%s': %s.", user.getIdentity(), aae.getMessage()), aae);
                 }
             }
 
             try {
                 // get the user group
-                user.setUserGroup(authorityProvider.getGroupForUser(user.getDn()));
+                user.setUserGroup(authorityProvider.getGroupForUser(user.getIdentity()));
             } catch (UnknownIdentityException uie) {
-                throw new AccountNotFoundException(String.format("Unable to determine the group for '%s': %s.", user.getDn(), uie.getMessage()), uie);
+                throw new AccountNotFoundException(String.format("Unable to determine the group for '%s': %s.", user.getIdentity(), uie.getMessage()), uie);
             } catch (AuthorityAccessException aae) {
-                throw new AdministrationException(String.format("Unable to access the group for '%s': %s.", user.getDn(), aae.getMessage()), aae);
+                throw new AdministrationException(String.format("Unable to access the group for '%s': %s.", user.getIdentity(), aae.getMessage()), aae);
             }
 
             // update the users status in case they were previously pending or disabled

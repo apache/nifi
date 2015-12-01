@@ -321,7 +321,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
 
-        return queue.dropFlowFiles(dropRequestId, user.getDn());
+        return queue.dropFlowFiles(dropRequestId, user.getIdentity());
     }
 
     @Override

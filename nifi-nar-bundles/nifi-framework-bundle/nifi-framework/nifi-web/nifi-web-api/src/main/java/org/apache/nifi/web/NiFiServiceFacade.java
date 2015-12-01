@@ -1267,6 +1267,13 @@ public interface NiFiServiceFacade {
     Collection<UserDTO> getUsers(Boolean grouped);
 
     /**
+     * Creates a new account request.
+     *
+     * @return user
+     */
+    UserDTO createUser();
+
+    /**
      * Updates the specified user accordingly.
      *
      * @param user The user to update
