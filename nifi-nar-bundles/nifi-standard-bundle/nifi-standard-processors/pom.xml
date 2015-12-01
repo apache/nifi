@@ -284,7 +284,17 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestSplitText/4.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/5.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/6.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/7.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/8.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/9.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/10.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/data.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/data2.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/headersonly.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/longheader.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/longline.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/original.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/trailing-newlines.txt</exclude>
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.xml</exclude>
