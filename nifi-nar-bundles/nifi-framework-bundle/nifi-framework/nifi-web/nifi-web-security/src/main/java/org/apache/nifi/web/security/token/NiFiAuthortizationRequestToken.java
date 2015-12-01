@@ -21,14 +21,14 @@ import java.util.List;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 /**
- * An authentication token that is used as an authentication request. The request chain is specified during creation and is used authenticate the user(s). If the user is authenticated, the token is
- * used to authorized the user(s).
+ * An authentication token that is used as an authorization request. The request has already been authenticated and is now going to be authorized.
+ * The request chain is specified during creation and is used authorize the user(s).
  */
-public class NiFiAuthenticationRequestToken extends AbstractAuthenticationToken {
+public class NiFiAuthortizationRequestToken extends AbstractAuthenticationToken {
 
     private final List<String> chain;
 
-    public NiFiAuthenticationRequestToken(final List<String> chain) {
+    public NiFiAuthortizationRequestToken(final List<String> chain) {
         super(null);
         this.chain = chain;
     }

@@ -23,8 +23,8 @@ import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.token.NewAccountAuthenticationRequestToken;
-import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
+import org.apache.nifi.web.security.token.NewAccountAuthorizationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
 import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
     private X509IdentityProvider certificateIdentityProvider;
 
     @Override
-    public NiFiAuthenticationRequestToken attemptAuthentication(final HttpServletRequest request) {
+    public NiFiAuthortizationRequestToken attemptAuthentication(final HttpServletRequest request) {
         // only suppport x509 login when running securely
         if (!request.isSecure()) {
             return null;
@@ -62,9 +62,9 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
 
         final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(request, authenticationResponse.getIdentity());
         if (isNewAccountRequest(request)) {
-            return new NewAccountAuthenticationRequestToken(new NewAccountRequest(proxyChain, getJustification(request)));
+            return new NewAccountAuthorizationRequestToken(new NewAccountRequest(proxyChain, getJustification(request)));
         } else {
-            return new NiFiAuthenticationRequestToken(proxyChain);
+            return new NiFiAuthortizationRequestToken(proxyChain);
         }
     }
 

@@ -30,7 +30,7 @@ import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
-import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -44,7 +44,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 /**
  * UserDetailsService that will verify user identity and grant user authorities.
  */
-public class NiFiAuthorizationService implements AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> {
+public class NiFiAuthorizationService implements AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiAuthorizationService.class);
 
@@ -63,7 +63,7 @@ public class NiFiAuthorizationService implements AuthenticationUserDetailsServic
      * @throws org.springframework.dao.DataAccessException ex
      */
     @Override
-    public synchronized UserDetails loadUserDetails(NiFiAuthenticationRequestToken request) throws UsernameNotFoundException, DataAccessException {
+    public synchronized UserDetails loadUserDetails(NiFiAuthortizationRequestToken request) throws UsernameNotFoundException, DataAccessException {
         NiFiUserDetails userDetails = null;
         final List<String> chain = new ArrayList<>(request.getChain());
 

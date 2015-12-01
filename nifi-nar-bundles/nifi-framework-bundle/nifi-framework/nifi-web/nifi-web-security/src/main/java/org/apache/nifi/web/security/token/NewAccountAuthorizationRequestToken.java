@@ -17,30 +17,24 @@
 package org.apache.nifi.web.security.token;
 
 import org.apache.nifi.web.security.user.NewAccountRequest;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 /**
- * This is an Authentication Token for a user that has been authenticated but is not authorized to access the NiFi APIs. Typically, this authentication token is used successfully when requesting a
- * NiFi account. Requesting any other endpoint would be rejected due to lack of roles.
+ * An authentication token that is used as an authorization request when submitting a new account.
  */
-public class NewAccountAuthenticationToken extends AbstractAuthenticationToken {
+public class NewAccountAuthorizationRequestToken extends NiFiAuthortizationRequestToken {
 
     final NewAccountRequest newAccountRequest;
 
-    public NewAccountAuthenticationToken(final NewAccountRequest newAccountRequest) {
-        super(null);
-        super.setAuthenticated(true);
+    public NewAccountAuthorizationRequestToken(final NewAccountRequest newAccountRequest) {
+        super(newAccountRequest.getChain());
         this.newAccountRequest = newAccountRequest;
     }
 
-    @Override
-    public Object getCredentials() {
-        return null;
+    public String getJustification() {
+        return newAccountRequest.getJustification();
     }
 
-    @Override
-    public Object getPrincipal() {
+    public NewAccountRequest getNewAccountRequest() {
         return newAccountRequest;
     }
-
 }

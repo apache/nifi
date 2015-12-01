@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.security;
 
-import org.apache.nifi.web.security.token.NewAccountAuthenticationRequestToken;
-import org.apache.nifi.web.security.token.NewAccountAuthenticationToken;
-import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
+import org.apache.nifi.web.security.token.NewAccountAuthorizationRequestToken;
+import org.apache.nifi.web.security.token.NewAccountAuthorizationToken;
+import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
 import org.apache.nifi.web.security.token.NiFiAuthorizationToken;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
@@ -32,29 +32,29 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  */
 public class NiFiAuthenticationProvider implements AuthenticationProvider {
 
-    private final AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService;
+    private final AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService;
 
-    public NiFiAuthenticationProvider(final AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService) {
+    public NiFiAuthenticationProvider(final AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        final NiFiAuthenticationRequestToken request = (NiFiAuthenticationRequestToken) authentication;
+        final NiFiAuthortizationRequestToken request = (NiFiAuthortizationRequestToken) authentication;
 
         try {
             // defer to the nifi user details service to authorize the user
             final UserDetails userDetails = userDetailsService.loadUserDetails(request);
 
-            // build an authentication for accesing nifi
+            // build a token for accesing nifi
             final NiFiAuthorizationToken result = new NiFiAuthorizationToken(userDetails);
             result.setDetails(request.getDetails());
             return result;
         } catch (final UsernameNotFoundException unfe) {
-            // if the authentication request is for a new account and it could not be authorized because the user was not found,
-            // return the token so the new account could be created. this must go here toe nsure that any proxies have been authorized
+            // if the authorization request is for a new account and it could not be authorized because the user was not found,
+            // return the token so the new account could be created. this must go here to ensure that any proxies have been authorized
             if (isNewAccountAuthenticationToken(request)) {
-                return new NewAccountAuthenticationToken(((NewAccountAuthenticationRequestToken) authentication).getNewAccountRequest());
+                return new NewAccountAuthorizationToken(((NewAccountAuthorizationRequestToken) authentication).getNewAccountRequest());
             } else {
                 throw unfe;
             }
@@ -62,12 +62,12 @@ public class NiFiAuthenticationProvider implements AuthenticationProvider {
     }
 
     private boolean isNewAccountAuthenticationToken(final Authentication authentication) {
-        return NewAccountAuthenticationRequestToken.class.isAssignableFrom(authentication.getClass());
+        return NewAccountAuthorizationRequestToken.class.isAssignableFrom(authentication.getClass());
     }
 
     @Override
     public boolean supports(Class<?> authentication) {
-        return NiFiAuthenticationRequestToken.class.isAssignableFrom(authentication);
+        return NiFiAuthortizationRequestToken.class.isAssignableFrom(authentication);
     }
 
 }

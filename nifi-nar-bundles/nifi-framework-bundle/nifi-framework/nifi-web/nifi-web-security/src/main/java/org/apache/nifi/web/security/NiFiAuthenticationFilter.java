@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +82,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
     private void authenticate(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain) throws IOException, ServletException {
         String dnChain = null;
         try {
-            final NiFiAuthenticationRequestToken authenticated = attemptAuthentication(request);
+            final NiFiAuthortizationRequestToken authenticated = attemptAuthentication(request);
             if (authenticated != null) {
                 dnChain = ProxiedEntitiesUtils.formatProxyDn(StringUtils.join(authenticated.getChain(), "><"));
 
@@ -118,14 +118,14 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
     /**
      * Attempt to authenticate the client making the request. If the request does not contain an authentication attempt, this method should return null. If the request contains an authentication
-     * request, the implementation should convert it to a NiFiAuthenticationRequestToken (which is used when authorizing the client). Implementations should throw InvalidAuthenticationException when
+     * request, the implementation should convert it to a NiFiAuthorizationRequestToken (which is used when authorizing the client). Implementations should throw InvalidAuthenticationException when
      * the request contains an authentication request but it could not be authenticated.
      *
      * @param request The request
-     * @return The NiFiAuthenticationRequestToken used to later authorized the client
+     * @return The NiFiAutorizationRequestToken used to later authorized the client
      * @throws InvalidAuthenticationException If the request contained an authentication attempt, but could not authenticate
      */
-    public abstract NiFiAuthenticationRequestToken attemptAuthentication(HttpServletRequest request);
+    public abstract NiFiAuthortizationRequestToken attemptAuthentication(HttpServletRequest request);
 
     protected void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
         if (log.isDebugEnabled()) {

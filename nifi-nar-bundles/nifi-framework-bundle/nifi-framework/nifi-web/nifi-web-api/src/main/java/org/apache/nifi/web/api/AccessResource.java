@@ -61,7 +61,7 @@ import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.apache.nifi.web.security.token.NiFiAuthenticationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.web.security.x509.X509IdentityProvider;
 import org.slf4j.Logger;
@@ -93,7 +93,7 @@ public class AccessResource extends ApplicationResource {
     private X509IdentityProvider certificateIdentityProvider;
     private JwtService jwtService;
 
-    private AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService;
+    private AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService;
 
     /**
      * Retrieves the access configuration for this NiFi.
@@ -285,7 +285,7 @@ public class AccessResource extends ApplicationResource {
      * @throws AuthenticationException if the proxy chain is not authorized
      */
     private UserDetails checkAuthorization(final List<String> proxyChain) throws AuthenticationException {
-        return userDetailsService.loadUserDetails(new NiFiAuthenticationRequestToken(proxyChain));
+        return userDetailsService.loadUserDetails(new NiFiAuthortizationRequestToken(proxyChain));
     }
 
     /**
@@ -399,7 +399,7 @@ public class AccessResource extends ApplicationResource {
     private void authorizeProxyIfNecessary(final List<String> proxyChain) throws AuthenticationException {
         if (proxyChain.size() > 1) {
             try {
-                userDetailsService.loadUserDetails(new NiFiAuthenticationRequestToken(proxyChain));
+                userDetailsService.loadUserDetails(new NiFiAuthortizationRequestToken(proxyChain));
             } catch (final UsernameNotFoundException unfe) {
                 // if a username not found exception was thrown, the proxies were authorized and now
                 // we can issue a new token to the end user which they will use to identify themselves
@@ -435,7 +435,7 @@ public class AccessResource extends ApplicationResource {
         this.certificateIdentityProvider = certificateIdentityProvider;
     }
 
-    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthenticationRequestToken> userDetailsService) {
+    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
 
