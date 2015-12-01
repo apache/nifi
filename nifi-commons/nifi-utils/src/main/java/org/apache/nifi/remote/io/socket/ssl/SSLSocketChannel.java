@@ -85,6 +85,10 @@ public class SSLSocketChannel implements Closeable {
     }
 
     public SSLSocketChannel(final SSLContext sslContext, final SocketChannel socketChannel, final boolean client) throws IOException {
+        this(sslContext.createSSLEngine(), socketChannel, client);
+    }
+
+    public SSLSocketChannel(final SSLEngine sslEngine, final SocketChannel socketChannel, final boolean client) throws IOException {
         if (!socketChannel.isConnected()) {
             throw new IllegalArgumentException("Cannot pass an un-connected SocketChannel");
         }
@@ -96,9 +100,9 @@ public class SSLSocketChannel implements Closeable {
         this.hostname = socket.getInetAddress().getHostName();
         this.port = socket.getPort();
 
-        this.engine = sslContext.createSSLEngine();
+        this.engine = sslEngine;
         this.engine.setUseClientMode(client);
-        engine.setNeedClientAuth(true);
+        this.engine.setNeedClientAuth(true);
 
         streamInManager = new BufferStateManager(ByteBuffer.allocate(engine.getSession().getPacketBufferSize()));
         streamOutManager = new BufferStateManager(ByteBuffer.allocate(engine.getSession().getPacketBufferSize()));

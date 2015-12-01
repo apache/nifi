@@ -25,6 +25,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -34,9 +36,12 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.SyslogParser;
+import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -45,6 +50,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -135,6 +141,13 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, syslog " +
+                    "messages will be sent over a secure connection.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -161,6 +174,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         descriptors.add(HOSTNAME);
         descriptors.add(PROTOCOL);
         descriptors.add(PORT);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(IDLE_EXPIRATION);
         descriptors.add(SEND_BUFFER_SIZE);
         descriptors.add(BATCH_SIZE);
@@ -189,6 +203,22 @@ public class PutSyslog extends AbstractSyslogProcessor {
         return descriptors;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final Collection<ValidationResult> results = new ArrayList<>();
+
+        final String protocol = context.getProperty(PROTOCOL).getValue();
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+
+        if (UDP_VALUE.getValue().equals(protocol) && sslContextService != null) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("SSL can not be used with UDP")
+                    .valid(false).subject("SSL Context").build());
+        }
+
+        return results;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         final int bufferSize = context.getProperty(SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
@@ -197,11 +227,8 @@ public class PutSyslog extends AbstractSyslogProcessor {
             this.bufferPool.offer(ByteBuffer.allocate(bufferSize));
         }
 
-        // create a pool of senders based on the number of concurrent tasks for this processor
+        // initialize the queue of senders, one per task, senders will get created on the fly in onTrigger
         this.senderPool = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
-        for (int i=0; i < context.getMaxConcurrentTasks(); i++) {
-            senderPool.offer(createSender(context, bufferPool));
-        }
     }
 
     protected ChannelSender createSender(final ProcessContext context, final BlockingQueue<ByteBuffer> bufferPool) throws IOException {
@@ -209,25 +236,35 @@ public class PutSyslog extends AbstractSyslogProcessor {
         final String host = context.getProperty(HOSTNAME).getValue();
         final String protocol = context.getProperty(PROTOCOL).getValue();
         final String charSet = context.getProperty(CHARSET).getValue();
-        return createSender(protocol, host, port, Charset.forName(charSet), bufferPool);
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        return createSender(sslContextService, protocol, host, port, Charset.forName(charSet), bufferPool);
     }
 
     // visible for testing to override and provide a mock sender if desired
-    protected ChannelSender createSender(final String protocol, final String host, final int port, final Charset charset, final BlockingQueue<ByteBuffer> bufferPool)
+    protected ChannelSender createSender(final SSLContextService sslContextService, final String protocol, final String host, final int port,
+                                         final Charset charset, final BlockingQueue<ByteBuffer> bufferPool)
             throws IOException {
         if (protocol.equals(UDP_VALUE.getValue())) {
             return new DatagramChannelSender(host, port, bufferPool, charset);
         } else {
-            return new SocketChannelSender(host, port, bufferPool, charset);
+            // if an SSLContextService is provided then we make a secure sender
+            if (sslContextService != null) {
+                final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+                return new SSLSocketChannelSender(sslContext, host, port, bufferPool, charset);
+            } else {
+                return new SocketChannelSender(host, port, bufferPool, charset);
+            }
         }
     }
 
     @OnStopped
     public void onStopped() {
-        ChannelSender sender = senderPool.poll();
-        while (sender != null) {
-            sender.close();
-            sender = senderPool.poll();
+        if (senderPool != null) {
+            ChannelSender sender = senderPool.poll();
+            while (sender != null) {
+                sender.close();
+                sender = senderPool.poll();
+            }
         }
     }
 
@@ -362,7 +399,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
     /**
      * Base class for sending messages over a channel.
      */
-    public static abstract class ChannelSender {
+    protected static abstract class ChannelSender {
 
         final int port;
         final String host;
@@ -418,7 +455,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
     /**
      * Sends messages over a DatagramChannel.
      */
-    static class DatagramChannelSender extends ChannelSender {
+    private static class DatagramChannelSender extends ChannelSender {
 
         final DatagramChannel channel;
 
@@ -449,7 +486,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
     /**
      * Sends messages over a SocketChannel.
      */
-    static class SocketChannelSender extends ChannelSender {
+    private static class SocketChannelSender extends ChannelSender {
 
         final SocketChannel channel;
 
@@ -477,4 +514,39 @@ public class PutSyslog extends AbstractSyslogProcessor {
         }
     }
 
+    /**
+     * Sends messages over an SSLSocketChannel.
+     */
+    private static class SSLSocketChannelSender extends ChannelSender {
+
+        final SSLSocketChannel channel;
+
+        SSLSocketChannelSender(final SSLContext sslContext, final String host, final int port, final BlockingQueue<ByteBuffer> bufferPool, final Charset charset) throws IOException {
+            super(host, port, bufferPool, charset);
+            this.channel = new SSLSocketChannel(sslContext, host, port, true);
+            this.channel.connect();
+        }
+
+        @Override
+        public void send(final String message) throws IOException {
+            final byte[] bytes = message.getBytes(charset);
+            channel.write(bytes);
+            lastUsed = System.currentTimeMillis();
+        }
+
+        @Override
+        public void write(ByteBuffer buffer) throws IOException {
+            // nothing to do here since we are overriding send() above
+        }
+
+        @Override
+        boolean isConnected() {
+            return channel != null && !channel.isClosed();
+        }
+
+        @Override
+        public void close() {
+            IOUtils.closeQuietly(channel);
+        }
+    }
 }
