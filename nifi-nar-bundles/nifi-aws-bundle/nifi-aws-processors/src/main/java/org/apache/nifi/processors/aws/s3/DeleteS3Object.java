@@ -40,7 +40,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 
 @SupportsBatching
-@SeeAlso({PutS3Object.class})
+@SeeAlso({PutS3Object.class, FetchS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Delete"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Deletes FlowFiles on an Amazon S3 Bucket. " +
@@ -57,7 +57,8 @@ public class DeleteS3Object extends AbstractS3Processor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, REGION, TIMEOUT, VERSION_ID,
-                    FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER));
+                    FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER,
+                    SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

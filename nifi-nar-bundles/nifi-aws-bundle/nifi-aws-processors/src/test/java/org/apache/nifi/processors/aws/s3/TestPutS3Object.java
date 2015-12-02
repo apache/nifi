@@ -18,8 +18,11 @@ package org.apache.nifi.processors.aws.s3;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -49,6 +52,33 @@ public class TestPutS3Object extends AbstractS3Test {
         runner.run(3);
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 3);
+    }
+
+    @Test
+    public void testMetaData() throws IOException {
+        PutS3Object processor = new PutS3Object();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        PropertyDescriptor prop1 = processor.getSupportedDynamicPropertyDescriptor("TEST-PROP-1");
+        runner.setProperty(prop1, "TESTING-1-2-3");
+        PropertyDescriptor prop2 = processor.getSupportedDynamicPropertyDescriptor("TEST-PROP-2");
+        runner.setProperty(prop2, "TESTING-4-5-6");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "meta.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        MockFlowFile ff1 = flowFiles.get(0);
+        for (Map.Entry attrib : ff1.getAttributes().entrySet()) {
+            System.out.println(attrib.getKey() + " = " + attrib.getValue());
+        }
     }
 
     @Test
