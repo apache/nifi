@@ -230,7 +230,9 @@ public class TestListenSyslog {
         final ProcessContext context = runner.getProcessContext();
         proc.onScheduled(context);
 
-        final int numMessages = 20;
+        // the processor has internal blocking queue with capacity 10 so we have to send
+        // less than that since we are sending all messages before the processors ever runs
+        final int numMessages = 5;
         final int port = proc.getPort();
         Assert.assertTrue(port > 0);
 
@@ -251,7 +253,7 @@ public class TestListenSyslog {
 
             final String content = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
             final String[] splits = content.split("\\|");
-            Assert.assertEquals(20, splits.length);
+            Assert.assertEquals(numMessages, splits.length);
 
             final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
             Assert.assertNotNull(events);
