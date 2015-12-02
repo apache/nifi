@@ -729,52 +729,7 @@ public class PutSQL extends AbstractProcessor {
      * @throws SQLException if the PreparedStatement throws a SQLException when calling the appropriate setter
      */
     private void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType) throws SQLException {
-        if (parameterValue == null) {
-            stmt.setNull(parameterIndex, jdbcType);
-        } else {
-            switch (jdbcType) {
-                case Types.BIT:
-                    stmt.setBoolean(parameterIndex, Boolean.parseBoolean(parameterValue));
-                    break;
-                case Types.TINYINT:
-                    stmt.setByte(parameterIndex, Byte.parseByte(parameterValue));
-                    break;
-                case Types.SMALLINT:
-                    stmt.setShort(parameterIndex, Short.parseShort(parameterValue));
-                    break;
-                case Types.INTEGER:
-                    stmt.setInt(parameterIndex, Integer.parseInt(parameterValue));
-                    break;
-                case Types.BIGINT:
-                    stmt.setLong(parameterIndex, Long.parseLong(parameterValue));
-                    break;
-                case Types.REAL:
-                    stmt.setFloat(parameterIndex, Float.parseFloat(parameterValue));
-                    break;
-                case Types.FLOAT:
-                case Types.DOUBLE:
-                    stmt.setDouble(parameterIndex, Double.parseDouble(parameterValue));
-                    break;
-                case Types.DATE:
-                    stmt.setDate(parameterIndex, new Date(Long.parseLong(parameterValue)));
-                    break;
-                case Types.TIME:
-                    stmt.setTime(parameterIndex, new Time(Long.parseLong(parameterValue)));
-                    break;
-                case Types.TIMESTAMP:
-                    stmt.setTimestamp(parameterIndex, new Timestamp(Long.parseLong(parameterValue)));
-                    break;
-                case Types.CHAR:
-                case Types.VARCHAR:
-                case Types.LONGNVARCHAR:
-                case Types.LONGVARCHAR:
-                    stmt.setString(parameterIndex, parameterValue);
-                    break;
-                default:
-                    throw new SQLException("The '" + attrName + "' attribute has a value of '" + parameterValue
-                        + "' and a type of '" + jdbcType + "' but this is not a known data type");
-            }
-        }
+        stmt.setObject(parameterIndex, parameterValue, jdbcType);
     }
 
 
