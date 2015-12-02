@@ -628,6 +628,7 @@ public class RunNiFi {
         final Properties nifiProps = loadProperties(logger);
         final String secretKey = nifiProps.getProperty("secret.key");
         final String pid = nifiProps.getProperty("pid");
+        final File statusFile = getStatusFile(logger);
 
         try (final Socket socket = new Socket()) {
             logger.debug("Connecting to NiFi instance");
@@ -693,7 +694,6 @@ public class RunNiFi {
                         }
                     }
 
-                    final File statusFile = getStatusFile(logger);
                     if (statusFile.exists() && !statusFile.delete()) {
                         logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
                     }
@@ -708,7 +708,11 @@ public class RunNiFi {
                     + "the process should be killed manually.", new Object[] {port, ioe.toString()});
             } else {
                 logger.error("Failed to send shutdown command to port {} due to {}. Will kill the NiFi Process with PID {}.", new Object[] {port, ioe.toString(), pid});
+                notifyStop();
                 killProcessTree(pid, logger);
+                if (statusFile.exists() && !statusFile.delete()) {
+                    logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
+                }
             }
         } finally {
             if (lockFile.exists() && !lockFile.delete()) {
