@@ -1806,7 +1806,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 reader.process(ffais);
 
                 // Allow processors to close the file after reading to avoid too many files open or do smart session stream management.
-                if(!allowSessionStreamManagement){
+                if (this.currentReadClaimStream != null && !allowSessionStreamManagement) {
                     currentReadClaimStream.close();
                     currentReadClaimStream = null;
                 }
