@@ -172,7 +172,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         @Override
         protected boolean removeEldestEntry(Map.Entry<SchemaKey,TableSchema> eldest) {
-            return true;
+            return size() >= 100;
         }
     };
 
