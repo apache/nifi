@@ -65,8 +65,7 @@ public class PasswordBasedEncryptor implements Encryptor {
     public StreamCallback getEncryptionCallback() throws ProcessException {
         try {
             byte[] salt = new byte[saltSize];
-            SecureRandom secureRandom = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM);
-            secureRandom.setSeed(System.currentTimeMillis());
+            SecureRandom secureRandom = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM, "SUN");
             secureRandom.nextBytes(salt);
             return new EncryptCallback(salt);
         } catch (Exception e) {
