@@ -29,6 +29,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
+import javax.ws.rs.HEAD;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,6 +48,7 @@ public class PasswordBasedEncryptor implements Encryptor {
     private KeyDerivationFunction kdf;
     private int iterationsCount = LEGACY_KDF_ITERATIONS;
 
+    @Deprecated
     public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
     public static final int DEFAULT_SALT_SIZE = 8;
     // TODO: Eventually KDF-specific values should be refactored into injectable interface impls
@@ -83,7 +85,7 @@ public class PasswordBasedEncryptor implements Encryptor {
     public StreamCallback getEncryptionCallback() throws ProcessException {
         try {
             byte[] salt = new byte[saltSize];
-            SecureRandom secureRandom = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM);
+            SecureRandom secureRandom = new SecureRandom();
             secureRandom.nextBytes(salt);
             return new EncryptCallback(salt);
         } catch (Exception e) {
