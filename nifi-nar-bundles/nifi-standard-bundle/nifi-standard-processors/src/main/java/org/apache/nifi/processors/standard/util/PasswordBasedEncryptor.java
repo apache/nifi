@@ -41,6 +41,7 @@ public class PasswordBasedEncryptor implements Encryptor {
     private int saltSize;
     private SecretKey secretKey;
 
+    @Deprecated
     public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
     public static final int DEFAULT_SALT_SIZE = 8;
 
@@ -65,7 +66,7 @@ public class PasswordBasedEncryptor implements Encryptor {
     public StreamCallback getEncryptionCallback() throws ProcessException {
         try {
             byte[] salt = new byte[saltSize];
-            SecureRandom secureRandom = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM, "SUN");
+            SecureRandom secureRandom = new SecureRandom();
             secureRandom.nextBytes(salt);
             return new EncryptCallback(salt);
         } catch (Exception e) {
