@@ -16,6 +16,38 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.SyslogEvent;
+import org.apache.nifi.processors.standard.util.SyslogParser;
+import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -45,34 +77,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.SyslogEvent;
-import org.apache.nifi.processors.standard.util.SyslogParser;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -129,8 +133,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Max Batch Size")
         .description(
-            "The maximum number of Syslog events to add to a single FlowFile. If multiple events are available, they will be concatenated along with "
-                    + "the <Message Delimiter> up to this configured maximum number of messages")
+                "The maximum number of Syslog events to add to a single FlowFile. If multiple events are available, they will be concatenated along with "
+                        + "the <Message Delimiter> up to this configured maximum number of messages")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .expressionLanguageSupported(false)
         .defaultValue("1")
@@ -151,6 +155,13 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .defaultValue("true")
         .required(true)
         .build();
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, syslog " +
+                    "messages will be received over a secure connection.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -176,6 +187,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(PROTOCOL);
         descriptors.add(PORT);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(RECV_BUFFER_SIZE);
         descriptors.add(MAX_SOCKET_BUFFER_SIZE);
         descriptors.add(MAX_CONNECTIONS);
@@ -222,6 +234,16 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             results.add(new ValidationResult.Builder().subject("Parse Messages").input("true").valid(false)
                 .explanation("Cannot set Parse Messages to 'true' if Batch Size is greater than 1").build());
         }
+
+        final String protocol = validationContext.getProperty(PROTOCOL).getValue();
+        final SSLContextService sslContextService = validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+
+        if (UDP_VALUE.getValue().equals(protocol) && sslContextService != null) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("SSL can not be used with UDP")
+                    .valid(false).subject("SSL Context").build());
+        }
+
         return results;
     }
 
@@ -251,7 +273,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         parser = new SyslogParser(Charset.forName(charSet));
 
         // create either a UDP or TCP reader and call open() to bind to the given port
-        channelReader = createChannelReader(protocol, bufferPool, syslogEvents, maxConnections);
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        channelReader = createChannelReader(protocol, bufferPool, syslogEvents, maxConnections, sslContextService);
         channelReader.open(port, maxChannelBufferSize);
 
         final Thread readerThread = new Thread(channelReader);
@@ -267,12 +290,18 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     // visible for testing to be overridden and provide a mock ChannelReader if desired
     protected ChannelReader createChannelReader(final String protocol, final BlockingQueue<ByteBuffer> bufferPool, final BlockingQueue<RawSyslogEvent> syslogEvents,
-        int maxConnections)
+        int maxConnections, final SSLContextService sslContextService)
             throws IOException {
         if (protocol.equals(UDP_VALUE.getValue())) {
             return new DatagramChannelReader(bufferPool, syslogEvents, getLogger());
         } else {
-            return new SocketChannelReader(bufferPool, syslogEvents, getLogger(), maxConnections);
+            // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
+            SSLContext sslContext = null;
+            if (sslContextService != null) {
+                sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+            }
+
+            return new SocketChannelDispatcher(bufferPool, syslogEvents, getLogger(), maxConnections, sslContext);
         }
     }
 
@@ -468,7 +497,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     /**
      * Reads messages from a channel until told to stop.
      */
-    public interface ChannelReader extends Runnable {
+    private interface ChannelReader extends Runnable {
 
         void open(int port, int maxBufferSize) throws IOException;
 
@@ -483,7 +512,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
      * Reads from the Datagram channel into an available buffer. If data is read then the buffer is queued for
      * processing, otherwise the buffer is returned to the buffer pool.
      */
-    public static class DatagramChannelReader implements ChannelReader {
+    private static class DatagramChannelReader implements ChannelReader {
 
         private final BlockingQueue<ByteBuffer> bufferPool;
         private final BlockingQueue<RawSyslogEvent> syslogEvents;
@@ -586,7 +615,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
      * Accepts Socket connections on the given port and creates a handler for each connection to
      * be executed by a thread pool.
      */
-    public static class SocketChannelReader implements ChannelReader {
+    private static class SocketChannelDispatcher implements ChannelReader {
 
         private final BlockingQueue<ByteBuffer> bufferPool;
         private final BlockingQueue<RawSyslogEvent> syslogEvents;
@@ -597,13 +626,16 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         private final BlockingQueue<SelectionKey> keyQueue;
         private final int maxConnections;
         private final AtomicInteger currentConnections = new AtomicInteger(0);
+        private final SSLContext sslContext;
 
-        public SocketChannelReader(final BlockingQueue<ByteBuffer> bufferPool, final BlockingQueue<RawSyslogEvent> syslogEvents, final ProcessorLog logger, final int maxConnections) {
+        public SocketChannelDispatcher(final BlockingQueue<ByteBuffer> bufferPool, final BlockingQueue<RawSyslogEvent> syslogEvents,
+                                       final ProcessorLog logger, final int maxConnections, final SSLContext sslContext) {
             this.bufferPool = bufferPool;
             this.syslogEvents = syslogEvents;
             this.logger = logger;
             this.maxConnections = maxConnections;
             this.keyQueue = new LinkedBlockingQueue<>(maxConnections);
+            this.sslContext = sslContext;
             this.executor = Executors.newFixedThreadPool(maxConnections);
         }
 
@@ -649,21 +681,36 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                                     continue;
                                 }
                                 logger.debug("Accepted incoming connection from {}",
-                                        new Object[]{socketChannel.getRemoteAddress().toString()} );
+                                        new Object[]{socketChannel.getRemoteAddress().toString()});
                                 // Set socket to non-blocking, and register with selector
                                 socketChannel.configureBlocking(false);
                                 SelectionKey readKey = socketChannel.register(selector, SelectionKey.OP_READ);
-                                // Prepare the byte buffer for the reads, clear it out and attach to key
+
+                                // Prepare the byte buffer for the reads, clear it out
                                 ByteBuffer buffer = bufferPool.poll();
                                 buffer.clear();
                                 buffer.mark();
-                                readKey.attach(buffer);
+
+                                // If we have an SSLContext then create an SSLEngine for the channel
+                                SSLEngine sslEngine = null;
+                                if (sslContext != null) {
+                                    sslEngine = sslContext.createSSLEngine();
+                                }
+
+                                // Attach the buffer and SSLEngine to the key
+                                SocketChannelAttachment attachment = new SocketChannelAttachment(buffer, sslEngine);
+                                readKey.attach(attachment);
                             } else if (key.isReadable()) {
                                 // Clear out the operations the select is interested in until done reading
                                 key.interestOps(0);
-                                // Create and execute the read handler
-                                final SocketChannelHandler handler = new SocketChannelHandler(key, this, syslogEvents, logger);
-                                // and launch the thread
+                                // Create a handler based on whether an SSLEngine was provided or not
+                                final Runnable handler;
+                                if (sslContext != null) {
+                                    handler = new SSLSocketChannelHandler(key, this, syslogEvents, logger);
+                                } else {
+                                    handler = new SocketChannelHandler(key, this, syslogEvents, logger);
+                                }
+                                // run the handler
                                 executor.execute(handler);
                             }
                         }
@@ -722,7 +769,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         public void completeConnection(SelectionKey key) {
             // connection is done. Return the buffer to the pool
             try {
-                bufferPool.put((ByteBuffer) key.attachment());
+                SocketChannelAttachment attachment = (SocketChannelAttachment) key.attachment();
+                bufferPool.put(attachment.getByteBuffer());
             } catch (InterruptedException e) {
                 // nothing to do here
             }
@@ -740,15 +788,15 @@ public class ListenSyslog extends AbstractSyslogProcessor {
      * Reads from the given SocketChannel into the provided buffer. If data is read then the buffer is queued for
      * processing, otherwise the buffer is returned to the buffer pool.
      */
-    public static class SocketChannelHandler implements Runnable {
+    private static class SocketChannelHandler implements Runnable {
 
         private final SelectionKey key;
-        private final SocketChannelReader dispatcher;
+        private final SocketChannelDispatcher dispatcher;
         private final BlockingQueue<RawSyslogEvent> syslogEvents;
         private final ProcessorLog logger;
         private final ByteArrayOutputStream currBytes = new ByteArrayOutputStream(4096);
 
-        public SocketChannelHandler(final SelectionKey key, final SocketChannelReader dispatcher, final BlockingQueue<RawSyslogEvent> syslogEvents, final ProcessorLog logger) {
+        public SocketChannelHandler(final SelectionKey key, final SocketChannelDispatcher dispatcher, final BlockingQueue<RawSyslogEvent> syslogEvents, final ProcessorLog logger) {
             this.key = key;
             this.dispatcher = dispatcher;
             this.syslogEvents = syslogEvents;
@@ -759,12 +807,14 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         public void run() {
             boolean eof = false;
             SocketChannel socketChannel = null;
-            ByteBuffer socketBuffer = null;
 
             try {
                 int bytesRead;
                 socketChannel = (SocketChannel) key.channel();
-                socketBuffer = (ByteBuffer) key.attachment();
+
+                SocketChannelAttachment attachment = (SocketChannelAttachment) key.attachment();
+                ByteBuffer socketBuffer = attachment.getByteBuffer();
+
                 // read until the buffer is full
                 while ((bytesRead = socketChannel.read(socketBuffer)) > 0) {
                     // prepare byte buffer for reading
@@ -809,12 +859,87 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 // Treat same as closed socket
                 eof = true;
             } catch (IOException e) {
-                logger.error("Error reading from channel", e);
+                logger.error("Error reading from channel due to {}", new Object[] {e.getMessage()}, e);
                 // Treat same as closed socket
                 eof = true;
             } finally {
                 if(eof == true) {
                     IOUtils.closeQuietly(socketChannel);
+                    dispatcher.completeConnection(key);
+                } else {
+                    dispatcher.addBackForSelection(key);
+                }
+            }
+        }
+    }
+
+    /**
+     * Wraps a SocketChannel with an SSLSocketChannel for receiving messages over TLS.
+     */
+    private static class SSLSocketChannelHandler implements Runnable {
+
+        private final SelectionKey key;
+        private final SocketChannelDispatcher dispatcher;
+        private final BlockingQueue<RawSyslogEvent> syslogEvents;
+        private final ProcessorLog logger;
+        private final ByteArrayOutputStream currBytes = new ByteArrayOutputStream(4096);
+
+        public SSLSocketChannelHandler(final SelectionKey key, final SocketChannelDispatcher dispatcher, final BlockingQueue<RawSyslogEvent> syslogEvents, final ProcessorLog logger) {
+            this.key = key;
+            this.dispatcher = dispatcher;
+            this.syslogEvents = syslogEvents;
+            this.logger = logger;
+        }
+
+        @Override
+        public void run() {
+            boolean eof = false;
+            SSLSocketChannel sslSocketChannel = null;
+            try {
+                int bytesRead;
+                final SocketChannel socketChannel = (SocketChannel) key.channel();
+                final SocketChannelAttachment attachment = (SocketChannelAttachment) key.attachment();
+
+                // wrap the SocketChannel with an SSLSocketChannel using the SSLEngine from the attachment
+                sslSocketChannel = new SSLSocketChannel(attachment.getSslEngine(), socketChannel, false);
+
+                // SSLSocketChannel deals with byte[] so ByteBuffer isn't used here, but we'll use the size to create a new byte[]
+                final ByteBuffer socketBuffer = attachment.getByteBuffer();
+                byte[] socketBufferArray = new byte[socketBuffer.limit()];
+
+                // read until no more data
+                while ((bytesRead = sslSocketChannel.read(socketBufferArray)) > 0) {
+                    // go through the buffer looking for the end of each message
+                    for (int i = 0; i < bytesRead; i++) {
+                        final byte currByte = socketBufferArray[i];
+                        currBytes.write(currByte);
+
+                        // check if at end of a message
+                        if (currByte == '\n') {
+                            final String sender = socketChannel.socket().getInetAddress().toString();
+                            // queue the raw event blocking until space is available, reset the temporary buffer
+                            syslogEvents.put(new RawSyslogEvent(currBytes.toByteArray(), sender));
+                            currBytes.reset();
+                        }
+                    }
+                    logger.debug("done handling SocketChannel");
+                }
+
+                // Check for closed socket
+                if( bytesRead < 0 ){
+                    eof = true;
+                }
+            } catch (ClosedByInterruptException | InterruptedException e) {
+                logger.debug("read loop interrupted, closing connection");
+                // Treat same as closed socket
+                eof = true;
+            } catch (IOException e) {
+                logger.error("Error reading from channel due to {}", new Object[] {e.getMessage()}, e);
+                // Treat same as closed socket
+                eof = true;
+            } finally {
+                if(eof == true) {
+                    IOUtils.closeQuietly(sslSocketChannel);
                     dispatcher.completeConnection(key);
                 } else {
                     dispatcher.addBackForSelection(key);
@@ -830,7 +955,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     }
 
     // Wrapper class to pass around the raw message and the host/ip that sent it
-    public static class RawSyslogEvent {
+    static class RawSyslogEvent {
 
         final byte[] rawMessage;
         final String sender;
@@ -846,6 +971,27 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
         public String getSender() {
             return this.sender;
+        }
+
+    }
+
+    // Wrapper class so we can attach a buffer and/or an SSLEngine to the selector key
+    private static class SocketChannelAttachment {
+
+        private final ByteBuffer byteBuffer;
+        private final SSLEngine sslEngine;
+
+        public SocketChannelAttachment(ByteBuffer byteBuffer, SSLEngine sslEngine) {
+            this.byteBuffer = byteBuffer;
+            this.sslEngine = sslEngine;
+        }
+
+        public ByteBuffer getByteBuffer() {
+            return byteBuffer;
+        }
+
+        public SSLEngine getSslEngine() {
+            return sslEngine;
         }
 
     }
