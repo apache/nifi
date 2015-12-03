@@ -57,13 +57,14 @@ import org.apache.nifi.processor.io.StreamCallback;
 @CapabilityDescription("Converts a Binary Avro record into a JSON object. This processor provides a direct mapping of an Avro field to a JSON field, such "
     + "that the resulting JSON will have the same hierarchical structure as the Avro document. Note that the Avro schema information will be lost, as this "
     + "is not a translation from binary Avro to JSON formatted Avro. The output JSON is encoded the UTF-8 encoding. If an incoming FlowFile contains a stream of "
-    + "multiple Avro records, the resultant FlowFile will contain a JSON Array containing all of the Avro records or a sequence of JSON Objects")
+    + "multiple Avro records, the resultant FlowFile will contain a JSON Array containing all of the Avro records or a sequence of JSON Objects.  If an incoming FlowFile does "
+    + "not contain any records, an empty JSON object is the output. Empty/Single Avro record FlowFile inputs are optionally wrapped in a container as dictated by 'Wrap Single Record'")
 @WritesAttribute(attribute = "mime.type", description = "Sets the mime type to application/json")
 public class ConvertAvroToJSON extends AbstractProcessor {
     protected static final String CONTAINER_ARRAY = "array";
     protected static final String CONTAINER_NONE = "none";
 
-    private static final byte [] EMPTY_JSON_OBJECT = "{}".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] EMPTY_JSON_OBJECT = "{}".getBytes(StandardCharsets.UTF_8);
 
     static final PropertyDescriptor CONTAINER_OPTIONS = new PropertyDescriptor.Builder()
         .name("JSON container options")
@@ -72,6 +73,13 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         .allowableValues(CONTAINER_NONE, CONTAINER_ARRAY)
         .required(true)
         .defaultValue(CONTAINER_ARRAY)
+        .build();
+    static final PropertyDescriptor WRAP_SINGLE_RECORD = new PropertyDescriptor.Builder()
+        .name("Wrap Single Record")
+        .description("Determines if the resulting output for empty records or a single record should be wrapped in a container array as specified by '" + CONTAINER_OPTIONS.getName() + "'")
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(true)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -83,7 +91,6 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         .description("A FlowFile is routed to this relationship if it cannot be parsed as Avro or cannot be converted to JSON for any reason")
         .build();
 
-
     private List<PropertyDescriptor> properties;
 
     @Override
@@ -92,6 +99,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(CONTAINER_OPTIONS);
+        properties.add(WRAP_SINGLE_RECORD);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -116,51 +124,59 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         }
 
         final String containerOption = context.getProperty(CONTAINER_OPTIONS).getValue();
+        final boolean useContainer = containerOption.equals(CONTAINER_ARRAY);
+        // Wrap a single record (inclusive of no records) only when a container is being used
+        final boolean wrapSingleRecord = context.getProperty(WRAP_SINGLE_RECORD).asBoolean() && useContainer;
 
         try {
             flowFile = session.write(flowFile, new StreamCallback() {
                 @Override
                 public void process(final InputStream rawIn, final OutputStream rawOut) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn);
-
-                        final OutputStream out = new BufferedOutputStream(rawOut);
-                        final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                         final OutputStream out = new BufferedOutputStream(rawOut);
+                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
 
                         final GenericData genericData = GenericData.get();
 
-                        if (reader.hasNext() == false ) {
-                            out.write(EMPTY_JSON_OBJECT);
-                            return;
+                        int recordCount = 0;
+                        GenericRecord currRecord = null;
+                        if (reader.hasNext()) {
+                            currRecord = reader.next();
+                            recordCount++;
                         }
-                        int recordCount = 1;
-                        GenericRecord reuse = reader.next();
-                        // Only open container if more than one record
-                        if(reader.hasNext() && containerOption.equals(CONTAINER_ARRAY)){
+
+                        // Open container if desired output is an array format and there are are multiple records or
+                        // if configured to wrap single record
+                        if (reader.hasNext() && useContainer || wrapSingleRecord) {
                             out.write('[');
                         }
-                        out.write(genericData.toString(reuse).getBytes(StandardCharsets.UTF_8));
+
+                        // Determine the initial output record, inclusive if we should have an empty set of Avro records
+                        final byte[] outputBytes = (currRecord == null) ? EMPTY_JSON_OBJECT : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8);
+                        out.write(outputBytes);
 
                         while (reader.hasNext()) {
-                            if (containerOption.equals(CONTAINER_ARRAY)) {
+                            if (useContainer) {
                                 out.write(',');
                             } else {
                                 out.write('\n');
                             }
 
-                            reuse = reader.next(reuse);
-                            out.write(genericData.toString(reuse).getBytes(StandardCharsets.UTF_8));
+                            currRecord = reader.next(currRecord);
+                            out.write(genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
                             recordCount++;
                         }
 
-                        // Only close container if more than one record
-                        if (recordCount > 1 && containerOption.equals(CONTAINER_ARRAY)) {
+                        // Close container if desired output is an array format and there are multiple records or if
+                        // configured to wrap a single record
+                        if (recordCount > 1 && useContainer || wrapSingleRecord) {
                             out.write(']');
                         }
                     }
                 }
             });
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to convert {} from Avro to JSON due to {}; transferring to failure", new Object[] {flowFile, pe});
+            getLogger().error("Failed to convert {} from Avro to JSON due to {}; transferring to failure", new Object[]{flowFile, pe});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

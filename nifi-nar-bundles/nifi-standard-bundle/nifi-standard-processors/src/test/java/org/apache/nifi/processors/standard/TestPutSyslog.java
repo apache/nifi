@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -326,7 +327,8 @@ public class TestPutSyslog {
         }
 
         @Override
-        protected ChannelSender createSender(String protocol, String host, int port, Charset charset, BlockingQueue<ByteBuffer> bufferPool) throws IOException {
+        protected ChannelSender createSender(SSLContextService sslContextService, String protocol, String host, int port,
+                                             Charset charset, BlockingQueue<ByteBuffer> bufferPool) throws IOException {
             return mockSender;
         }
     }
@@ -344,7 +346,8 @@ public class TestPutSyslog {
         }
 
         @Override
-        protected ChannelSender createSender(String protocol, String host, int port, Charset charset, BlockingQueue<ByteBuffer> bufferPool) throws IOException {
+        protected ChannelSender createSender(SSLContextService sslContextService, String protocol, String host, int port,
+                                             Charset charset, BlockingQueue<ByteBuffer> bufferPool) throws IOException {
             if (numSendersCreated >= numSendersAllowed) {
                 throw new IOException("too many senders");
             }

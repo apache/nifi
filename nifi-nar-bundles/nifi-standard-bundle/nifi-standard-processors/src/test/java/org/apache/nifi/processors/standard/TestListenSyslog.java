@@ -165,6 +165,57 @@ public class TestListenSyslog {
     }
 
     @Test
+    public void testTCPSingleConnectionWithNewLines() throws IOException, InterruptedException {
+        final ListenSyslog proc = new ListenSyslog();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(ListenSyslog.PROTOCOL, ListenSyslog.TCP_VALUE.getValue());
+        runner.setProperty(ListenSyslog.PORT, "0");
+
+        // schedule to start listening on a random port
+        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+        final ProcessContext context = runner.getProcessContext();
+        proc.onScheduled(context);
+
+        final int numMessages = 3;
+        final int port = proc.getPort();
+        Assert.assertTrue(port > 0);
+
+        // send 3 messages as 1
+        final String multipleMessages = VALID_MESSAGE + "\n" + VALID_MESSAGE + "\n" + VALID_MESSAGE;
+        final Thread sender = new Thread(new SingleConnectionSocketSender(port, 1, 10, multipleMessages));
+        sender.setDaemon(true);
+        sender.start();
+
+        // call onTrigger until we read all messages, or 30 seconds passed
+        try {
+            int numTransfered = 0;
+            long timeout = System.currentTimeMillis() + 30000;
+
+            while (numTransfered < numMessages && System.currentTimeMillis() < timeout) {
+                Thread.sleep(10);
+                proc.onTrigger(context, processSessionFactory);
+                numTransfered = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
+            }
+            Assert.assertEquals("Did not process all the messages", numMessages, numTransfered);
+
+            MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
+            checkFlowFile(flowFile, 0, ListenSyslog.TCP_VALUE.getValue());
+
+            final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
+            Assert.assertNotNull(events);
+            Assert.assertEquals(numMessages, events.size());
+
+            final ProvenanceEventRecord event = events.get(0);
+            Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
+            Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("tcp"));
+
+        } finally {
+            // unschedule to close connections
+            proc.onUnscheduled();
+        }
+    }
+
+    @Test
     public void testTCPMultipleConnection() throws IOException, InterruptedException {
         final ListenSyslog proc = new ListenSyslog();
         final TestRunner runner = TestRunners.newTestRunner(proc);
