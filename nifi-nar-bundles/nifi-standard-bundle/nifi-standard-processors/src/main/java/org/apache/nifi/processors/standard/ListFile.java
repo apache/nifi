@@ -220,8 +220,9 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final Path filePath = file.toPath();
         final Path directoryPath = new File(getPath(context)).toPath();
 
-        final Path relativePath = directoryPath.relativize(filePath.getParent());
-        String relativePathString = relativePath.toString() + "/";
+        final Path relativePath = directoryPath.toAbsolutePath().relativize(filePath.getParent());
+        String relativePathString = relativePath.toString();
+        relativePathString = relativePathString.isEmpty() ? "./" : relativePathString + "/";
 
         final Path absPath = filePath.toAbsolutePath();
         final String absPathString = absPath.getParent().toString() + "/";

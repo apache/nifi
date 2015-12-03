@@ -18,6 +18,22 @@
 package org.apache.nifi.processors.standard;
 
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.FileStore;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -28,23 +44,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.FileStore;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class TestListFile  {
 
@@ -423,8 +422,27 @@ public class TestListFile  {
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.setProperty(ListFile.RECURSE, "true");
         runner.run();
-        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS, 3);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        for (final MockFlowFile mff : successFiles1) {
+            final String filename = mff.getAttribute(CoreAttributes.FILENAME.key());
+            final String path = mff.getAttribute(CoreAttributes.PATH.key());
+
+            switch (filename) {
+                case "file1.txt":
+                    assertEquals("./", path);
+                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file1.getParentFile().getAbsolutePath() + "/");
+                    break;
+                case "file2.txt":
+                    assertEquals("subdir1/", path);
+                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file2.getParentFile().getAbsolutePath() + "/");
+                    break;
+                case "file3.txt":
+                    assertEquals("subdir1/subdir2/", path);
+                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file3.getParentFile().getAbsolutePath() + "/");
+                    break;
+            }
+        }
         assertEquals(3, successFiles1.size());
 
         // exclude hidden
@@ -492,7 +510,8 @@ public class TestListFile  {
         final Path file1Path = file1.toPath();
         final Path directoryPath = new File(TESTDIR).toPath();
         final Path relativePath = directoryPath.relativize(file1.toPath().getParent());
-        String relativePathString = relativePath.toString() + "/";
+        String relativePathString = relativePath.toString();
+        relativePathString = relativePathString.isEmpty() ? "./" : relativePathString + "/";
         final Path absolutePath = file1.toPath().toAbsolutePath();
         final String absolutePathString = absolutePath.getParent().toString() + "/";
         final FileStore store = Files.getFileStore(file1Path);
@@ -574,55 +593,5 @@ public class TestListFile  {
                 }
             }
         }
-    }
-
-    private String perms2string(final String permissions) {
-        final StringBuilder sb = new StringBuilder();
-        if (permissions.contains(PosixFilePermission.OWNER_READ.toString())) {
-            sb.append("r");
-        } else {
-            sb.append("-");
-        }
-        if (permissions.contains(PosixFilePermission.OWNER_WRITE.toString())) {
-            sb.append("w");
-        } else {
-            sb.append("-");
-        }
-        if (permissions.contains(PosixFilePermission.OWNER_EXECUTE.toString())) {
-            sb.append("x");
-        } else {
-            sb.append("-");
-        }
-        if (permissions.contains(PosixFilePermission.GROUP_READ.toString())) {
-            sb.append("r");
-        } else {
-            sb.append("-");
-        }
-        if (permissions.contains(PosixFilePermission.GROUP_WRITE.toString())) {
-            sb.append("w");
-        } else {
-            sb.append("-");
-        }
-        if (permissions.contains(PosixFilePermission.GROUP_EXECUTE.toString())) {
-            sb.append("x");
-        } else {
-            sb.append("-");
-        }
-        if (permissions.contains(PosixFilePermission.OTHERS_READ.toString())) {
-            sb.append("r");
-        } else {
-            sb.append("-");
-        }
-        if (permissions.contains(PosixFilePermission.OTHERS_WRITE.toString())) {
-            sb.append("w");
-        } else {
-            sb.append("-");
-        }
-        if (permissions.contains(PosixFilePermission.OTHERS_EXECUTE.toString())) {
-            sb.append("x");
-        } else {
-            sb.append("-");
-        }
-        return sb.toString();
     }
 }
