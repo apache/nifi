@@ -16,16 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.security.Security;
-import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -51,8 +42,19 @@ import org.apache.nifi.processors.standard.util.OpenPGPKeyBasedEncryptor;
 import org.apache.nifi.processors.standard.util.OpenPGPPasswordBasedEncryptor;
 import org.apache.nifi.processors.standard.util.PasswordBasedEncryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.util.StopWatch;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import java.security.Security;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @EventDriven
 @SideEffectFree
@@ -71,6 +73,14 @@ public class EncryptContent extends AbstractProcessor {
             .required(true)
             .allowableValues(ENCRYPT_MODE, DECRYPT_MODE)
             .defaultValue(ENCRYPT_MODE)
+            .build();
+    public static final PropertyDescriptor KEY_DERIVATION_FUNCTION = new PropertyDescriptor.Builder()
+            .name("key-derivation-function")
+            .displayName("Key Derivation Function")
+            .description("Specifies the key derivation function to generate the key from the password (and salt)")
+            .required(true)
+            .allowableValues(KeyDerivationFunction.values())
+            .defaultValue(KeyDerivationFunction.NIFI_LEGACY.name())
             .build();
     public static final PropertyDescriptor ENCRYPTION_ALGORITHM = new PropertyDescriptor.Builder()
             .name("Encryption Algorithm")
@@ -133,6 +143,7 @@ public class EncryptContent extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(MODE);
+        properties.add(KEY_DERIVATION_FUNCTION);
         properties.add(ENCRYPTION_ALGORITHM);
         properties.add(PASSWORD);
         properties.add(PUBLIC_KEYRING);
@@ -171,6 +182,7 @@ public class EncryptContent extends AbstractProcessor {
         final String method = context.getProperty(ENCRYPTION_ALGORITHM).getValue();
         final String algorithm = EncryptionMethod.valueOf(method).getAlgorithm();
         final String password = context.getProperty(PASSWORD).getValue();
+        final String kdf = context.getProperty(KEY_DERIVATION_FUNCTION).getValue();
         if (isPGPAlgorithm(algorithm)) {
             if (password == null) {
                 final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
@@ -227,9 +239,15 @@ public class EncryptContent extends AbstractProcessor {
                     }
                 }
             }
-        } else if (password == null) {
-            validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
-                    .explanation(PASSWORD.getDisplayName() + " is required when using algorithm " + algorithm).build());
+        } else { // PBE
+            if (StringUtils.isEmpty(password)) {
+                validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
+                        .explanation(PASSWORD.getDisplayName() + " is required when using algorithm " + algorithm).build());
+            }
+            if (StringUtils.isEmpty(kdf)) {
+                validationResults.add(new ValidationResult.Builder().subject(KEY_DERIVATION_FUNCTION.getName())
+                        .explanation(KEY_DERIVATION_FUNCTION.getDisplayName() + " is required when using algorithm " + algorithm).build());
+            }
         }
         return validationResults;
     }
@@ -247,6 +265,7 @@ public class EncryptContent extends AbstractProcessor {
         final String providerName = encryptionMethod.getProvider();
         final String algorithm = encryptionMethod.getAlgorithm();
         final String password = context.getProperty(PASSWORD).getValue();
+        final KeyDerivationFunction kdf = KeyDerivationFunction.valueOf(context.getProperty(KEY_DERIVATION_FUNCTION).getValue());
         final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
 
         Encryptor encryptor;
@@ -267,9 +286,9 @@ public class EncryptContent extends AbstractProcessor {
                     final char[] passphrase = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
                     encryptor = new OpenPGPPasswordBasedEncryptor(algorithm, providerName, passphrase, filename);
                 }
-            } else {
+            } else { // PBE
                 final char[] passphrase = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
-                encryptor = new PasswordBasedEncryptor(algorithm, providerName, passphrase);
+                encryptor = new PasswordBasedEncryptor(algorithm, providerName, passphrase, kdf);
             }
 
             if (encrypt) {
@@ -279,7 +298,7 @@ public class EncryptContent extends AbstractProcessor {
             }
 
         } catch (final Exception e) {
-            logger.error("Failed to initialize {}cryption algorithm because - ", new Object[] { encrypt ? "en" : "de", e });
+            logger.error("Failed to initialize {}cryption algorithm because - ", new Object[]{encrypt ? "en" : "de", e});
             session.rollback();
             context.yield();
             return;
@@ -288,20 +307,20 @@ public class EncryptContent extends AbstractProcessor {
         try {
             final StopWatch stopWatch = new StopWatch(true);
             flowFile = session.write(flowFile, callback);
-            logger.info("successfully {}crypted {}", new Object[] { encrypt ? "en" : "de", flowFile });
+            logger.info("successfully {}crypted {}", new Object[]{encrypt ? "en" : "de", flowFile});
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException e) {
-            logger.error("Cannot {}crypt {} - ", new Object[] { encrypt ? "en" : "de", flowFile, e });
+            logger.error("Cannot {}crypt {} - ", new Object[]{encrypt ? "en" : "de", flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
     }
 
-    public static interface Encryptor {
-        public StreamCallback getEncryptionCallback() throws Exception;
+    public interface Encryptor {
+        StreamCallback getEncryptionCallback() throws Exception;
 
-        public StreamCallback getDecryptionCallback() throws Exception;
+        StreamCallback getDecryptionCallback() throws Exception;
     }
 
 }

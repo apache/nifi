@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.security.SecureRandom;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
+import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.stream.io.StreamUtils;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -29,29 +29,47 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
-
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
-import org.apache.nifi.stream.io.StreamUtils;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Arrays;
 
 public class PasswordBasedEncryptor implements Encryptor {
+
+    private static final int LEGACY_KDF_ITERATIONS = 1000;
 
     private Cipher cipher;
     private int saltSize;
     private SecretKey secretKey;
+    private KeyDerivationFunction kdf;
+    private int iterationsCount = LEGACY_KDF_ITERATIONS;
 
     @Deprecated
     public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
     public static final int DEFAULT_SALT_SIZE = 8;
+    // TODO: Eventually KDF-specific values should be refactored into injectable interface impls
+    public static final int OPENSSL_EVP_HEADER_SIZE = 8;
+    public static final int OPENSSL_EVP_SALT_SIZE = 8;
+    public static final String OPENSSL_EVP_HEADER_MARKER = "Salted__";
+    public static final int OPENSSL_EVP_KDF_ITERATIONS = 0;
 
-    public PasswordBasedEncryptor(final String algorithm, final String providerName, final char[] password) {
+    public PasswordBasedEncryptor(final String algorithm, final String providerName, final char[] password, KeyDerivationFunction kdf) {
         super();
         try {
             // initialize cipher
             this.cipher = Cipher.getInstance(algorithm, providerName);
-            int algorithmBlockSize = cipher.getBlockSize();
-            this.saltSize = (algorithmBlockSize > 0) ? algorithmBlockSize : DEFAULT_SALT_SIZE;
+            this.kdf = kdf;
+
+            if (isOpenSSLKDF()) {
+                this.saltSize = OPENSSL_EVP_SALT_SIZE;
+                this.iterationsCount = OPENSSL_EVP_KDF_ITERATIONS;
+            } else {
+                int algorithmBlockSize = cipher.getBlockSize();
+                this.saltSize = (algorithmBlockSize > 0) ? algorithmBlockSize : DEFAULT_SALT_SIZE;
+            }
 
             // initialize SecretKey from password
             PBEKeySpec pbeKeySpec = new PBEKeySpec(password);
@@ -79,21 +97,50 @@ public class PasswordBasedEncryptor implements Encryptor {
         return new DecryptCallback();
     }
 
+    public int getIterationsCount() {
+        return iterationsCount;
+    }
+
+    private boolean isOpenSSLKDF() {
+        return KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.equals(kdf);
+    }
+
     private class DecryptCallback implements StreamCallback {
 
         public DecryptCallback() {
         }
-
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
-            final byte[] salt = new byte[saltSize];
+            byte[] salt = new byte[saltSize];
+
             try {
+                // If the KDF is OpenSSL, try to read the salt from the input stream
+                if (isOpenSSLKDF()) {
+                    // The header and salt format is "Salted__salt x8b" in ASCII
+
+                    // Try to read the header and salt from the input
+                    byte[] header = new byte[PasswordBasedEncryptor.OPENSSL_EVP_HEADER_SIZE];
+
+                    // Mark the stream in case there is no salt
+                    in.mark(OPENSSL_EVP_HEADER_SIZE + 1);
+                    StreamUtils.fillBuffer(in, header);
+
+                    final byte[] headerMarkerBytes = OPENSSL_EVP_HEADER_MARKER.getBytes(StandardCharsets.US_ASCII);
+
+                    if (!Arrays.equals(headerMarkerBytes, header)) {
+                        // No salt present
+                        salt = new byte[0];
+                        // Reset the stream because we skipped 8 bytes of cipher text
+                        in.reset();
+                    }
+                }
+
                 StreamUtils.fillBuffer(in, salt);
             } catch (final EOFException e) {
                 throw new ProcessException("Cannot decrypt because file size is smaller than salt size", e);
             }
 
-            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, 1000);
+            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, getIterationsCount());
             try {
                 cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
             } catch (final Exception e) {
@@ -115,6 +162,7 @@ public class PasswordBasedEncryptor implements Encryptor {
                 throw new ProcessException(e);
             }
         }
+
     }
 
     private class EncryptCallback implements StreamCallback {
@@ -124,14 +172,18 @@ public class PasswordBasedEncryptor implements Encryptor {
         public EncryptCallback(final byte[] salt) {
             this.salt = salt;
         }
-
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
-            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, 1000);
+            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, getIterationsCount());
             try {
                 cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
             } catch (final Exception e) {
                 throw new ProcessException(e);
+            }
+
+            // If this is OpenSSL EVP, the salt must be preceded by the header
+            if (isOpenSSLKDF()) {
+                out.write(OPENSSL_EVP_HEADER_MARKER.getBytes(StandardCharsets.US_ASCII));
             }
 
             out.write(salt);
@@ -151,5 +203,6 @@ public class PasswordBasedEncryptor implements Encryptor {
                 throw new ProcessException(e);
             }
         }
+
     }
 }

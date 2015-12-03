@@ -16,22 +16,36 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashSet;
-
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.security.Security;
+import java.util.Collection;
+import java.util.HashSet;
 
 public class TestEncryptContent {
+
+    private static final Logger logger = LoggerFactory.getLogger(TestEncryptContent.class);
+
+    @Before
+    public void setUp() {
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     @Test
     public void testRoundTrip() throws IOException {
@@ -60,9 +74,94 @@ public class TestEncryptContent {
             testRunner.run();
             testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
 
+            logger.info("Successfully decrypted {}", method.name());
+
             flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
             flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
         }
+    }
+
+    @Test
+    public void testShouldDecryptOpenSSLRawSalted() throws IOException {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+
+        final String password = "thisIsABadPassword";
+        final EncryptionMethod method = EncryptionMethod.MD5_256AES;
+        final KeyDerivationFunction kdf = KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY;
+
+        testRunner.setProperty(EncryptContent.PASSWORD, password);
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, kdf.name());
+        testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, method.name());
+        testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+
+        // Act
+        testRunner.enqueue(Paths.get("src/test/resources/TestEncryptContent/salted_raw.enc"));
+        testRunner.clearTransferState();
+        testRunner.run();
+
+        // Assert
+        testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
+        testRunner.assertQueueEmpty();
+
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
+        logger.info("Decrypted contents (hex): {}", Hex.encodeHexString(flowFile.toByteArray()));
+        logger.info("Decrypted contents: {}", new String(flowFile.toByteArray(), "UTF-8"));
+
+        // Assert
+        flowFile.assertContentEquals(new File("src/test/resources/TestEncryptContent/plain.txt"));
+    }
+
+    @Test
+    public void testShouldDecryptOpenSSLRawUnsalted() throws IOException {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+
+        final String password = "thisIsABadPassword";
+        final EncryptionMethod method = EncryptionMethod.MD5_256AES;
+        final KeyDerivationFunction kdf = KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY;
+
+        testRunner.setProperty(EncryptContent.PASSWORD, password);
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, kdf.name());
+        testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, method.name());
+        testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+
+        // Act
+        testRunner.enqueue(Paths.get("src/test/resources/TestEncryptContent/unsalted_raw.enc"));
+        testRunner.clearTransferState();
+        testRunner.run();
+
+        // Assert
+        testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
+        testRunner.assertQueueEmpty();
+
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
+        logger.info("Decrypted contents (hex): {}", Hex.encodeHexString(flowFile.toByteArray()));
+        logger.info("Decrypted contents: {}", new String(flowFile.toByteArray(), "UTF-8"));
+
+        // Assert
+        flowFile.assertContentEquals(new File("src/test/resources/TestEncryptContent/plain.txt"));
+    }
+
+    @Test
+    public void testDecryptShouldDefaultToLegacyKDF() throws IOException {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+
+        final String password = "thisIsABadPassword";
+        final EncryptionMethod method = EncryptionMethod.MD5_256AES;
+
+        testRunner.setProperty(EncryptContent.PASSWORD, password);
+        testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, method.name());
+        testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+
+        // Don't set the KDF property
+
+        // Act
+        testRunner.run();
+
+        // Assert
+        assert testRunner.getProcessor().getPropertyDescriptor(EncryptContent.KEY_DERIVATION_FUNCTION.getName()).getDefaultValue().equals(KeyDerivationFunction.NIFI_LEGACY.name());
     }
 
     @Test
@@ -143,8 +242,8 @@ public class TestEncryptContent {
         for (final ValidationResult vr : results) {
             Assert.assertTrue(vr.toString().contains(
                     " decryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
-                    + EncryptContent.PRIVATE_KEYRING.getDisplayName() + " and "
-                    + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
+                            + EncryptContent.PRIVATE_KEYRING.getDisplayName() + " and "
+                            + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
 
         }
 
