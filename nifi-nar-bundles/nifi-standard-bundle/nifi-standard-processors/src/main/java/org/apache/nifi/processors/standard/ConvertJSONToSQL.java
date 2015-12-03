@@ -471,7 +471,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             final ColumnDescription desc = schema.getColumns().get(normalizedColName);
 
             if (desc == null) {
-                if (ignoreUnmappedFields) {
+                if (!ignoreUnmappedFields) {
                     throw new ProcessException("Cannot map JSON field '" + fieldName + "' to any column in the database");
                 } else {
                     continue;
