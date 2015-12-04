@@ -42,21 +42,28 @@ public class TestGetJMSQueue {
 
     @Test
     public void testSendTextToQueue() throws Exception {
-        GetJMSQueue getJmsQueue = new GetJMSQueue();
-        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
-        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
-        runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
-        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        PutJMS putJms = new PutJMS();
+        TestRunner putRunner = TestRunners.newTestRunner(putJms);
+        putRunner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        putRunner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
+        putRunner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
+        putRunner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
+        putRunner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
 
-        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
+        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(putRunner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
         final Message message = jmsSession.createTextMessage("Hello World");
 
         producer.send(message);
         jmsSession.commit();
+
+        GetJMSQueue getJmsQueue = new GetJMSQueue();
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
+        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
 
         runner.run();
 
@@ -73,14 +80,14 @@ public class TestGetJMSQueue {
 
     @Test
     public void testSendBytesToQueue() throws Exception {
-        GetJMSQueue getJmsQueue = new GetJMSQueue();
-        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
-        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
-        runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
-        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
+        PutJMS putJms = new PutJMS();
+        TestRunner putRunner = TestRunners.newTestRunner(putJms);
+        putRunner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        putRunner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
+        putRunner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
+        putRunner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
+        putRunner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(putRunner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
         final BytesMessage message = jmsSession.createBytesMessage();
@@ -88,6 +95,13 @@ public class TestGetJMSQueue {
 
         producer.send(message);
         jmsSession.commit();
+
+        GetJMSQueue getJmsQueue = new GetJMSQueue();
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
+        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
 
         runner.run();
 
@@ -104,14 +118,14 @@ public class TestGetJMSQueue {
 
     @Test
     public void testSendStreamToQueue() throws Exception {
-        GetJMSQueue getJmsQueue = new GetJMSQueue();
-        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
-        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
-        runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
-        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
+        PutJMS putJms = new PutJMS();
+        TestRunner putRunner = TestRunners.newTestRunner(putJms);
+        putRunner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        putRunner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
+        putRunner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
+        putRunner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
+        putRunner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(putRunner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
 
@@ -120,6 +134,13 @@ public class TestGetJMSQueue {
 
         producer.send(message);
         jmsSession.commit();
+
+        GetJMSQueue getJmsQueue = new GetJMSQueue();
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.URL, "vm://localhost?broker.persistent=false");
+        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
 
         runner.run();
 
