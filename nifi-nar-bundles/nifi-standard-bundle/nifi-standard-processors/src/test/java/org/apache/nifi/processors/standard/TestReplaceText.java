@@ -914,13 +914,13 @@ public class TestReplaceText {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "Good");
-        runner.enqueue(translateNewLines(Paths.get("src/test/resources/TestReplaceTextLineByLine/testFile.txt")), attributes);
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceTextLineByLine/testFile.txt"), attributes);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/Good.txt")));
+        out.assertContentEquals("Good\nGood\nGood\nGood\nGood\nGood\nGood\nGood\nGood\nGood\nGood");
     }
 
     @Test
@@ -939,7 +939,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("GoodGoodGood");
+        out.assertContentEquals("Good\r\nGood\r\nGood\r");
     }
 
     @Test
@@ -984,17 +984,108 @@ public class TestReplaceText {
         System.out.println(outContent);
         Assert.assertTrue(outContent.equals("attribute header\n\nabc.txt\n\ndata header\n\nHello\n\n\nfooter\n"
                 + "attribute header\n\nabc.txt\n\ndata header\n\nWorld!\n\nfooter\n"));
-
     }
 
-    private byte[] translateNewLines(final File file) throws IOException {
+    @Test
+    public void testCapturingGroupInExpressionLanguage() {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(.*?),(.*?),(\\d+.*)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "$1,$2,${ '$3':toDate('ddMMMyyyy'):format('yyyy/MM/dd') }");
+
+        final String csvIn =
+              "2006,10-01-2004,10may2004\n"
+            + "2007,15-05-2006,10jun2005\r\n"
+            + "2009,8-8-2008,10aug2008";
+        final String expectedCsvOut =
+            "2006,10-01-2004,2004/05/10\n"
+          + "2007,15-05-2006,2005/06/10\r\n"
+          + "2009,8-8-2008,2008/08/10";
+
+        runner.enqueue(csvIn.getBytes());
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(expectedCsvOut);
+    }
+
+    @Test
+    public void testCapturingGroupInExpressionLanguage2() {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(.*)/(.*?).jpg");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "$1/${ '$2':substring(0,1) }.png");
+
+        final String csvIn =
+              "1,2,3,https://123.jpg,email@mydomain.com\n"
+            + "3,2,1,https://321.jpg,other.email@mydomain.com";
+        final String expectedCsvOut =
+            "1,2,3,https://1.png,email@mydomain.com\n"
+          + "3,2,1,https://3.png,other.email@mydomain.com";
+
+        runner.enqueue(csvIn.getBytes());
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(expectedCsvOut);
+    }
+
+    @Test
+    public void testAlwaysReplaceEntireText() {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.ALWAYS_REPLACE);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "i do not exist anywhere in the text");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${filename}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "abc.txt");
+        runner.enqueue("Hello\nWorld!".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("abc.txt");
+    }
+
+    @Test
+    public void testAlwaysReplaceLineByLine() {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.ALWAYS_REPLACE);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "i do not exist anywhere in the text");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${filename}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "abc.txt");
+        runner.enqueue("Hello\nWorld!\r\ntoday!\n".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("abc.txt\nabc.txt\r\nabc.txt\n");
+    }
+
+
+
+    private String translateNewLines(final File file) throws IOException {
         return translateNewLines(file.toPath());
     }
 
-    private byte[] translateNewLines(final Path path) throws IOException {
+    private String translateNewLines(final Path path) throws IOException {
         final byte[] data = Files.readAllBytes(path);
         final String text = new String(data, StandardCharsets.UTF_8);
-        return translateNewLines(text).getBytes(StandardCharsets.UTF_8);
+        return translateNewLines(text);
     }
 
     private String translateNewLines(final String text) {

@@ -59,4 +59,9 @@ public class EmptyPreparedQuery implements PreparedQuery {
     public String evaluateExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException {
         return value;
     }
+
+    @Override
+    public String evaluateExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException {
+        return value;
+    }
 }

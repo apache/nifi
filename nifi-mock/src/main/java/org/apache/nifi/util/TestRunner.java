@@ -364,14 +364,31 @@ public interface TestRunner {
     void enqueue(byte[] data);
 
     /**
+     * Creates a FlowFile with the content set to the given string (in UTF-8 format), with no attributes,
+     * and adds this FlowFile to the Processor's Input Queue
+     *
+     * @param data to enqueue
+     */
+    void enqueue(String data);
+
+    /**
      * Copies the content from the given byte array into memory and creates a
      * FlowFile from this content with the given attributes and adds this
      * FlowFile to the Processor's Input Queue
      *
      * @param data to enqueue
-     * @param attributes to use for enqueued items
+     * @param attributes to use for enqueued item
      */
     void enqueue(byte[] data, Map<String, String> attributes);
+
+    /**
+     * Creates a FlowFile with the content set to the given string (in UTF-8 format), with the given attributes,
+     * and adds this FlowFile to the Processor's Input Queue
+     *
+     * @param data to enqueue
+     * @param attributes to use for enqueued item
+     */
+    void enqueue(String data, Map<String, String> attributes);
 
     /**
      * Reads the content from the given {@link InputStream} into memory and

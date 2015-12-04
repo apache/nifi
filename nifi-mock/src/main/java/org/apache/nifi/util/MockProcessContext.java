@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -331,4 +333,13 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
         }
     }
 
+    @Override
+    public boolean isExpressionLanguagePresent(final PropertyDescriptor property) {
+        if (property == null || !property.isExpressionLanguageSupported()) {
+            return false;
+        }
+
+        final List<Range> elRanges = Query.extractExpressionRanges(getProperty(property).getValue());
+        return (elRanges != null && !elRanges.isEmpty());
+    }
 }
