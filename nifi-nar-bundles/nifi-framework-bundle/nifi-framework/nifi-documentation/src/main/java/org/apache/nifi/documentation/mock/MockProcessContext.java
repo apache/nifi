@@ -98,5 +98,8 @@ public class MockProcessContext implements ProcessContext {
         return false;
     }
 
-
+    @Override
+    public boolean isExpressionLanguagePresent(PropertyDescriptor property) {
+        return false;
+    }
 }

@@ -60,6 +60,12 @@ public class StandardPreparedQuery implements PreparedQuery {
     }
 
     @Override
+    public String evaluateExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes, final AttributeValueDecorator decorator) throws ProcessException {
+        final Map<String, String> expressionMap = Query.createExpressionMap(flowFile, additionalAttributes);
+        return evaluateExpressions(expressionMap, decorator);
+    }
+
+    @Override
     public String evaluateExpressions(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
         final Map<String, String> expressionMap = Query.createExpressionMap(flowFile);
         return evaluateExpressions(expressionMap, decorator);

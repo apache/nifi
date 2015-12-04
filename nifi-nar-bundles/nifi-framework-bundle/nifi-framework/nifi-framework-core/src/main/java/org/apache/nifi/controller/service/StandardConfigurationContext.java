@@ -22,12 +22,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.processor.StandardPropertyValue;
 import org.apache.nifi.util.FormatUtils;
 
 public class StandardConfigurationContext implements ConfigurationContext {

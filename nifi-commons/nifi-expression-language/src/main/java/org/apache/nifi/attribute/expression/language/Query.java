@@ -19,6 +19,7 @@ package org.apache.nifi.attribute.expression.language;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -416,7 +417,12 @@ public class Query {
     }
 
     static Map<String, String> createExpressionMap(final FlowFile flowFile) {
-        final Map<String, String> attributeMap = flowFile == null ? new HashMap<String, String>() : flowFile.getAttributes();
+        return createExpressionMap(flowFile, null);
+    }
+
+    static Map<String, String> createExpressionMap(final FlowFile flowFile, final Map<String, String> additionalAttributes) {
+        final Map<String, String> attributeMap = flowFile == null ? Collections.<String, String> emptyMap() : flowFile.getAttributes();
+        final Map<String, String> additionalOrEmpty = additionalAttributes == null ? Collections.<String, String> emptyMap() : additionalAttributes;
         final Map<String, String> envMap = System.getenv();
         final Map<?, ?> sysProps = System.getProperties();
 
@@ -428,13 +434,13 @@ public class Query {
             flowFileProps.put("lineageStartDate", String.valueOf(flowFile.getLineageStartDate()));
         }
 
-        return wrap(attributeMap, flowFileProps, envMap, sysProps);
+        return wrap(additionalOrEmpty, attributeMap, flowFileProps, envMap, sysProps);
     }
 
-    private static Map<String, String> wrap(final Map<String, String> attributes, final Map<String, String> flowFileProps,
+    private static Map<String, String> wrap(final Map<String, String> additional, final Map<String, String> attributes, final Map<String, String> flowFileProps,
         final Map<String, String> env, final Map<?, ?> sysProps) {
         @SuppressWarnings("rawtypes")
-        final Map[] maps = new Map[]{attributes, flowFileProps, env, sysProps};
+        final Map[] maps = new Map[] {additional, attributes, flowFileProps, env, sysProps};
 
         return new Map<String, String>() {
             @Override

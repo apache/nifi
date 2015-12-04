@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -385,9 +386,20 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void enqueue(final String data) {
+        enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.<String, String> emptyMap());
+    }
+
+    @Override
     public void enqueue(final byte[] data, final Map<String, String> attributes) {
         enqueue(new ByteArrayInputStream(data), attributes);
     }
+
+    @Override
+    public void enqueue(final String data, final Map<String, String> attributes) {
+        enqueue(data.getBytes(StandardCharsets.UTF_8), attributes);
+    }
+
 
     @Override
     public void enqueue(final InputStream data) {

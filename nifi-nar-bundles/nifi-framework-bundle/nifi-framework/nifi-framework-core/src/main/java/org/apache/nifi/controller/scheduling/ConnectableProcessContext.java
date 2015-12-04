@@ -59,6 +59,9 @@ public class ConnectableProcessContext implements ProcessContext {
 
     @Override
     public PropertyValue getProperty(final String propertyName) {
+        // None of the connectable components other than Processor's will ever need to evaluate these.
+        // Since Processors use a different implementation of ProcessContext all together, we will just
+        // return null for all values
         return new PropertyValue() {
             @Override
             public String getValue() {
@@ -134,6 +137,26 @@ public class ConnectableProcessContext implements ProcessContext {
             public boolean isSet() {
                 return false;
             }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes) throws ProcessException {
+                return null;
+            }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes) throws ProcessException {
+                return null;
+            }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException {
+                return null;
+            }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException {
+                return null;
+            }
         };
     }
 
@@ -208,5 +231,8 @@ public class ConnectableProcessContext implements ProcessContext {
         return connections != null && !connections.isEmpty();
     }
 
-
+    @Override
+    public boolean isExpressionLanguagePresent(PropertyDescriptor property) {
+        return false;
+    }
 }

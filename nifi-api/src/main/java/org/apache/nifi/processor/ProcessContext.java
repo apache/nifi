@@ -147,4 +147,11 @@ public interface ProcessContext {
      */
     boolean hasConnection(Relationship relationship);
 
+    /**
+     * @param property the Property whose value should be inspected to determined if it contains an Expression Language Expression
+     * @return <code>true</code> if the value of the given Property contains a NiFi Expression
+     * Language Expression, <code>false</code> if it does not. Note that <code>false</code> will be returned if the Property Descriptor
+     * does not allow the Expression Language, even if a seemingly valid Expression is present in the value.
+     */
+    boolean isExpressionLanguagePresent(PropertyDescriptor property);
 }

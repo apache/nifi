@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processor;
 
-import org.apache.nifi.processor.StandardPropertyValue;
-
 import static org.junit.Assert.assertEquals;
 
 import java.util.Calendar;
@@ -25,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;

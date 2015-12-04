@@ -18,11 +18,11 @@ package org.apache.nifi.web.controller;
 
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.processor.StandardPropertyValue;
 import org.apache.nifi.search.SearchContext;
 
 /**

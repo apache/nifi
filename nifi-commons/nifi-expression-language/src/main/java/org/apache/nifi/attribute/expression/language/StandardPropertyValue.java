@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor;
+package org.apache.nifi.attribute.expression.language;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.attribute.expression.language.PreparedQuery;
-import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.FormatUtils;
 
-public final class StandardPropertyValue implements PropertyValue {
+public class StandardPropertyValue implements PropertyValue {
 
     private final String rawValue;
     private final ControllerServiceLookup serviceLookup;
@@ -95,26 +95,46 @@ public final class StandardPropertyValue implements PropertyValue {
 
     @Override
     public PropertyValue evaluateAttributeExpressions() throws ProcessException {
-        return evaluateAttributeExpressions(null, null);
+        return evaluateAttributeExpressions(null, null, null);
+    }
+
+    @Override
+    public PropertyValue evaluateAttributeExpressions(final Map<String, String> attributes) throws ProcessException {
+        return evaluateAttributeExpressions(null, attributes, null);
+    }
+
+    @Override
+    public PropertyValue evaluateAttributeExpressions(final Map<String, String> attributes, final AttributeValueDecorator decorator) throws ProcessException {
+        return evaluateAttributeExpressions(null, attributes, decorator);
     }
 
     @Override
     public PropertyValue evaluateAttributeExpressions(final AttributeValueDecorator decorator) throws ProcessException {
-        return evaluateAttributeExpressions(null, decorator);
+        return evaluateAttributeExpressions(null, null, decorator);
     }
 
     @Override
     public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile) throws ProcessException {
-        return evaluateAttributeExpressions(flowFile, null);
+        return evaluateAttributeExpressions(flowFile, null, null);
+    }
+
+    @Override
+    public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes) throws ProcessException {
+        return evaluateAttributeExpressions(flowFile, additionalAttributes, null);
     }
 
     @Override
     public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
+        return evaluateAttributeExpressions(flowFile, null, decorator);
+    }
+
+    @Override
+    public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes, final AttributeValueDecorator decorator) throws ProcessException {
         if (rawValue == null || preparedQuery == null) {
             return this;
         }
 
-        return new StandardPropertyValue(preparedQuery.evaluateExpressions(flowFile, decorator), serviceLookup, null);
+        return new StandardPropertyValue(preparedQuery.evaluateExpressions(flowFile, additionalAttributes, decorator), serviceLookup, null);
     }
 
     @Override
@@ -124,7 +144,7 @@ public final class StandardPropertyValue implements PropertyValue {
 
     @Override
     public ControllerService asControllerService() {
-        if (rawValue == null || rawValue.equals("")) {
+        if (rawValue == null || rawValue.equals("") || serviceLookup == null) {
             return null;
         }
 
@@ -136,7 +156,7 @@ public final class StandardPropertyValue implements PropertyValue {
         if (!serviceType.isInterface()) {
             throw new IllegalArgumentException("ControllerServices may be referenced only via their interfaces; " + serviceType + " is not an interface");
         }
-        if (rawValue == null || rawValue.equals("")) {
+        if (rawValue == null || rawValue.equals("") || serviceLookup == null) {
             return null;
         }
 
