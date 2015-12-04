@@ -310,6 +310,9 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestIdentifyMimeType/flowfilev1.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.zip</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
                     </excludes>
                 </configuration>
             </plugin>
