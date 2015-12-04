@@ -1137,6 +1137,7 @@ nf.Canvas = (function () {
                             nf.GraphControl.init();
                             nf.Search.init();
                             nf.Settings.init();
+                            nf.Actions.init();
 
                             // initialize the component behaviors
                             nf.Draggable.init();
