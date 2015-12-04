@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -34,12 +37,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.List;
 
 public class PasswordBasedEncryptor implements Encryptor {
+    private static final Logger logger = LoggerFactory.getLogger(PasswordBasedEncryptor.class);
 
-    private static final int LEGACY_KDF_ITERATIONS = 1000;
 
     private Cipher cipher;
     private int saltSize;
@@ -48,13 +53,27 @@ public class PasswordBasedEncryptor implements Encryptor {
     private int iterationsCount = LEGACY_KDF_ITERATIONS;
 
     @Deprecated
-    public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
-    public static final int DEFAULT_SALT_SIZE = 8;
+    private static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
+    private static final int DEFAULT_SALT_SIZE = 8;
     // TODO: Eventually KDF-specific values should be refactored into injectable interface impls
-    public static final int OPENSSL_EVP_HEADER_SIZE = 8;
-    public static final int OPENSSL_EVP_SALT_SIZE = 8;
-    public static final String OPENSSL_EVP_HEADER_MARKER = "Salted__";
-    public static final int OPENSSL_EVP_KDF_ITERATIONS = 0;
+    private static final int LEGACY_KDF_ITERATIONS = 1000;
+    private static final int OPENSSL_EVP_HEADER_SIZE = 8;
+    private static final int OPENSSL_EVP_SALT_SIZE = 8;
+    private static final String OPENSSL_EVP_HEADER_MARKER = "Salted__";
+    private static final int OPENSSL_EVP_KDF_ITERATIONS = 0;
+    private static final int DEFAULT_MAX_ALLOWED_KEY_LENGTH = 128;
+
+    private static boolean isUnlimitedStrengthCryptographyEnabled;
+
+    // Evaluate an unlimited strength algorithm to determine if we support the capability we have on the system
+    static {
+        try {
+            isUnlimitedStrengthCryptographyEnabled = (Cipher.getMaxAllowedKeyLength("AES") > DEFAULT_MAX_ALLOWED_KEY_LENGTH);
+        } catch (NoSuchAlgorithmException e) {
+            // if there are issues with this, we default back to the value established
+            isUnlimitedStrengthCryptographyEnabled = false;
+        }
+    }
 
     public PasswordBasedEncryptor(final String algorithm, final String providerName, final char[] password, KeyDerivationFunction kdf) {
         super();
@@ -72,12 +91,56 @@ public class PasswordBasedEncryptor implements Encryptor {
             }
 
             // initialize SecretKey from password
-            PBEKeySpec pbeKeySpec = new PBEKeySpec(password);
-            SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, providerName);
+            final PBEKeySpec pbeKeySpec = new PBEKeySpec(password);
+            final SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, providerName);
             this.secretKey = factory.generateSecret(pbeKeySpec);
         } catch (Exception e) {
             throw new ProcessException(e);
         }
+    }
+
+    public static int getMaxAllowedKeyLength(final String algorithm) {
+        if (StringUtils.isEmpty(algorithm)) {
+            return DEFAULT_MAX_ALLOWED_KEY_LENGTH;
+        }
+        String parsedCipher = parseCipherFromAlgorithm(algorithm);
+        try {
+            return Cipher.getMaxAllowedKeyLength(parsedCipher);
+        } catch (NoSuchAlgorithmException e) {
+            logger.warn("Could not determine max allowed key size for {}", algorithm);
+            // Default algorithm max key length on unmodified JRE
+            return DEFAULT_MAX_ALLOWED_KEY_LENGTH;
+        }
+    }
+
+    private static String parseCipherFromAlgorithm(final String algorithm) {
+        // This is not optimal but the algorithms do not have a standard format
+        final String AES = "AES";
+        final String TDES = "TRIPLEDES";
+        final String DES = "DES";
+        final String RC4 = "RC4";
+        final String RC2 = "RC2";
+        final String TWOFISH = "TWOFISH";
+        final List<String> SYMMETRIC_CIPHERS = Arrays.asList(AES, TDES, DES, RC4, RC2, TWOFISH);
+
+        // The algorithms contain "TRIPLEDES" but the cipher name is "DESede"
+        final String ACTUAL_TDES_CIPHER = "DESede";
+
+        for (String cipher : SYMMETRIC_CIPHERS) {
+            if (algorithm.contains(cipher)) {
+                if (cipher.equals(TDES)) {
+                    return ACTUAL_TDES_CIPHER;
+                } else {
+                    return cipher;
+                }
+            }
+        }
+
+        return algorithm;
+    }
+
+    public static boolean supportsUnlimitedStrength() {
+        return isUnlimitedStrengthCryptographyEnabled;
     }
 
     @Override
@@ -97,7 +160,7 @@ public class PasswordBasedEncryptor implements Encryptor {
         return new DecryptCallback();
     }
 
-    public int getIterationsCount() {
+    private int getIterationsCount() {
         return iterationsCount;
     }
 

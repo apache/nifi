@@ -68,68 +68,68 @@ public class EncryptContent extends AbstractProcessor {
     public static final String DECRYPT_MODE = "Decrypt";
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
-            .name("Mode")
-            .description("Specifies whether the content should be encrypted or decrypted")
-            .required(true)
-            .allowableValues(ENCRYPT_MODE, DECRYPT_MODE)
-            .defaultValue(ENCRYPT_MODE)
-            .build();
+        .name("Mode")
+        .description("Specifies whether the content should be encrypted or decrypted")
+        .required(true)
+        .allowableValues(ENCRYPT_MODE, DECRYPT_MODE)
+        .defaultValue(ENCRYPT_MODE)
+        .build();
     public static final PropertyDescriptor KEY_DERIVATION_FUNCTION = new PropertyDescriptor.Builder()
-            .name("key-derivation-function")
-            .displayName("Key Derivation Function")
-            .description("Specifies the key derivation function to generate the key from the password (and salt)")
-            .required(true)
-            .allowableValues(KeyDerivationFunction.values())
-            .defaultValue(KeyDerivationFunction.NIFI_LEGACY.name())
-            .build();
+        .name("key-derivation-function")
+        .displayName("Key Derivation Function")
+        .description("Specifies the key derivation function to generate the key from the password (and salt)")
+        .required(true)
+        .allowableValues(KeyDerivationFunction.values())
+        .defaultValue(KeyDerivationFunction.NIFI_LEGACY.name())
+        .build();
     public static final PropertyDescriptor ENCRYPTION_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("Encryption Algorithm")
-            .description("The Encryption Algorithm to use")
-            .required(true)
-            .allowableValues(EncryptionMethod.values())
-            .defaultValue(EncryptionMethod.MD5_256AES.name())
-            .build();
+        .name("Encryption Algorithm")
+        .description("The Encryption Algorithm to use")
+        .required(true)
+        .allowableValues(EncryptionMethod.values())
+        .defaultValue(EncryptionMethod.MD5_128AES.name())
+        .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("Password")
-            .description("The Password to use for encrypting or decrypting the data")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .build();
+        .name("Password")
+        .description("The Password to use for encrypting or decrypting the data")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .sensitive(true)
+        .build();
     public static final PropertyDescriptor PUBLIC_KEYRING = new PropertyDescriptor.Builder()
-            .name("public-keyring-file")
-            .displayName("Public Keyring File")
-            .description("In a PGP encrypt mode, this keyring contains the public key of the recipient")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+        .name("public-keyring-file")
+        .displayName("Public Keyring File")
+        .description("In a PGP encrypt mode, this keyring contains the public key of the recipient")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
     public static final PropertyDescriptor PUBLIC_KEY_USERID = new PropertyDescriptor.Builder()
-            .name("public-key-user-id")
-            .displayName("Public Key User Id")
-            .description("In a PGP encrypt mode, this user id of the recipient")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+        .name("public-key-user-id")
+        .displayName("Public Key User Id")
+        .description("In a PGP encrypt mode, this user id of the recipient")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
     public static final PropertyDescriptor PRIVATE_KEYRING = new PropertyDescriptor.Builder()
-            .name("private-keyring-file")
-            .displayName("Private Keyring File")
-            .description("In a PGP decrypt mode, this keyring contains the private key of the recipient")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+        .name("private-keyring-file")
+        .displayName("Private Keyring File")
+        .description("In a PGP decrypt mode, this keyring contains the private key of the recipient")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
     public static final PropertyDescriptor PRIVATE_KEYRING_PASSPHRASE = new PropertyDescriptor.Builder()
-            .name("private-keyring-passphrase")
-            .displayName("Private Keyring Passphrase")
-            .description("In a PGP decrypt mode, this is the private keyring passphrase")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .build();
+        .name("private-keyring-passphrase")
+        .displayName("Private Keyring Passphrase")
+        .description("In a PGP decrypt mode, this is the private keyring passphrase")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .sensitive(true)
+        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("Any FlowFile that is successfully encrypted or decrypted will be routed to success").build();
+        .description("Any FlowFile that is successfully encrypted or decrypted will be routed to success").build();
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("Any FlowFile that cannot be encrypted or decrypted will be routed to failure").build();
+        .description("Any FlowFile that cannot be encrypted or decrypted will be routed to failure").build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -179,8 +179,9 @@ public class EncryptContent extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(context));
-        final String method = context.getProperty(ENCRYPTION_ALGORITHM).getValue();
-        final String algorithm = EncryptionMethod.valueOf(method).getAlgorithm();
+        final String methodValue = context.getProperty(ENCRYPTION_ALGORITHM).getValue();
+        final EncryptionMethod method = EncryptionMethod.valueOf(methodValue);
+        final String algorithm = method.getAlgorithm();
         final String password = context.getProperty(PASSWORD).getValue();
         final String kdf = context.getProperty(KEY_DERIVATION_FUNCTION).getValue();
         if (isPGPAlgorithm(algorithm)) {
@@ -192,23 +193,23 @@ public class EncryptContent extends AbstractProcessor {
                     final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
                     if (publicKeyring == null || publicUserId == null) {
                         validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
-                                .explanation(algorithm + " encryption without a " + PASSWORD.getDisplayName() + " requires both "
-                                        + PUBLIC_KEYRING.getDisplayName() + " and " + PUBLIC_KEY_USERID.getDisplayName())
-                                .build());
+                            .explanation(algorithm + " encryption without a " + PASSWORD.getDisplayName() + " requires both "
+                                + PUBLIC_KEYRING.getDisplayName() + " and " + PUBLIC_KEY_USERID.getDisplayName())
+                            .build());
                     } else {
                         // verify the public keyring contains the user id
                         try {
                             if (OpenPGPKeyBasedEncryptor.getPublicKey(publicUserId, publicKeyring) == null) {
                                 validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
-                                        .explanation(PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
-                                                + " does not contain user id " + publicUserId)
-                                        .build());
+                                    .explanation(PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
+                                        + " does not contain user id " + publicUserId)
+                                    .build());
                             }
                         } catch (final Exception e) {
                             validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
-                                    .explanation("Invalid " + PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
-                                            + " because " + e.toString())
-                                    .build());
+                                .explanation("Invalid " + PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
+                                    + " because " + e.toString())
+                                .build());
                         }
                     }
                 } else {
@@ -217,36 +218,54 @@ public class EncryptContent extends AbstractProcessor {
                     final String keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).getValue();
                     if (privateKeyring == null || keyringPassphrase == null) {
                         validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getName())
-                                .explanation(algorithm + " decryption without a " + PASSWORD.getDisplayName() + " requires both "
-                                        + PRIVATE_KEYRING.getDisplayName() + " and " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
-                                .build());
+                            .explanation(algorithm + " decryption without a " + PASSWORD.getDisplayName() + " requires both "
+                                + PRIVATE_KEYRING.getDisplayName() + " and " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
+                            .build());
                     } else {
-                        final String providerName = EncryptionMethod.valueOf(method).getProvider();
+                        final String providerName = EncryptionMethod.valueOf(methodValue).getProvider();
                         // verify the passphrase works on the private keyring
                         try {
                             if (!OpenPGPKeyBasedEncryptor.validateKeyring(providerName, privateKeyring, keyringPassphrase.toCharArray())) {
                                 validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getDisplayName())
-                                        .explanation(PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
-                                                + " could not be opened with the provided " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
-                                        .build());
+                                    .explanation(PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
+                                        + " could not be opened with the provided " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
+                                    .build());
                             }
                         } catch (final Exception e) {
                             validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getDisplayName())
-                                    .explanation("Invalid " + PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
-                                            + " because " + e.toString())
-                                    .build());
+                                .explanation("Invalid " + PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
+                                    + " because " + e.toString())
+                                .build());
                         }
                     }
                 }
             }
         } else { // PBE
+            if (!PasswordBasedEncryptor.supportsUnlimitedStrength()) {
+                if (method.isUnlimitedStrength()) {
+                    validationResults.add(new ValidationResult.Builder().subject(ENCRYPTION_ALGORITHM.getName())
+                        .explanation(methodValue + " (" + algorithm + ") is not supported by this JVM due to lacking JCE Unlimited " +
+                            "Strength Jurisdiction Policy files.").build());
+                }
+            }
+            int allowedKeyLength = PasswordBasedEncryptor.getMaxAllowedKeyLength(ENCRYPTION_ALGORITHM.getName());
+
             if (StringUtils.isEmpty(password)) {
                 validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
-                        .explanation(PASSWORD.getDisplayName() + " is required when using algorithm " + algorithm).build());
+                    .explanation(PASSWORD.getDisplayName() + " is required when using algorithm " + algorithm).build());
+            } else {
+                if (password.getBytes().length * 8 > allowedKeyLength) {
+                    validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
+                        .explanation("Password length greater than " + allowedKeyLength + " bits is not supported by this JVM" +
+                            " due to lacking JCE Unlimited Strength Jurisdiction Policy files.").build());
+                }
             }
+
+            // Perform some analysis on the selected encryption algorithm to ensure the JVM can support it and the associated key
+
             if (StringUtils.isEmpty(kdf)) {
                 validationResults.add(new ValidationResult.Builder().subject(KEY_DERIVATION_FUNCTION.getName())
-                        .explanation(KEY_DERIVATION_FUNCTION.getDisplayName() + " is required when using algorithm " + algorithm).build());
+                    .explanation(KEY_DERIVATION_FUNCTION.getDisplayName() + " is required when using algorithm " + algorithm).build());
             }
         }
         return validationResults;
@@ -281,7 +300,7 @@ public class EncryptContent extends AbstractProcessor {
                 } else if (!encrypt && privateKeyring != null) {
                     final char[] keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).getValue().toCharArray();
                     encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, privateKeyring, null, keyringPassphrase,
-                            filename);
+                        filename);
                 } else {
                     final char[] passphrase = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
                     encryptor = new OpenPGPPasswordBasedEncryptor(algorithm, providerName, passphrase, filename);
