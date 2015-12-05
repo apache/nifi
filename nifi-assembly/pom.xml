@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.4.0-SNAPSHOT</version>
+        <version>0.4.0</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -359,10 +359,10 @@ language governing permissions and limitations under the License. -->
         <nifi.security.authorizedUsers.file>./conf/authorized-users.xml</nifi.security.authorizedUsers.file>
         <nifi.security.user.credential.cache.duration>24 hours</nifi.security.user.credential.cache.duration>
         <nifi.security.user.authority.provider>file-provider</nifi.security.user.authority.provider>
-        <nifi.security.user.login.identity.provider></nifi.security.user.login.identity.provider>
+        <nifi.security.user.login.identity.provider />
         <nifi.security.x509.principal.extractor />
         <nifi.security.support.new.account.requests />
-        <nifi.security.anonymous.authorities></nifi.security.anonymous.authorities>
+        <nifi.security.anonymous.authorities />
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
 
