@@ -222,10 +222,10 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
         final Path relativePath = directoryPath.toAbsolutePath().relativize(filePath.getParent());
         String relativePathString = relativePath.toString();
-        relativePathString = relativePathString.isEmpty() ? "./" : relativePathString + "/";
+        relativePathString = relativePathString.isEmpty() ? "." + File.separator : relativePathString + File.separator;
 
         final Path absPath = filePath.toAbsolutePath();
-        final String absPathString = absPath.getParent().toString() + "/";
+        final String absPathString = absPath.getParent().toString() + File.separator;
 
         attributes.put(CoreAttributes.PATH.key(), relativePathString);
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
