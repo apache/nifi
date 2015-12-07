@@ -40,6 +40,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -213,7 +214,12 @@ public class PutHDFSTest {
         // forcing IOException downstream
         fs.setPermission(p, new FsPermission(FsAction.READ, FsAction.READ, FsAction.READ));
 
-        TestRunner runner = TestRunners.newTestRunner(PutHDFS.class);
+        TestRunner runner = TestRunners.newTestRunner(new PutHDFS() {
+            @Override
+            protected void changeOwner(ProcessContext context, FileSystem hdfs, Path name) {
+                throw new ProcessException("Forcing Exception to get thrown in order to verify proper handling");
+            }
+        });
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setValidateExpressionUsage(false);
