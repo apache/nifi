@@ -931,16 +931,18 @@ nf.CanvasToolbox = (function () {
                         var processorType = processorTypesGrid.getDataItem(processorTypeIndex);
 
                         // set the processor type description
-                        if (nf.Common.isBlank(processorType.description)) {
-                            $('#processor-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
-                        } else {
-                            $('#processor-type-description').html(processorType.description).ellipsis();
-                        }
+                        if (nf.Common.isDefinedAndNotNull(processorType)) {
+                            if (nf.Common.isBlank(processorType.description)) {
+                                $('#processor-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
+                            } else {
+                                $('#processor-type-description').html(processorType.description).ellipsis();
+                            }
 
-                        // populate the dom
-                        $('#processor-type-name').text(processorType.label).ellipsis();
-                        $('#selected-processor-name').text(processorType.label);
-                        $('#selected-processor-type').text(processorType.type);
+                            // populate the dom
+                            $('#processor-type-name').text(processorType.label).ellipsis();
+                            $('#selected-processor-name').text(processorType.label);
+                            $('#selected-processor-type').text(processorType.type);
+                        }
                     }
                 });
 

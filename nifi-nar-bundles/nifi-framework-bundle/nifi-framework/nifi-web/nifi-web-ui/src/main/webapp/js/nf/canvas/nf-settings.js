@@ -414,19 +414,21 @@ nf.Settings = (function () {
                 var controllerServiceType = controllerServiceTypesGrid.getDataItem(controllerServiceTypeIndex);
 
                 // set the controller service type description
-                if (nf.Common.isBlank(controllerServiceType.description)) {
-                    $('#controller-service-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
-                } else {
-                    $('#controller-service-type-description').html(controllerServiceType.description).ellipsis();
+                if (nf.Common.isDefinedAndNotNull(controllerServiceType)) {
+                    if (nf.Common.isBlank(controllerServiceType.description)) {
+                        $('#controller-service-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
+                    } else {
+                        $('#controller-service-type-description').html(controllerServiceType.description).ellipsis();
+                    }
+
+                    // populate the dom
+                    $('#controller-service-type-name').text(controllerServiceType.label).ellipsis();
+                    $('#selected-controller-service-name').text(controllerServiceType.label);
+                    $('#selected-controller-service-type').text(controllerServiceType.type);
+
+                    // show the selected controller service
+                    $('#controller-service-description-container').show();
                 }
-
-                // populate the dom
-                $('#controller-service-type-name').text(controllerServiceType.label).ellipsis();
-                $('#selected-controller-service-name').text(controllerServiceType.label);
-                $('#selected-controller-service-type').text(controllerServiceType.type);
-
-                // show the selected controller service
-                $('#controller-service-description-container').show();
             }
         });
         controllerServiceTypesGrid.onDblClick.subscribe(function (e, args) {
@@ -1110,19 +1112,21 @@ nf.Settings = (function () {
                 var reportingTaskType = reportingTaskTypesGrid.getDataItem(reportingTaskTypeIndex);
 
                 // set the reporting task type description
-                if (nf.Common.isBlank(reportingTaskType.description)) {
-                    $('#reporting-task-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
-                } else {
-                    $('#reporting-task-type-description').html(reportingTaskType.description).ellipsis();
+                if (nf.Common.isDefinedAndNotNull(reportingTaskType)) {
+                    if (nf.Common.isBlank(reportingTaskType.description)) {
+                        $('#reporting-task-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
+                    } else {
+                        $('#reporting-task-type-description').html(reportingTaskType.description).ellipsis();
+                    }
+
+                    // populate the dom
+                    $('#reporting-task-type-name').text(reportingTaskType.label).ellipsis();
+                    $('#selected-reporting-task-name').text(reportingTaskType.label);
+                    $('#selected-reporting-task-type').text(reportingTaskType.type);
+
+                    // show the selected reporting task
+                    $('#reporting-task-description-container').show();
                 }
-
-                // populate the dom
-                $('#reporting-task-type-name').text(reportingTaskType.label).ellipsis();
-                $('#selected-reporting-task-name').text(reportingTaskType.label);
-                $('#selected-reporting-task-type').text(reportingTaskType.type);
-
-                // show the selected reporting task
-                $('#reporting-task-description-container').show();
             }
         });
         reportingTaskTypesGrid.onDblClick.subscribe(function (e, args) {
