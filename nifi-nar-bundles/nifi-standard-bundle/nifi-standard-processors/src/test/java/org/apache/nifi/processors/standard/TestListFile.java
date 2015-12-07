@@ -430,16 +430,16 @@ public class TestListFile  {
 
             switch (filename) {
                 case "file1.txt":
-                    assertEquals("./", path);
-                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file1.getParentFile().getAbsolutePath() + "/");
+                    assertEquals("." + File.separator, path);
+                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file1.getParentFile().getAbsolutePath() + File.separator);
                     break;
                 case "file2.txt":
-                    assertEquals("subdir1/", path);
-                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file2.getParentFile().getAbsolutePath() + "/");
+                    assertEquals("subdir1" + File.separator, path);
+                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file2.getParentFile().getAbsolutePath() + File.separator);
                     break;
                 case "file3.txt":
-                    assertEquals("subdir1/subdir2/", path);
-                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file3.getParentFile().getAbsolutePath() + "/");
+                    assertEquals("subdir1" + File.separator + "subdir2" + File.separator, path);
+                    mff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), file3.getParentFile().getAbsolutePath() + File.separator);
                     break;
             }
         }
@@ -511,9 +511,9 @@ public class TestListFile  {
         final Path directoryPath = new File(TESTDIR).toPath();
         final Path relativePath = directoryPath.relativize(file1.toPath().getParent());
         String relativePathString = relativePath.toString();
-        relativePathString = relativePathString.isEmpty() ? "./" : relativePathString + "/";
+        relativePathString = relativePathString.isEmpty() ? "." + File.separator : relativePathString + File.separator;
         final Path absolutePath = file1.toPath().toAbsolutePath();
-        final String absolutePathString = absolutePath.getParent().toString() + "/";
+        final String absolutePathString = absolutePath.getParent().toString() + File.separator;
         final FileStore store = Files.getFileStore(file1Path);
         final DateFormat formatter = new SimpleDateFormat(ListFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
         final String time3Formatted = formatter.format(time3rounded);
