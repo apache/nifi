@@ -473,17 +473,6 @@ public class TestListFile  {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(3, successFiles1.size());
-
-        // make file2 unreadable and test (setReadable() does not work on Windows)
-        if (!System.getProperty("os.name").toLowerCase().startsWith("windows")) {
-            assertTrue(file2.setReadable(false));
-            runner.clearTransferState();
-            runner.setProperty(ListFile.RECURSE, "false");
-            runner.run();
-            runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
-            final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-            assertEquals(2, successFiles2.size());
-        }
     }
 
     @Test
