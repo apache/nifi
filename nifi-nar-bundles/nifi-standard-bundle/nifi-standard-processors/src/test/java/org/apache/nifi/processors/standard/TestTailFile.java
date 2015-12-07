@@ -319,6 +319,8 @@ public class TestTailFile {
         raf = new RandomAccessFile(file, "rw");
         raf.write("abc\n".getBytes());
 
+        Thread.sleep(100L);
+
         // rename file to log.1
         raf.close();
         file.renameTo(new File("target/log.1"));
@@ -364,6 +366,8 @@ public class TestTailFile {
         file = new File("target/log.txt");
         raf = new RandomAccessFile(file, "rw");
         raf.write("abc\n".getBytes());
+
+        Thread.sleep(100L);
 
         // rename file to log.1
         raf.close();
