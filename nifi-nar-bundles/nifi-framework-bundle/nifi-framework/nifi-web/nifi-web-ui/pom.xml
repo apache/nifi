@@ -83,6 +83,7 @@
                             <verbose>true</verbose>
                             <useProvidedScope>true</useProvidedScope>
                             <excludes>
+                                **/message-page.jsp,
                                 **/canvas.jsp,
                                 **/summary.jsp,
                                 **/history.jsp,
