@@ -337,7 +337,7 @@ nf.CanvasToolbox = (function () {
 
         // show the dialog
         $('#new-processor-dialog').modal('show');
-        
+
         // setup the filter
         $('#processor-type-filter').focus().off('keyup').on('keyup', function (e) {
             var code = e.keyCode ? e.keyCode : e.which;
@@ -349,8 +349,8 @@ nf.CanvasToolbox = (function () {
         });
 
         // adjust the grid canvas now that its been rendered
-        grid.setSelectedRows([0]);
         grid.resizeCanvas();
+        grid.setSelectedRows([0]);
     };
 
     /**
@@ -884,6 +884,17 @@ nf.CanvasToolbox = (function () {
                 addToolboxIcon(config.type.template, toolbox, 'template-icon', 'template-icon-hover', 'template-icon-drag', promptForTemplate);
                 addToolboxIcon(config.type.label, toolbox, 'label-icon', 'label-icon-hover', 'label-icon-drag', createLabel);
 
+                // define the function for filtering the list
+                $('#processor-type-filter').focus(function () {
+                    if ($(this).hasClass(config.styles.filterList)) {
+                        $(this).removeClass(config.styles.filterList).val('');
+                    }
+                }).blur(function () {
+                    if ($(this).val() === '') {
+                        $(this).addClass(config.styles.filterList).val(config.filterText);
+                    }
+                }).addClass(config.styles.filterList).val(config.filterText);
+
                 // initialize the processor type table
                 var processorTypesColumns = [
                     {id: 'type', name: 'Type', field: 'label', sortable: true, resizable: true},
@@ -931,16 +942,18 @@ nf.CanvasToolbox = (function () {
                         var processorType = processorTypesGrid.getDataItem(processorTypeIndex);
 
                         // set the processor type description
-                        if (nf.Common.isBlank(processorType.description)) {
-                            $('#processor-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
-                        } else {
-                            $('#processor-type-description').html(processorType.description).ellipsis();
-                        }
+                        if (nf.Common.isDefinedAndNotNull(processorType)) {
+                            if (nf.Common.isBlank(processorType.description)) {
+                                $('#processor-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
+                            } else {
+                                $('#processor-type-description').html(processorType.description).ellipsis();
+                            }
 
-                        // populate the dom
-                        $('#processor-type-name').text(processorType.label).ellipsis();
-                        $('#selected-processor-name').text(processorType.label);
-                        $('#selected-processor-type').text(processorType.type);
+                            // populate the dom
+                            $('#processor-type-name').text(processorType.label).ellipsis();
+                            $('#selected-processor-name').text(processorType.label);
+                            $('#selected-processor-type').text(processorType.type);
+                        }
                     }
                 });
 
@@ -1005,17 +1018,6 @@ nf.CanvasToolbox = (function () {
                         remove: applyFilter
                     });
                 }).fail(nf.Common.handleAjaxError);
-
-                // define the function for filtering the list
-                $('#processor-type-filter').focus(function () {
-                    if ($(this).hasClass(config.styles.filterList)) {
-                        $(this).removeClass(config.styles.filterList).val('');
-                    }
-                }).blur(function () {
-                    if ($(this).val() === '') {
-                        $(this).addClass(config.styles.filterList).val(config.filterText);
-                    }
-                }).addClass(config.styles.filterList).val(config.filterText);
 
                 // configure the new processor dialog
                 $('#new-processor-dialog').modal({

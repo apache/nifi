@@ -23,7 +23,6 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>NiFiCanvas</servlet-name>
-        <!--<url-pattern>/token</url-pattern>-->
         <url-pattern>/canvas</url-pattern>
     </servlet-mapping>
     
