@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.4.0</version>
+        <version>0.4.1-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-update-attribute-bundle</artifactId>
     <packaging>pom</packaging>
@@ -34,18 +34,18 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-update-attribute-model</artifactId>
-                <version>0.4.0</version>
+                <version>0.4.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-update-attribute-processor</artifactId>
-                <version>0.4.0</version>
+                <version>0.4.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-update-attribute-ui</artifactId>
                 <type>war</type>
-                <version>0.4.0</version>
+                <version>0.4.1-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
