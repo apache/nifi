@@ -1210,7 +1210,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                     @Override
                     public FlowFileFilterResult filter(final FlowFile flowFile) {
-                        if (++polled <= maxResults) {
+                        if (++polled < maxResults) {
                             return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
                         } else {
                             return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
