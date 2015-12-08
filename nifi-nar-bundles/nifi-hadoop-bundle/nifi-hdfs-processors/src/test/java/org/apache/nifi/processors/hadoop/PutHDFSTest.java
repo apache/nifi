@@ -232,7 +232,6 @@ public class PutHDFSTest {
         assertFalse(failedFlowFiles.isEmpty());
         assertTrue(failedFlowFiles.get(0).isPenalized());
 
-        fs.setPermission(p, new FsPermission(FsAction.EXECUTE, FsAction.EXECUTE, FsAction.EXECUTE));
         fs.delete(p, true);
     }
 
