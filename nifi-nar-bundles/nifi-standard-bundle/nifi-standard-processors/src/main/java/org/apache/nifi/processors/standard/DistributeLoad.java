@@ -351,6 +351,9 @@ public class DistributeLoad extends AbstractProcessor {
         final int numRelationships = context.getProperty(NUM_RELATIONSHIPS).asInteger();
         final boolean allDestinationsAvailable = (available.size() == numRelationships);
         if (!allDestinationsAvailable && strategy.requiresAllDestinationsAvailable()) {
+            // can't transfer the FlowFiles. Roll back and yield
+            session.rollback();
+            context.yield();
             return;
         }
 
