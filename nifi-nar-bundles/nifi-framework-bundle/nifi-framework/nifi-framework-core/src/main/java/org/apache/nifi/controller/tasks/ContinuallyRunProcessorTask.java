@@ -109,7 +109,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         if (numRelationships > 0) {
             final int requiredNumberOfAvailableRelationships = procNode.isTriggerWhenAnyDestinationAvailable() ? 1 : numRelationships;
             if (!context.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships)) {
-                return false;
+                return true;
             }
         }
 
