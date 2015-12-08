@@ -210,10 +210,6 @@ public class PutHDFSTest {
         FileSystem fs = FileSystem.get(config);
         Path p = new Path(dirName).makeQualified(fs.getUri(), fs.getWorkingDirectory());
 
-        // modify permissions to ensure no one can write to this directory,
-        // forcing IOException downstream
-        fs.setPermission(p, new FsPermission(FsAction.READ, FsAction.READ, FsAction.READ));
-
         TestRunner runner = TestRunners.newTestRunner(new PutHDFS() {
             @Override
             protected void changeOwner(ProcessContext context, FileSystem hdfs, Path name) {
