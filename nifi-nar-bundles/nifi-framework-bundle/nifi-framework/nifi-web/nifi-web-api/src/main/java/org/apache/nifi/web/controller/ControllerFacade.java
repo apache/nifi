@@ -820,7 +820,12 @@ public class ControllerFacade {
             }
 
             // get the flowfile attributes
-            final Map<String, String> attributes = event.getAttributes();
+            final Map<String, String> attributes;
+            if (ContentDirection.INPUT.equals(contentDirection)) {
+                attributes = event.getPreviousAttributes();
+            } else {
+                attributes = event.getAttributes();
+            }
 
             // calculate the dn chain
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
@@ -831,14 +836,14 @@ public class ControllerFacade {
                 throw new AccessDeniedException(downloadAuthorization.getExplanation());
             }
 
-            // get the filename and fall back to the idnetifier (should never happen)
-            String filename = event.getAttributes().get(CoreAttributes.FILENAME.key());
+            // get the filename and fall back to the identifier (should never happen)
+            String filename = attributes.get(CoreAttributes.FILENAME.key());
             if (filename == null) {
                 filename = event.getFlowFileUuid();
             }
 
             // get the mime-type
-            final String type = event.getAttributes().get(CoreAttributes.MIME_TYPE.key());
+            final String type = attributes.get(CoreAttributes.MIME_TYPE.key());
 
             // get the content
             final InputStream content = flowController.getContent(event, contentDirection, user.getIdentity(), uri);
