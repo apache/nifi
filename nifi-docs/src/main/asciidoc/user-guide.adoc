@@ -693,6 +693,14 @@ The following options are available:
 - *Empty queue*: This option allows the DFM to clear the queue of FlowFiles that may be waiting to be processed. This option can be especially useful during testing, when the DFM is not concerned about deleting data from the queue. When this option is selected, users must confirm that they want to delete the data in the queue.
 - *Delete*: This option allows the DFM to delete a connection between two components. Note that the components on both sides of the connection must be stopped and the connection must be empty before it can be deleted.
 
+==== Bending Connections
+
+To add a bend point (or elbow) to an existing connection, simply double-click on the connection in the spot where you want the bend point to be. Then, you can use the mouse to grab
+the bend point and drag it so that the connection is bent in the desired way. You can add as many bend points as you want. You can also use the mouse to drag and move the label on the connection to any existing
+bend point. To remove a bend point, simply double-click it again.
+
+image:nifi-connection-bend-points.png["Connection Bend Points", width=500]
+
 
 === Processor Validation
 
