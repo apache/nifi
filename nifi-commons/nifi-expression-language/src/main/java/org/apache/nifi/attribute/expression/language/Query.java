@@ -50,6 +50,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Equals
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EqualsIgnoreCaseEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDelimitedFieldEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
@@ -138,6 +139,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FALSE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FIND;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FORMAT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_DELIMITED_FIELD;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN_OR_EQUAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HOSTNAME;
@@ -1287,6 +1289,43 @@ public class Query {
             }
             case NOT: {
                 return addToken(new NotEvaluator(toBooleanEvaluator(subjectEvaluator)), "not");
+            }
+            case GET_DELIMITED_FIELD: {
+                if (argEvaluators.size() == 1) {
+                    // Only a single argument - the index to return.
+                    return addToken(new GetDelimitedFieldEvaluator(toStringEvaluator(subjectEvaluator),
+                        toNumberEvaluator(argEvaluators.get(0), "first argument of getDelimitedField")), "getDelimitedField");
+                } else if (argEvaluators.size() == 2) {
+                    // two arguments - index and delimiter.
+                    return addToken(new GetDelimitedFieldEvaluator(toStringEvaluator(subjectEvaluator),
+                        toNumberEvaluator(argEvaluators.get(0), "first argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(1), "second argument of getDelimitedField")),
+                        "getDelimitedField");
+                } else if (argEvaluators.size() == 3) {
+                    // 3 arguments - index, delimiter, quote char.
+                    return addToken(new GetDelimitedFieldEvaluator(toStringEvaluator(subjectEvaluator),
+                        toNumberEvaluator(argEvaluators.get(0), "first argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(1), "second argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(2), "third argument of getDelimitedField")),
+                        "getDelimitedField");
+                } else if (argEvaluators.size() == 4) {
+                    // 4 arguments - index, delimiter, quote char, escape char
+                    return addToken(new GetDelimitedFieldEvaluator(toStringEvaluator(subjectEvaluator),
+                        toNumberEvaluator(argEvaluators.get(0), "first argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(1), "second argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(2), "third argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(3), "fourth argument of getDelimitedField")),
+                        "getDelimitedField");
+                } else {
+                    // 5 arguments - index, delimiter, quote char, escape char, strip escape/quote chars flag
+                    return addToken(new GetDelimitedFieldEvaluator(toStringEvaluator(subjectEvaluator),
+                        toNumberEvaluator(argEvaluators.get(0), "first argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(1), "second argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(2), "third argument of getDelimitedField"),
+                        toStringEvaluator(argEvaluators.get(3), "fourth argument of getDelimitedField"),
+                        toBooleanEvaluator(argEvaluators.get(4), "fifth argument of getDelimitedField")),
+                        "getDelimitedField");
+                }
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());

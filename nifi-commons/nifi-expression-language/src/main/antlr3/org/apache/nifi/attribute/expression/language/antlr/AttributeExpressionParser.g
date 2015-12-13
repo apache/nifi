@@ -79,7 +79,7 @@ oneArgString : ((SUBSTRING_BEFORE | SUBSTRING_BEFORE_LAST | SUBSTRING_AFTER | SU
 			   (TO_RADIX LPAREN! anyArg (COMMA! anyArg)? RPAREN!);
 twoArgString : ((REPLACE | REPLACE_ALL) LPAREN! anyArg COMMA! anyArg RPAREN!) |
 			   (SUBSTRING LPAREN! anyArg (COMMA! anyArg)? RPAREN!);
-
+fiveArgString : GET_DELIMITED_FIELD LPAREN! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg)?)?)?)? RPAREN!;
 
 // functions that return Booleans
 zeroArgBool : (IS_NULL | NOT_NULL | IS_EMPTY | NOT) LPAREN! RPAREN!;
@@ -95,11 +95,11 @@ oneArgNum	: ((INDEX_OF | LAST_INDEX_OF) LPAREN! anyArg RPAREN!) |
 			  (TO_DATE LPAREN! anyArg? RPAREN!) |
 			  ((MOD | PLUS | MINUS | MULTIPLY | DIVIDE) LPAREN! anyArg RPAREN!);
 
-stringFunctionRef : zeroArgString | oneArgString | twoArgString;
+stringFunctionRef : zeroArgString | oneArgString | twoArgString | fiveArgString;
 booleanFunctionRef : zeroArgBool | oneArgBool;
 numberFunctionRef : zeroArgNum | oneArgNum;
 
-anyArg : NUMBER | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | booleanLiteral | zeroArgBool | oneArgBool | expression;
+anyArg : NUMBER | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | expression;
 stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression;
 functionRef : stringFunctionRef | booleanFunctionRef | numberFunctionRef;
 

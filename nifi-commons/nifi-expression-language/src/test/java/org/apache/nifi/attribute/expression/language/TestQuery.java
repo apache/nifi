@@ -1156,6 +1156,67 @@ public class TestQuery {
         verifyEquals("${allMatchingAttributes('a.*'):contains('2'):equals('true'):and( ${literal(true)} )}", attributes, true);
     }
 
+    @Test
+    public void testGetDelimitedField() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        attributes.put("line", "Name, Age, Title");
+
+        // Test "simple" case - comma separated with no quoted or escaped text
+        verifyEquals("${line:getDelimitedField(2)}", attributes, " Age");
+        verifyEquals("${line:getDelimitedField(2, ',')}", attributes, " Age");
+        verifyEquals("${line:getDelimitedField(2, ',', '\"')}", attributes, " Age");
+        verifyEquals("${line:getDelimitedField(2, ',', '\"', '\\\\')}", attributes, " Age");
+
+        // test with a space in column
+        attributes.put("line", "First Name, Age, Title");
+        verifyEquals("${line:getDelimitedField(1)}", attributes, "First Name");
+        verifyEquals("${line:getDelimitedField(1, ',')}", attributes, "First Name");
+        verifyEquals("${line:getDelimitedField(1, ',', '\"')}", attributes, "First Name");
+        verifyEquals("${line:getDelimitedField(1, ',', '\"', '\\\\')}", attributes, "First Name");
+
+        // test quoted value
+        attributes.put("line", "\"Name (Last, First)\", Age, Title");
+        verifyEquals("${line:getDelimitedField(1)}", attributes, "\"Name (Last, First)\"");
+        verifyEquals("${line:getDelimitedField(1, ',')}", attributes, "\"Name (Last, First)\"");
+        verifyEquals("${line:getDelimitedField(1, ',', '\"')}", attributes, "\"Name (Last, First)\"");
+        verifyEquals("${line:getDelimitedField(1, ',', '\"', '\\\\')}", attributes, "\"Name (Last, First)\"");
+
+        // test non-standard quote char
+        attributes.put("line", "_Name (Last, First)_, Age, Title");
+        verifyEquals("${line:getDelimitedField(1)}", attributes, "_Name (Last");
+        verifyEquals("${line:getDelimitedField(1, ',', '_')}", attributes, "_Name (Last, First)_");
+
+        // test escape char
+        attributes.put("line", "Name (Last\\, First), Age, Title");
+        verifyEquals("${line:getDelimitedField(1)}", attributes, "Name (Last\\, First)");
+
+        attributes.put("line", "Name (Last__, First), Age, Title");
+        verifyEquals("${line:getDelimitedField(1, ',', '\"', '_')}", attributes, "Name (Last__");
+
+        attributes.put("line", "Name (Last_, First), Age, Title");
+        verifyEquals("${line:getDelimitedField(1, ',', '\"', '_')}", attributes, "Name (Last_, First)");
+
+        // test escape for enclosing chars
+        attributes.put("line", "\\\"Name (Last, First), Age, Title");
+        verifyEquals("${line:getDelimitedField(1)}", attributes, "\\\"Name (Last");
+
+        // get non existing field
+        attributes.put("line", "Name, Age, Title");
+        verifyEquals("${line:getDelimitedField(12)}", attributes, "");
+
+        // test escape char within quotes
+        attributes.put("line", "col 1, col 2, \"The First, Second, and \\\"Last\\\" Column\", Last");
+        verifyEquals("${line:getDelimitedField(3):trim()}", attributes, "\"The First, Second, and \\\"Last\\\" Column\"");
+
+        // test stripping chars
+        attributes.put("line", "col 1, col 2, \"The First, Second, and \\\"Last\\\" Column\", Last");
+        verifyEquals("${line:getDelimitedField(3, ',', '\"', '\\\\', true):trim()}", attributes, "The First, Second, and \"Last\" Column");
+
+        attributes.put("line", "\"Jacobson, John\", 32, Mr.");
+        verifyEquals("${line:getDelimitedField(2)}", attributes, " 32");
+    }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         Query.validateExpression(expression, false);
         assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));

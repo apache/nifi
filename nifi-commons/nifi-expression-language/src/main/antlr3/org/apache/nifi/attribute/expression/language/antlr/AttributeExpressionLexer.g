@@ -157,6 +157,8 @@ SUBSTRING	: 'substring';
 REPLACE	: 'replace';
 REPLACE_ALL : 'replaceAll';
 
+// 4 arg functions
+GET_DELIMITED_FIELD	: 'getDelimitedField';
 
 // STRINGS
 STRING_LITERAL
