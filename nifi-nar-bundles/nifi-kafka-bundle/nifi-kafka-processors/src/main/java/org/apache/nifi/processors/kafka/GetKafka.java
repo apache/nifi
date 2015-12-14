@@ -142,7 +142,7 @@ public class GetKafka extends AbstractProcessor {
         .description("A Group ID is used to identify consumers that are within the same consumer group")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(true)
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -197,7 +197,7 @@ public class GetKafka extends AbstractProcessor {
 
         final Properties props = new Properties();
         props.setProperty("zookeeper.connect", context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue());
-        props.setProperty("group.id", context.getProperty(GROUP_ID).getValue());
+		props.setProperty("group.id", context.getProperty(GROUP_ID).evaluateAttributeExpressions().getValue());
         props.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
         props.setProperty("auto.commit.interval.ms", String.valueOf(context.getProperty(ZOOKEEPER_COMMIT_DELAY).asTimePeriod(TimeUnit.MILLISECONDS)));
         props.setProperty("auto.commit.enable", "true"); // just be explicit
