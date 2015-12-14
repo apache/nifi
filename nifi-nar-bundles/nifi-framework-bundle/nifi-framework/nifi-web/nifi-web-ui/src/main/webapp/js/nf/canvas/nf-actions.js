@@ -58,8 +58,8 @@ nf.Actions = (function () {
     /**
      * Updates the resource with the specified data.
      * 
-     * @param {type} uri
-     * @param {type} data
+     * @param {string} uri
+     * @param {object} data
      */
     var updateResource = function (uri, data) {
         var revision = nf.Client.getRevision();
@@ -395,27 +395,24 @@ nf.Actions = (function () {
         
         /**
          * Enables all eligible selected components.
+         *
+         * @argument {selection} selection      The selection
          */
-        enable: function () {
-            var components = d3.selectAll('g.component.selected').filter(function (d) {
-                var selected = d3.select(this);
-                var selectedData = selected.datum();
-                
-                // processors and ports that support modification and are not currently stopped
-                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && 
-                        nf.CanvasUtils.supportsModification(selected) &&
-                        selectedData.component.state !== 'STOPPED';
-            });
-            if (components.empty()) {
+        enable: function (selection) {
+            var componentsToEnable = nf.CanvasUtils.filterEnable(selection);
+
+            if (componentsToEnable.empty()) {
                 nf.Dialog.showOkDialog({
                     dialogContent: 'No eligible components are selected. Please select the components to be enabled and ensure they are no longer running.',
                     overlayBackground: true
                 });
             } else {
+                var enableRequests = [];
+
                 // enable the selected processors
-                components.each(function (d) {
+                componentsToEnable.each(function (d) {
                     var selected = d3.select(this);
-                    updateResource(d.component.uri, {state: 'STOPPED'}).done(function (response) {
+                    enableRequests.push(updateResource(d.component.uri, {state: 'STOPPED'}).done(function (response) {
                         if (nf.CanvasUtils.isProcessor(selected)) {
                             nf.Processor.set(response.processor);
                         } else if (nf.CanvasUtils.isInputPort(selected)) {
@@ -423,34 +420,38 @@ nf.Actions = (function () {
                         } else if (nf.CanvasUtils.isOutputPort(selected)) {
                             nf.Port.set(response.outputPort);
                         }
-                    });
+                    }));
                 });
+
+                // refresh the toolbar once the updates have completed
+                if (enableRequests.length > 0) {
+                    $.when.apply(window, enableRequests).always(function () {
+                        nf.CanvasToolbar.refresh();
+                    });
+                }
             }
         },
         
         /**
          * Disables all eligible selected components.
+         *
+         * @argument {selection} selection      The selection
          */
-        disable: function () {
-            var components = d3.selectAll('g.component.selected').filter(function (d) {
-                var selected = d3.select(this);
-                var selectedData = selected.datum();
-                
-                // processors and ports that support modification and are not currently disabled
-                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && 
-                        nf.CanvasUtils.supportsModification(selected) &&
-                        selectedData.component.state !== 'DISABLED';
-            });
-            if (components.empty()) {
+        disable: function (selection) {
+            var componentsToDisable = nf.CanvasUtils.filterDisable(selection);
+
+            if (componentsToDisable.empty()) {
                 nf.Dialog.showOkDialog({
                     dialogContent: 'No eligible components are selected. Please select the components to be disabled and ensure they are no longer running.',
                     overlayBackground: true
                 });
             } else {
+                var disableRequests = [];
+
                 // disable the selected components
-                components.each(function (d) {
+                componentsToDisable.each(function (d) {
                     var selected = d3.select(this);
-                    updateResource(d.component.uri, {state: 'DISABLED'}).done(function (response) {
+                    disableRequests.push(updateResource(d.component.uri, {state: 'DISABLED'}).done(function (response) {
                         if (nf.CanvasUtils.isProcessor(selected)) {
                             nf.Processor.set(response.processor);
                         } else if (nf.CanvasUtils.isInputPort(selected)) {
@@ -458,8 +459,15 @@ nf.Actions = (function () {
                         } else if (nf.CanvasUtils.isOutputPort(selected)) {
                             nf.Port.set(response.outputPort);
                         }
-                    });
+                    }));
                 });
+
+                // refresh the toolbar once the updates have completed
+                if (disableRequests.length > 0) {
+                    $.when.apply(window, disableRequests).always(function () {
+                        nf.CanvasToolbar.refresh();
+                    });
+                }
             }
         },
         
@@ -499,6 +507,8 @@ nf.Actions = (function () {
                         overlayBackground: true
                     });
                 } else {
+                    var startRequests = [];
+
                     // start each selected component
                     componentsToStart.each(function (d) {
                         var selected = d3.select(this);
@@ -511,7 +521,7 @@ nf.Actions = (function () {
                             data['running'] = true;
                         }
 
-                        updateResource(d.component.uri, data).done(function (response) {
+                        startRequests.push(updateResource(d.component.uri, data).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
                                 nf.Processor.set(response.processor);
                             } else if (nf.CanvasUtils.isProcessGroup(selected)) {
@@ -527,8 +537,15 @@ nf.Actions = (function () {
                             } else if (nf.CanvasUtils.isOutputPort(selected)) {
                                 nf.Port.set(response.outputPort);
                             }
-                        });
+                        }));
                     });
+
+                    // refresh the toolbar once the updates have completed
+                    if (startRequests.length > 0) {
+                        $.when.apply(window, startRequests).always(function () {
+                            nf.CanvasToolbar.refresh();
+                        });
+                    }
                 }
             }
         },
@@ -553,6 +570,8 @@ nf.Actions = (function () {
                         overlayBackground: true
                     });
                 } else {
+                    var stopRequests = [];
+
                     // stop each selected component
                     componentsToStop.each(function (d) {
                         var selected = d3.select(this);
@@ -565,7 +584,7 @@ nf.Actions = (function () {
                             data['running'] = false;
                         }
 
-                        updateResource(d.component.uri, data).done(function (response) {
+                        stopRequests.push(updateResource(d.component.uri, data).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
                                 nf.Processor.set(response.processor);
                             } else if (nf.CanvasUtils.isProcessGroup(selected)) {
@@ -581,8 +600,15 @@ nf.Actions = (function () {
                             } else if (nf.CanvasUtils.isOutputPort(selected)) {
                                 nf.Port.set(response.outputPort);
                             }
-                        });
+                        }));
                     });
+
+                    // refresh the toolbar once the updates have completed
+                    if (stopRequests.length > 0) {
+                        $.when.apply(window, stopRequests).always(function () {
+                            nf.CanvasToolbar.refresh();
+                        });
+                    }
                 }
             }
         },

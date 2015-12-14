@@ -463,6 +463,9 @@ nf.ContextMenu = (function () {
                 'x': position[0],
                 'y': position[1]
             });
+
+            // refresh the toolbar incase we've click on the canvas
+            nf.CanvasToolbar.refresh();
         },
         
         /**

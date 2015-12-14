@@ -710,7 +710,68 @@ nf.CanvasUtils = (function () {
 
             return stoppable;
         },
-        
+
+        /**
+         * Filters the specified selection for any components that supports enable.
+         *
+         * @argument {selection} selection      The selection
+         */
+        filterEnable: function (selection) {
+            return selection.filter(function (d) {
+                var selected = d3.select(this);
+                var selectedData = selected.datum();
+
+                // ensure its a processor, input port, or output port and supports modification and is disabled (can enable)
+                return ((nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) &&
+                        nf.CanvasUtils.supportsModification(selected) &&
+                        selectedData.component.state === 'DISABLED');
+            });
+        },
+
+        /**
+         * Determines if the specified selection contains any components that supports enable.
+         *
+         * @argument {selection} selection      The selection
+         */
+        canEnable: function (selection) {
+            if (selection.empty()) {
+                return false;
+            }
+
+            return !nf.CanvasUtils.filterEnable(selection).empty();
+        },
+
+        /**
+         * Filters the specified selection for any components that supports disable.
+         *
+         * @argument {selection} selection      The selection
+         */
+        filterDisable: function (selection) {
+            return selection.filter(function (d) {
+                var selected = d3.select(this);
+                var selectedData = selected.datum();
+
+                // ensure its a processor, input port, or output port and supports modification and is stopped (can disable)
+                return ((nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) &&
+                        nf.CanvasUtils.supportsModification(selected) &&
+                        selectedData.component.state === 'STOPPED');
+            });
+        },
+
+        /**
+         * Determines if the specified selection contains any components that supports disable.
+         *
+         * @argument {selection} selection      The selection
+         */
+        canDisable: function (selection) {
+            if (selection.empty()) {
+                return false;
+            }
+
+            return !nf.CanvasUtils.filterDisable(selection).empty();
+        },
+
+
         /**
          * Determines if the specified selection can all start transmitting.
          *
@@ -726,12 +787,11 @@ nf.CanvasUtils = (function () {
             selection.each(function () {
                 if (!nf.CanvasUtils.canStartTransmitting(d3.select(this))) {
                     canStartTransmitting = false;
-                    return false;
                 }
             });
             return canStartTransmitting;
         },
-        
+
         /**
          * Determines if the specified selection supports starting transmission.
          *
@@ -756,7 +816,6 @@ nf.CanvasUtils = (function () {
             selection.each(function () {
                 if (!nf.CanvasUtils.canStopTransmitting(d3.select(this))) {
                     canStopTransmitting = false;
-                    return false;
                 }
             });
             return canStopTransmitting;
