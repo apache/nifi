@@ -937,16 +937,19 @@ nf.Canvas = (function () {
 
     return {
         CANVAS_OFFSET: 0,
+
         /**
          * Determines if the current broswer supports SVG.
          */
         SUPPORTS_SVG: !!document.createElementNS && !!document.createElementNS('http://www.w3.org/2000/svg', 'svg').createSVGRect,
+
         /**
          * Hides the splash that is displayed while the application is loading.
          */
         hideSplash: function () {
             $('#splash').fadeOut();
         },
+
         /**
          * Stop polling for revision.
          */
@@ -954,6 +957,7 @@ nf.Canvas = (function () {
             // set polling flag
             revisionPolling = false;
         },
+
         /**
          * Remove the status poller.
          */
@@ -961,6 +965,7 @@ nf.Canvas = (function () {
             // set polling flag
             statusPolling = false;
         },
+
         /**
          * Reloads the flow from the server based on the currently specified group id.
          * To load another group, update nf.Canvas.setGroupId and call nf.Canvas.reload.
@@ -1003,19 +1008,21 @@ nf.Canvas = (function () {
                 });
             }).promise();
         },
+
         /**
          * Reloads the status.
          */
         reloadStatus: function () {
             return $.Deferred(function (deferred) {
                 // refresh the status and check any bulletins
-                $.when(reloadStatus(nf.Canvas.getGroupId()), reloadFlowStatus()).done(function () {
+                $.when(reloadStatus(nf.Canvas.getGroupId()), reloadFlowStatus(), checkRevision()).done(function () {
                     deferred.resolve();
                 }).fail(function () {
                     deferred.reject();
                 });
             }).promise();
         },
+
         /**
          * Initialize NiFi.
          */
@@ -1186,6 +1193,7 @@ nf.Canvas = (function () {
                 }).fail(nf.Common.handleAjaxError);
             }).fail(nf.Common.handleAjaxError);
         },
+
         /**
          * Defines the gradient colors used to render processors.
          * 
@@ -1194,6 +1202,7 @@ nf.Canvas = (function () {
         defineProcessorColors: function (colors) {
             setColors(colors, 'processor');
         },
+
         /**
          * Defines the gradient colors used to render label.
          * 
@@ -1202,6 +1211,7 @@ nf.Canvas = (function () {
         defineLabelColors: function (colors) {
             setColors(colors, 'label');
         },
+
         /**
          * Return whether this instance of NiFi is clustered.
          * 
@@ -1210,12 +1220,14 @@ nf.Canvas = (function () {
         isClustered: function () {
             return clustered === true;
         },
+
         /**
          * Returns whether site to site communications is secure.
          */
         isSecureSiteToSite: function () {
             return secureSiteToSite;
         },
+
         /**
          * Set the group id.
          * 
@@ -1224,12 +1236,14 @@ nf.Canvas = (function () {
         setGroupId: function (gi) {
             groupId = gi;
         },
+
         /**
          * Get the group id.
          */
         getGroupId: function () {
             return groupId;
         },
+
         /**
          * Set the group name.
          * 
@@ -1238,12 +1252,14 @@ nf.Canvas = (function () {
         setGroupName: function (gn) {
             groupName = gn;
         },
+
         /**
          * Get the group name.
          */
         getGroupName: function () {
             return groupName;
         },
+
         /**
          * Set the parent group id.
          * 
@@ -1252,12 +1268,14 @@ nf.Canvas = (function () {
         setParentGroupId: function (pgi) {
             parentGroupId = pgi;
         },
+
         /**
          * Get the parent group id.
          */
         getParentGroupId: function () {
             return parentGroupId;
         },
+
         View: (function () {
 
             /**
@@ -1414,6 +1432,7 @@ nf.Canvas = (function () {
                     // add the behavior to the canvas and disable dbl click zoom
                     svg.call(behavior).on('dblclick.zoom', null);
                 },
+
                 /**
                  * Whether or not a component should be rendered based solely on the current scale.
                  * 
@@ -1422,6 +1441,7 @@ nf.Canvas = (function () {
                 shouldRenderPerScale: function () {
                     return nf.Canvas.View.scale() >= MIN_SCALE_TO_RENDER;
                 },
+
                 /**
                  * Updates component visibility based on the current translation/scale.
                  */
@@ -1429,6 +1449,7 @@ nf.Canvas = (function () {
                     updateComponentVisibility();
                     nf.Graph.pan();
                 },
+
                 /**
                  * Sets/gets the current translation.
                  * 
@@ -1441,6 +1462,7 @@ nf.Canvas = (function () {
                         behavior.translate(translate);
                     }
                 },
+
                 /**
                  * Sets/gets the current scale.
                  * 
@@ -1453,6 +1475,7 @@ nf.Canvas = (function () {
                         behavior.scale(scale);
                     }
                 },
+
                 /**
                  * Zooms in a single zoom increment.
                  */
@@ -1477,6 +1500,7 @@ nf.Canvas = (function () {
                         height: 1
                     });
                 },
+
                 /**
                  * Zooms out a single zoom increment.
                  */
@@ -1501,6 +1525,7 @@ nf.Canvas = (function () {
                         height: 1
                     });
                 },
+
                 /**
                  * Zooms to fit the entire graph on the canvas.
                  */
@@ -1547,6 +1572,7 @@ nf.Canvas = (function () {
                         height: canvasHeight / newScale
                     });
                 },
+
                 /**
                  * Zooms to the actual size (1 to 1).
                  */
@@ -1595,6 +1621,7 @@ nf.Canvas = (function () {
                     // center as appropriate
                     nf.CanvasUtils.centerBoundingBox(box);
                 },
+
                 /**
                  * Refreshes the view based on the configured translation and scale.
                  * 
