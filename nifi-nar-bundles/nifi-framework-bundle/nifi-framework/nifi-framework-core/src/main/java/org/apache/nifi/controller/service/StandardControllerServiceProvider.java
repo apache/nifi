@@ -203,14 +203,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         // Get a list of all Controller Services that need to be disabled, in the order that they need to be
         // disabled.
         final List<ControllerServiceNode> toDisable = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
+
         final Set<ControllerServiceNode> serviceSet = new HashSet<>(toDisable);
 
         for (final ControllerServiceNode nodeToDisable : toDisable) {
-            final ControllerServiceState state = nodeToDisable.getState();
-
-            if (state != ControllerServiceState.DISABLED && state != ControllerServiceState.DISABLING) {
-                nodeToDisable.verifyCanDisable(serviceSet);
-            }
+            nodeToDisable.verifyCanDisable(serviceSet);
         }
 
         Collections.reverse(toDisable);
@@ -319,14 +316,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             logger.info("Will enable {} Controller Services", servicesToEnable.size());
         }
 
-        // Mark all services that are configured to be enabled as 'ENABLING'. This allows Processors, reporting tasks
-        // to be valid so that they can be scheduled.
-        for (final List<ControllerServiceNode> branch : branches) {
-            for (final ControllerServiceNode nodeToEnable : branch) {
-                nodeToEnable.setState(ControllerServiceState.ENABLING);
-            }
-        }
-
         final Set<ControllerServiceNode> enabledNodes = Collections.synchronizedSet(new HashSet<ControllerServiceNode>());
         final ExecutorService executor = Executors.newFixedThreadPool(Math.min(10, branches.size()));
         for (final List<ControllerServiceNode> branch : branches) {
@@ -422,6 +411,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void disableControllerService(final ControllerServiceNode serviceNode) {
+        serviceNode.verifyCanDisable();
         processScheduler.disableControllerService(serviceNode);
     }
 
@@ -545,23 +535,20 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     private void enableReferencingServices(final ControllerServiceNode serviceNode, final List<ControllerServiceNode> recursiveReferences) {
-        if (serviceNode.getState() != ControllerServiceState.ENABLED && serviceNode.getState() != ControllerServiceState.ENABLING) {
+        if (!serviceNode.isActive()) {
             serviceNode.verifyCanEnable(new HashSet<>(recursiveReferences));
         }
 
         final Set<ControllerServiceNode> ifEnabled = new HashSet<>();
-        final List<ControllerServiceNode> toEnable = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
-        for (final ControllerServiceNode nodeToEnable : toEnable) {
-            final ControllerServiceState state = nodeToEnable.getState();
-            if (state != ControllerServiceState.ENABLED && state != ControllerServiceState.ENABLING) {
+        for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
+            if (!nodeToEnable.isActive()) {
                 nodeToEnable.verifyCanEnable(ifEnabled);
                 ifEnabled.add(nodeToEnable);
             }
         }
 
-        for (final ControllerServiceNode nodeToEnable : toEnable) {
-            final ControllerServiceState state = nodeToEnable.getState();
-            if (state != ControllerServiceState.ENABLED && state != ControllerServiceState.ENABLING) {
+        for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
+            if (!nodeToEnable.isActive()) {
                 enableControllerService(nodeToEnable);
             }
         }
@@ -606,11 +593,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         final Set<ControllerServiceNode> serviceSet = new HashSet<>(toDisable);
 
         for (final ControllerServiceNode nodeToDisable : toDisable) {
-            final ControllerServiceState state = nodeToDisable.getState();
-
-            if (state != ControllerServiceState.DISABLED && state != ControllerServiceState.DISABLING) {
-                nodeToDisable.verifyCanDisable(serviceSet);
-            }
+            nodeToDisable.verifyCanDisable(serviceSet);
         }
     }
 

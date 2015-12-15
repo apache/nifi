@@ -19,23 +19,15 @@ package org.apache.nifi.controller.scheduling;
 import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -54,8 +46,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
@@ -89,7 +79,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService frameworkTaskExecutor;
     private final ConcurrentMap<SchedulingStrategy, SchedulingAgent> strategyAgentMap = new ConcurrentHashMap<>();
     // thread pool for starting/stopping components
-    private final ExecutorService componentLifeCycleThreadPool = new ThreadPoolExecutor(25, 50, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(5000));
+
+    private final ScheduledExecutorService componentLifeCycleThreadPool = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
+
     private final StringEncryptor encryptor;
 
     public StandardProcessScheduler(final Heartbeater heartbeater, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor) {
@@ -625,145 +617,20 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public void enableControllerService(final ControllerServiceNode service) {
-        service.setState(ControllerServiceState.ENABLING);
-        final ScheduleState scheduleState = getScheduleState(service);
-
-        final Runnable enableRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                    final long lastStopTime = scheduleState.getLastStopTime();
-                    final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
-
-                    while (true) {
-                        try {
-                            synchronized (scheduleState) {
-                                // if no longer enabled, then we're finished. This can happen, for example,
-                                // if the @OnEnabled method throws an Exception and the user disables the service
-                                // while we're administratively yielded.
-                                //
-                                // we also check if the schedule state's last stop time is equal to what it was before.
-                                // if not, then means that the service has been disabled and enabled again, so we should just
-                                // bail; another thread will be responsible for invoking the @OnEnabled methods.
-                                if (!scheduleState.isScheduled() || scheduleState.getLastStopTime() != lastStopTime) {
-                                    return;
-                                }
-
-                                ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service.getControllerServiceImplementation(), configContext);
-                                heartbeater.heartbeat();
-                                service.setState(ControllerServiceState.ENABLED);
-                                return;
-                            }
-                        } catch (final Exception e) {
-                            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-
-                            final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
-                            componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
-                            LOG.error("Failed to invoke @OnEnabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                            if (LOG.isDebugEnabled()) {
-                                LOG.error("", cause);
-                            }
-
-                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
-                            Thread.sleep(administrativeYieldMillis);
-                            continue;
-                        }
-                    }
-                } catch (final Throwable t) {
-                    final Throwable cause = t instanceof InvocationTargetException ? t.getCause() : t;
-                    final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
-                    componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
-
-                    LOG.error("Failed to invoke @OnEnabled method on {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                    if (LOG.isDebugEnabled()) {
-                        LOG.error("", cause);
-                    }
-                }
-            }
-        };
-
-        scheduleState.setScheduled(true);
-        componentLifeCycleThreadPool.execute(enableRunnable);
+        service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, this.heartbeater);
     }
-
 
     @Override
     public void disableControllerService(final ControllerServiceNode service) {
-        disableControllerServices(Collections.singletonList(service));
+        service.disable(this.componentLifeCycleThreadPool, this.heartbeater);
     }
 
     @Override
     public void disableControllerServices(final List<ControllerServiceNode> services) {
-        if (requireNonNull(services).isEmpty()) {
-            return;
-        }
-
-        final List<ControllerServiceNode> servicesToDisable = new ArrayList<>(services.size());
-        for (final ControllerServiceNode serviceToDisable : services) {
-            if (serviceToDisable.getState() == ControllerServiceState.DISABLED || serviceToDisable.getState() == ControllerServiceState.DISABLING) {
-                continue;
-            }
-
-            servicesToDisable.add(serviceToDisable);
-        }
-
-        if (servicesToDisable.isEmpty()) {
-            return;
-        }
-
-        // ensure that all controller services can be disabled.
-        for (final ControllerServiceNode serviceNode : servicesToDisable) {
-            final Set<ControllerServiceNode> ignoredReferences = new HashSet<>(services);
-            ignoredReferences.remove(serviceNode);
-            serviceNode.verifyCanDisable(ignoredReferences);
-        }
-
-        // mark services as disabling
-        for (final ControllerServiceNode serviceNode : servicesToDisable) {
-            serviceNode.setState(ControllerServiceState.DISABLING);
-
-            final ScheduleState scheduleState = getScheduleState(serviceNode);
-            synchronized (scheduleState) {
-                scheduleState.setScheduled(false);
+        if (!requireNonNull(services).isEmpty()) {
+            for (ControllerServiceNode controllerServiceNode : services) {
+                this.disableControllerService(controllerServiceNode);
             }
         }
-
-        final Queue<ControllerServiceNode> nodes = new LinkedList<>(servicesToDisable);
-        final Runnable disableRunnable = new Runnable() {
-            @Override
-            public void run() {
-                ControllerServiceNode service;
-                while ((service = nodes.poll()) != null) {
-                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
-
-                        try {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
-                        } catch (final Exception e) {
-                            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                            final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
-                            componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
-
-                            LOG.error("Failed to invoke @OnDisabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                            if (LOG.isDebugEnabled()) {
-                                LOG.error("", cause);
-                            }
-
-                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
-                            try {
-                                Thread.sleep(administrativeYieldMillis);
-                            } catch (final InterruptedException ie) {
-                            }
-                        } finally {
-                            service.setState(ControllerServiceState.DISABLED);
-                            heartbeater.heartbeat();
-                        }
-                    }
-                }
-            }
-        };
-
-        componentLifeCycleThreadPool.execute(disableRunnable);
     }
-
 }
