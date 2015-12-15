@@ -979,11 +979,7 @@ public class ControllerResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
+        // get the banner from the properties - will come from the NCM when clustered
         final String bannerText = properties.getBannerText();
 
         // create the DTO
