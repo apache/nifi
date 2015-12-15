@@ -1646,7 +1646,7 @@ nf.Settings = (function () {
         /**
          * Loads the settings.
          */
-        loadSettings: function () {
+        loadSettings: function (reloadStatus) {
             var settings = $.ajax({
                 type: 'GET',
                 url: config.urls.controllerConfig,
@@ -1680,7 +1680,12 @@ nf.Settings = (function () {
             var reportingTasks = loadReportingTasks();
 
             // return a deferred for all parts of the settings
-            return $.when(settings, controllerServices, reportingTasks).done(nf.Canvas.reloadStatus).fail(nf.Common.handleAjaxError);
+            return $.when(settings, controllerServices, reportingTasks).done(function () {
+                // always reload the status, unless the flag is specifically set to false
+                if (reloadStatus !== false) {
+                    nf.Canvas.reloadStatus();
+                }
+            }).fail(nf.Common.handleAjaxError);
         },
         
         /**

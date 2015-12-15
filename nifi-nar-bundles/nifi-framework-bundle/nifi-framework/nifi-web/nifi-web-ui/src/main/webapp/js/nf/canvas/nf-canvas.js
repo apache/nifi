@@ -978,7 +978,7 @@ nf.Canvas = (function () {
                 // get the process group to refresh everything
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId());
                 var statusXhr = reloadFlowStatus();
-                var settingsXhr = nf.Settings.loadSettings();
+                var settingsXhr = nf.Settings.loadSettings(false); // don't reload the status as we want to wait for deferreds to complete
                 $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
                     // adjust breadcrumbs if necessary
                     var title = $('#data-flow-title-container');
