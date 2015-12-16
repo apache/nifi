@@ -1484,6 +1484,7 @@ public final class DtoFactory {
         dto.setDescription(getCapabilityDescription(node.getClass()));
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
+        dto.setSupportsBatching(node.isHighThroughputSupported());
         dto.setConfig(createProcessorConfigDto(node));
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();

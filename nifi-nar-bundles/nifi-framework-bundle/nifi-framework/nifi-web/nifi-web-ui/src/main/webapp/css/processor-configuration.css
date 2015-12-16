@@ -113,13 +113,15 @@ div.processor-enabled-container {
 #event-driven-warning {
     padding-top: 22px;
     color: #f00;
+    float: left;
+    float: left;
+    margin-left: 10px;
 }
 
-#event-driven-warning-icon {
+div.processor-configuration-warning-icon {
     float: left;
     margin-top: -2px;
-    margin-right: 5px;
-    margin-left: 5px;
+    margin-right: 8px;
     width: 18px;
     height: 16px;
     background-image: url(../images/iconAlert.png);
@@ -214,6 +216,15 @@ div.relationship-description {
     font-size: 9px;
     font-weight: bold;
     line-height: normal;
+}
+
+#run-duration-data-loss {
+    margin-top: 15px;
+    color: #f00;
+}
+
+#run-duration-data-loss div.processor-configuration-warning-icon {
+    margin-top: 4px;
 }
 
 #min-run-duration-explanation {
