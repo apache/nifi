@@ -474,18 +474,17 @@ public class TestPutKafka {
 
         @Override
         public void close() {
+            // not part of the test; ignoring
         }
 
         @Override
         public void close(long arg0, TimeUnit arg1) {
-            // TODO Auto-generated method stub
-
+            // not part of the test; ignoring
         }
 
         @Override
         public void flush() {
-            // TODO Auto-generated method stub
-
+            // not part of the test; ignoring
         }
     }
 
