@@ -48,6 +48,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -60,6 +61,7 @@ public class TestStandardProcessScheduler {
     @Before
     public void setup() throws InitializationException {
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
+        NiFiProperties.getNewInstance(); // ensures that properties have been reloaded
         scheduler = new StandardProcessScheduler(Mockito.mock(Heartbeater.class), Mockito.mock(ControllerServiceProvider.class), null);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
 
