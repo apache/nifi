@@ -463,6 +463,16 @@ nf.Common = (function () {
         },
 
         /**
+         * Returns whether a content viewer has been configured.
+         *
+         * @returns {boolean}
+         */
+        isContentViewConfigured: function () {
+            var contentViewerUrl = $('#nifi-content-viewer-url').text();
+            return !nf.Common.isBlank(contentViewerUrl);
+        },
+
+        /**
          * Populates the specified field with the specified value. If the value is 
          * undefined, the field will read 'No value set.' If the value is an empty
          * string, the field will read 'Empty string set.'

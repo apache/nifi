@@ -21,6 +21,8 @@ import java.util.Date;
 import java.util.Set;
 import org.apache.nifi.controller.ScheduledState;
 
+import org.apache.nifi.controller.queue.SortColumn;
+import org.apache.nifi.controller.queue.SortDirection;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
@@ -33,9 +35,11 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
+import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
+import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.NodeSystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -117,6 +121,17 @@ public interface NiFiServiceFacade {
      * @return content
      */
     DownloadableContent getContent(Long eventId, String uri, ContentDirection contentDirection);
+
+    /**
+     * Gets the content for the specified flowfile in the specified connection.
+     *
+     * @param groupId group
+     * @param connectionId connection
+     * @param flowfileUuid flowfile
+     * @param uri uri
+     * @return content
+     */
+    DownloadableContent getContent(String groupId, String connectionId, String flowfileUuid, String uri);
 
     /**
      * Retrieves provenance.
@@ -483,6 +498,14 @@ public interface NiFiServiceFacade {
     ConfigurationSnapshot<ConnectionDTO> createConnection(Revision revision, String groupId, ConnectionDTO connectionDTO);
 
     /**
+     * Determines if this connection can be listed.
+     *
+     * @param groupId group
+     * @param connectionId connection
+     */
+    void verifyListQueue(String groupId, String connectionId);
+
+    /**
      * Determines if this connection can be created.
      *
      * @param groupId group
@@ -555,6 +578,48 @@ public interface NiFiServiceFacade {
      * @return The DropRequest
      */
     DropRequestDTO deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
+
+    /**
+     * Creates a new flow file listing request.
+     *
+     * @param groupId group
+     * @param connectionId The ID of the connection
+     * @param listingRequestId The ID of the listing request
+     * @param column sort column
+     * @param direction sort direction
+     * @return The ListingRequest
+     */
+    ListingRequestDTO createFlowFileListingRequest(String groupId, String connectionId, String listingRequestId, SortColumn column, SortDirection direction);
+
+    /**
+     * Gets a new flow file listing request.
+     *
+     * @param groupId group
+     * @param connectionId The ID of the connection
+     * @param listingRequestId The ID of the listing request
+     * @return The ListingRequest
+     */
+    ListingRequestDTO getFlowFileListingRequest(String groupId, String connectionId, String listingRequestId);
+
+    /**
+     * Deletes a new flow file listing request.
+     *
+     * @param groupId group
+     * @param connectionId The ID of the connection
+     * @param listingRequestId The ID of the listing request
+     * @return The ListingRequest
+     */
+    ListingRequestDTO deleteFlowFileListingRequest(String groupId, String connectionId, String listingRequestId);
+
+    /**
+     * Gets the specified flowfile from the specified connection.
+     *
+     * @param groupId group
+     * @param connectionId The ID of the connection
+     * @param flowFileUuid The UUID of the flowfile
+     * @return The FlowFileDTO
+     */
+    FlowFileDTO getFlowFile(String groupId, String connectionId, String flowFileUuid);
 
     // ----------------------------------------
     // InputPort methods

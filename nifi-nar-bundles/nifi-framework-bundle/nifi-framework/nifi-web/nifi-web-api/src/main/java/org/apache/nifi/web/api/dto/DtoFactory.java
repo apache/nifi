@@ -75,6 +75,12 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.queue.FlowFileSummary;
+import org.apache.nifi.controller.queue.ListFlowFileState;
+import org.apache.nifi.controller.queue.ListFlowFileStatus;
+import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -84,6 +90,7 @@ import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -340,6 +347,113 @@ public final class DtoFactory {
             dto.setPercentCompleted(100);
         } else {
             dto.setPercentCompleted((dropped.getObjectCount() * 100) / original.getObjectCount());
+        }
+
+        return dto;
+    }
+
+    private boolean isListingRequestComplete(final ListFlowFileState state) {
+        return ListFlowFileState.COMPLETE.equals(state) || ListFlowFileState.CANCELED.equals(state) || ListFlowFileState.FAILURE.equals(state);
+    }
+
+    private QueueSizeDTO createQueueSizeDTO(final QueueSize queueSize) {
+        final QueueSizeDTO dto = new QueueSizeDTO();
+        dto.setByteCount(queueSize.getByteCount());
+        dto.setObjectCount(queueSize.getObjectCount());
+        return dto;
+    }
+
+    /**
+     * Creates a ListingRequestDTO from the specified ListFlowFileStatus.
+     *
+     * @param listingRequest listingRequest
+     * @return dto
+     */
+    public ListingRequestDTO createListingRequestDTO(final ListFlowFileStatus listingRequest) {
+        final ListingRequestDTO dto = new ListingRequestDTO();
+        dto.setId(listingRequest.getRequestIdentifier());
+        dto.setSubmissionTime(new Date(listingRequest.getRequestSubmissionTime()));
+        dto.setLastUpdated(new Date(listingRequest.getLastUpdated()));
+        dto.setState(listingRequest.getState().toString());
+        dto.setFailureReason(listingRequest.getFailureReason());
+        dto.setFinished(isListingRequestComplete(listingRequest.getState()));
+        dto.setMaxResults(listingRequest.getMaxResults());
+        dto.setSortColumn(listingRequest.getSortColumn().name());
+        dto.setSortDirection(listingRequest.getSortDirection().name());
+        dto.setTotalStepCount(listingRequest.getTotalStepCount());
+        dto.setCompletedStepCount(listingRequest.getCompletedStepCount());
+        dto.setPercentCompleted(listingRequest.getCompletionPercentage());
+
+        dto.setQueueSize(createQueueSizeDTO(listingRequest.getQueueSize()));
+
+        if (isListingRequestComplete(listingRequest.getState())) {
+            final List<FlowFileSummary> flowFileSummaries = listingRequest.getFlowFileSummaries();
+            if (flowFileSummaries != null) {
+                final Date now = new Date();
+                final List<FlowFileSummaryDTO> summaryDtos = new ArrayList<>(flowFileSummaries.size());
+                for (final FlowFileSummary summary : flowFileSummaries) {
+                    summaryDtos.add(createFlowFileSummaryDTO(summary, now));
+                }
+                dto.setFlowFileSummaries(summaryDtos);
+            }
+        }
+
+        return dto;
+    }
+
+    /**
+     * Creates a FlowFileSummaryDTO from the specified FlowFileSummary.
+     *
+     * @param summary summary
+     * @return dto
+     */
+    public FlowFileSummaryDTO createFlowFileSummaryDTO(final FlowFileSummary summary, final Date now) {
+        final FlowFileSummaryDTO dto = new FlowFileSummaryDTO();
+        dto.setUuid(summary.getUuid());
+        dto.setFilename(summary.getFilename());
+        dto.setPenalized(summary.isPenalized());
+        dto.setPosition(summary.getPosition());
+        dto.setSize(summary.getSize());
+
+        final long queuedDuration = now.getTime() - summary.getLastQueuedTime();
+        dto.setQueuedDuration(queuedDuration);
+
+        final long age = now.getTime() - summary.getLineageStartDate();
+        dto.setLineageDuration(age);
+
+        return dto;
+    }
+
+    /**
+     * Creates a FlowFileDTO from the specified FlowFileRecord.
+     *
+     * @param record record
+     * @return dto
+     */
+    public FlowFileDTO createFlowFileDTO(final FlowFileRecord record) {
+        final Date now = new Date();
+        final FlowFileDTO dto = new FlowFileDTO();
+        dto.setUuid(record.getAttribute(CoreAttributes.UUID.key()));
+        dto.setFilename(record.getAttribute(CoreAttributes.FILENAME.key()));
+        dto.setPenalized(record.isPenalized());
+        dto.setSize(record.getSize());
+        dto.setAttributes(record.getAttributes());
+
+        final long queuedDuration = now.getTime() - record.getLastQueueDate();
+        dto.setQueuedDuration(queuedDuration);
+
+        final long age = now.getTime() - record.getLineageStartDate();
+        dto.setLineageDuration(age);
+
+        final ContentClaim contentClaim = record.getContentClaim();
+        if (contentClaim != null) {
+            final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+            dto.setContentClaimSection(resourceClaim.getSection());
+            dto.setContentClaimContainer(resourceClaim.getContainer());
+            dto.setContentClaimIdentifier(resourceClaim.getId());
+            dto.setContentClaimOffset(contentClaim.getOffset());
+            dto.setContentClaimFileSizeBytes(contentClaim.getLength());
+            dto.setContentClaimFileSize(FormatUtils.formatDataSize(contentClaim.getLength()));
         }
 
         return dto;

@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedMap;
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +52,12 @@ public class StandardNiFiContentAccess implements ContentAccess {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiContentAccess.class);
     public static final String CLIENT_ID_PARAM = "clientId";
+
+    private static final Pattern FLOWFILE_CONTENT_URI_PATTERN = Pattern
+        .compile("/controller/process-groups/((?:root)|(?:[a-f0-9\\-]{36}))/connections/([a-f0-9\\-]{36})/flowfiles/([a-f0-9\\-]{36})/content");
+
+    private static final Pattern PROVENANCE_CONTENT_URI_PATTERN = Pattern
+        .compile("/controller/provenance/events/([0-9]+)/content/((?:input)|(?:output))");
 
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
@@ -115,21 +123,41 @@ public class StandardNiFiContentAccess implements ContentAccess {
             // create the downloadable content
             return new DownloadableContent(filename, contentType, clientResponse.getEntityInputStream());
         } else {
-            // example URI: http://localhost:8080/nifi-api/controller/provenance/events/1/content/input
-            final String eventDetails = StringUtils.substringAfterLast(request.getDataUri(), "events/");
-            final String rawEventId = StringUtils.substringBefore(eventDetails, "/content/");
-            final String rawDirection = StringUtils.substringAfterLast(eventDetails, "/content/");
+            // example URIs:
+            // http://localhost:8080/nifi-api/controller/provenance/events/{id}/content/{input|output}
+            // http://localhost:8080/nifi-api/controller/process-groups/{root|uuid}/connections/{uuid}/flowfiles/{uuid}/content
 
-            // get the content type
-            final Long eventId;
-            final ContentDirection direction;
-            try {
-                eventId = Long.parseLong(rawEventId);
-                direction = ContentDirection.valueOf(rawDirection.toUpperCase());
-            } catch (final IllegalArgumentException iae) {
+            // get just the context path for comparison
+            final String dataUri = StringUtils.substringAfter(request.getDataUri(), "/nifi-api");
+            if (StringUtils.isBlank(dataUri)) {
                 throw new IllegalArgumentException("The specified data reference URI is not valid.");
             }
-            return serviceFacade.getContent(eventId, request.getDataUri(), direction);
+
+            // flowfile listing content
+            final Matcher flowFileMatcher = FLOWFILE_CONTENT_URI_PATTERN.matcher(dataUri);
+            if (flowFileMatcher.matches()) {
+                final String groupId = flowFileMatcher.group(1);
+                final String connectionId = flowFileMatcher.group(2);
+                final String flowfileId = flowFileMatcher.group(3);
+
+                return serviceFacade.getContent(groupId, connectionId, flowfileId, dataUri);
+            }
+
+            // provenance event content
+            final Matcher provenanceMatcher = PROVENANCE_CONTENT_URI_PATTERN.matcher(dataUri);
+            if (provenanceMatcher.matches()) {
+                try {
+                    final Long eventId = Long.parseLong(provenanceMatcher.group(1));
+                    final ContentDirection direction = ContentDirection.valueOf(provenanceMatcher.group(2).toUpperCase());
+
+                    return serviceFacade.getContent(eventId, dataUri, direction);
+                } catch (final IllegalArgumentException iae) {
+                    throw new IllegalArgumentException("The specified data reference URI is not valid.");
+                }
+            }
+
+            // invalid uri
+            throw new IllegalArgumentException("The specified data reference URI is not valid.");
         }
     }
 

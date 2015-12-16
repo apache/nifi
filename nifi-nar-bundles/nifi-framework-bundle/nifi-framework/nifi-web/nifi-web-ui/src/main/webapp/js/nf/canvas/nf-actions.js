@@ -928,7 +928,7 @@ nf.Actions = (function () {
                                         // cancel it
                                         clearTimeout(dropRequestTimer);
 
-                                        // cancel the provenance
+                                        // cancel the drop request
                                         completeDropRequest();
                                     }
                                 }
@@ -1028,8 +1028,8 @@ nf.Actions = (function () {
 
                     // issue the request to delete the flow files
                     $.ajax({
-                        type: 'DELETE',
-                        url: connection.component.uri + '/contents',
+                        type: 'POST',
+                        url: connection.component.uri + '/drop-requests',
                         dataType: 'json'
                     }).done(function(response) {
                         // initialize the progress bar value
@@ -1045,7 +1045,24 @@ nf.Actions = (function () {
                 }
             });
         },
-        
+
+        /**
+         * Lists the flow files in the specified connection.
+         *
+         * @param {selection} selection
+         */
+        listQueue: function (selection) {
+            if (selection.size() !== 1 || !nf.CanvasUtils.isConnection(selection)) {
+                return;
+            }
+
+            // get the connection data
+            var connection = selection.datum();
+
+            // list the flow files in the specified connection
+            nf.QueueListing.listQueue(connection);
+        },
+
         /**
          * Opens the fill color dialog for the component in the specified selection.
          * 

@@ -19,6 +19,7 @@
 @import url(processor-details.css);
 @import url(process-group-configuration.css);
 @import url(process-group-details.css);
+@import url(queue-listing.css);
 @import url(remote-process-group-configuration.css);
 @import url(controller-service.css);
 @import url(reporting-task.css);

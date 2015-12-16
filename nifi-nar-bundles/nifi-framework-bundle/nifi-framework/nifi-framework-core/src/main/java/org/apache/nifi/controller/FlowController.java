@@ -177,6 +177,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -3239,6 +3241,44 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         provenanceEventRepository.registerEvent(sendEvent);
 
         return new LimitedInputStream(rawStream, size);
+    }
+
+    public InputStream getContent(final FlowFileRecord flowFile, final String requestor, final String requestUri) throws IOException {
+        requireNonNull(flowFile);
+        requireNonNull(requestor);
+        requireNonNull(requestUri);
+
+        final InputStream stream;
+        final ResourceClaim resourceClaim;
+        final ContentClaim contentClaim = flowFile.getContentClaim();
+        if (contentClaim == null) {
+            resourceClaim = null;
+            stream = new ByteArrayInputStream(new byte[0]);
+        } else {
+            resourceClaim = flowFile.getContentClaim().getResourceClaim();
+            stream = contentRepository.read(flowFile.getContentClaim());
+        }
+
+        // Register a Provenance Event to indicate that we replayed the data.
+        final StandardProvenanceEventRecord.Builder sendEventBuilder = new StandardProvenanceEventRecord.Builder()
+            .setEventType(ProvenanceEventType.DOWNLOAD)
+            .setFlowFileUUID(flowFile.getAttribute(CoreAttributes.UUID.key()))
+            .setAttributes(flowFile.getAttributes(), Collections.<String, String> emptyMap())
+            .setTransitUri(requestUri)
+            .setEventTime(System.currentTimeMillis())
+            .setFlowFileEntryDate(flowFile.getEntryDate())
+            .setLineageStartDate(flowFile.getLineageStartDate())
+            .setComponentType(getName())
+            .setComponentId(getRootGroupId())
+            .setDetails("Download of Content requested by " + requestor + " for " + flowFile);
+
+        if (contentClaim != null) {
+            sendEventBuilder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(), contentClaim.getOffset(), flowFile.getSize());
+        }
+
+        final ProvenanceEventRecord sendEvent = sendEventBuilder.build();
+        provenanceEventRepository.registerEvent(sendEvent);
+        return stream;
     }
 
     private String getReplayFailureReason(final ProvenanceEventRecord event) {

@@ -70,16 +70,6 @@ nf.ProvenanceTable = (function () {
     };
 
     /**
-     * Returns whether a content viewer has been configured.
-     * 
-     * @returns {boolean}
-     */
-    var isContentViewConfigured = function () {
-        var contentViewerUrl = $('#nifi-content-viewer-url').text();
-        return !nf.Common.isBlank(contentViewerUrl);
-    };
-
-    /**
      * Downloads the content for the provenance event that is currently loaded in the specified direction.
      * 
      * @param {string} direction
@@ -206,7 +196,7 @@ nf.ProvenanceTable = (function () {
         });
 
         // if a content viewer url is specified, use it
-        if (isContentViewConfigured()) {
+        if (nf.Common.isContentViewConfigured()) {
             // input view
             $('#input-content-view').on('click', function () {
                 viewContent('input');

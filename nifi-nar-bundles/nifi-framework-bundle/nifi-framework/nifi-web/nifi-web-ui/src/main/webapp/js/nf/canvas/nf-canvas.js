@@ -1122,6 +1122,11 @@ nf.Canvas = (function () {
                     var configDetails = configResponse.config;
                     var loginDetails = loginResponse.config;
 
+                    // store the content viewer url if available
+                    if (!nf.Common.isBlank(configDetails.contentViewerUrl)) {
+                        $('#nifi-content-viewer-url').text(configDetails.contentViewerUrl);
+                    }
+
                     // when both request complete, load the application
                     isClusteredRequest.done(function () {
                         // get the auto refresh interval
@@ -1145,6 +1150,7 @@ nf.Canvas = (function () {
                             nf.Search.init();
                             nf.Settings.init();
                             nf.Actions.init();
+                            nf.QueueListing.init();
 
                             // initialize the component behaviors
                             nf.Draggable.init();

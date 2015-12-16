@@ -62,6 +62,8 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.queue.SortColumn;
+import org.apache.nifi.controller.queue.SortDirection;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
@@ -80,6 +82,8 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.web.api.dto.FlowFileDTO;
+import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.user.AccountStatus;
 import org.apache.nifi.user.NiFiUser;
@@ -217,6 +221,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     // -----------------------------------------
     // Verification Operations
     // -----------------------------------------
+
+    @Override
+    public void verifyListQueue(String groupId, String connectionId) {
+        connectionDAO.verifyList(groupId, connectionId);
+    }
+
     @Override
     public void verifyCreateConnection(String groupId, ConnectionDTO connectionDTO) {
         connectionDAO.verifyCreate(groupId, connectionDTO);
@@ -817,6 +827,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ListingRequestDTO deleteFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
+        return dtoFactory.createListingRequestDTO(connectionDAO.deleteFlowFileListingRequest(groupId, connectionId, listingRequestId));
+    }
+
+    @Override
     public ConfigurationSnapshot<Void> deleteProcessor(final Revision revision, final String groupId, final String processorId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
@@ -1069,7 +1084,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
-        return dtoFactory.createDropRequestDTO(connectionDAO.createFileFlowDropRequest(groupId, connectionId, dropRequestId));
+        return dtoFactory.createDropRequestDTO(connectionDAO.createFlowFileDropRequest(groupId, connectionId, dropRequestId));
+    }
+
+    @Override
+    public ListingRequestDTO createFlowFileListingRequest(String groupId, String connectionId, String listingRequestId, SortColumn column, SortDirection direction) {
+        return dtoFactory.createListingRequestDTO(connectionDAO.createFlowFileListingRequest(groupId, connectionId, listingRequestId, column, direction));
     }
 
     @Override
@@ -1949,6 +1969,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public DownloadableContent getContent(String groupId, String connectionId, String flowFileUuid, String uri) {
+        return connectionDAO.getContent(groupId, connectionId, flowFileUuid, uri);
+    }
+
+    @Override
     public DownloadableContent getContent(Long eventId, String uri, ContentDirection contentDirection) {
         return controllerFacade.getContent(eventId, uri, contentDirection);
     }
@@ -2124,6 +2149,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public DropRequestDTO getFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
         return dtoFactory.createDropRequestDTO(connectionDAO.getFlowFileDropRequest(groupId, connectionId, dropRequestId));
+    }
+
+    @Override
+    public ListingRequestDTO getFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
+        return dtoFactory.createListingRequestDTO(connectionDAO.getFlowFileListingRequest(groupId, connectionId, listingRequestId));
+    }
+
+    @Override
+    public FlowFileDTO getFlowFile(String groupId, String connectionId, String flowFileUuid) {
+        return dtoFactory.createFlowFileDTO(connectionDAO.getFlowFile(groupId, connectionId, flowFileUuid));
     }
 
     @Override

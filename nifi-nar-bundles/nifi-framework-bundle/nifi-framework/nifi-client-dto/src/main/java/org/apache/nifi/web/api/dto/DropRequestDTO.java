@@ -51,12 +51,12 @@ public class DropRequestDTO {
     private String state;
 
     /**
-     * The id for this component.
+     * The id for this drop request.
      *
      * @return The id
      */
     @ApiModelProperty(
-            value = "The id of the component."
+            value = "The id for this drop request."
     )
     public String getId() {
         return this.id;
@@ -67,12 +67,12 @@ public class DropRequestDTO {
     }
 
     /**
-     * The uri for linking to this component in this NiFi.
+     * The uri for linking to this drop request in this NiFi.
      *
      * @return The uri
      */
     @ApiModelProperty(
-            value = "The URI for futures requests to the component."
+            value = "The URI for future requests to this drop request."
     )
     public String getUri() {
         return uri;
@@ -128,6 +128,9 @@ public class DropRequestDTO {
     /**
      * @return the reason, if any, that this drop request failed
      */
+    @ApiModelProperty(
+        value = "The reason, if any, that this drop request failed."
+    )
     public String getFailureReason() {
         return failureReason;
     }

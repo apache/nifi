@@ -16,15 +16,20 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import javax.ws.rs.WebApplicationException;
 
+import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -34,6 +39,12 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.ListFlowFileStatus;
+import org.apache.nifi.controller.queue.SortColumn;
+import org.apache.nifi.controller.queue.SortDirection;
+import org.apache.nifi.controller.repository.ContentNotFoundException;
+import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -41,16 +52,24 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.dao.ConnectionDAO;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO {
 
+    private static final Logger logger = LoggerFactory.getLogger(StandardConnectionDAO.class);
+
     private FlowController flowController;
+    private UserService userService;
 
     private Connection locateConnection(final String groupId, final String id) {
         return locateConnection(locateProcessGroup(flowController, groupId), id);
@@ -84,6 +103,37 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
 
         return dropRequest;
+    }
+
+    @Override
+    public ListFlowFileStatus getFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
+        final Connection connection = locateConnection(groupId, connectionId);
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+
+        final ListFlowFileStatus listRequest = queue.getListFlowFileStatus(listingRequestId);
+        if (listRequest == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find listing request with id '%s'.", listingRequestId));
+        }
+
+        return listRequest;
+    }
+
+    @Override
+    public FlowFileRecord getFlowFile(String groupId, String id, String flowFileUuid) {
+        try {
+            final Connection connection = locateConnection(groupId, id);
+            final FlowFileQueue queue = connection.getFlowFileQueue();
+            final FlowFileRecord flowFile = queue.getFlowFile(flowFileUuid);
+
+            if (flowFile == null) {
+                throw new ResourceNotFoundException(String.format("Unable to find FlowFile '%s' in Connection '%s'.", flowFileUuid, id));
+            }
+
+            return flowFile;
+        } catch (final IOException ioe) {
+            logger.error(String.format("Unable to get the flowfile (%s) at this time.", flowFileUuid), ioe);
+            throw new IllegalStateException("Unable to get the FlowFile at this time.");
+        }
     }
 
     @Override
@@ -312,7 +362,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public DropFlowFileStatus createFileFlowDropRequest(String groupId, String id, String dropRequestId) {
+    public DropFlowFileStatus createFlowFileDropRequest(String groupId, String id, String dropRequestId) {
         final Connection connection = locateConnection(groupId, id);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
@@ -325,6 +375,17 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
+    public ListFlowFileStatus createFlowFileListingRequest(String groupId, String id, String listingRequestId, SortColumn column, SortDirection direction) {
+        final Connection connection = locateConnection(groupId, id);
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+
+        // ensure we can list
+        verifyList(queue);
+
+        return queue.listFlowFiles(listingRequestId, 100, column, direction);
+    }
+
+    @Override
     public void verifyCreate(String groupId, ConnectionDTO connectionDTO) {
         // validate the incoming request
         final List<String> validationErrors = validateProposedConfiguration(groupId, connectionDTO);
@@ -333,6 +394,17 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         if (!validationErrors.isEmpty()) {
             throw new ValidationException(validationErrors);
         }
+    }
+
+    private void verifyList(final FlowFileQueue queue) {
+        queue.verifyCanList();
+    }
+
+    @Override
+    public void verifyList(String groupId, String id) {
+        final Connection connection = locateConnection(groupId, id);
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+        verifyList(queue);
     }
 
     @Override
@@ -508,8 +580,71 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         return dropFlowFileStatus;
     }
 
+    @Override
+    public ListFlowFileStatus deleteFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
+        final Connection connection = locateConnection(groupId, connectionId);
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+
+        final ListFlowFileStatus listFlowFileStatus = queue.cancelListFlowFileRequest(listingRequestId);
+        if (listFlowFileStatus == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find listing request with id '%s'.", listingRequestId));
+        }
+
+        return listFlowFileStatus;
+    }
+
+    @Override
+    public DownloadableContent getContent(String groupId, String id, String flowFileUuid, String requestUri) {
+        try {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+            if (user == null) {
+                throw new WebApplicationException(new Throwable("Unable to access details for current user."));
+            }
+
+            final Connection connection = locateConnection(groupId, id);
+            final FlowFileQueue queue = connection.getFlowFileQueue();
+            final FlowFileRecord flowFile = queue.getFlowFile(flowFileUuid);
+
+            if (flowFile == null) {
+                throw new ResourceNotFoundException(String.format("Unable to find FlowFile '%s' in Connection '%s'.", flowFileUuid, id));
+            }
+
+            // calculate the dn chain
+            final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
+
+            // ensure the users in this chain are allowed to download this content
+            final Map<String, String> attributes = flowFile.getAttributes();
+            final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
+            if (!downloadAuthorization.isApproved()) {
+                throw new AccessDeniedException(downloadAuthorization.getExplanation());
+            }
+
+            // get the filename and fall back to the identifier (should never happen)
+            String filename = attributes.get(CoreAttributes.FILENAME.key());
+            if (filename == null) {
+                filename = flowFileUuid;
+            }
+
+            // get the mime-type
+            final String type = attributes.get(CoreAttributes.MIME_TYPE.key());
+
+            // get the content
+            final InputStream content = flowController.getContent(flowFile, user.getIdentity(), requestUri);
+            return new DownloadableContent(filename, type, content);
+        } catch (final ContentNotFoundException cnfe) {
+            throw new ResourceNotFoundException("Unable to find the specified content.");
+        } catch (final IOException ioe) {
+            logger.error(String.format("Unable to get the content for flowfile (%s) at this time.", flowFileUuid), ioe);
+            throw new IllegalStateException("Unable to get the content at this time.");
+        }
+    }
+
     /* setters */
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
+    }
+
+    public void setUserService(UserService userService) {
+        this.userService = userService;
     }
 }

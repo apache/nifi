@@ -110,7 +110,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     // We can then destroy the data. If we end up syncing the FlowFile Repository to the backing storage mechanism and then restart
     // before the data is destroyed, it's okay because the data will be unknown to the Content Repository, so it will be destroyed
     // on restart.
-    private final ConcurrentMap<Integer, BlockingQueue<ContentClaim>> claimsAwaitingDestruction = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, BlockingQueue<ResourceClaim>> claimsAwaitingDestruction = new ConcurrentHashMap<>();
 
     public WriteAheadFlowFileRepository() {
         final NiFiProperties properties = NiFiProperties.getInstance();
@@ -169,12 +169,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         updateRepository(records, alwaysSync);
     }
 
-    private void markDestructable(final ContentClaim contentClaim) {
-        if (contentClaim == null) {
-            return;
-        }
-
-        final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+    private void markDestructable(final ResourceClaim resourceClaim) {
         if (resourceClaim == null) {
             return;
         }
@@ -213,22 +208,22 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // However, the result of this is that the FileSystem Repository may end up trying to remove the content multiple times.
         // This does not, however, cause problems, as ContentRepository should handle this
         // This does indicate that some refactoring should probably be performed, though, as this is not a very clean interface.
-        final Set<ContentClaim> claimsToAdd = new HashSet<>();
+        final Set<ResourceClaim> claimsToAdd = new HashSet<>();
         for (final RepositoryRecord record : records) {
             if (record.getType() == RepositoryRecordType.DELETE) {
                 // For any DELETE record that we have, if current claim's claimant count <= 0, mark it as destructable
                 if (record.getCurrentClaim() != null && getClaimantCount(record.getCurrentClaim()) <= 0) {
-                    claimsToAdd.add(record.getCurrentClaim());
+                    claimsToAdd.add(record.getCurrentClaim().getResourceClaim());
                 }
 
                 // If the original claim is different than the current claim and the original claim has a claimant count <= 0, mark it as destructable.
                 if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && getClaimantCount(record.getOriginalClaim()) <= 0) {
-                    claimsToAdd.add(record.getOriginalClaim());
+                    claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
                 }
             } else if (record.getType() == RepositoryRecordType.UPDATE) {
                 // if we have an update, and the original is no longer needed, mark original as destructable
                 if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && getClaimantCount(record.getOriginalClaim()) <= 0) {
-                    claimsToAdd.add(record.getOriginalClaim());
+                    claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
                 }
             }
         }
@@ -236,10 +231,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         if (!claimsToAdd.isEmpty()) {
             // Get / Register a Set<ContentClaim> for the given Partiton Index
             final Integer partitionKey = Integer.valueOf(partitionIndex);
-            BlockingQueue<ContentClaim> claimQueue = claimsAwaitingDestruction.get(partitionKey);
+            BlockingQueue<ResourceClaim> claimQueue = claimsAwaitingDestruction.get(partitionKey);
             if (claimQueue == null) {
                 claimQueue = new LinkedBlockingQueue<>();
-                final BlockingQueue<ContentClaim> existingClaimQueue = claimsAwaitingDestruction.putIfAbsent(partitionKey, claimQueue);
+                final BlockingQueue<ResourceClaim> existingClaimQueue = claimsAwaitingDestruction.putIfAbsent(partitionKey, claimQueue);
                 if (existingClaimQueue != null) {
                     claimQueue = existingClaimQueue;
                 }
@@ -252,26 +247,26 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public void onSync(final int partitionIndex) {
-        final BlockingQueue<ContentClaim> claimQueue = claimsAwaitingDestruction.get(Integer.valueOf(partitionIndex));
+        final BlockingQueue<ResourceClaim> claimQueue = claimsAwaitingDestruction.get(Integer.valueOf(partitionIndex));
         if (claimQueue == null) {
             return;
         }
 
-        final Set<ContentClaim> claimsToDestroy = new HashSet<>();
+        final Set<ResourceClaim> claimsToDestroy = new HashSet<>();
         claimQueue.drainTo(claimsToDestroy);
 
-        for (final ContentClaim claim : claimsToDestroy) {
+        for (final ResourceClaim claim : claimsToDestroy) {
             markDestructable(claim);
         }
     }
 
     @Override
     public void onGlobalSync() {
-        for (final BlockingQueue<ContentClaim> claimQueue : claimsAwaitingDestruction.values()) {
-            final Set<ContentClaim> claimsToDestroy = new HashSet<>();
+        for (final BlockingQueue<ResourceClaim> claimQueue : claimsAwaitingDestruction.values()) {
+            final Set<ResourceClaim> claimsToDestroy = new HashSet<>();
             claimQueue.drainTo(claimsToDestroy);
 
-            for (final ContentClaim claim : claimsToDestroy) {
+            for (final ResourceClaim claim : claimsToDestroy) {
                 markDestructable(claim);
             }
         }

@@ -300,6 +300,15 @@ nf.ContextMenu = (function () {
     var canEmptyQueue = function (selection) {
         return nf.Common.isDFM() && isConnection(selection);
     };
+
+    /**
+     * Only DFMs can list a queue.
+     *
+     * @param {selection} selection
+     */
+    var canListQueue = function (selection) {
+        return nf.Common.isDFM() && isConnection(selection) && nf.CanvasUtils.supportsModification(selection);
+    };
     
     /**
      * Determines if the components in the specified selection can be moved into a parent group.
@@ -403,6 +412,7 @@ nf.ContextMenu = (function () {
         {condition: isCopyable, menuItem: {img: 'images/iconCopy.png', text: 'Copy', action: 'copy'}},
         {condition: isPastable, menuItem: {img: 'images/iconPaste.png', text: 'Paste', action: 'paste'}},
         {condition: canMoveToParent, menuItem: {img: 'images/iconMoveToParent.png', text: 'Move to parent group', action: 'moveIntoParent'}},
+        {condition: canListQueue, menuItem: {img: 'images/iconListQueue.png', text: 'List queue', action: 'listQueue'}},
         {condition: canEmptyQueue, menuItem: {img: 'images/iconEmptyQueue.png', text: 'Empty queue', action: 'emptyQueue'}},
         {condition: isDeletable, menuItem: {img: 'images/iconDelete.png', text: 'Delete', action: 'delete'}}
     ];

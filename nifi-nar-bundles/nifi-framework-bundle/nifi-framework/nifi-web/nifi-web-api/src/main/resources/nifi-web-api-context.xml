@@ -76,6 +76,7 @@
     </bean>
     <bean id="connectionDAO" class="org.apache.nifi.web.dao.impl.StandardConnectionDAO">
         <property name="flowController" ref="flowController"/>
+        <property name="userService" ref="userService"/>
     </bean>
     <bean id="processorDAO" class="org.apache.nifi.web.dao.impl.StandardProcessorDAO">
         <property name="flowController" ref="flowController"/>

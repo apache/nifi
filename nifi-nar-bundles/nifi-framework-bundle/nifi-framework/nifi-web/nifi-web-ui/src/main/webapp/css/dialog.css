@@ -276,10 +276,6 @@ div.go-to-link {
     z-index: 1301;
 }
 
-#drop-request-status-message {
-    
-}
-
 #drop-request-percent-complete {
     margin-top: 10px;
     width: 378px;
@@ -287,6 +283,23 @@ div.go-to-link {
 }
 
 #drop-request-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+#listing-request-status-dialog {
+    display: none;
+    width: 400px;
+    height: 125px;
+    z-index: 1301;
+}
+
+#listing-request-percent-complete {
+    margin-top: 10px;
+    width: 378px;
+    border-radius: 0;
+}
+
+#listing-request-percent-complete .ui-progressbar-value {
     border-radius: 0;
 }
 
