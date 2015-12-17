@@ -109,7 +109,7 @@ public class PutJMS extends AbstractProcessor {
             .description("All FlowFiles that cannot be routed to the JMS destination are routed to this relationship")
             .build();
 
-    private final Queue<WrappedMessageProducer> producerQueue = new LinkedBlockingQueue<>();
+    protected Queue<WrappedMessageProducer> producerQueue = null;
     private final List<PropertyDescriptor> properties;
     private final Set<Relationship> relationships;
 
@@ -139,6 +139,13 @@ public class PutJMS extends AbstractProcessor {
         this.relationships = Collections.unmodifiableSet(relationships);
     }
 
+    protected Queue<WrappedMessageProducer> getProducerQueue() {
+        if (producerQueue == null) {
+            producerQueue = new LinkedBlockingQueue<>();
+        }
+        return producerQueue;
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -151,10 +158,10 @@ public class PutJMS extends AbstractProcessor {
 
     @OnStopped
     public void cleanupResources() {
-        WrappedMessageProducer wrappedProducer = producerQueue.poll();
+        WrappedMessageProducer wrappedProducer = getProducerQueue().poll();
         while (wrappedProducer != null) {
             wrappedProducer.close(getLogger());
-            wrappedProducer = producerQueue.poll();
+            wrappedProducer = getProducerQueue().poll();
         }
     }
 
@@ -166,7 +173,7 @@ public class PutJMS extends AbstractProcessor {
             return;
         }
 
-        WrappedMessageProducer wrappedProducer = producerQueue.poll();
+        WrappedMessageProducer wrappedProducer = getProducerQueue().poll();
         if (wrappedProducer == null) {
             try {
                 wrappedProducer = JmsFactory.createMessageProducer(context, true);
@@ -227,7 +234,11 @@ public class PutJMS extends AbstractProcessor {
                     producer.send(message);
                 } catch (final JMSException e) {
                     logger.error("Failed to send {} to JMS Server due to {}", new Object[]{flowFile, e});
-                    session.transfer(flowFiles, REL_FAILURE);
+                    final List<FlowFile> failFiles = new ArrayList<>();
+                    for (FlowFile ff : flowFiles) {
+                        failFiles.add(session.penalize(ff));
+                    }
+                    session.transfer(failFiles, REL_FAILURE);
                     context.yield();
 
                     try {
@@ -252,12 +263,16 @@ public class PutJMS extends AbstractProcessor {
                 logger.info("Sent {} to JMS Server and transferred to 'success'", new Object[]{flowFileDescription});
             } catch (JMSException e) {
                 logger.error("Failed to commit JMS Session due to {}; rolling back session", new Object[]{e});
-                session.rollback();
+                final List<FlowFile> failFiles = new ArrayList<>();
+                for (FlowFile ff : flowFiles) {
+                    failFiles.add(session.penalize(ff));
+                }
+                session.transfer(failFiles, REL_FAILURE);
                 wrappedProducer.close(logger);
             }
         } finally {
             if (!wrappedProducer.isClosed()) {
-                producerQueue.offer(wrappedProducer);
+                getProducerQueue().offer(wrappedProducer);
             }
         }
     }
