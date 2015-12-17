@@ -251,8 +251,9 @@ public class PutJMS extends AbstractProcessor {
                 final String flowFileDescription = successfulFlowFiles.size() > 10 ? successfulFlowFiles.size() + " FlowFiles" : successfulFlowFiles.toString();
                 logger.info("Sent {} to JMS Server and transferred to 'success'", new Object[]{flowFileDescription});
             } catch (JMSException e) {
-                logger.error("Failed to commit JMS Session due to {}; rolling back session", new Object[]{e});
-                session.rollback();
+                logger.error("Failed to commit JMS Session due to {} and transferred to 'failure'", new Object[]{e});
+                session.transfer(flowFiles, REL_FAILURE);
+                context.yield();
                 wrappedProducer.close(logger);
             }
         } finally {
