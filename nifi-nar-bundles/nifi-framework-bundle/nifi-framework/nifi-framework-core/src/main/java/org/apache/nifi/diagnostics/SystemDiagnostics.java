@@ -150,11 +150,19 @@ public class SystemDiagnostics implements Cloneable {
     }
 
     public int getHeapUtilization() {
-        return DiagnosticUtils.getUtilization(usedHeap, maxHeap);
+        if (maxHeap == -1) {
+            return -1;
+        } else {
+            return DiagnosticUtils.getUtilization(usedHeap, maxHeap);
+        }
     }
 
     public int getNonHeapUtilization() {
-        return DiagnosticUtils.getUtilization(usedNonHeap, maxNonHeap);
+        if (maxNonHeap == -1) {
+            return -1;
+        } else {
+            return DiagnosticUtils.getUtilization(usedNonHeap, maxNonHeap);
+        }
     }
 
     public Map<String, GarbageCollection> getGarbageCollection() {

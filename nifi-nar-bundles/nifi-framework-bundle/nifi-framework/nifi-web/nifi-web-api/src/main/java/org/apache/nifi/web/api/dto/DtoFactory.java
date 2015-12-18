@@ -1735,14 +1735,18 @@ public final class DtoFactory {
         dto.setTotalHeap(FormatUtils.formatDataSize(sysDiagnostics.getTotalHeap()));
         dto.setUsedHeap(FormatUtils.formatDataSize(sysDiagnostics.getUsedHeap()));
         dto.setFreeHeap(FormatUtils.formatDataSize(sysDiagnostics.getFreeHeap()));
-        dto.setHeapUtilization(FormatUtils.formatUtilization(sysDiagnostics.getHeapUtilization()));
+        if (sysDiagnostics.getHeapUtilization() != -1) {
+            dto.setHeapUtilization(FormatUtils.formatUtilization(sysDiagnostics.getHeapUtilization()));
+        }
 
         // non heap
         dto.setMaxNonHeap(FormatUtils.formatDataSize(sysDiagnostics.getMaxNonHeap()));
         dto.setTotalNonHeap(FormatUtils.formatDataSize(sysDiagnostics.getTotalNonHeap()));
         dto.setUsedNonHeap(FormatUtils.formatDataSize(sysDiagnostics.getUsedNonHeap()));
         dto.setFreeNonHeap(FormatUtils.formatDataSize(sysDiagnostics.getFreeNonHeap()));
-        dto.setNonHeapUtilization(FormatUtils.formatUtilization(sysDiagnostics.getNonHeapUtilization()));
+        if (sysDiagnostics.getNonHeapUtilization() != -1) {
+            dto.setNonHeapUtilization(FormatUtils.formatUtilization(sysDiagnostics.getNonHeapUtilization()));
+        }
 
         // flow file disk usage
         final SystemDiagnosticsDTO.StorageUsageDTO flowFileRepositoryStorageUsageDto = createStorageUsageDTO(null, sysDiagnostics.getFlowFileRepositoryStorageUsage());
