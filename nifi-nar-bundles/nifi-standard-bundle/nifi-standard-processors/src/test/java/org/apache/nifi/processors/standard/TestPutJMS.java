@@ -33,6 +33,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,12 @@ public class TestPutJMS {
         return "." + trace[2].getMethodName();
     }
 
+    private void injectFieldValue(Class klass, Object instance, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
+        Field field = klass.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(instance, fieldValue);
+    }
+
     @Test
     public void testGetRelationships() {
         final PutJMS putJMS = new PutJMS();
@@ -72,7 +79,7 @@ public class TestPutJMS {
     }
 
     @Test
-    public void testCleanupResources() throws JMSException {
+    public void testCleanupResources() throws JMSException, NoSuchFieldException, IllegalAccessException {
         final PutJMS putJMS = new PutJMS();
         final TestRunner runnerPut = TestRunners.newTestRunner(putJMS);
         runnerPut.setProperty(JmsProperties.JMS_PROVIDER, TEST_PROVIDER);
@@ -80,13 +87,15 @@ public class TestPutJMS {
         runnerPut.setProperty(JmsProperties.DESTINATION_TYPE, TEST_DEST_TYPE);
         runnerPut.setProperty(JmsProperties.DESTINATION_NAME, TEST_DEST_NAME + testQueueSuffix());
 
-        final Queue<WrappedMessageProducer> queue = putJMS.getProducerQueue();
-        final WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runnerPut.getProcessContext(), true);
-        queue.offer(wrappedProducer);
+        final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = (Queue) spy(new LinkedBlockingQueue<>());
+        injectFieldValue(PutJMS.class, putJMS, "producerQueue", wrappedMessageProducerQueue);
 
-        assertNotNull(putJMS.getProducerQueue().poll());
+        final WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runnerPut.getProcessContext(), true);
+        wrappedMessageProducerQueue.offer(wrappedProducer);
+
+        assertNotNull(wrappedMessageProducerQueue.peek());
         putJMS.cleanupResources();
-        assertNull(putJMS.getProducerQueue().poll());
+        assertNull(wrappedMessageProducerQueue.peek());
     }
 
 
@@ -450,7 +459,7 @@ public class TestPutJMS {
     }
 
     @Test
-    public void testFailureOnCreateProducer() throws JMSException {
+    public void testPutSendRoutesToFailure() throws JMSException, NoSuchFieldException, IllegalAccessException {
 
         final PutJMS putJMS = spy(new PutJMS());
 
@@ -463,78 +472,10 @@ public class TestPutJMS {
         final ProcessContext context = runnerPut.getProcessContext();
 
         final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = (Queue) spy(new LinkedBlockingQueue<>());
+        injectFieldValue(PutJMS.class, putJMS, "producerQueue", wrappedMessageProducerQueue);
+
         final WrappedMessageProducer wrappedMessageProducer = spy(JmsFactory.createMessageProducer(context, true));
         final MessageProducer messageProducer = spy(wrappedMessageProducer.getProducer());
-        final Connection connection = JmsFactory.createConnection(context);
-        final Session jmsSession = spy(JmsFactory.createSession(context, connection, true));
-
-        doAnswer(new Answer<Queue<? extends WrappedMessageProducer>>() {
-            @Override
-            public Queue<? extends WrappedMessageProducer> answer(InvocationOnMock invocation) {
-                return wrappedMessageProducerQueue;
-            }
-        }).when(putJMS).getProducerQueue();
-        assertEquals(wrappedMessageProducerQueue, putJMS.getProducerQueue());
-
-        doAnswer(new Answer<WrappedMessageProducer>() {
-            @Override
-            public WrappedMessageProducer answer(InvocationOnMock invocationOnMock) {
-                return wrappedMessageProducer;
-            }
-        }).when(wrappedMessageProducerQueue).poll();
-        assertEquals(wrappedMessageProducer, putJMS.getProducerQueue().poll());
-
-        doAnswer(new Answer<MessageProducer>() {
-            @Override
-            public MessageProducer answer(InvocationOnMock invocationOnMock) {
-                return messageProducer;
-            }
-        }).when(wrappedMessageProducer).getProducer();
-        assertEquals(messageProducer, putJMS.getProducerQueue().poll().getProducer());
-
-        doAnswer(new Answer<Session>() {
-            @Override
-            public Session answer(InvocationOnMock invocationOnMock) {
-                return jmsSession;
-            }
-        }).when(wrappedMessageProducer).getSession();
-        assertEquals(jmsSession, putJMS.getProducerQueue().poll().getSession());
-
-        doThrow(new JMSException("force commit to fail")).when(jmsSession).commit();
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("filename", "file1.txt");
-        runnerPut.enqueue("failureOnCreateProducer".getBytes(), attributes);
-
-        runnerPut.run();
-        assertEquals(0, runnerPut.getFlowFilesForRelationship(PutJMS.REL_SUCCESS).size());
-        assertEquals(1, runnerPut.getFlowFilesForRelationship(PutJMS.REL_FAILURE).size());
-    }
-
-    @Test
-    public void testPutSendRoutesToFailure() throws JMSException {
-
-        final PutJMS putJMS = spy(new PutJMS());
-
-        final TestRunner runnerPut = TestRunners.newTestRunner(putJMS);
-        runnerPut.setProperty(JmsProperties.JMS_PROVIDER, TEST_PROVIDER);
-        runnerPut.setProperty(JmsProperties.URL, TEST_URL);
-        runnerPut.setProperty(JmsProperties.DESTINATION_TYPE, TEST_DEST_TYPE);
-        runnerPut.setProperty(JmsProperties.DESTINATION_NAME, TEST_DEST_NAME + testQueueSuffix());
-
-        final ProcessContext context = runnerPut.getProcessContext();
-
-        final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = (Queue) spy(new LinkedBlockingQueue<>());
-        final WrappedMessageProducer wrappedMessageProducer = spy(JmsFactory.createMessageProducer(context, true));
-        final MessageProducer messageProducer = spy(wrappedMessageProducer.getProducer());
-
-        doAnswer(new Answer<Queue<? extends WrappedMessageProducer>>() {
-            @Override
-            public Queue<? extends WrappedMessageProducer> answer(InvocationOnMock invocation) {
-                return wrappedMessageProducerQueue;
-            }
-        }).when(putJMS).getProducerQueue();
-        assertEquals(wrappedMessageProducerQueue, putJMS.getProducerQueue());
 
         doAnswer(new Answer<WrappedMessageProducer>() {
             @Override
@@ -558,6 +499,7 @@ public class TestPutJMS {
         runnerPut.enqueue("putSendRoutesToFailure".getBytes(), attributes);
 
         runnerPut.run();
+
         assertEquals(0, runnerPut.getFlowFilesForRelationship(PutJMS.REL_SUCCESS).size());
         assertEquals(1, runnerPut.getFlowFilesForRelationship(PutJMS.REL_FAILURE).size());
 
@@ -567,7 +509,7 @@ public class TestPutJMS {
     }
 
     @Test
-    public void testPutCommitRoutesToFailure() throws JMSException {
+    public void testPutCommitRoutesToFailure() throws JMSException, NoSuchFieldException, IllegalAccessException {
 
         final PutJMS putJMS = spy(new PutJMS());
 
@@ -578,20 +520,13 @@ public class TestPutJMS {
         runnerPut.setProperty(JmsProperties.DESTINATION_NAME, TEST_DEST_NAME + testQueueSuffix());
 
         final ProcessContext context = runnerPut.getProcessContext();
-
         final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = (Queue) spy(new LinkedBlockingQueue<>());
+        injectFieldValue(PutJMS.class, putJMS, "producerQueue", wrappedMessageProducerQueue);
+
         final WrappedMessageProducer wrappedMessageProducer = spy(JmsFactory.createMessageProducer(context, true));
         final MessageProducer messageProducer = spy(wrappedMessageProducer.getProducer());
         final Connection connection = JmsFactory.createConnection(context);
         final Session jmsSession = spy(JmsFactory.createSession(context, connection, true));
-
-        doAnswer(new Answer<Queue<? extends WrappedMessageProducer>>() {
-            @Override
-            public Queue<? extends WrappedMessageProducer> answer(InvocationOnMock invocation) {
-                return wrappedMessageProducerQueue;
-            }
-        }).when(putJMS).getProducerQueue();
-        assertEquals(wrappedMessageProducerQueue, putJMS.getProducerQueue());
 
         doAnswer(new Answer<WrappedMessageProducer>() {
             @Override
@@ -599,7 +534,6 @@ public class TestPutJMS {
                 return wrappedMessageProducer;
             }
         }).when(wrappedMessageProducerQueue).poll();
-        assertEquals(wrappedMessageProducer, putJMS.getProducerQueue().poll());
 
         doAnswer(new Answer<MessageProducer>() {
             @Override
@@ -607,7 +541,6 @@ public class TestPutJMS {
                 return messageProducer;
             }
         }).when(wrappedMessageProducer).getProducer();
-        assertEquals(messageProducer, putJMS.getProducerQueue().poll().getProducer());
 
         doAnswer(new Answer<Session>() {
             @Override
@@ -615,7 +548,6 @@ public class TestPutJMS {
                 return jmsSession;
             }
         }).when(wrappedMessageProducer).getSession();
-        assertEquals(jmsSession, putJMS.getProducerQueue().poll().getSession());
 
         doThrow(new JMSException("force commit to fail")).when(jmsSession).commit();
 
@@ -624,6 +556,7 @@ public class TestPutJMS {
         runnerPut.enqueue("putCommitRoutesToFailure".getBytes(), attributes);
 
         runnerPut.run();
+
         assertEquals(0, runnerPut.getFlowFilesForRelationship(PutJMS.REL_SUCCESS).size());
         assertEquals(1, runnerPut.getFlowFilesForRelationship(PutJMS.REL_FAILURE).size());
 
