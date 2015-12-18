@@ -53,8 +53,8 @@ detectOS() {
             os400=true
             ;;
         Darwin)
-                darwin=true
-                ;;
+            darwin=true
+            ;;
     esac
     # For AIX, set an environment variable
     if ${aix}; then
@@ -154,6 +154,10 @@ run() {
     BOOTSTRAP_CONF="${NIFI_HOME}/conf/bootstrap.conf";
 
     run_as=$(grep run.as "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
+    # If the run as user is the same as that starting the process, ignore this configuration
+    if [ "$run_as" = "$(whoami)" ]; then
+        unset run_as
+    fi
 
     sudo_cmd_prefix=""
     if $cygwin; then
