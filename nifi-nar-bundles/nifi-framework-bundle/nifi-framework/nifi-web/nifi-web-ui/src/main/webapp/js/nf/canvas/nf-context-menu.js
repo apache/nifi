@@ -256,7 +256,8 @@ nf.ContextMenu = (function () {
             return false;
         }
 
-        return !nf.CanvasUtils.isConnection(selection) && !nf.CanvasUtils.isProcessGroup(selection) && !nf.CanvasUtils.isRemoteProcessGroup(selection) && nf.Common.canAccessProvenance();
+        return !nf.CanvasUtils.isLabel(selection) && !nf.CanvasUtils.isConnection(selection) && !nf.CanvasUtils.isProcessGroup(selection)
+            && !nf.CanvasUtils.isRemoteProcessGroup(selection) && nf.Common.canAccessProvenance();
     };
 
     /**
