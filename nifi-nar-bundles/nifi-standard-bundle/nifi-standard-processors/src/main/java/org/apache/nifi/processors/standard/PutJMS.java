@@ -158,14 +158,6 @@ public class PutJMS extends AbstractProcessor {
         }
     }
 
-    private List<FlowFile> penalizeList(final ProcessSession session, final List<FlowFile> failFiles){
-        final List<FlowFile> newFiles = new ArrayList<>();
-        for (FlowFile ff : failFiles) {
-            newFiles.add(session.penalize(ff));
-        }
-        return newFiles;
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ProcessorLog logger = getLogger();
@@ -235,8 +227,7 @@ public class PutJMS extends AbstractProcessor {
                     producer.send(message);
                 } catch (final JMSException e) {
                     logger.error("Failed to send {} to JMS Server due to {}", new Object[]{flowFile, e});
-                    final List<FlowFile> failFiles = penalizeList(session, flowFiles);
-                    session.transfer(failFiles, REL_FAILURE);
+                    session.transfer(flowFiles, REL_FAILURE);
                     context.yield();
 
                     try {
@@ -261,8 +252,8 @@ public class PutJMS extends AbstractProcessor {
                 logger.info("Sent {} to JMS Server and transferred to 'success'", new Object[]{flowFileDescription});
             } catch (JMSException e) {
                 logger.error("Failed to commit JMS Session due to {}; rolling back session", new Object[]{e});
-                final List<FlowFile> failFiles = penalizeList(session, flowFiles);
-                session.transfer(failFiles, REL_FAILURE);
+                session.transfer(flowFiles, REL_FAILURE);
+                context.yield();
                 wrappedProducer.close(logger);
             }
         } finally {

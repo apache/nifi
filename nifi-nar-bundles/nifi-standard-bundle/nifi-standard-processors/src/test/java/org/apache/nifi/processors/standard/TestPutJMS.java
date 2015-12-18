@@ -505,7 +505,6 @@ public class TestPutJMS {
 
         final List<MockFlowFile> flowFilesFail = runnerPut.getFlowFilesForRelationship(PutJMS.REL_FAILURE);
         assertEquals(1, flowFilesFail.size());
-        assertTrue(flowFilesFail.get(0).isPenalized());
     }
 
     @Test
@@ -562,6 +561,5 @@ public class TestPutJMS {
 
         final List<MockFlowFile> flowFilesFail = runnerPut.getFlowFilesForRelationship(PutJMS.REL_FAILURE);
         assertEquals(1, flowFilesFail.size());
-        assertTrue(flowFilesFail.get(0).isPenalized());
     }
 }
