@@ -149,7 +149,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
         final List<FlowFileRecord> swappedFlowFiles;
         try (final InputStream fis = new FileInputStream(swapFile);
-            final DataInputStream in = new DataInputStream(fis)) {
+            final InputStream bis = new BufferedInputStream(fis);
+            final DataInputStream in = new DataInputStream(bis)) {
             swappedFlowFiles = deserializeFlowFiles(in, swapLocation, flowFileQueue, claimManager);
         }
 
