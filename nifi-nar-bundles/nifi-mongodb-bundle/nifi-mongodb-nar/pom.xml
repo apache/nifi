@@ -19,18 +19,18 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-mongodb-bundle</artifactId>
-        <version>0.4.1</version>
+        <version>0.4.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-mongodb-nar</artifactId>
-    <version>0.4.1</version>
+    <version>0.4.2-SNAPSHOT</version>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-processors</artifactId>
-            <version>0.4.1</version>
+            <version>0.4.2-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
