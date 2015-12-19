@@ -19,18 +19,18 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-avro-bundle</artifactId>
-        <version>0.4.1-SNAPSHOT</version>
+        <version>0.4.1</version>
     </parent>
 
     <artifactId>nifi-avro-nar</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.4.1</version>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-processors</artifactId>
-            <version>0.4.1-SNAPSHOT</version>
+            <version>0.4.1</version>
         </dependency>
     </dependencies>
 

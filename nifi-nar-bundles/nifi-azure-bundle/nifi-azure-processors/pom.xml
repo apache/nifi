@@ -15,7 +15,7 @@
 	<parent>
 		<groupId>org.apache.nifi</groupId>
 		<artifactId>nifi-azure-bundle</artifactId>
-		<version>0.4.1-SNAPSHOT</version>
+		<version>0.4.1</version>
 	</parent>
 
 	<artifactId>nifi-azure-processors</artifactId>
