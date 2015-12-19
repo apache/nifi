@@ -1902,7 +1902,9 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             for (final ProcessGroup childGroup : processGroups.values()) {
-                childGroup.verifyCanDelete();
+                // For nested child groups we can ignore the input/output port
+                // connections as they will be being deleted anyway.
+                childGroup.verifyCanDelete(true);
             }
 
             if (!ignoreConnections) {
