@@ -73,7 +73,6 @@ public class TestDetectDuplicate {
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
-        client.exists = true;
         runner.enqueue(new byte[]{}, props);
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_DUPLICATE, 1);
@@ -101,7 +100,6 @@ public class TestDetectDuplicate {
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
-        client.exists = true;
         Thread.sleep(3000);
         runner.enqueue(new byte[]{}, props);
         runner.run();
@@ -118,6 +116,72 @@ public class TestDetectDuplicate {
         client.initialize(clientInitContext);
 
         return client;
+    }
+
+    @Test
+    public void testDuplicateNoCache() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
+        final DistributedMapCacheClientImpl client = createClient();
+        final Map<String, String> clientProperties = new HashMap<>();
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        runner.addControllerService("client", client, clientProperties);
+        runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
+        runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
+        runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "48 hours");
+        runner.setProperty(DetectDuplicate.CACHE_IDENTIFIER, "false");
+        final Map<String, String> props = new HashMap<>();
+        props.put("hash.value", "1000");
+        runner.enqueue(new byte[]{}, props);
+        runner.enableControllerService(client);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.clearTransferState();
+
+        runner.setProperty(DetectDuplicate.CACHE_IDENTIFIER, "true");
+        runner.enqueue(new byte[]{}, props);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.assertTransferCount(DetectDuplicate.REL_DUPLICATE, 0);
+        runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
+        runner.clearTransferState();
+
+        runner.enqueue(new byte[]{}, props);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_DUPLICATE, 1);
+        runner.assertTransferCount(DetectDuplicate.REL_NON_DUPLICATE, 0);
+        runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testDuplicateNoCacheWithAgeOff() throws InitializationException, InterruptedException {
+
+        final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
+        final DistributedMapCacheClientImpl client = createClient();
+        final Map<String, String> clientProperties = new HashMap<>();
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        runner.addControllerService("client", client, clientProperties);
+        runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
+        runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
+        runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "2 secs");
+        runner.enableControllerService(client);
+
+        final Map<String, String> props = new HashMap<>();
+        props.put("hash.value", "1000");
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+
+        runner.clearTransferState();
+        Thread.sleep(3000);
+
+        runner.setProperty(DetectDuplicate.CACHE_IDENTIFIER, "false");
+        runner.enqueue(new byte[]{}, props);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.assertTransferCount(DetectDuplicate.REL_DUPLICATE, 0);
+        runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
     }
 
     static final class DistributedMapCacheClientImpl extends AbstractControllerService implements DistributedMapCacheClient {
@@ -150,6 +214,7 @@ public class TestDetectDuplicate {
             }
 
             cacheValue = value;
+            exists = true;
             return true;
         }
 
@@ -160,6 +225,7 @@ public class TestDetectDuplicate {
                 return (V) cacheValue;
             }
             cacheValue = value;
+            exists = true;
             return null;
         }
 
@@ -170,7 +236,11 @@ public class TestDetectDuplicate {
 
         @Override
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
-            return null;
+            if (exists) {
+                return (V) cacheValue;
+            } else {
+                return null;
+            }
         }
 
         @Override
@@ -181,6 +251,8 @@ public class TestDetectDuplicate {
 
         @Override
         public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+            cacheValue = value;
+            exists = true;
         }
     }
 
