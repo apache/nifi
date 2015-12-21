@@ -183,6 +183,74 @@ public class TestJdbcCommon {
         }
     }
 
+    @Test
+    public void testSignedIntShouldBeInt() throws SQLException, IllegalArgumentException, IllegalAccessException {
+        final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
+        Mockito.when(metadata.getColumnCount()).thenReturn(1);
+        Mockito.when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
+        Mockito.when(metadata.isSigned(1)).thenReturn(true);
+        Mockito.when(metadata.getColumnName(1)).thenReturn("Col1");
+        Mockito.when(metadata.getTableName(1)).thenReturn("Table1");
+
+        final ResultSet rs = Mockito.mock(ResultSet.class);
+        Mockito.when(rs.getMetaData()).thenReturn(metadata);
+
+        Schema schema = JdbcCommon.createSchema(rs);
+        Assert.assertNotNull(schema);
+
+        Schema.Field field = schema.getField("Col1");
+        Schema fieldSchema = field.schema();
+        Assert.assertEquals(2, fieldSchema.getTypes().size());
+
+        boolean foundIntSchema = false;
+        boolean foundNullSchema = false;
+
+        for (Schema type : fieldSchema.getTypes()) {
+            if (type.getType().equals(Schema.Type.INT)) {
+                foundIntSchema = true;
+            } else if (type.getType().equals(Schema.Type.NULL)) {
+                foundNullSchema = true;
+            }
+        }
+
+        Assert.assertTrue(foundIntSchema);
+        Assert.assertTrue(foundNullSchema);
+    }
+
+    @Test
+    public void testUnsignedIntShouldBeLong() throws SQLException, IllegalArgumentException, IllegalAccessException {
+        final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
+        Mockito.when(metadata.getColumnCount()).thenReturn(1);
+        Mockito.when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
+        Mockito.when(metadata.isSigned(1)).thenReturn(false);
+        Mockito.when(metadata.getColumnName(1)).thenReturn("Col1");
+        Mockito.when(metadata.getTableName(1)).thenReturn("Table1");
+
+        final ResultSet rs = Mockito.mock(ResultSet.class);
+        Mockito.when(rs.getMetaData()).thenReturn(metadata);
+
+        Schema schema = JdbcCommon.createSchema(rs);
+        Assert.assertNotNull(schema);
+
+        Schema.Field field = schema.getField("Col1");
+        Schema fieldSchema = field.schema();
+        Assert.assertEquals(2, fieldSchema.getTypes().size());
+
+        boolean foundLongSchema = false;
+        boolean foundNullSchema = false;
+
+        for (Schema type : fieldSchema.getTypes()) {
+            if (type.getType().equals(Schema.Type.LONG)) {
+                foundLongSchema = true;
+            } else if (type.getType().equals(Schema.Type.NULL)) {
+                foundNullSchema = true;
+            }
+        }
+
+        Assert.assertTrue(foundLongSchema);
+        Assert.assertTrue(foundNullSchema);
+    }
+
 
     @Test
     public void testConvertToAvroStreamForBigDecimal() throws SQLException, IOException {

@@ -154,6 +154,13 @@ public class JdbcCommon {
                     break;
 
                 case INTEGER:
+                    if (meta.isSigned(i)) {
+                        builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
+                    } else {
+                        builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
+                    }
+                    break;
+
                 case SMALLINT:
                 case TINYINT:
                     builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
