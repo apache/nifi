@@ -53,7 +53,7 @@
                 <configuration>
                     <excludes>**/authentication/generated/*.java,</excludes>
                 </configuration>
-            </plugin>            
+            </plugin>
         </plugins>
     </build>
     <dependencies>

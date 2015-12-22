@@ -181,6 +181,11 @@ language governing permissions and limitations under the License. -->
             <type>jar</type>
         </dependency>
         <dependency>
+            <groupId>de.svenkubiak</groupId>
+            <artifactId>jBcrypt</artifactId>
+            <version>0.4.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
@@ -315,9 +320,35 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
                         <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
+                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt because the binary is compiled for Java 8 and we must support Java 7 -->
+                        <exclude>src/main/java/org/apache/nifi/processors/standard/util/crypto/bcrypt/BCrypt.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <!-- Custom profile for tests requiring large heap operations -->
+            <id>expensive-heap-tests</id>
+            <activation>
+                <property>
+                    <name>heap</name>
+                    <value>expensive</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.18</version>
+                        <configuration>
+                            <argLine>-Xmx3072M</argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

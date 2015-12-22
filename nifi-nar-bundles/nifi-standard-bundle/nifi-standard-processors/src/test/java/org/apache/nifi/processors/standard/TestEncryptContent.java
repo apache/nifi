@@ -18,7 +18,8 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.processors.standard.util.PasswordBasedEncryptor;
+import org.apache.nifi.processors.standard.util.crypto.CipherUtility;
+import org.apache.nifi.processors.standard.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.util.MockFlowFile;
@@ -51,13 +52,23 @@ public class TestEncryptContent {
     @Test
     public void testRoundTrip() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
-        testRunner.setProperty(EncryptContent.PASSWORD, "Hello, World!");
+        testRunner.setProperty(EncryptContent.PASSWORD, "short");
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name());
+        // Must be allowed or short password will cause validation errors
+        testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, "allowed");
 
-        for (final EncryptionMethod method : EncryptionMethod.values()) {
-            if (method.isUnlimitedStrength()) {
+        for (final EncryptionMethod encryptionMethod : EncryptionMethod.values()) {
+            if (encryptionMethod.isUnlimitedStrength()) {
                 continue;   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
             }
-            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, method.name());
+
+            // KeyedCiphers tested in TestEncryptContentGroovy.groovy
+            if (encryptionMethod.isKeyedCipher()) {
+                continue;
+            }
+
+            logger.info("Attempting {}", encryptionMethod.name());
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name());
             testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
 
             testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
@@ -75,7 +86,7 @@ public class TestEncryptContent {
             testRunner.run();
             testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
 
-            logger.info("Successfully decrypted {}", method.name());
+            logger.info("Successfully decrypted {}", encryptionMethod.name());
 
             flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
             flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
@@ -334,27 +345,29 @@ public class TestEncryptContent {
         runner.enqueue(new byte[0]);
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
-        Assert.assertEquals(1, results.size());
+        Assert.assertEquals(results.toString(), 1, results.size());
         for (final ValidationResult vr : results) {
             Assert.assertTrue(vr.toString()
                     .contains(EncryptContent.PASSWORD.getDisplayName() + " is required when using algorithm"));
         }
 
         runner.enqueue(new byte[0]);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.MD5_256AES.name());
+        final EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES;
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name());
         runner.setProperty(EncryptContent.PASSWORD, "ThisIsAPasswordThatIsLongerThanSixteenCharacters");
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
         if (!PasswordBasedEncryptor.supportsUnlimitedStrength()) {
+            logger.info(results.toString());
             Assert.assertEquals(1, results.size());
             for (final ValidationResult vr : results) {
                 Assert.assertTrue(
                         "Did not successfully catch validation error of a long password in a non-JCE Unlimited Strength environment",
-                        vr.toString().contains("Password length greater than " + PasswordBasedEncryptor.getMaxAllowedKeyLength(EncryptionMethod.MD5_256AES.getAlgorithm())
-                                + " bits is not supported by this JVM due to lacking JCE Unlimited Strength Jurisdiction Policy files."));
+                        vr.toString().contains("Password length greater than " + CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod)
+                                + " characters is not supported by this JVM due to lacking JCE Unlimited Strength Jurisdiction Policy files."));
             }
         } else {
-            Assert.assertEquals(0, results.size());
+            Assert.assertEquals(results.toString(), 0, results.size());
         }
         runner.removeProperty(EncryptContent.PASSWORD);
 
