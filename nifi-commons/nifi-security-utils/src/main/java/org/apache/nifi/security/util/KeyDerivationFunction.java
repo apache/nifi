@@ -25,7 +25,10 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 public enum KeyDerivationFunction {
 
     NIFI_LEGACY("NiFi legacy KDF", "MD5 @ 1000 iterations"),
-    OPENSSL_EVP_BYTES_TO_KEY("OpenSSL EVP_BytesToKey", "Single iteration MD5 compatible with PKCS#5 v1.5");
+    OPENSSL_EVP_BYTES_TO_KEY("OpenSSL EVP_BytesToKey", "Single iteration MD5 compatible with PKCS#5 v1.5"),
+    BCRYPT("Bcrypt", "Bcrypt with configurable work factor: see https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations"),
+    SCRYPT("Scrypt", "Scrypt with configurable work factor: see https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations"),
+    PBKDF2("PBKDF2", "PBKDF2 with configurable hash function and iteration count: see https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations");
     // TODO: Implement bcrypt, scrypt, and PBKDF2
 
     private final String name;
