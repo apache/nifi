@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.processors.standard.util.crypto;
 
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.slf4j.Logger;
@@ -22,13 +22,13 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-public class KeyDeriverFactory {
-    private static final Logger logger = LoggerFactory.getLogger(KeyDeriverFactory.class);
+public class CipherFactory {
+    private static final Logger logger = LoggerFactory.getLogger(CipherFactory.class);
 
-    private static Map<KeyDerivationFunction, Class<? extends KeyDeriver>> registeredKeyDerivers;
+    private static Map<KeyDerivationFunction, Class<? extends KeyDeriver>> registeredCipherProviders;
 
     public static KeyDeriver getDeriver(KeyDerivationFunction kdf) {
-        logger.debug("{} KDFs registered", registeredKeyDerivers.size());
+        logger.debug("{} KDFs registered", registeredCipherProviders.size());
 
 //        if (registeredKeyDerivers.containsKey(kdf)) {
 //            Class<? extends KeyDeriver> clazz = registeredKeyDerivers.get(kdf);

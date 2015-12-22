@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.processors.standard.util.PasswordBasedEncryptor;
+import org.apache.nifi.processors.standard.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.util.MockFlowFile;
