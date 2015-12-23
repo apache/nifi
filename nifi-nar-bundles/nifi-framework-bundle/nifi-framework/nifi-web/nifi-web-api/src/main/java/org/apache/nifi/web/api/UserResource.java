@@ -88,8 +88,13 @@ public class UserResource extends ApplicationResource {
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
 
+    /**
+     * Creates a new user account request.
+     *
+     * @return A string
+     */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("") // necessary due to a bug in swagger
     @ApiOperation(
@@ -109,7 +114,7 @@ public class UserResource extends ApplicationResource {
         // create an account request for the current user
         final UserDTO user = serviceFacade.createUser();
 
-        final String uri = generateResourceUri("controller", "templates", user.getId());
+        final String uri = generateResourceUri("controller", "users", user.getId());
         return generateCreatedResponse(URI.create(uri), "Not authorized. User account created. Authorization pending.").build();
     }
 

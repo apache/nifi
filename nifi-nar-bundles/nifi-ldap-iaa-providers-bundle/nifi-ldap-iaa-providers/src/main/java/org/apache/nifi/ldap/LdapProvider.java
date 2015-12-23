@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.ldap;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
@@ -41,21 +31,32 @@ import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ldap.CommunicationException;
+import org.springframework.ldap.AuthenticationException;
 import org.springframework.ldap.core.support.AbstractTlsDirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.DefaultTlsDirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
-import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.authentication.AbstractLdapAuthenticationProvider;
 import org.springframework.security.ldap.authentication.BindAuthenticator;
 import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract LDAP based implementation of a login identity provider.
@@ -266,14 +267,22 @@ public class LdapProvider implements LoginIdentityProvider {
             } else {
                 return new AuthenticationResponse(authentication.getName(), credentials.getUsername(), expiration, issuer);
             }
-        } catch (final CommunicationException | AuthenticationServiceException e) {
+        } catch (final BadCredentialsException | UsernameNotFoundException | AuthenticationException e) {
+            throw new InvalidLoginCredentialsException(e.getMessage(), e);
+        } catch (final Exception e) {
+            // there appears to be a bug that generates a InternalAuthenticationServiceException wrapped around an AuthenticationException. this
+            // shouldn't be the case as they the service exception suggestions that something was wrong with the service. while the authentication
+            // exception suggests that username and/or credentials were incorrect. checking the cause seems to address this scenario.
+            final Throwable cause = e.getCause();
+            if (cause instanceof AuthenticationException) {
+                throw new InvalidLoginCredentialsException(e.getMessage(), e);
+            }
+
             logger.error(e.getMessage());
             if (logger.isDebugEnabled()) {
                 logger.debug(StringUtils.EMPTY, e);
             }
-            throw new IdentityAccessException("Unable to query the configured directory server. See the logs for additional details.", e);
-        } catch (final BadCredentialsException bce) {
-            throw new InvalidLoginCredentialsException(bce.getMessage(), bce);
+            throw new IdentityAccessException("Unable to validate the supplied credentials. Please contact the system administrator.", e);
         }
     }
 

@@ -203,7 +203,7 @@ public class RemoteProcessGroupUtils {
      * @return the response of the request
      */
     public ClientResponse issueRegistrationRequest(String baseApiUri) {
-        final URI uri = URI.create(String.format("%s/%s", baseApiUri, "/controller/users"));
+        final URI uri = URI.create(String.format("%s/controller/users", baseApiUri));
 
         // set up the query params
         MultivaluedMapImpl entity = new MultivaluedMapImpl();
@@ -213,6 +213,6 @@ public class RemoteProcessGroupUtils {
         WebResource webResource = client.resource(uri);
 
         // get the client utils and make the request
-        return webResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).entity(entity).post(ClientResponse.class);
+        return webResource.type(MediaType.APPLICATION_FORM_URLENCODED).entity(entity).post(ClientResponse.class);
     }
 }

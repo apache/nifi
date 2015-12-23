@@ -181,12 +181,13 @@ the `build` method.
 
 [[validator]]
 ==== Validator
-A PropertyDescriptor may specify one or more Validators that can be
+A PropertyDescriptor MUST specify one or more Validators that can be
 used to ensure that the user-entered value
 for a property is valid. If a Validator indicates that a property
 value is invalid, the Component will not be
-able to be run or used until the property becomes valid.
-
+able to be run or used until the property becomes valid. If a
+Validator is not specified, the Component will be assumed invalid and
+NiFi will report that the property is not supported.
 
 [[validation_context]]
 ==== ValidationContext

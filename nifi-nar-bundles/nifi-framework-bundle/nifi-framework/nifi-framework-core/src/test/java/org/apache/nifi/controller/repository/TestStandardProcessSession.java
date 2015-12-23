@@ -1106,6 +1106,20 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testGetWithCount() {
+        for (int i = 0; i < 8; i++) {
+            final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                .id(i)
+                .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
+                .build();
+            this.flowFileQueue.put(flowFile);
+        }
+
+        final List<FlowFile> flowFiles = session.get(7);
+        assertEquals(7, flowFiles.size());
+    }
+
+    @Test
     public void testAttributesModifiedEmitted() throws IOException {
         final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
             .id(1L)
