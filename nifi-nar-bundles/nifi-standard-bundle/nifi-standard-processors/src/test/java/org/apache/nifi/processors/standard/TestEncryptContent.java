@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.security.Security;
-import java.util.Collection;
-
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processors.standard.util.PasswordBasedEncryptor;
@@ -38,6 +32,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.security.Security;
+import java.util.Collection;
 
 public class TestEncryptContent {
 
@@ -204,6 +204,128 @@ public class TestEncryptContent {
     }
 
     @Test
+    public void testShouldValidatePGPPublicKeyringRequiresUserId() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
+
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
+        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/pubring.gpg");
+        runner.enqueue(new byte[0]);
+        pc = (MockProcessContext) runner.getProcessContext();
+
+        // Act
+        results = pc.validate();
+
+        // Assert
+        Assert.assertEquals(1, results.size());
+        ValidationResult vr = (ValidationResult) results.toArray()[0];
+        String expectedResult = " encryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
+                + EncryptContent.PUBLIC_KEYRING.getDisplayName() + " and "
+                + EncryptContent.PUBLIC_KEY_USERID.getDisplayName();
+        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
+        Assert.assertTrue(message, vr.toString().contains(expectedResult));
+    }
+
+    @Test
+    public void testShouldValidatePGPPublicKeyringExists() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
+
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
+        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/pubring.gpg.missing");
+        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "USERID");
+        runner.enqueue(new byte[0]);
+        pc = (MockProcessContext) runner.getProcessContext();
+
+        // Act
+        results = pc.validate();
+
+        // Assert
+        Assert.assertEquals(1, results.size());
+        ValidationResult vr = (ValidationResult) results.toArray()[0];
+        String expectedResult = " (No such file or directory)";
+        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
+        Assert.assertTrue(message, vr.toString().contains(expectedResult));
+    }
+
+    @Test
+    public void testShouldValidatePGPPublicKeyringIsProperFormat() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
+
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
+        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/text.txt");
+        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "USERID");
+        runner.enqueue(new byte[0]);
+        pc = (MockProcessContext) runner.getProcessContext();
+
+        // Act
+        results = pc.validate();
+
+        // Assert
+        Assert.assertEquals(1, results.size());
+        ValidationResult vr = (ValidationResult) results.toArray()[0];
+        String expectedResult = " java.io.IOException: invalid header encountered";
+        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
+        Assert.assertTrue(message, vr.toString().contains(expectedResult));
+    }
+
+    @Test
+    public void testShouldValidatePGPPublicKeyringContainsUserId() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
+
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
+        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/pubring.gpg");
+        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "USERID");
+        runner.enqueue(new byte[0]);
+        pc = (MockProcessContext) runner.getProcessContext();
+
+        // Act
+        results = pc.validate();
+
+        // Assert
+        Assert.assertEquals(1, results.size());
+        ValidationResult vr = (ValidationResult) results.toArray()[0];
+        String expectedResult = "PGPException: Could not find a public key with the given userId";
+        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
+        Assert.assertTrue(message, vr.toString().contains(expectedResult));
+    }
+
+    @Test
+    public void testShouldExtractPGPPublicKeyFromKeyring() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
+
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
+        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/pubring.gpg");
+        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "NiFi PGP Test Key (Short test key for NiFi PGP unit tests) <alopresto.apache+test@gmail.com>");
+        runner.enqueue(new byte[0]);
+        pc = (MockProcessContext) runner.getProcessContext();
+
+        // Act
+        results = pc.validate();
+
+        // Assert
+        Assert.assertEquals(0, results.size());
+    }
+
+    @Test
     public void testValidation() {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
@@ -249,20 +371,15 @@ public class TestEncryptContent {
                             + EncryptContent.PUBLIC_KEY_USERID.getDisplayName()));
         }
 
-        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "USERID");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-        results = pc.validate();
-        Assert.assertEquals(1, results.size());
-        for (final ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("does not contain user id USERID"));
-        }
+        // Legacy tests moved to individual tests to comply with new library
+
+        // TODO: Move secring tests out to individual as well
 
         runner.removeProperty(EncryptContent.PUBLIC_KEYRING);
         runner.removeProperty(EncryptContent.PUBLIC_KEY_USERID);
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
-        runner.setProperty(EncryptContent.PRIVATE_KEYRING, "src/test/resources/TestEncryptContent/text.txt");
+        runner.setProperty(EncryptContent.PRIVATE_KEYRING, "src/test/resources/TestEncryptContent/secring.gpg");
         runner.enqueue(new byte[0]);
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
