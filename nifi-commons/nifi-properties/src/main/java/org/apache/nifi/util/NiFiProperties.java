@@ -241,23 +241,7 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Factory method to create and return a new instance of
-     * {@link NiFiProperties}. Unlike its {@link #getInstance()} counterpart
-     * which may return you a cached instance of {@link NiFiProperties} this
-     * method creates new instance every time it's called. It is suitable for
-     * cases where properties may change at runtime.
-     *
-     * @return new instance of {@link NiFiProperties}
-     */
-    public static synchronized NiFiProperties getNewInstance() {
-        instance = null;
-        return getInstance();
-    }
-
-    /**
-     * Factory method to create and return a new instance of
-     * {@link NiFiProperties}. Unlike its {@link #getNewInstance()} counterpart
-     * which always creates a new instance of {@link NiFiProperties}, this
+     * Factory method to create an instance of the {@link NiFiProperties}. This
      * method employs a standard singleton pattern by caching the instance if it
      * was already obtained
      *

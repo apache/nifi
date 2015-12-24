@@ -18,6 +18,7 @@ package org.apache.nifi.controller.scheduling;
 
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -61,7 +62,7 @@ public class TestStandardProcessScheduler {
     @Before
     public void setup() throws InitializationException {
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
-        NiFiProperties.getNewInstance(); // ensures that properties have been reloaded
+        this.refreshNiFiProperties();
         scheduler = new StandardProcessScheduler(Mockito.mock(Heartbeater.class), Mockito.mock(ControllerServiceProvider.class), null);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
 
@@ -156,6 +157,16 @@ public class TestStandardProcessScheduler {
 
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        }
+    }
+
+    private void refreshNiFiProperties() {
+        try {
+            Field instanceField = NiFiProperties.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            instanceField.set(null, null);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
     }
 }
