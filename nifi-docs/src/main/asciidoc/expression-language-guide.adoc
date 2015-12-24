@@ -71,7 +71,7 @@ by the Expression Language to achieve many different goals. Some functions provi
 manipulation, such as the `toUpper` function. Others, such as the `equals` and `matches` functions,
 provide comparison functionality. Functions also exist for manipulating dates and times and
 for performing mathematical operations. Each of these functions is described below, in the
-<<functions> section, with an explanation of what the function does, the arguments that it 
+<<functions>> section, with an explanation of what the function does, the arguments that it 
 requires, and the type of information that it returns.
 
 When we perform a function call on an attribute, as above, we refer to the attribute as the
@@ -226,7 +226,7 @@ if an attribute exists.#
 *Return Type*: [.returnType]#Boolean#
 
 *Examples*:	`${filename:isNull()}` returns `true` if the "filename" attribute does not exist. 
-	It returns `true` if the attribute exists.
+	It returns `false` if the attribute exists.
 
 
 
@@ -241,7 +241,7 @@ subject exists and `false` otherwise.#
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: `${filename:notNull()}` returns `true` if the "filename" attribute exists. It returns "false" if the attribute
+*Examples*: `${filename:notNull()}` returns `true` if the "filename" attribute exists. It returns `false` if the attribute
 	does not exist.
 
 
@@ -639,7 +639,7 @@ then the following Expressions will result in the following values:
 | `${filename:substringBefore('.')}` | `a brand new filename`
 | `${filename:substringBefore(' ')}` | `a`
 | `${filename:substringBefore(' n')}` | `a brand`
-| `${filename:sbustringBefore('missing')}` | `a brand new filename.txt`
+| `${filename:substringBefore('missing')}` | `a brand new filename.txt`
 |======================================================================
 
 
@@ -659,7 +659,7 @@ then the following Expressions will result in the following values:
 
 	- [.argName]#_value_# : [.argDesc]#The String to search for in the Subject#
 
-*Return Type*: [.returnType]#String3
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
@@ -1270,7 +1270,7 @@ Expressions will provide the following results:
 
 *Description*: [.description]#Formats a number as a date/time according to the format specified by the argument. The argument
 	must be a String that is a valid Java SimpleDateFormat format. The Subject is expected to be a Number that
-	represents the number of milliseconds since Midnight GMT January 1, 1970.#
+	represents the number of milliseconds since Midnight GMT on January 1, 1970.#
 
 *Subject Type*: [.subject]#Number#
 
@@ -1301,8 +1301,8 @@ Expressions will provide the following results:
 
 *Description*: [.description]#Converts a String into a Number, based on the format specified by the argument. The argument
 	must be a String that is a valid Java SimpleDateFormat syntax. The Subject is expected to be a String
-	that is formatted according the argument. The return value is the numbr of milliseconds since 
-	Midnight GMT January 1, 1979.#
+	that is formatted according the argument. The return value is the number of milliseconds since 
+	Midnight GMT on January 1, 1970.#
 
 *Subject Type*: [.subject]#String#
 
