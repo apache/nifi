@@ -71,7 +71,7 @@ by the Expression Language to achieve many different goals. Some functions provi
 manipulation, such as the `toUpper` function. Others, such as the `equals` and `matches` functions,
 provide comparison functionality. Functions also exist for manipulating dates and times and
 for performing mathematical operations. Each of these functions is described below, in the
-<<functions> section, with an explanation of what the function does, the arguments that it 
+<<functions>> section, with an explanation of what the function does, the arguments that it 
 requires, and the type of information that it returns.
 
 When we perform a function call on an attribute, as above, we refer to the attribute as the
@@ -1301,8 +1301,8 @@ Expressions will provide the following results:
 
 *Description*: [.description]#Converts a String into a Number, based on the format specified by the argument. The argument
 	must be a String that is a valid Java SimpleDateFormat syntax. The Subject is expected to be a String
-	that is formatted according the argument. The return value is the numbr of milliseconds since 
-	Midnight GMT January 1, 1979.#
+	that is formatted according the argument. The return value is the number of milliseconds since 
+	Midnight GMT January 1, 1970.#
 
 *Subject Type*: [.subject]#String#
 
