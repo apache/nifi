@@ -175,6 +175,9 @@ public class UnpackContent extends AbstractProcessor {
                 case "application/tar":
                     packagingFormat = TAR_FORMAT;
                     break;
+                case "application/x-tar":
+                    packagingFormat = TAR_FORMAT;
+                    break;
                 case "application/zip":
                     packagingFormat = ZIP_FORMAT;
                     break;
