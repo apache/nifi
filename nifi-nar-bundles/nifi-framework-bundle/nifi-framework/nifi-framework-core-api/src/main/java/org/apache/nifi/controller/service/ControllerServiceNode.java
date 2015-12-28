@@ -66,9 +66,8 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      *            the amount of milliseconds to wait for administrative yield
      * @param heartbeater
      *            the instance of {@link Heartbeater}
-     * @return 'true' if service was enabled
      */
-    boolean enable(ScheduledExecutorService scheduler, long administrativeYieldMillis, Heartbeater heartbeater);
+    void enable(ScheduledExecutorService scheduler, long administrativeYieldMillis, Heartbeater heartbeater);
 
     /**
      * Will disable this service. Disabling of the service typically means
@@ -79,9 +78,8 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      *            initiate service disabling task
      * @param heartbeater
      *            the instance of {@link Heartbeater}
-     * @return 'true' if service was disabled
      */
-    boolean disable(ScheduledExecutorService scheduler, Heartbeater heartbeater);
+    void disable(ScheduledExecutorService scheduler, Heartbeater heartbeater);
 
     /**
      * @return the ControllerServiceReference that describes which components are referencing this Controller Service
