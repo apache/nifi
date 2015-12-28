@@ -268,8 +268,8 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
      * as it reached ENABLED state.
      */
     @Override
-    public void enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final Heartbeater heartbeater) {
-        if (this.stateRef.compareAndSet(ControllerServiceState.DISABLED, ControllerServiceState.ENABLING)){
+    public boolean enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final Heartbeater heartbeater) {
+        if (this.stateRef.compareAndSet(ControllerServiceState.DISABLED, ControllerServiceState.ENABLING)) {
             this.active.set(true);
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
             scheduler.execute(new Runnable() {
@@ -277,13 +277,17 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                 public void run() {
                     try {
                         ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
-                        if (stateRef.compareAndSet(ControllerServiceState.ENABLING, ControllerServiceState.ENABLED)) {
+                        boolean shouldEnable = false;
+                        synchronized (configContext) {
+                            shouldEnable = active.get() && stateRef.compareAndSet(ControllerServiceState.ENABLING, ControllerServiceState.ENABLED);
+                        }
+                        if (shouldEnable) {
                             heartbeater.heartbeat();
                         } else {
                             LOG.debug("Disabling service " + this + " after it has been enabled due to disable action being initiated.");
                             // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
                             // set to DISABLING (see disable() operation)
-                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
+                            invokeDisable(configContext, heartbeater);
                             stateRef.set(ControllerServiceState.DISABLED);
                         }
                     } catch (Exception e) {
@@ -291,7 +295,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                         final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
                         componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
                         LOG.error("Failed to invoke @OnEnabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
+                        invokeDisable(configContext, heartbeater);
                         if (isActive()) {
                             scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
                         }
@@ -303,6 +307,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                 }
             });
         }
+        return this.active.get();
     }
 
     /**
@@ -320,22 +325,24 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
      * DISABLED state.
      */
     @Override
-    public void disable(final ScheduledExecutorService scheduler, final Heartbeater heartbeater) {
-        this.active.set(false); // de-activating regardless of CAS operation
-                                // that follows since this operation will always result in service state being DISABLING
+    public boolean disable(final ScheduledExecutorService scheduler, final Heartbeater heartbeater) {
+        /*
+         * The reason for synchronization is to ensure consistency of the
+         * service state when another thread is in the middle of enabling this
+         * service since it will attempt to transition service state from
+         * ENABLING to ENABLED but only if it's active.
+         */
+        synchronized (this.active) {
+            this.active.set(false);
+        }
+
         if (this.stateRef.compareAndSet(ControllerServiceState.ENABLED, ControllerServiceState.DISABLING)) {
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
             scheduler.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
-                    } catch (Exception e) {
-                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                        final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
-                        componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
-                        LOG.error("Failed to invoke @OnDisabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
+                        invokeDisable(configContext, heartbeater);
                     } finally {
                         stateRef.set(ControllerServiceState.DISABLED);
                         heartbeater.heartbeat();
@@ -344,6 +351,22 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             });
         } else {
             this.stateRef.compareAndSet(ControllerServiceState.ENABLING, ControllerServiceState.DISABLING);
+        }
+        return !this.active.get();
+    }
+
+    /**
+     *
+     */
+    private void invokeDisable(ConfigurationContext configContext, Heartbeater heartbeater) {
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
+        } catch (Exception e) {
+            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
+            componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
+            LOG.error("Failed to invoke @OnDisabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
         }
     }
 }
