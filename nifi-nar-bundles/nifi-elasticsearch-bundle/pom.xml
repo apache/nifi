@@ -7,12 +7,17 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.4.1-SNAPSHOT</version>
+        <version>0.4.2-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-elasticsearch-bundle</artifactId>
     <packaging>pom</packaging>
+
+    <properties>
+        <lucene.version>5.3.1</lucene.version>
+    </properties>
+
     <modules>
         <module>nifi-elasticsearch-nar</module>
         <module>nifi-elasticsearch-processors</module>

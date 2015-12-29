@@ -6,10 +6,10 @@
     <parent>
         <artifactId>nifi-elasticsearch-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>0.4.1-SNAPSHOT</version>
+        <version>0.4.2-SNAPSHOT</version>
     </parent>
 
-    <groupId>gov.pnnl.nifi</groupId>
+    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-elasticsearch-nar</artifactId>
     <packaging>nar</packaging>
 
@@ -17,7 +17,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-processors</artifactId>
-            <version>0.4.1-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 

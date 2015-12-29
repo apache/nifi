@@ -6,7 +6,7 @@
     <parent>
         <artifactId>nifi-elasticsearch-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>0.4.1-SNAPSHOT</version>
+        <version>0.4.2-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
@@ -14,7 +14,7 @@
 
     <properties>
         <slf4jversion>1.7.12</slf4jversion>
-        <es.version>1.7.1</es.version>
+        <es.version>2.1.0</es.version>
         <gsonversion>2.4</gsonversion>
         <jodatimeversion>2.9.1</jodatimeversion>
     </properties>
@@ -27,6 +27,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

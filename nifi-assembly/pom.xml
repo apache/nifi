@@ -267,6 +267,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-scripting-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-elasticsearch-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
     <properties>
