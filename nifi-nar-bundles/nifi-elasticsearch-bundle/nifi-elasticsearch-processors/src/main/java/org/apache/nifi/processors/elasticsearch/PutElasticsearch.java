@@ -116,6 +116,7 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
         descriptors.add(CLIENT_TYPE);
         descriptors.add(CLUSTER_NAME);
         descriptors.add(HOSTS);
+        descriptors.add(PATH_HOME);
         descriptors.add(PING_TIMEOUT);
         descriptors.add(SAMPLER_INTERVAL);
         descriptors.add(ID_ATTRIBUTE);

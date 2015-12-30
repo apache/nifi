@@ -81,6 +81,16 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
             .required(false)
             .addValidator(new ElasticsearchClientValidator())
             .build();
+
+    protected static final PropertyDescriptor PATH_HOME = new PropertyDescriptor.Builder()
+            .name("ElasticSearch Path Home")
+            .description("ElasticSearch node client requires that path.home be set. For example, "
+                        + "/usr/share/elasticsearch or /usr/local/opt/elasticsearch for homebrew intall "
+                        + "https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-dir-layout.html")
+            .required(false)
+            .addValidator(new ElasticsearchClientValidator())
+            .build();
+
     protected static final PropertyDescriptor PING_TIMEOUT = new PropertyDescriptor.Builder()
             .name("ElasticSearch Ping Timeout")
             .description("The ping timeout used to determine when a node is unreachable.  " +
@@ -89,6 +99,7 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
             .defaultValue("5s")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     protected static final PropertyDescriptor SAMPLER_INTERVAL = new PropertyDescriptor.Builder()
             .name("Sampler Interval")
             .description("Node sampler interval. For example, 5s (5 seconds) If non-local recommended is 30s")
@@ -144,7 +155,14 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
                 }
                 esClient = transportClient;
             } else if ("node".equals(clusterType)) {
-                esClient = NodeBuilder.nodeBuilder().clusterName(clusterName).node().client();
+
+                final String pathHome = context.getProperty(PATH_HOME).toString();
+                //create new node client
+                Settings settings = Settings.settingsBuilder()
+                        .put("path.home", pathHome)
+                        .build();
+
+                esClient = NodeBuilder.nodeBuilder().clusterName(clusterName).settings(settings).node().client();
             }
         } catch (Exception e) {
             log.error("Failed to create Elasticsearch client due to {}", new Object[]{e}, e);
@@ -205,7 +223,7 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
     }
 
     /**
-     * A custom validator for the Elasticsearch properties list. For example, the hostnames property doesn't need to
+     * A custom validator for the ElasticSearch properties list. For example, the hostnames property doesn't need to
      * be filled in for a Node client, as it joins the cluster by name. Alternatively if a Transport client
      */
     protected static class ElasticsearchClientValidator implements Validator {
@@ -220,6 +238,16 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
                             CLIENT_TYPE.getName(), clientTypeProperty.getValue(), context);
                 }
             }
+
+            // Only validate Path home if client type == Node
+            if (PATH_HOME.getName().equals(subject)) {
+                PropertyValue clientTypeProperty = context.getProperty(CLIENT_TYPE);
+                if (NODE_CLIENT.getValue().equals(clientTypeProperty.getValue())) {
+                    return StandardValidators.NON_EMPTY_VALIDATOR.validate(
+                            CLIENT_TYPE.getName(), clientTypeProperty.getValue(), context);
+                }
+            }
+
             return VALID.validate(subject, input, context);
         }
     }
