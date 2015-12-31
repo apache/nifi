@@ -96,7 +96,7 @@ import org.joda.time.format.DateTimeFormatter;
 @Tags({"http", "https", "rest", "client"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
-		+" FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT or POST).")
+    + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT or POST).")
 @WritesAttributes({
     @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
     @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
@@ -132,7 +132,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
             .description("HTTP request method (GET, POST, PUT, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
-                    + "Methods other than POST and PUT will be sent without a message body.")
+                + "Methods other than POST and PUT will be sent without a message body.")
             .required(true)
             .defaultValue("GET")
             .expressionLanguageSupported(true)
