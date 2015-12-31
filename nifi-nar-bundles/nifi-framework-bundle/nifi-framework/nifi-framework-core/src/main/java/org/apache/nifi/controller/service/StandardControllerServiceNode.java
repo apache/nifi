@@ -292,11 +292,15 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                             stateRef.set(ControllerServiceState.DISABLED);
                         }
                     } catch (Exception e) {
+                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                        final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
+                        componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
+                        LOG.error("Failed to invoke @OnEnabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
                         invokeDisable(configContext, heartbeater);
+
                         if (isActive()) {
                             scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
-                        }
-                        else {
+                        } else {
                             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
                             stateRef.set(ControllerServiceState.DISABLED);
                         }
