@@ -378,7 +378,7 @@ public class TestStandardFlowFileQueue {
         queue.poll(exp);
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 120000)
     public void testDropSwappedFlowFiles() {
         for (int i = 1; i <= 210000; i++) {
             queue.put(new TestFlowFile());
