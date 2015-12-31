@@ -16,27 +16,40 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.Heartbeater;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardControllerServiceNode extends AbstractConfiguredComponent implements ControllerServiceNode {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
 
     private final ControllerService proxedControllerService;
     private final ControllerService implementation;
@@ -51,12 +64,15 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     private final Set<ConfiguredComponent> referencingComponents = new HashSet<>();
     private String comment;
 
+    private final AtomicBoolean active;
+
     public StandardControllerServiceNode(final ControllerService proxiedControllerService, final ControllerService implementation, final String id,
             final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
         super(implementation, id, validationContextFactory, serviceProvider);
         this.proxedControllerService = proxiedControllerService;
         this.implementation = implementation;
         this.serviceProvider = serviceProvider;
+        this.active = new AtomicBoolean();
     }
 
     @Override
@@ -146,8 +162,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     @Override
     public void verifyCanDisable(final Set<ControllerServiceNode> ignoreReferences) {
-        final ControllerServiceState state = getState();
-        if (state != ControllerServiceState.ENABLED && state != ControllerServiceState.ENABLING) {
+        if (!this.isActive()) {
             throw new IllegalStateException("Cannot disable " + getControllerServiceImplementation() + " because it is not enabled");
         }
 
@@ -229,7 +244,123 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
-    public void setState(final ControllerServiceState state) {
-        this.stateRef.set(state);
+    public boolean isActive() {
+        return this.active.get();
+    }
+
+    /**
+     * Will atomically enable this service by invoking its @OnEnabled operation.
+     * It uses CAS operation on {@link #stateRef} to transition this service
+     * from DISABLED to ENABLING state. If such transition succeeds the service
+     * will be marked as 'active' (see {@link ControllerServiceNode#isActive()}).
+     * If such transition doesn't succeed then no enabling logic will be
+     * performed and the method will exit. In other words it is safe to invoke
+     * this operation multiple times and from multiple threads.
+     * <br>
+     * This operation will also perform re-try of service enabling in the event
+     * of exception being thrown by previous invocation of @OnEnabled.
+     * <br>
+     * Upon successful invocation of @OnEnabled this service will be transitioned to
+     * ENABLED state.
+     * <br>
+     * In the event where enabling took longer then expected by the user and such user
+     * initiated disable operation, this service will be automatically disabled as soon
+     * as it reached ENABLED state.
+     */
+    @Override
+    public void enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis,
+            final Heartbeater heartbeater) {
+        if (this.stateRef.compareAndSet(ControllerServiceState.DISABLED, ControllerServiceState.ENABLING)) {
+            this.active.set(true);
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
+            scheduler.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
+                        boolean shouldEnable = false;
+                        synchronized (active) {
+                            shouldEnable = active.get() && stateRef.compareAndSet(ControllerServiceState.ENABLING, ControllerServiceState.ENABLED);
+                        }
+                        if (shouldEnable) {
+                            heartbeater.heartbeat();
+                        } else {
+                            LOG.debug("Disabling service " + this + " after it has been enabled due to disable action being initiated.");
+                            // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
+                            // set to DISABLING (see disable() operation)
+                            invokeDisable(configContext, heartbeater);
+                            stateRef.set(ControllerServiceState.DISABLED);
+                        }
+                    } catch (Exception e) {
+                        invokeDisable(configContext, heartbeater);
+                        if (isActive()) {
+                            scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
+                        }
+                        else {
+                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
+                            stateRef.set(ControllerServiceState.DISABLED);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Will atomically disable this service by invoking its @OnDisabled operation.
+     * It uses CAS operation on {@link #stateRef} to transition this service
+     * from ENABLED to DISABLING state. If such transition succeeds the service
+     * will be de-activated (see {@link ControllerServiceNode#isActive()}).
+     * If such transition doesn't succeed (the service is still in ENABLING state)
+     * then the service will still be transitioned to DISABLING state to ensure that
+     * no other transition could happen on this service. However in such event
+     * (e.g., its @OnEnabled finally succeeded), the {@link #enable(ScheduledExecutorService, long, Heartbeater)}
+     * operation will initiate service disabling javadoc for (see {@link #enable(ScheduledExecutorService, long, Heartbeater)}
+     * <br>
+     * Upon successful invocation of @OnDisabled this service will be transitioned to
+     * DISABLED state.
+     */
+    @Override
+    public void disable(ScheduledExecutorService scheduler, final Heartbeater heartbeater) {
+        /*
+         * The reason for synchronization is to ensure consistency of the
+         * service state when another thread is in the middle of enabling this
+         * service since it will attempt to transition service state from
+         * ENABLING to ENABLED but only if it's active.
+         */
+        synchronized (this.active) {
+            this.active.set(false);
+        }
+
+        if (this.stateRef.compareAndSet(ControllerServiceState.ENABLED, ControllerServiceState.DISABLING)) {
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
+            scheduler.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        invokeDisable(configContext, heartbeater);
+                    } finally {
+                        stateRef.set(ControllerServiceState.DISABLED);
+                        heartbeater.heartbeat();
+                    }
+                }
+            });
+        } else {
+            this.stateRef.compareAndSet(ControllerServiceState.ENABLING, ControllerServiceState.DISABLING);
+        }
+    }
+
+    /**
+     *
+     */
+    private void invokeDisable(ConfigurationContext configContext, Heartbeater heartbeater) {
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
+        } catch (Exception e) {
+            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
+            componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
+            LOG.error("Failed to invoke @OnDisabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
+        }
     }
 }

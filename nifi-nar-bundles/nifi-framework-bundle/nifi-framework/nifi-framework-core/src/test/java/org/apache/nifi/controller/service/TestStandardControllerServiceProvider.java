@@ -120,7 +120,7 @@ public class TestStandardControllerServiceProvider {
     @Test(timeout = 10000)
     public void testConcurrencyWithEnablingReferencingServicesGraph() {
         final ProcessScheduler scheduler = createScheduler();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10000; i++) {
             testEnableReferencingServicesGraph(scheduler);
         }
     }

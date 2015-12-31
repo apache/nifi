@@ -16,18 +16,30 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.Heartbeater;
+import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.StandardProcessorNode;
@@ -36,6 +48,8 @@ import org.apache.nifi.controller.reporting.StandardReportingInitializationConte
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -116,7 +130,13 @@ public class TestStandardProcessScheduler {
         Thread.sleep(1000L);
 
         scheduler.stopProcessor(procNode);
+        assertTrue(service.isActive());
+        assertTrue(service.getState() == ControllerServiceState.ENABLING);
         scheduler.disableControllerService(service);
+        assertTrue(service.getState() == ControllerServiceState.DISABLING);
+        assertFalse(service.isActive());
+        Thread.sleep(1000);
+        assertTrue(service.getState() == ControllerServiceState.DISABLED);
     }
 
 
@@ -168,5 +188,323 @@ public class TestStandardProcessScheduler {
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+    }
+    /**
+     * Validates the atomic nature of ControllerServiceNode.enable() method
+     * which must only trigger @OnEnabled once, regardless of how many threads
+     * may have a reference to the underlying ProcessScheduler and
+     * ControllerServiceNode.
+     */
+    @Test
+    public void validateServiceEnablementLogicHappensOnlyOnce() throws Exception {
+        final ProcessScheduler scheduler = createScheduler();
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
+                "1", false);
+        assertFalse(serviceNode.isActive());
+        SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
+        ExecutorService executor = Executors.newCachedThreadPool();
+
+        final AtomicBoolean asyncFailed = new AtomicBoolean();
+        for (int i = 0; i < 1000; i++) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        scheduler.enableControllerService(serviceNode);
+                        assertTrue(serviceNode.isActive());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        asyncFailed.set(true);
+                    }
+                }
+            });
+        }
+        // need to sleep a while since we are emulating async invocations on
+        // method that is also internally async
+        Thread.sleep(500);
+        executor.shutdown();
+        assertFalse(asyncFailed.get());
+        assertEquals(1, ts.enableInvocationCount());
+    }
+
+    /**
+     * Validates the atomic nature of ControllerServiceNode.disable(..) method
+     * which must never trigger @OnDisabled, regardless of how many threads may
+     * have a reference to the underlying ProcessScheduler and
+     * ControllerServiceNode.
+     */
+    @Test
+    public void validateDisabledServiceCantBeDisabled() throws Exception {
+        final ProcessScheduler scheduler = createScheduler();
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
+                "1", false);
+        SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
+        ExecutorService executor = Executors.newCachedThreadPool();
+
+        final AtomicBoolean asyncFailed = new AtomicBoolean();
+        for (int i = 0; i < 1000; i++) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        scheduler.disableControllerService(serviceNode);
+                        assertFalse(serviceNode.isActive());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        asyncFailed.set(true);
+                    }
+                }
+            });
+        }
+        // need to sleep a while since we are emulating async invocations on
+        // method that is also internally async
+        Thread.sleep(500);
+        executor.shutdown();
+        assertFalse(asyncFailed.get());
+        assertEquals(0, ts.disableInvocationCount());
+    }
+
+    /**
+     * Validates the atomic nature of ControllerServiceNode.disable() method
+     * which must only trigger @OnDisabled once, regardless of how many threads
+     * may have a reference to the underlying ProcessScheduler and
+     * ControllerServiceNode.
+     */
+    @Test
+    public void validateEnabledServiceCanOnlyBeDisabledOnce() throws Exception {
+        final ProcessScheduler scheduler = createScheduler();
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
+                "1", false);
+        SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
+        scheduler.enableControllerService(serviceNode);
+        assertTrue(serviceNode.isActive());
+        ExecutorService executor = Executors.newCachedThreadPool();
+
+        final AtomicBoolean asyncFailed = new AtomicBoolean();
+        for (int i = 0; i < 1000; i++) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        scheduler.disableControllerService(serviceNode);
+                        assertFalse(serviceNode.isActive());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        asyncFailed.set(true);
+                    }
+                }
+            });
+        }
+        // need to sleep a while since we are emulating async invocations on
+        // method that is also internally async
+        Thread.sleep(500);
+        executor.shutdown();
+        assertFalse(asyncFailed.get());
+        assertEquals(1, ts.disableInvocationCount());
+    }
+
+    @Test
+    public void validateDisablingOfTheFailedService() throws Exception {
+        final ProcessScheduler scheduler = createScheduler();
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final ControllerServiceNode serviceNode = provider.createControllerService(FailingService.class.getName(),
+                "1", false);
+        scheduler.enableControllerService(serviceNode);
+        Thread.sleep(1000);
+        scheduler.shutdown();
+        /*
+         * Because it was never disabled it will remain active since its
+         * enabling is being retried. This may actually be a bug in the
+         * scheduler since it probably has to shut down all components (disable
+         * services, shut down processors etc) before shutting down itself
+         */
+        assertTrue(serviceNode.isActive());
+        assertTrue(serviceNode.getState() == ControllerServiceState.ENABLING);
+    }
+
+    /**
+     * Validates that in multi threaded environment enabling service can still
+     * be disabled. This test is set up in such way that disabling of the
+     * service could be initiated by both disable and enable methods. In other
+     * words it tests two conditions in
+     * {@link StandardControllerServiceNode#disable(java.util.concurrent.ScheduledExecutorService, Heartbeater)}
+     * where the disabling of the service can be initiated right there (if
+     * ENABLED), or if service is still enabling its disabling will be deferred
+     * to the logic in
+     * {@link StandardControllerServiceNode#enable(java.util.concurrent.ScheduledExecutorService, long, Heartbeater)}
+     * IN any even the resulting state of the service is DISABLED
+     */
+    @Test
+    public void validateEnabledDisableMultiThread() throws Exception {
+        final ProcessScheduler scheduler = createScheduler();
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        ExecutorService executor = Executors.newCachedThreadPool();
+        for (int i = 0; i < 200; i++) {
+            final ControllerServiceNode serviceNode = provider
+                    .createControllerService(RandomShortDelayEnablingService.class.getName(), "1", false);
+
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    scheduler.enableControllerService(serviceNode);
+                }
+            });
+            Thread.sleep(2); // ensure that enable gets initiated before disable
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    scheduler.disableControllerService(serviceNode);
+                }
+            });
+            Thread.sleep(25);
+            assertFalse(serviceNode.isActive());
+            assertTrue(serviceNode.getState() == ControllerServiceState.DISABLED);
+        }
+
+        // need to sleep a while since we are emulating async invocations on
+        // method that is also internally async
+        Thread.sleep(500);
+        executor.shutdown();
+        executor.awaitTermination(5000, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Validates that service that is infinitely blocking in @OnEnabled can
+     * still have DISABLE operation initiated. The service itself will be set to
+     * DISABLING state at which point UI and all will know that such service can
+     * not be transitioned any more into any other state until it finishes
+     * enabling (which will never happen in our case thus should be addressed by
+     * user). However, regardless of user's mistake NiFi will remain
+     * functioning.
+     */
+    @Test
+    public void validateNeverEnablingServiceCanStillBeDisabled() throws Exception {
+        final ProcessScheduler scheduler = createScheduler();
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
+                "1", false);
+        LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
+        ts.setLimit(Long.MAX_VALUE);
+        scheduler.enableControllerService(serviceNode);
+        Thread.sleep(100);
+        assertTrue(serviceNode.isActive());
+        assertEquals(1, ts.enableInvocationCount());
+
+        Thread.sleep(1000);
+        scheduler.disableControllerService(serviceNode);
+        assertFalse(serviceNode.isActive());
+        assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
+        assertEquals(0, ts.disableInvocationCount());
+    }
+
+    /**
+     * Validates that the service that is currently in ENABLING state can be
+     * disabled and that its @OnDisabled operation will be invoked as soon
+     * as @OnEnable finishes.
+     */
+    @Test
+    public void validateLongEnablingServiceCanStillBeDisabled() throws Exception {
+        final ProcessScheduler scheduler = createScheduler();
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
+                "1", false);
+        LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
+        ts.setLimit(3000);
+        scheduler.enableControllerService(serviceNode);
+        Thread.sleep(100);
+        assertTrue(serviceNode.isActive());
+        assertEquals(1, ts.enableInvocationCount());
+
+        Thread.sleep(100);
+        scheduler.disableControllerService(serviceNode);
+        assertFalse(serviceNode.isActive());
+        assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
+        assertEquals(0, ts.disableInvocationCount());
+        // wait a bit. . . Enabling will finish and @OnDisabled will be invoked
+        // automatically
+        Thread.sleep(3000);
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+        assertEquals(1, ts.disableInvocationCount());
+    }
+
+    public static class FailingService extends AbstractControllerService {
+        @OnEnabled
+        public void enable(ConfigurationContext context) {
+            throw new RuntimeException("intentional");
+        }
+    }
+
+    public static class RandomShortDelayEnablingService extends AbstractControllerService {
+        private final Random random = new Random();
+
+        @OnEnabled
+        public void enable(ConfigurationContext context) {
+            try {
+                Thread.sleep(random.nextInt(20));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public static class SimpleTestService extends AbstractControllerService {
+
+        private final AtomicInteger enableCounter = new AtomicInteger();
+        private final AtomicInteger disableCounter = new AtomicInteger();
+
+        @OnEnabled
+        public void enable(ConfigurationContext context) {
+            this.enableCounter.incrementAndGet();
+        }
+
+        @OnDisabled
+        public void disable(ConfigurationContext context) {
+            this.disableCounter.incrementAndGet();
+        }
+
+        public int enableInvocationCount() {
+            return this.enableCounter.get();
+        }
+
+        public int disableInvocationCount() {
+            return this.disableCounter.get();
+        }
+    }
+
+    public static class LongEnablingService extends AbstractControllerService {
+        private final AtomicInteger enableCounter = new AtomicInteger();
+        private final AtomicInteger disableCounter = new AtomicInteger();
+
+        private volatile long limit;
+
+        @OnEnabled
+        public void enable(ConfigurationContext context) throws Exception {
+            this.enableCounter.incrementAndGet();
+            Thread.sleep(limit);
+        }
+
+        @OnDisabled
+        public void disable(ConfigurationContext context) {
+            this.disableCounter.incrementAndGet();
+        }
+
+        public int enableInvocationCount() {
+            return this.enableCounter.get();
+        }
+
+        public int disableInvocationCount() {
+            return this.disableCounter.get();
+        }
+
+        public void setLimit(long limit) {
+            this.limit = limit;
+        }
+    }
+
+    private ProcessScheduler createScheduler() {
+        return new StandardProcessScheduler(mock(Heartbeater.class), null, null);
     }
 }
