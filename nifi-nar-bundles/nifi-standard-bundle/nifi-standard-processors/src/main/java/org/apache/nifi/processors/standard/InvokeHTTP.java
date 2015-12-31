@@ -132,7 +132,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
             .description("HTTP request method (GET, POST, PUT, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
-                    + "Methods other than POST and PUT be sent without a message body.")
+                    + "Methods other than POST and PUT will be sent without a message body.")
             .required(true)
             .defaultValue("GET")
             .expressionLanguageSupported(true)
