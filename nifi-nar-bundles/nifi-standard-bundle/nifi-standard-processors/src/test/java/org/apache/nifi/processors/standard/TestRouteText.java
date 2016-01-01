@@ -133,6 +133,42 @@ public class TestRouteText {
     }
 
     @Test
+    public void testSimpleCaseSensitiveStartsMatch() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new RouteText());
+        runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
+        runner.setProperty(RouteText.IGNORE_CASE, "false");
+        runner.setProperty("simple", "start");
+
+        runner.enqueue("STart middle end\nstart middle end".getBytes("UTF-8"));
+        runner.run();
+
+        runner.assertTransferCount("simple", 1);
+        runner.assertTransferCount("unmatched", 1);
+        runner.assertTransferCount("original", 1);
+        final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
+        outMatched.assertContentEquals("start middle end".getBytes("UTF-8"));
+        final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
+        outUnmatched.assertContentEquals("STart middle end\n".getBytes("UTF-8"));
+    }
+
+    @Test
+    public void testSimpleCaseInsensitiveStartsMatch() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new RouteText());
+        runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
+        runner.setProperty(RouteText.IGNORE_CASE, "true");
+        runner.setProperty("simple", "start");
+
+        runner.enqueue("start middle end\nSTart middle end".getBytes("UTF-8"));
+        runner.run();
+
+        runner.assertTransferCount("simple", 1);
+        runner.assertTransferCount("unmatched", 0);
+        runner.assertTransferCount("original", 1);
+        final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
+        outMatched.assertContentEquals("start middle end\nSTart middle end".getBytes("UTF-8"));
+    }
+
+    @Test
     public void testSimpleDefaultEnd() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.ENDS_WITH);
