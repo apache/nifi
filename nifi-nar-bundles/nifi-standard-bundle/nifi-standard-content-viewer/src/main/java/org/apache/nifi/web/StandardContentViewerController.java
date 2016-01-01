@@ -49,20 +49,21 @@ public class StandardContentViewerController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         final ViewableContent content = (ViewableContent) request.getAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
 
-        // handle json/xml
-        if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType()) || "text/plain".equals(content.getContentType())) {
+        // handle json/xml specifically, treat others as plain text
+        final String contentType = content.getContentType();
+        if ("application/json".equals(contentType) || "application/xml".equals(contentType) || "text/plain".equals(contentType) || "text/csv".equals(contentType)) {
             final String formatted;
 
             // leave the content alone if specified
             if (DisplayMode.Original.equals(content.getDisplayMode())) {
                 formatted = content.getContent();
             } else {
-                if ("application/json".equals(content.getContentType())) {
+                if ("application/json".equals(contentType)) {
                     // format json
                     final ObjectMapper mapper = new ObjectMapper();
                     final Object objectJson = mapper.readValue(content.getContentStream(), Object.class);
                     formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
-                } else if ("application/xml".equals(content.getContentType())) {
+                } else if ("application/xml".equals(contentType)) {
                     // format xml
                     final StringWriter writer = new StringWriter();
 
@@ -89,12 +90,12 @@ public class StandardContentViewerController extends HttpServlet {
             }
 
             // defer to the jsp
-            request.setAttribute("mode", content.getContentType());
+            request.setAttribute("mode", contentType);
             request.setAttribute("content", formatted);
             request.getRequestDispatcher("/WEB-INF/jsp/codemirror.jsp").include(request, response);
         } else {
             final PrintWriter out = response.getWriter();
-            out.println("Unexpected content type: " + content.getContentType());
+            out.println("Unexpected content type: " + contentType);
         }
     }
 }
