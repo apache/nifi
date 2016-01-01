@@ -108,7 +108,7 @@ public class EmbeddedKafka {
     }
 
     /**
-     * Will start embedded Kafka server. It's data directories will be created
+     * Will start embedded Kafka server. Its data directories will be created
      * at 'kafka-tmp' directory relative to the working directory of the current
      * runtime. The data directories will be deleted upon JVM exit.
      *
@@ -147,7 +147,7 @@ public class EmbeddedKafka {
      *
      */
     private void cleanupKafkaWorkDir() {
-        File kafkaTmp = new File("kafka-tmp");
+        File kafkaTmp = new File("target/kafka-tmp");
         try {
             FileUtils.deleteDirectory(kafkaTmp);
         } catch (Exception e) {
