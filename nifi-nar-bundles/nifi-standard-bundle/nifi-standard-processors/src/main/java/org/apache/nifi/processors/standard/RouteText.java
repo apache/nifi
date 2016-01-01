@@ -510,13 +510,29 @@ public class RouteText extends AbstractProcessor {
     protected static boolean lineMatches(final String line, final Object comparison, final String matchingStrategy, final boolean ignoreCase) {
         switch (matchingStrategy) {
             case startsWithValue:
-                return line.toLowerCase().startsWith(((String) comparison).toLowerCase());
+                if (ignoreCase) {
+                    return line.toLowerCase().startsWith(((String) comparison).toLowerCase());
+                } else {
+                    return line.startsWith((String) comparison);
+                }
             case endsWithValue:
-                return line.toLowerCase().endsWith(((String) comparison).toLowerCase());
+                if (ignoreCase) {
+                    return line.toLowerCase().endsWith(((String) comparison).toLowerCase());
+                } else {
+                    return line.endsWith((String) comparison);
+                }
             case containsValue:
-                return line.toLowerCase().contains(((String) comparison).toLowerCase());
+                if (ignoreCase) {
+                    return line.toLowerCase().contains(((String) comparison).toLowerCase());
+                } else {
+                    return line.contains((String) comparison);
+                }
             case equalsValue:
-                return line.equalsIgnoreCase((String) comparison);
+                if (ignoreCase) {
+                    return line.equalsIgnoreCase((String) comparison);
+                } else {
+                    return line.equals(comparison);
+                }
             case matchesRegularExpressionValue:
                 return ((Pattern) comparison).matcher(line).matches();
             case containsRegularExpressionValue:
