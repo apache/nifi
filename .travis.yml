@@ -1,5 +1,4 @@
 language: java
-sudo: false
 
 os:
   - linux
@@ -9,8 +8,12 @@ jdk:
   - oraclejdk7
   - openjdk7
 
-# Workaround for non-existent Maven repository as per: https://github.com/travis-ci/travis-ci/issues/4629#issuecomment-131214465
+# before_install aids in a couple workarounds for issues within the Travis-CI environment
+#   1. Workaround for buffer overflow issues with OpenJDK versions of java as per https://github.com/travis-ci/travis-ci/issues/5227#issuecomment-165135711
+#   2. Workaround for non-existent Maven repository as per: https://github.com/travis-ci/travis-ci/issues/4629#issuecomment-131214465
 before_install:
+  - sudo hostname "$(hostname | cut -c1-63)"
+  - sed -e "s/^\\(127\\.0\\.0\\.1.*\\)/\\1 $(hostname | cut -c1-63)/" /etc/hosts | sudo tee /etc/hosts
   - sed -i.bak -e 's|https://nexus.codehaus.org/snapshots/|https://oss.sonatype.org/content/repositories/codehaus-snapshots/|g' ~/.m2/settings.xml
 
 script: mvn clean install -Pcontrib-check
