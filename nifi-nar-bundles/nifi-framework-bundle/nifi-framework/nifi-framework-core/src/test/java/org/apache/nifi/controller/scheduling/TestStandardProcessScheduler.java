@@ -352,14 +352,14 @@ public class TestStandardProcessScheduler {
                     scheduler.enableControllerService(serviceNode);
                 }
             });
-            Thread.sleep(2); // ensure that enable gets initiated before disable
+            Thread.sleep(10); // ensure that enable gets initiated before disable
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
                     scheduler.disableControllerService(serviceNode);
                 }
             });
-            Thread.sleep(25);
+            Thread.sleep(100);
             assertFalse(serviceNode.isActive());
             assertTrue(serviceNode.getState() == ControllerServiceState.DISABLED);
         }
