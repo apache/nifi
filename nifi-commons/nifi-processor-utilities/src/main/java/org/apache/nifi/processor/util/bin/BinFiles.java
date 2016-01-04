@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processor.util.bin;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,18 +38,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.FlowFileSessionWrapper;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.Bin;
-import org.apache.nifi.processors.standard.util.BinManager;
-import org.apache.nifi.processors.standard.util.FlowFileSessionWrapper;
 
 /**
- * Base class for file-binning processors, including MergeContent.
+ * Base class for file-binning processors.
  *
- * @deprecated As of release 0.5.0, replaced by
- * {@link org.apache.nifi.processor.util.bin.BinFiles}
  */
-@Deprecated
 public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor MIN_SIZE = new PropertyDescriptor.Builder()
