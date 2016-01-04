@@ -14,16 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.processor.util;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 
-/**
- * @deprecated As of release 0.5.0, replaced by
- * {@link org.apache.nifi.processor.util.FlowFileSessionWrapper}
- */
-@Deprecated
 public class FlowFileSessionWrapper {
 
     private final FlowFile flowFile;
