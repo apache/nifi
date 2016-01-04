@@ -414,11 +414,11 @@ public class TestStandardProcessScheduler {
         LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(3000);
         scheduler.enableControllerService(serviceNode);
-        Thread.sleep(100);
+        Thread.sleep(500);
         assertTrue(serviceNode.isActive());
         assertEquals(1, ts.enableInvocationCount());
 
-        Thread.sleep(100);
+        Thread.sleep(500);
         scheduler.disableControllerService(serviceNode);
         assertFalse(serviceNode.isActive());
         assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());

@@ -126,6 +126,9 @@ public class TestListenSyslog {
         final ProcessContext context = runner.getProcessContext();
         proc.onScheduled(context);
 
+        // Allow time for the processor to perform its scheduled start
+        Thread.sleep(500);
+
         final int numMessages = 20;
         final int port = proc.getPort();
         Assert.assertTrue(port > 0);

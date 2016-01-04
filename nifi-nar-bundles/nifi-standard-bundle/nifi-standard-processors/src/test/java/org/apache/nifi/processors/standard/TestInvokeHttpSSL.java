@@ -47,6 +47,8 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         server = createServer();
         server.startServer();
 
+        // Allow time for the server to start
+        Thread.sleep(500);
         // this is the base url with the random port
         url = server.getSecureUrl();
     }
@@ -63,6 +65,13 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         runner.addControllerService("ssl-context", sslService, sslProperties);
         runner.enableControllerService(sslService);
         runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
+
+        // Allow time for the controller service to fully initialize
+        Thread.sleep(500);
+
+        // Provide more time to setup and run
+        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "30 secs");
+        runner.setProperty(InvokeHTTP.PROP_CONNECT_TIMEOUT, "30 secs");
 
         server.clearHandlers();
     }
