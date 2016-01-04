@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.processor.util.bin;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,14 +30,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.util.FlowFileSessionWrapper;
 
 /**
  * This class is thread safe
  *
- * @deprecated As of release 0.5.0, replaced by
- * {@link org.apache.nifi.processor.util.bin.BinManager}
  */
-@Deprecated
 public class BinManager {
 
     private final AtomicLong minSizeBytes = new AtomicLong(0L);
