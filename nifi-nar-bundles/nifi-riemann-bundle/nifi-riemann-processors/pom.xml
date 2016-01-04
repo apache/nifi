@@ -27,10 +27,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.aphyr</groupId>
-            <artifactId>riemann-java-client</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
         </dependency>

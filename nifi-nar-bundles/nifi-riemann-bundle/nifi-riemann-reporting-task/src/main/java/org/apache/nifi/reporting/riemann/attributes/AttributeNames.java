@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting;
+package org.apache.nifi.reporting.riemann.attributes;
 
-public class MockBulletin extends Bulletin {
-
-    public MockBulletin(long id) {
-        super(id);
-    }
+public class AttributeNames {
+    public static final String PROCESSOR_ID = "processor-id";
+    public static final String PROCESSOR_GROUP_ID = "processor-group-id";
+    public static final String PROCESSOR_NAME = "processor-name";
+    public static final String PROCESSOR_STATUS = "processor-status";
+    public static final String PROCESSOR_TYPE = "processor-type";
+    public static final String CATEGORY = "category";
 }
