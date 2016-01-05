@@ -46,9 +46,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.AbstractSyslogProcessor.SyslogAttributes;
-import org.apache.nifi.processors.standard.util.SyslogEvent;
-import org.apache.nifi.processors.standard.util.SyslogParser;
+import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
+import org.apache.nifi.processors.standard.syslog.SyslogEvent;
+import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.stream.io.StreamUtils;
 
 
