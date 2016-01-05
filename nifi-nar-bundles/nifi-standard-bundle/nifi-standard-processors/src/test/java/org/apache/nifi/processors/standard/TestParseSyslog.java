@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.AbstractSyslogProcessor.SyslogAttributes;
+import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;

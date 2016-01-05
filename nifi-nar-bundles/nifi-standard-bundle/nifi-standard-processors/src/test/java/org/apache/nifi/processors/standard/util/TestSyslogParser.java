@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import org.apache.nifi.processors.standard.syslog.SyslogEvent;
+import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

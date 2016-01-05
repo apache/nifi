@@ -16,7 +16,26 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
+import org.apache.nifi.processors.standard.syslog.SyslogEvent;
+import org.apache.nifi.processors.standard.syslog.SyslogParser;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.IntegerHolder;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -29,26 +48,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.ListenSyslog.RawSyslogEvent;
-import org.apache.nifi.processors.standard.util.SyslogEvent;
-import org.apache.nifi.processors.standard.util.SyslogParser;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.util.IntegerHolder;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.junit.Assert.assertEquals;
 
 public class TestListenSyslog {
 
@@ -301,9 +301,9 @@ public class TestListenSyslog {
             runner.assertAllFlowFilesTransferred(ListenSyslog.REL_SUCCESS, 1);
 
             final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
-            Assert.assertEquals("0", flowFile.getAttribute(ListenSyslog.SyslogAttributes.PORT.key()));
-            Assert.assertEquals(ListenSyslog.UDP_VALUE.getValue(), flowFile.getAttribute(ListenSyslog.SyslogAttributes.PROTOCOL.key()));
-            Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(ListenSyslog.SyslogAttributes.SENDER.key())));
+            Assert.assertEquals("0", flowFile.getAttribute(SyslogAttributes.PORT.key()));
+            Assert.assertEquals(ListenSyslog.UDP_VALUE.getValue(), flowFile.getAttribute(SyslogAttributes.PROTOCOL.key()));
+            Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(SyslogAttributes.SENDER.key())));
 
             final String content = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
             final String[] splits = content.split("\\|");
@@ -391,16 +391,16 @@ public class TestListenSyslog {
 
     @Test
     public void testErrorQueue() throws IOException {
-        final List<RawSyslogEvent> msgs = new ArrayList<>();
-        msgs.add(new RawSyslogEvent(VALID_MESSAGE.getBytes(), "sender-01"));
-        msgs.add(new RawSyslogEvent(VALID_MESSAGE.getBytes(), "sender-01"));
+        final List<ListenSyslog.RawSyslogEvent> msgs = new ArrayList<>();
+        msgs.add(new ListenSyslog.RawSyslogEvent(VALID_MESSAGE.getBytes(), "sender-01"));
+        msgs.add(new ListenSyslog.RawSyslogEvent(VALID_MESSAGE.getBytes(), "sender-01"));
 
         // Add message that will throw a FlowFileAccessException the first time that we attempt to read
-        // the contents but will succeeed the second time.
+        // the contents but will succeed the second time.
         final IntegerHolder getMessageAttempts = new IntegerHolder(0);
-        msgs.add(new RawSyslogEvent(VALID_MESSAGE.getBytes(), "sender-01") {
+        msgs.add(new ListenSyslog.RawSyslogEvent(VALID_MESSAGE.getBytes(), "sender-01") {
             @Override
-            public byte[] getRawMessage() {
+            public byte[] getData() {
                 final int attempts = getMessageAttempts.incrementAndGet();
                 if (attempts == 1) {
                     throw new FlowFileAccessException("Unit test failure");
@@ -432,16 +432,16 @@ public class TestListenSyslog {
 
     private void checkFlowFile(final MockFlowFile flowFile, final int port, final String protocol) {
         flowFile.assertContentEquals(VALID_MESSAGE);
-        Assert.assertEquals(PRI, flowFile.getAttribute(ListenSyslog.SyslogAttributes.PRIORITY.key()));
-        Assert.assertEquals(SEV, flowFile.getAttribute(ListenSyslog.SyslogAttributes.SEVERITY.key()));
-        Assert.assertEquals(FAC, flowFile.getAttribute(ListenSyslog.SyslogAttributes.FACILITY.key()));
-        Assert.assertEquals(TIME, flowFile.getAttribute(ListenSyslog.SyslogAttributes.TIMESTAMP.key()));
-        Assert.assertEquals(HOST, flowFile.getAttribute(ListenSyslog.SyslogAttributes.HOSTNAME.key()));
-        Assert.assertEquals(BODY, flowFile.getAttribute(ListenSyslog.SyslogAttributes.BODY.key()));
-        Assert.assertEquals("true", flowFile.getAttribute(ListenSyslog.SyslogAttributes.VALID.key()));
-        Assert.assertEquals(String.valueOf(port), flowFile.getAttribute(ListenSyslog.SyslogAttributes.PORT.key()));
-        Assert.assertEquals(protocol, flowFile.getAttribute(ListenSyslog.SyslogAttributes.PROTOCOL.key()));
-        Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(ListenSyslog.SyslogAttributes.SENDER.key())));
+        Assert.assertEquals(PRI, flowFile.getAttribute(SyslogAttributes.PRIORITY.key()));
+        Assert.assertEquals(SEV, flowFile.getAttribute(SyslogAttributes.SEVERITY.key()));
+        Assert.assertEquals(FAC, flowFile.getAttribute(SyslogAttributes.FACILITY.key()));
+        Assert.assertEquals(TIME, flowFile.getAttribute(SyslogAttributes.TIMESTAMP.key()));
+        Assert.assertEquals(HOST, flowFile.getAttribute(SyslogAttributes.HOSTNAME.key()));
+        Assert.assertEquals(BODY, flowFile.getAttribute(SyslogAttributes.BODY.key()));
+        Assert.assertEquals("true", flowFile.getAttribute(SyslogAttributes.VALID.key()));
+        Assert.assertEquals(String.valueOf(port), flowFile.getAttribute(SyslogAttributes.PORT.key()));
+        Assert.assertEquals(protocol, flowFile.getAttribute(SyslogAttributes.PROTOCOL.key()));
+        Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(SyslogAttributes.SENDER.key())));
     }
 
     /**
