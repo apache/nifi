@@ -44,7 +44,7 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
      */
     public NiFiTestAuthorizationProvider() {
         users = new HashMap<>();
-        users.put("CN=localhost, OU=Testing, O=Research, L=Metropolis, ST=New York, C=US", EnumSet.of(Authority.ROLE_PROXY));
+        users.put("CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US", EnumSet.of(Authority.ROLE_PROXY));
         users.put("CN=Lastname Firstname Middlename monitor, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown", EnumSet.of(Authority.ROLE_MONITOR));
         users.put("CN=Lastname Firstname Middlename dfm, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown", EnumSet.of(Authority.ROLE_DFM));
         users.put("CN=Lastname Firstname Middlename admin, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown", EnumSet.of(Authority.ROLE_ADMIN));
