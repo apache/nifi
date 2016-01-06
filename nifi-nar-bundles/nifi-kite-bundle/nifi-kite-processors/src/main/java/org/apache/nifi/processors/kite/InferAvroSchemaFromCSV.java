@@ -50,6 +50,7 @@ import org.kitesdk.data.spi.filesystem.CSVProperties;
 import org.kitesdk.data.spi.filesystem.CSVUtil;
 import org.kitesdk.shaded.com.google.common.collect.ImmutableSet;
 
+
 @Tags({"kite", "csv", "avro", "infer", "schema"})
 @SeeAlso({InferAvroSchemaFromCSV.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
