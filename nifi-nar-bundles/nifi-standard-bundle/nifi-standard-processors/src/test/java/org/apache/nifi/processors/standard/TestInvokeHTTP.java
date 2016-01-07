@@ -125,7 +125,6 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
         bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
-        bundle1.assertAttributeEquals("OkHttp-Selected-Protocol", "http/1.1");
     }
 
     // Currently InvokeHttp does not support Proxy via Https
