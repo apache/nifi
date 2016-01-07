@@ -85,7 +85,6 @@ import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -122,15 +121,15 @@ import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 
 import com.sun.jersey.api.client.ClientResponse.Status;
+import org.apache.nifi.util.StringUtils;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "remote", "copy", "archive"})
 @CapabilityDescription("Performs an HTTP Post with the content of the FlowFile")
-@ReadsAttribute(attribute = "mime.type", description = "If not sending data as a FlowFile, the mime.type attribute will be used to set the HTTP Header for Content-Type")
 public class PostHTTP extends AbstractProcessor {
 
-    public static final String CONTENT_TYPE = "Content-Type";
+    public static final String CONTENT_TYPE_HEADER = "Content-Type";
     public static final String ACCEPT = "Accept";
     public static final String ACCEPT_ENCODING = "Accept-Encoding";
     public static final String APPLICATION_FLOW_FILE_V1 = "application/flowfile";
@@ -249,6 +248,15 @@ public class PostHTTP extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
+    public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
+        .name("Content-Type")
+        .description("The Content-Type to specify for the content of the FlowFile being POSTed if " + SEND_AS_FLOWFILE.getName() + " is false. "
+            + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
+        .required(true)
+        .expressionLanguageSupported(true)
+        .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -289,6 +297,7 @@ public class PostHTTP extends AbstractProcessor {
         properties.add(USER_AGENT);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
+        properties.add(CONTENT_TYPE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -642,8 +651,8 @@ public class PostHTTP extends AbstractProcessor {
                 return;
             }
         } else {
-            final String attributeValue = toSend.get(0).getAttribute(CoreAttributes.MIME_TYPE.key());
-            contentType = attributeValue == null ? DEFAULT_CONTENT_TYPE : attributeValue;
+            final String contentTypeValue = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(toSend.get(0)).getValue();
+            contentType = StringUtils.isBlank(contentTypeValue) ? DEFAULT_CONTENT_TYPE : contentTypeValue;
         }
 
         final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
@@ -659,7 +668,7 @@ public class PostHTTP extends AbstractProcessor {
             }
         }
 
-        post.setHeader(CONTENT_TYPE, contentType);
+        post.setHeader(CONTENT_TYPE_HEADER, contentType);
         post.setHeader(FLOWFILE_CONFIRMATION_HEADER, "true");
         post.setHeader(PROTOCOL_VERSION_HEADER, PROTOCOL_VERSION);
         post.setHeader(TRANSACTION_ID_HEADER, transactionId);

@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
@@ -32,6 +33,7 @@ import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.junit.After;
 import org.junit.Test;
+import org.junit.Assert;
 
 public class TestPostHTTP {
 
@@ -245,4 +247,56 @@ public class TestPostHTTP {
         assertEquals("xyz.txt", receivedAttrs.get("filename"));
     }
 
+    @Test
+    public void testSendWithMimeType() throws Exception {
+        setup(null);
+        runner.setProperty(PostHTTP.URL, server.getUrl());
+
+        final Map<String, String> attrs = new HashMap<>();
+
+        final String suppliedMimeType = "text/plain";
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+        runner.enqueue("Camping is in tents.".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+    }
+
+    @Test
+    public void testSendWithEmptyELExpression() throws Exception {
+        setup(null);
+        runner.setProperty(PostHTTP.URL, server.getUrl());
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "");
+        runner.enqueue("The wilderness downtown.".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Assert.assertEquals(PostHTTP.DEFAULT_CONTENT_TYPE, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+    }
+
+    @Test
+    public void testSendWithContentTypeProperty() throws Exception {
+        setup(null);
+
+        final String suppliedMimeType = "text/plain";
+        runner.setProperty(PostHTTP.URL, server.getUrl());
+        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue("Try this trick and spin it.".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+    }
 }
