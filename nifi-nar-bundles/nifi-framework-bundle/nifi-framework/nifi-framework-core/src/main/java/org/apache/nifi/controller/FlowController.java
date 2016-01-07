@@ -770,6 +770,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .resourceClaimManager(resourceClaimManager)
             .flowFileRepository(flowFileRepository)
             .provenanceRepository(provenanceEventRepository)
+            .heartbeater(this)
             .build();
     }
 

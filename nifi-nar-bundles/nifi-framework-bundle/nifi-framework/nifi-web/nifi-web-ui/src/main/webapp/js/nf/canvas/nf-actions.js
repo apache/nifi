@@ -975,7 +975,7 @@ nf.Actions = (function () {
                             });
                         } else {
                             // nothing was removed
-                            nf.Dialog.showYesNoDialog({
+                            nf.Dialog.showOkDialog({
                                 dialogContent: 'No FlowFiles were removed.',
                                 overlayBackground: false
                             });

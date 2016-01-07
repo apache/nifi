@@ -1260,19 +1260,23 @@ image:iconNotSecure.png["Not Secure"]
 
 
 
-[[Queue_Listing]]
-=== Listing FlowFiles in a Queue
+[[Queue_Interaction]]
+=== Queue Interaction
 
 The FlowFiles enqueued in a Connection can be viewed when necessary. The Queue listing is opened via a menu item in
-a Connection's context menu. This option is only available when the source and destination of the Connection have
-been stopped and all active threads have completed. The listing will return the top 100 FlowFiles according to
-the currently sorted column.
+a Connection's context menu. The listing will return the top 100 FlowFiles in the active queue according to the
+configured priority. The listing can be performed even if the source and destination are actively running.
 
 Additionally, details for a Flowfile in the listing can be viewed by clicking on the Details icon (
 image:iconDetails.png["Details"]
 ) in the left most column. From here, the FlowFile details and attributes are available as well buttons for
 downloading or viewing the content. Viewing the content is only available if the nifi.content.viewer.url has been configured.
+If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will
+no longer be in the active queue.
 
+The FlowFiles enqueued in a Connection can also be deleted when necessary. The removal of the FlowFiles is initiated
+via a menu item in the Connection's context menu. This action can also be performed if the source and destination
+are actively running.
 
 
 [[Summary_Page]]

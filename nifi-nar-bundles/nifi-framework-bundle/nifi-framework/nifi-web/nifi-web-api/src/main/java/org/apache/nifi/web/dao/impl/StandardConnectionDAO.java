@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.connectable.Connectable;
@@ -40,14 +28,12 @@ import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
-import org.apache.nifi.controller.queue.SortColumn;
-import org.apache.nifi.controller.queue.SortDirection;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.user.NiFiUser;
@@ -63,6 +49,18 @@ import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
+
+import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
 
 public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO {
 
@@ -126,7 +124,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final FlowFileRecord flowFile = queue.getFlowFile(flowFileUuid);
 
             if (flowFile == null) {
-                throw new ResourceNotFoundException(String.format("Unable to find FlowFile '%s' in Connection '%s'.", flowFileUuid, id));
+                throw new ResourceNotFoundException(String.format("The FlowFile with UUID %s is no longer in the active queue.", flowFileUuid));
             }
 
             return flowFile;
@@ -375,14 +373,14 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public ListFlowFileStatus createFlowFileListingRequest(String groupId, String id, String listingRequestId, SortColumn column, SortDirection direction) {
+    public ListFlowFileStatus createFlowFileListingRequest(String groupId, String id, String listingRequestId) {
         final Connection connection = locateConnection(groupId, id);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         // ensure we can list
         verifyList(queue);
 
-        return queue.listFlowFiles(listingRequestId, 100, column, direction);
+        return queue.listFlowFiles(listingRequestId, 100);
     }
 
     @Override
@@ -606,7 +604,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final FlowFileRecord flowFile = queue.getFlowFile(flowFileUuid);
 
             if (flowFile == null) {
-                throw new ResourceNotFoundException(String.format("Unable to find FlowFile '%s' in Connection '%s'.", flowFileUuid, id));
+                throw new ResourceNotFoundException(String.format("The FlowFile with UUID %s is no longer in the active queue.", flowFileUuid));
             }
 
             // calculate the dn chain

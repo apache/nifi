@@ -307,7 +307,7 @@ nf.ContextMenu = (function () {
      * @param {selection} selection
      */
     var canListQueue = function (selection) {
-        return nf.Common.isDFM() && isConnection(selection) && nf.CanvasUtils.supportsModification(selection);
+        return nf.Common.isDFM() && isConnection(selection);
     };
     
     /**
