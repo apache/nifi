@@ -1292,7 +1292,7 @@ nf.ProvenanceTable = (function () {
                 if (event.inputContentAvailable === true) {
                     $('#input-content-download').show();
 
-                    if (isContentViewConfigured()) {
+                    if (nf.Common.isContentViewConfigured()) {
                         $('#input-content-view').show();
                     } else {
                         $('#input-content-view').hide();
@@ -1336,7 +1336,7 @@ nf.ProvenanceTable = (function () {
                 if (event.inputContentAvailable === true) {
                     $('#input-content-download').show();
 
-                    if (isContentViewConfigured()) {
+                    if (nf.Common.isContentViewConfigured()) {
                         $('#input-content-view').show();
                     } else {
                         $('#input-content-view').hide();
@@ -1349,7 +1349,7 @@ nf.ProvenanceTable = (function () {
                 if (event.outputContentAvailable === true) {
                     $('#output-content-download').show();
 
-                    if (isContentViewConfigured()) {
+                    if (nf.Common.isContentViewConfigured()) {
                         $('#output-content-view').show();
                     } else {
                         $('#output-content-view').hide();
