@@ -31,35 +31,35 @@ public class MockProcessorLog implements ProcessorLog {
         this.logger = new CapturingLogger(LoggerFactory.getLogger(component.getClass()));
         this.component = component;
     }
-    
+
     /**
      * @return a {@link List} of all TRACE level messages recorded by this {@link Logger}.
      */
     public List<LogMessage> getTraceMessages() {
         return logger.getTraceMessages();
     }
-    
+
     /**
      * @return a {@link List} of all DEBUG level messages recorded by this {@link Logger}.
      */
     public List<LogMessage> getDebugMessages() {
         return logger.getDebugMessages();
     }
-    
+
     /**
      * @return a {@link List} of all INFO level messages recorded by this {@link Logger}.
      */
     public List<LogMessage> getInfoMessages() {
         return logger.getInfoMessages();
     }
-    
+
     /**
      * @return a {@link List} of all WARN level messages recorded by this {@link Logger}.
      */
     public List<LogMessage> getWarnMessages() {
         return logger.getWarnMessages();
     }
-    
+
     /**
      * @return a {@link List} of all ERROR level messages recorded by this {@link Logger}.
      */
