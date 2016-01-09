@@ -86,6 +86,8 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     private static final Set<Class<? extends Annotation>> deprecatedTypeAnnotations = new HashSet<>();
     private static final Set<Class<? extends Annotation>> deprecatedMethodAnnotations = new HashSet<>();
+    private final Map<String, MockProcessorLog> controllerServiceLoggers = new HashMap<>();
+    private final MockProcessorLog logger;
 
     static {
         // do this in a separate method, just so that we can add a @SuppressWarnings annotation
@@ -106,6 +108,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context);
         processor.initialize(mockInitContext);
+        logger =  mockInitContext.getLogger();
 
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
@@ -574,7 +577,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         // }
         // }
 
-        final ComponentLog logger = new MockProcessorLog(identifier, service);
+        final MockProcessorLog logger = new MockProcessorLog(identifier, service);
+        controllerServiceLoggers.put(identifier, logger);
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger);
         initContext.addControllerServices(context);
         service.initialize(initContext);
@@ -767,5 +771,13 @@ public class StandardProcessorTestRunner implements TestRunner {
     public void clearProvenanceEvents() {
         sharedState.clearProvenanceEvents();
     }
+    
+    public MockProcessorLog getLogger() {
+        return logger;
+    }
 
+    public MockProcessorLog getControllerServiceLogger(final String identifier) { 
+        return controllerServiceLoggers.get(identifier);
+    }
+    
 }
