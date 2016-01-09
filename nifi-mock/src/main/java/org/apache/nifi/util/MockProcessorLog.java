@@ -16,18 +16,55 @@
  */
 package org.apache.nifi.util;
 
+import java.util.List;
+
 import org.apache.nifi.logging.ProcessorLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MockProcessorLog implements ProcessorLog {
 
-    private final Logger logger;
+    private final CapturingLogger logger;
     private final Object component;
 
     public MockProcessorLog(final String componentId, final Object component) {
-        this.logger = LoggerFactory.getLogger(component.getClass());
+        this.logger = new CapturingLogger(LoggerFactory.getLogger(component.getClass()));
         this.component = component;
+    }
+    
+    /**
+     * @return a {@link List} of all TRACE level messages recorded by this {@link Logger}.
+     */
+    public List<LogMessage> getTraceMessages() {
+        return logger.getTraceMessages();
+    }
+    
+    /**
+     * @return a {@link List} of all DEBUG level messages recorded by this {@link Logger}.
+     */
+    public List<LogMessage> getDebugMessages() {
+        return logger.getDebugMessages();
+    }
+    
+    /**
+     * @return a {@link List} of all INFO level messages recorded by this {@link Logger}.
+     */
+    public List<LogMessage> getInfoMessages() {
+        return logger.getInfoMessages();
+    }
+    
+    /**
+     * @return a {@link List} of all WARN level messages recorded by this {@link Logger}.
+     */
+    public List<LogMessage> getWarnMessages() {
+        return logger.getWarnMessages();
+    }
+    
+    /**
+     * @return a {@link List} of all ERROR level messages recorded by this {@link Logger}.
+     */
+    public List<LogMessage> getErrorMessages() {
+        return logger.getErrorMessages();
     }
 
     private Object[] addProcessor(final Object[] originalArgs) {
