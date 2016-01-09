@@ -62,7 +62,6 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -771,13 +770,13 @@ public class StandardProcessorTestRunner implements TestRunner {
     public void clearProvenanceEvents() {
         sharedState.clearProvenanceEvents();
     }
-    
+
     public MockProcessorLog getLogger() {
         return logger;
     }
 
-    public MockProcessorLog getControllerServiceLogger(final String identifier) { 
+    public MockProcessorLog getControllerServiceLogger(final String identifier) {
         return controllerServiceLoggers.get(identifier);
     }
-    
+
 }

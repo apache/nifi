@@ -824,7 +824,7 @@ public interface TestRunner {
      * Clears the Provenance Events that have been emitted by the Processor
      */
     void clearProvenanceEvents();
-    
+
     /**
      * Returns the {@link MockProcessorLog} that is used by the Processor under test.
      * @return the logger
@@ -833,7 +833,7 @@ public interface TestRunner {
 
     /**
      * Returns the {@link MockProcessorLog} that is used by the specified controller service.
-     * 
+     *
      * @param identifier a controller service identifier
      * @return the logger
      */
