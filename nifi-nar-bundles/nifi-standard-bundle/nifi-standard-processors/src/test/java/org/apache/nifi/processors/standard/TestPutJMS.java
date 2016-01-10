@@ -79,6 +79,17 @@ public class TestPutJMS {
     }
 
     @Test
+    public void testInvalidURL() throws Exception {
+        PutJMS putJms = new PutJMS();
+        TestRunner runner = TestRunners.newTestRunner(putJms);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, TEST_PROVIDER);
+        runner.setProperty(JmsProperties.URL, "localhost");
+        runner.setProperty(JmsProperties.DESTINATION_NAME, TEST_DEST_TYPE);
+        runner.setProperty(JmsProperties.DESTINATION_NAME, TEST_DEST_NAME + testQueueSuffix());
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testCleanupResources() throws JMSException, NoSuchFieldException, IllegalAccessException {
         final PutJMS putJMS = new PutJMS();
         final TestRunner runnerPut = TestRunners.newTestRunner(putJMS);
@@ -97,7 +108,6 @@ public class TestPutJMS {
         putJMS.cleanupResources();
         assertNull(wrappedMessageProducerQueue.peek());
     }
-
 
     @Test
     public void testCreateMessageDirectly() throws JMSException {

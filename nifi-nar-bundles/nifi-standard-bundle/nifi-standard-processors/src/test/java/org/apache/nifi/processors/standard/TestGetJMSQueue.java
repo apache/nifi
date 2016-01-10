@@ -41,6 +41,17 @@ import org.junit.Test;
 public class TestGetJMSQueue {
 
     @Test
+    public void testInvalidURL() throws Exception {
+        GetJMSQueue getJmsQueue = new GetJMSQueue();
+        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.URL, "localhost");
+        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testSendTextToQueue() throws Exception {
         PutJMS putJms = new PutJMS();
         TestRunner putRunner = TestRunners.newTestRunner(putJms);
