@@ -736,11 +736,17 @@ Providing three total locations, including  _nifi.provenance.repository.director
 The Component Status Repository contains the information for the Component Status History tool in the User Interface. These 
 properties govern how that tool works.
 
+The buffer.size and snapshot.frequency work together to determine the amount of historical data to retain. As an example to 
+configure two days worth of historical data with a data point snapshot occurring every 5 minutes you would configure 
+snapshot.frequency to be "5 mins" and the buffer.size to be "576". To further explain this example for every 60 minutes there 
+are 12 (60 / 5) snapshot windows for that time period. To keep that data for 48 hours (12 * 48) you end up with a buffer size
+of 576. 
+
 |====
 |*Property*|*Description*
 |nifi.components.status.repository.implementation|The Component Status Repository implementation. The default value is org.apache.nifi.controller.status.history.VolatileComponentStatusRepository and should not be changed.
-|nifi.components.status.repository.buffer.size|Specifies the buffer size for the Component Status Repository. The default value is 288.
-|nifi.components.status.snapshot.frequency|This value indicates how often to present a snapshot of the components' status history. The default value is 5 mins.
+|nifi.components.status.repository.buffer.size|Specifies the buffer size for the Component Status Repository. The default value is 1440.
+|nifi.components.status.snapshot.frequency|This value indicates how often to present a snapshot of the components' status history. The default value is 1 min.
 |====
 
 

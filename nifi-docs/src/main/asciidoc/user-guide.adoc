@@ -1342,7 +1342,8 @@ past five minutes, it is often useful to have a view of historical statistics as
 by right-clicking on a component and choosing the ``Stats'' menu option or by clicking on the Stats History in the Summary page (see <<Summary_Page>>
 for more information).
 
-The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours.
+The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours. For specific
+configuration information reference the Component Status Repository of the Administration guide.
 When the Stats dialog is opened, it provides a graph of historical statistics:
 
 image::stats-history.png["Stats History"]
