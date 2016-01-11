@@ -36,7 +36,7 @@ public class TestListS3 {
         runner.setProperty(ListS3.BUCKET, BUCKET);
         runner.setProperty(ListS3.PREFIX, PREFIX);
         runner.setProperty(ListS3.REGION, REGION);
-        runner.setProperty(ListS3.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
         return runner;
     }
     
