@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link PutSNS} and requires additional configuration and resources to work.
@@ -49,4 +51,31 @@ public class ITPutSNS {
         runner.assertAllFlowFilesTransferred(PutSNS.REL_SUCCESS, 1);
     }
 
+    @Test
+    public void testPublishWithCredentialsProviderService() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
+        String snsArn = "Add Sns arn here";
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutSNS.ARN, snsArn);
+        assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+
+        runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
+        runner.enableControllerService(serviceImpl);
+
+        runner.assertValid(serviceImpl);
+
+        runner.setProperty(PutSNS.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+
+        runner.run(1);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "1.txt");
+        runner.enqueue(Paths.get("src/test/resources/hello.txt"), attrs);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSNS.REL_SUCCESS, 1);
+    }
 }

@@ -63,6 +63,7 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/hello.txt</exclude>
+                        <exclude>src/test/resources/mock-aws-credentials.properties</exclude>
                     </excludes>
                 </configuration>
             </plugin>

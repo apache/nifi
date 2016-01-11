@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -74,7 +75,7 @@ public class PutSNS extends AbstractSNSProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(ARN, ARN_TYPE, SUBJECT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, TIMEOUT,
+            Arrays.asList(ARN, ARN_TYPE, SUBJECT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
                     USE_JSON_STRUCTURE, CHARACTER_ENCODING));
 
     public static final int MAX_SIZE = 256 * 1024;
@@ -136,7 +137,7 @@ public class PutSNS extends AbstractSNSProcessor {
         }
 
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            if (entry.getKey().isDynamic() && !isEmpty(entry.getValue())) {
+            if (entry.getKey().isDynamic() && !StringUtils.isEmpty(entry.getValue())) {
                 final MessageAttributeValue value = new MessageAttributeValue();
                 value.setStringValue(context.getProperty(entry.getKey()).evaluateAttributeExpressions(flowFile).getValue());
                 value.setDataType("String");

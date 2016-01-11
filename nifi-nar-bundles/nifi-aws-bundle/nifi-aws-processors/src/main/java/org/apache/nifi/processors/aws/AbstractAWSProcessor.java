@@ -53,6 +53,14 @@ import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 
+/**
+ * Abstract base class for aws processors.  This class uses aws credentials for creating aws clients
+ *
+ * @deprecated use {@link AbstractAWSCredentialsProviderProcessor} instead which uses credentials providers or creating aws clients
+ * @see AbstractAWSCredentialsProviderProcessor
+ *
+ */
+@Deprecated
 public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -113,8 +121,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    private volatile ClientType client;
-    private volatile Region region;
+    protected volatile ClientType client;
+    protected volatile Region region;
 
     // If protocol is changed to be a property, ensure other uses are also changed
     protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
@@ -181,7 +189,10 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public void onScheduled(final ProcessContext context) {
         final ClientType awsClient = createClient(context, getCredentials(context), createConfiguration(context));
         this.client = awsClient;
+        intializeRegionAndEndpoint(context);
+    }
 
+    protected void intializeRegionAndEndpoint(ProcessContext context) {
         // if the processor supports REGION, get the configured region.
         if (getSupportedPropertyDescriptors().contains(REGION)) {
             final String region = context.getProperty(REGION).getValue();
@@ -199,8 +210,19 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         if (!urlstr.isEmpty()) {
             this.client.setEndpoint(urlstr);
         }
+
     }
 
+    /**
+     * Create client from the arguments
+     * @param context process context
+     * @param credentials static aws credentials
+     * @param config aws client configuration
+     * @return ClientType aws client
+     *
+     * @deprecated use {@link AbstractAWSCredentialsProviderProcessor#createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)}
+     */
+    @Deprecated
     protected abstract ClientType createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config);
 
     protected ClientType getClient() {
@@ -230,10 +252,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
 
         return new AnonymousAWSCredentials();
-    }
 
-    protected boolean isEmpty(final String value) {
-        return value == null || value.trim().equals("");
     }
 
 }
