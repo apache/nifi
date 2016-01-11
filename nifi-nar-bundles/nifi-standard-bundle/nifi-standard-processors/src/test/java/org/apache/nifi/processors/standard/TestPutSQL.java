@@ -103,6 +103,7 @@ public class TestPutSQL {
         }
     }
 
+
     @Test
     public void testInsertWithGeneratedKeys() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
@@ -158,7 +159,7 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
         runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Mark', 84)".getBytes());
-        runner.enqueue("INSERT INTO PERSONS".getBytes());  // intentionally wrong syntax
+        runner.enqueue("INSERT INTO PERSONS".getBytes()); // intentionally wrong syntax
         runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Tom', 3)".getBytes());
         runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Harry', 44)".getBytes());
         runner.run();
@@ -256,6 +257,41 @@ public class TestPutSQL {
     }
 
 
+    @Test
+    public void testUsingSqlDataTypesWithNegativeValues() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        final File tempDir = folder.getRoot();
+        final File dbDir = new File(tempDir, "db");
+        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE PERSONS (id integer primary key, name varchar(100), code bigint)");
+            }
+        }
+
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", "-5");
+        attributes.put("sql.args.1.value", "84");
+        runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', ?)".getBytes(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals("Mark", rs.getString(2));
+                assertEquals(84, rs.getInt(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
 
     @Test
     public void testStatementsWithPreparedParameters() throws InitializationException, ProcessException, SQLException, IOException {
@@ -343,7 +379,7 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
-                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+            "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("sql.args.1.value", "1");
@@ -432,7 +468,7 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
-                "UPDATE SOME_RANDOM_TABLE NAME='George' WHERE ID=?; ";
+            "UPDATE SOME_RANDOM_TABLE NAME='George' WHERE ID=?; ";
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("sql.args.1.value", "1");
@@ -471,7 +507,7 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
-                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+            "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("sql.args.1.value", "1");
@@ -579,7 +615,7 @@ public class TestPutSQL {
         final MockFlowFile mff = new MockFlowFile(0L) {
             @Override
             public Long getLastQueueDate() {
-                return System.currentTimeMillis() - 10000L;   // return 10 seconds ago
+                return System.currentTimeMillis() - 10000L; // return 10 seconds ago
             }
 
             @Override

@@ -21,7 +21,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -36,6 +38,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @EventDriven
 @SupportsBatching
 @Tags({"test", "load", "duplicate"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Intended for load testing, this processor will create the configured number of copies of each incoming FlowFile")
 public class DuplicateFlowFile extends AbstractProcessor {
 

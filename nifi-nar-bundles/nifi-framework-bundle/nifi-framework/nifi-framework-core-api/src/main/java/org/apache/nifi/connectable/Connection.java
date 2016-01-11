@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.nifi.controller.FlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;

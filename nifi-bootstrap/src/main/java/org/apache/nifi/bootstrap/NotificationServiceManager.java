@@ -36,6 +36,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bootstrap.notification.NotificationContext;
 import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
 import org.apache.nifi.bootstrap.notification.NotificationService;
@@ -246,7 +247,7 @@ public class NotificationServiceManager {
                     configuredValue = fullPropDescriptor.getDefaultValue();
                 }
 
-                return new NotificationServicePropertyValue(configuredValue);
+                return new StandardPropertyValue(configuredValue, null);
             }
 
             @Override
@@ -363,7 +364,7 @@ public class NotificationServiceManager {
                         value = descriptor.getDefaultValue();
                     }
 
-                    return new NotificationServicePropertyValue(value);
+                    return new StandardPropertyValue(value, null);
                 }
 
                 @Override

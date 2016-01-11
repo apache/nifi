@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.beans.PropertyDescriptor;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -110,9 +111,21 @@ public class TestStandardControllerServiceProvider {
         }
     }
 
-    @Test(timeout=10000)
-    public void testEnableReferencingServicesGraph() {
+    /**
+     * We run the same test 1000 times and prior to bug fix (see NIFI-1143) it
+     * would fail on some iteration. For more details please see
+     * {@link PropertyDescriptor}.isDependentServiceEnableable() as well as
+     * https://issues.apache.org/jira/browse/NIFI-1143
+     */
+    @Test(timeout = 10000)
+    public void testConcurrencyWithEnablingReferencingServicesGraph() {
         final ProcessScheduler scheduler = createScheduler();
+        for (int i = 0; i < 1000; i++) {
+            testEnableReferencingServicesGraph(scheduler);
+        }
+    }
+
+    public void testEnableReferencingServicesGraph(ProcessScheduler scheduler) {
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
 
         // build a graph of controller services with dependencies as such:

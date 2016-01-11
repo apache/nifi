@@ -32,6 +32,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -57,8 +59,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import com.twitter.hbc.ClientBuilder;
 import com.twitter.hbc.core.Client;
 import com.twitter.hbc.core.Constants;
-import com.twitter.hbc.core.endpoint.Location.Coordinate ;
 import com.twitter.hbc.core.endpoint.Location ;
+import com.twitter.hbc.core.endpoint.Location.Coordinate ;
 import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.endpoint.StatusesFirehoseEndpoint;
 import com.twitter.hbc.core.endpoint.StatusesSampleEndpoint;
@@ -69,6 +71,7 @@ import com.twitter.hbc.httpclient.auth.Authentication;
 import com.twitter.hbc.httpclient.auth.OAuth1;
 
 @SupportsBatching
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"twitter", "tweets", "social media", "status", "json"})
 @CapabilityDescription("Pulls status changes from Twitter's streaming API")
 @WritesAttribute(attribute = "mime.type", description = "Sets mime type to application/json")
@@ -155,7 +158,7 @@ public class GetTwitter extends AbstractProcessor {
     private final BlockingQueue<Event> eventQueue = new LinkedBlockingQueue<>(1000);
 
     private volatile Client client;
-    private volatile BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>(10000);
+    private volatile BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>(5000);
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -221,8 +224,6 @@ public class GetTwitter extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws MalformedURLException {
-        messageQueue = new LinkedBlockingQueue<>(100000);
-
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).evaluateAttributeExpressions().getValue(),
                 context.getProperty(CONSUMER_SECRET).evaluateAttributeExpressions().getValue(),

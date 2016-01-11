@@ -24,12 +24,42 @@ nf.Actions = (function () {
             controller: '../nifi-api/controller'
         }
     };
+    
+    /**
+     * Initializes the drop request status dialog.
+     */
+    var initializeDropRequestStatusDialog = function () {
+        // initialize the drop requst progress bar
+        var dropRequestProgressBar = $('#drop-request-percent-complete').progressbar();
+
+        // configure the drop request status dialog
+        $('#drop-request-status-dialog').modal({
+            overlayBackground: false,
+            handler: {
+                close: function () {
+                    // reset the progress bar
+                    dropRequestProgressBar.find('div.progress-label').remove();
+
+                    // update the progress bar
+                    var label = $('<div class="progress-label"></div>').text('0%');
+                    dropRequestProgressBar.progressbar('value', 0).append(label);
+                    
+                    // clear the current button model
+                    $('#drop-request-status-dialog').modal('setButtonModel', []);
+                }
+            }
+        }).draggable({
+            containment: 'parent',
+            handle: '.dialog-header'
+        });
+    };
+    
 
     /**
      * Updates the resource with the specified data.
      * 
-     * @param {type} uri
-     * @param {type} data
+     * @param {string} uri
+     * @param {object} data
      */
     var updateResource = function (uri, data) {
         var revision = nf.Client.getRevision();
@@ -78,6 +108,13 @@ nf.Actions = (function () {
     };
 
     return {
+        /**
+         * Initializes the actions.
+         */
+        init: function () {
+            initializeDropRequestStatusDialog();
+        },
+        
         /**
          * Enters the specified process group.
          * 
@@ -358,27 +395,24 @@ nf.Actions = (function () {
         
         /**
          * Enables all eligible selected components.
+         *
+         * @argument {selection} selection      The selection
          */
-        enable: function () {
-            var components = d3.selectAll('g.component.selected').filter(function (d) {
-                var selected = d3.select(this);
-                var selectedData = selected.datum();
-                
-                // processors and ports that support modification and are not currently stopped
-                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && 
-                        nf.CanvasUtils.supportsModification(selected) &&
-                        selectedData.component.state !== 'STOPPED';
-            });
-            if (components.empty()) {
+        enable: function (selection) {
+            var componentsToEnable = nf.CanvasUtils.filterEnable(selection);
+
+            if (componentsToEnable.empty()) {
                 nf.Dialog.showOkDialog({
                     dialogContent: 'No eligible components are selected. Please select the components to be enabled and ensure they are no longer running.',
                     overlayBackground: true
                 });
             } else {
+                var enableRequests = [];
+
                 // enable the selected processors
-                components.each(function (d) {
+                componentsToEnable.each(function (d) {
                     var selected = d3.select(this);
-                    updateResource(d.component.uri, {state: 'STOPPED'}).done(function (response) {
+                    enableRequests.push(updateResource(d.component.uri, {state: 'STOPPED'}).done(function (response) {
                         if (nf.CanvasUtils.isProcessor(selected)) {
                             nf.Processor.set(response.processor);
                         } else if (nf.CanvasUtils.isInputPort(selected)) {
@@ -386,34 +420,38 @@ nf.Actions = (function () {
                         } else if (nf.CanvasUtils.isOutputPort(selected)) {
                             nf.Port.set(response.outputPort);
                         }
-                    });
+                    }));
                 });
+
+                // refresh the toolbar once the updates have completed
+                if (enableRequests.length > 0) {
+                    $.when.apply(window, enableRequests).always(function () {
+                        nf.CanvasToolbar.refresh();
+                    });
+                }
             }
         },
         
         /**
          * Disables all eligible selected components.
+         *
+         * @argument {selection} selection      The selection
          */
-        disable: function () {
-            var components = d3.selectAll('g.component.selected').filter(function (d) {
-                var selected = d3.select(this);
-                var selectedData = selected.datum();
-                
-                // processors and ports that support modification and are not currently disabled
-                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && 
-                        nf.CanvasUtils.supportsModification(selected) &&
-                        selectedData.component.state !== 'DISABLED';
-            });
-            if (components.empty()) {
+        disable: function (selection) {
+            var componentsToDisable = nf.CanvasUtils.filterDisable(selection);
+
+            if (componentsToDisable.empty()) {
                 nf.Dialog.showOkDialog({
                     dialogContent: 'No eligible components are selected. Please select the components to be disabled and ensure they are no longer running.',
                     overlayBackground: true
                 });
             } else {
+                var disableRequests = [];
+
                 // disable the selected components
-                components.each(function (d) {
+                componentsToDisable.each(function (d) {
                     var selected = d3.select(this);
-                    updateResource(d.component.uri, {state: 'DISABLED'}).done(function (response) {
+                    disableRequests.push(updateResource(d.component.uri, {state: 'DISABLED'}).done(function (response) {
                         if (nf.CanvasUtils.isProcessor(selected)) {
                             nf.Processor.set(response.processor);
                         } else if (nf.CanvasUtils.isInputPort(selected)) {
@@ -421,11 +459,34 @@ nf.Actions = (function () {
                         } else if (nf.CanvasUtils.isOutputPort(selected)) {
                             nf.Port.set(response.outputPort);
                         }
-                    });
+                    }));
                 });
+
+                // refresh the toolbar once the updates have completed
+                if (disableRequests.length > 0) {
+                    $.when.apply(window, disableRequests).always(function () {
+                        nf.CanvasToolbar.refresh();
+                    });
+                }
             }
         },
         
+        /**
+         * Opens provenance with the component in the specified selection.
+         *
+         * @argument {selection} selection The selection
+         */
+        openProvenance: function (selection) {
+            if (selection.size() === 1) {
+                var selectionData = selection.datum();
+
+                // open the provenance page with the specified component
+                nf.Shell.showPage('provenance?' + $.param({
+                    componentId: selectionData.component.id
+                }));
+            }
+        },
+
         /**
          * Starts the components in the specified selection.
          * 
@@ -446,6 +507,8 @@ nf.Actions = (function () {
                         overlayBackground: true
                     });
                 } else {
+                    var startRequests = [];
+
                     // start each selected component
                     componentsToStart.each(function (d) {
                         var selected = d3.select(this);
@@ -458,7 +521,7 @@ nf.Actions = (function () {
                             data['running'] = true;
                         }
 
-                        updateResource(d.component.uri, data).done(function (response) {
+                        startRequests.push(updateResource(d.component.uri, data).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
                                 nf.Processor.set(response.processor);
                             } else if (nf.CanvasUtils.isProcessGroup(selected)) {
@@ -474,8 +537,15 @@ nf.Actions = (function () {
                             } else if (nf.CanvasUtils.isOutputPort(selected)) {
                                 nf.Port.set(response.outputPort);
                             }
-                        });
+                        }));
                     });
+
+                    // refresh the toolbar once the updates have completed
+                    if (startRequests.length > 0) {
+                        $.when.apply(window, startRequests).always(function () {
+                            nf.CanvasToolbar.refresh();
+                        });
+                    }
                 }
             }
         },
@@ -500,6 +570,8 @@ nf.Actions = (function () {
                         overlayBackground: true
                     });
                 } else {
+                    var stopRequests = [];
+
                     // stop each selected component
                     componentsToStop.each(function (d) {
                         var selected = d3.select(this);
@@ -512,7 +584,7 @@ nf.Actions = (function () {
                             data['running'] = false;
                         }
 
-                        updateResource(d.component.uri, data).done(function (response) {
+                        stopRequests.push(updateResource(d.component.uri, data).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
                                 nf.Processor.set(response.processor);
                             } else if (nf.CanvasUtils.isProcessGroup(selected)) {
@@ -528,8 +600,15 @@ nf.Actions = (function () {
                             } else if (nf.CanvasUtils.isOutputPort(selected)) {
                                 nf.Port.set(response.outputPort);
                             }
-                        });
+                        }));
                     });
+
+                    // refresh the toolbar once the updates have completed
+                    if (stopRequests.length > 0) {
+                        $.when.apply(window, stopRequests).always(function () {
+                            nf.CanvasToolbar.refresh();
+                        });
+                    }
                 }
             }
         },
@@ -715,32 +794,8 @@ nf.Actions = (function () {
                         // remove the component/connection in question
                         nf[selectionData.type].remove(selectionData.component.id);
 
-                        // if the source processor is part of the response, we
-                        // have just removed a relationship. must update the status
-                        // of the source processor in case its validity has changed
-                        if (nf.CanvasUtils.isConnection(selection)) {
-                            var sourceComponentId = nf.CanvasUtils.getConnectionSourceComponentId(selectionData.component);
-                            var source = d3.select('#id-' + sourceComponentId);
-                            var sourceData = source.datum();
-
-                            // update the source status if necessary
-                            if (nf.CanvasUtils.isProcessor(source)) {
-                                nf.Processor.reload(sourceData.component);
-                            } else if (nf.CanvasUtils.isInputPort(source)) {
-                                nf.Port.reload(sourceData.component);
-                            } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
-                                nf.RemoteProcessGroup.reload(sourceData.component);
-                            }
-
-                            var destinationComponentId = nf.CanvasUtils.getConnectionDestinationComponentId(selectionData.component);
-                            var destination = d3.select('#id-' + destinationComponentId);
-                            var destinationData = destination.datum();
-
-                            // update the destination component accordingly
-                            if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-                                nf.RemoteProcessGroup.reload(destinationData.component);
-                            }
-                        } else {
+                        // if the selection is a connection, reload the source and destination accordingly
+                        if (nf.CanvasUtils.isConnection(selection) === false) {
                             var connections = nf.Connection.getComponentConnections(selectionData.component.id);
                             if (connections.length > 0) {
                                 var ids = [];
@@ -791,40 +846,16 @@ nf.Actions = (function () {
                                 }
                             });
 
-                            // refresh all component types as necessary (handle components that have been removed)
+                            // remove all the non connections in the snippet first
                             components.forEach(function (type, ids) {
-                                nf[type].remove(ids);
+                                if (type !== 'Connection') {
+                                    nf[type].remove(ids);
+                                }
                             });
-
-                            // if some connections were removed
-                            if (snippet.connections > 0) {
-                                selection.filter(function (d) {
-                                    return d.type === 'Connection';
-                                }).each(function (d) {
-                                    // add the source to refresh if its not already going to be refreshed
-                                    var sourceComponentId = nf.CanvasUtils.getConnectionSourceComponentId(d.component);
-                                    var source = d3.select('#id-' + sourceComponentId);
-                                    var sourceData = source.datum();
-
-                                    // update the source status if necessary - if the source was already removed
-                                    // as part of this operation the reloading has no affect
-                                    if (nf.CanvasUtils.isProcessor(source)) {
-                                        nf.Processor.reload(sourceData.component);
-                                    } else if (nf.CanvasUtils.isInputPort(source)) {
-                                        nf.Port.reload(sourceData.component);
-                                    } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
-                                        nf.RemoteProcessGroup.reload(sourceData.component);
-                                    }
-
-                                    // add the destination to refresh if its not already going to be refreshed
-                                    var destinationComponentId = nf.CanvasUtils.getConnectionDestinationComponentId(d.component);
-                                    var destination = d3.select('#id-' + destinationComponentId);
-                                    var destinationData = destination.datum();
-
-                                    if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-                                        nf.RemoteProcessGroup.reload(destinationData.component);
-                                    }
-                                });
+                            
+                            // then remove all the connections
+                            if (components.has('Connection')) {
+                                nf.Connection.remove(components.get('Connection'));
                             }
 
                             // refresh the birdseye/toolbar
@@ -843,6 +874,176 @@ nf.Actions = (function () {
                     }).fail(nf.Common.handleAjaxError);
                 }
             }
+        },
+        
+        /**
+         * Deletes the flow files in the specified connection.
+         * 
+         * @param {type} selection
+         */
+        emptyQueue: function (selection) {
+            if (selection.size() !== 1 || !nf.CanvasUtils.isConnection(selection)) {
+                return;
+            }
+            
+            // prompt the user before emptying the queue
+            nf.Dialog.showYesNoDialog({
+                headerText: 'Empty Queue',
+                dialogContent: 'Are you sure you want to empty this queue? All FlowFiles waiting at the time of the request will be removed.',
+                overlayBackground: false,
+                noText: 'Cancel',
+                yesText: 'Empty',
+                yesHandler: function () {
+                    // get the connection data
+                    var connection = selection.datum();
+                    
+                    var MAX_DELAY = 4;
+                    var cancelled = false;
+                    var dropRequest = null;
+                    var dropRequestTimer = null;
+
+                    // updates the progress bar
+                    var updateProgress = function (percentComplete) {
+                        // remove existing labels
+                        var progressBar = $('#drop-request-percent-complete');
+                        progressBar.find('div.progress-label').remove();
+
+                        // update the progress bar
+                        var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
+                        if (percentComplete > 0) {
+                            label.css('margin-top', '-19px');
+                        }
+                        progressBar.progressbar('value', percentComplete).append(label);
+                    };
+
+                    // update the button model of the drop request status dialog
+                    $('#drop-request-status-dialog').modal('setButtonModel', [{
+                            buttonText: 'Stop',
+                            handler: {
+                                click: function () {
+                                    cancelled = true;
+
+                                    // we are waiting for the next poll attempt
+                                    if (dropRequestTimer !== null) {
+                                        // cancel it
+                                        clearTimeout(dropRequestTimer);
+
+                                        // cancel the provenance
+                                        completeDropRequest();
+                                    }
+                                }
+                            }
+                        }]);
+
+                    // completes the drop request by removing it and showing how many flowfiles were deleted
+                    var completeDropRequest = function () {
+                        if (nf.Common.isDefinedAndNotNull(dropRequest)) {
+                            $.ajax({
+                                type: 'DELETE',
+                                url: dropRequest.uri,
+                                dataType: 'json'
+                            }).done(function(response) {
+                                // report the results of this drop request
+                                dropRequest = response.dropRequest;
+                                
+                                // build the results
+                                var droppedTokens = dropRequest.dropped.split(/ \/ /);
+                                var results = $('<div></div>');
+                                $('<span class="label"></span>').text(droppedTokens[0]).appendTo(results);
+                                $('<span></span>').text(' FlowFiles (' + droppedTokens[1] + ')').appendTo(results);
+                                
+                                // if the request did not complete, include the original
+                                if (dropRequest.percentCompleted < 100) {
+                                    var originalTokens = dropRequest.original.split(/ \/ /);
+                                    $('<span class="label"></span>').text(' out of ' + originalTokens[0]).appendTo(results);
+                                    $('<span></span>').text(' (' + originalTokens[1] + ')').appendTo(results);
+                                }
+                                $('<span></span>').text(' were removed from the queue.').appendTo(results);
+                                
+                                // if this request failed so the error
+                                if (nf.Common.isDefinedAndNotNull(dropRequest.failureReason)) {
+                                    $('<br/><br/><span></span>').text(dropRequest.failureReason).appendTo(results);
+                                }
+                                
+                                // display the results
+                                nf.Dialog.showOkDialog({
+                                    dialogContent: results,
+                                    overlayBackground: false
+                                });
+                            }).always(function() {
+                                $('#drop-request-status-dialog').modal('hide');
+                            });
+                        } else {
+                            // nothing was removed
+                            nf.Dialog.showYesNoDialog({
+                                dialogContent: 'No FlowFiles were removed.',
+                                overlayBackground: false
+                            });
+                            
+                            // close the dialog
+                            $('#drop-request-status-dialog').modal('hide');
+                        }
+                    };
+
+                    // process the drop request
+                    var processDropRequest = function (delay) {
+                        // update the percent complete
+                        updateProgress(dropRequest.percentCompleted);
+
+                        // update the status of the drop request
+                        $('#drop-request-status-message').text(dropRequest.state);
+                        
+                        // update the current number of enqueued flowfiles
+                        if (nf.Common.isDefinedAndNotNull(connection.status) && nf.Common.isDefinedAndNotNull(dropRequest.currentCount)) {
+                            connection.status.queued = dropRequest.current;
+                            nf.Connection.refresh(connection.id);
+                        }
+                        
+                        // close the dialog if the 
+                        if (dropRequest.finished === true || cancelled === true) {
+                            completeDropRequest();
+                        } else {
+                            // wait delay to poll again
+                            dropRequestTimer = setTimeout(function () {
+                                // clear the drop request timer
+                                dropRequestTimer = null;
+
+                                // schedule to poll the status again in nextDelay
+                                pollDropRequest(Math.min(MAX_DELAY, delay * 2));
+                            }, delay * 1000);
+                        }
+                    };
+
+                    // schedule for the next poll iteration
+                    var pollDropRequest = function (nextDelay) {
+                        $.ajax({
+                            type: 'GET',
+                            url: dropRequest.uri,
+                            dataType: 'json'
+                        }).done(function(response) {
+                            dropRequest = response.dropRequest;
+                            processDropRequest(nextDelay);
+                        }).fail(completeDropRequest);
+                    };
+
+                    // issue the request to delete the flow files
+                    $.ajax({
+                        type: 'DELETE',
+                        url: connection.component.uri + '/contents',
+                        dataType: 'json'
+                    }).done(function(response) {
+                        // initialize the progress bar value
+                        updateProgress(0);
+                        
+                        // show the progress dialog
+                        $('#drop-request-status-dialog').modal('show');
+                        
+                        // process the drop request
+                        dropRequest = response.dropRequest;
+                        processDropRequest(1);
+                    }).fail(completeDropRequest);
+                }
+            });
         },
         
         /**

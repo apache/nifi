@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -45,8 +47,9 @@ import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 
 @SupportsBatching
+@SeeAlso({ GetSQS.class, DeleteSQS.class })
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "AWS", "SQS", "Queue", "Put", "Publish"})
-@SeeAlso({GetSQS.class, DeleteSQS.class})
 @CapabilityDescription("Publishes a message to an Amazon Simple Queuing Service Queue")
 @DynamicProperty(name = "The name of a Message Attribute to add to the message", value = "The value of the Message Attribute",
         description = "Allows the user to add key/value pairs as Message Attributes by adding a property whose name will become the name of "
@@ -62,7 +65,7 @@ public class PutSQS extends AbstractSQSProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, REGION, DELAY, TIMEOUT));
+            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, REGION, DELAY, TIMEOUT));
 
     private volatile List<PropertyDescriptor> userDefinedProperties = Collections.emptyList();
 
@@ -133,6 +136,7 @@ public class PutSQS extends AbstractSQSProcessor {
             client.sendMessageBatch(request);
         } catch (final Exception e) {
             getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
+            flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

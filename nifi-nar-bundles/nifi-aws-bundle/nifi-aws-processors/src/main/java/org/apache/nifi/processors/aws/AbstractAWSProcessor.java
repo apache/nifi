@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -37,13 +40,16 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.PropertiesCredentials;
+import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 
@@ -57,7 +63,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
-    public static final PropertyDescriptor CREDENTAILS_FILE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor CREDENTIALS_FILE = new PropertyDescriptor.Builder()
             .name("Credentials File")
             .expressionLanguageSupported(false)
             .required(false)
@@ -91,7 +97,28 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .defaultValue("30 secs")
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
+            .name("Endpoint Override URL")
+            .description("Endpoint URL to use instead of the AWS default including scheme, host, port, and path. " +
+                    "The AWS libraries select an endpoint URL based on the AWS region, but this property overrides " +
+                    "the selected endpoint URL, allowing use with other S3-compatible endpoints.")
+            .required(false)
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
+
     private volatile ClientType client;
+    private volatile Region region;
+
+    // If protocol is changed to be a property, ensure other uses are also changed
+    protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
+    protected static final String DEFAULT_USER_AGENT = "NiFi";
 
     private static AllowableValue createAllowableValue(final Regions regions) {
         return new AllowableValue(regions.getName(), regions.getName(), regions.getName());
@@ -121,7 +148,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("If setting Secret Key or Access Key, must set both").build());
         }
 
-        final boolean credentialsFileSet = validationContext.getProperty(CREDENTAILS_FILE).isSet();
+        final boolean credentialsFileSet = validationContext.getProperty(CREDENTIALS_FILE).isSet();
         if ((secretKeySet || accessKeySet) && credentialsFileSet) {
             problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
         }
@@ -133,11 +160,19 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         final ClientConfiguration config = new ClientConfiguration();
         config.setMaxConnections(context.getMaxConcurrentTasks());
         config.setMaxErrorRetry(0);
-        config.setUserAgent("NiFi");
-
+        config.setUserAgent(DEFAULT_USER_AGENT);
+        // If this is changed to be a property, ensure other uses are also changed
+        config.setProtocol(DEFAULT_PROTOCOL);
         final int commsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         config.setConnectionTimeout(commsTimeout);
         config.setSocketTimeout(commsTimeout);
+
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sslContextService != null) {
+            final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
+            SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, null);
+            config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+        }
 
         return config;
     }
@@ -151,8 +186,18 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         if (getSupportedPropertyDescriptors().contains(REGION)) {
             final String region = context.getProperty(REGION).getValue();
             if (region != null) {
-                client.setRegion(Region.getRegion(Regions.fromName(region)));
+                this.region = Region.getRegion(Regions.fromName(region));
+                client.setRegion(this.region);
+            } else {
+                this.region = null;
             }
+        }
+
+        // if the endpoint override has been configured, set the endpoint.
+        // (per Amazon docs this should only be configured at client creation)
+        final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).getValue());
+        if (!urlstr.isEmpty()) {
+            this.client.setEndpoint(urlstr);
         }
     }
 
@@ -162,11 +207,15 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         return client;
     }
 
+    protected Region getRegion() {
+        return region;
+    }
+
     protected AWSCredentials getCredentials(final ProcessContext context) {
         final String accessKey = context.getProperty(ACCESS_KEY).getValue();
         final String secretKey = context.getProperty(SECRET_KEY).getValue();
 
-        final String credentialsFile = context.getProperty(CREDENTAILS_FILE).getValue();
+        final String credentialsFile = context.getProperty(CREDENTIALS_FILE).getValue();
 
         if (credentialsFile != null) {
             try {

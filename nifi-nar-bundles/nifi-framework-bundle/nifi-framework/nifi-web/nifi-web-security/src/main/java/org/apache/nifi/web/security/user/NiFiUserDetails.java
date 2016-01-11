@@ -73,10 +73,9 @@ public class NiFiUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user.getDn();
+        return user.getIdentity();
     }
 
-    // TODO: not sure how to handle these yet
     @Override
     public boolean isAccountNonExpired() {
         return true;

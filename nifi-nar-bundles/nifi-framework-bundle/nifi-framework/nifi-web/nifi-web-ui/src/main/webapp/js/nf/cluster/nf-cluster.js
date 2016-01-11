@@ -123,6 +123,8 @@ nf.Cluster = (function () {
          * Initializes the counters page.
          */
         init: function () {
+            nf.Storage.init();
+            
             // load the users authorities
             loadAuthorities().done(function () {
                 // create the counters table

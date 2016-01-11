@@ -34,8 +34,7 @@ public final class CertificateUtils {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtils.class);
 
     /**
-     * Returns true if the given keystore can be loaded using the given keystore
-     * type and password. Returns false otherwise.
+     * Returns true if the given keystore can be loaded using the given keystore type and password. Returns false otherwise.
      *
      * @param keystore the keystore to validate
      * @param keystoreType the type of the keystore
@@ -77,40 +76,29 @@ public final class CertificateUtils {
     }
 
     /**
-     * Extracts the username from the specified DN. If the username cannot be
-     * extracted because the CN is in an unrecognized format, the entire CN is
-     * returned. If the CN cannot be extracted because the DN is in an
-     * unrecognized format, the entire DN is returned.
+     * Extracts the username from the specified DN. If the username cannot be extracted because the CN is in an unrecognized format, the entire CN is returned. If the CN cannot be extracted because
+     * the DN is in an unrecognized format, the entire DN is returned.
      *
      * @param dn the dn to extract the username from
      * @return the exatracted username
      */
     public static String extractUsername(String dn) {
         String username = dn;
-        String cn = "";
 
         // ensure the dn is specified
         if (StringUtils.isNotBlank(dn)) {
+            // determine the separate
+            final String separator = StringUtils.indexOfIgnoreCase(dn, "/cn=") > 0 ? "/" : ",";
 
-            // attempt to locate the cn
-            if (dn.startsWith("CN=")) {
-                cn = StringUtils.substringBetween(dn, "CN=", ",");
-            } else if (dn.startsWith("/CN=")) {
-                cn = StringUtils.substringBetween(dn, "CN=", "/");
-            } else if (dn.startsWith("C=") || dn.startsWith("/C=")) {
-                cn = StringUtils.substringAfter(dn, "CN=");
-            } else if (dn.startsWith("/") && StringUtils.contains(dn, "CN=")) {
-                cn = StringUtils.substringAfter(dn, "CN=");
-            }
-
-            // attempt to get the username from the cn
-            if (StringUtils.isNotBlank(cn)) {
-                if (cn.endsWith(")")) {
-                    username = StringUtils.substringBetween(cn, "(", ")");
-                } else if (cn.contains(" ")) {
-                    username = StringUtils.substringAfterLast(cn, " ");
+            // attempt to locate the cd
+            final String cnPattern = "cn=";
+            final int cnIndex = StringUtils.indexOfIgnoreCase(dn, cnPattern);
+            if (cnIndex >= 0) {
+                int separatorIndex = StringUtils.indexOf(dn, separator, cnIndex);
+                if (separatorIndex > 0) {
+                    username = StringUtils.substring(dn, cnIndex + cnPattern.length(), separatorIndex);
                 } else {
-                    username = cn;
+                    username = StringUtils.substring(dn, cnIndex + cnPattern.length());
                 }
             }
         }
@@ -119,9 +107,7 @@ public final class CertificateUtils {
     }
 
     /**
-     * Returns a list of subject alternative names. Any name that is represented
-     * as a String by X509Certificate.getSubjectAlternativeNames() is converted
-     * to lowercase and returned.
+     * Returns a list of subject alternative names. Any name that is represented as a String by X509Certificate.getSubjectAlternativeNames() is converted to lowercase and returned.
      *
      * @param certificate a certificate
      * @return a list of subject alternative names; list is never null
@@ -137,12 +123,9 @@ public final class CertificateUtils {
         final List<String> result = new ArrayList<>();
         for (final List<?> generalName : altNames) {
             /**
-             * generalName has the name type as the first element a String or
-             * byte array for the second element.  We return any general names
-             * that are String types.
+             * generalName has the name type as the first element a String or byte array for the second element. We return any general names that are String types.
              *
-             * We don't inspect the numeric name type because some certificates
-             * incorrectly put IPs and DNS names under the wrong name types.
+             * We don't inspect the numeric name type because some certificates incorrectly put IPs and DNS names under the wrong name types.
              */
             final Object value = generalName.get(1);
             if (value instanceof String) {

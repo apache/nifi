@@ -27,6 +27,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
@@ -35,21 +43,16 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.eclipse.jetty.util.StringUtil;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"attributes", "logging"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class LogAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor LOG_LEVEL = new PropertyDescriptor.Builder()
@@ -80,6 +83,14 @@ public class LogAttribute extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor LOG_PREFIX = new PropertyDescriptor.Builder()
+            .name("Log prefix")
+            .required(false)
+            .description("Log prefix appended to the log lines. It helps to distinguish the output of multiple LogAttribute processors.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
     public static final String FIFTY_DASHES = "--------------------------------------------------";
 
     public static enum DebugLevels {
@@ -108,6 +119,7 @@ public class LogAttribute extends AbstractProcessor {
         supDescriptors.add(LOG_PAYLOAD);
         supDescriptors.add(ATTRIBUTES_TO_LOG_CSV);
         supDescriptors.add(ATTRIBUTES_TO_IGNORE_CSV);
+        supDescriptors.add(LOG_PREFIX);
         supportedDescriptors = Collections.unmodifiableList(supDescriptors);
     }
 
@@ -124,12 +136,26 @@ public class LogAttribute extends AbstractProcessor {
     protected String processFlowFile(final ProcessorLog logger, final DebugLevels logLevel, final FlowFile flowFile, final ProcessSession session, final ProcessContext context) {
         final Set<String> attributeKeys = getAttributesToLog(flowFile.getAttributes().keySet(), context);
         final ProcessorLog LOG = getLogger();
+        final String dashedLine;
+
+        String logPrefix = context.getProperty(LOG_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
+
+        if (StringUtil.isBlank(logPrefix)) {
+            dashedLine = StringUtils.repeat('-', 50);
+        } else {
+            // abbreviate long lines
+            logPrefix = StringUtils.abbreviate(logPrefix, 40);
+            // center the logPrefix and pad with dashes
+            logPrefix = StringUtils.center(logPrefix, 40, '-');
+            // five dashes on the left and right side, plus the dashed logPrefix
+            dashedLine = StringUtils.repeat('-', 5) + logPrefix + StringUtils.repeat('-', 5);
+        }
 
         // Pretty print metadata
         final StringBuilder message = new StringBuilder();
         message.append("logging for flow file ").append(flowFile);
         message.append("\n");
-        message.append(FIFTY_DASHES);
+        message.append(dashedLine);
         message.append("\nStandard FlowFile Attributes");
         message.append(String.format("\nKey: '%1$s'\n\tValue: '%2$s'", "entryDate", new Date(flowFile.getEntryDate())));
         message.append(String.format("\nKey: '%1$s'\n\tValue: '%2$s'", "lineageStartDate", new Date(flowFile.getLineageStartDate())));
@@ -139,7 +165,7 @@ public class LogAttribute extends AbstractProcessor {
             message.append(String.format("\nKey: '%1$s'\n\tValue: '%2$s'", key, flowFile.getAttribute(key)));
         }
         message.append("\n");
-        message.append(FIFTY_DASHES);
+        message.append(dashedLine);
 
         // The user can request to log the payload
         final boolean logPayload = context.getProperty(LOG_PAYLOAD).asBoolean();

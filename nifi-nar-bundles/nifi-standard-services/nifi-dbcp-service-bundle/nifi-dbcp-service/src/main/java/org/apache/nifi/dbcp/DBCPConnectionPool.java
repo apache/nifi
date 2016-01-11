@@ -132,7 +132,13 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     }
 
     /**
-     * Create new pool, open some connections ready to be used
+     * Configures connection pool by creating an instance of the
+     * {@link BasicDataSource} based on configuration provided with
+     * {@link ConfigurationContext}.
+     *
+     * This operation makes no guarantees that the actual connection could be
+     * made since the underlying system may still go off-line during normal
+     * operation of the connection pool.
      *
      * @param context
      *            the configuration context
@@ -163,17 +169,6 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         dataSource.setUrl(dburl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
-
-        // verify connection can be established.
-        try {
-            final Connection con = dataSource.getConnection();
-            if (con == null) {
-                throw new InitializationException("Connection to database cannot be established.");
-            }
-            con.close();
-        } catch (final SQLException e) {
-            throw new InitializationException(e);
-        }
     }
 
     /**

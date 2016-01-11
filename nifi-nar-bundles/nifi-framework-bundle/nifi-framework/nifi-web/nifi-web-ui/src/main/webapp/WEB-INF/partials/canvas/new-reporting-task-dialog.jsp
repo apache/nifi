@@ -20,7 +20,6 @@
         <div id="reporting-task-type-filter-controls">
             <div id="controller-service-type-filter-container">
                 <input type="text" id="reporting-task-type-filter"/>
-                <div id="reporting-task-type-filter-options"></div>
             </div>
             <div id="reporting-task-type-filter-status">
                 Displaying&nbsp;<span id="displayed-reporting-task-types"></span>&nbsp;of&nbsp;<span id="total-reporting-task-types"></span>

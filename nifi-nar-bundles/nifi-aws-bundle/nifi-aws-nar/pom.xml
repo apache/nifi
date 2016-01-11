@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-aws-bundle</artifactId>
-        <version>0.3.0-SNAPSHOT</version>
+        <version>0.4.1</version>
     </parent>
 
     <artifactId>nifi-aws-nar</artifactId>
@@ -28,8 +28,13 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-processors</artifactId>
-            <version>0.3.0-SNAPSHOT</version>
+            <version>0.4.1</version>
         </dependency>
     </dependencies>
 

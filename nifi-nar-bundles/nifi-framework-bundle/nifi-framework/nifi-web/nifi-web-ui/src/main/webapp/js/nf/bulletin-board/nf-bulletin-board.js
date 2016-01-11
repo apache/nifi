@@ -417,6 +417,8 @@ nf.BulletinBoard = (function () {
          * Initializes the bulletin board page.
          */
         init: function () {
+            nf.Storage.init();
+            
             initializePage().done(function () {
                 start();
             });

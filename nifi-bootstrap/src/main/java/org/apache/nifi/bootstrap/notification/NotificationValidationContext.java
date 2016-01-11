@@ -23,7 +23,7 @@ import java.util.Map;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
-import org.apache.nifi.bootstrap.NotificationServicePropertyValue;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -48,7 +48,7 @@ public class NotificationValidationContext implements ValidationContext {
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new NotificationServicePropertyValue(rawValue);
+        return new StandardPropertyValue(rawValue, null);
     }
 
     @Override

@@ -18,6 +18,7 @@ package org.apache.nifi.admin.service.action;
 
 import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.admin.dao.DataAccessException;
+import org.apache.nifi.admin.dao.KeyDAO;
 import org.apache.nifi.admin.dao.UserDAO;
 import org.apache.nifi.admin.service.AccountNotFoundException;
 import org.apache.nifi.admin.service.AdministrationException;
@@ -61,14 +62,18 @@ public class DisableUserAction implements AdministrationAction<NiFiUser> {
         // update the user locally
         userDao.updateUser(user);
 
+        // remove the user's keys
+        KeyDAO keyDao = daoFactory.getKeyDAO();
+        keyDao.deleteKeys(user.getIdentity());
+
         try {
             // revoke the user in the authority provider
-            authorityProvider.revokeUser(user.getDn());
+            authorityProvider.revokeUser(user.getIdentity());
         } catch (UnknownIdentityException uie) {
             // user identity is not known
-            logger.info(String.format("User %s has already been removed from the authority provider.", user.getDn()));
+            logger.info(String.format("User %s has already been removed from the authority provider.", user.getIdentity()));
         } catch (AuthorityAccessException aae) {
-            throw new AdministrationException(String.format("Unable to revoke user '%s': %s", user.getDn(), aae.getMessage()), aae);
+            throw new AdministrationException(String.format("Unable to revoke user '%s': %s", user.getIdentity(), aae.getMessage()), aae);
         }
 
         return user;

@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import org.apache.nifi.authentication.LoginIdentityProvider;
 
 import org.apache.nifi.authorization.AuthorityProvider;
 import org.apache.nifi.controller.ControllerService;
@@ -38,9 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Scans through the classpath to load all FlowFileProcessors,
- * FlowFileComparators, and ReportingTasks using the service provider API and
- * running through all classloaders (root, NARs).
+ * Scans through the classpath to load all FlowFileProcessors, FlowFileComparators, and ReportingTasks using the service provider API and running through all classloaders (root, NARs).
  *
  * @ThreadSafe - is immutable
  */
@@ -60,6 +59,7 @@ public class ExtensionManager {
         definitionMap.put(ReportingTask.class, new HashSet<Class>());
         definitionMap.put(ControllerService.class, new HashSet<Class>());
         definitionMap.put(AuthorityProvider.class, new HashSet<Class>());
+        definitionMap.put(LoginIdentityProvider.class, new HashSet<Class>());
         definitionMap.put(ProvenanceEventRepository.class, new HashSet<Class>());
         definitionMap.put(ComponentStatusRepository.class, new HashSet<Class>());
         definitionMap.put(FlowFileRepository.class, new HashSet<Class>());
@@ -68,9 +68,7 @@ public class ExtensionManager {
     }
 
     /**
-     * Loads all FlowFileProcessor, FlowFileComparator, ReportingTask class
-     * types that can be found on the bootstrap classloader and by creating
-     * classloaders for all NARs found within the classpath.
+     * Loads all FlowFileProcessor, FlowFileComparator, ReportingTask class types that can be found on the bootstrap classloader and by creating classloaders for all NARs found within the classpath.
      */
     public static void discoverExtensions() {
         final ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
@@ -113,8 +111,7 @@ public class ExtensionManager {
     }
 
     /**
-     * Registers extension for the specified type from the specified
-     * ClassLoader.
+     * Registers extension for the specified type from the specified ClassLoader.
      *
      * @param type the extension type
      * @param classloaderMap mapping of classname to classloader
@@ -152,9 +149,7 @@ public class ExtensionManager {
     }
 
     /**
-     * Determines the effective classloader for classes of the given type. If
-     * returns null it indicates the given type is not known or was not
-     * detected.
+     * Determines the effective classloader for classes of the given type. If returns null it indicates the given type is not known or was not detected.
      *
      * @param classType to lookup the classloader of
      * @return String of fully qualified class name; null if not a detected type

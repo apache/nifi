@@ -254,6 +254,34 @@ The following binary components are provided under the Apache Software License v
           Apache Software Foundation that were originally developed at iClick, Inc.,
           software copyright (c) 1999.
 
+  (ASLv2) Apache Commons EL
+    The following NOTICE information applies:
+      Apache Commons EL
+      Copyright 1999-2007 The Apache Software Foundation
+
+      EL-8 patch - Copyright 2004-2007 Jamie Taylor
+      http://issues.apache.org/jira/browse/EL-8
+
+   (ASLv2) Jetty
+     The following NOTICE information applies:
+        Jetty Web Container
+        Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+
+  (ASLv2) Apache Tomcat
+    The following NOTICE information applies:
+      Apache Tomcat
+      Copyright 2007 The Apache Software Foundation
+
+        Java Management Extensions (JMX) support is provided by
+        the MX4J package, which is open source software.  The
+        original software and related information is available
+        at http://mx4j.sourceforge.net.
+
+        Java compilation software for JSP pages is provided by Eclipse,
+        which is open source software.  The orginal software and
+        related infomation is available at
+        http://www.eclipse.org.
+
   (ASLv2) Google Guice
     The following NOTICE information applies:
       Google Guice - Core Library
@@ -261,6 +289,10 @@ The following binary components are provided under the Apache Software License v
 
       Google Guice - Extensions - Servlet
       Copyright 2006-2011 Google, Inc.
+
+  (ASLv2) Google GSON
+    The following NOTICE information applies:
+      Copyright 2008 Google Inc.
 
 ************************
 Common Development and Distribution License 1.1

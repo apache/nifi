@@ -80,8 +80,9 @@ public interface UserDAO {
      * Creates a new user based off the specified NiFiUser.
      *
      * @param user to create
+     * @return the created user with it's id
      */
-    void createUser(NiFiUser user) throws DataAccessException;
+    NiFiUser createUser(NiFiUser user) throws DataAccessException;
 
     /**
      * Updates the specified NiFiUser.

@@ -128,6 +128,8 @@ nf.Summary = (function () {
          * Initializes the status page.
          */
         init: function () {
+            nf.Storage.init();
+            
             // intialize the summary table
             initializeSummaryTable().done(function () {
                 // load the table

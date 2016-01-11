@@ -61,41 +61,41 @@ public class UpdateUserAction extends AbstractUserAction<NiFiUser> {
         }
 
         // determine whether this users exists
-        boolean doesDnExist = false;
+        boolean doesIdentityExist = false;
         try {
-            doesDnExist = authorityProvider.doesDnExist(user.getDn());
+            doesIdentityExist = authorityProvider.doesDnExist(user.getIdentity());
         } catch (AuthorityAccessException aae) {
             throw new AdministrationException(String.format("Unable to access authority details: %s", aae.getMessage()), aae);
         }
 
         // if the user already doesn't exist, add them
-        if (!doesDnExist) {
+        if (!doesIdentityExist) {
             try {
                 // add the account account and group if necessary
-                authorityProvider.addUser(user.getDn(), user.getUserGroup());
+                authorityProvider.addUser(user.getIdentity(), user.getUserGroup());
             } catch (final IdentityAlreadyExistsException iaee) {
-                logger.warn(String.format("User '%s' already exists in the authority provider.  Continuing with user update.", user.getDn()));
+                logger.warn(String.format("User '%s' already exists in the authority provider.  Continuing with user update.", user.getIdentity()));
             } catch (AuthorityAccessException aae) {
-                throw new AdministrationException(String.format("Unable to access authorities for '%s': %s", user.getDn(), aae.getMessage()), aae);
+                throw new AdministrationException(String.format("Unable to access authorities for '%s': %s", user.getIdentity(), aae.getMessage()), aae);
             }
         }
 
         try {
             // update the authority provider as approprivate
-            authorityProvider.setAuthorities(user.getDn(), authorities);
+            authorityProvider.setAuthorities(user.getIdentity(), authorities);
         } catch (UnknownIdentityException uie) {
-            throw new AccountNotFoundException(String.format("Unable to modify authorities for '%s': %s.", user.getDn(), uie.getMessage()), uie);
+            throw new AccountNotFoundException(String.format("Unable to modify authorities for '%s': %s.", user.getIdentity(), uie.getMessage()), uie);
         } catch (AuthorityAccessException aae) {
-            throw new AdministrationException(String.format("Unable to access authorities for '%s': %s.", user.getDn(), aae.getMessage()), aae);
+            throw new AdministrationException(String.format("Unable to access authorities for '%s': %s.", user.getIdentity(), aae.getMessage()), aae);
         }
 
         try {
             // get the user group
-            user.setUserGroup(authorityProvider.getGroupForUser(user.getDn()));
+            user.setUserGroup(authorityProvider.getGroupForUser(user.getIdentity()));
         } catch (UnknownIdentityException uie) {
-            throw new AccountNotFoundException(String.format("Unable to determine the group for '%s': %s.", user.getDn(), uie.getMessage()), uie);
+            throw new AccountNotFoundException(String.format("Unable to determine the group for '%s': %s.", user.getIdentity(), uie.getMessage()), uie);
         } catch (AuthorityAccessException aae) {
-            throw new AdministrationException(String.format("Unable to access the group for '%s': %s.", user.getDn(), aae.getMessage()), aae);
+            throw new AdministrationException(String.format("Unable to access the group for '%s': %s.", user.getIdentity(), aae.getMessage()), aae);
         }
 
         // since all the authorities were updated accordingly, set the authorities

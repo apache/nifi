@@ -36,6 +36,8 @@ import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -62,6 +64,7 @@ import com.google.common.collect.Lists;
 
 @Tags({ "avro", "convert", "kite" })
 @CapabilityDescription("Convert records from one Avro schema to another, including support for flattening and simple type conversions")
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @DynamicProperty(name = "Field name from input schema",
 value = "Field name for output schema",
 description = "Explicit mappings from input schema to output schema, which supports renaming fields and stepping into nested records on the input schema using notation like parent.id")

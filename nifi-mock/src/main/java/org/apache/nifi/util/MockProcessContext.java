@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -48,7 +50,10 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private boolean yieldCalled = false;
     private boolean enableExpressionValidation = false;
     private boolean allowExpressionValidation = true;
+    private volatile boolean incomingConnection = true;
+    private volatile boolean nonLoopConnection = true;
 
+    private volatile Set<Relationship> connections = new HashSet<>();
     private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
 
     /**
@@ -287,5 +292,54 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
 
     public Set<Relationship> getUnavailableRelationships() {
         return unavailableRelationships;
+    }
+
+    @Override
+    public boolean hasIncomingConnection() {
+        return incomingConnection;
+    }
+
+    public void setIncomingConnection(final boolean hasIncomingConnection) {
+        this.incomingConnection = hasIncomingConnection;
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        return this.connections.contains(relationship);
+    }
+
+    public void setNonLoopConnection(final boolean hasNonLoopConnection) {
+        this.nonLoopConnection = hasNonLoopConnection;
+    }
+
+    @Override
+    public boolean hasNonLoopConnection() {
+        return nonLoopConnection;
+    }
+
+    public void addConnection(final Relationship relationship) {
+        this.connections.add(relationship);
+    }
+
+    public void removeConnection(final Relationship relationship) {
+        this.connections.remove(relationship);
+    }
+
+    public void setConnections(final Set<Relationship> connections) {
+        if (connections == null) {
+            this.connections = Collections.emptySet();
+        } else {
+            this.connections = Collections.unmodifiableSet(connections);
+        }
+    }
+
+    @Override
+    public boolean isExpressionLanguagePresent(final PropertyDescriptor property) {
+        if (property == null || !property.isExpressionLanguageSupported()) {
+            return false;
+        }
+
+        final List<Range> elRanges = Query.extractExpressionRanges(getProperty(property).getValue());
+        return (elRanges != null && !elRanges.isEmpty());
     }
 }

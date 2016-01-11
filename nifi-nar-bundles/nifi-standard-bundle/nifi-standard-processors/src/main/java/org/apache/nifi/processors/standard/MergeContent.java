@@ -48,15 +48,17 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -86,6 +88,7 @@ import org.apache.nifi.util.ObjectHolder;
 
 @SideEffectFree
 @TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"merge", "content", "correlation", "tar", "zip", "stream", "concatenation", "archive", "flowfile-stream", "flowfile-stream-v3"})
 @CapabilityDescription("Merges a Group of FlowFiles together based on a user-defined strategy and packages them into a single FlowFile. "
         + "It is recommended that the Processor be configured with only a single incoming connection, as Group of FlowFiles will not be "
@@ -564,7 +567,7 @@ public class MergeContent extends BinFiles {
                     final Iterator<FlowFileSessionWrapper> itr = wrappers.iterator();
                     while (itr.hasNext()) {
                         final FlowFileSessionWrapper wrapper = itr.next();
-                        wrapper.getSession().read(wrapper.getFlowFile(), new InputStreamCallback() {
+                        wrapper.getSession().read(wrapper.getFlowFile(), false, new InputStreamCallback() {
                             @Override
                             public void process(final InputStream in) throws IOException {
                                 StreamUtils.copy(in, out);
@@ -777,7 +780,7 @@ public class MergeContent extends BinFiles {
 
                         for (final FlowFileSessionWrapper wrapper : wrappers) {
                             final FlowFile flowFile = wrapper.getFlowFile();
-                            wrapper.getSession().read(flowFile, new InputStreamCallback() {
+                            wrapper.getSession().read(flowFile, false, new InputStreamCallback() {
                                 @Override
                                 public void process(final InputStream rawIn) throws IOException {
                                     try (final InputStream in = new BufferedInputStream(rawIn)) {
@@ -890,7 +893,7 @@ public class MergeContent extends BinFiles {
                     try (final OutputStream out = new BufferedOutputStream(rawOut)) {
                         for (final FlowFileSessionWrapper wrapper : wrappers) {
                             final FlowFile flowFile = wrapper.getFlowFile();
-                            wrapper.getSession().read(flowFile, new InputStreamCallback() {
+                            wrapper.getSession().read(flowFile, false, new InputStreamCallback() {
                                 @Override
                                 public void process(InputStream in) throws IOException {
                                     boolean canMerge = true;

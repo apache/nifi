@@ -35,11 +35,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
@@ -63,6 +65,7 @@ import org.apache.nifi.util.search.ahocorasick.SearchState;
 @EventDriven
 @SideEffectFree
 @SupportsBatching
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"aho-corasick", "scan", "content", "byte sequence", "search", "find", "dictionary"})
 @CapabilityDescription("Scans the content of FlowFiles for terms that are found in a user-supplied dictionary. If a term is matched, the UTF-8 "
         + "encoded version of the term will be added to the FlowFile using the 'matching.term' attribute")

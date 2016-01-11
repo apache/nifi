@@ -43,6 +43,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -524,6 +525,36 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     ConfigurationSnapshot<Void> deleteConnection(Revision revision, String groupId, String connectionId);
+
+    /**
+     * Creates a new flow file drop request.
+     *
+     * @param groupId group
+     * @param connectionId The ID of the connection
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO createFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
+
+    /**
+     * Gets the specified flow file drop request.
+     *
+     * @param groupId group
+     * @param connectionId The ID of the connection
+     * @param dropRequestId The flow file drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO getFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
+
+    /**
+     * Cancels/removes the specified flow file drop request.
+     *
+     * @param groupId group
+     * @param connectionId The ID of the connection
+     * @param dropRequestId The flow file drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId);
 
     // ----------------------------------------
     // InputPort methods
@@ -1234,6 +1265,13 @@ public interface NiFiServiceFacade {
      * @return user
      */
     Collection<UserDTO> getUsers(Boolean grouped);
+
+    /**
+     * Creates a new account request.
+     *
+     * @return user
+     */
+    UserDTO createUser();
 
     /**
      * Updates the specified user accordingly.

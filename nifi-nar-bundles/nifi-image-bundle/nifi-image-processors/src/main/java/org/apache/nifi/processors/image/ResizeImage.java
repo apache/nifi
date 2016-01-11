@@ -17,7 +17,27 @@
 
 package org.apache.nifi.processors.image;
 
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
+
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -33,25 +53,9 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
-import java.awt.Image;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
-
 @EventDriven
 @SupportsBatching
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({ "resize", "image", "jpg", "jpeg", "png", "bmp", "wbmp", "gif" })
 @CapabilityDescription("Resizes an image to user-specified dimensions. This Processor uses the image codecs registered with the "
     + "environment that NiFi is running in. By default, this includes JPEG, PNG, BMP, WBMP, and GIF images.")

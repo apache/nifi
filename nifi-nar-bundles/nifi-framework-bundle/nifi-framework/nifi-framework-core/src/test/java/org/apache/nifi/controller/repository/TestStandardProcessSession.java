@@ -37,20 +37,23 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.controller.FlowFileQueue;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.StandardFlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -58,6 +61,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
@@ -85,6 +89,7 @@ public class TestStandardProcessSession {
     private StandardProcessSession session;
     private MockContentRepository contentRepo;
     private FlowFileQueue flowFileQueue;
+    private ProcessContext context;
 
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
@@ -133,7 +138,8 @@ public class TestStandardProcessSession {
         final Connection connection = Mockito.mock(Connection.class);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
-        flowFileQueue = new StandardFlowFileQueue("1", connection, processScheduler, 10000);
+        final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
+        flowFileQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null, processScheduler, swapManager, null, 10000);
         when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
 
         Mockito.doAnswer(new Answer<Object>() {
@@ -187,7 +193,7 @@ public class TestStandardProcessSession {
         contentRepo.initialize(new StandardResourceClaimManager());
         flowFileRepo = new MockFlowFileRepository();
 
-        final ProcessContext context = new ProcessContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+        context = new ProcessContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
         session = new StandardProcessSession(context);
     }
 
@@ -329,7 +335,7 @@ public class TestStandardProcessSession {
         final FlowFile flowFile = session.get();
         assertNotNull(flowFile);
         final ObjectHolder<InputStream> inputStreamHolder = new ObjectHolder<>(null);
-        session.read(flowFile, new InputStreamCallback() {
+        session.read(flowFile, true , new InputStreamCallback() {
             @Override
             public void process(final InputStream inputStream) throws IOException {
                 inputStreamHolder.set(inputStream);
@@ -445,7 +451,7 @@ public class TestStandardProcessSession {
         session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
 
-        assertEquals(1, provenanceRepo.getEvents(0L, 100000).size());  // 1 event for both parents and children
+        assertEquals(1, provenanceRepo.getEvents(0L, 100000).size()); // 1 event for both parents and children
     }
 
     @Test
@@ -465,6 +471,42 @@ public class TestStandardProcessSession {
         session.commit();
 
         assertEquals(1, provenanceRepo.getEvents(0L, 100000).size());
+    }
+
+    @Test
+    public void testUuidAttributeCannotBeUpdated() {
+        String originalUuid = "11111111-1111-1111-1111-111111111111";
+        final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()
+            .id(1L)
+            .addAttribute("uuid", originalUuid)
+            .entryDate(System.currentTimeMillis())
+            .build();
+
+        flowFileQueue.put(flowFileRecord1);
+
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+
+        final String uuid = CoreAttributes.UUID.key();
+        final String newUuid = "22222222-2222-2222-2222-222222222222";
+        flowFile = session.putAttribute(flowFile, uuid, newUuid);
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
+        final Map<String, String> uuidMap = new HashMap<>(1);
+        uuidMap.put(uuid, newUuid);
+
+        flowFile = session.putAllAttributes(flowFile, uuidMap);
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
+        flowFile = session.removeAllAttributes(flowFile, Pattern.compile("uuid"));
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
+        flowFile = session.removeAllAttributes(flowFile, Collections.singleton(uuid));
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
+        flowFile = session.removeAttribute(flowFile, uuid);
+        assertEquals(originalUuid, flowFile.getAttribute(uuid));
+
     }
 
     @Test
@@ -721,6 +763,40 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testManyFilesOpened() throws IOException {
+
+        StandardProcessSession[] standardProcessSessions = new StandardProcessSession[100000];
+        for(int i = 0; i<70000;i++){
+            standardProcessSessions[i] = new StandardProcessSession(context);
+
+            FlowFile flowFile = standardProcessSessions[i].create();
+            final byte[] buff = new byte["Hello".getBytes().length];
+
+            flowFile = standardProcessSessions[i].append(flowFile, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    out.write("Hello".getBytes());
+                }
+            });
+
+            try {
+                standardProcessSessions[i].read(flowFile, false, new InputStreamCallback() {
+                    @Override
+                    public void process(final InputStream in) throws IOException {
+                        StreamUtils.fillBuffer(in, buff);
+                    }
+                });
+            } catch (Exception e){
+                System.out.println("Failed at file:"+i);
+                throw e;
+            }
+            if(i%1000==0){
+                System.out.println("i:"+i);
+            }
+        }
+    }
+
+    @Test
     public void testMissingFlowFileExceptionThrownWhenUnableToReadDataStreamCallback() {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
@@ -809,7 +885,7 @@ public class TestStandardProcessSession {
             .entryDate(System.currentTimeMillis())
             .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
 
-            .contentClaimOffset(1000L).size(1L).build();
+        .contentClaimOffset(1000L).size(1L).build();
         flowFileQueue.put(flowFileRecord2);
 
         // attempt to read the data.
@@ -1027,6 +1103,20 @@ public class TestStandardProcessSession {
 
         final ProvenanceEventRecord event = events.get(0);
         assertEquals(ProvenanceEventType.CONTENT_MODIFIED, event.getEventType());
+    }
+
+    @Test
+    public void testGetWithCount() {
+        for (int i = 0; i < 8; i++) {
+            final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                .id(i)
+                .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
+                .build();
+            this.flowFileQueue.put(flowFile);
+        }
+
+        final List<FlowFile> flowFiles = session.get(7);
+        assertEquals(7, flowFiles.size());
     }
 
     @Test

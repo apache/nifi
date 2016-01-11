@@ -34,6 +34,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -52,9 +54,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
 @SupportsBatching
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"put", "local", "copy", "archive", "files", "filesystem"})
 @CapabilityDescription("Writes the contents of a FlowFile to the local file system")
-@SeeAlso(GetFile.class)
+@SeeAlso({FetchFile.class, GetFile.class})
 public class PutFile extends AbstractProcessor {
 
     public static final String REPLACE_RESOLUTION = "replace";

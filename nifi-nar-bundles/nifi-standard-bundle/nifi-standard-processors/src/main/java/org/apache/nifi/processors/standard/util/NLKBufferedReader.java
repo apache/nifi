@@ -95,7 +95,7 @@ public class NLKBufferedReader extends BufferedReader {
                 for (i = nextChar; i < nChars; i++) {
                     c = cb[i];
                     if ((c == '\n') || (c == '\r')) {
-                        if (cb[i + 1] == '\n') { // windows case '\r\n' here verify the next character i+1
+                        if ((c == '\r') && (cb.length > i + 1) && cb[i + 1] == '\n') { // windows case '\r\n' here verify the next character i+1
                             i++;
                         }
                         eol = true;

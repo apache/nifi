@@ -31,7 +31,12 @@ public interface FlowFile extends Comparable<FlowFile> {
 
     /**
      * @return the unique identifier for this flow file
+     * @deprecated This method has been deprecated in favor of using the attribute
+     *             {@link org.apache.nifi.flowfile.attributes.CoreAttributes.UUID CoreAttributes.UUID}.
+     *             If an identifier is needed use {@link #getAttribute(String)} to retrieve the value for this attribute.
+     *             For example, by calling getAttribute(CoreAttributes.UUID.getKey()).
      */
+    @Deprecated
     long getId();
 
     /**
@@ -64,7 +69,14 @@ public interface FlowFile extends Comparable<FlowFile> {
      * @return a set of identifiers that are unique to this FlowFile's lineage.
      * If FlowFile X is derived from FlowFile Y, both FlowFiles will have the
      * same value for the Lineage Claim ID.
+     *
+     * @deprecated this collection was erroneously unbounded and caused a lot of OutOfMemoryError problems
+     *             when dealing with FlowFiles with many ancestors. This Collection is
+     *             now capped at 100 lineage identifiers. This method was introduced with the idea of providing
+     *             future performance improvements but due to the high cost of heap consumption will not be used
+     *             in such a manner. As a result, this method will be removed in a future release.
      */
+    @Deprecated
     Set<String> getLineageIdentifiers();
 
     /**

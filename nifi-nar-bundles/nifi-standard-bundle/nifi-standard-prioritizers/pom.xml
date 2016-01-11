@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>0.3.0-SNAPSHOT</version>
+        <version>0.4.1</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-standard-prioritizers</artifactId>
@@ -26,6 +26,10 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

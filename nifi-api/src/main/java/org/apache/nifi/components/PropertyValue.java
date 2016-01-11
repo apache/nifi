@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.components;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.ControllerService;
@@ -120,7 +121,7 @@ public interface PropertyValue {
 
     /**
      * <p>
-     * Replaces values in the Property Value using the Attribute Expression
+     * Replaces values in the Property Value using the NiFi Expression
      * Language; a PropertyValue with the new value is then returned, supporting
      * call chaining.
      * </p>
@@ -128,14 +129,49 @@ public interface PropertyValue {
      * @return a PropertyValue with the new value is returned, supporting call
      * chaining
      *
-     * @throws ProcessException if the Query cannot be compiled or evaluating
-     * the query against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or evaluating
+     * the Expression against the given attributes causes an Exception to be thrown
      */
     public PropertyValue evaluateAttributeExpressions() throws ProcessException;
 
     /**
      * <p>
-     * Replaces values in the Property Value using the Attribute Expression
+     * Replaces values in the Property Value using the NiFi Expression Language;
+     * a PropertyValue with the new value is then returned, supporting call chaining.
+     * </p>
+     *
+     * @param attributes a Map of attributes that the Expression can reference, in addition
+     * to JVM System Properties and Environmental Properties.
+     *
+     * @return a PropertyValue with the new value
+     *
+     * @throws ProcessException if the Expression cannot be compiled or evaluating the Expression against
+     * the given attributes causes an Exception to be thrown
+     */
+    public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes) throws ProcessException;
+
+    /**
+     * <p>
+     * Replaces values in the Property Value using the NiFi Expression Language.
+     * The supplied decorator is then given a chance to decorate the
+     * value, and a PropertyValue with the new value is then returned,
+     * supporting call chaining.
+     * </p>
+     *
+     * @param attributes a Map of attributes that the Expression can reference, in addition
+     * to JVM System Properties and Environmental Properties.
+     * @param decorator the decorator to use in order to update the values returned by the Expression Language
+     *
+     * @return a PropertyValue with the new value
+     *
+     * @throws ProcessException if the Expression cannot be compiled or evaluating the Expression against
+     * the given attributes causes an Exception to be thrown
+     */
+    public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException;
+
+    /**
+     * <p>
+     * Replaces values in the Property Value using the NiFi Expression
      * Language; a PropertyValue with the new value is then returned, supporting
      * call chaining.
      * </p>
@@ -144,14 +180,53 @@ public interface PropertyValue {
      * @return a PropertyValue with the new value is returned, supporting call
      * chaining
      *
-     * @throws ProcessException if the Query cannot be compiled or evaluating
-     * the query against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or evaluating
+     * the Expression against the given attributes causes an Exception to be thrown
      */
     public PropertyValue evaluateAttributeExpressions(FlowFile flowFile) throws ProcessException;
 
     /**
      * <p>
-     * Replaces values in the Property Value using the Attribute Expression
+     * Replaces values in the Property Value using the NiFi Expression
+     * Language; a PropertyValue with the new value is then returned, supporting
+     * call chaining.
+     * </p>
+     *
+     * @param flowFile to evaluate attributes of
+     * @param additionalAttributes a Map of additional attributes that the Expression can reference. If entries in
+     * this Map conflict with entries in the FlowFile's attributes, the entries in this Map are given a higher priority.
+     *
+     * @return a PropertyValue with the new value is returned, supporting call
+     * chaining
+     *
+     * @throws ProcessException if the Expression cannot be compiled or evaluating
+     * the Expression against the given attributes causes an Exception to be thrown
+     */
+    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes) throws ProcessException;
+
+    /**
+     * <p>
+     * Replaces values in the Property Value using the NiFi Expression
+     * Language; a PropertyValue with the new value is then returned, supporting
+     * call chaining.
+     * </p>
+     *
+     * @param flowFile to evaluate attributes of
+     * @param additionalAttributes a Map of additional attributes that the Expression can reference. If entries in
+     * this Map conflict with entries in the FlowFile's attributes, the entries in this Map are given a higher priority.
+     * @param decorator the decorator to use in order to update the values returned by the Expression Language
+     *
+     * @return a PropertyValue with the new value is returned, supporting call
+     * chaining
+     *
+     * @throws ProcessException if the Expression cannot be compiled or evaluating
+     * the Expression against the given attributes causes an Exception to be thrown
+     */
+    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException;
+
+    /**
+     * <p>
+     * Replaces values in the Property Value using the NiFi Expression
      * Language. The supplied decorator is then given a chance to decorate the
      * value, and a PropertyValue with the new value is then returned,
      * supporting call chaining.
@@ -162,14 +237,14 @@ public interface PropertyValue {
      * @return a PropertyValue with the new value is then returned, supporting
      * call chaining
      *
-     * @throws ProcessException if the Query cannot be compiled or evaluating
-     * the query against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or evaluating
+     * the Expression against the given attributes causes an Exception to be thrown
      */
     public PropertyValue evaluateAttributeExpressions(AttributeValueDecorator decorator) throws ProcessException;
 
     /**
      * <p>
-     * Replaces values in the Property Value using the Attribute Expression
+     * Replaces values in the Property Value using the NiFi Expression
      * Language. The supplied decorator is then given a chance to decorate the
      * value, and a PropertyValue with the new value is then returned,
      * supporting call chaining.
@@ -182,8 +257,8 @@ public interface PropertyValue {
      * @return a PropertyValue with the new value is then returned, supporting
      * call chaining
      *
-     * @throws ProcessException if the Query cannot be compiled or evaluating
-     * the query against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or evaluating
+     * the Expression against the given attributes causes an Exception to be thrown
      */
     public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, AttributeValueDecorator decorator) throws ProcessException;
 }

@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.WriteAheadFlowFileRepository;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -33,7 +34,6 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.controller.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.util.file.FileUtils;
 

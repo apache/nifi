@@ -24,6 +24,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -298,27 +299,18 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         if (closed) {
             throw new IllegalStateException("Client is closed");
         }
-
+        boolean tryToRequeue = true;
         final CommsSession session = leaseCommsSession();
         try {
             return action.execute(session);
         } catch (final IOException ioe) {
-            try {
-                session.close();
-            } catch (final IOException ignored) {
-            }
-
+            tryToRequeue = false;
             throw ioe;
         } finally {
-            if (!session.isClosed()) {
-                if (this.closed) {
-                    try {
-                        session.close();
-                    } catch (final IOException ioe) {
-                    }
-                } else {
-                    queue.offer(session);
-                }
+            if (tryToRequeue == true && this.closed == false) {
+                queue.offer(session);
+            } else {
+                IOUtils.closeQuietly(session);
             }
         }
     }

@@ -22,7 +22,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.hadoop.io.SequenceFile.CompressionType;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -56,6 +58,7 @@ import org.apache.nifi.processors.hadoop.util.SequenceFileWriter;
  *
  */
 @SideEffectFree
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "sequence file", "create", "sequencefile"})
 @CapabilityDescription("Creates Hadoop Sequence Files from incoming flow files")
 @SeeAlso(PutHDFS.class)
@@ -152,7 +155,8 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
                 sequenceFileWriter = new SequenceFileWriterImpl();
         }
         String value = context.getProperty(COMPRESSION_TYPE).getValue();
-        CompressionType compressionType = value == null ? CompressionType.valueOf(DEFAULT_COMPRESSION_TYPE) : CompressionType.valueOf(value);
+        SequenceFile.CompressionType compressionType = value == null
+            ? SequenceFile.CompressionType.valueOf(DEFAULT_COMPRESSION_TYPE) : SequenceFile.CompressionType.valueOf(value);
         final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key()) + ".sf";
         flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), fileName);
         try {

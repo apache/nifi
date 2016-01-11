@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.authorization.DownloadAuthorization;
+import org.apache.nifi.key.Key;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.user.NiFiUserGroup;
 
@@ -47,14 +48,12 @@ public interface UserService {
     /**
      * @param dnChain user dn chain
      * @param attributes attributes for authorization request
-     * @return Determines if the users in the dnChain are authorized to download
-     * content with the specified attributes
+     * @return Determines if the users in the dnChain are authorized to download content with the specified attributes
      */
     DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes);
 
     /**
-     * Updates a user group using the specified group comprised of the specified
-     * users. Returns all the users that are currently in the specified group.
+     * Updates a user group using the specified group comprised of the specified users. Returns all the users that are currently in the specified group.
      *
      * @param group group
      * @param userIds users
@@ -154,4 +153,28 @@ public interface UserService {
      * @throws AdministrationException ae
      */
     NiFiUser getUserByDn(String dn);
+
+    /**
+     * Gets a key for the specified user identity. Returns null if the user has not had a key issued
+     *
+     * @param id The key id
+     * @return The key or null
+     */
+    Key getKey(int id);
+
+    /**
+     * Gets a key for the specified user identity. If a key does not exist, one will be created.
+     *
+     * @param identity The user identity
+     * @return The key
+     * @throws AdministrationException if it failed to get/create the key
+     */
+    Key getOrCreateKey(String identity);
+
+    /**
+     * Deletes keys for the specified identity.
+     *
+     * @param identity The user identity
+     */
+    void deleteKey(String identity);
 }

@@ -20,7 +20,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -93,23 +92,25 @@ public class TestTransformXml {
         StringBuilder builder = new StringBuilder();
         builder.append("<data>\n");
 
-        InputStream in = new FileInputStream(new File("src/test/resources/TestTransformXml/tokens.csv"));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+        try(BufferedReader reader = new BufferedReader(new InputStreamReader(
+                new FileInputStream(new File("src/test/resources/TestTransformXml/tokens.csv"))))){
 
-        String line = null;
-        while ((line = reader.readLine()) != null) {
-            builder.append(line).append("\n");
+
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                builder.append(line).append("\n");
+            }
+            builder.append("</data>");
+            String data = builder.toString();
+            runner.enqueue(data.getBytes(), attributes);
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+            final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+            final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.ISO_8859_1);
+
+            transformed.assertContentEquals(Paths.get("src/test/resources/TestTransformXml/tokens.xml"));
         }
-        builder.append("</data>");
-        String data = builder.toString();
-        runner.enqueue(data.getBytes(), attributes);
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
-        final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.ISO_8859_1);
-
-        transformed.assertContentEquals(Paths.get("src/test/resources/TestTransformXml/tokens.xml"));
     }
 
 }

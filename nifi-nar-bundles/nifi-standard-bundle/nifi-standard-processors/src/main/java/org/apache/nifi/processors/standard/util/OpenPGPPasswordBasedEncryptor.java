@@ -65,7 +65,7 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
         return new OpenPGPDecryptCallback(provider, password);
     }
 
-    private class OpenPGPDecryptCallback implements StreamCallback {
+    private static class OpenPGPDecryptCallback implements StreamCallback {
 
         private String provider;
         private char[] password;
@@ -120,7 +120,7 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
 
     }
 
-    private class OpenPGPEncryptCallback implements StreamCallback {
+    private static class OpenPGPEncryptCallback implements StreamCallback {
 
         private String algorithm;
         private String provider;

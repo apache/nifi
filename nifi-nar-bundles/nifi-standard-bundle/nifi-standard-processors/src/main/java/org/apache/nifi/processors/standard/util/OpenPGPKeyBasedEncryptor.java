@@ -134,7 +134,7 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
         return null;
     }
 
-    private class OpenPGPDecryptCallback implements StreamCallback {
+    private static class OpenPGPDecryptCallback implements StreamCallback {
 
         private String provider;
         private String secretKeyring;
@@ -216,7 +216,7 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
 
     }
 
-    private class OpenPGPEncryptCallback implements StreamCallback {
+    private static class OpenPGPEncryptCallback implements StreamCallback {
 
         private String algorithm;
         private String provider;

@@ -23,15 +23,6 @@ $(document).ready(function () {
 
     // configure the ok dialog
     $('#nf-ok-dialog').modal({
-        buttons: [{
-                buttonText: 'Ok',
-                handler: {
-                    click: function () {
-                        // close the dialog
-                        $('#nf-ok-dialog').modal('hide');
-                    }
-                }
-            }],
         handler: {
             close: function () {
                 // clear the content
@@ -47,8 +38,9 @@ $(document).ready(function () {
     $('#nf-yes-no-dialog').modal({
         handler: {
             close: function () {
-                // clear the content
+                // clear the content and reset the button model
                 $('#nf-yes-no-dialog-content').empty();
+                $('#nf-yes-no-dialog').modal('setButtonModel', []);
             }
         }
     }).draggable({
@@ -77,6 +69,20 @@ nf.Dialog = (function () {
             var content = $('<p></p>').append(options.dialogContent);
             $('#nf-ok-dialog-content').append(content);
 
+            // update the button model
+            $('#nf-ok-dialog').modal('setButtonModel', [{
+                buttonText: 'Ok',
+                handler: {
+                    click: function () {
+                        // close the dialog
+                        $('#nf-ok-dialog').modal('hide');
+                        if (typeof options.okHandler === 'function') {
+                            options.okHandler.call(this);
+                        }
+                    }
+                }
+            }]);
+
             // show the dialog
             $('#nf-ok-dialog').modal('setHeaderText', options.headerText).modal('setOverlayBackground', options.overlayBackground).modal('show');
         },
@@ -91,7 +97,9 @@ nf.Dialog = (function () {
             options = $.extend({
                 headerText: '',
                 dialogContent: '',
-                overlayBackgrond: true
+                overlayBackgrond: true,
+                yesText: 'Yes',
+                noText: 'No'
             }, options);
 
             // add the content to the prompt
@@ -100,7 +108,7 @@ nf.Dialog = (function () {
 
             // update the button model
             $('#nf-yes-no-dialog').modal('setButtonModel', [{
-                    buttonText: 'Yes',
+                    buttonText: options.yesText,
                     handler: {
                         click: function () {
                             // close the dialog
@@ -111,7 +119,7 @@ nf.Dialog = (function () {
                         }
                     }
                 }, {
-                    buttonText: 'No',
+                    buttonText: options.noText,
                     handler: {
                         click: function () {
                             // close the dialog

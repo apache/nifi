@@ -271,8 +271,10 @@ nf.ProcessorConfiguration = (function () {
         processorConfigDto['comments'] = $('#processor-comments').val();
 
         // run duration
-        var runDurationIndex = $('#run-duration-slider').slider('value');
-        processorConfigDto['runDurationMillis'] = RUN_DURATION_VALUES[runDurationIndex];
+        if ($('#run-duration-setting-container').is(':visible')) {
+            var runDurationIndex = $('#run-duration-slider').slider('value');
+            processorConfigDto['runDurationMillis'] = RUN_DURATION_VALUES[runDurationIndex];
+        }
 
         // relationships
         processorConfigDto['autoTerminatedRelationships'] = marshalRelationships();
@@ -528,7 +530,15 @@ nf.ProcessorConfiguration = (function () {
             // initialize the run duration slider
             $('#run-duration-slider').slider({
                 min: 0,
-                max: RUN_DURATION_VALUES.length - 1
+                max: RUN_DURATION_VALUES.length - 1,
+                change: function (event, ui) {
+                    var processor = $('#processor-configuration').data('processorDetails');
+                    if (ui.value > 0 && (processor.inputRequirement === 'INPUT_FORBIDDEN' || processor.inputRequirement === 'INPUT_ALLOWED')) {
+                        $('#run-duration-data-loss').show();
+                    } else {
+                        $('#run-duration-data-loss').hide();
+                    }
+                }
             });
 
             // initialize the property table
@@ -598,9 +608,16 @@ nf.ProcessorConfiguration = (function () {
                     $('#yield-duration').val(processor.config['yieldDuration']);
                     $('#processor-comments').val(processor.config['comments']);
 
-                    // set the run duration
-                    var runDuration = RUN_DURATION_VALUES.indexOf(processor.config['runDurationMillis']);
-                    $('#run-duration-slider').slider('value', runDuration);
+                    // set the run duration if applicable
+                    if (processor.supportsBatching === true) {
+                        $('#run-duration-setting-container').show();
+
+                        // set the run duration slider value
+                        var runDuration = RUN_DURATION_VALUES.indexOf(processor.config['runDurationMillis']);
+                        $('#run-duration-slider').slider('value', runDuration);
+                    } else {
+                        $('#run-duration-setting-container').hide();
+                    }
 
                     // select the appropriate bulletin level
                     $('#bulletin-level-combo').combo('setSelectedOption', {

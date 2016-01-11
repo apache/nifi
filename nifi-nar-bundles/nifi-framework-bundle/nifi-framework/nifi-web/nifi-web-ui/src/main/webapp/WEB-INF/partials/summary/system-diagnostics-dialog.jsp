@@ -29,7 +29,7 @@
             <div class="settings-left">
                 <div class="setting">
                     <input type="hidden" id=""/>
-                    <div class="setting-name">Heap (<span id="utilization-heap"></span>)</div>
+                    <div class="setting-name">Heap <span id="utilization-heap"></span></div>
                     <div class="setting-field">
                         <table id="heap-table">
                             <tbody>
@@ -57,7 +57,7 @@
             </div>
             <div class="settings-right">
                 <div class="setting">
-                    <div class="setting-name">Non heap (<span id="utilization-non-heap"></span>)</div>
+                    <div class="setting-name">Non heap <span id="utilization-non-heap"></span></div>
                     <div class="setting-field">
                         <table id="heap-table">
                             <tbody>

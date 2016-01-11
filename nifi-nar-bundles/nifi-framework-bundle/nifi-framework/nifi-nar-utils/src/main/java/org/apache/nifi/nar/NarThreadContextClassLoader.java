@@ -23,6 +23,7 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import org.apache.nifi.authentication.LoginIdentityProvider;
 
 import org.apache.nifi.authorization.AuthorityProvider;
 import org.apache.nifi.components.Validator;
@@ -58,6 +59,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(StreamCallback.class);
         narSpecificClasses.add(ControllerService.class);
         narSpecificClasses.add(AuthorityProvider.class);
+        narSpecificClasses.add(LoginIdentityProvider.class);
         narSpecificClasses.add(ProvenanceEventRepository.class);
         narSpecificClasses.add(ComponentStatusRepository.class);
         narSpecificClasses.add(FlowFileRepository.class);

@@ -150,8 +150,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                 }
 
                 final String serviceId = controllerService.getIdentifier();
-                if (!context.getControllerServiceLookup().isControllerServiceEnabled(serviceId)
-                        && !context.getControllerServiceLookup().isControllerServiceEnabling(serviceId)) {
+                if (!isDependentServiceEnableable(context, serviceId)) {
                     return new ValidationResult.Builder()
                             .input(context.getControllerServiceLookup().getControllerServiceName(serviceId))
                             .subject(getName())
@@ -195,6 +194,28 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             }
         }
         return lastResult;
+    }
+
+    /**
+     * Will validate if the dependent service (service identified with the
+     * 'serviceId') is 'enableable' which means that the dependent service is
+     * either in ENABLING or ENABLED state. The important issue here is to
+     * understand the order in which states are assigned:
+     *
+     * - Upon the initialization of the service its state is set to ENABLING.
+     *
+     * - Transition to ENABLED will happen asynchronously.
+     *
+     * So we check first for ENABLING state and if it succeeds we skip the check
+     * for ENABLED state even though by the time this method returns the
+     * dependent service's state could be fully ENABLED.
+     */
+    private boolean isDependentServiceEnableable(ValidationContext context, String serviceId) {
+        boolean enableable = context.getControllerServiceLookup().isControllerServiceEnabling(serviceId);
+        if (!enableable) {
+            enableable = context.getControllerServiceLookup().isControllerServiceEnabled(serviceId);
+        }
+        return enableable;
     }
 
     public static final class Builder {

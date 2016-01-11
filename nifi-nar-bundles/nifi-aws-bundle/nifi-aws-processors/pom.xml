@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-aws-bundle</artifactId>
-        <version>0.3.0-SNAPSHOT</version>
+        <version>0.4.1</version>
     </parent>
     <artifactId>nifi-aws-processors</artifactId>
     <packaging>jar</packaging>
@@ -49,6 +49,10 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
         </dependency>
     </dependencies>
     <build>

@@ -209,6 +209,16 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+                final ResultType resultType = context.newExpressionLanguageCompiler().getResultType(value);
+                if (!resultType.equals(ResultType.STRING)) {
+                    return new ValidationResult.Builder()
+                            .subject(subject)
+                            .input(value)
+                            .valid(false)
+                            .explanation("Expected Attribute Query to return type " + ResultType.STRING + " but query returns type " + resultType)
+                            .build();
+                }
+
                 return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
             }
 
@@ -599,6 +609,34 @@ public class StandardValidators {
             final boolean valid = file.exists();
             final String explanation = valid ? null : "File " + file + " does not exist";
             return new ValidationResult.Builder().subject(subject).input(value).valid(valid).explanation(explanation).build();
+        }
+    }
+
+    public static class StringLengthValidator implements Validator {
+        private final int minimum;
+        private final int maximum;
+
+        public StringLengthValidator(int minimum, int maximum) {
+            this.minimum = minimum;
+            this.maximum = maximum;
+        }
+
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if (value.length() < minimum || value.length() > maximum) {
+                return new ValidationResult.Builder()
+                  .subject(subject)
+                  .valid(false)
+                  .input(value)
+                  .explanation(String.format("String length invalid [min: %d, max: %d]", minimum, maximum))
+                  .build();
+            } else {
+                return new ValidationResult.Builder()
+                  .valid(true)
+                  .input(value)
+                  .subject(subject)
+                  .build();
+            }
         }
     }
 

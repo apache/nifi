@@ -31,6 +31,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -59,6 +61,7 @@ import com.maxmind.geoip2.record.Subdivision;
 @SideEffectFree
 @SupportsBatching
 @Tags({"geo", "enrich", "ip", "maxmind"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Looks up geolocation information for an IP address and adds the geo information to FlowFile attributes. The "
         + "geo data is provided as a MaxMind database. The attribute that contains the IP address to lookup is provided by the "
         + "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by enrichment "

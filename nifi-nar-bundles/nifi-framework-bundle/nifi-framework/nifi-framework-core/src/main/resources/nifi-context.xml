@@ -37,6 +37,7 @@
     <bean id="flowController" class="org.apache.nifi.spring.FlowControllerFactoryBean">
         <property name="properties" ref="nifiProperties"/>
         <property name="userService" ref="userService" />
+        <property name="auditService" ref="auditService" />
         <property name="encryptor" ref="stringEncryptor" />
     </bean>
 

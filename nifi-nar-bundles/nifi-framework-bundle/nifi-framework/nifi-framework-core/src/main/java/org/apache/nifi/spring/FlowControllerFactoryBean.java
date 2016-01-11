@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.spring;
 
+import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
@@ -38,6 +39,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private FlowController flowController;
     private NiFiProperties properties;
     private UserService userService;
+    private AuditService auditService;
     private StringEncryptor encryptor;
 
     @Override
@@ -57,6 +59,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                         flowFileEventRepository,
                         properties,
                         userService,
+                        auditService,
                         encryptor,
                         nodeProtocolSender);
             } else {
@@ -64,6 +67,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                         flowFileEventRepository,
                         properties,
                         userService,
+                        auditService,
                         encryptor);
             }
 
@@ -97,5 +101,9 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setEncryptor(final StringEncryptor encryptor) {
         this.encryptor = encryptor;
+    }
+
+    public void setAuditService(final AuditService auditService) {
+        this.auditService = auditService;
     }
 }

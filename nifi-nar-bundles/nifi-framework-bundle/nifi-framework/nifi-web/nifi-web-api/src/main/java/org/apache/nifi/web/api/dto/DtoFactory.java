@@ -40,10 +40,16 @@ import javax.ws.rs.WebApplicationException;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.action.component.details.FlowChangeRemoteProcessGroupDetails;
 import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.action.details.ConnectDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConnectDetails;
+import org.apache.nifi.action.details.FlowChangeMoveDetails;
+import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -124,6 +130,9 @@ import org.apache.nifi.web.api.dto.status.StatusDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.queue.DropFlowFileState;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.reporting.ReportingTask;
@@ -139,7 +148,7 @@ public final class DtoFactory {
         }
     };
 
-    final int MAX_BULLETINS_PER_COMPONENT = 5;
+    final static int MAX_BULLETINS_PER_COMPONENT = 5;
 
     private ControllerServiceLookup controllerServiceLookup;
 
@@ -156,7 +165,7 @@ public final class DtoFactory {
         actionDto.setSourceName(action.getSourceName());
         actionDto.setSourceType(action.getSourceType().name());
         actionDto.setTimestamp(action.getTimestamp());
-        actionDto.setUserDn(action.getUserDn());
+        actionDto.setUserDn(action.getUserIdentity());
         actionDto.setUserName(action.getUserName());
         actionDto.setOperation(action.getOperation().name());
         actionDto.setActionDetails(createActionDetailsDto(action.getActionDetails()));
@@ -176,13 +185,13 @@ public final class DtoFactory {
             return null;
         }
 
-        if (actionDetails instanceof ConfigureDetails) {
+        if (actionDetails instanceof FlowChangeConfigureDetails) {
             final ConfigureDetailsDTO configureDetails = new ConfigureDetailsDTO();
             configureDetails.setName(((ConfigureDetails) actionDetails).getName());
             configureDetails.setPreviousValue(((ConfigureDetails) actionDetails).getPreviousValue());
             configureDetails.setValue(((ConfigureDetails) actionDetails).getValue());
             return configureDetails;
-        } else if (actionDetails instanceof ConnectDetails) {
+        } else if (actionDetails instanceof FlowChangeConnectDetails) {
             final ConnectDetailsDTO connectDetails = new ConnectDetailsDTO();
             connectDetails.setSourceId(((ConnectDetails) actionDetails).getSourceId());
             connectDetails.setSourceName(((ConnectDetails) actionDetails).getSourceName());
@@ -192,14 +201,14 @@ public final class DtoFactory {
             connectDetails.setDestinationName(((ConnectDetails) actionDetails).getDestinationName());
             connectDetails.setDestinationType(((ConnectDetails) actionDetails).getDestinationType().toString());
             return connectDetails;
-        } else if (actionDetails instanceof MoveDetails) {
+        } else if (actionDetails instanceof FlowChangeMoveDetails) {
             final MoveDetailsDTO moveDetails = new MoveDetailsDTO();
             moveDetails.setPreviousGroup(((MoveDetails) actionDetails).getPreviousGroup());
             moveDetails.setPreviousGroupId(((MoveDetails) actionDetails).getPreviousGroupId());
             moveDetails.setGroup(((MoveDetails) actionDetails).getGroup());
             moveDetails.setGroupId(((MoveDetails) actionDetails).getGroupId());
             return moveDetails;
-        } else if (actionDetails instanceof PurgeDetails) {
+        } else if (actionDetails instanceof FlowChangePurgeDetails) {
             final PurgeDetailsDTO purgeDetails = new PurgeDetailsDTO();
             purgeDetails.setEndDate(((PurgeDetails) actionDetails).getEndDate());
             return purgeDetails;
@@ -219,11 +228,11 @@ public final class DtoFactory {
             return null;
         }
 
-        if (componentDetails instanceof ExtensionDetails) {
+        if (componentDetails instanceof FlowChangeExtensionDetails) {
             final ExtensionDetailsDTO processorDetails = new ExtensionDetailsDTO();
             processorDetails.setType(((ExtensionDetails) componentDetails).getType());
             return processorDetails;
-        } else if (componentDetails instanceof RemoteProcessGroupDetails) {
+        } else if (componentDetails instanceof FlowChangeRemoteProcessGroupDetails) {
             final RemoteProcessGroupDetailsDTO remoteProcessGroupDetails = new RemoteProcessGroupDetailsDTO();
             remoteProcessGroupDetails.setUri(((RemoteProcessGroupDetails) componentDetails).getUri());
             return remoteProcessGroupDetails;
@@ -291,6 +300,49 @@ public final class DtoFactory {
      */
     public PositionDTO createPositionDto(final Position position) {
         return new PositionDTO(position.getX(), position.getY());
+    }
+
+    private boolean isDropRequestComplete(final DropFlowFileState state) {
+        return DropFlowFileState.COMPLETE.equals(state) || DropFlowFileState.CANCELED.equals(state) || DropFlowFileState.FAILURE.equals(state);
+    }
+
+    /**
+     * Creates a DropRequestDTO from the specified flow file status.
+     *
+     * @param dropRequest dropRequest
+     * @return dto
+     */
+    public DropRequestDTO createDropRequestDTO(final DropFlowFileStatus dropRequest) {
+        final DropRequestDTO dto = new DropRequestDTO();
+        dto.setId(dropRequest.getRequestIdentifier());
+        dto.setSubmissionTime(new Date(dropRequest.getRequestSubmissionTime()));
+        dto.setLastUpdated(new Date(dropRequest.getLastUpdated()));
+        dto.setState(dropRequest.getState().toString());
+        dto.setFailureReason(dropRequest.getFailureReason());
+        dto.setFinished(isDropRequestComplete(dropRequest.getState()));
+
+        final QueueSize dropped = dropRequest.getDroppedSize();
+        dto.setDroppedCount(dropped.getObjectCount());
+        dto.setDroppedSize(dropped.getByteCount());
+        dto.setDropped(FormatUtils.formatCount(dropped.getObjectCount()) + " / " + FormatUtils.formatDataSize(dropped.getByteCount()));
+
+        final QueueSize current = dropRequest.getCurrentSize();
+        dto.setCurrentCount(current.getObjectCount());
+        dto.setCurrentSize(current.getByteCount());
+        dto.setCurrent(FormatUtils.formatCount(current.getObjectCount()) + " / " + FormatUtils.formatDataSize(current.getByteCount()));
+
+        final QueueSize original = dropRequest.getOriginalSize();
+        dto.setOriginalCount(original.getObjectCount());
+        dto.setOriginalSize(original.getByteCount());
+        dto.setOriginal(FormatUtils.formatCount(original.getObjectCount()) + " / " + FormatUtils.formatDataSize(original.getByteCount()));
+
+        if (isDropRequestComplete(dropRequest.getState())) {
+            dto.setPercentCompleted(100);
+        } else {
+            dto.setPercentCompleted((dropped.getObjectCount() * 100) / original.getObjectCount());
+        }
+
+        return dto;
     }
 
     /**
@@ -1402,6 +1454,7 @@ public final class DtoFactory {
         dto.setPosition(createPositionDto(node.getPosition()));
         dto.setStyle(node.getStyle());
         dto.setParentGroupId(node.getProcessGroup().getIdentifier());
+        dto.setInputRequirement(node.getInputRequirement().name());
 
         dto.setType(node.getProcessor().getClass().getCanonicalName());
         dto.setName(node.getName());
@@ -1431,6 +1484,7 @@ public final class DtoFactory {
         dto.setDescription(getCapabilityDescription(node.getClass()));
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
+        dto.setSupportsBatching(node.isHighThroughputSupported());
         dto.setConfig(createProcessorConfigDto(node));
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
@@ -1521,8 +1575,7 @@ public final class DtoFactory {
     }
 
     /**
-     * Creates a ProvenanceEventNodeDTO for the specified
-     * ProvenanceEventLineageNode.
+     * Creates a ProvenanceEventNodeDTO for the specified ProvenanceEventLineageNode.
      *
      * @param node node
      * @return dto
@@ -1682,14 +1735,18 @@ public final class DtoFactory {
         dto.setTotalHeap(FormatUtils.formatDataSize(sysDiagnostics.getTotalHeap()));
         dto.setUsedHeap(FormatUtils.formatDataSize(sysDiagnostics.getUsedHeap()));
         dto.setFreeHeap(FormatUtils.formatDataSize(sysDiagnostics.getFreeHeap()));
-        dto.setHeapUtilization(FormatUtils.formatUtilization(sysDiagnostics.getHeapUtilization()));
+        if (sysDiagnostics.getHeapUtilization() != -1) {
+            dto.setHeapUtilization(FormatUtils.formatUtilization(sysDiagnostics.getHeapUtilization()));
+        }
 
         // non heap
         dto.setMaxNonHeap(FormatUtils.formatDataSize(sysDiagnostics.getMaxNonHeap()));
         dto.setTotalNonHeap(FormatUtils.formatDataSize(sysDiagnostics.getTotalNonHeap()));
         dto.setUsedNonHeap(FormatUtils.formatDataSize(sysDiagnostics.getUsedNonHeap()));
         dto.setFreeNonHeap(FormatUtils.formatDataSize(sysDiagnostics.getFreeNonHeap()));
-        dto.setNonHeapUtilization(FormatUtils.formatUtilization(sysDiagnostics.getNonHeapUtilization()));
+        if (sysDiagnostics.getNonHeapUtilization() != -1) {
+            dto.setNonHeapUtilization(FormatUtils.formatUtilization(sysDiagnostics.getNonHeapUtilization()));
+        }
 
         // flow file disk usage
         final SystemDiagnosticsDTO.StorageUsageDTO flowFileRepositoryStorageUsageDto = createStorageUsageDTO(null, sysDiagnostics.getFlowFileRepositoryStorageUsage());
@@ -2173,9 +2230,8 @@ public final class DtoFactory {
     /**
      *
      * @param original orig
-     * @param deep if <code>true</code>, all Connections, ProcessGroups, Ports,
-     * Processors, etc. will be copied. If <code>false</code>, the copy will
-     * have links to the same objects referenced by <code>original</code>.
+     * @param deep if <code>true</code>, all Connections, ProcessGroups, Ports, Processors, etc. will be copied. If <code>false</code>, the copy will have links to the same objects referenced by
+     * <code>original</code>.
      *
      * @return dto
      */
@@ -2331,7 +2387,7 @@ public final class DtoFactory {
         // create the user
         UserDTO userDTO = new UserDTO();
         userDTO.setId(String.valueOf(user.getId()));
-        userDTO.setDn(user.getDn());
+        userDTO.setDn(user.getIdentity());
         userDTO.setUserName(user.getUserName());
         userDTO.setUserGroup(user.getUserGroup());
         userDTO.setJustification(user.getJustification());

@@ -347,6 +347,8 @@ public class StandardRecordReader implements RecordReader {
         } else if (eventType == ProvenanceEventType.RECEIVE) {
             builder.setTransitUri(readNullableString(dis));
             builder.setSourceSystemFlowFileIdentifier(readNullableString(dis));
+        } else if (eventType == ProvenanceEventType.FETCH) {
+            builder.setTransitUri(readNullableString(dis));
         } else if (eventType == ProvenanceEventType.SEND) {
             builder.setTransitUri(readNullableString(dis));
         } else if (eventType == ProvenanceEventType.ADDINFO) {

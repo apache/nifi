@@ -68,10 +68,11 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
         // 4. There is a connection for each relationship.
         final boolean triggerWhenEmpty = connectable.isTriggerWhenEmpty();
         boolean flowFilesQueued = true;
+        boolean relationshipAvailable = true;
         final boolean shouldRun = (connectable.getYieldExpiration() < System.currentTimeMillis())
                 && (triggerWhenEmpty || (flowFilesQueued = Connectables.flowFilesQueued(connectable)))
                 && (connectable.getConnectableType() != ConnectableType.FUNNEL || !connectable.getConnections().isEmpty())
-                && (connectable.getRelationships().isEmpty() || Connectables.anyRelationshipAvailable(connectable));
+            && (connectable.getRelationships().isEmpty() || (relationshipAvailable = Connectables.anyRelationshipAvailable(connectable)));
 
         if (shouldRun) {
             scheduleState.incrementActiveThreadCount();
@@ -100,9 +101,9 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
 
                 scheduleState.decrementActiveThreadCount();
             }
-        } else if (!flowFilesQueued) {
-            // FlowFiles must be queued in order to run but there are none queued;
-            // yield for just a bit.
+        } else if (!flowFilesQueued || !relationshipAvailable) {
+            // Either there are no FlowFiles queued, or the relationship is not available (i.e., backpressure is applied).
+            // We will yield for just a bit.
             return true;
         }
 

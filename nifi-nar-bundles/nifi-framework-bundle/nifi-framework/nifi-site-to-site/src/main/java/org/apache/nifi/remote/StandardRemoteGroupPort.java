@@ -125,12 +125,15 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     public void onSchedulingStart() {
         super.onSchedulingStart();
 
+        final long penalizationMillis = FormatUtils.getTimeDuration(remoteGroup.getYieldDuration(), TimeUnit.MILLISECONDS);
+
         final SiteToSiteClient client = new SiteToSiteClient.Builder()
         .url(remoteGroup.getTargetUri().toString())
         .portIdentifier(getIdentifier())
         .sslContext(sslContext)
         .eventReporter(remoteGroup.getEventReporter())
         .peerPersistenceFile(getPeerPersistenceFile(getIdentifier()))
+        .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
         .build();
         clientRef.set(client);
     }
@@ -182,7 +185,8 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             return;
         } catch (final IOException e) {
-            context.yield();
+            // we do not yield here because the 'peer' will be penalized, and we won't communicate with that particular nifi instance
+            // for a while due to penalization, but we can continue to talk to other nifi instances
             final String message = String.format("%s failed to communicate with %s due to %s", this, url, e.toString());
             logger.error(message);
             if (logger.isDebugEnabled()) {

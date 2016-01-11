@@ -20,7 +20,6 @@
         <div id="processor-type-filter-controls">
             <div id="processor-type-filter-container">
                 <input type="text" id="processor-type-filter"/>
-                <div id="processor-type-filter-options"></div>
             </div>
             <div id="processor-type-filter-status">
                 Displaying&nbsp;<span id="displayed-processor-types"></span>&nbsp;of&nbsp;<span id="total-processor-types"></span>

@@ -19,6 +19,7 @@ package org.apache.nifi.audit;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.apache.nifi.action.Action;
+import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.cluster.context.ClusterContext;
@@ -62,22 +63,22 @@ public abstract class NiFiAuditor {
         // if we're a connected node, then put audit actions on threadlocal to propagate back to manager
         if (ctx != null) {
             ctx.getActions().addAll(actions);
-        } else {
-            // if we're the cluster manager, or a disconnected node, or running standalone, then audit actions
-            try {
-                // record the operations
-                auditService.addActions(actions);
-            } catch (Throwable t) {
-                logger.warn("Unable to record actions: " + t.getMessage());
-                if (logger.isDebugEnabled()) {
-                    logger.warn(StringUtils.EMPTY, t);
-                }
+        }
+
+        // always save the actions regardless of cluster or stand-alone
+        // all nodes in a cluster will have their own local copy without batching
+        try {
+            auditService.addActions(actions);
+        } catch (Throwable t) {
+            logger.warn("Unable to record actions: " + t.getMessage());
+            if (logger.isDebugEnabled()) {
+                logger.warn(StringUtils.EMPTY, t);
             }
         }
     }
 
     protected MoveDetails createMoveDetails(String previousGroupId, String newGroupId, Logger logger) {
-        MoveDetails moveDetails = null;
+        FlowChangeMoveDetails moveDetails = null;
 
         // get the groups in question
         ProcessGroup previousGroup = processGroupDAO.getProcessGroup(previousGroupId);
@@ -86,7 +87,7 @@ public abstract class NiFiAuditor {
         // ensure the groups were found
         if (previousGroup != null && newGroup != null) {
             // create the move details
-            moveDetails = new MoveDetails();
+            moveDetails = new FlowChangeMoveDetails();
             moveDetails.setPreviousGroupId(previousGroup.getIdentifier());
             moveDetails.setPreviousGroup(previousGroup.getName());
             moveDetails.setGroupId(newGroup.getIdentifier());

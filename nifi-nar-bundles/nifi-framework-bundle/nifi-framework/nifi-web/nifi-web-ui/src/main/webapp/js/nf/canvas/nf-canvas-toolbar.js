@@ -151,12 +151,17 @@ nf.CanvasToolbar = (function () {
                     actions['fill'].disable();
                 }
                 
-                // ensure the entire selection supports enable/disable
-                if (!selection.empty()) {
+                // ensure the selection supports enable
+                if (nf.CanvasUtils.canEnable(selection)) {
                     actions['enable'].enable();
-                    actions['disable'].enable();
                 } else {
                     actions['enable'].disable();
+                }
+
+                // ensure the selection supports disable
+                if (nf.CanvasUtils.canDisable(selection)) {
+                    actions['disable'].enable();
+                } else {
                     actions['disable'].disable();
                 }
             }

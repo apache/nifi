@@ -49,13 +49,13 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.config.Registry;
@@ -64,11 +64,14 @@ import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -78,6 +81,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ProcessorLog;
@@ -94,6 +98,7 @@ import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.StopWatch;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Fetches a file via HTTP")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
@@ -114,6 +119,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .name("URL")
             .description("The URL to pull from")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .build();
@@ -146,7 +152,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("Filename")
             .description("The filename to assign to the file when pulled")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .required(true)
             .build();
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
@@ -293,7 +300,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
-        if (context.getProperty(URL).getValue().startsWith("https") && context.getProperty(SSL_CONTEXT_SERVICE).getValue() == null) {
+        if (context.getProperty(URL).evaluateAttributeExpressions().getValue().startsWith("https") && context.getProperty(SSL_CONTEXT_SERVICE).getValue() == null) {
             results.add(new ValidationResult.Builder()
                     .explanation("URL is set to HTTPS protocol but no SSLContext has been specified")
                     .valid(false)
@@ -314,19 +321,26 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     private SSLContext createSSLContext(final SSLContextService service)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, KeyManagementException, UnrecoverableKeyException {
-        final KeyStore truststore = KeyStore.getInstance(service.getTrustStoreType());
-        try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
-            truststore.load(in, service.getTrustStorePassword().toCharArray());
+
+        final SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
+
+        if (StringUtils.isNotBlank(service.getTrustStoreFile())) {
+            final KeyStore truststore = KeyStore.getInstance(service.getTrustStoreType());
+            try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
+                truststore.load(in, service.getTrustStorePassword().toCharArray());
+            }
+            sslContextBuilder.loadTrustMaterial(truststore, new TrustSelfSignedStrategy());
         }
 
-        final KeyStore keystore = KeyStore.getInstance(service.getKeyStoreType());
-        try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
-            keystore.load(in, service.getKeyStorePassword().toCharArray());
+        if (StringUtils.isNotBlank(service.getKeyStoreFile())){
+            final KeyStore keystore = KeyStore.getInstance(service.getKeyStoreType());
+            try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
+                keystore.load(in, service.getKeyStorePassword().toCharArray());
+            }
+            sslContextBuilder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
         }
 
-        final SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(truststore, new TrustSelfSignedStrategy()).loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray()).build();
-
-        return sslContext;
+        return sslContextBuilder.build();
     }
 
     @Override
@@ -341,7 +355,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         }
 
         // get the URL
-        final String url = context.getProperty(URL).getValue();
+        final String url = context.getProperty(URL).evaluateAttributeExpressions().getValue();
         final URI uri;
         String source = url;
         try {
@@ -424,7 +438,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             }
 
             // create the http client
-            final HttpClient client = clientBuilder.build();
+            final CloseableHttpClient client = clientBuilder.build();
 
             // create request
             final HttpGet get = new HttpGet(url);
@@ -459,7 +473,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 }
 
                 FlowFile flowFile = session.create();
-                flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), context.getProperty(FILENAME).getValue());
+                flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
                 flowFile = session.putAttribute(flowFile, this.getClass().getSimpleName().toLowerCase() + ".remote.source", source);
                 flowFile = session.importFrom(response.getEntity().getContent(), flowFile);
 
@@ -525,7 +539,6 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 logger.error("Failed to process due to {}; rolling back session", new Object[]{t.getMessage()}, t);
                 throw t;
             }
-
         } finally {
             conMan.shutdown();
         }
