@@ -532,6 +532,10 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
+    public void verifyCanClearState() {
+    }
+
+    @Override
     public SchedulingStrategy getSchedulingStrategy() {
         return SchedulingStrategy.TIMER_DRIVEN;
     }

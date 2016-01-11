@@ -55,6 +55,7 @@ import ca.uhn.hl7v2.model.Structure;
 import ca.uhn.hl7v2.model.Type;
 import ca.uhn.hl7v2.model.Varies;
 import ca.uhn.hl7v2.parser.PipeParser;
+import ca.uhn.hl7v2.validation.ValidationContext;
 import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
 
 @SideEffectFree
@@ -120,7 +121,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
 
         @SuppressWarnings("resource")
         final HapiContext hapiContext = new DefaultHapiContext();
-        hapiContext.setValidationContext(ValidationContextFactory.noValidation());
+        hapiContext.setValidationContext((ValidationContext) ValidationContextFactory.noValidation());
 
         final PipeParser parser = hapiContext.getPipeParser();
         final String hl7Text = new String(buffer, charset);

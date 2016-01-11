@@ -61,13 +61,30 @@ public class NodeIdentifier {
      */
     private final int socketPort;
 
+    /**
+     * the IP or hostname that external clients should use to communicate with this node via Site-to-Site
+     */
+    private final String siteToSiteAddress;
+
+    /**
+     * the port that external clients should use to communicate with this node via Site-to-Site
+     */
+    private final Integer siteToSitePort;
+
+    /**
+     * whether or not site-to-site communications with this node are secure
+     */
+    private Boolean siteToSiteSecure;
+
     private final String nodeDn;
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, null);
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
+        final String siteToSiteAddress, final Integer siteToSitePort, final boolean siteToSiteSecure) {
+        this(id, apiAddress, apiPort, socketAddress, socketPort, siteToSiteAddress, siteToSitePort, siteToSiteSecure, null);
     }
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, final String dn) {
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
+        final String siteToSiteAddress, final Integer siteToSitePort, final boolean siteToSiteSecure, final String dn) {
 
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Node ID may not be empty or null.");
@@ -79,6 +96,9 @@ public class NodeIdentifier {
 
         validatePort(apiPort);
         validatePort(socketPort);
+        if (siteToSitePort != null) {
+            validatePort(siteToSitePort);
+        }
 
         this.id = id;
         this.apiAddress = apiAddress;
@@ -86,6 +106,9 @@ public class NodeIdentifier {
         this.socketAddress = socketAddress;
         this.socketPort = socketPort;
         this.nodeDn = dn;
+        this.siteToSiteAddress = siteToSiteAddress;
+        this.siteToSitePort = siteToSitePort;
+        this.siteToSiteSecure = siteToSiteSecure;
     }
 
     public String getId() {
@@ -117,6 +140,19 @@ public class NodeIdentifier {
             throw new IllegalArgumentException("Port must be inclusively in the range [1, 65535].  Port given: " + port);
         }
     }
+
+    public String getSiteToSiteAddress() {
+        return siteToSiteAddress;
+    }
+
+    public Integer getSiteToSitePort() {
+        return siteToSitePort;
+    }
+
+    public boolean isSiteToSiteSecure() {
+        return siteToSiteSecure;
+    }
+
 
     /**
      * Compares the id of two node identifiers for equality.
@@ -165,6 +201,7 @@ public class NodeIdentifier {
         if (this.socketPort != other.socketPort) {
             return false;
         }
+
         return true;
     }
 

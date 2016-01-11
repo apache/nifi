@@ -1310,6 +1310,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    @Override
+    public void verifyCanClearState() throws IllegalStateException {
+        verifyCanUpdate();
+    }
+
     private void verifyNoActiveThreads() throws IllegalStateException {
         final int threadCount = processScheduler.getActiveThreadCount(this);
         if (threadCount > 0) {

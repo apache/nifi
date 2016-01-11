@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.Heartbeater;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
@@ -49,6 +51,28 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestStandardControllerServiceProvider {
+    private static StateManagerProvider stateManagerProvider = new StateManagerProvider() {
+        @Override
+        public StateManager getStateManager(String componentId) {
+            return Mockito.mock(StateManager.class);
+        }
+
+        @Override
+        public void shutdown() {
+        }
+
+        @Override
+        public void enableClusterProvider() {
+        }
+
+        @Override
+        public void disableClusterProvider() {
+        }
+
+        @Override
+        public void onComponentRemoved(String componentId) {
+        }
+    };
 
     @BeforeClass
     public static void setNiFiProps() {
@@ -57,13 +81,13 @@ public class TestStandardControllerServiceProvider {
 
     private ProcessScheduler createScheduler() {
         final Heartbeater heartbeater = Mockito.mock(Heartbeater.class);
-        return new StandardProcessScheduler(heartbeater, null, null);
+        return new StandardProcessScheduler(heartbeater, null, null, stateManagerProvider);
     }
 
     @Test
     public void testDisableControllerService() {
         final ProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
 
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceB.class.getName(), "B", false);
         provider.enableControllerService(serviceNode);
@@ -73,12 +97,12 @@ public class TestStandardControllerServiceProvider {
     @Test(timeout=10000)
     public void testEnableDisableWithReference() {
         final ProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
 
         final ControllerServiceNode serviceNodeB = provider.createControllerService(ServiceB.class.getName(), "B", false);
         final ControllerServiceNode serviceNodeA = provider.createControllerService(ServiceA.class.getName(), "A", false);
 
-        serviceNodeA.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
+        serviceNodeA.setProperty(ServiceA.OTHER_SERVICE.getName(), "B", true);
 
         try {
             provider.enableControllerService(serviceNodeA);
@@ -126,7 +150,7 @@ public class TestStandardControllerServiceProvider {
     }
 
     public void testEnableReferencingServicesGraph(ProcessScheduler scheduler) {
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
 
         // build a graph of controller services with dependencies as such:
         //
@@ -145,10 +169,10 @@ public class TestStandardControllerServiceProvider {
         final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3", false);
         final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4", false);
 
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4");
+        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2", true);
+        serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4", true);
+        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2", true);
+        serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4", true);
 
         provider.enableControllerService(serviceNode4);
         provider.enableReferencingServices(serviceNode4);
@@ -169,7 +193,7 @@ public class TestStandardControllerServiceProvider {
     @Test(timeout=10000)
     public void testStartStopReferencingComponents() {
         final ProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
 
         // build a graph of reporting tasks and controller services with dependencies as such:
         //
@@ -213,20 +237,20 @@ public class TestStandardControllerServiceProvider {
         final ProcessorNode procNodeA = new StandardProcessorNode(new DummyProcessor(), id1,
                 new StandardValidationContextFactory(provider), scheduler, provider);
         procNodeA.getProcessor().initialize(new StandardProcessorInitializationContext(id1, null, provider));
-        procNodeA.setProperty(DummyProcessor.SERVICE.getName(), "1");
+        procNodeA.setProperty(DummyProcessor.SERVICE.getName(), "1", true);
         procNodeA.setProcessGroup(mockProcessGroup);
 
         final String id2 = UUID.randomUUID().toString();
         final ProcessorNode procNodeB = new StandardProcessorNode(new DummyProcessor(), id2,
                 new StandardValidationContextFactory(provider), scheduler, provider);
         procNodeB.getProcessor().initialize(new StandardProcessorInitializationContext(id2, null, provider));
-        procNodeB.setProperty(DummyProcessor.SERVICE.getName(), "3");
+        procNodeB.setProperty(DummyProcessor.SERVICE.getName(), "3", true);
         procNodeB.setProcessGroup(mockProcessGroup);
 
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4");
+        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2", true);
+        serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4", true);
+        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2", true);
+        serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4", true);
 
         provider.enableControllerService(serviceNode4);
         provider.enableReferencingServices(serviceNode4);
@@ -280,11 +304,11 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void testOrderingOfServices() {
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, stateManagerProvider);
         final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1", false);
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceB.class.getName(), "2", false);
 
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
+        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2", true);
 
         final Map<String, ControllerServiceNode> nodeMap = new LinkedHashMap<>();
         nodeMap.put("1", serviceNode1);
@@ -314,7 +338,7 @@ public class TestStandardControllerServiceProvider {
 
         // add circular dependency on self.
         nodeMap.clear();
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "1");
+        serviceNode1.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "1", true);
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
 
@@ -341,8 +365,8 @@ public class TestStandardControllerServiceProvider {
         // like that.
         nodeMap.clear();
         final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3", false);
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "3");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "1");
+        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "3", true);
+        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "1", true);
         nodeMap.put("1", serviceNode1);
         nodeMap.put("3", serviceNode3);
         branches = StandardControllerServiceProvider.determineEnablingOrder(nodeMap);
@@ -364,10 +388,10 @@ public class TestStandardControllerServiceProvider {
 
         // Add multiple completely disparate branches.
         nodeMap.clear();
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
+        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2", true);
         final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4", false);
         final ControllerServiceNode serviceNode5 = provider.createControllerService(ServiceB.class.getName(), "5", false);
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
+        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "4", true);
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
         nodeMap.put("3", serviceNode3);
@@ -398,8 +422,8 @@ public class TestStandardControllerServiceProvider {
 
         // create 2 branches both dependent on the same service
         nodeMap.clear();
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
+        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2", true);
+        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2", true);
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
         nodeMap.put("3", serviceNode3);
@@ -426,7 +450,7 @@ public class TestStandardControllerServiceProvider {
         final ProcessorNode procNode = new StandardProcessorNode(new DummyProcessor(), UUID.randomUUID().toString(),
                 new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider);
 
-        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null);
+        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, null);
         group.addProcessor(procNode);
         procNode.setProcessGroup(group);
 
@@ -436,7 +460,7 @@ public class TestStandardControllerServiceProvider {
     @Test
     public void testEnableReferencingComponents() {
         final ProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, stateManagerProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceA.class.getName(), "1", false);
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);

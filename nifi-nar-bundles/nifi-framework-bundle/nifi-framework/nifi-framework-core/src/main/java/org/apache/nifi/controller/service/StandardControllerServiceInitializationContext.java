@@ -18,6 +18,7 @@ package org.apache.nifi.controller.service;
 
 import java.util.Set;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -28,11 +29,13 @@ public class StandardControllerServiceInitializationContext implements Controlle
     private final String id;
     private final ControllerServiceProvider serviceProvider;
     private final ComponentLog logger;
+    private final StateManager stateManager;
 
-    public StandardControllerServiceInitializationContext(final String identifier, final ComponentLog logger, final ControllerServiceProvider serviceProvider) {
+    public StandardControllerServiceInitializationContext(final String identifier, final ComponentLog logger, final ControllerServiceProvider serviceProvider, final StateManager stateManager) {
         this.id = identifier;
         this.logger = logger;
         this.serviceProvider = serviceProvider;
+        this.stateManager = stateManager;
     }
 
     @Override
@@ -78,5 +81,10 @@ public class StandardControllerServiceInitializationContext implements Controlle
     @Override
     public ComponentLog getLogger() {
         return logger;
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

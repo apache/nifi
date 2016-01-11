@@ -26,8 +26,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -35,6 +37,7 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.ListableEntity;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -96,7 +99,7 @@ public class TestAbstractListProcessor {
     }
 
     @Test
-    public void testStateStoredInDistributedService() throws InitializationException {
+    public void testStateStoredInClusterStateManagement() throws InitializationException {
         final ConcreteListProcessor proc = new ConcreteListProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
         final DistributedCache cache = new DistributedCache();
@@ -109,7 +112,32 @@ public class TestAbstractListProcessor {
         proc.addEntity("name", "id", 1492L);
         runner.run();
 
-        assertEquals(1, cache.stored.size());
+        final Map<String, String> expectedState = new HashMap<>();
+        expectedState.put(AbstractListProcessor.TIMESTAMP, "1492");
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", "id");
+        runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
+    }
+
+    @Test
+    public void testStateMigrated() throws InitializationException {
+        final ConcreteListProcessor proc = new ConcreteListProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        final DistributedCache cache = new DistributedCache();
+        runner.addControllerService("cache", cache);
+        runner.enableControllerService(cache);
+        runner.setProperty(AbstractListProcessor.DISTRIBUTED_CACHE_SERVICE, "cache");
+
+        final String serviceState = "{\"latestTimestamp\":1492,\"matchingIdentifiers\":[\"id\"]}";
+        final String cacheKey = runner.getProcessor().getIdentifier() + ".lastListingTime./path";
+        cache.stored.put(cacheKey, serviceState);
+
+        runner.run();
+
+        final MockStateManager stateManager = runner.getStateManager();
+        final Map<String, String> expectedState = new HashMap<>();
+        expectedState.put(AbstractListProcessor.TIMESTAMP, "1492");
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", "id");
+        stateManager.assertStateEquals(expectedState, Scope.CLUSTER);
     }
 
     @Test
@@ -174,7 +202,7 @@ public class TestAbstractListProcessor {
 
         @Override
         protected File getPersistenceFile() {
-            return new File("target/ListProcessor-local-state.json");
+            return new File("target/ListProcessor-local-state-" + UUID.randomUUID().toString() + ".json");
         }
 
         public void addEntity(final String name, final String identifier, final long timestamp) {

@@ -25,6 +25,7 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -47,13 +48,15 @@ public class ClusteredReportingContext implements ReportingContext {
     private final ControllerServiceProvider serviceProvider;
     private final Map<PropertyDescriptor, String> properties;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
+    private final StateManager stateManager;
 
-    public ClusteredReportingContext(final EventAccess eventAccess, final BulletinRepository bulletinRepository,
-            final Map<PropertyDescriptor, String> properties, final ControllerServiceProvider serviceProvider) {
+    public ClusteredReportingContext(final EventAccess eventAccess, final BulletinRepository bulletinRepository, final Map<PropertyDescriptor, String> properties,
+        final ControllerServiceProvider serviceProvider, final StateManager stateManager) {
         this.eventAccess = eventAccess;
         this.bulletinRepository = bulletinRepository;
         this.properties = Collections.unmodifiableMap(properties);
         this.serviceProvider = serviceProvider;
+        this.stateManager = stateManager;
 
         preparedQueries = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -205,5 +208,10 @@ public class ClusteredReportingContext implements ReportingContext {
         }
 
         return null;
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

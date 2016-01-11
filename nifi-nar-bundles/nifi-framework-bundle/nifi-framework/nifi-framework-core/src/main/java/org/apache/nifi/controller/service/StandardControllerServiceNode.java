@@ -123,14 +123,14 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
-    public void setProperty(final String name, final String value) {
-        super.setProperty(name, value);
+    public void setProperty(final String name, final String value, final boolean triggerOnPropertyModified) {
+        super.setProperty(name, value, triggerOnPropertyModified);
         onConfigured();
     }
 
     @Override
-    public boolean removeProperty(String name) {
-        final boolean removed = super.removeProperty(name);
+    public boolean removeProperty(String name, final boolean triggerOnPropertyModified) {
+        final boolean removed = super.removeProperty(name, triggerOnPropertyModified);
         if (removed) {
             onConfigured();
         }
@@ -216,6 +216,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(implementation + " cannot be updated because it is not disabled");
         }
+    }
+
+    @Override
+    public void verifyCanClearState() {
+        verifyCanUpdate();
     }
 
     @Override

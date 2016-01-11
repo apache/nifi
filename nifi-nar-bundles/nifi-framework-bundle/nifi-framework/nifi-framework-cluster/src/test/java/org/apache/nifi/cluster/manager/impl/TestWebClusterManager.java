@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.cluster.manager.impl;
 
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-
 import static org.junit.Assert.assertEquals;
 
 import java.text.DateFormat;

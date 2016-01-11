@@ -171,7 +171,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         controller.setMaxEventDrivenThreadCount(maxThreadCount / 3);
                     }
 
-                    final Element reportingTasksElement = (Element) DomUtils.getChild(rootElement, "reportingTasks");
+                    final Element reportingTasksElement = DomUtils.getChild(rootElement, "reportingTasks");
                     final List<Element> taskElements;
                     if (reportingTasksElement == null) {
                         taskElements = Collections.emptyList();
@@ -179,7 +179,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
                     }
 
-                    final Element controllerServicesElement = (Element) DomUtils.getChild(rootElement, "controllerServices");
+                    final Element controllerServicesElement = DomUtils.getChild(rootElement, "controllerServices");
                     final List<Element> controllerServiceElements;
                     if (controllerServicesElement == null) {
                         controllerServiceElements = Collections.emptyList();
@@ -252,7 +252,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     // get the root group XML element
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
 
-                    final Element controllerServicesElement = (Element) DomUtils.getChild(rootElement, "controllerServices");
+                    final Element controllerServicesElement = DomUtils.getChild(rootElement, "controllerServices");
                     if (controllerServicesElement != null) {
                         final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
 
@@ -274,7 +274,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
                     }
 
-                    final Element reportingTasksElement = (Element) DomUtils.getChild(rootElement, "reportingTasks");
+                    final Element reportingTasksElement = DomUtils.getChild(rootElement, "reportingTasks");
                     if (reportingTasksElement != null) {
                         final List<Element> taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
                         for (final Element taskElement : taskElements) {
@@ -403,9 +403,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
             if (entry.getValue() == null) {
-                reportingTask.removeProperty(entry.getKey());
+                reportingTask.removeProperty(entry.getKey(), false);
             } else {
-                reportingTask.setProperty(entry.getKey(), entry.getValue());
+                reportingTask.setProperty(entry.getKey(), entry.getValue(), false);
             }
         }
 
@@ -735,9 +735,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
             if (entry.getValue() == null) {
-                procNode.removeProperty(entry.getKey());
+                procNode.removeProperty(entry.getKey(), false);
             } else {
-                procNode.setProperty(entry.getKey(), entry.getValue());
+                procNode.setProperty(entry.getKey(), entry.getValue(), false);
             }
         }
 

@@ -285,9 +285,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                 final String propName = entry.getKey();
                 final String propVal = entry.getValue();
                 if (isNotNull(propName) && propVal == null) {
-                    reportingTask.removeProperty(propName);
+                    reportingTask.removeProperty(propName, true);
                 } else if (isNotNull(propName)) {
-                    reportingTask.setProperty(propName, propVal);
+                    reportingTask.setProperty(propName, propVal, true);
                 }
             }
         }

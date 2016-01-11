@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 /**
@@ -154,4 +155,9 @@ public interface ProcessContext {
      * does not allow the Expression Language, even if a seemingly valid Expression is present in the value.
      */
     boolean isExpressionLanguagePresent(PropertyDescriptor property);
+
+    /**
+     * @return the StateManager that can be used to store and retrieve state for this component
+     */
+    StateManager getStateManager();
 }
