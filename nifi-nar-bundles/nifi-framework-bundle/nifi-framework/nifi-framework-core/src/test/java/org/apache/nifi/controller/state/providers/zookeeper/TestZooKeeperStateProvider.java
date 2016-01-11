@@ -199,5 +199,4 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             authorizedProvider.shutdown();
         }
     }
-
 }

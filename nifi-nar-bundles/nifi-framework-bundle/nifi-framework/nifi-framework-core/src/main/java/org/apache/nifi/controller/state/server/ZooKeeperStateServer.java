@@ -23,8 +23,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
 
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerConfig;
