@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.EventBasedWorker;
 import org.apache.nifi.controller.EventDrivenWorkerQueue;
@@ -54,7 +56,8 @@ public class EventDrivenSchedulingAgent implements SchedulingAgent {
     private static final Logger logger = LoggerFactory.getLogger(EventDrivenSchedulingAgent.class);
 
     private final FlowEngine flowEngine;
-    private final ControllerServiceProvider controllerServiceProvider;
+    private final ControllerServiceProvider serviceProvider;
+    private final StateManagerProvider stateManagerProvider;
     private final EventDrivenWorkerQueue workerQueue;
     private final ProcessContextFactory contextFactory;
     private final AtomicInteger maxThreadCount;
@@ -65,10 +68,11 @@ public class EventDrivenSchedulingAgent implements SchedulingAgent {
     private final ConcurrentMap<Connectable, AtomicLong> connectionIndexMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<Connectable, ScheduleState> scheduleStates = new ConcurrentHashMap<>();
 
-    public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider flowController,
-            final EventDrivenWorkerQueue workerQueue, final ProcessContextFactory contextFactory, final int maxThreadCount, final StringEncryptor encryptor) {
+    public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider serviceProvider, final StateManagerProvider stateManagerProvider,
+        final EventDrivenWorkerQueue workerQueue, final ProcessContextFactory contextFactory, final int maxThreadCount, final StringEncryptor encryptor) {
         this.flowEngine = flowEngine;
-        this.controllerServiceProvider = flowController;
+        this.serviceProvider = serviceProvider;
+        this.stateManagerProvider = stateManagerProvider;
         this.workerQueue = workerQueue;
         this.contextFactory = contextFactory;
         this.maxThreadCount = new AtomicInteger(maxThreadCount);
@@ -78,6 +82,10 @@ public class EventDrivenSchedulingAgent implements SchedulingAgent {
             final Runnable eventDrivenTask = new EventDrivenTask(workerQueue);
             flowEngine.scheduleWithFixedDelay(eventDrivenTask, 0L, 30000, TimeUnit.NANOSECONDS);
         }
+    }
+
+    private StateManager getStateManager(final String componentId) {
+        return stateManagerProvider.getStateManager(componentId);
     }
 
     @Override
@@ -177,7 +185,8 @@ public class EventDrivenSchedulingAgent implements SchedulingAgent {
 
                 if (connectable instanceof ProcessorNode) {
                     final ProcessorNode procNode = (ProcessorNode) connectable;
-                    final StandardProcessContext standardProcessContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor);
+                    final StandardProcessContext standardProcessContext = new StandardProcessContext(procNode, serviceProvider,
+                        encryptor, getStateManager(connectable.getIdentifier()));
 
                     final long runNanos = procNode.getRunDuration(TimeUnit.NANOSECONDS);
                     final ProcessSessionFactory sessionFactory;
@@ -251,7 +260,7 @@ public class EventDrivenSchedulingAgent implements SchedulingAgent {
                     }
                 } else {
                     final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context);
-                    final ConnectableProcessContext connectableProcessContext = new ConnectableProcessContext(connectable, encryptor);
+                    final ConnectableProcessContext connectableProcessContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
                     trigger(connectable, scheduleState, connectableProcessContext, sessionFactory);
 
                     // See explanation above for the ProcessorNode as to why we do this.

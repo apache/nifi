@@ -87,6 +87,7 @@ import org.apache.nifi.cluster.manager.HttpClusterManager;
 import org.apache.nifi.cluster.manager.HttpRequestReplicator;
 import org.apache.nifi.cluster.manager.HttpResponseMapper;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.ConflictingNodeIdException;
 import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
@@ -126,6 +127,7 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowFileSummaries;
 import org.apache.nifi.controller.Heartbeater;
@@ -151,6 +153,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
+import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
@@ -371,7 +374,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private final FlowEngine reportingTaskEngine;
     private final Map<NodeIdentifier, ComponentStatusRepository> componentMetricsRepositoryMap = new HashMap<>();
     private final StandardProcessScheduler processScheduler;
+    private final StateManagerProvider stateManagerProvider;
     private final long componentStatusSnapshotMillis;
+
 
     public WebClusterManager(final HttpRequestReplicator httpRequestReplicator, final HttpResponseMapper httpResponseMapper,
             final DataFlowManagementService dataFlowManagementService, final ClusterManagerProtocolSenderListener senderListener,
@@ -468,11 +473,17 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         reportingTaskEngine = new FlowEngine(8, "Reporting Task Thread");
 
+        try {
+            this.stateManagerProvider = StandardStateManagerProvider.create(properties);
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
+
         processScheduler = new StandardProcessScheduler(new Heartbeater() {
             @Override
             public void heartbeat() {
             }
-        }, this, encryptor);
+        }, this, encryptor, stateManagerProvider);
 
         // When we construct the scheduling agents, we can pass null for a lot of the arguments because we are only
         // going to be scheduling Reporting Tasks. Otherwise, it would not be okay.
@@ -481,13 +492,12 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         processScheduler.setMaxThreadCount(SchedulingStrategy.TIMER_DRIVEN, 10);
         processScheduler.setMaxThreadCount(SchedulingStrategy.CRON_DRIVEN, 10);
 
-        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository);
+        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
     }
 
     public void start() throws IOException {
         writeLock.lock();
         try {
-
             if (isRunning()) {
                 throw new IllegalStateException("Instance is already started.");
             }
@@ -712,7 +722,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         try {
             // resolve the proposed node identifier to a valid node identifier
-            final NodeIdentifier resolvedNodeIdentifier = resolveProposedNodeIdentifier(request.getProposedNodeIdentifier());
+            final NodeIdentifier resolvedNodeIdentifier;
+            try {
+                resolvedNodeIdentifier = resolveProposedNodeIdentifier(request.getProposedNodeIdentifier());
+            } catch (final ConflictingNodeIdException e) {
+                logger.info("Rejecting node {} from connecting to cluster because it provided a Node ID of {} but that Node ID already belongs to {}:{}",
+                    request.getProposedNodeIdentifier().getSocketAddress(), request.getProposedNodeIdentifier().getId(), e.getConflictingNodeAddress(), e.getConflictingNodePort());
+                return ConnectionResponse.createConflictingNodeIdResponse(e.getConflictingNodeAddress() + ":" + e.getConflictingNodePort());
+            }
 
             if (isBlockedByFirewall(resolvedNodeIdentifier.getSocketAddress())) {
                 // if the socket address is not listed in the firewall, then return a null response
@@ -1029,7 +1046,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
                 for (final Map.Entry<PropertyDescriptor, String> entry : resolvedProps.entrySet()) {
                     if (entry.getValue() != null) {
-                        reportingTaskNode.setProperty(entry.getKey().getName(), entry.getValue());
+                        reportingTaskNode.setProperty(entry.getKey().getName(), entry.getValue(), false);
                     }
                 }
 
@@ -1096,7 +1113,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this);
         final ReportingTaskNode taskNode = new ClusteredReportingTaskNode(task, id, processScheduler,
-                new ClusteredEventAccess(this, auditService), bulletinRepository, controllerServiceProvider, validationContextFactory);
+            new ClusteredEventAccess(this, auditService), bulletinRepository, controllerServiceProvider,
+            validationContextFactory, stateManagerProvider.getStateManager(id));
         taskNode.setName(task.getClass().getSimpleName());
 
         reportingTasks.put(id, taskNode);
@@ -1354,8 +1372,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     private NodeIdentifier addRequestorDn(final NodeIdentifier nodeId, final String dn) {
-        return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(),
-                nodeId.getApiPort(), nodeId.getSocketAddress(), nodeId.getSocketPort(), dn);
+        return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort(),
+            nodeId.getSocketAddress(), nodeId.getSocketPort(),
+            nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(), nodeId.isSiteToSiteSecure(), dn);
     }
 
     private ConnectionResponseMessage handleConnectionRequest(final ConnectionRequestMessage requestMessage) {
@@ -1847,6 +1866,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             writeLock.unlock("processPendingHeartbeats");
         }
     }
+
 
     private ComponentStatusRepository createComponentStatusRepository() {
         final String implementationClassName = properties.getProperty(NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION, DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION);
@@ -3644,7 +3664,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
      *
      * @return the node identifier that should be used
      */
-    private NodeIdentifier resolveProposedNodeIdentifier(final NodeIdentifier proposedNodeId) {
+    private NodeIdentifier resolveProposedNodeIdentifier(final NodeIdentifier proposedNodeId) throws ConflictingNodeIdException {
         readLock.lock();
         try {
             for (final Node node : nodes) {
@@ -3660,31 +3680,31 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     // we know about this node and it has the same ID, so the proposal is fine
                     return proposedNodeId;
                 } else if (sameId && !sameServiceCoordinates) {
-                    // proposed ID conflicts with existing node ID, so assign a new ID
-                    final NodeIdentifier resolvedIdentifier = new NodeIdentifier(
-                            UUID.randomUUID().toString(),
-                            proposedNodeId.getApiAddress(),
-                            proposedNodeId.getApiPort(),
-                            proposedNodeId.getSocketAddress(),
-                            proposedNodeId.getSocketPort());
-                    logger.info(String.format("Using Node Identifier %s because proposed node identifier %s conflicts existing node identifiers",
-                            resolvedIdentifier, proposedNodeId));
-                    return resolvedIdentifier;
+                    throw new ConflictingNodeIdException(nodeId.getId(), node.getNodeId().getApiAddress(), node.getNodeId().getApiPort());
                 } else if (!sameId && sameServiceCoordinates) {
                     // we know about this node, so we'll use the existing ID
-                    logger.debug(String.format("Using Node Identifier %s because proposed node identifier %s matches the service coordinates",
-                            nodeId, proposedNodeId));
-                    return nodeId;
+                    logger.debug(String.format("Using Node Identifier %s because proposed node identifier %s matches the service coordinates", nodeId, proposedNodeId));
+
+                    // return a new Node Identifier that uses the existing Node UUID, Node Index, and ZooKeeper Port from the existing Node (because these are the
+                    // elements that are assigned by the NCM), but use the other parameters from the proposed identifier, since these elements are determined by
+                    // the node rather than the NCM.
+                    return new NodeIdentifier(nodeId.getId(),
+                        proposedNodeId.getApiAddress(), proposedNodeId.getApiPort(),
+                        proposedNodeId.getSocketAddress(), proposedNodeId.getSocketPort(),
+                        proposedNodeId.getSiteToSiteAddress(), proposedNodeId.getSiteToSitePort(), proposedNodeId.isSiteToSiteSecure());
                 }
 
             }
 
-            // proposal does not conflict with existing nodes
-            return proposedNodeId;
+            // proposal does not conflict with existing nodes - this is a new node. Assign a new Node Index to it
+            return new NodeIdentifier(proposedNodeId.getId(), proposedNodeId.getApiAddress(), proposedNodeId.getApiPort(),
+                proposedNodeId.getSocketAddress(), proposedNodeId.getSocketPort(),
+                proposedNodeId.getSiteToSiteAddress(), proposedNodeId.getSiteToSitePort(), proposedNodeId.isSiteToSiteSecure());
         } finally {
             readLock.unlock("resolveProposedNodeIdentifier");
         }
     }
+
 
     private boolean isHeartbeatMonitorRunning() {
         readLock.lock();
@@ -3879,13 +3899,13 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final Integer siteToSitePort = heartbeat.getSiteToSitePort();
+                final Integer siteToSitePort = id.getSiteToSitePort();
                 if (siteToSitePort == null) {
                     continue;
                 }
                 final int flowFileCount = (int) heartbeat.getTotalFlowFileCount();
-                final NodeInformation nodeInfo = new NodeInformation(id.getApiAddress(), siteToSitePort, id.getApiPort(),
-                        heartbeat.isSiteToSiteSecure(), flowFileCount);
+                final NodeInformation nodeInfo = new NodeInformation(id.getSiteToSiteAddress(), siteToSitePort, id.getApiPort(),
+                    id.isSiteToSiteSecure(), flowFileCount);
                 nodeInfos.add(nodeInfo);
             }
 

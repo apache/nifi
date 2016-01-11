@@ -19,14 +19,12 @@ package org.apache.nifi.processors.standard;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +32,13 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
@@ -50,7 +52,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.util.EntityListing;
 import org.apache.nifi.processors.standard.util.ListableEntity;
-import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -157,9 +158,13 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         .build();
 
 
-    private volatile Long lastListingTime = null;
     private volatile Set<String> latestIdentifiersListed = new HashSet<>();
+    private volatile Long lastListingTime = null;
     private volatile boolean electedPrimaryNode = false;
+    private volatile boolean resetListing = false;
+
+    static final String TIMESTAMP = "timestamp";
+    static final String IDENTIFIER_PREFIX = "id";
 
     protected File getPersistenceFile() {
         return new File("conf/state/" + getIdentifier());
@@ -177,6 +182,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         if (isListingResetNecessary(descriptor)) {
             lastListingTime = null; // clear lastListingTime so that we have to fetch new time
             latestIdentifiersListed = new HashSet<>();
+            resetListing = true;
         }
     }
 
@@ -187,15 +193,116 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         return relationships;
     }
 
-    protected String getKey(final String directory) {
-        return getIdentifier() + ".lastListingTime." + directory;
-    }
-
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
         if (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE) {
             electedPrimaryNode = true;
         }
+    }
+
+    @OnScheduled
+    public final void updateState(final ProcessContext context) throws IOException {
+        final String path = getPath(context);
+        final DistributedMapCacheClient client = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
+
+        // Check if state already exists for this path. If so, we have already migrated the state.
+        final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
+        if (stateMap.getVersion() == -1L) {
+            try {
+                // Migrate state from the old way of managing state (distributed cache service and local file)
+                // to the new mechanism (State Manager).
+                migrateState(path, client, context.getStateManager());
+            } catch (final IOException ioe) {
+                throw new IOException("Failed to properly migrate state to State Manager", ioe);
+            }
+        }
+
+        // delete the local file, since it is no longer needed
+        final File localFile = new File(path);
+        if (localFile.exists() && !!localFile.delete()) {
+            getLogger().warn("Migrated state but failed to delete local persistence file");
+        }
+
+        // remove entry from Distributed cache server
+        if (client != null) {
+            try {
+                client.remove(path, new StringSerDe());
+            } catch (final IOException ioe) {
+                getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
+                    + "State Management service, so the Distributed Cache Service is no longer needed.");
+            }
+        }
+
+        if (resetListing) {
+            context.getStateManager().clear(Scope.CLUSTER);
+            resetListing = false;
+        }
+    }
+
+    /**
+     * This processor used to use the DistributedMapCacheClient in order to store cluster-wide state, before the introduction of
+     * the StateManager. This method will migrate state from that DistributedMapCacheClient, or from a local file, to the StateManager,
+     * if any state already exists
+     *
+     * @param path the path to migrate state for
+     * @param client the DistributedMapCacheClient that is capable of obtaining the current state
+     * @param stateManager the StateManager to use in order to store the new state
+     * @throws IOException if unable to retrieve or store the state
+     */
+    private void migrateState(final String path, final DistributedMapCacheClient client, final StateManager stateManager) throws IOException {
+        Long minTimestamp = null;
+        final Set<String> latestIdentifiersListed = new HashSet<>();
+
+        // Retrieve state from Distributed Cache Client
+        if (client != null) {
+            final StringSerDe serde = new StringSerDe();
+            final String serializedState = client.get(getKey(path), serde, serde);
+            if (serializedState != null && !serializedState.isEmpty()) {
+                final EntityListing listing = deserialize(serializedState);
+                minTimestamp = listing.getLatestTimestamp().getTime();
+                latestIdentifiersListed.addAll(listing.getMatchingIdentifiers());
+            }
+        }
+
+        // Retrieve state from locally persisted file
+        final File persistenceFile = getPersistenceFile();
+        if (persistenceFile.exists()) {
+            final Properties props = new Properties();
+
+            try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
+                props.load(fis);
+            }
+
+            final String locallyPersistedValue = props.getProperty(path);
+            if (locallyPersistedValue != null) {
+                final EntityListing listing = deserialize(locallyPersistedValue);
+                final long localTimestamp = listing.getLatestTimestamp().getTime();
+                if (minTimestamp == null || localTimestamp > minTimestamp) {
+                    minTimestamp = localTimestamp;
+                    latestIdentifiersListed.clear();
+                    latestIdentifiersListed.addAll(listing.getMatchingIdentifiers());
+                }
+            }
+        }
+
+        if (minTimestamp != null) {
+            persist(minTimestamp, latestIdentifiersListed, stateManager);
+        }
+    }
+
+    private void persist(final long timestamp, final Collection<String> identifiers, final StateManager stateManager) throws IOException {
+        final Map<String, String> updatedState = new HashMap<>(identifiers.size() + 1);
+        updatedState.put(TIMESTAMP, String.valueOf(timestamp));
+        int counter = 0;
+        for (final String identifier : identifiers) {
+            final String index = String.valueOf(++counter);
+            updatedState.put(IDENTIFIER_PREFIX + "." + index, identifier);
+        }
+        stateManager.setState(updatedState, Scope.CLUSTER);
+    }
+
+    protected String getKey(final String directory) {
+        return getIdentifier() + ".lastListingTime." + directory;
     }
 
     private EntityListing deserialize(final String serializedState) throws JsonParseException, JsonMappingException, IOException {
@@ -205,152 +312,34 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     }
 
 
-    private Long getMinTimestamp(final String directory, final DistributedMapCacheClient client) throws IOException {
-        // Determine the timestamp for the last file that we've listed.
-        Long minTimestamp = lastListingTime;
-        if (minTimestamp == null || electedPrimaryNode) {
-            // We haven't yet restored any state from local or distributed state - or it's been at least a minute since
-            // we have performed a listing. In this case,
-            // First, attempt to get timestamp from distributed cache service.
-            if (client != null) {
-                try {
-                    final StringSerDe serde = new StringSerDe();
-                    final String serializedState = client.get(getKey(directory), serde, serde);
-                    if (serializedState == null || serializedState.isEmpty()) {
-                        minTimestamp = null;
-                        this.latestIdentifiersListed = Collections.emptySet();
-                    } else {
-                        final EntityListing listing = deserialize(serializedState);
-                        this.lastListingTime = listing.getLatestTimestamp().getTime();
-                        minTimestamp = listing.getLatestTimestamp().getTime();
-                        this.latestIdentifiersListed = new HashSet<>(listing.getMatchingIdentifiers());
-                    }
-
-                    this.lastListingTime = minTimestamp;
-                    electedPrimaryNode = false; // no requirement to pull an update from the distributed cache anymore.
-                } catch (final IOException ioe) {
-                    throw ioe;
-                }
-            }
-
-            // Check the persistence file. We want to use the latest timestamp that we have so that
-            // we don't duplicate data.
-            try {
-                final File persistenceFile = getPersistenceFile();
-                if (persistenceFile.exists()) {
-                    try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
-                        final Properties props = new Properties();
-                        props.load(fis);
-
-                        // get the local timestamp for this directory, if it exists.
-                        final String locallyPersistedValue = props.getProperty(directory);
-                        if (locallyPersistedValue != null) {
-                            final EntityListing listing = deserialize(locallyPersistedValue);
-                            final long localTimestamp = listing.getLatestTimestamp().getTime();
-
-                            // If distributed state doesn't have an entry or the local entry is later than the distributed state,
-                            // update the distributed state so that we are in sync.
-                            if (client != null && (minTimestamp == null || localTimestamp > minTimestamp)) {
-                                minTimestamp = localTimestamp;
-
-                                // Our local persistence file shows a later time than the Distributed service.
-                                // Update the distributed service to match our local state.
-                                try {
-                                    final StringSerDe serde = new StringSerDe();
-                                    client.put(getKey(directory), locallyPersistedValue, serde, serde);
-                                } catch (final IOException ioe) {
-                                    getLogger().warn("Local timestamp for {} is {}, which is later than Distributed state but failed to update Distributed "
-                                        + "state due to {}. If a new node performs Listing, data duplication may occur",
-                                        new Object[] {directory, locallyPersistedValue, ioe});
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (final IOException ioe) {
-                getLogger().warn("Failed to recover local state due to {}. Assuming that the state from the distributed cache is correct.", ioe);
-            }
-        }
-
-        return minTimestamp;
-    }
-
-
-    private String serializeState(final List<T> entities) throws JsonGenerationException, JsonMappingException, IOException {
-        // we need to keep track of all files that we pulled in that had a modification time equal to
-        // lastListingTime so that we can avoid pulling those files in again. We can't just ignore any files
-        // that have a mod time equal to that timestamp because more files may come in with the same timestamp
-        // later in the same millisecond.
-        if (entities.isEmpty()) {
-            return null;
-        } else {
-            final List<T> sortedEntities = new ArrayList<>(entities);
-            Collections.sort(sortedEntities, new Comparator<ListableEntity>() {
-                @Override
-                public int compare(final ListableEntity o1, final ListableEntity o2) {
-                    return Long.compare(o1.getTimestamp(), o2.getTimestamp());
-                }
-            });
-
-            final long latestListingModTime = sortedEntities.get(sortedEntities.size() - 1).getTimestamp();
-            final Set<String> idsWithTimestampEqualToListingTime = new HashSet<>();
-            for (int i = sortedEntities.size() - 1; i >= 0; i--) {
-                final ListableEntity entity = sortedEntities.get(i);
-                if (entity.getTimestamp() == latestListingModTime) {
-                    idsWithTimestampEqualToListingTime.add(entity.getIdentifier());
-                }
-            }
-
-            this.latestIdentifiersListed = idsWithTimestampEqualToListingTime;
-
-            final EntityListing listing = new EntityListing();
-            listing.setLatestTimestamp(new Date(latestListingModTime));
-            final Set<String> ids = new HashSet<>();
-            for (final String id : idsWithTimestampEqualToListingTime) {
-                ids.add(id);
-            }
-            listing.setMatchingIdentifiers(ids);
-
-            final ObjectMapper mapper = new ObjectMapper();
-            final String serializedState = mapper.writerWithType(EntityListing.class).writeValueAsString(listing);
-            return serializedState;
-        }
-    }
-
-    protected void persistLocalState(final String path, final String serializedState) throws IOException {
-        // we need to keep track of all files that we pulled in that had a modification time equal to
-        // lastListingTime so that we can avoid pulling those files in again. We can't just ignore any files
-        // that have a mod time equal to that timestamp because more files may come in with the same timestamp
-        // later in the same millisecond.
-        final File persistenceFile = getPersistenceFile();
-        final File dir = persistenceFile.getParentFile();
-        if (!dir.exists() && !dir.mkdirs()) {
-            throw new IOException("Could not create directory " + dir.getAbsolutePath() + " in order to save local state");
-        }
-
-        final Properties props = new Properties();
-        if (persistenceFile.exists()) {
-            try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
-                props.load(fis);
-            }
-        }
-
-        props.setProperty(path, serializedState);
-
-        try (final FileOutputStream fos = new FileOutputStream(persistenceFile)) {
-            props.store(fos, null);
-        }
-    }
-
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final String path = getPath(context);
-        final DistributedMapCacheClient client = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
-
-        final Long minTimestamp;
+        Long minTimestamp = lastListingTime;
         try {
-            minTimestamp = getMinTimestamp(path, client);
+            // We need to fetch the state from the cluster if we don't yet know the last listing time,
+            // or if we were just elected the primary node
+            if (this.lastListingTime == null || electedPrimaryNode) {
+                final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
+                final Map<String, String> stateValues = stateMap.toMap();
+                final String timestamp = stateValues.get(TIMESTAMP);
+
+                if (timestamp == null) {
+                    minTimestamp = 0L;
+                    latestIdentifiersListed.clear();
+                } else {
+                    minTimestamp = this.lastListingTime = Long.parseLong(timestamp);
+                    latestIdentifiersListed.clear();
+                    for (final Map.Entry<String, String> entry : stateValues.entrySet()) {
+                        final String key = entry.getKey();
+                        final String value = entry.getValue();
+                        if (TIMESTAMP.equals(key)) {
+                            continue;
+                        }
+
+                        latestIdentifiersListed.add(value);
+                    }
+                }
+            }
         } catch (final IOException ioe) {
             getLogger().error("Failed to retrieve timestamp of last listing from Distributed Cache Service. Will not perform listing until this is accomplished.");
             context.yield();
@@ -403,32 +392,19 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             // previously Primary Node left off.
             // We also store the state locally so that if the node is restarted, and the node cannot contact
             // the distributed state cache, the node can continue to run (if it is primary node).
-            String serializedState = null;
+            final Set<String> identifiers = new HashSet<>(entityList.size());
             try {
-                serializedState = serializeState(entityList);
-            } catch (final Exception e) {
-                getLogger().error("Failed to serialize state due to {}", new Object[] {e});
-            }
-
-            if (serializedState != null) {
-                // Save our state locally.
-                try {
-                    persistLocalState(path, serializedState);
-                } catch (final IOException ioe) {
-                    getLogger().warn("Unable to save state locally. If the node is restarted now, data may be duplicated. Failure is due to {}", ioe);
+                for (final T entity : entityList) {
+                    identifiers.add(entity.getIdentifier());
                 }
-
-                // Attempt to save state to remote server.
-                if (client != null) {
-                    try {
-                        client.put(getKey(path), serializedState, new StringSerDe(), new StringSerDe());
-                    } catch (final IOException ioe) {
-                        getLogger().warn("Unable to communicate with distributed cache server due to {}. Persisting state locally instead.", ioe);
-                    }
-                }
+                persist(latestListingTimestamp, identifiers, context.getStateManager());
+            } catch (final IOException ioe) {
+                getLogger().warn("Unable to save state due to {}. If NiFi restarted before state is saved, or "
+                    + "if another node begins executing this Processor, data duplication may occur.", ioe);
             }
 
             lastListingTime = latestListingTimestamp;
+            latestIdentifiersListed = identifiers;
         } else {
             getLogger().debug("There is no data to list. Yielding.");
             context.yield();

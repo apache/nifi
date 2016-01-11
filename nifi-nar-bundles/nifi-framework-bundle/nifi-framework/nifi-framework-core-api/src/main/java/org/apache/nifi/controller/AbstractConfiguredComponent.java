@@ -85,7 +85,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public void setProperty(final String name, final String value) {
+    public void setProperty(final String name, final String value, final boolean triggerOnPropertyModified) {
         if (null == name || null == value) {
             throw new IllegalArgumentException();
         }
@@ -114,10 +114,12 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                         }
                     }
 
-                    try {
-                        component.onPropertyModified(descriptor, oldValue, value);
-                    } catch (final Throwable t) {
-                        // nothing really to do here...
+                    if (triggerOnPropertyModified) {
+                        try {
+                            component.onPropertyModified(descriptor, oldValue, value);
+                        } catch (final Exception e) {
+                            // nothing really to do here...
+                        }
                     }
                 }
             }
@@ -133,11 +135,12 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
      * if was a dynamic property.
      *
      * @param name the property to remove
+     * @param triggerOnPropertyModified specifies whether or not the onPropertyModified method should be called
      * @return true if removed; false otherwise
      * @throws java.lang.IllegalArgumentException if the name is null
      */
     @Override
-    public boolean removeProperty(final String name) {
+    public boolean removeProperty(final String name, final boolean triggerOnPropertyModified) {
         if (null == name) {
             throw new IllegalArgumentException();
         }
@@ -160,7 +163,10 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                         }
                     }
 
-                    component.onPropertyModified(descriptor, value, null);
+                    if (triggerOnPropertyModified) {
+                        component.onPropertyModified(descriptor, value, null);
+                    }
+
                     return true;
                 }
             }

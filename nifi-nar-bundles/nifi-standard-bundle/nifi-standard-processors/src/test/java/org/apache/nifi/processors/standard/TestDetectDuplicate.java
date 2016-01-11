@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.SerializationException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -34,17 +30,14 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockProcessorLog;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TestDetectDuplicate {
-
-    private static Logger LOGGER;
 
     static {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -52,7 +45,6 @@ public class TestDetectDuplicate {
         System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DetectDuplicate", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDetectDuplicate", "debug");
-        LOGGER = LoggerFactory.getLogger(TestDetectDuplicate.class);
     }
 
     @Test
@@ -114,7 +106,7 @@ public class TestDetectDuplicate {
 
         final DistributedMapCacheClientImpl client = new DistributedMapCacheClientImpl();
         final ComponentLog logger = new MockProcessorLog("client", client);
-        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger);
+        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger, new MockStateManager());
         client.initialize(clientInitContext);
 
         return client;
@@ -154,6 +146,7 @@ public class TestDetectDuplicate {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
                 final Deserializer<V> valueDeserializer) throws IOException {
             if (exists) {
@@ -181,35 +174,6 @@ public class TestDetectDuplicate {
 
         @Override
         public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-        }
-    }
-
-    private static class StringSerializer implements Serializer<String> {
-
-        @Override
-        public void serialize(final String value, final OutputStream output) throws SerializationException, IOException {
-            output.write(value.getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
-    private static void deleteRecursively(final File dataFile) throws IOException {
-        if (dataFile == null || !dataFile.exists()) {
-            return;
-        }
-
-        final File[] children = dataFile.listFiles();
-        for (final File child : children) {
-            if (child.isDirectory()) {
-                deleteRecursively(child);
-            } else {
-                for (int i = 0; i < 100 && child.exists(); i++) {
-                    child.delete();
-                }
-
-                if (child.exists()) {
-                    throw new IOException("Could not delete " + dataFile.getAbsolutePath());
-                }
-            }
         }
     }
 }

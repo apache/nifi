@@ -125,15 +125,15 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     }
 
     @Override
-    public void setProperty(final String name, final String value) {
-        super.setProperty(name, value);
+    public void setProperty(final String name, final String value, final boolean triggerOnPropertyModified) {
+        super.setProperty(name, value, triggerOnPropertyModified);
 
         onConfigured();
     }
 
     @Override
-    public boolean removeProperty(String name) {
-        final boolean removed = super.removeProperty(name);
+    public boolean removeProperty(String name, final boolean triggerOnPropertyModified) {
+        final boolean removed = super.removeProperty(name, triggerOnPropertyModified);
         if (removed) {
             onConfigured();
         }

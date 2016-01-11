@@ -23,6 +23,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.FlowController;
@@ -67,6 +68,10 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
         }
     }
 
+    private StateManager getStateManager(final String componentId) {
+        return flowController.getStateManagerProvider().getStateManager(componentId);
+    }
+
     @Override
     public void shutdown() {
         flowEngine.shutdown();
@@ -96,14 +101,14 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
             // Determine the task to run and create it.
             if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
                 final ProcessorNode procNode = (ProcessorNode) connectable;
-                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor);
+                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor, getStateManager(connectable.getIdentifier()));
                 final ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController,
                         contextFactory, scheduleState, standardProcContext);
 
                 continuallyRunTask = runnableTask;
                 processContext = standardProcContext;
             } else {
-                processContext = new ConnectableProcessContext(connectable, encryptor);
+                processContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
                 continuallyRunTask = new ContinuallyRunConnectableTask(contextFactory, connectable, scheduleState, processContext);
             }
 

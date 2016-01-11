@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.reporting.Bulletin;
@@ -37,11 +38,13 @@ public class MockReportingContext extends MockControllerServiceLookup implements
     private final Map<String, ControllerServiceConfiguration> controllerServices;
     private final MockEventAccess eventAccess = new MockEventAccess();
     private final Map<PropertyDescriptor, String> properties = new HashMap<>();
+    private final StateManager stateManager;
 
     private final Map<String, List<Bulletin>> componentBulletinsCreated = new HashMap<>();
 
-    public MockReportingContext(final Map<String, ControllerService> controllerServices) {
+    public MockReportingContext(final Map<String, ControllerService> controllerServices, final StateManager stateManager) {
         this.controllerServices = new HashMap<>();
+        this.stateManager = stateManager;
         for (final Map.Entry<String, ControllerService> entry : controllerServices.entrySet()) {
             this.controllerServices.put(entry.getKey(), new ControllerServiceConfiguration(entry.getValue()));
         }
@@ -111,5 +114,10 @@ public class MockReportingContext extends MockControllerServiceLookup implements
         }
 
         return new ArrayList<>(created);
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

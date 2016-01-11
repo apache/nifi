@@ -24,6 +24,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+
 public class ScheduleState {
 
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
@@ -62,12 +64,12 @@ public class ScheduleState {
     }
 
     /**
-     * Maintains an AtomicBoolean so that the first thread to call this method after a Processor is no longer scheduled to run will receive a <code>true</code> and MUST call the methods annotated with
-     *
-     * @OnStopped
+     * Maintains an AtomicBoolean so that the first thread to call this method after a Processor is no longer
+     * scheduled to run will receive a <code>true</code> and MUST call the methods annotated with
+     * {@link OnStopped @OnStopped}
      *
      * @return <code>true</code> if the caller is required to call Processor methods annotated with
-     * @OnStopped, <code>false</code> otherwise
+     *         @OnStopped, <code>false</code> otherwise
      */
     public boolean mustCallOnStoppedMethods() {
         return mustCallOnStoppedMethods.getAndSet(false);

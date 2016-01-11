@@ -32,6 +32,8 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -74,6 +76,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final Heartbeater heartbeater;
     private final long administrativeYieldMillis;
     private final String administrativeYieldDuration;
+    private final StateManagerProvider stateManagerProvider;
 
     private final ConcurrentMap<Object, ScheduleState> scheduleStates = new ConcurrentHashMap<>();
     private final ScheduledExecutorService frameworkTaskExecutor;
@@ -84,15 +87,21 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     private final StringEncryptor encryptor;
 
-    public StandardProcessScheduler(final Heartbeater heartbeater, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor) {
+    public StandardProcessScheduler(final Heartbeater heartbeater, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor,
+        final StateManagerProvider stateManagerProvider) {
         this.heartbeater = heartbeater;
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
+        this.stateManagerProvider = stateManagerProvider;
 
         administrativeYieldDuration = NiFiProperties.getInstance().getAdministrativeYieldDuration();
         administrativeYieldMillis = FormatUtils.getTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS);
 
         frameworkTaskExecutor = new FlowEngine(4, "Framework Task Thread");
+    }
+
+    private StateManager getStateManager(final String componentId) {
+        return stateManagerProvider.getStateManager(componentId);
     }
 
     public void scheduleFrameworkTask(final Runnable command, final String taskName, final long initialDelay, final long delay, final TimeUnit timeUnit) {
@@ -102,13 +111,22 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 try {
                     command.run();
                 } catch (final Throwable t) {
-                    LOG.error("Failed to run Framework Task {} due to {}", command, t.toString());
+                    LOG.error("Failed to run Framework Task {} due to {}", taskName, t.toString());
                     if (LOG.isDebugEnabled()) {
                         LOG.error("", t);
                     }
                 }
             }
         }, initialDelay, delay, timeUnit);
+    }
+
+    /**
+     * Submits the given task to be executed exactly once in a background thread
+     * 
+     * @param task the task to perform
+     */
+    public void submitFrameworkTask(final Runnable task) {
+        frameworkTaskExecutor.submit(task);
     }
 
     @Override
@@ -299,7 +317,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             public void run() {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
                     final long lastStopTime = scheduleState.getLastStopTime();
-                    final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor);
+                    final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor, getStateManager(procNode.getIdentifier()));
 
                     final Set<String> serviceIds = new HashSet<>();
                     for (final PropertyDescriptor descriptor : processContext.getProperties().keySet()) {
@@ -343,7 +361,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                     return;
                                 }
 
-                                final SchedulingContext schedulingContext = new StandardSchedulingContext(processContext, controllerServiceProvider, procNode);
+                                final SchedulingContext schedulingContext = new StandardSchedulingContext(processContext, controllerServiceProvider,
+                                    procNode, getStateManager(procNode.getIdentifier()));
                                 ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, procNode.getProcessor(), schedulingContext);
 
                                 getSchedulingAgent(procNode).schedule(procNode, scheduleState);
@@ -420,7 +439,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             @Override
             public void run() {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                    final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor);
+                    final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor, getStateManager(procNode.getIdentifier()));
 
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, procNode.getProcessor(), processContext);
 
@@ -503,7 +522,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(connectable).unschedule(connectable, state);
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
-            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, encryptor);
+            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
                 heartbeater.heartbeat();

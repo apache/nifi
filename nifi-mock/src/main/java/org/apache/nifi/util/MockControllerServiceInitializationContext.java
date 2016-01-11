@@ -16,23 +16,31 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.state.MockStateManager;
 
 public class MockControllerServiceInitializationContext extends MockControllerServiceLookup implements ControllerServiceInitializationContext, ControllerServiceLookup {
 
     private final String identifier;
     private final ComponentLog logger;
+    private final StateManager stateManager;
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier) {
-        this(controllerService, identifier, new MockProcessorLog(identifier, controllerService));
+        this(controllerService, identifier, new MockStateManager());
     }
 
-    public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final ComponentLog logger) {
+    public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final StateManager stateManager) {
+        this(controllerService, identifier, new MockProcessorLog(identifier, controllerService), stateManager);
+    }
+
+    public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final ComponentLog logger, final StateManager stateManager) {
         this.identifier = identifier;
         this.logger = logger;
+        this.stateManager = stateManager;
         addControllerService(controllerService, identifier);
     }
 
@@ -54,5 +62,10 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     @Override
     public ComponentLog getLogger() {
         return logger;
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

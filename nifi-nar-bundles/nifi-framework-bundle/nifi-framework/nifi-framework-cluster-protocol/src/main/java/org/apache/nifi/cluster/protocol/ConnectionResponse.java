@@ -31,7 +31,7 @@ import org.apache.nifi.cluster.protocol.jaxb.message.ConnectionResponseAdapter;
 @XmlJavaTypeAdapter(ConnectionResponseAdapter.class)
 public class ConnectionResponse {
 
-    private final boolean blockedByFirewall;
+    private final String rejectionReason;
     private final int tryLaterSeconds;
     private final NodeIdentifier nodeIdentifier;
     private final StandardDataFlow dataFlow;
@@ -43,7 +43,7 @@ public class ConnectionResponse {
     private volatile String clusterManagerDN;
 
     public ConnectionResponse(final NodeIdentifier nodeIdentifier, final StandardDataFlow dataFlow, final boolean primary,
-            final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
+        final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
         } else if (dataFlow == null) {
@@ -52,7 +52,7 @@ public class ConnectionResponse {
         this.nodeIdentifier = nodeIdentifier;
         this.dataFlow = dataFlow;
         this.tryLaterSeconds = 0;
-        this.blockedByFirewall = false;
+        this.rejectionReason = null;
         this.primary = primary;
         this.managerRemoteInputPort = managerRemoteInputPort;
         this.managerRemoteCommsSecure = managerRemoteCommsSecure;
@@ -66,18 +66,18 @@ public class ConnectionResponse {
         this.dataFlow = null;
         this.nodeIdentifier = null;
         this.tryLaterSeconds = tryLaterSeconds;
-        this.blockedByFirewall = false;
+        this.rejectionReason = null;
         this.primary = false;
         this.managerRemoteInputPort = null;
         this.managerRemoteCommsSecure = null;
         this.instanceId = null;
     }
 
-    private ConnectionResponse() {
+    private ConnectionResponse(final String rejectionReason) {
         this.dataFlow = null;
         this.nodeIdentifier = null;
         this.tryLaterSeconds = 0;
-        this.blockedByFirewall = true;
+        this.rejectionReason = rejectionReason;
         this.primary = false;
         this.managerRemoteInputPort = null;
         this.managerRemoteCommsSecure = null;
@@ -85,7 +85,15 @@ public class ConnectionResponse {
     }
 
     public static ConnectionResponse createBlockedByFirewallResponse() {
-        return new ConnectionResponse();
+        return new ConnectionResponse("Blocked by Firewall");
+    }
+
+    public static ConnectionResponse createConflictingNodeIdResponse(final String otherNode) {
+        return new ConnectionResponse("The Node Identifier provided already belongs to node " + otherNode);
+    }
+
+    public static ConnectionResponse createRejectionResponse(final String explanation) {
+        return new ConnectionResponse(explanation);
     }
 
     public boolean isPrimary() {
@@ -96,8 +104,8 @@ public class ConnectionResponse {
         return tryLaterSeconds > 0;
     }
 
-    public boolean isBlockedByFirewall() {
-        return blockedByFirewall;
+    public String getRejectionReason() {
+        return rejectionReason;
     }
 
     public int getTryLaterSeconds() {
@@ -135,5 +143,4 @@ public class ConnectionResponse {
     public String getClusterManagerDN() {
         return clusterManagerDN;
     }
-
 }

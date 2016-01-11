@@ -102,7 +102,8 @@ language governing permissions and limitations under the License. -->
     <repositories>
         <repository>
             <id>central</id>
-            <!-- This should be at top, it makes maven try the central repo first and then others and hence faster dep resolution -->
+            <!-- This should be at top, it makes maven try the central repo 
+                first and then others and hence faster dep resolution -->
             <name>Maven Repository</name>
             <url>https://repo1.maven.org/maven2</url>
             <releases>
@@ -578,7 +579,7 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
-				<artifactId>activemq-broker</artifactId>
+                <artifactId>activemq-broker</artifactId>
                 <version>5.12.1</version>
                 <scope>tests</scope>
             </dependency>
@@ -748,6 +749,27 @@ language governing permissions and limitations under the License. -->
                 <artifactId>spark-streaming_2.10</artifactId>
                 <version>1.3.1</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>3.4.7</version>
+            </dependency>
+            
+            <!-- Test Dependencies for testing interactions with ZooKeeper -->
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-test</artifactId>
+                <version>3.0.0</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testng</groupId>
+                <artifactId>testng</artifactId>
+                <version>6.8.8</version>
+                <scope>test</scope>
+            </dependency>
+            
+            <!-- NiFi modules -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
@@ -1283,71 +1305,100 @@ language governing permissions and limitations under the License. -->
                             <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
-                                <property name="eachLine" value="true" />
+                                <property name="eachLine"
+                                    value="true" />
                             </module>
                             <module name="TreeWalker">
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$" />
-                                    <property name="message" value="Line has trailing whitespace." />
+                                    <property name="format"
+                                        value="\s+$" />
+                                    <property name="message"
+                                        value="Line has trailing whitespace." />
                                 </module>
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link" />
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
+                                    <property name="format"
+                                        value="[@]see\s+[{][@]link" />
+                                    <property name="message"
+                                        value="Javadoc @see does not need @link: pick one or the other." />
                                 </module>
                                 <module name="OuterTypeFilename" />
                                 <module name="LineLength">
                                     <!-- needs extra, because Eclipse formatter ignores the ending left 
                                     brace -->
                                     <property name="max" value="200" />
-                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
+                                    <property name="ignorePattern"
+                                        value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                                 </module>
                                 <module name="AvoidStarImport" />
                                 <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true" />
+                                    <property name="processJavadoc"
+                                        value="true" />
                                 </module>
                                 <module name="NoLineWrap" />
                                 <module name="LeftCurly">
-                                    <property name="maxLineLength" value="160" />
+                                    <property name="maxLineLength"
+                                        value="160" />
                                 </module>
                                 <module name="RightCurly" />
                                 <module name="RightCurly">
-                                    <property name="option" value="alone" />
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
+                                    <property name="option"
+                                        value="alone" />
+                                    <property name="tokens"
+                                        value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT" />
-                                    <property name="option" value="nl" />
+                                    <property name="tokens"
+                                        value="DOT" />
+                                    <property name="option"
+                                        value="nl" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA" />
-                                    <property name="option" value="EOL" />
+                                    <property name="tokens"
+                                        value="COMMA" />
+                                    <property name="option"
+                                        value="EOL" />
                                 </module>
                                 <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
+                                    <property name="format"
+                                        value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
                                 </module>
                                 <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
+                                    <property name="format"
+                                        value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                                 </module>
                                 <module name="MethodParamPad" />
                                 <module name="OperatorWrap">
-                                    <property name="option" value="NL" />
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
+                                    <property name="option"
+                                        value="NL" />
+                                    <property name="tokens"
+                                        value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
+                                    <property name="tokens"
+                                        value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF" />
-                                    <property name="allowSamelineMultipleAnnotations" value="true" />
+                                    <property name="tokens"
+                                        value="VARIABLE_DEF" />
+                                    <property
+                                        name="allowSamelineMultipleAnnotations"
+                                        value="true" />
                                 </module>
                                 <module name="NonEmptyAtclauseDescription" />
                                 <module name="JavadocMethod">
-                                    <property name="allowMissingJavadoc" value="true" />
-                                    <property name="allowMissingParamTags" value="true" />
-                                    <property name="allowMissingThrowsTags" value="true" />
-                                    <property name="allowMissingReturnTag" value="true" />
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
-                                    <property name="allowThrowsTagsForSubclasses" value="true" />
+                                    <property name="allowMissingJavadoc"
+                                        value="true" />
+                                    <property name="allowMissingParamTags"
+                                        value="true" />
+                                    <property name="allowMissingThrowsTags"
+                                        value="true" />
+                                    <property name="allowMissingReturnTag"
+                                        value="true" />
+                                    <property name="allowedAnnotations"
+                                        value="Override,Test,BeforeClass,AfterClass,Before,After" />
+                                    <property
+                                        name="allowThrowsTagsForSubclasses"
+                                        value="true" />
                                 </module>
                                 <module name="SingleLineJavadoc" />
                             </module>
@@ -1424,12 +1475,12 @@ language governing permissions and limitations under the License. -->
             </build>
         </profile>
         <profile>
-            <!-- This profile will disable DocLint which performs strict JavaDoc
-            processing which was introduced in JDK 8. These are technically errors
-            in the JavaDoc which we need to eventually address. However, if a release
-            is performed using JDK 8, the JavaDoc generation would fail. By activating
-            this profile when running on JDK 8 we can ensure the JavaDocs continue
-            to generate successfully -->
+            <!-- This profile will disable DocLint which performs strict 
+                JavaDoc processing which was introduced in JDK 8. These are technically errors 
+                in the JavaDoc which we need to eventually address. However, if a release 
+                is performed using JDK 8, the JavaDoc generation would fail. By activating 
+                this profile when running on JDK 8 we can ensure the JavaDocs continue to 
+                generate successfully -->
             <id>disable-doclint</id>
             <activation>
                 <jdk>1.8</jdk>

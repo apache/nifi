@@ -30,7 +30,7 @@ public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionRespo
             aCr.setDataFlow(cr.getDataFlow());
             aCr.setNodeIdentifier(cr.getNodeIdentifier());
             aCr.setTryLaterSeconds(cr.getTryLaterSeconds());
-            aCr.setBlockedByFirewall(cr.isBlockedByFirewall());
+            aCr.setRejectionReason(cr.getRejectionReason());
             aCr.setPrimary(cr.isPrimary());
             aCr.setManagerRemoteInputPort(cr.getManagerRemoteInputPort());
             aCr.setManagerRemoteCommsSecure(cr.isManagerRemoteCommsSecure());
@@ -43,11 +43,11 @@ public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionRespo
     public ConnectionResponse unmarshal(final AdaptedConnectionResponse aCr) {
         if (aCr.shouldTryLater()) {
             return new ConnectionResponse(aCr.getTryLaterSeconds());
-        } else if (aCr.isBlockedByFirewall()) {
-            return ConnectionResponse.createBlockedByFirewallResponse();
+        } else if (aCr.getRejectionReason() != null) {
+            return ConnectionResponse.createRejectionResponse(aCr.getRejectionReason());
         } else {
             return new ConnectionResponse(aCr.getNodeIdentifier(), aCr.getDataFlow(), aCr.isPrimary(),
-                    aCr.getManagerRemoteInputPort(), aCr.isManagerRemoteCommsSecure(), aCr.getInstanceId());
+                aCr.getManagerRemoteInputPort(), aCr.isManagerRemoteCommsSecure(), aCr.getInstanceId());
         }
     }
 

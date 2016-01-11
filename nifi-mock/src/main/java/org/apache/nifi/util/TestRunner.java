@@ -35,6 +35,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 
 public interface TestRunner {
 
@@ -824,4 +825,9 @@ public interface TestRunner {
      * Clears the Provenance Events that have been emitted by the Processor
      */
     void clearProvenanceEvents();
+
+    /**
+     * @return the State Provider that is used to stored and retrieve local state
+     */
+    MockStateManager getStateManager();
 }

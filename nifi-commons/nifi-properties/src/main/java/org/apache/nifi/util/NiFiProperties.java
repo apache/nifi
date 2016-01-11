@@ -189,6 +189,13 @@ public class NiFiProperties extends Properties {
     // kerberos properties
     public static final String KERBEROS_KRB5_FILE = "nifi.kerberos.krb5.file";
 
+    // state management
+    public static final String STATE_MANAGEMENT_CONFIG_FILE = "nifi.state.management.configuration.file";
+    public static final String STATE_MANAGEMENT_LOCAL_PROVIDER_ID = "nifi.state.management.provider.local";
+    public static final String STATE_MANAGEMENT_CLUSTER_PROVIDER_ID = "nifi.state.management.provider.cluster";
+    public static final String STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER = "nifi.state.management.embedded.zookeeper.start";
+    public static final String STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES = "nifi.state.management.embedded.zookeeper.properties";
+
     // defaults
     public static final String DEFAULT_TITLE = "NiFi";
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
@@ -235,6 +242,9 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY = "5 sec";
     public static final int DEFAULT_CLUSTER_MANAGER_PROTOCOL_THREADS = 10;
     public static final String DEFAULT_CLUSTER_MANAGER_SAFEMODE_DURATION = "0 sec";
+
+    // state management defaults
+    public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
 
     private NiFiProperties() {
         super();
@@ -984,5 +994,29 @@ public class NiFiProperties extends Properties {
 
     public String getBoredYieldDuration() {
         return getProperty(BORED_YIELD_DURATION, DEFAULT_BORED_YIELD_DURATION);
+    }
+
+    public File getStateManagementConfigFile() {
+        return new File(getProperty(STATE_MANAGEMENT_CONFIG_FILE, DEFAULT_STATE_MANAGEMENT_CONFIG_FILE));
+    }
+
+    /*
+     * public static final String STATE_MANAGEMENT_MAX_ZOOKEEPER_SERVERS = "nifi.state.management.embedded.zookeeper.max.instances";
+     */
+    public String getLocalStateProviderId() {
+        return getProperty(STATE_MANAGEMENT_LOCAL_PROVIDER_ID);
+    }
+
+    public String getClusterStateProviderId() {
+        return getProperty(STATE_MANAGEMENT_CLUSTER_PROVIDER_ID);
+    }
+
+    public File getEmbeddedZooKeeperPropertiesFile() {
+        final String filename = getProperty(STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES);
+        return filename == null ? null : new File(filename);
+    }
+
+    public boolean isStartEmbeddedZooKeeper() {
+        return Boolean.parseBoolean(getProperty(STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER));
     }
 }

@@ -34,7 +34,15 @@ public interface ConfiguredComponent {
 
     public void setAnnotationData(String data);
 
-    public void setProperty(String name, String value);
+    /**
+     * Sets the property with the given name to the given value
+     * 
+     * @param name the name of the property to update
+     * @param value the value to update the property to
+     * @param triggerOnPropertyModified if <code>true</code>, will trigger the #onPropertyModified method of the component
+     *            to be called, otherwise will not
+     */
+    public void setProperty(String name, String value, boolean triggerOnPropertyModified);
 
     /**
      * Removes the property and value for the given property name if a
@@ -43,10 +51,12 @@ public interface ConfiguredComponent {
      * if was a dynamic property.
      *
      * @param name the property to remove
+     * @param triggerOnPropertyModified if <code>true</code>, will trigger the #onPropertyModified method of the component
+     *            to be called, otherwise will not
      * @return true if removed; false otherwise
      * @throws java.lang.IllegalArgumentException if the name is null
      */
-    public boolean removeProperty(String name);
+    public boolean removeProperty(String name, boolean triggerOnPropertyModified);
 
     public Map<PropertyDescriptor, String> getProperties();
 

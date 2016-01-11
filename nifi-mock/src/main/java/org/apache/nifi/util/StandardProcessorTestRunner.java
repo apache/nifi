@@ -69,6 +69,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
 
 public class StandardProcessorTestRunner implements TestRunner {
@@ -80,6 +81,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final SharedSessionState sharedState;
     private final AtomicLong idGenerator;
     private final boolean triggerSerially;
+    private final MockStateManager stateManager;
 
     private int numThreads = 1;
     private final AtomicInteger invocations = new AtomicInteger(0);
@@ -100,7 +102,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.sharedState = new SharedSessionState(processor, idGenerator);
         this.flowFileQueue = sharedState.getFlowFileQueue();
         this.sessionFactory = new MockSessionFactory(sharedState, processor);
-        this.context = new MockProcessContext(processor);
+        this.stateManager = new MockStateManager();
+        this.context = new MockProcessContext(processor, stateManager);
 
         detectDeprecatedAnnotations(processor);
 
@@ -575,7 +578,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         // }
 
         final ComponentLog logger = new MockProcessorLog(identifier, service);
-        final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger);
+        final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger, stateManager);
         initContext.addControllerServices(context);
         service.initialize(initContext);
 
@@ -595,7 +598,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertNotValid(final ControllerService service) {
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, stateManager).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -609,7 +612,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertValid(final ControllerService service) {
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, stateManager).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -719,7 +722,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         final Map<PropertyDescriptor, String> curProps = configuration.getProperties();
         final Map<PropertyDescriptor, String> updatedProps = new HashMap<>(curProps);
 
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, stateManager).getControllerServiceValidationContext(service);
         final ValidationResult validationResult = property.validate(value, validationContext);
 
         updatedProps.put(property, value);
@@ -768,4 +771,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         sharedState.clearProvenanceEvents();
     }
 
+    @Override
+    public MockStateManager getStateManager() {
+        return stateManager;
+    }
 }
