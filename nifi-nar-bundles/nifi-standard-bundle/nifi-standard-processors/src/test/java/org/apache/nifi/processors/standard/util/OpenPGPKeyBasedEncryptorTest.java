@@ -82,7 +82,8 @@ public class OpenPGPKeyBasedEncryptorTest {
         OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), PUBLIC_KEYRING_PATH, USER_ID, new char[0], filename);
         StreamCallback encryptionCallback = encryptor.getEncryptionCallback();
 
-        OpenPGPKeyBasedEncryptor decryptor = new OpenPGPKeyBasedEncryptor(EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(), filename);
+        OpenPGPKeyBasedEncryptor decryptor = new OpenPGPKeyBasedEncryptor(EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(),
+                filename);
         StreamCallback decryptionCallback = decryptor.getDecryptionCallback();
 
         // Act
@@ -113,7 +114,8 @@ public class OpenPGPKeyBasedEncryptorTest {
         // No file, just streams
         String filename = unsignedFile.getName();
 
-        OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(), filename);
+        OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(),
+                filename);
 
         StreamCallback decryptionCallback = encryptor.getDecryptionCallback();
 
