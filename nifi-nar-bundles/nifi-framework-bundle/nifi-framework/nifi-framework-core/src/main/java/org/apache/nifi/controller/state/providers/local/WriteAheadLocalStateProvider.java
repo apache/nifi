@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -50,11 +53,9 @@ import org.wali.WriteAheadRepository;
 public class WriteAheadLocalStateProvider extends AbstractStateProvider {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadLocalStateProvider.class);
 
-    // TODO: CREATE BACKGROUND THREAD OR USE EXECUTOR (in StateProviderInitializationContext?) to schedule checkpointing.
-    private static final long CHECKPOINT_NANOS = TimeUnit.MINUTES.toNanos(2);
-
     private final StateMapSerDe serde;
     private final ConcurrentMap<String, ComponentProvider> componentProviders = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory());
 
     static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
         .name("Directory")
@@ -115,6 +116,8 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         // expensive than just keeping track of a local 'long' variable. Since we won't actually increment this at any point until this after
         // the init() method completes, this is okay to do.
         versionGenerator.set(maxRecordVersion);
+
+        executor.scheduleWithFixedDelay(new CheckpointTask(), 2, 2, TimeUnit.MINUTES);
     }
 
     @Override
@@ -219,6 +222,31 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
             stateMap = new StandardStateMap(null, versionGenerator.incrementAndGet());
             final StateMapUpdate update = new StateMapUpdate(stateMap, componentId, UpdateType.UPDATE);
             wal.update(Collections.singleton(update), false);
+        }
+    }
+
+    private class CheckpointTask implements Runnable {
+        @Override
+        public void run() {
+            try {
+                logger.debug("Checkpointing Write-Ahead Log used to store components' state");
+
+                writeAheadLog.checkpoint();
+            } catch (final IOException e) {
+                logger.error("Failed to checkpoint Write-Ahead Log used to store components' state", e);
+            }
+        }
+    }
+
+    private static class NamedThreadFactory implements ThreadFactory {
+        private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+
+        @Override
+        public Thread newThread(final Runnable r) {
+            final Thread t = defaultFactory.newThread(r);
+            t.setName("Write-Ahead Local State Provider Maintenance");
+            t.setDaemon(true);
+            return t;
         }
     }
 }

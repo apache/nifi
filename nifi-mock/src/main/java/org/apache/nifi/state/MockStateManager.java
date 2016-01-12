@@ -17,6 +17,7 @@
 
 package org.apache.nifi.state;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,8 +34,28 @@ public class MockStateManager implements StateManager {
     private StateMap localStateMap = new MockStateMap(null, -1L);
     private StateMap clusterStateMap = new MockStateMap(null, -1L);
 
+    private volatile boolean failToGetLocalState = false;
+    private volatile boolean failToSetLocalState = false;
+    private volatile boolean failToGetClusterState = false;
+    private volatile boolean failToSetClusterState = false;
+
+    private void verifyCanSet(final Scope scope) throws IOException {
+        final boolean failToSet = (scope == Scope.LOCAL) ? failToSetLocalState : failToSetClusterState;
+        if (failToSet) {
+            throw new IOException("Unit Test configured to throw IOException if " + scope + " State is set");
+        }
+    }
+
+    private void verifyCanGet(final Scope scope) throws IOException {
+        final boolean failToGet = (scope == Scope.LOCAL) ? failToGetLocalState : failToGetClusterState;
+        if (failToGet) {
+            throw new IOException("Unit Test configured to throw IOException if " + scope + " State is retrieved");
+        }
+    }
+
     @Override
-    public synchronized void setState(final Map<String, String> state, final Scope scope) {
+    public synchronized void setState(final Map<String, String> state, final Scope scope) throws IOException {
+        verifyCanSet(scope);
         final StateMap stateMap = new MockStateMap(state, versionIndex.incrementAndGet());
 
         if (scope == Scope.CLUSTER) {
@@ -45,7 +66,12 @@ public class MockStateManager implements StateManager {
     }
 
     @Override
-    public synchronized StateMap getState(final Scope scope) {
+    public synchronized StateMap getState(final Scope scope) throws IOException {
+        verifyCanGet(scope);
+        return retrieveState(scope);
+    }
+
+    private synchronized StateMap retrieveState(final Scope scope) {
         if (scope == Scope.CLUSTER) {
             return clusterStateMap;
         } else {
@@ -54,9 +80,10 @@ public class MockStateManager implements StateManager {
     }
 
     @Override
-    public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) {
+    public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
         if (scope == Scope.CLUSTER) {
             if (oldValue == clusterStateMap) {
+                verifyCanSet(scope);
                 clusterStateMap = new MockStateMap(newValue, versionIndex.incrementAndGet());
                 return true;
             }
@@ -64,6 +91,7 @@ public class MockStateManager implements StateManager {
             return false;
         } else {
             if (oldValue == localStateMap) {
+                verifyCanSet(scope);
                 localStateMap = new MockStateMap(newValue, versionIndex.incrementAndGet());
                 return true;
             }
@@ -73,13 +101,19 @@ public class MockStateManager implements StateManager {
     }
 
     @Override
-    public synchronized void clear(final Scope scope) {
+    public synchronized void clear(final Scope scope) throws IOException {
         setState(Collections.<String, String> emptyMap(), scope);
     }
 
 
     private String getValue(final String key, final Scope scope) {
-        final StateMap stateMap = getState(scope);
+        final StateMap stateMap;
+        if (scope == Scope.CLUSTER) {
+            stateMap = clusterStateMap;
+        } else {
+            stateMap = localStateMap;
+        }
+
         return stateMap.get(key);
     }
 
@@ -104,7 +138,7 @@ public class MockStateManager implements StateManager {
      * @param scope the scope to compare the stateValues against
      */
     public void assertStateEquals(final Map<String, String> stateValues, final Scope scope) {
-        final StateMap stateMap = getState(scope);
+        final StateMap stateMap = retrieveState(scope);
         Assert.assertEquals(stateValues, stateMap.toMap());
     }
 
@@ -115,7 +149,7 @@ public class MockStateManager implements StateManager {
      * @param scope the scope to compare the stateValues against
      */
     public void assertStateNotEquals(final Map<String, String> stateValues, final Scope scope) {
-        final StateMap stateMap = getState(scope);
+        final StateMap stateMap = retrieveState(scope);
         Assert.assertNotSame(stateValues, stateMap.toMap());
     }
 
@@ -157,16 +191,49 @@ public class MockStateManager implements StateManager {
      */
     public void assertStateSet(final Scope scope) {
         final StateMap stateMap = (scope == Scope.CLUSTER) ? clusterStateMap : localStateMap;
-        Assert.assertEquals("Expected state to be set for Scope " + scope + ", but it was not set", -1L, stateMap.getVersion());
+        Assert.assertNotSame("Expected state to be set for Scope " + scope + ", but it was not set", -1L, stateMap.getVersion());
     }
 
     /**
      * Ensures that the state was not set for the given scope
-     * 
+     *
      * @param scope the scope
      */
     public void assertStateNotSet(final Scope scope) {
         final StateMap stateMap = (scope == Scope.CLUSTER) ? clusterStateMap : localStateMap;
-        Assert.assertNotSame("Expected state not to be set for Scope " + scope + ", but it was set", -1L, stateMap.getVersion());
+        Assert.assertEquals("Expected state not to be set for Scope " + scope + ", but it was set", -1L, stateMap.getVersion());
+    }
+
+    /**
+     * Specifies whether or not the State Manager should throw an IOException when state is set for the given scope.
+     * Note that calls to {@link #replace(StateMap, Map, Scope)} will fail only if the state would be set (i.e., if
+     * we call replace and the StateMap does not match the old value, it will not fail).
+     *
+     * Also note that if setting state is set to fail, clearing will also fail, as clearing is thought of as setting the
+     * state to empty
+     *
+     * @param scope the scope that should (or should not) fail
+     * @param fail whether or not setting state should fail
+     */
+    public void setFailOnStateSet(final Scope scope, final boolean fail) {
+        if (scope == Scope.LOCAL) {
+            failToSetLocalState = fail;
+        } else {
+            failToSetClusterState = fail;
+        }
+    }
+
+    /**
+     * Specifies whether or not the State Manager should throw an IOException when state is retrieved for the given scope.
+     *
+     * @param scope the scope that should (or should not) fail
+     * @param fail whether or not retrieving state should fail
+     */
+    public void setFailOnStateGet(final Scope scope, final boolean fail) {
+        if (scope == Scope.LOCAL) {
+            failToGetLocalState = fail;
+        } else {
+            failToGetClusterState = fail;
+        }
     }
 }

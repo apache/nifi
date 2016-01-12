@@ -463,6 +463,13 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      */
     protected abstract boolean isListingResetNecessary(final PropertyDescriptor property);
 
+    /**
+     * Returns a Scope that specifies where the state should be managed for this Processor
+     *
+     * @param context the ProcessContext to use in order to make a determination
+     * @return a Scope that specifies where the state should be managed for this Processor
+     */
+    protected abstract Scope getStateScope(final ProcessContext context);
 
 
     private static class StringSerDe implements Serializer<String>, Deserializer<String> {

@@ -245,5 +245,10 @@ public class TestAbstractListProcessor {
         protected boolean isListingResetNecessary(PropertyDescriptor property) {
             return false;
         }
+
+        @Override
+        protected Scope getStateScope(final ProcessContext context) {
+            return Scope.CLUSTER;
+        }
     }
 }

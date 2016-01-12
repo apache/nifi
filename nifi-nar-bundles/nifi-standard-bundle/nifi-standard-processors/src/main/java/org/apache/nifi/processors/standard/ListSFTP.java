@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
@@ -84,5 +85,12 @@ public class ListSFTP extends ListFileTransfer {
     @Override
     protected String getProtocolName() {
         return "sftp";
+    }
+
+    @Override
+    protected Scope getStateScope(final ProcessContext context) {
+        // Use cluster scope so that component can be run on Primary Node Only and can still
+        // pick up where it left off, even if the Primary Node changes.
+        return Scope.CLUSTER;
     }
 }
