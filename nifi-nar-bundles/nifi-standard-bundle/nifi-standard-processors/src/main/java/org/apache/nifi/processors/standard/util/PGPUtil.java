@@ -46,7 +46,9 @@ public class PGPUtil {
     public static final int BUFFER_SIZE = 65536;
     public static final int BLOCK_SIZE = 4096;
 
-    public static void encrypt(InputStream in, OutputStream out, String algorithm, String provider, int cipher, String filename, PGPKeyEncryptionMethodGenerator encryptionMethodGenerator) throws IOException, PGPException {
+    public static void encrypt(InputStream in, OutputStream out, String algorithm, String provider, int cipher, String filename,
+                               PGPKeyEncryptionMethodGenerator encryptionMethodGenerator) throws IOException, PGPException {
+
         final boolean isArmored = EncryptContent.isPGPArmoredAlgorithm(algorithm);
         OutputStream output = out;
         if (isArmored) {

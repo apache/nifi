@@ -97,7 +97,8 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
     /**
      * Returns true if the passphrase is valid.
      * <p>
-     * This is used in the EncryptContent custom validation to check if the passphrase can extract a private key from the secret key ring. After BC was upgraded from 1.46 to 1.53, the API changed so this is performed differently but the functionality is equivalent.
+     * This is used in the EncryptContent custom validation to check if the passphrase can extract a private key from the secret key ring. After BC was upgraded from 1.46 to 1.53, the API changed
+     * so this is performed differently but the functionality is equivalent.
      *
      * @param provider the provider name
      * @param secretKeyringFile the file path to the keyring
