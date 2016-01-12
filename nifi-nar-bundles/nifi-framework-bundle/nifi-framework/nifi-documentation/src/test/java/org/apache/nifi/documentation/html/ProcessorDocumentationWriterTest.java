@@ -27,24 +27,17 @@ import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
 import org.apache.nifi.documentation.example.NakedProcessor;
 import org.apache.nifi.documentation.example.ProcessorWithLogger;
-import org.apache.nifi.documentation.init.ProcessorInitializer;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testFullyDocumentedProcessor() throws IOException {
-        FullyDocumentedProcessor processor = new FullyDocumentedProcessor();
-        ProcessorInitializer initializer = new ProcessorInitializer();
-        initializer.initialize(processor);
-
         DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        writer.write(processor, baos, false);
-        initializer.teardown(processor);
+        writer.write(FullyDocumentedProcessor.class, baos, false);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -67,33 +60,20 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "SampleService");
 
         assertNotContains(results, "iconSecure.png");
-        assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class)
-                .value());
+        assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class).value());
         assertNotContains(results, "This component has no required or optional properties.");
         assertNotContains(results, "No description provided.");
         assertNotContains(results, "No Tags provided.");
         assertNotContains(results, "Additional Details...");
-
-        // verify the right OnRemoved and OnShutdown methods were called
-        Assert.assertEquals(0, processor.getOnRemovedArgs());
-        Assert.assertEquals(0, processor.getOnRemovedNoArgs());
-
-        Assert.assertEquals(1, processor.getOnShutdownArgs());
-        Assert.assertEquals(1, processor.getOnShutdownNoArgs());
     }
 
     @Test
     public void testNakedProcessor() throws IOException {
-        NakedProcessor processor = new NakedProcessor();
-        ProcessorInitializer initializer = new ProcessorInitializer();
-        initializer.initialize(processor);
-
         DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        writer.write(processor, baos, false);
-        initializer.teardown(processor);
+        writer.write(NakedProcessor.class, baos, false);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -114,16 +94,11 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testProcessorWithLoggerInitialization() throws IOException {
-        ProcessorWithLogger processor = new ProcessorWithLogger();
-        ProcessorInitializer initializer = new ProcessorInitializer();
-        initializer.initialize(processor);
-
         DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        writer.write(processor, baos, false);
-        initializer.teardown(processor);
+        writer.write(ProcessorWithLogger.class, baos, false);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
