@@ -84,7 +84,6 @@ public class TestPutKafka {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.TOPIC, "test.topic");
-        runner.setProperty(PutKafka.PRODUCER_TYPE, "async");
 
         int size = 10;
         for(int i=0; i < size; i++) {
