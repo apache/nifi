@@ -33,4 +33,9 @@ public enum Scope {
      * node in the cluster.
      */
     LOCAL;
+
+    @Override
+    public String toString() {
+        return name();
+    }
 }

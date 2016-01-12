@@ -936,6 +936,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final ProcessorLog processorLogger = new SimpleProcessLogger(identifier, processor);
             final ProcessorInitializationContext ctx = new StandardProcessorInitializationContext(identifier, processorLogger, this);
             processor.initialize(ctx);
+
+            LogRepositoryFactory.getRepository(identifier).setLogger(processorLogger);
             return processor;
         } catch (final Throwable t) {
             throw new ProcessorInstantiationException(type, t);
@@ -1135,6 +1137,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             clusterTaskExecutor.shutdown();
+
+            if (zooKeeperStateServer != null) {
+                zooKeeperStateServer.shutdown();
+            }
 
             // Trigger any processors' methods marked with @OnShutdown to be called
             rootGroup.shutdown();

@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -94,6 +95,10 @@ import org.apache.nifi.processors.standard.util.FileInfo;
                 "rw-rw-r--")
 })
 @SeeAlso({GetFile.class, PutFile.class, FetchFile.class})
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored, "
+    + "along with the filenames of all files that share that same timestamp. This allows the Processor to list only files that have been added or modified after "
+    + "this date the next time that the Processor is run. Whether the state is stored with a Local or Cluster scope depends on the value of the "
+    + "<Input Directory Location> property.")
 public class ListFile extends AbstractListProcessor<FileInfo> {
     static final AllowableValue LOCATION_LOCAL = new AllowableValue("Local", "Local", "Input Directory is located on a local disk. State will be stored locally on each node in the cluster.");
     static final AllowableValue LOCATION_REMOTE = new AllowableValue("Remote", "Remote", "Input Directory is located on a remote system. State will be stored across the cluster so that "

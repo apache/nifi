@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
@@ -140,6 +141,8 @@ import org.codehaus.jackson.map.ObjectMapper;
  * </ul>
  */
 @TriggerSerially
+@Stateful(scopes={Scope.LOCAL, Scope.CLUSTER}, description="After a listing of resources is performed, the latest timestamp of any of the resources is stored in the component's state, "
+    + "along with all resources that have that same timestmap so that the Processor can avoid data duplication. The scope used depends on the implementation.")
 public abstract class AbstractListProcessor<T extends ListableEntity> extends AbstractProcessor {
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")

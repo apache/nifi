@@ -418,6 +418,11 @@ file, rather than being configured via the _nifi.properties_ file, simply becaus
 and it is easier to maintain and understand the configuration in an XML-based file such as this, than to mix the properties of the Provider
 in with all of the other NiFi framework-specific properties.
 
+It should be noted that if Processors and other components save state using the Clustered scope, the Local State Provider will be used
+if the instance is a standalone instance (not in a cluster) or is disconnected from the cluster. This also means that if a standalone instance
+is migrated to become a cluster, then that state will no longer be available, as the component will begin using the Clustered State Provider
+instead of the Local State Provider.
+
 
 [[embedded_zookeeper]]
 === Embedded ZooKeeper Server

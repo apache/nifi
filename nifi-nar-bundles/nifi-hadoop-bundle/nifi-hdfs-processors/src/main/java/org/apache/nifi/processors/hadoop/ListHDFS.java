@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -85,6 +86,10 @@ import org.codehaus.jackson.map.ObjectMapper;
     @WritesAttribute(attribute="hdfs.permissions", description="The permissions for the file in HDFS. This is formatted as 3 characters for the owner, "
             + "3 for the group, and 3 for other users. For example rw-rw-r--")
 })
+@Stateful(scopes = Scope.CLUSTER, description = "After performing a listing of HDFS files, the timestamp of the newest file is stored, "
+    + "along with the filenames of all files that share that same timestamp. This allows the Processor to list only files that have been added or modified after "
+    + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary "
+    + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class ListHDFS extends AbstractHadoopProcessor {
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogMessage;
 import org.apache.nifi.logging.LogObserver;
@@ -44,6 +45,8 @@ public class StandardLogRepository implements LogRepository {
     private final Lock writeLock = rwLock.writeLock();
 
     private final Logger logger = LoggerFactory.getLogger(StandardLogRepository.class);
+
+    private volatile ComponentLog componentLogger;
 
     @Override
     public void addLogMessage(final LogLevel level, final String message) {
@@ -169,5 +172,15 @@ public class StandardLogRepository implements LogRepository {
         } finally {
             writeLock.unlock();
         }
+    }
+
+    @Override
+    public void setLogger(final ComponentLog componentLogger) {
+        this.componentLogger = componentLogger;
+    }
+
+    @Override
+    public ComponentLog getLogger() {
+        return componentLogger;
     }
 }

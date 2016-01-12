@@ -24,6 +24,10 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.processor.SimpleProcessLogger;
 
 public class StandardStateManager implements StateManager {
     private final StateProvider localProvider;
@@ -44,25 +48,40 @@ public class StandardStateManager implements StateManager {
         return clusterProvider;
     }
 
+    private ComponentLog getLogger(final String componentId) {
+        final LogRepository repo = LogRepositoryFactory.getRepository(componentId);
+        final ComponentLog logger = (repo == null) ? null : repo.getLogger();
+        if (repo == null || logger == null) {
+            return new SimpleProcessLogger(componentId, this);
+        }
+
+        return logger;
+    }
 
     @Override
     public StateMap getState(final Scope scope) throws IOException {
-        return getProvider(scope).getState(componentId);
+        final StateMap stateMap = getProvider(scope).getState(componentId);
+        getLogger(componentId).debug("Returning {} State: {}", new Object[] {scope, stateMap});
+        return stateMap;
     }
 
 
     @Override
     public boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
-        return getProvider(scope).replace(oldValue, newValue, componentId);
+        final boolean replaced = getProvider(scope).replace(oldValue, newValue, componentId);
+        getLogger(componentId).debug("{} State from old value {} to new value {} was {}", new Object[] {scope, oldValue, newValue, replaced});
+        return replaced;
     }
 
     @Override
     public void setState(final Map<String, String> state, final Scope scope) throws IOException {
+        getLogger(componentId).debug("Setting {} State to {}", new Object[] {scope, state});
         getProvider(scope).setState(state, componentId);
     }
 
     @Override
     public void clear(final Scope scope) throws IOException {
+        getLogger(componentId).debug("Clearing {} State", new Object[] {scope});
         getProvider(scope).clear(componentId);
     }
 

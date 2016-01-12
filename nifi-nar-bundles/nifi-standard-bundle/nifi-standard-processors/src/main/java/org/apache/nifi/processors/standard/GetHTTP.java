@@ -65,6 +65,7 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -93,11 +94,13 @@ import org.apache.nifi.util.StopWatch;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("Fetches a file via HTTP")
+@CapabilityDescription("Fetches a file via HTTP. If the HTTP server supports it, the Processor then stores the Last Modified time and the ETag "
+    + "so that data will not be pulled again until the remote data changes or until the state is cleared.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
     @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
 })
+@Stateful(scopes = {Scope.LOCAL}, description = "Stores Last Modified Time and ETag headers returned by server so that the same data will not be fetched multiple times.")
 public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     static final int PERSISTENCE_INTERVAL_MSEC = 10000;

@@ -60,7 +60,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
 
     public MockProcessContext(final ConfigurableComponent component) {
-        this(component, new MockStateManager());
+        this(component, new MockStateManager(component));
     }
 
     /**

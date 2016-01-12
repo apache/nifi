@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -39,22 +40,35 @@ public class MockStateManager implements StateManager {
     private volatile boolean failToGetClusterState = false;
     private volatile boolean failToSetClusterState = false;
 
-    private void verifyCanSet(final Scope scope) throws IOException {
-        final boolean failToSet = (scope == Scope.LOCAL) ? failToSetLocalState : failToSetClusterState;
-        if (failToSet) {
-            throw new IOException("Unit Test configured to throw IOException if " + scope + " State is set");
-        }
-    }
+    private final boolean usesLocalState;
+    private final boolean usesClusterState;
 
-    private void verifyCanGet(final Scope scope) throws IOException {
-        final boolean failToGet = (scope == Scope.LOCAL) ? failToGetLocalState : failToGetClusterState;
-        if (failToGet) {
-            throw new IOException("Unit Test configured to throw IOException if " + scope + " State is retrieved");
+    public MockStateManager(final Object component) {
+        final Stateful stateful = component.getClass().getAnnotation(Stateful.class);
+        if (stateful == null) {
+            usesLocalState = false;
+            usesClusterState = false;
+        } else {
+            final Scope[] scopes = stateful.scopes();
+            boolean local = false;
+            boolean cluster = false;
+
+            for (final Scope scope : scopes) {
+                if (scope == Scope.LOCAL) {
+                    local = true;
+                } else if (scope == Scope.CLUSTER) {
+                    cluster = true;
+                }
+            }
+
+            usesLocalState = local;
+            usesClusterState = cluster;
         }
     }
 
     @Override
     public synchronized void setState(final Map<String, String> state, final Scope scope) throws IOException {
+        verifyAnnotation(scope);
         verifyCanSet(scope);
         final StateMap stateMap = new MockStateMap(state, versionIndex.incrementAndGet());
 
@@ -67,11 +81,13 @@ public class MockStateManager implements StateManager {
 
     @Override
     public synchronized StateMap getState(final Scope scope) throws IOException {
+        verifyAnnotation(scope);
         verifyCanGet(scope);
         return retrieveState(scope);
     }
 
     private synchronized StateMap retrieveState(final Scope scope) {
+        verifyAnnotation(scope);
         if (scope == Scope.CLUSTER) {
             return clusterStateMap;
         } else {
@@ -81,6 +97,7 @@ public class MockStateManager implements StateManager {
 
     @Override
     public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
+        verifyAnnotation(scope);
         if (scope == Scope.CLUSTER) {
             if (oldValue == clusterStateMap) {
                 verifyCanSet(scope);
@@ -102,9 +119,31 @@ public class MockStateManager implements StateManager {
 
     @Override
     public synchronized void clear(final Scope scope) throws IOException {
+        verifyAnnotation(scope);
         setState(Collections.<String, String> emptyMap(), scope);
     }
 
+    private void verifyCanSet(final Scope scope) throws IOException {
+        final boolean failToSet = (scope == Scope.LOCAL) ? failToSetLocalState : failToSetClusterState;
+        if (failToSet) {
+            throw new IOException("Unit Test configured to throw IOException if " + scope + " State is set");
+        }
+    }
+
+    private void verifyCanGet(final Scope scope) throws IOException {
+        final boolean failToGet = (scope == Scope.LOCAL) ? failToGetLocalState : failToGetClusterState;
+        if (failToGet) {
+            throw new IOException("Unit Test configured to throw IOException if " + scope + " State is retrieved");
+        }
+    }
+
+    private void verifyAnnotation(final Scope scope) {
+        // ensure that the @Stateful annotation is present with the appropriate Scope
+        if ((scope == Scope.LOCAL && !usesLocalState) || (scope == Scope.CLUSTER && !usesClusterState)) {
+            Assert.fail("Component is attempting to set or retrieve state with a scope of " + scope + " but does not declare that it will use "
+                + scope + " state. A @Stateful annotation should be added to the component with a scope of " + scope);
+        }
+    }
 
     private String getValue(final String key, final Scope scope) {
         final StateMap stateMap;

@@ -106,7 +106,7 @@ public class TestDetectDuplicate {
 
         final DistributedMapCacheClientImpl client = new DistributedMapCacheClientImpl();
         final ComponentLog logger = new MockProcessorLog("client", client);
-        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger, new MockStateManager());
+        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger, new MockStateManager(client));
         client.initialize(clientInitContext);
 
         return client;

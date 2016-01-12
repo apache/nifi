@@ -46,4 +46,8 @@ public class StandardStateMap implements StateMap {
         return stateValues;
     }
 
+    @Override
+    public String toString() {
+        return "StandardStateMap[version=" + version + ", values=" + stateValues + "]";
+    }
 }

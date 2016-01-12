@@ -39,7 +39,7 @@ public class TestRouteOnAttribute {
     @Test
     public void testInvalidOnMisconfiguredProperty() {
         final RouteOnAttribute proc = new RouteOnAttribute();
-        final MockProcessContext ctx = new MockProcessContext(proc, new MockStateManager());
+        final MockProcessContext ctx = new MockProcessContext(proc, new MockStateManager(proc));
         final ValidationResult validationResult = ctx.setProperty("RouteA", "${a:equals('b')"); // Missing closing brace
         assertFalse(validationResult.isValid());
     }
@@ -47,7 +47,7 @@ public class TestRouteOnAttribute {
     @Test
     public void testInvalidOnNonBooleanProperty() {
         final RouteOnAttribute proc = new RouteOnAttribute();
-        final MockProcessContext ctx = new MockProcessContext(proc, new MockStateManager());
+        final MockProcessContext ctx = new MockProcessContext(proc, new MockStateManager(proc));
         final ValidationResult validationResult = ctx.setProperty("RouteA", "${a:length()"); // Should be boolean
         assertFalse(validationResult.isValid());
     }

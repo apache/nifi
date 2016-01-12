@@ -827,7 +827,13 @@ public interface TestRunner {
     void clearProvenanceEvents();
 
     /**
-     * @return the State Provider that is used to stored and retrieve local state
+     * @return the State Manager that is used to stored and retrieve state
      */
     MockStateManager getStateManager();
+
+    /**
+     * @param service the controller service of interest
+     * @return the State Manager that is used to store and retrieve state for the given controller service
+     */
+    MockStateManager getStateManager(ControllerService service);
 }

@@ -30,7 +30,7 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     private final StateManager stateManager;
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier) {
-        this(controllerService, identifier, new MockStateManager());
+        this(controllerService, identifier, new MockStateManager(controllerService));
     }
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final StateManager stateManager) {
