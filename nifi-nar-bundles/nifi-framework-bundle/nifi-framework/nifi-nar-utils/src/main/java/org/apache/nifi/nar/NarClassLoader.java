@@ -206,14 +206,15 @@ public class NarClassLoader extends URLClassLoader {
         }
 
         final File nativeDir = new File(dependencies, "native");
+        final File libsoFile = new File(nativeDir, "lib" + libname + ".so");
+        final File dllFile = new File(nativeDir, libname + ".dll");
         final File soFile = new File(nativeDir, libname + ".so");
-        if (soFile.exists()) {
+        if (libsoFile.exists()) {
+            return libsoFile.getAbsolutePath();
+        } else if (dllFile.exists()) {
+            return dllFile.getAbsolutePath();
+        } else if (soFile.exists()) {
             return soFile.getAbsolutePath();
-        } else {
-            final File dllFile = new File(nativeDir, libname + ".dll");
-            if (dllFile.exists()) {
-                return dllFile.getAbsolutePath();
-            }
         }
 
         // not found in the nar. try system native dir

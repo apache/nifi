@@ -36,9 +36,9 @@ public class RequestUserAccountActionTest {
 
     private static final String USER_ID_3 = "3";
 
-    private static final String USER_DN_1 = "existing user account dn";
-    private static final String USER_DN_2 = "data access exception";
-    private static final String USER_DN_3 = "new account request";
+    private static final String USER_IDENTITY_1 = "existing user account";
+    private static final String USER_IDENTITY_2 = "data access exception";
+    private static final String USER_IDENTITY_3 = "new account request";
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
@@ -54,7 +54,7 @@ public class RequestUserAccountActionTest {
                 String dn = (String) args[0];
 
                 NiFiUser user = null;
-                if (USER_DN_1.equals(dn)) {
+                if (USER_IDENTITY_1.equals(dn)) {
                     user = new NiFiUser();
                 }
                 return user;
@@ -65,10 +65,10 @@ public class RequestUserAccountActionTest {
             public Void answer(InvocationOnMock invocation) throws Throwable {
                 Object[] args = invocation.getArguments();
                 NiFiUser user = (NiFiUser) args[0];
-                switch (user.getDn()) {
-                    case USER_DN_2:
+                switch (user.getIdentity()) {
+                    case USER_IDENTITY_2:
                         throw new DataAccessException();
-                    case USER_DN_3:
+                    case USER_IDENTITY_3:
                         user.setId(USER_ID_3);
                         break;
                 }
@@ -90,7 +90,7 @@ public class RequestUserAccountActionTest {
      */
     @Test(expected = IllegalArgumentException.class)
     public void testExistingAccount() throws Exception {
-        RequestUserAccountAction requestUserAccount = new RequestUserAccountAction(USER_DN_1, StringUtils.EMPTY);
+        RequestUserAccountAction requestUserAccount = new RequestUserAccountAction(USER_IDENTITY_1, StringUtils.EMPTY);
         requestUserAccount.execute(daoFactory, null);
     }
 
@@ -102,7 +102,7 @@ public class RequestUserAccountActionTest {
      */
     @Test(expected = DataAccessException.class)
     public void testDataAccessException() throws Exception {
-        RequestUserAccountAction requestUserAccount = new RequestUserAccountAction(USER_DN_2, StringUtils.EMPTY);
+        RequestUserAccountAction requestUserAccount = new RequestUserAccountAction(USER_IDENTITY_2, StringUtils.EMPTY);
         requestUserAccount.execute(daoFactory, null);
     }
 
@@ -113,12 +113,12 @@ public class RequestUserAccountActionTest {
      */
     @Test
     public void testRequestUserAccountAction() throws Exception {
-        RequestUserAccountAction requestUserAccount = new RequestUserAccountAction(USER_DN_3, StringUtils.EMPTY);
+        RequestUserAccountAction requestUserAccount = new RequestUserAccountAction(USER_IDENTITY_3, StringUtils.EMPTY);
         NiFiUser user = requestUserAccount.execute(daoFactory, null);
 
         // verfiy the user
         Assert.assertEquals(USER_ID_3, user.getId());
-        Assert.assertEquals(USER_DN_3, user.getDn());
+        Assert.assertEquals(USER_IDENTITY_3, user.getIdentity());
         Assert.assertEquals(AccountStatus.PENDING, user.getStatus());
 
         // verify interaction with dao

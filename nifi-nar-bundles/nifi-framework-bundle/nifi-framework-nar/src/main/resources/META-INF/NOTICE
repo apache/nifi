@@ -90,6 +90,11 @@ The following binary components are provided under the Apache Software License v
       Spring Framework 4.1.6.RELEASE
       Copyright (c) 2002-2015 Pivotal, Inc.
 
+  (ASLv2) Spring Security
+    The following NOTICE information applies:
+          Spring Framework 4.0.3.RELEASE
+          Copyright (c) 2002-2015 Pivotal, Inc.
+
   (ASLv2) Swagger Core
     The following NOTICE information applies:
       Swagger Core 1.5.3-M1

@@ -26,4 +26,6 @@ public interface DAOFactory {
     ActionDAO getActionDAO();
 
     AuthorityDAO getAuthorityDAO();
+
+    KeyDAO getKeyDAO();
 }

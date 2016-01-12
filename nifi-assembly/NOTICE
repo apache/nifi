@@ -4,6 +4,10 @@ Copyright 2014-2015 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+This product includes the following work from the Apache Hadoop project:
+
+BoundedByteArrayOutputStream.java which was adapted to SoftLimitBoundedByteArrayOutputStream.java
+
 ===========================================
 Apache Software License v2
 ===========================================
@@ -107,6 +111,11 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Spring Framework 4.1.4.RELEASE
       Copyright (c) 2002-2015 Pivotal, Inc.
+
+  (ASLv2) Spring Security
+    The following NOTICE information applies:
+          Spring Framework 4.0.3.RELEASE
+          Copyright (c) 2002-2015 Pivotal, Inc.
 
   (ASLv2) Apache Flume
     The following NOTICE information applies:
@@ -323,10 +332,33 @@ The following binary components are provided under the Apache Software License v
       Apache Commons Daemon
       Copyright 1999-2013 The Apache Software Foundation
 
+  (ASLv2) Apache Commons EL
+    The following NOTICE information applies:
+      Apache Commons EL
+      Copyright 1999-2007 The Apache Software Foundation
+
+      EL-8 patch - Copyright 2004-2007 Jamie Taylor
+      http://issues.apache.org/jira/browse/EL-8
+
   (ASLv2) Jetty
     The following NOTICE information applies:
        Jetty Web Container
        Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+
+  (ASLv2) Apache Tomcat
+    The following NOTICE information applies:
+      Apache Tomcat
+      Copyright 2007 The Apache Software Foundation
+
+        Java Management Extensions (JMX) support is provided by
+        the MX4J package, which is open source software.  The
+        original software and related information is available
+        at http://mx4j.sourceforge.net.
+
+        Java compilation software for JSP pages is provided by Eclipse, 
+        which is open source software.  The orginal software and 
+        related infomation is available at
+        http://www.eclipse.org.
 
   (ASLv2) Apache Kafka
     The following NOTICE information applies:
@@ -558,6 +590,10 @@ The following binary components are provided under the Apache Software License v
       Swagger Core 1.5.3-M1
       Copyright 2015 Reverb Technologies, Inc.
 
+  (ASLv2) Google GSON
+    The following NOTICE information applies:
+      Copyright 2008 Google Inc.
+
   (ASLv2) JSON-SMART
     The following NOTICE information applies:
       Copyright 2011 JSON-SMART authors
@@ -708,6 +744,42 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
         Metadata-Extractor
         Copyright 2002-2015 Drew Noakes
+
+    (ASLv2) Couchbase Java SDK
+      The following NOTICE information applies:
+        Couchbase Java SDK
+        Copyright 2014 Couchbase, Inc.
+
+    (ASLv2) RxJava
+      The following NOTICE information applies:
+        Couchbase Java SDK
+        Copyright 2012 Netflix, Inc.
+
+    (ASLv2) HBase Common
+      The following NOTICE information applies:
+        This product includes portions of the Guava project v14, specifically
+        'hbase-common/src/main/java/org/apache/hadoop/hbase/io/LimitInputStream.java'
+
+        Copyright (C) 2007 The Guava Authors
+
+        Licensed under the Apache License, Version 2.0
+
+    (ASLv2) HTrace Core
+      The following NOTICE information applies:
+        In addition, this product includes software dependencies. See
+        the accompanying LICENSE.txt for a listing of dependencies
+        that are NOT Apache licensed (with pointers to their licensing)
+
+        Apache HTrace includes an Apache Thrift connector to Zipkin. Zipkin
+        is a distributed tracing system that is Apache 2.0 Licensed.
+        Copyright 2012 Twitter, Inc.
+
+    (ASLv2) Apache Qpid AMQP 1.0 Client
+      The following NOTICE information applies:
+        Copyright 2006-2015 The Apache Software Foundation
+
+    (ASLv2) EventHubs Client (com.microsoft.eventhubs.client:eventhubs-client:0.9.1 - https://github.com/hdinsight/eventhubs-client/)
+
 
 ************************
 Common Development and Distribution License 1.1

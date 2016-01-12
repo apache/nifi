@@ -19,11 +19,14 @@ package org.apache.nifi.processor;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.connectable.Connection;
@@ -32,6 +35,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.util.Connectables;
 
 public class StandardProcessContext implements ProcessContext, ControllerServiceLookup {
 
@@ -179,4 +183,29 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         return controllerServiceProvider.getControllerServiceName(serviceIdentifier);
     }
 
+    @Override
+    public boolean hasIncomingConnection() {
+        return procNode.hasIncomingConnection();
+    }
+
+    @Override
+    public boolean hasNonLoopConnection() {
+        return Connectables.hasNonLoopConnection(procNode);
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        Set<Connection> connections = procNode.getConnections(relationship);
+        return connections != null && !connections.isEmpty();
+    }
+
+    @Override
+    public boolean isExpressionLanguagePresent(final PropertyDescriptor property) {
+        if (property == null || !property.isExpressionLanguageSupported()) {
+            return false;
+        }
+
+        final List<Range> elRanges = Query.extractExpressionRanges(getProperty(property).getValue());
+        return (elRanges != null && !elRanges.isEmpty());
+    }
 }

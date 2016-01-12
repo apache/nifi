@@ -124,6 +124,43 @@ public interface ProvenanceReporter {
     void receive(FlowFile flowFile, String transitUri, String sourceSystemFlowFileIdentifier, String details, long transmissionMillis);
 
     /**
+     * Emits a Provenance Event of type
+     * {@link ProvenanceEventType#FETCH FETCH} that indicates that the content of the given
+     * FlowFile was overwritten with the data received from an external source.
+     *
+     * @param flowFile the FlowFile whose content was replaced
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred.
+     */
+    void fetch(FlowFile flowFile, String transitUri);
+
+    /**
+     * Emits a Provenance Event of type
+     * {@link ProvenanceEventType#FETCH FETCH} that indicates that the content of the given
+     * FlowFile was overwritten with the data received from an external source.
+     *
+     * @param flowFile the FlowFile whose content was replaced
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred.
+     * @param transmissionMillis the number of milliseconds taken to transfer the data
+     */
+    void fetch(FlowFile flowFile, String transitUri, long transmissionMillis);
+
+    /**
+     * Emits a Provenance Event of type
+     * {@link ProvenanceEventType#FETCH FETCH} that indicates that the content of the given
+     * FlowFile was overwritten with the data received from an external source.
+     *
+     * @param flowFile the FlowFile whose content was replaced
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred.
+     * @param details details about the event
+     * @param transmissionMillis the number of milliseconds taken to transfer
+     * the data
+     */
+    void fetch(FlowFile flowFile, String transitUri, String details, long transmissionMillis);
+
+    /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#SEND SEND}
      * that indicates that a copy of the given FlowFile was sent to an external
      * destination. The external destination may be a remote system or may be a

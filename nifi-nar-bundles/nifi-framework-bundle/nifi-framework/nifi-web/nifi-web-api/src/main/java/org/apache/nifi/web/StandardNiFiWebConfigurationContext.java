@@ -34,9 +34,10 @@ import javax.ws.rs.core.Response;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.ExtensionDetails;
-import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
@@ -121,21 +122,21 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         final Date now = new Date();
         final Collection<Action> actions = new HashSet<>(configurationActions.size());
         for (final ConfigurationAction configurationAction : configurationActions) {
-            final ExtensionDetails extensionDetails = new ExtensionDetails();
+            final FlowChangeExtensionDetails extensionDetails = new FlowChangeExtensionDetails();
             extensionDetails.setType(configurationAction.getType());
 
-            final ConfigureDetails configureDetails = new ConfigureDetails();
+            final FlowChangeConfigureDetails configureDetails = new FlowChangeConfigureDetails();
             configureDetails.setName(configurationAction.getName());
             configureDetails.setPreviousValue(configurationAction.getPreviousValue());
             configureDetails.setValue(configurationAction.getValue());
 
-            final Action action = new Action();
+            final FlowChangeAction action = new FlowChangeAction();
             action.setTimestamp(now);
             action.setSourceId(configurationAction.getId());
             action.setSourceName(configurationAction.getName());
             action.setSourceType(componentType);
             action.setOperation(Operation.Configure);
-            action.setUserDn(getCurrentUserDn());
+            action.setUserIdentity(getCurrentUserDn());
             action.setUserName(getCurrentUserName());
             action.setComponentDetails(extensionDetails);
             action.setActionDetails(configureDetails);
@@ -157,19 +158,19 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
     @Override
     public String getCurrentUserDn() {
-        String userDn = NiFiUser.ANONYMOUS_USER_DN;
+        String userIdentity = NiFiUser.ANONYMOUS_USER_IDENTITY;
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
-            userDn = user.getDn();
+            userIdentity = user.getIdentity();
         }
 
-        return userDn;
+        return userIdentity;
     }
 
     @Override
     public String getCurrentUserName() {
-        String userName = NiFiUser.ANONYMOUS_USER_DN;
+        String userName = NiFiUser.ANONYMOUS_USER_IDENTITY;
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {

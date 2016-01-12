@@ -1999,14 +1999,26 @@ nf.SummaryTable = (function () {
             $('#total-heap').text(systemDiagnostics.totalHeap);
             $('#used-heap').text(systemDiagnostics.usedHeap);
             $('#free-heap').text(systemDiagnostics.freeHeap);
-            $('#utilization-heap').text(systemDiagnostics.heapUtilization);
+
+            // ensure the heap utilization could be calculated
+            if (nf.Common.isDefinedAndNotNull(systemDiagnostics.heapUtilization)) {
+                $('#utilization-heap').text('(' + systemDiagnostics.heapUtilization + ')');
+            } else {
+                $('#utilization-heap').text('');
+            }
 
             // non heap
             $('#max-non-heap').text(systemDiagnostics.maxNonHeap);
             $('#total-non-heap').text(systemDiagnostics.totalNonHeap);
             $('#used-non-heap').text(systemDiagnostics.usedNonHeap);
             $('#free-non-heap').text(systemDiagnostics.freeNonHeap);
-            $('#utilization-non-heap').text(systemDiagnostics.nonHeapUtilization);
+
+            // enure the non heap utilization could be calculated
+            if (nf.Common.isDefinedAndNotNull(systemDiagnostics.nonHeapUtilization)) {
+                $('#utilization-non-heap').text('(' + systemDiagnostics.nonHeapUtilization + ')');
+            } else {
+                $('#utilization-non-heap').text('');
+            }
 
             // garbage collection
             var garbageCollectionContainer = $('#garbage-collection-table tbody').empty();
@@ -2014,9 +2026,15 @@ nf.SummaryTable = (function () {
                 addGarbageCollection(garbageCollectionContainer, garbageCollection);
             });
 
-            // load
+            // available processors
             $('#available-processors').text(systemDiagnostics.availableProcessors);
-            $('#processor-load-average').html(nf.Common.formatValue(systemDiagnostics.processorLoadAverage));
+
+            // load
+            if (nf.Common.isDefinedAndNotNull(systemDiagnostics.processorLoadAverage)) {
+                $('#processor-load-average').text(nf.Common.formatFloat(systemDiagnostics.processorLoadAverage));
+            } else {
+                $('#processor-load-average').html(nf.Common.formatValue(systemDiagnostics.processorLoadAverage));
+            }
 
             // database storage usage
             var flowFileRepositoryStorageUsageContainer = $('#flow-file-repository-storage-usage-container').empty();

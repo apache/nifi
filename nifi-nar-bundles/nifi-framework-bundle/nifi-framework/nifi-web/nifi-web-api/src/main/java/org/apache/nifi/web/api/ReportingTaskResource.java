@@ -273,7 +273,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("/{availability}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-            value = "Creates a new remote process group",
+            value = "Creates a new reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")

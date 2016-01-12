@@ -44,10 +44,10 @@ public class SeedUserAccountsActionTest {
     private static final String USER_ID_3 = "3";
     private static final String USER_ID_4 = "4";
 
-    private static final String USER_DN_1 = "user dn 1 - active user - remove monitor and operator, add dfm";
-    private static final String USER_DN_2 = "user dn 2 - active user - no action";
-    private static final String USER_DN_3 = "user dn 3 - pending user - add operator";
-    private static final String USER_DN_4 = "user dn 4 - new user - add monitor";
+    private static final String USER_IDENTITY_1 = "user 1 - active user - remove monitor and operator, add dfm";
+    private static final String USER_IDENTITY_2 = "user 2 - active user - no action";
+    private static final String USER_IDENTITY_3 = "user 3 - pending user - add operator";
+    private static final String USER_IDENTITY_4 = "user 4 - new user - add monitor";
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
@@ -68,19 +68,19 @@ public class SeedUserAccountsActionTest {
                 if (USER_ID_1.equals(id)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_1);
-                    user.setDn(USER_DN_1);
+                    user.setIdentity(USER_IDENTITY_1);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                     user.setStatus(AccountStatus.ACTIVE);
                 } else if (USER_ID_2.equals(id)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_2);
-                    user.setDn(USER_DN_2);
+                    user.setIdentity(USER_IDENTITY_2);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_ADMIN));
                     user.setStatus(AccountStatus.ACTIVE);
                 } else if (USER_ID_3.equals(id)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_3);
-                    user.setDn(USER_DN_3);
+                    user.setIdentity(USER_IDENTITY_3);
                     user.setStatus(AccountStatus.PENDING);
                 }
                 return user;
@@ -93,22 +93,22 @@ public class SeedUserAccountsActionTest {
                 String dn = (String) args[0];
 
                 NiFiUser user = null;
-                if (USER_DN_1.equals(dn)) {
+                if (USER_IDENTITY_1.equals(dn)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_1);
-                    user.setDn(USER_DN_1);
+                    user.setIdentity(USER_IDENTITY_1);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_MONITOR));
                     user.setStatus(AccountStatus.ACTIVE);
-                } else if (USER_DN_2.equals(dn)) {
+                } else if (USER_IDENTITY_2.equals(dn)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_2);
-                    user.setDn(USER_DN_2);
+                    user.setIdentity(USER_IDENTITY_2);
                     user.getAuthorities().addAll(EnumSet.of(Authority.ROLE_ADMIN));
                     user.setStatus(AccountStatus.ACTIVE);
-                } else if (USER_DN_3.equals(dn)) {
+                } else if (USER_IDENTITY_3.equals(dn)) {
                     user = new NiFiUser();
                     user.setId(USER_ID_3);
-                    user.setDn(USER_DN_3);
+                    user.setIdentity(USER_IDENTITY_3);
                     user.setStatus(AccountStatus.PENDING);
                 }
                 return user;
@@ -120,7 +120,7 @@ public class SeedUserAccountsActionTest {
                 Object[] args = invocation.getArguments();
                 NiFiUser user = (NiFiUser) args[0];
 
-                if (USER_DN_4.equals(user.getDn())) {
+                if (USER_IDENTITY_4.equals(user.getIdentity())) {
                     user.setId(USER_ID_4);
                 }
 
@@ -141,13 +141,13 @@ public class SeedUserAccountsActionTest {
 
                 Set<String> users = new HashSet<>();
                 if (Authority.ROLE_DFM.equals(role)) {
-                    users.add(USER_DN_1);
+                    users.add(USER_IDENTITY_1);
                 } else if (Authority.ROLE_ADMIN.equals(role)) {
-                    users.add(USER_DN_2);
+                    users.add(USER_IDENTITY_2);
                 } else if (Authority.ROLE_PROXY.equals(role)) {
-                    users.add(USER_DN_3);
+                    users.add(USER_IDENTITY_3);
                 } else if (Authority.ROLE_MONITOR.equals(role)) {
-                    users.add(USER_DN_4);
+                    users.add(USER_IDENTITY_4);
                 }
                 return users;
             }
@@ -160,16 +160,16 @@ public class SeedUserAccountsActionTest {
 
                 Set<Authority> authorities = EnumSet.noneOf(Authority.class);
                 switch (dn) {
-                    case USER_DN_1:
+                    case USER_IDENTITY_1:
                         authorities.add(Authority.ROLE_DFM);
                         break;
-                    case USER_DN_2:
+                    case USER_IDENTITY_2:
                         authorities.add(Authority.ROLE_ADMIN);
                         break;
-                    case USER_DN_3:
+                    case USER_IDENTITY_3:
                         authorities.add(Authority.ROLE_PROXY);
                         break;
-                    case USER_DN_4:
+                    case USER_IDENTITY_4:
                         authorities.add(Authority.ROLE_MONITOR);
                         break;
                 }

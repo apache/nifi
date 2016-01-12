@@ -1,0 +1,16 @@
+language: java
+sudo: false
+
+os:
+  - linux
+
+jdk:
+  - oraclejdk8
+  - oraclejdk7
+  - openjdk7
+
+# Workaround for non-existent Maven repository as per: https://github.com/travis-ci/travis-ci/issues/4629#issuecomment-131214465
+before_install:
+  - sed -i.bak -e 's|https://nexus.codehaus.org/snapshots/|https://oss.sonatype.org/content/repositories/codehaus-snapshots/|g' ~/.m2/settings.xml
+
+script: mvn clean install -Pcontrib-check

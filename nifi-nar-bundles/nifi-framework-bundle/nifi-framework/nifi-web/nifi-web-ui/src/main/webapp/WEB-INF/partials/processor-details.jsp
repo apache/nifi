@@ -129,7 +129,8 @@
                     <div class="setting">
                         <div class="setting-name">
                             Run duration
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The amount of time this processor will run for when scheduled."/>
+                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info"
+                                 title="When scheduled to run, the processor will continue running for up to this duration. A run duration of 0ms will execute once when scheduled."/>
                         </div>
                         <div class="setting-field">
                             <span id="read-only-run-duration"></span>

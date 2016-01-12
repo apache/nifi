@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.processor;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -110,5 +113,30 @@ public class StandardSchedulingContext implements SchedulingContext {
     @Override
     public Set<Relationship> getAvailableRelationships() {
         return processContext.getAvailableRelationships();
+    }
+
+    @Override
+    public boolean hasIncomingConnection() {
+        return processContext.hasIncomingConnection();
+    }
+
+    @Override
+    public boolean hasNonLoopConnection() {
+        return processContext.hasNonLoopConnection();
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        return processContext.hasConnection(relationship);
+    }
+
+    @Override
+    public boolean isExpressionLanguagePresent(PropertyDescriptor property) {
+        if (property == null || !property.isExpressionLanguageSupported()) {
+            return false;
+        }
+
+        final List<Range> elRanges = Query.extractExpressionRanges(getProperty(property).getValue());
+        return (elRanges != null && !elRanges.isEmpty());
     }
 }

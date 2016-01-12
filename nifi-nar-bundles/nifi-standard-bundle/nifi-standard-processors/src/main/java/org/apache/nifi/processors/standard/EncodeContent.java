@@ -26,13 +26,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base32InputStream;
 import org.apache.commons.codec.binary.Base32OutputStream;
-
 import org.apache.commons.codec.binary.Base64InputStream;
 import org.apache.commons.codec.binary.Base64OutputStream;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
@@ -41,11 +48,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.standard.util.ValidatingBase32InputStream;
 import org.apache.nifi.processors.standard.util.ValidatingBase64InputStream;
@@ -55,6 +57,7 @@ import org.apache.nifi.util.StopWatch;
 @EventDriven
 @SideEffectFree
 @SupportsBatching
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"encode", "decode", "base64", "hex"})
 @CapabilityDescription("Encodes the FlowFile content in base64")
 public class EncodeContent extends AbstractProcessor {
@@ -168,7 +171,7 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private class EncodeBase64 implements StreamCallback {
+    private static class EncodeBase64 implements StreamCallback {
 
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
@@ -178,7 +181,7 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private class DecodeBase64 implements StreamCallback {
+    private static class DecodeBase64 implements StreamCallback {
 
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
@@ -188,7 +191,7 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private class EncodeBase32 implements StreamCallback {
+    private static class EncodeBase32 implements StreamCallback {
 
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
@@ -198,7 +201,7 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private class DecodeBase32 implements StreamCallback {
+    private static class DecodeBase32 implements StreamCallback {
 
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
@@ -210,7 +213,7 @@ public class EncodeContent extends AbstractProcessor {
 
     private static final byte[] HEX_CHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-    private class EncodeHex implements StreamCallback {
+    private static class EncodeHex implements StreamCallback {
 
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
@@ -228,7 +231,7 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private class DecodeHex implements StreamCallback {
+    private static class DecodeHex implements StreamCallback {
 
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {

@@ -627,13 +627,15 @@ public class RunNiFi {
 
         final Properties nifiProps = loadProperties(logger);
         final String secretKey = nifiProps.getProperty("secret.key");
+        final String pid = nifiProps.getProperty("pid");
+        final File statusFile = getStatusFile(logger);
 
         try (final Socket socket = new Socket()) {
             logger.debug("Connecting to NiFi instance");
-            socket.setSoTimeout(60000);
+            socket.setSoTimeout(10000);
             socket.connect(new InetSocketAddress("localhost", port));
             logger.debug("Established connection to NiFi instance.");
-            socket.setSoTimeout(60000);
+            socket.setSoTimeout(10000);
 
             logger.debug("Sending SHUTDOWN Command to port {}", port);
             final OutputStream out = socket.getOutputStream();
@@ -654,7 +656,6 @@ public class RunNiFi {
             if (SHUTDOWN_CMD.equals(response)) {
                 logger.info("Apache NiFi has accepted the Shutdown Command and is shutting down now");
 
-                final String pid = nifiProps.getProperty("pid");
                 if (pid != null) {
                     final Properties bootstrapProperties = new Properties();
                     try (final FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
@@ -693,7 +694,6 @@ public class RunNiFi {
                         }
                     }
 
-                    final File statusFile = getStatusFile(logger);
                     if (statusFile.exists() && !statusFile.delete()) {
                         logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
                     }
@@ -703,7 +703,17 @@ public class RunNiFi {
                 logger.error("When sending SHUTDOWN command to NiFi, got unexpected response {}", response);
             }
         } catch (final IOException ioe) {
-            logger.error("Failed to send shutdown command to port {} due to {}", new Object[]{port, ioe.toString(), ioe});
+            if (pid == null) {
+                logger.error("Failed to send shutdown command to port {} due to {}. No PID found for the NiFi process, so unable to kill process; "
+                    + "the process should be killed manually.", new Object[] {port, ioe.toString()});
+            } else {
+                logger.error("Failed to send shutdown command to port {} due to {}. Will kill the NiFi Process with PID {}.", new Object[] {port, ioe.toString(), pid});
+                notifyStop();
+                killProcessTree(pid, logger);
+                if (statusFile.exists() && !statusFile.delete()) {
+                    logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
+                }
+            }
         } finally {
             if (lockFile.exists() && !lockFile.delete()) {
                 logger.error("Failed to delete lock file {}; this file should be cleaned up manually", lockFile);

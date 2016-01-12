@@ -25,11 +25,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -185,6 +185,11 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         @Override
         public void read(FlowFile source, InputStreamCallback reader) {
             session.read(source, reader);
+        }
+
+        @Override
+        public void read(FlowFile source, boolean allowSessionStreamManagement, InputStreamCallback reader) {
+            session.read(source, allowSessionStreamManagement, reader);
         }
 
         @Override

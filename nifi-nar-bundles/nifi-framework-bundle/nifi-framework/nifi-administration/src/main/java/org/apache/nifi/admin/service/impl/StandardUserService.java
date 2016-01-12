@@ -31,11 +31,14 @@ import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.admin.service.action.AuthorizeDownloadAction;
 import org.apache.nifi.admin.service.action.AuthorizeUserAction;
+import org.apache.nifi.admin.service.action.DeleteKeysAction;
 import org.apache.nifi.admin.service.action.DeleteUserAction;
 import org.apache.nifi.admin.service.action.DisableUserAction;
 import org.apache.nifi.admin.service.action.DisableUserGroupAction;
 import org.apache.nifi.admin.service.action.FindUserByDnAction;
 import org.apache.nifi.admin.service.action.FindUserByIdAction;
+import org.apache.nifi.admin.service.action.GetKeyByIdAction;
+import org.apache.nifi.admin.service.action.GetOrCreateKeyAction;
 import org.apache.nifi.admin.service.action.GetUserGroupAction;
 import org.apache.nifi.admin.service.action.GetUsersAction;
 import org.apache.nifi.admin.service.action.HasPendingUserAccounts;
@@ -52,6 +55,7 @@ import org.apache.nifi.admin.service.transaction.TransactionBuilder;
 import org.apache.nifi.admin.service.transaction.TransactionException;
 import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.authorization.DownloadAuthorization;
+import org.apache.nifi.key.Key;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.user.NiFiUserGroup;
 import org.apache.nifi.util.FormatUtils;
@@ -404,10 +408,8 @@ public class StandardUserService implements UserService {
     }
 
     /**
-     * Invalidates the user with the specified id. This is done to ensure a user
-     * account will need to be re-validated in case an error occurs while
-     * modifying a user account. This method should only be invoked from within
-     * a write lock.
+     * Invalidates the user with the specified id. This is done to ensure a user account will need to be re-validated in case an error occurs while modifying a user account. This method should only be
+     * invoked from within a write lock.
      *
      * @param id user account identifier
      */
@@ -613,6 +615,93 @@ public class StandardUserService implements UserService {
         } finally {
             closeQuietly(transaction);
             readLock.unlock();
+        }
+    }
+
+    @Override
+    public Key getKey(int id) {
+        Transaction transaction = null;
+        Key key = null;
+
+        readLock.lock();
+        try {
+            // start the transaction
+            transaction = transactionBuilder.start();
+
+            // get the key
+            GetKeyByIdAction addActions = new GetKeyByIdAction(id);
+            key = transaction.execute(addActions);
+
+            // commit the transaction
+            transaction.commit();
+        } catch (TransactionException | DataAccessException te) {
+            rollback(transaction);
+            throw new AdministrationException(te);
+        } catch (Throwable t) {
+            rollback(transaction);
+            throw t;
+        } finally {
+            closeQuietly(transaction);
+            readLock.unlock();
+        }
+
+        return key;
+    }
+
+    @Override
+    public Key getOrCreateKey(String identity) {
+        Transaction transaction = null;
+        Key key = null;
+
+        writeLock.lock();
+        try {
+            // start the transaction
+            transaction = transactionBuilder.start();
+
+            // get or create a key
+            GetOrCreateKeyAction addActions = new GetOrCreateKeyAction(identity);
+            key = transaction.execute(addActions);
+
+            // commit the transaction
+            transaction.commit();
+        } catch (TransactionException | DataAccessException te) {
+            rollback(transaction);
+            throw new AdministrationException(te);
+        } catch (Throwable t) {
+            rollback(transaction);
+            throw t;
+        } finally {
+            closeQuietly(transaction);
+            writeLock.unlock();
+        }
+
+        return key;
+    }
+
+    @Override
+    public void deleteKey(String identity) {
+        Transaction transaction = null;
+
+        writeLock.lock();
+        try {
+            // start the transaction
+            transaction = transactionBuilder.start();
+
+            // delete the keys
+            DeleteKeysAction deleteKeys = new DeleteKeysAction(identity);
+            transaction.execute(deleteKeys);
+
+            // commit the transaction
+            transaction.commit();
+        } catch (TransactionException | DataAccessException te) {
+            rollback(transaction);
+            throw new AdministrationException(te);
+        } catch (Throwable t) {
+            rollback(transaction);
+            throw t;
+        } finally {
+            closeQuietly(transaction);
+            writeLock.unlock();
         }
     }
 

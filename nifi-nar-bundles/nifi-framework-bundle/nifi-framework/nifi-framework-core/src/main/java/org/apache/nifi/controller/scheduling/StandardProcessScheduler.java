@@ -603,9 +603,12 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Returns the ScheduleState that is registered for the given component; if no ScheduleState current is registered, one is created and registered atomically, and then that value is returned.
+     * Returns the ScheduleState that is registered for the given component; if
+     * no ScheduleState current is registered, one is created and registered
+     * atomically, and then that value is returned.
      *
-     * @param schedulable schedulable
+     * @param schedulable
+     *            schedulable
      * @return scheduled state
      */
     private ScheduleState getScheduleState(final Object schedulable) {

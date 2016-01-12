@@ -24,6 +24,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -127,10 +128,7 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
         try {
             ProtocolHandshake.initiateHandshake(session.getInputStream(), session.getOutputStream(), versionNegotiator);
         } catch (final HandshakeException e) {
-            try {
-                session.close();
-            } catch (final IOException ioe) {
-            }
+            IOUtils.closeQuietly(session);
 
             throw new IOException(e);
         }
@@ -162,9 +160,9 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
             try (final DataOutputStream dos = new DataOutputStream(commsSession.getOutputStream())) {
                 dos.writeUTF("close");
                 dos.flush();
-                commsSession.close();
             } catch (final IOException e) {
             }
+            IOUtils.closeQuietly(commsSession);
         }
         if (logger.isDebugEnabled() && getIdentifier() != null) {
             logger.debug("Closed {}", new Object[]{getIdentifier()});
@@ -185,6 +183,7 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
         }
 
         final CommsSession session = leaseCommsSession();
+        boolean tryToRequeue = true;
         try {
             final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
             dos.writeUTF(methodName);
@@ -198,22 +197,13 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
             final DataInputStream dis = new DataInputStream(session.getInputStream());
             return dis.readBoolean();
         } catch (final IOException ioe) {
-            try {
-                session.close();
-            } catch (final IOException ignored) {
-            }
-
+            tryToRequeue = false;
             throw ioe;
         } finally {
-            if (!session.isClosed()) {
-                if (this.closed) {
-                    try {
-                        session.close();
-                    } catch (final IOException ioe) {
-                    }
-                } else {
-                    queue.offer(session);
-                }
+            if (tryToRequeue == true && this.closed == false) {
+                queue.offer(session);
+            } else {
+                IOUtils.closeQuietly(session);
             }
         }
     }

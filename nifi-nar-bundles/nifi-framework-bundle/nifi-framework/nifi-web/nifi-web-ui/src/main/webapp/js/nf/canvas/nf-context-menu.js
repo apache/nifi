@@ -246,6 +246,21 @@ nf.ContextMenu = (function () {
     };
 
     /**
+     * Determines whether the current selection could have provenance.
+     *
+     * @param {selection} selection
+     */
+    var canAccessProvenance = function (selection) {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return !nf.CanvasUtils.isLabel(selection) && !nf.CanvasUtils.isConnection(selection) && !nf.CanvasUtils.isProcessGroup(selection)
+            && !nf.CanvasUtils.isRemoteProcessGroup(selection) && nf.Common.canAccessProvenance();
+    };
+
+    /**
      * Determines whether the current selection is a remote process group.
      * 
      * @param {selection} selection         
@@ -275,6 +290,15 @@ nf.ContextMenu = (function () {
      */
     var canStopTransmission = function (selection) {
         return nf.Common.isDFM() && nf.CanvasUtils.canAllStopTransmitting(selection);
+    };
+    
+    /**
+     * Only DFMs can empty a queue.
+     * 
+     * @param {selection} selection
+     */
+    var canEmptyQueue = function (selection) {
+        return nf.Common.isDFM() && isConnection(selection);
     };
     
     /**
@@ -313,7 +337,12 @@ nf.ContextMenu = (function () {
                 $(this).removeClass('hover');
             }).appendTo(contextMenu);
 
-            $('<img class="context-menu-item-img"></img>').attr('src', item['img']).appendTo(menuItem);
+            // create the img and conditionally add the style
+            var img = $('<div class="context-menu-item-img"></div>').css('background-image', 'url(' + item['img'] + ')').appendTo(menuItem);
+            if (nf.Common.isDefinedAndNotNull(item['imgStyle'])) {
+                img.addClass(item['imgStyle']);
+            }
+            
             $('<div class="context-menu-item-text"></div>').text(item['text']).appendTo(menuItem);
             $('<div class="clear"></div>').appendTo(menuItem);
         }
@@ -360,6 +389,7 @@ nf.ContextMenu = (function () {
         {condition: canStartTransmission, menuItem: {img: 'images/iconTransmissionActive.png', text: 'Enable transmission', action: 'enableTransmission'}},
         {condition: canStopTransmission, menuItem: {img: 'images/iconTransmissionInactive.png', text: 'Disable transmission', action: 'disableTransmission'}},
         {condition: supportsStats, menuItem: {img: 'images/iconChart.png', text: 'Stats', action: 'showStats'}},
+        {condition: canAccessProvenance, menuItem: {img: 'images/iconProvenance.png', imgStyle: 'context-menu-provenance', text: 'Data provenance', action: 'openProvenance'}},
         {condition: canMoveToFront, menuItem: {img: 'images/iconToFront.png', text: 'Bring to front', action: 'toFront'}},
         {condition: isConnection, menuItem: {img: 'images/iconGoTo.png', text: 'Go to source', action: 'showSource'}},
         {condition: isConnection, menuItem: {img: 'images/iconGoTo.png', text: 'Go to destination', action: 'showDestination'}},
@@ -373,6 +403,7 @@ nf.ContextMenu = (function () {
         {condition: isCopyable, menuItem: {img: 'images/iconCopy.png', text: 'Copy', action: 'copy'}},
         {condition: isPastable, menuItem: {img: 'images/iconPaste.png', text: 'Paste', action: 'paste'}},
         {condition: canMoveToParent, menuItem: {img: 'images/iconMoveToParent.png', text: 'Move to parent group', action: 'moveIntoParent'}},
+        {condition: canEmptyQueue, menuItem: {img: 'images/iconEmptyQueue.png', text: 'Empty queue', action: 'emptyQueue'}},
         {condition: isDeletable, menuItem: {img: 'images/iconDelete.png', text: 'Delete', action: 'delete'}}
     ];
 
@@ -416,6 +447,7 @@ nf.ContextMenu = (function () {
 
                     addMenuItem(contextMenu, {
                         img: menuItem.img,
+                        imgStyle: menuItem.imgStyle, 
                         text: menuItem.text,
                         click: function (evt) {
                             executeAction(menuItem.action, selection, evt);
@@ -432,6 +464,9 @@ nf.ContextMenu = (function () {
                 'x': position[0],
                 'y': position[1]
             });
+
+            // refresh the toolbar incase we've click on the canvas
+            nf.CanvasToolbar.refresh();
         },
         
         /**

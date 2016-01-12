@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.util;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
@@ -29,11 +30,11 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 
 public class MockPropertyValue implements PropertyValue {
-
     private final String rawValue;
     private final Boolean expectExpressions;
     private final ControllerServiceLookup serviceLookup;
     private final PropertyDescriptor propertyDescriptor;
+    private final PropertyValue stdPropValue;
     private boolean expressionsEvaluated = false;
 
     public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup) {
@@ -41,11 +42,19 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor) {
+        this(rawValue, serviceLookup, propertyDescriptor, false);
+    }
+
+    private MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor, final boolean alreadyEvaluated) {
+        this.stdPropValue = new StandardPropertyValue(rawValue, serviceLookup);
+
         this.rawValue = rawValue;
         this.serviceLookup = serviceLookup;
         this.expectExpressions = propertyDescriptor == null ? null : propertyDescriptor.isExpressionLanguageSupported();
         this.propertyDescriptor = propertyDescriptor;
+        this.expressionsEvaluated = alreadyEvaluated;
     }
+
 
     private void ensureExpressionsEvaluated() {
         if (Boolean.TRUE.equals(expectExpressions) && !expressionsEvaluated) {
@@ -59,49 +68,49 @@ public class MockPropertyValue implements PropertyValue {
     @Override
     public String getValue() {
         ensureExpressionsEvaluated();
-        return rawValue;
+        return stdPropValue.getValue();
     }
 
     @Override
     public Integer asInteger() {
         ensureExpressionsEvaluated();
-        return (rawValue == null) ? null : Integer.parseInt(rawValue.trim());
+        return stdPropValue.asInteger();
     }
 
     @Override
     public Long asLong() {
         ensureExpressionsEvaluated();
-        return (rawValue == null) ? null : Long.parseLong(rawValue.trim());
+        return stdPropValue.asLong();
     }
 
     @Override
     public Boolean asBoolean() {
         ensureExpressionsEvaluated();
-        return (rawValue == null) ? null : Boolean.parseBoolean(rawValue.trim());
+        return stdPropValue.asBoolean();
     }
 
     @Override
     public Float asFloat() {
         ensureExpressionsEvaluated();
-        return (rawValue == null) ? null : Float.parseFloat(rawValue.trim());
+        return stdPropValue.asFloat();
     }
 
     @Override
     public Double asDouble() {
         ensureExpressionsEvaluated();
-        return (rawValue == null) ? null : Double.parseDouble(rawValue.trim());
+        return stdPropValue.asDouble();
     }
 
     @Override
     public Long asTimePeriod(final TimeUnit timeUnit) {
         ensureExpressionsEvaluated();
-        return (rawValue == null) ? null : FormatUtils.getTimeDuration(rawValue.trim(), timeUnit);
+        return stdPropValue.asTimePeriod(timeUnit);
     }
 
     @Override
     public Double asDataSize(final DataUnit dataUnit) {
         ensureExpressionsEvaluated();
-        return rawValue == null ? null : DataUnit.parseDataSize(rawValue.trim(), dataUnit);
+        return stdPropValue.asDataSize(dataUnit);
     }
 
     private void markEvaluated() {
@@ -115,38 +124,48 @@ public class MockPropertyValue implements PropertyValue {
 
     @Override
     public PropertyValue evaluateAttributeExpressions() throws ProcessException {
-        markEvaluated();
-        if (rawValue == null) {
-            return this;
-        }
-        return evaluateAttributeExpressions(null, null);
+        return evaluateAttributeExpressions(null, null, null);
     }
 
     @Override
     public PropertyValue evaluateAttributeExpressions(final AttributeValueDecorator decorator) throws ProcessException {
-        markEvaluated();
-        if (rawValue == null) {
-            return this;
-        }
-        return evaluateAttributeExpressions(null, decorator);
+        return evaluateAttributeExpressions(null, null, decorator);
     }
 
     @Override
     public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile) throws ProcessException {
-        markEvaluated();
-        if (rawValue == null) {
-            return this;
-        }
-        return evaluateAttributeExpressions(flowFile, null);
+        return evaluateAttributeExpressions(flowFile, null, null);
     }
 
     @Override
     public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
+        return evaluateAttributeExpressions(flowFile, null, decorator);
+    }
+
+    @Override
+    public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes) throws ProcessException {
+        return evaluateAttributeExpressions(flowFile, additionalAttributes, null);
+    }
+
+    @Override
+    public PropertyValue evaluateAttributeExpressions(final Map<String, String> attributes) throws ProcessException {
+        return evaluateAttributeExpressions(null, attributes, null);
+    }
+
+    @Override
+    public PropertyValue evaluateAttributeExpressions(final Map<String, String> attributes, final AttributeValueDecorator decorator) throws ProcessException {
+        return evaluateAttributeExpressions(null, attributes, decorator);
+    }
+
+    @Override
+    public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes, final AttributeValueDecorator decorator) throws ProcessException {
         markEvaluated();
         if (rawValue == null) {
             return this;
         }
-        return new MockPropertyValue(Query.evaluateExpressions(rawValue, flowFile, decorator), serviceLookup);
+
+        final PropertyValue newValue = stdPropValue.evaluateAttributeExpressions(flowFile, additionalAttributes, decorator);
+        return new MockPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true);
     }
 
     @Override

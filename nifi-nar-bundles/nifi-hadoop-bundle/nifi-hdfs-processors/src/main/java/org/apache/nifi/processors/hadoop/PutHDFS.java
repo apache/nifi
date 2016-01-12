@@ -33,6 +33,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -59,6 +61,7 @@ import org.apache.nifi.util.StopWatch;
 /**
  * This processor copies FlowFiles to HDFS.
  */
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "HDFS", "put", "copy", "filesystem"})
 @CapabilityDescription("Write FlowFile data to Hadoop Distributed File System (HDFS)")
 @WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
@@ -219,13 +222,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
         final CompressionCodec codec = getCompressionCodec(context, configuration);
 
+        final String filename = codec != null
+                ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
+                : flowFile.getAttribute(CoreAttributes.FILENAME.key());
+
         Path tempDotCopyFile = null;
         try {
-            final Path tempCopyFile;
-            final Path copyFile;
-
-            tempCopyFile = new Path(configuredRootDirPath, "." + flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-            copyFile = new Path(configuredRootDirPath, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+            final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
+            final Path copyFile = new Path(configuredRootDirPath, filename);
 
             // Create destination directory if it does not exist
             try {
@@ -327,8 +331,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
             getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
                     new Object[]{flowFile, copyFile, millis, dataRate});
 
-            final String filename = copyFile.toString();
-            final String transitUri = (filename.startsWith("/")) ? "hdfs:/" + filename : "hdfs://" + filename;
+            final String outputPath = copyFile.toString();
+            final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
             session.getProvenanceReporter().send(flowFile, transitUri);
             session.transfer(flowFile, REL_SUCCESS);
 
@@ -341,7 +345,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 }
             }
             getLogger().error("Failed to write to HDFS due to {}", t);
-            session.rollback();
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
             context.yield();
         }
     }

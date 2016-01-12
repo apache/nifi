@@ -28,6 +28,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.util.NamedList;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -37,6 +38,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
@@ -230,6 +233,27 @@ public class TestPutSolrContentStream {
     }
 
     @Test
+    public void testCollectionExpressionLanguage() throws IOException, SolrServerException {
+        final String collection = "collection1";
+        final CollectionVerifyingProcessor proc = new CollectionVerifyingProcessor(collection);
+
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "localhost:9983");
+        runner.setProperty(PutSolrContentStream.COLLECTION, "${solr.collection}");
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put("solr.collection", collection);
+
+        try (FileInputStream fileIn = new FileInputStream(CUSTOM_JSON_SINGLE_DOC_FILE)) {
+            runner.enqueue(fileIn, attributes);
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_SUCCESS, 1);
+        }
+    }
+
+    @Test
     public void testSolrServerExceptionShouldRouteToFailure() throws IOException, SolrServerException {
         final Throwable throwable = new SolrServerException("Invalid Document");
         final ExceptionThrowingProcessor proc = new ExceptionThrowingProcessor(throwable);
@@ -329,6 +353,36 @@ public class TestPutSolrContentStream {
         runner.assertValid();
     }
 
+    // Override the createSolrClient method to inject a custom SolrClient.
+    private class CollectionVerifyingProcessor extends PutSolrContentStream {
+
+        private SolrClient mockSolrClient;
+
+        private final String expectedCollection;
+
+        public CollectionVerifyingProcessor(final String expectedCollection) {
+            this.expectedCollection = expectedCollection;
+        }
+
+        @Override
+        protected SolrClient createSolrClient(ProcessContext context) {
+            mockSolrClient = new SolrClient() {
+                @Override
+                public NamedList<Object> request(SolrRequest solrRequest, String s) throws SolrServerException, IOException {
+                    Assert.assertEquals(expectedCollection, solrRequest.getParams().get(PutSolrContentStream.COLLECTION_PARAM_NAME));
+                    return new NamedList<>();
+                }
+
+                @Override
+                public void shutdown() {
+
+                }
+
+            };
+            return mockSolrClient;
+        }
+
+    }
 
     // Override the createSolrClient method to inject a Mock.
     private class ExceptionThrowingProcessor extends PutSolrContentStream {

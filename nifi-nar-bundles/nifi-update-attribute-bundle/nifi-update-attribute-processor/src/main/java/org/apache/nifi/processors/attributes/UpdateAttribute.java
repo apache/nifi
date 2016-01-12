@@ -29,10 +29,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -40,6 +45,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -56,15 +62,16 @@ import org.apache.nifi.search.Searchable;
 import org.apache.nifi.update.attributes.Action;
 import org.apache.nifi.update.attributes.Condition;
 import org.apache.nifi.update.attributes.Criteria;
-import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.FlowFilePolicy;
+import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
 
 /**
  * This processor supports updating flowfile attributes and can do so
- * conditionally or unconditionally. Like the FlowFileMetadataEnhancer, it can
+ * conditionally or unconditionally.  It can also delete flowfile attributes
+ * that match a regular expression.
+ *
+ * Like the FlowFileMetadataEnhancer, it can
  * be configured with an arbitrary number of optional properties to define how
  * attributes should be updated. Each optional property represents an action
  * that is applied to all incoming flow files. An action is comprised of an
@@ -112,17 +119,54 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
  */
 @EventDriven
 @SideEffectFree
-@Tags({"attributes", "modification", "update", "Attribute Expression Language"})
-@CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language")
+@InputRequirement(Requirement.INPUT_REQUIRED)
+@Tags({"attributes", "modification", "update", "delete", "Attribute Expression Language"})
+@CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language and/or deletes the attributes based on a regular expression")
 @DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", supportsExpressionLanguage = true,
         description = "Updates a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
-@WritesAttribute(attribute = "See additional details", description = "This processor may write zero or more attributes as described in additional details")
+@WritesAttribute(attribute = "See additional details", description = "This processor may write or remove zero or more attributes as described in additional details")
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);
     private final ConcurrentMap<String, PropertyValue> propertyValues = new ConcurrentHashMap<>();
 
     private final Set<Relationship> relationships;
+
+    private static final Validator DELETE_PROPERTY_VALIDATOR = new Validator() {
+        private final Validator DPV_RE_VALIDATOR = StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true);
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                final AttributeExpression.ResultType resultType = context.newExpressionLanguageCompiler().getResultType(input);
+                if (!resultType.equals(AttributeExpression.ResultType.STRING)) {
+                    return new ValidationResult.Builder()
+                            .subject(subject)
+                            .input(input)
+                            .valid(false)
+                            .explanation("Expected property to to return type " + AttributeExpression.ResultType.STRING +
+                                    " but expression returns type " + resultType)
+                            .build();
+                }
+                return new ValidationResult.Builder()
+                        .subject(subject)
+                        .input(input)
+                        .valid(true)
+                        .explanation("Property returns type " + AttributeExpression.ResultType.STRING)
+                        .build();
+            }
+
+            return DPV_RE_VALIDATOR.validate(subject, input, context);
+        }
+    };
+
+    // static properties
+    public static final PropertyDescriptor DELETE_ATTRIBUTES = new PropertyDescriptor.Builder()
+            .name("Delete Attributes Expression")
+            .description("Regular expression for attributes to be deleted from flowfiles.")
+            .required(false)
+            .addValidator(DELETE_PROPERTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -137,6 +181,13 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(DELETE_ATTRIBUTES);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override
@@ -435,40 +486,67 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
 
         // attribute values that will be applied to the flow file
-        final Map<String, String> attributes = new HashMap<>(actions.size());
+        final Map<String, String> attributesToUpdate = new HashMap<>(actions.size());
+        final Set<String> attributesToDelete = new HashSet<>(actions.size());
 
         // go through each action
         for (final Action action : actions.values()) {
-            try {
-                final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile).getValue();
+            if (!action.getAttribute().equals(DELETE_ATTRIBUTES.getName())) {
+                try {
+                    final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile).getValue();
 
-                // log if appropriate
-                if (logger.isDebugEnabled()) {
-                    logger.debug(String.format("%s setting attribute '%s' = '%s' for %s per rule '%s'.", this, action.getAttribute(), newAttributeValue, flowfile, ruleName));
+                    // log if appropriate
+                    if (logger.isDebugEnabled()) {
+                        logger.debug(String.format("%s setting attribute '%s' = '%s' for %s per rule '%s'.", this, action.getAttribute(), newAttributeValue, flowfile, ruleName));
+                    }
+
+                    attributesToUpdate.put(action.getAttribute(), newAttributeValue);
+                } catch (final ProcessException pe) {
+                    throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", action.getAttribute(), pe), pe);
                 }
+            } else {
+                try {
+                    final String actionValue = action.getValue();
+                    final String regex = (actionValue == null) ? null :
+                            getPropertyValue(actionValue, context).evaluateAttributeExpressions(flowfile).getValue();
+                    if (regex != null) {
+                        Pattern pattern = Pattern.compile(regex);
+                        final Set<String> attributeKeys = flowfile.getAttributes().keySet();
+                        for (final String key : attributeKeys) {
+                            if (pattern.matcher(key).matches()) {
 
-                attributes.put(action.getAttribute(), newAttributeValue);
-            } catch (final ProcessException pe) {
-                throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", action.getAttribute(), pe), pe);
+                                // log if appropriate
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug(String.format("%s deleting attribute '%s' for %s per regex '%s'.", this,
+                                            key, flowfile, regex));
+                                }
+
+                                attributesToDelete.add(key);
+                            }
+                        }
+                    }
+                } catch (final ProcessException pe) {
+                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", action.getAttribute(), pe), pe);
+                }
             }
         }
 
         // If the 'alternate.identifier' attribute is added, then we want to create an ADD_INFO provenance event.
-        final String alternateIdentifier = attributes.get(CoreAttributes.ALTERNATE_IDENTIFIER.key());
-        if (alternateIdentifier != null) {
+        final String alternateIdentifierAdd = attributesToUpdate.get(CoreAttributes.ALTERNATE_IDENTIFIER.key());
+        if (alternateIdentifierAdd != null) {
             try {
-                final URI uri = new URI(alternateIdentifier);
+                final URI uri = new URI(alternateIdentifierAdd);
                 final String namespace = uri.getScheme();
                 if (namespace != null) {
-                    final String identifier = alternateIdentifier.substring(Math.min(namespace.length() + 1, alternateIdentifier.length() - 1));
+                    final String identifier = alternateIdentifierAdd.substring(Math.min(namespace.length() + 1, alternateIdentifierAdd.length() - 1));
                     session.getProvenanceReporter().associate(flowfile, namespace, identifier);
                 }
             } catch (final URISyntaxException e) {
             }
         }
 
-        // update the flowfile attributes
-        return session.putAllAttributes(flowfile, attributes);
+        // update and delete the flowfile attributes
+        return session.removeAllAttributes(session.putAllAttributes(flowfile, attributesToUpdate), attributesToDelete);
     }
 
     // Gets the default actions.

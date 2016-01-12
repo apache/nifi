@@ -39,10 +39,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.controller.FlowFileQueue;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.io.ByteCountingInputStream;
@@ -57,7 +59,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
@@ -81,9 +82,11 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Provides a ProcessSession that ensures all accesses, changes and transfers
  * occur in an atomic manner for all FlowFiles including their contents and
- * attributes</p>
+ * attributes
+ * </p>
  * <p>
- * NOT THREAD SAFE</p>
+ * NOT THREAD SAFE
+ * </p>
  * <p/>
  */
 public final class StandardProcessSession implements ProcessSession, ProvenanceEventEnricher {
@@ -100,11 +103,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
     private final Map<Connection, StandardFlowFileEvent> connectionCounts = new HashMap<>();
     private final Map<Connection, Set<FlowFileRecord>> unacknowledgedFlowFiles = new HashMap<>();
-    private final Map<String, Long> localCounters = new HashMap<>();
-    private final Map<String, Long> globalCounters = new HashMap<>();
+    private final Map<String, Long> counters = new HashMap<>();
     private final Map<ContentClaim, ByteCountingOutputStream> appendableStreams = new HashMap<>();
     private final ProcessContext context;
-    private final Set<FlowFile> recursionSet = new HashSet<>();//set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
+    private final Set<FlowFile> recursionSet = new HashSet<>();// set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
     private final Set<Path> deleteOnCommit = new HashSet<>();
     private final long sessionId;
     private final String connectableDescription;
@@ -114,7 +116,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private final StandardProvenanceReporter provenanceReporter;
 
-    private int removedCount = 0;    // number of flowfiles removed in this session
+    private int removedCount = 0; // number of flowfiles removed in this session
     private long removedBytes = 0L; // size of all flowfiles removed in this session
     private final LongHolder bytesRead = new LongHolder(0L);
     private final LongHolder bytesWritten = new LongHolder(0L);
@@ -169,7 +171,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
 
         this.provenanceReporter = new StandardProvenanceReporter(this, connectable.getIdentifier(), componentType,
-                context.getProvenanceRepository(), this);
+            context.getProvenanceRepository(), this);
         this.sessionId = idGenerator.getAndIncrement();
         this.connectableDescription = description;
 
@@ -196,7 +198,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         // Processor-reported events.
         List<ProvenanceEventRecord> autoTerminatedEvents = null;
 
-        //validate that all records have a transfer relationship for them and if so determine the destination node and clone as necessary
+        // validate that all records have a transfer relationship for them and if so determine the destination node and clone as necessary
         final Map<FlowFileRecord, StandardRepositoryRecord> toAdd = new HashMap<>();
         for (final StandardRepositoryRecord record : records.values()) {
             if (record.isMarkedForDelete()) {
@@ -235,11 +237,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     }
                 }
             } else {
-                final Connection finalDestination = destinations.remove(destinations.size() - 1); //remove last element
+                final Connection finalDestination = destinations.remove(destinations.size() - 1); // remove last element
                 record.setDestination(finalDestination.getFlowFileQueue());
                 incrementConnectionInputCounts(finalDestination, record);
 
-                for (final Connection destination : destinations) { //iterate over remaining destinations and "clone" as needed
+                for (final Connection destination : destinations) { // iterate over remaining destinations and "clone" as needed
                     incrementConnectionInputCounts(destination, record);
                     final FlowFileRecord currRec = record.getCurrent();
                     final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
@@ -256,7 +258,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     if (claim != null) {
                         context.getContentRepository().incrementClaimaintCount(claim);
                     }
-                    newRecord.setWorking(clone, Collections.<String, String>emptyMap());
+                    newRecord.setWorking(clone, Collections.<String, String> emptyMap());
 
                     newRecord.setDestination(destination.getFlowFileQueue());
                     newRecord.setTransferRelationship(record.getTransferRelationship());
@@ -322,9 +324,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
                     final Connectable connectable = context.getConnectable();
                     final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
-                    LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[]{flowFile, terminator, flowFileLife});
+                    LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[] {flowFile, terminator, flowFileLife});
                 } else if (record.isWorking() && record.getWorkingClaim() != record.getOriginalClaim()) {
-                    //records which have been updated - remove original if exists
+                    // records which have been updated - remove original if exists
                     removeContent(record.getOriginalClaim());
                 }
             }
@@ -356,7 +358,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final Map<FlowFileQueue, Collection<FlowFileRecord>> recordMap = new HashMap<>();
             for (final StandardRepositoryRecord record : checkpoint.records.values()) {
                 if (record.isMarkedForAbort() || record.isMarkedForDelete()) {
-                    continue; //these don't need to be transferred
+                    continue; // these don't need to be transferred
                 }
                 // record.getCurrent() will return null if this record was created in this session --
                 // in this case, we just ignore it, and it will be cleaned up by clearing the records map.
@@ -390,15 +392,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             if (LOG.isInfoEnabled()) {
                 final String sessionSummary = summarizeEvents(checkpoint);
                 if (!sessionSummary.isEmpty()) {
-                    LOG.info("{} for {}, committed the following events: {}", new Object[]{this, connectableDescription, sessionSummary});
+                    LOG.info("{} for {}, committed the following events: {}", new Object[] {this, connectableDescription, sessionSummary});
                 }
             }
 
-            for (final Map.Entry<String, Long> entry : checkpoint.localCounters.entrySet()) {
-                adjustCounter(entry.getKey(), entry.getValue(), true);
-            }
-
-            for (final Map.Entry<String, Long> entry : checkpoint.globalCounters.entrySet()) {
+            for (final Map.Entry<String, Long> entry : checkpoint.counters.entrySet()) {
                 adjustCounter(entry.getKey(), entry.getValue(), true);
             }
 
@@ -454,6 +452,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     bytesSent += event.getFileSize();
                     break;
                 case RECEIVE:
+                case FETCH:
                     flowFilesReceived++;
                     bytesReceived += event.getFileSize();
                     break;
@@ -611,9 +610,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 boolean creationEventRegistered = false;
                 if (registeredTypes != null) {
                     if (registeredTypes.contains(ProvenanceEventType.CREATE)
-                            || registeredTypes.contains(ProvenanceEventType.FORK)
-                            || registeredTypes.contains(ProvenanceEventType.JOIN)
-                            || registeredTypes.contains(ProvenanceEventType.RECEIVE)) {
+                        || registeredTypes.contains(ProvenanceEventType.FORK)
+                        || registeredTypes.contains(ProvenanceEventType.JOIN)
+                        || registeredTypes.contains(ProvenanceEventType.RECEIVE)
+                        || registeredTypes.contains(ProvenanceEventType.FETCH)) {
                         creationEventRegistered = true;
                     }
                 }
@@ -747,7 +747,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private StandardProvenanceEventRecord enrich(
-            final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<FlowFileRecord, StandardRepositoryRecord> records, final boolean updateAttributes) {
+        final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<FlowFileRecord, StandardRepositoryRecord> records, final boolean updateAttributes) {
         final StandardProvenanceEventRecord.Builder recordBuilder = new StandardProvenanceEventRecord.Builder().fromEvent(rawEvent);
         final FlowFileRecord eventFlowFile = flowFileRecordMap.get(rawEvent.getFlowFileUuid());
         if (eventFlowFile != null) {
@@ -988,8 +988,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         connectionCounts.clear();
         createdFlowFiles.clear();
         removedFlowFiles.clear();
-        globalCounters.clear();
-        localCounters.clear();
+        counters.clear();
 
         generatedProvenanceEvents.clear();
         forkEventBuilders.clear();
@@ -1039,7 +1038,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final StringBuilder sb = new StringBuilder(512);
         if (!LOG.isDebugEnabled() && (largestTransferSetSize > VERBOSE_LOG_THRESHOLD
-                || numModified > VERBOSE_LOG_THRESHOLD || numCreated > VERBOSE_LOG_THRESHOLD || numRemoved > VERBOSE_LOG_THRESHOLD)) {
+            || numModified > VERBOSE_LOG_THRESHOLD || numCreated > VERBOSE_LOG_THRESHOLD || numRemoved > VERBOSE_LOG_THRESHOLD)) {
             if (numCreated > 0) {
                 sb.append("created ").append(numCreated).append(" FlowFiles, ");
             }
@@ -1097,7 +1096,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private void formatNanos(final long nanos, final StringBuilder sb) {
         final long seconds = nanos > 1000000000L ? nanos / 1000000000L : 0L;
-        long millis = nanos > 1000000L ? nanos / 1000000L : 0L;;
+        long millis = nanos > 1000000L ? nanos / 1000000L : 0L;
+        ;
         final long nanosLeft = nanos % 1000000L;
 
         if (seconds > 0) {
@@ -1161,8 +1161,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             return;
         }
 
-        adjustCounter(name, delta, localCounters);
-        adjustCounter(name, delta, globalCounters);
+        adjustCounter(name, delta, counters);
     }
 
     private void adjustCounter(final String name, final long delta, final Map<String, Long> map) {
@@ -1211,7 +1210,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                     @Override
                     public FlowFileFilterResult filter(final FlowFile flowFile) {
-                        if (++polled <= maxResults) {
+                        if (++polled < maxResults) {
                             return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
                         } else {
                             return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
@@ -1272,7 +1271,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         int flowFileCount = 0;
         long byteCount = 0L;
         for (final Connection conn : context.getPollableConnections()) {
-            final QueueSize queueSize = conn.getFlowFileQueue().getActiveQueueSize();
+            final QueueSize queueSize = conn.getFlowFileQueue().size();
             flowFileCount += queueSize.getObjectCount();
             byteCount += queueSize.getByteCount();
         }
@@ -1287,8 +1286,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         attrs.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
 
         final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
-                .addAttributes(attrs)
-                .build();
+            .addAttributes(attrs)
+            .build();
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
         record.setWorking(fFile, attrs);
         records.put(fFile, record);
@@ -1324,7 +1323,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             context.getContentRepository().incrementClaimaintCount(claim);
         }
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
-        record.setWorking(clone, Collections.<String, String>emptyMap());
+        record.setWorking(clone, Collections.<String, String> emptyMap());
         records.put(clone, record);
 
         if (offset == 0L && size == example.getSize()) {
@@ -1406,14 +1405,18 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
 
-        final String originalUuid = flowFile.getAttribute(CoreAttributes.UUID.key());
+        final Map<String, String> updatedAttributes;
+        if (attributes.containsKey(CoreAttributes.UUID.key())) {
+            updatedAttributes = new HashMap<>(attributes);
+            updatedAttributes.remove(CoreAttributes.UUID.key());
+        } else {
+            updatedAttributes = attributes;
+        }
 
-        final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).addAttributes(attributes);
-        // Ignore the uuid attribute, if passed in
-        ffBuilder.addAttribute(CoreAttributes.UUID.key(), originalUuid);
+        final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).addAttributes(updatedAttributes);
         final FlowFileRecord newFile = ffBuilder.build();
 
-        record.setWorking(newFile, attributes);
+        record.setWorking(newFile, updatedAttributes);
         return newFile;
     }
 
@@ -1439,19 +1442,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             return flowFile;
         }
 
-        final Set<String> keysToRemove;
-        if (keys.contains(CoreAttributes.UUID.key())) {
-            keysToRemove = new HashSet<>(keys);
-            keysToRemove.remove(CoreAttributes.UUID.key());
-        } else {
-            keysToRemove = keys;
-        }
-
         final StandardRepositoryRecord record = records.get(flowFile);
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).removeAttributes(keys).build();
 
         final Map<String, String> updatedAttrs = new HashMap<>();
         for (final String key : keys) {
+            if (CoreAttributes.UUID.key().equals(key)) {
+                continue;
+            }
+
             updatedAttrs.put(key, null);
         }
 
@@ -1637,7 +1636,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             return;
         }
 
-        LOG.info("{} {} FlowFiles have expired and will be removed", new Object[]{this, flowFiles.size()});
+        LOG.info("{} {} FlowFiles have expired and will be removed", new Object[] {this, flowFiles.size()});
         final List<RepositoryRecord> expiredRecords = new ArrayList<>(flowFiles.size());
 
         final String processorType;
@@ -1650,7 +1649,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
 
         final StandardProvenanceReporter expiredReporter = new StandardProvenanceReporter(this, connectable.getIdentifier(),
-                processorType, context.getProvenanceRepository(), this);
+            processorType, context.getProvenanceRepository(), this);
 
         final Map<String, FlowFileRecord> recordIdMap = new HashMap<>();
         for (final FlowFileRecord flowFile : flowFiles) {
@@ -1664,7 +1663,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
             final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
-            LOG.info("{} terminated by {} due to FlowFile expiration; life of FlowFile = {} ms", new Object[]{flowFile, terminator, flowFileLife});
+            LOG.info("{} terminated by {} due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, terminator, flowFileLife});
         }
 
         try {
@@ -1696,7 +1695,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                                     record.getContentClaimOffset() + claim.getOffset(), record.getSize());
                             }
 
-                            enriched.setAttributes(record.getAttributes(), Collections.<String, String>emptyMap());
+                            enriched.setAttributes(record.getAttributes(), Collections.<String, String> emptyMap());
                             return enriched.build();
                         }
 
@@ -1756,7 +1755,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 return new DisableOnCloseInputStream(currentReadClaimStream);
             } else {
                 final InputStream rawInStream = context.getContentRepository().read(claim);
-                StreamUtils.skip(rawInStream, offset);
+                try {
+                    StreamUtils.skip(rawInStream, offset);
+                } catch(IOException ioe) {
+                    IOUtils.closeQuietly(rawInStream);
+                    throw ioe;
+                }
                 return rawInStream;
             }
         } catch (final ContentNotFoundException cnfe) {
@@ -1770,6 +1774,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     @Override
     public void read(final FlowFile source, final InputStreamCallback reader) {
+        read(source, false, reader);
+    }
+
+    @Override
+    public void read(FlowFile source, boolean allowSessionStreamManagement, InputStreamCallback reader) {
         validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
 
@@ -1780,9 +1789,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
 
         try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset());
-                final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
-                final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
-                final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
+            final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
+            final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
+            final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
 
             // We want to differentiate between IOExceptions thrown by the repository and IOExceptions thrown from
             // Processor code. As a result, as have the FlowFileAccessInputStream that catches IOException from the repository
@@ -1795,6 +1804,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             try {
                 recursionSet.add(source);
                 reader.process(ffais);
+
+                // Allow processors to close the file after reading to avoid too many files open or do smart session stream management.
+                if (this.currentReadClaimStream != null && !allowSessionStreamManagement) {
+                    currentReadClaimStream.close();
+                    currentReadClaimStream = null;
+                }
             } catch (final ContentNotFoundException cnfe) {
                 cnfeThrown = true;
                 throw cnfe;
@@ -1806,6 +1821,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     throw ffais.getContentNotFoundException();
                 }
             }
+
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
         } catch (final IOException ex) {
@@ -1853,7 +1869,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         try {
             try (final OutputStream rawOut = contentRepo.write(newClaim);
-                    final OutputStream out = new BufferedOutputStream(rawOut)) {
+                final OutputStream out = new BufferedOutputStream(rawOut)) {
 
                 if (header != null && header.length > 0) {
                     out.write(header);
@@ -2070,10 +2086,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         // the original claim if the record is "working" but the content has not been modified
         // (e.g., in the case of attributes only were updated)
         // In other words:
-        //  If we modify the attributes of a FlowFile, and then we call record.getWorkingClaim(), this will
-        //  return the same claim as record.getOriginalClaim(). So we cannot just remove the working claim because
-        //  that may decrement the original claim (because the 2 claims are the same), and that's NOT what we want to do
-        //  because we will do that later, in the session.commit() and that would result in removing the original claim twice.
+        // If we modify the attributes of a FlowFile, and then we call record.getWorkingClaim(), this will
+        // return the same claim as record.getOriginalClaim(). So we cannot just remove the working claim because
+        // that may decrement the original claim (because the 2 claims are the same), and that's NOT what we want to do
+        // because we will do that later, in the session.commit() and that would result in removing the original claim twice.
         if (contentModified) {
             // In this case, it's ok to go ahead and destroy the content because we know that the working claim is going to be
             // updated and the given working claim is referenced only by FlowFiles in this session (because it's the Working Claim).
@@ -2196,7 +2212,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     @Override
     public FlowFile importFrom(final Path source, final boolean keepSourceFile, final FlowFile destination) {
         validateRecordState(destination);
-        //TODO: find a better solution. With Windows 7 and Java 7 (very early update, at least), Files.isWritable(source.getParent()) returns false, even when it should be true.
+        // TODO: find a better solution. With Windows 7 and Java 7 (very early update, at least), Files.isWritable(source.getParent()) returns false, even when it should be true.
         if (!keepSourceFile && !Files.isWritable(source.getParent()) && !source.getParent().toFile().canWrite()) {
             // If we do NOT want to keep the file, ensure that we can delete it, or else error.
             throw new FlowFileAccessException("Cannot write to path " + source.getParent().toFile().getAbsolutePath() + " so cannot delete file; will not import.");
@@ -2228,9 +2244,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         removeTemporaryClaim(record);
 
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent())
-                .contentClaim(newClaim).contentClaimOffset(claimOffset).size(newSize)
-                .addAttribute(CoreAttributes.FILENAME.key(), source.toFile().getName())
-                .build();
+            .contentClaim(newClaim).contentClaimOffset(claimOffset).size(newSize)
+            .addAttribute(CoreAttributes.FILENAME.key(), source.toFile().getName())
+            .build();
         record.setWorking(newFile, CoreAttributes.FILENAME.key(), source.toFile().getName());
         if (!keepSourceFile) {
             deleteOnCommit.add(source);
@@ -2370,7 +2386,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
      *
      * @param flowFile the FlowFile to check
      * @return <code>true</code> if the FlowFile is known in this session,
-     * <code>false</code> otherwise.
+     *         <code>false</code> otherwise.
      */
     boolean isFlowFileKnown(final FlowFile flowFile) {
         return records.containsKey(flowFile);
@@ -2392,8 +2408,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final String key = entry.getKey();
             final String value = entry.getValue();
             if (CoreAttributes.ALTERNATE_IDENTIFIER.key().equals(key)
-                    || CoreAttributes.DISCARD_REASON.key().equals(key)
-                    || CoreAttributes.UUID.key().equals(key)) {
+                || CoreAttributes.DISCARD_REASON.key().equals(key)
+                || CoreAttributes.UUID.key().equals(key)) {
                 continue;
             }
             newAttributes.put(key, value);
@@ -2441,10 +2457,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         newAttributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
 
         final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
-                .addAttributes(newAttributes)
-                .lineageIdentifiers(lineageIdentifiers)
-                .lineageStartDate(lineageStartDate)
-                .build();
+            .addAttributes(newAttributes)
+            .lineageIdentifiers(lineageIdentifiers)
+            .lineageStartDate(lineageStartDate)
+            .build();
 
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
         record.setWorking(fFile, newAttributes);
@@ -2465,7 +2481,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
      */
     private static Map<String, String> intersectAttributes(final Collection<FlowFile> flowFileList) {
         final Map<String, String> result = new HashMap<>();
-        //trivial cases
+        // trivial cases
         if (flowFileList == null || flowFileList.isEmpty()) {
             return result;
         } else if (flowFileList.size() == 1) {
@@ -2478,8 +2494,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
          */
         final Map<String, String> firstMap = flowFileList.iterator().next().getAttributes();
 
-        outer:
-        for (final Map.Entry<String, String> mapEntry : firstMap.entrySet()) {
+        outer: for (final Map.Entry<String, String> mapEntry : firstMap.entrySet()) {
             final String key = mapEntry.getKey();
             final String value = mapEntry.getValue();
             for (final FlowFile flowFile : flowFileList) {
@@ -2532,14 +2547,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
         private final Map<Connection, StandardFlowFileEvent> connectionCounts = new HashMap<>();
         private final Map<Connection, Set<FlowFileRecord>> unacknowledgedFlowFiles = new HashMap<>();
-        private final Map<String, Long> localCounters = new HashMap<>();
-        private final Map<String, Long> globalCounters = new HashMap<>();
+        private final Map<String, Long> counters = new HashMap<>();
 
         private final Set<Path> deleteOnCommit = new HashSet<>();
         private final Set<String> removedFlowFiles = new HashSet<>();
         private final Set<String> createdFlowFiles = new HashSet<>();
 
-        private int removedCount = 0;    // number of flowfiles removed in this session
+        private int removedCount = 0; // number of flowfiles removed in this session
         private long removedBytes = 0L; // size of all flowfiles removed in this session
         private long bytesRead = 0L;
         private long bytesWritten = 0L;
@@ -2559,8 +2573,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             this.records.putAll(session.records);
             this.connectionCounts.putAll(session.connectionCounts);
             this.unacknowledgedFlowFiles.putAll(session.unacknowledgedFlowFiles);
-            this.localCounters.putAll(session.localCounters);
-            this.globalCounters.putAll(session.globalCounters);
+            this.counters.putAll(session.counters);
 
             this.deleteOnCommit.addAll(session.deleteOnCommit);
             this.removedFlowFiles.addAll(session.removedFlowFiles);

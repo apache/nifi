@@ -17,10 +17,7 @@
 package org.apache.nifi.processors.standard.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -39,7 +36,6 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -63,74 +59,6 @@ public class TestJdbcHugeStream {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
-    /**
-     * In case of large record set this will fail with
-     * java.lang.OutOfMemoryError: Java heap space at
-     * java.util.Arrays.copyOf(Arrays.java:2271) at
-     * java.io.ByteArrayOutputStream.grow(ByteArrayOutputStream.java:113) at
-     * java
-     * .io.ByteArrayOutputStream.ensureCapacity(ByteArrayOutputStream.java:93)
-     * at java.io.ByteArrayOutputStream.write(ByteArrayOutputStream.java:140) at
-     * org .apache.avro.file.
-     * DataFileWriter$BufferedFileOutputStream$PositionFilter
-     * .write(DataFileWriter.java:446)
-     *
-     */
-    @Test
-    @Ignore
-    public void readSend2StreamHuge_InMemory() throws ClassNotFoundException, SQLException, IOException {
-
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        try (final Connection con = createConnection()) {
-            loadTestData2Database(con, 150, 150, 150);
-            System.out.println("test data loaded");
-
-            try (final Statement st = con.createStatement()) {
-                // Notice!
-                // Following select is deliberately invalid!
-                // For testing we need huge amount of rows, so where part is not
-                // used.
-                final ResultSet resultSet = st.executeQuery("select "
-                    + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
-                    + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
-                    + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
-                    + ", ROW_NUMBER() OVER () as rownr "
-                    + " from persons PER, products PRD, relationships REL");
-
-                final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-                final long nrOfRows = JdbcCommon.convertToAvroStream(resultSet, outStream);
-                System.out.println("total nr of rows in resultset: " + nrOfRows);
-
-                final byte[] serializedBytes = outStream.toByteArray();
-                assertNotNull(serializedBytes);
-                System.out.println("Avro serialized result size in bytes: " + serializedBytes.length);
-
-                // Deserialize bytes to records
-
-                final InputStream instream = new ByteArrayInputStream(serializedBytes);
-
-                final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
-                try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader)) {
-                    GenericRecord record = null;
-                    long recordsFromStream = 0;
-                    while (dataFileReader.hasNext()) {
-                        // Reuse record object by passing it to next(). This
-                        // saves us from
-                        // allocating and garbage collecting many objects for
-                        // files with many items.
-                        record = dataFileReader.next(record);
-                        recordsFromStream += 1;
-                    }
-                    System.out.println("total nr of records from stream: " + recordsFromStream);
-                    assertEquals(nrOfRows, recordsFromStream);
-                }
-            }
-        }
-    }
-
     @Test
     public void readSend2StreamHuge_FileBased() throws ClassNotFoundException, SQLException, IOException {
 
@@ -139,7 +67,7 @@ public class TestJdbcHugeStream {
         dbLocation.delete();
 
         try (final Connection con = createConnection()) {
-            loadTestData2Database(con, 300, 300, 300);
+            loadTestData2Database(con, 100, 100, 100);
 
             try (final Statement st = con.createStatement()) {
                 // Notice!
@@ -159,8 +87,8 @@ public class TestJdbcHugeStream {
                 // Deserialize bytes to records
                 final InputStream instream = new FileInputStream("target/data.avro");
 
-                final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
-                try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader)) {
+                final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+                try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
                     GenericRecord record = null;
                     long recordsFromStream = 0;
                     while (dataFileReader.hasNext()) {
@@ -248,8 +176,8 @@ public class TestJdbcHugeStream {
 
     static private String createRandomString() {
 
-        final int length = rng.nextInt(19);
-        final String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        final int length = rng.nextInt(10);
+        final String characters = "ABCDEFGHIJ";
 
         final char[] text = new char[length];
         for (int i = 0; i < length; i++) {

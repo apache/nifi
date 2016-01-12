@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -280,48 +281,63 @@ public class TestGetHTTP {
         }
     }
 
-    private Map<String, String> getSslProperties() {
-        Map<String, String> props = new HashMap<String, String>();
-        props.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        props.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        props.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
-        return props;
-    }
-
-    private void useSSLContextService() {
-        final SSLContextService service = new StandardSSLContextService();
-        try {
-            controller.addControllerService("ssl-service", service, getSslProperties());
-            controller.enableControllerService(service);
-        } catch (InitializationException ex) {
-            ex.printStackTrace();
-            Assert.fail("Could not create SSL Context Service");
-        }
-
-        controller.setProperty(GetHTTP.SSL_CONTEXT_SERVICE, "ssl-service");
-    }
-
     @Test
-    public final void testSecure() throws Exception {
+    public final void testExpressionLanguage() throws Exception {
         // set up web service
         ServletHandler handler = new ServletHandler();
-        handler.addServletWithMapping(HelloWorldServlet.class, "/*");
+        handler.addServletWithMapping(UserAgentTestingServlet.class, "/*");
 
         // create the service
-        TestServer server = new TestServer(getSslProperties());
+        TestServer server = new TestServer();
         server.addHandler(handler);
 
         try {
             server.startServer();
 
-            String destination = server.getSecureUrl();
+            String destination = server.getUrl();
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(GetHTTP.class);
-            useSSLContextService();
+            controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
+            controller.setProperty(GetHTTP.URL, destination+"/test_${literal(1)}.pdf");
+            controller.setProperty(GetHTTP.FILENAME, "test_${now():format('yyyy/MM/dd_HH:mm:ss')}");
+            controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+            controller.setProperty(GetHTTP.USER_AGENT, "testUserAgent");
+
+            controller.run();
+            controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
+
+            MockFlowFile response = controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0);
+            response.assertAttributeEquals("gethttp.remote.source","localhost");
+            String fileName = response.getAttribute(CoreAttributes.FILENAME.key());
+            assertTrue(fileName.matches("test_\\d\\d\\d\\d/\\d\\d/\\d\\d_\\d\\d:\\d\\d:\\d\\d"));
+            // shutdown web service
+        } finally {
+            server.shutdownServer();
+        }
+    }
+
+    @Test
+    public final void testSecure_oneWaySsl() throws Exception {
+        // set up web service
+        final  ServletHandler handler = new ServletHandler();
+        handler.addServletWithMapping(HelloWorldServlet.class, "/*");
+
+        // create the service, disabling the need for client auth
+        final Map<String, String> serverSslProperties = getKeystoreProperties();
+        serverSslProperties.put(TestServer.NEED_CLIENT_AUTH, Boolean.toString(false));
+        final TestServer server = new TestServer(serverSslProperties);
+        server.addHandler(handler);
+
+        try {
+            server.startServer();
+
+            final String destination = server.getSecureUrl();
+
+            // set up NiFi mock controller
+            controller = TestRunners.newTestRunner(GetHTTP.class);
+            // Use context service with only a truststore
+            useSSLContextService(getTruststoreProperties());
 
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(GetHTTP.URL, destination);
@@ -335,6 +351,71 @@ public class TestGetHTTP {
         } finally {
             server.shutdownServer();
         }
+    }
+
+    @Test
+    public final void testSecure_twoWaySsl() throws Exception {
+        // set up web service
+        final ServletHandler handler = new ServletHandler();
+        handler.addServletWithMapping(HelloWorldServlet.class, "/*");
+
+        // create the service, providing both truststore and keystore properties, requiring client auth (default)
+        final Map<String, String> twoWaySslProperties = getKeystoreProperties();
+        twoWaySslProperties.putAll(getTruststoreProperties());
+        final TestServer server = new TestServer(twoWaySslProperties);
+        server.addHandler(handler);
+
+        try {
+            server.startServer();
+
+            final String destination = server.getSecureUrl();
+
+            // set up NiFi mock controller
+            controller = TestRunners.newTestRunner(GetHTTP.class);
+            // Use context service with a keystore and a truststore
+            useSSLContextService(twoWaySslProperties);
+
+            controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "10 secs");
+            controller.setProperty(GetHTTP.URL, destination);
+            controller.setProperty(GetHTTP.FILENAME, "testFile");
+            controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+
+            controller.run();
+            controller.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1);
+            final MockFlowFile mff = controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0);
+            mff.assertContentEquals("Hello, World!");
+        } finally {
+            server.shutdownServer();
+        }
+    }
+
+    private static Map<String, String> getTruststoreProperties() {
+        final Map<String, String> props = new HashMap<>();
+        props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
+        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        return props;
+    }
+
+    private static Map<String, String> getKeystoreProperties() {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        return properties;
+    }
+
+    private void useSSLContextService(final Map<String, String> sslProperties) {
+        final SSLContextService service = new StandardSSLContextService();
+        try {
+            controller.addControllerService("ssl-service", service, sslProperties);
+            controller.enableControllerService(service);
+        } catch (InitializationException ex) {
+            ex.printStackTrace();
+            Assert.fail("Could not create SSL Context Service");
+        }
+
+        controller.setProperty(GetHTTP.SSL_CONTEXT_SERVICE, "ssl-service");
     }
 
 }

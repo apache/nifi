@@ -410,7 +410,7 @@ public class RuleResource {
             @QueryParam("q") final String term) {
 
         // get the web context
-        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // build the web context config
         final NiFiWebRequestContext requestContext = getRequestContext(processorId);

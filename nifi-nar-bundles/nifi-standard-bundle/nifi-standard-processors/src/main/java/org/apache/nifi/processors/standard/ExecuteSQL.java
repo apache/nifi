@@ -30,6 +30,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -48,10 +50,17 @@ import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.StopWatch;
 
 @EventDriven
-@Tags({ "sql", "select", "jdbc", "query", "database" })
+@InputRequirement(Requirement.INPUT_ALLOWED)
+@Tags({"sql", "select", "jdbc", "query", "database"})
 @CapabilityDescription("Execute provided SQL select query. Query result will be converted to Avro format."
-    + " Streaming is used so arbitrarily large result sets are supported.")
+    + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on " +
+    "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. " +
+    "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the " +
+    "select query. " +
+    "FlowFile attribute 'executesql.row.count' indicates how many rows were selected.")
 public class ExecuteSQL extends AbstractProcessor {
+
+    public static final String RESULT_ROW_COUNT = "executesql.row.count";
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -116,9 +125,16 @@ public class ExecuteSQL extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final FlowFile incoming = session.get();
-        if (incoming == null) {
-            return;
+        FlowFile incoming = null;
+        if (context.hasIncomingConnection()) {
+            incoming = session.get();
+
+            // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
+            // However, if we have no FlowFile and we have connections coming from other Processors, then
+            // we know that we should run only if we have a FlowFile.
+            if (incoming == null && context.hasNonLoopConnection()) {
+                return;
+            }
         }
 
         final ProcessorLog logger = getLogger();
@@ -133,11 +149,12 @@ public class ExecuteSQL extends AbstractProcessor {
             final Statement st = con.createStatement()) {
             st.setQueryTimeout(queryTimeout); // timeout in seconds
             final LongHolder nrOfRows = new LongHolder(0L);
-            final FlowFile outgoing = session.write(incoming, new OutputStreamCallback() {
+            FlowFile outgoing = (incoming == null ? session.create() : incoming);
+            outgoing = session.write(outgoing, new OutputStreamCallback() {
                 @Override
                 public void process(final OutputStream out) throws IOException {
                     try {
-                        logger.debug("Executing query {}", new Object[] { selectQuery });
+                        logger.debug("Executing query {}", new Object[] {selectQuery});
                         final ResultSet resultSet = st.executeQuery(selectQuery);
                         nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out));
                     } catch (final SQLException e) {
@@ -146,13 +163,19 @@ public class ExecuteSQL extends AbstractProcessor {
                 }
             });
 
-            logger.info("{} contains {} Avro records", new Object[] { nrOfRows.get() });
-            logger.info("Transferred {} to 'success'", new Object[] { outgoing });
+            // set attribute how many rows were selected
+            outgoing = session.putAttribute(outgoing, RESULT_ROW_COUNT, nrOfRows.get().toString());
+
+            logger.info("{} contains {} Avro records; transferring to 'success'", new Object[] {outgoing, nrOfRows.get()});
             session.getProvenanceReporter().modifyContent(outgoing, "Retrieved " + nrOfRows.get() + " rows", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(outgoing, REL_SUCCESS);
         } catch (final ProcessException | SQLException e) {
-            logger.error("Unable to execute SQL select query {} for {} due to {}; routing to failure", new Object[] { selectQuery, incoming, e });
-            session.transfer(incoming, REL_FAILURE);
+            if (incoming == null) {
+                logger.error("Unable to execute SQL select query {} due to {}. No incoming flow file to route to failure", new Object[] {selectQuery, e});
+            } else {
+                logger.error("Unable to execute SQL select query {} for {} due to {}; routing to failure", new Object[] {selectQuery, incoming, e});
+                session.transfer(incoming, REL_FAILURE);
+            }
         }
     }
 }

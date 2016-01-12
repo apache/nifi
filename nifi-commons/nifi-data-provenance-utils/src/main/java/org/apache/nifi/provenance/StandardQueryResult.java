@@ -18,8 +18,12 @@ package org.apache.nifi.provenance;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -40,7 +44,7 @@ public class StandardQueryResult implements QueryResult {
 
     private final Lock writeLock = rwLock.writeLock();
     // guarded by writeLock
-    private final List<ProvenanceEventRecord> matchingRecords = new ArrayList<>();
+    private final Set<ProvenanceEventRecord> matchingRecords = new TreeSet<>(new EventIdComparator());
     private long totalHitCount;
     private int numCompletedSteps = 0;
     private Date expirationDate;
@@ -66,8 +70,14 @@ public class StandardQueryResult implements QueryResult {
             }
 
             final List<ProvenanceEventRecord> copy = new ArrayList<>(query.getMaxResults());
-            for (int i = 0; i < query.getMaxResults(); i++) {
-                copy.add(matchingRecords.get(i));
+
+            int i = 0;
+            final Iterator<ProvenanceEventRecord> itr = matchingRecords.iterator();
+            while (itr.hasNext()) {
+                copy.add(itr.next());
+                if (++i >= query.getMaxResults()) {
+                    break;
+                }
             }
 
             return copy;
@@ -164,5 +174,12 @@ public class StandardQueryResult implements QueryResult {
      */
     private void updateExpiration() {
         expirationDate = new Date(System.currentTimeMillis() + TTL);
+    }
+
+    private static class EventIdComparator implements Comparator<ProvenanceEventRecord> {
+        @Override
+        public int compare(final ProvenanceEventRecord o1, final ProvenanceEventRecord o2) {
+            return Long.compare(o2.getEventId(), o1.getEventId());
+        }
     }
 }

@@ -25,7 +25,7 @@
             <div class="clear"></div>
         </div>
         <div class="setting">
-            <div class="setting-name">DN</div>
+            <div class="setting-name">Identity</div>
             <div class="setting-field">
                 <span id="user-dn-details-dialog"></span>
             </div>

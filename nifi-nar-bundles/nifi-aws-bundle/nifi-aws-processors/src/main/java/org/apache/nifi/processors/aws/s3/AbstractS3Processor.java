@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -28,7 +29,9 @@ import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.EmailAddressGrantee;
@@ -102,7 +105,16 @@ public abstract class AbstractS3Processor extends AbstractAWSProcessor<AmazonS3C
 
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        return new AmazonS3Client(credentials, config);
+        final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
+
+        // if ENDPOINT_OVERRIDE is set, use PathStyleAccess
+        if(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).getValue()).isEmpty() == false){
+            final S3ClientOptions s3Options = new S3ClientOptions();
+            s3Options.setPathStyleAccess(true);
+            s3.setS3ClientOptions(s3Options);
+        }
+
+        return s3;
     }
 
     protected Grantee createGrantee(final String value) {
@@ -132,6 +144,17 @@ public abstract class AbstractS3Processor extends AbstractAWSProcessor<AmazonS3C
             }
         }
         return grantees;
+    }
+
+    protected String getUrlForObject(final String bucket, final String key) {
+        Region region = getRegion();
+
+        if (region == null) {
+            return  DEFAULT_PROTOCOL.toString() + "://s3.amazonaws.com/" + bucket + "/" + key;
+        } else {
+            final String endpoint = region.getServiceEndpoint("s3");
+            return DEFAULT_PROTOCOL.toString() + "://" + endpoint + "/" + bucket + "/" + key;
+        }
     }
 
     protected final AccessControlList createACL(final ProcessContext context, final FlowFile flowFile) {

@@ -37,6 +37,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.WebApplicationException;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -47,9 +52,10 @@ import org.apache.nifi.controller.ContentAvailability;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowFileQueue;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -61,8 +67,8 @@ import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
@@ -75,7 +81,9 @@ import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.search.SearchContext;
@@ -85,6 +93,7 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
@@ -104,15 +113,7 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
-import org.apache.nifi.web.DownloadableContent;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ClassUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.admin.service.UserService;
-import org.apache.nifi.authorization.DownloadAuthorization;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.reporting.BulletinQuery;
-import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -501,7 +502,7 @@ public class ControllerFacade {
      * Site-to-Site communications
      *
      * @return the socket port that the Cluster Manager is listening on for
-     * Site-to-Site communications
+     *         Site-to-Site communications
      */
     public Integer getClusterManagerRemoteSiteListeningPort() {
         return flowController.getClusterManagerRemoteSiteListeningPort();
@@ -512,7 +513,7 @@ public class ControllerFacade {
      * Manager are secure
      *
      * @return whether or not Site-to-Site communications with the Cluster
-     * Manager are secure
+     *         Manager are secure
      */
     public Boolean isClusterManagerRemoteSiteCommsSecure() {
         return flowController.isClusterManagerRemoteSiteCommsSecure();
@@ -523,7 +524,7 @@ public class ControllerFacade {
      * Site-to-Site communications
      *
      * @return the socket port that the local instance is listening on for
-     * Site-to-Site communications
+     *         Site-to-Site communications
      */
     public Integer getRemoteSiteListeningPort() {
         return flowController.getRemoteSiteListeningPort();
@@ -534,7 +535,7 @@ public class ControllerFacade {
      * instance are secure
      *
      * @return whether or not Site-to-Site communications with the local
-     * instance are secure
+     *         instance are secure
      */
     public Boolean isRemoteSiteCommsSecure() {
         return flowController.isRemoteSiteCommsSecure();
@@ -819,20 +820,15 @@ public class ControllerFacade {
             }
 
             // get the flowfile attributes
-            final Map<String, String> attributes = event.getAttributes();
+            final Map<String, String> attributes;
+            if (ContentDirection.INPUT.equals(contentDirection)) {
+                attributes = event.getPreviousAttributes();
+            } else {
+                attributes = event.getAttributes();
+            }
 
             // calculate the dn chain
-            final List<String> dnChain = new ArrayList<>();
-
-            // build the dn chain
-            NiFiUser chainedUser = user;
-            do {
-                // add the entry for this user
-                dnChain.add(chainedUser.getDn());
-
-                // go to the next user in the chain
-                chainedUser = chainedUser.getChain();
-            } while (chainedUser != null);
+            final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
 
             // ensure the users in this chain are allowed to download this content
             final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
@@ -840,17 +836,17 @@ public class ControllerFacade {
                 throw new AccessDeniedException(downloadAuthorization.getExplanation());
             }
 
-            // get the filename and fall back to the idnetifier (should never happen)
-            String filename = event.getAttributes().get(CoreAttributes.FILENAME.key());
+            // get the filename and fall back to the identifier (should never happen)
+            String filename = attributes.get(CoreAttributes.FILENAME.key());
             if (filename == null) {
                 filename = event.getFlowFileUuid();
             }
 
             // get the mime-type
-            final String type = event.getAttributes().get(CoreAttributes.MIME_TYPE.key());
+            final String type = attributes.get(CoreAttributes.MIME_TYPE.key());
 
             // get the content
-            final InputStream content = flowController.getContent(event, contentDirection, user.getDn(), uri);
+            final InputStream content = flowController.getContent(event, contentDirection, user.getIdentity(), uri);
             return new DownloadableContent(filename, type, content);
         } catch (final ContentNotFoundException cnfe) {
             throw new ResourceNotFoundException("Unable to find the specified content.");
@@ -880,7 +876,7 @@ public class ControllerFacade {
             }
 
             // replay the flow file
-            final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user.getDn());
+            final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user.getIdentity());
 
             // convert the event record
             return createProvenanceEventDto(event);

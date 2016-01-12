@@ -710,7 +710,68 @@ nf.CanvasUtils = (function () {
 
             return stoppable;
         },
-        
+
+        /**
+         * Filters the specified selection for any components that supports enable.
+         *
+         * @argument {selection} selection      The selection
+         */
+        filterEnable: function (selection) {
+            return selection.filter(function (d) {
+                var selected = d3.select(this);
+                var selectedData = selected.datum();
+
+                // ensure its a processor, input port, or output port and supports modification and is disabled (can enable)
+                return ((nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) &&
+                        nf.CanvasUtils.supportsModification(selected) &&
+                        selectedData.component.state === 'DISABLED');
+            });
+        },
+
+        /**
+         * Determines if the specified selection contains any components that supports enable.
+         *
+         * @argument {selection} selection      The selection
+         */
+        canEnable: function (selection) {
+            if (selection.empty()) {
+                return false;
+            }
+
+            return !nf.CanvasUtils.filterEnable(selection).empty();
+        },
+
+        /**
+         * Filters the specified selection for any components that supports disable.
+         *
+         * @argument {selection} selection      The selection
+         */
+        filterDisable: function (selection) {
+            return selection.filter(function (d) {
+                var selected = d3.select(this);
+                var selectedData = selected.datum();
+
+                // ensure its a processor, input port, or output port and supports modification and is stopped (can disable)
+                return ((nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) &&
+                        nf.CanvasUtils.supportsModification(selected) &&
+                        selectedData.component.state === 'STOPPED');
+            });
+        },
+
+        /**
+         * Determines if the specified selection contains any components that supports disable.
+         *
+         * @argument {selection} selection      The selection
+         */
+        canDisable: function (selection) {
+            if (selection.empty()) {
+                return false;
+            }
+
+            return !nf.CanvasUtils.filterDisable(selection).empty();
+        },
+
+
         /**
          * Determines if the specified selection can all start transmitting.
          *
@@ -726,12 +787,11 @@ nf.CanvasUtils = (function () {
             selection.each(function () {
                 if (!nf.CanvasUtils.canStartTransmitting(d3.select(this))) {
                     canStartTransmitting = false;
-                    return false;
                 }
             });
             return canStartTransmitting;
         },
-        
+
         /**
          * Determines if the specified selection supports starting transmission.
          *
@@ -756,7 +816,6 @@ nf.CanvasUtils = (function () {
             selection.each(function () {
                 if (!nf.CanvasUtils.canStopTransmitting(d3.select(this))) {
                     canStopTransmitting = false;
-                    return false;
                 }
             });
             return canStopTransmitting;
@@ -953,6 +1012,44 @@ nf.CanvasUtils = (function () {
                 return connection.selectedRelationships.join(', ');
             }
             return '';
+        },
+        
+        /**
+         * Reloads a connection's source and destination.
+         * 
+         * @param {string} sourceComponentId          The connection source id
+         * @param {string} destinationComponentId     The connection destination id
+         */
+        reloadConnectionSourceAndDestination: function (sourceComponentId, destinationComponentId) {
+            if (nf.Common.isBlank(sourceComponentId) === false) {
+                var source = d3.select('#id-' + sourceComponentId);
+                if (source.empty() === false) {
+                    var sourceData = source.datum();
+
+                    // update the source status if necessary
+                    if (nf.CanvasUtils.isProcessor(source)) {
+                        nf.Processor.reload(sourceData.component);
+                    } else if (nf.CanvasUtils.isInputPort(source)) {
+                        nf.Port.reload(sourceData.component);
+                    } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
+                        nf.RemoteProcessGroup.reload(sourceData.component);
+                    }
+                }
+            }
+
+            if (nf.Common.isBlank(destinationComponentId) === false) {
+                var destination = d3.select('#id-' + destinationComponentId);
+                if (destination.empty() === false) {
+                    var destinationData = destination.datum();
+
+                    // update the destination component accordingly
+                    if (nf.CanvasUtils.isProcessor(destination)) {
+                        nf.Processor.reload(destinationData.component);
+                    } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
+                        nf.RemoteProcessGroup.reload(destinationData.component);
+                    }
+                }
+            }
         },
         
         /**
@@ -1371,9 +1468,16 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
-            return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isProcessGroup(selection) ||
-                    nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isOutputPort(selection) ||
-                    nf.CanvasUtils.isFunnel(selection);
+            if (nf.CanvasUtils.isProcessGroup(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) ||
+                    nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isFunnel(selection)) {
+                return true;
+            }
+
+            // if processor, ensure it supports input
+            if (nf.CanvasUtils.isProcessor(selection)) {
+                var destinationData = selection.datum();
+                return destinationData.component.inputRequirement !== 'INPUT_FORBIDDEN';
+            }
         }
     };
 }());

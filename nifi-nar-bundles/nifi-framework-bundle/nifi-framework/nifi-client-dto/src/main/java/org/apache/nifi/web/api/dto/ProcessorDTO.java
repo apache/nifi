@@ -36,6 +36,8 @@ public class ProcessorDTO extends NiFiComponentDTO {
     private String description;
     private Boolean supportsParallelProcessing;
     private Boolean supportsEventDriven;
+    private Boolean supportsBatching;
+    private String inputRequirement;
 
     private ProcessorConfigDTO config;
 
@@ -121,6 +123,20 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
+     * @return the input requirement of this processor
+     */
+    @ApiModelProperty(
+            value = "The input requirement for this processor."
+    )
+    public String getInputRequirement() {
+        return inputRequirement;
+    }
+
+    public void setInputRequirement(String inputRequirement) {
+        this.inputRequirement = inputRequirement;
+    }
+
+    /**
      * @return whether this processor supports event driven scheduling
      */
     @ApiModelProperty(
@@ -132,6 +148,20 @@ public class ProcessorDTO extends NiFiComponentDTO {
 
     public void setSupportsEventDriven(Boolean supportsEventDriven) {
         this.supportsEventDriven = supportsEventDriven;
+    }
+
+    /**
+     * @return whether this processor supports batching
+     */
+    @ApiModelProperty(
+        value = "Whether the processor supports batching. This makes the run duration settings available."
+    )
+    public Boolean getSupportsBatching() {
+        return supportsBatching;
+    }
+
+    public void setSupportsBatching(Boolean supportsBatching) {
+        this.supportsBatching = supportsBatching;
     }
 
     /**

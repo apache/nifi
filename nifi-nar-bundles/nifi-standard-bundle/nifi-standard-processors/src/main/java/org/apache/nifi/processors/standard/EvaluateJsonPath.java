@@ -33,6 +33,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -55,14 +57,15 @@ import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.ObjectHolder;
 
 import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"JSON", "evaluate", "JsonPath"})
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Evaluates one or more JsonPath expressions against the content of a FlowFile. "
         + "The results of those expressions are assigned to FlowFile Attributes or are written to the content of the FlowFile itself, "
         + "depending on configuration of the Processor. "
@@ -233,7 +236,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @OnScheduled
     public void compileJsonPaths(ProcessContext processContext) {
-    	/* 
+    	/*
     	 * Build the JsonPath expressions from attributes before processing the
     	 * FlowFiles so that we can quickly and efficiently read the JSON path results
     	 */

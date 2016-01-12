@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.prioritizer;
 
-import org.apache.nifi.prioritizer.PriorityAttributePrioritizer;
-
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -48,13 +47,13 @@ public class PriorityAttributePrioritizerTest {
 
     @BeforeClass
     public static void init() {
-        attrsPri1.put(PriorityAttributePrioritizer.PRIORITY_ATTR, "1");
-        attrsPri2.put(PriorityAttributePrioritizer.PRIORITY_ATTR, "2");
-        attrsPrin1.put(PriorityAttributePrioritizer.PRIORITY_ATTR, "-1");
-        attrsPriA.put(PriorityAttributePrioritizer.PRIORITY_ATTR, "A");
-        attrsPriB.put(PriorityAttributePrioritizer.PRIORITY_ATTR, "B");
-        attrsPriLP.put(PriorityAttributePrioritizer.PRIORITY_ATTR, "5432123456789");
-        attrsPriLN.put(PriorityAttributePrioritizer.PRIORITY_ATTR, "-5432123456789");
+        attrsPri1.put(CoreAttributes.PRIORITY.key(), "1");
+        attrsPri2.put(CoreAttributes.PRIORITY.key(), "2");
+        attrsPrin1.put(CoreAttributes.PRIORITY.key(), "-1");
+        attrsPriA.put(CoreAttributes.PRIORITY.key(), "A");
+        attrsPriB.put(CoreAttributes.PRIORITY.key(), "B");
+        attrsPriLP.put(CoreAttributes.PRIORITY.key(), "5432123456789");
+        attrsPriLN.put(CoreAttributes.PRIORITY.key(), "-5432123456789");
     }
 
     @Test

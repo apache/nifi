@@ -20,6 +20,7 @@ import java.sql.Connection;
 import org.apache.nifi.admin.dao.ActionDAO;
 import org.apache.nifi.admin.dao.AuthorityDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.admin.dao.KeyDAO;
 import org.apache.nifi.admin.dao.UserDAO;
 
 /**
@@ -46,6 +47,11 @@ public class DAOFactoryImpl implements DAOFactory {
     @Override
     public UserDAO getUserDAO() {
         return new StandardUserDAO(connection);
+    }
+
+    @Override
+    public KeyDAO getKeyDAO() {
+        return new StandardKeyDAO(connection);
     }
 
 }

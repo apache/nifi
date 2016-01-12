@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -51,8 +53,9 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 @SupportsBatching
+@SeeAlso({ PutSQS.class, DeleteSQS.class })
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"Amazon", "AWS", "SQS", "Queue", "Get", "Fetch", "Poll"})
-@SeeAlso({PutSQS.class, DeleteSQS.class})
 @CapabilityDescription("Fetches messages from an Amazon Simple Queuing Service Queue")
 @WritesAttributes({
     @WritesAttribute(attribute = "hash.value", description = "The MD5 sum of the message"),
@@ -100,8 +103,18 @@ public class GetSQS extends AbstractSQSProcessor {
             .expressionLanguageSupported(false)
             .build();
 
+    public static final PropertyDescriptor RECEIVE_MSG_WAIT_TIME = new PropertyDescriptor.Builder()
+            .name("Receive Message Wait Time")
+            .description("The maximum amount of time to wait on a long polling receive call. Setting this to a value of 1 second or greater will "
+                + "reduce the number of SQS requests and decrease fetch latency at the cost of a constantly active thread.")
+            .expressionLanguageSupported(false)
+            .required(true)
+            .defaultValue("0 sec")
+            .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.SECONDS, 20, TimeUnit.SECONDS))  // 20 seconds is the maximum allowed by SQS
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(STATIC_QUEUE_URL, AUTO_DELETE, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, REGION, BATCH_SIZE, TIMEOUT, CHARSET, VISIBILITY_TIMEOUT));
+            Arrays.asList(STATIC_QUEUE_URL, AUTO_DELETE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, REGION, BATCH_SIZE, TIMEOUT, CHARSET, VISIBILITY_TIMEOUT, RECEIVE_MSG_WAIT_TIME));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -124,6 +137,7 @@ public class GetSQS extends AbstractSQSProcessor {
         request.setMaxNumberOfMessages(context.getProperty(BATCH_SIZE).asInteger());
         request.setVisibilityTimeout(context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue());
         request.setQueueUrl(queueUrl);
+        request.setWaitTimeSeconds(context.getProperty(RECEIVE_MSG_WAIT_TIME).asTimePeriod(TimeUnit.SECONDS).intValue());
 
         final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
 

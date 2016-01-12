@@ -31,7 +31,12 @@ public class NewestFlowFileFirstPrioritizer implements FlowFilePrioritizer {
             return 1;
         }
 
-        return Long.compare(o2.getLineageStartDate(), o1.getLineageStartDate());
+        final int lineageDateCompare = Long.compare(o2.getLineageStartDate(), o1.getLineageStartDate());
+        if (lineageDateCompare != 0) {
+            return lineageDateCompare;
+        }
+
+        return Long.compare(o2.getId(), o1.getId());
     }
 
 }

@@ -36,4 +36,5 @@ public interface PreparedQuery {
 
     String evaluateExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException;
 
+    String evaluateExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException;
 }

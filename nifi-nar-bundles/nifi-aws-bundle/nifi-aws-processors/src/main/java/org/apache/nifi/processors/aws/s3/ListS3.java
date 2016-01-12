@@ -88,7 +88,7 @@ public class ListS3 extends AbstractS3Processor {
         props.add(REGION);
         props.add(ACCESS_KEY);
         props.add(SECRET_KEY);
-        props.add(CREDENTAILS_FILE);
+        props.add(CREDENTIALS_FILE);
         props.add(TIMEOUT);
         props.add(MAX_OBJECTS);
         props.add(MIN_AGE);

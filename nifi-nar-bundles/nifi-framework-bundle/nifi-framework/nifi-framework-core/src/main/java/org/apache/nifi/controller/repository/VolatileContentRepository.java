@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -401,14 +402,22 @@ public class VolatileContentRepository implements ContentRepository {
     @Override
     public long exportTo(ContentClaim claim, OutputStream destination) throws IOException {
         final InputStream in = read(claim);
-        return StreamUtils.copy(in, destination);
+        try {
+            return StreamUtils.copy(in, destination);
+        } finally {
+            IOUtils.closeQuietly(in);
+        }
     }
 
     @Override
     public long exportTo(ContentClaim claim, OutputStream destination, long offset, long length) throws IOException {
         final InputStream in = read(claim);
-        StreamUtils.skip(in, offset);
-        StreamUtils.copy(in, destination, length);
+        try {
+            StreamUtils.skip(in, offset);
+            StreamUtils.copy(in, destination, length);
+        } finally {
+            IOUtils.closeQuietly(in);
+        }
         return length;
     }
 

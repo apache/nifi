@@ -103,7 +103,7 @@
                             </div>
                         </div>
                         <div id="event-driven-warning" class="hidden">
-                            <div id="event-driven-warning-icon"></div>
+                            <div class="processor-configuration-warning-icon"></div>
                             This strategy is experimental
                         </div>
                         <div class="clear"></div>
@@ -164,11 +164,12 @@
                     </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
-                <div class="settings-right">
+                <div id="run-duration-setting-container" class="settings-right">
                     <div class="setting">
                         <div class="setting-name">
                             Run duration
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="When scheduled to run, the processor will continue running for this duration. A run duration of 0ms will execute once when scheduled."/>
+                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info"
+                                 title="When scheduled to run, the processor will continue running for up to this duration. A run duration of 0ms will execute once when scheduled."/>
                         </div>
                         <div class="setting-field" style="overflow: visible;">
                             <div id="run-duration-container">
@@ -188,6 +189,10 @@
                                     <div id="min-run-duration-explanation">Lower latency</div>
                                     <div id="max-run-duration-explanation">Higher throughput</div>
                                     <div class="clear"></div>
+                                </div>
+                                <div id="run-duration-data-loss" class="hidden">
+                                    <div class="processor-configuration-warning-icon"></div>
+                                    Source Processors with a run duration greater than 0ms and no incoming connections could lose data when NiFi is shutdown.
                                 </div>
                             </div>
                         </div>

@@ -37,6 +37,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.Connectables;
 
 /**
  * This class is essentially an empty shell for {@link Connectable}s that are not Processors
@@ -58,6 +59,9 @@ public class ConnectableProcessContext implements ProcessContext {
 
     @Override
     public PropertyValue getProperty(final String propertyName) {
+        // None of the connectable components other than Processor's will ever need to evaluate these.
+        // Since Processors use a different implementation of ProcessContext all together, we will just
+        // return null for all values
         return new PropertyValue() {
             @Override
             public String getValue() {
@@ -133,6 +137,26 @@ public class ConnectableProcessContext implements ProcessContext {
             public boolean isSet() {
                 return false;
             }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes) throws ProcessException {
+                return null;
+            }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes) throws ProcessException {
+                return null;
+            }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException {
+                return null;
+            }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException {
+                return null;
+            }
         };
     }
 
@@ -189,5 +213,26 @@ public class ConnectableProcessContext implements ProcessContext {
             return (Set<Relationship>) relationships;
         }
         return new HashSet<>(connectable.getRelationships());
+    }
+
+    @Override
+    public boolean hasIncomingConnection() {
+        return connectable.hasIncomingConnection();
+    }
+
+    @Override
+    public boolean hasNonLoopConnection() {
+        return Connectables.hasNonLoopConnection(connectable);
+    }
+
+    @Override
+    public boolean hasConnection(Relationship relationship) {
+        Set<Connection> connections = connectable.getConnections(relationship);
+        return connections != null && !connections.isEmpty();
+    }
+
+    @Override
+    public boolean isExpressionLanguagePresent(PropertyDescriptor property) {
+        return false;
     }
 }

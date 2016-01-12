@@ -25,24 +25,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 /**
  * <p>
- * A flow file is a logical notion of an item in a flow with its associated attributes and identity which can be used as a reference for its actual content.</p>
+ * A flow file is a logical notion of an item in a flow with its associated attributes and identity which can be used as a reference for its actual content.
+ * </p>
  *
  * <b>Immutable - Thread Safe</b>
  *
  */
 public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
+    private static final int MAX_LINEAGE_IDENTIFIERS = 100;
 
     private final long id;
     private final long entryDate;
@@ -182,7 +183,18 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         public Builder lineageIdentifiers(final Collection<String> lineageIdentifiers) {
             if (null != lineageIdentifiers) {
                 bLineageIdentifiers.clear();
-                bLineageIdentifiers.addAll(lineageIdentifiers);
+
+                if (lineageIdentifiers.size() > MAX_LINEAGE_IDENTIFIERS) {
+                    int i = 0;
+                    for (final String id : lineageIdentifiers) {
+                        bLineageIdentifiers.add(id);
+                        if (i++ >= MAX_LINEAGE_IDENTIFIERS) {
+                            break;
+                        }
+                    }
+                } else {
+                    bLineageIdentifiers.addAll(lineageIdentifiers);
+                }
             }
             return this;
         }
@@ -235,6 +247,10 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         public Builder removeAttributes(final String... keys) {
             if (keys != null) {
                 for (final String key : keys) {
+                    if (CoreAttributes.UUID.key().equals(key)) {
+                        continue;
+                    }
+
                     bAttributes.remove(key);
                 }
             }
@@ -244,6 +260,10 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         public Builder removeAttributes(final Set<String> keys) {
             if (keys != null) {
                 for (final String key : keys) {
+                    if (CoreAttributes.UUID.key().equals(key)) {
+                        continue;
+                    }
+
                     bAttributes.remove(key);
                 }
             }
@@ -255,6 +275,11 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
                 final Iterator<String> iterator = bAttributes.keySet().iterator();
                 while (iterator.hasNext()) {
                     final String key = iterator.next();
+
+                    if (CoreAttributes.UUID.key().equals(key)) {
+                        continue;
+                    }
+
                     if (keyPattern.matcher(key).matches()) {
                         iterator.remove();
                     }
