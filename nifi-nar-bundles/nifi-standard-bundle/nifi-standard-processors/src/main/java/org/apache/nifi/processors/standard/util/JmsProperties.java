@@ -16,11 +16,7 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -53,27 +49,6 @@ public class JmsProperties {
             .name("URL")
             .description("The URL of the JMS Server")
             .addValidator(StandardValidators.URI_VALIDATOR)
-            .addValidator(new Validator() {
-                @Override
-                public ValidationResult validate(String subject, String input, ValidationContext context) {
-                    if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                        return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-                    }
-                    final ValidationResult.Builder builder = new ValidationResult.Builder();
-                    builder.subject(subject).input(input).explanation("Valid URL").valid(true);
-                    try {
-                        final String evaluatedInput = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-                        final URI uri = new URI(evaluatedInput);
-                        if (uri.getScheme() == null) {
-                            builder.explanation("JMS URI must have a scheme set such as 'jms','ssl','tcp','vm',etc..").valid(false);
-                        }
-                    } catch (final URISyntaxException urie) {
-                        builder.explanation("JMS URI not valid").valid(false);
-                    }
-                    return builder.build();
-                }
-            }
-            )
             .required(true)
             .build();
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()

@@ -358,12 +358,12 @@ public class JmsFactory {
         try {
             uri = new URI(context.getProperty(URL).getValue());
         } catch (URISyntaxException e) {
-            // Should not happen - URL was validated
+            // Should not happen - URI was validated
             throw new IllegalArgumentException("Validated URI [" + context.getProperty(URL) + "] was invalid", e);
         }
         final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final String provider = context.getProperty(JMS_PROVIDER).getValue();
-        if (uri.getScheme().equals("ssl") || (URISupport.isCompositeURI(uri) && compositeURIHasSSL(uri))) {
+        if (isSSL(uri)) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             if (sslContextService == null) {
                 throw new IllegalArgumentException("Attempting to initiate SSL JMS connection and SSL Context is not set.");
@@ -375,11 +375,11 @@ public class JmsFactory {
         }
     }
 
-    private static boolean compositeURIHasSSL(URI uri) {
+    private static boolean isSSL(URI uri) {
         try {
             CompositeData compositeData = URISupport.parseComposite(uri);
             for(URI component : compositeData.getComponents()){
-                if(component.getScheme().equals("ssl")){
+                if ("ssl".equals(component.getScheme())) {
                     return true;
                 }
             }
