@@ -16,37 +16,38 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
+import org.bouncycastle.openpgp.PGPCompressedData;
+import org.bouncycastle.openpgp.PGPEncryptedData;
+import org.bouncycastle.openpgp.PGPEncryptedDataList;
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPLiteralData;
+import org.bouncycastle.openpgp.PGPPBEEncryptedData;
+import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
+import org.bouncycastle.openpgp.operator.PBEDataDecryptorFactory;
+import org.bouncycastle.openpgp.operator.PGPDigestCalculatorProvider;
+import org.bouncycastle.openpgp.operator.PGPKeyEncryptionMethodGenerator;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
+import org.bouncycastle.openpgp.operator.jcajce.JcePBEDataDecryptorFactoryBuilder;
+import org.bouncycastle.openpgp.operator.jcajce.JcePBEKeyEncryptionMethodGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.SecureRandom;
-import java.util.Date;
-import java.util.zip.Deflater;
 
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processors.standard.EncryptContent;
-import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
-import org.bouncycastle.bcpg.ArmoredOutputStream;
-import org.bouncycastle.openpgp.PGPCompressedData;
-import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
-import org.bouncycastle.openpgp.PGPEncryptedData;
-import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
-import org.bouncycastle.openpgp.PGPEncryptedDataList;
-import org.bouncycastle.openpgp.PGPLiteralData;
-import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
-import org.bouncycastle.openpgp.PGPObjectFactory;
-import org.bouncycastle.openpgp.PGPPBEEncryptedData;
-import org.bouncycastle.openpgp.PGPUtil;
+import static org.bouncycastle.openpgp.PGPUtil.getDecoderStream;
 
 public class OpenPGPPasswordBasedEncryptor implements Encryptor {
+    private static final Logger logger = LoggerFactory.getLogger(OpenPGPPasswordBasedEncryptor.class);
 
     private String algorithm;
     private String provider;
     private char[] password;
     private String filename;
-
-    public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
 
     public OpenPGPPasswordBasedEncryptor(final String algorithm, final String provider, final char[] passphrase, final String filename) {
         this.algorithm = algorithm;
@@ -77,8 +78,8 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
 
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
-            InputStream pgpin = PGPUtil.getDecoderStream(in);
-            PGPObjectFactory pgpFactory = new PGPObjectFactory(pgpin);
+            InputStream pgpin = getDecoderStream(in);
+            JcaPGPObjectFactory pgpFactory = new JcaPGPObjectFactory(pgpin);
 
             Object obj = pgpFactory.nextObject();
             if (!(obj instanceof PGPEncryptedDataList)) {
@@ -93,31 +94,41 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
             if (!(obj instanceof PGPPBEEncryptedData)) {
                 throw new ProcessException("Invalid OpenPGP data");
             }
-            PGPPBEEncryptedData encData = (PGPPBEEncryptedData) obj;
+            PGPPBEEncryptedData encryptedData = (PGPPBEEncryptedData) obj;
 
             try {
-                InputStream clearData = encData.getDataStream(password, provider);
-                PGPObjectFactory clearFactory = new PGPObjectFactory(clearData);
+                final PGPDigestCalculatorProvider digestCalculatorProvider = new JcaPGPDigestCalculatorProviderBuilder().setProvider(provider).build();
+                final PBEDataDecryptorFactory decryptorFactory = new JcePBEDataDecryptorFactoryBuilder(digestCalculatorProvider).setProvider(provider).build(password);
+                InputStream clear = encryptedData.getDataStream(decryptorFactory);
 
-                obj = clearFactory.nextObject();
+                JcaPGPObjectFactory pgpObjectFactory = new JcaPGPObjectFactory(clear);
+
+                obj = pgpObjectFactory.nextObject();
                 if (obj instanceof PGPCompressedData) {
-                    PGPCompressedData compData = (PGPCompressedData) obj;
-                    clearFactory = new PGPObjectFactory(compData.getDataStream());
-                    obj = clearFactory.nextObject();
+                    PGPCompressedData compressedData = (PGPCompressedData) obj;
+                    pgpObjectFactory = new JcaPGPObjectFactory(compressedData.getDataStream());
+                    obj = pgpObjectFactory.nextObject();
                 }
-                PGPLiteralData literal = (PGPLiteralData) obj;
 
-                InputStream lis = literal.getInputStream();
-                final byte[] buffer = new byte[4096];
+                PGPLiteralData literalData = (PGPLiteralData) obj;
+                InputStream plainIn = literalData.getInputStream();
+                final byte[] buffer = new byte[org.apache.nifi.processors.standard.util.PGPUtil.BLOCK_SIZE];
                 int len;
-                while ((len = lis.read(buffer)) >= 0) {
+                while ((len = plainIn.read(buffer)) >= 0) {
                     out.write(buffer, 0, len);
+                }
+
+                if (encryptedData.isIntegrityProtected()) {
+                    if (!encryptedData.verify()) {
+                        throw new PGPException("Integrity check failed");
+                    }
+                } else {
+                    logger.warn("No message integrity check");
                 }
             } catch (Exception e) {
                 throw new ProcessException(e.getMessage());
             }
         }
-
     }
 
     private static class OpenPGPEncryptCallback implements StreamCallback {
@@ -137,39 +148,11 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             try {
-                SecureRandom secureRandom = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM);
-
-                OutputStream output = out;
-                if (EncryptContent.isPGPArmoredAlgorithm(algorithm)) {
-                    output = new ArmoredOutputStream(out);
-                }
-
-                PGPEncryptedDataGenerator encGenerator = new PGPEncryptedDataGenerator(PGPEncryptedData.CAST5, false,
-                        secureRandom, provider);
-                encGenerator.addMethod(password);
-                OutputStream encOut = encGenerator.open(output, new byte[65536]);
-
-                PGPCompressedDataGenerator compData = new PGPCompressedDataGenerator(PGPCompressedData.ZIP, Deflater.BEST_SPEED);
-                OutputStream compOut = compData.open(encOut, new byte[65536]);
-
-                PGPLiteralDataGenerator literal = new PGPLiteralDataGenerator();
-                OutputStream literalOut = literal.open(compOut, PGPLiteralData.BINARY, filename, new Date(), new byte[65536]);
-
-                final byte[] buffer = new byte[4096];
-                int len;
-                while ((len = in.read(buffer)) >= 0) {
-                    literalOut.write(buffer, 0, len);
-                }
-
-                literalOut.close();
-                compOut.close();
-                encOut.close();
-                output.close();
+                PGPKeyEncryptionMethodGenerator encryptionMethodGenerator = new JcePBEKeyEncryptionMethodGenerator(password).setProvider(provider);
+                org.apache.nifi.processors.standard.util.PGPUtil.encrypt(in, out, algorithm, provider, PGPEncryptedData.AES_128, filename, encryptionMethodGenerator);
             } catch (Exception e) {
                 throw new ProcessException(e.getMessage());
             }
-
         }
-
     }
 }
