@@ -26,6 +26,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
@@ -43,6 +45,7 @@ import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 
 import org.apache.commons.lang3.StringUtils;
@@ -54,6 +57,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardProcessorDAO.class);
     private FlowController flowController;
+    private ComponentStateDAO componentStateDAO;
 
     private ProcessorNode locateProcessor(String groupId, String processorId) {
         return locateProcessor(locateProcessGroup(flowController, groupId), processorId);
@@ -452,8 +456,30 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
     }
 
+    @Override
+    public StateMap getState(String groupId, String processorId, final Scope scope) {
+        final ProcessorNode processor = locateProcessor(groupId, processorId);
+        return componentStateDAO.getState(processor, scope);
+    }
+
+    @Override
+    public void verifyClearState(String groupId, String processorId) {
+        final ProcessorNode processor = locateProcessor(groupId, processorId);
+        processor.verifyCanClearState();
+    }
+
+    @Override
+    public void clearState(String groupId, String processorId) {
+        final ProcessorNode processor = locateProcessor(groupId, processorId);
+        componentStateDAO.clearState(processor);
+    }
+
     /* setters */
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
+    }
+
+    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+        this.componentStateDAO = componentStateDAO;
     }
 }

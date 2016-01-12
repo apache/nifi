@@ -24,6 +24,8 @@ import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Matcher;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
@@ -36,12 +38,14 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.quartz.CronExpression;
 
 public class StandardReportingTaskDAO extends ComponentDAO implements ReportingTaskDAO {
 
     private ReportingTaskProvider reportingTaskProvider;
+    private ComponentStateDAO componentStateDAO;
 
     private ReportingTaskNode locateReportingTask(final String reportingTaskId) {
         // get the reporting task
@@ -299,8 +303,30 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         reportingTaskProvider.removeReportingTask(reportingTask);
     }
 
+    @Override
+    public StateMap getState(String reportingTaskId, Scope scope) {
+        final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskId);
+        return componentStateDAO.getState(reportingTask, scope);
+    }
+
+    @Override
+    public void verifyClearState(String reportingTaskId) {
+        final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskId);
+        reportingTask.verifyCanClearState();
+    }
+
+    @Override
+    public void clearState(String reportingTaskId) {
+        final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskId);
+        componentStateDAO.clearState(reportingTask);
+    }
+
     /* setters */
     public void setReportingTaskProvider(ReportingTaskProvider reportingTaskProvider) {
         this.reportingTaskProvider = reportingTaskProvider;
+    }
+
+    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+        this.componentStateDAO = componentStateDAO;
     }
 }

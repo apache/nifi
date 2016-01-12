@@ -62,11 +62,14 @@ import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import static org.apache.nifi.web.api.ApplicationResource.CLIENT_ID;
+
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -552,6 +555,140 @@ public class ProcessorResource extends ApplicationResource {
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
         entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**
+     * Gets the state for a processor.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id The id of the processor
+     * @return a componentStateEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/{id}/state")
+    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Gets the state for a processor",
+        response = ComponentStateDTO.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getState(
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @ApiParam(
+            value = "The processor id.",
+            required = true
+        )
+        @PathParam("id") String id) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get the component state
+        final ComponentStateDTO descriptor = serviceFacade.getProcessorState(groupId, id);
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // generate the response entity
+        final ComponentStateEntity entity = new ComponentStateEntity();
+        entity.setRevision(revision);
+        entity.setComponentState(descriptor);
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**
+     * Clears the state for a processor.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param id The id of the processor
+     * @return a componentStateEntity
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/{id}/state/clear-requests")
+    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Clears the state for a processor",
+        response = ComponentStateDTO.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response clearState(
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @ApiParam(
+            value = "The revision is used to verify the client is working with the latest version of the flow.",
+            required = true
+        )
+        @FormParam(VERSION) LongParameter version,
+        @ApiParam(
+            value = "The processor id.",
+            required = true
+        )
+        @PathParam("id") String id) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get the revision specified by the user
+        Long revision = null;
+        if (version != null) {
+            revision = version.getLong();
+        }
+
+        // get the component state
+        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearProcessorState(new Revision(revision, clientId.getClientId()), groupId, id);
+
+        // create the revision
+        final RevisionDTO revisionDTO = new RevisionDTO();
+        revisionDTO.setClientId(clientId.getClientId());
+        revisionDTO.setVersion(snapshot.getVersion());
+
+        // generate the response entity
+        final ComponentStateEntity entity = new ComponentStateEntity();
+        entity.setRevision(revisionDTO);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

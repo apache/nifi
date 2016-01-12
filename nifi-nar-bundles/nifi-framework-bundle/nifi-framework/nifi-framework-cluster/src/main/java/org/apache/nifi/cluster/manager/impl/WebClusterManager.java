@@ -1430,6 +1430,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         return serviceNode;
     }
 
+    public StateManagerProvider getStateManagerProvider() {
+        return stateManagerProvider;
+    }
+
     @Override
     public ControllerService getControllerService(String serviceIdentifier) {
         return controllerServiceProvider.getControllerService(serviceIdentifier);

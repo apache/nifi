@@ -28,6 +28,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -998,6 +999,85 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     ConfigurationSnapshot<Void> deleteFunnel(Revision revision, String groupId, String funnelId);
+
+    // ----------------------------------------
+    // Component state methods
+    // ----------------------------------------
+
+    /**
+     * Gets the state for the specified processor.
+     *
+     * @param groupId group
+     * @param processorId the processor id
+     * @return  the component state
+     */
+    ComponentStateDTO getProcessorState(String groupId, String processorId);
+
+    /**
+     * Verifies the processor state could be cleared.
+     *
+     * @param groupId group
+     * @param processorId the processor id
+     */
+    void verifyCanClearProcessorState(String groupId, String processorId);
+
+    /**
+     * Clears the state for the specified processor.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param groupId group
+     * @param processorId the processor id
+     * @return snapshot
+     */
+    ConfigurationSnapshot<Void> clearProcessorState(Revision revision, String groupId, String processorId);
+
+    /**
+     * Gets the state for the specified controller service.
+     *
+     * @param controllerServiceId the controller service id
+     * @return  the component state
+     */
+    ComponentStateDTO getControllerServiceState(String controllerServiceId);
+
+    /**
+     * Verifies the controller service state could be cleared.
+     *
+     * @param controllerServiceId the controller service id
+     */
+    void verifyCanClearControllerServiceState(String controllerServiceId);
+
+    /**
+     * Clears the state for the specified controller service.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param controllerServiceId the controller service id
+     * @return snapshot
+     */
+    ConfigurationSnapshot<Void> clearControllerServiceState(Revision revision, String controllerServiceId);
+
+    /**
+     * Gets the state for the specified reporting task.
+     *
+     * @param reportingTaskId the reporting task id
+     * @return  the component state
+     */
+    ComponentStateDTO getReportingTaskState(String reportingTaskId);
+
+    /**
+     * Verifies the reporting task state could be cleared.
+     *
+     * @param reportingTaskId the reporting task id
+     */
+    void verifyCanClearReportingTaskState(String reportingTaskId);
+
+    /**
+     * Clears the state for the specified reporting task.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param reportingTaskId the reporting task id
+     * @return snapshot
+     */
+    ConfigurationSnapshot<Void> clearReportingTaskState(Revision revision, String reportingTaskId);
 
     // ----------------------------------------
     // Label methods
