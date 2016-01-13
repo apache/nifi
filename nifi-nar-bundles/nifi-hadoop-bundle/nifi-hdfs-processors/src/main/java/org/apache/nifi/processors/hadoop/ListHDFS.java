@@ -188,7 +188,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         if (stateMap.getVersion() == -1L) {
             final HDFSListing serviceListing = getListingFromService(context);
             if (serviceListing != null) {
-                persistState(serviceListing, context.getStateManager());
+                context.getStateManager().setState(serviceListing.toMap(), Scope.CLUSTER);
             }
         }
     }
@@ -213,10 +213,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
     }
 
-    private void persistState(final HDFSListing listing, final StateManager stateManager) throws IOException {
-        final Map<String, String> stateValues = listing.toMap();
-        stateManager.setState(stateValues, Scope.CLUSTER);
-    }
 
     private Long getMinTimestamp(final String directory, final HDFSListing remoteListing) throws IOException {
         // No cluster-wide state has been recovered. Just use whatever values we already have.

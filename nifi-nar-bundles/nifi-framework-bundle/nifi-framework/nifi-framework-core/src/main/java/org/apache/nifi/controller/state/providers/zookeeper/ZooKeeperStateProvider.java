@@ -102,7 +102,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         .sensitive(true)
         .build();
 
-    private static final int ENCODING_VERSION = 1;
+    private static final byte ENCODING_VERSION = 1;
 
     private ZooKeeper zooKeeper;
 
@@ -251,7 +251,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     private byte[] serialize(final Map<String, String> stateValues) throws IOException {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final DataOutputStream dos = new DataOutputStream(baos)) {
-            dos.writeInt(ENCODING_VERSION);
+            dos.writeByte(ENCODING_VERSION);
             dos.writeInt(stateValues.size());
             for (final Map.Entry<String, String> entry : stateValues.entrySet()) {
                 dos.writeUTF(entry.getKey());
@@ -265,7 +265,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         try (final ByteArrayInputStream bais = new ByteArrayInputStream(data);
             final DataInputStream dis = new DataInputStream(bais)) {
 
-            final int encodingVersion = dis.readInt();
+            final byte encodingVersion = dis.readByte();
             if (encodingVersion > ENCODING_VERSION) {
                 throw new IOException("Retrieved a response from ZooKeeper when retrieving state for component with ID " + componentId
                     + ", but the response was encoded using the ZooKeeperStateProvider Encoding Version of " + encodingVersion

@@ -402,7 +402,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 }
                 persist(latestListingTimestamp, identifiers, context.getStateManager());
             } catch (final IOException ioe) {
-                getLogger().warn("Unable to save state due to {}. If NiFi restarted before state is saved, or "
+                getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
                     + "if another node begins executing this Processor, data duplication may occur.", ioe);
             }
 

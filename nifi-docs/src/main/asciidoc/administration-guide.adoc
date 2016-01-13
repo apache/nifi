@@ -443,7 +443,27 @@ in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper propert
 with the list of ZooKeeper servers. Each of these servers is configured as <hostname>:<client port>[:<leader election port>]. For example, `myhost:2888:3888`.
 This list of nodes should be the same nodes in the NiFi cluster that have the `nifi.state.management.embedded.zookeeper.start`
 property set to `true`. Also note that because ZooKeeper will be listening on these ports, the firewall may need to be configured to open these ports
-for incoming traffic, at least between nodes in the cluster.
+for incoming traffic, at least between nodes in the cluster. Additionally, the port to listen on for client connections must be opened in the firewall.
+The default value for this is _2181_ but can be configured via the _clientPort_ property in the _zookeeper.properties_ file.
+
+When using an embedded ZooKeeper, the _conf/zookeeper.properties_ file has a property named `dataDir`. By default, this value is set to `./state/zookeeper`.
+If more than one NiFi node is running an embedded ZooKeeper, it is important to tell the server which one it is. This is accomplished by creating a file named
+_myid_ and placing it in ZooKeeper's data directory. The contents of this file should be index of the server. So for one of the ZooKeeper servers, we will
+accomplish this by performing the following commands:
+
+[source]
+cd $NIFI_HOME
+mkdir state
+mkdir state/zookeeper
+echo 1 > state/zookeeper/myid
+
+For the next NiFi Node that will run ZooKeeper, we can accomplish this by performing the following commands:
+cd $NIFI_HOME
+mkdir state
+mkdir state/zookeeper
+echo 2 > state/zookeeper/myid
+
+And so on.
 
 For more information on the properties used to administer ZooKeeper, see the
 link:https://zookeeper.apache.org/doc/current/zookeeperAdmin.html[ZooKeeper Admin Guide].
