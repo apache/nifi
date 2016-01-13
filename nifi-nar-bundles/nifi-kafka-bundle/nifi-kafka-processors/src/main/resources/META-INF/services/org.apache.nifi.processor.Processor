@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.kafka.GetKafka
 org.apache.nifi.processors.kafka.PutKafka
+org.apache.nifi.processors.kafka.ReadKafka

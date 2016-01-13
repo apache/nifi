@@ -40,6 +40,8 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -230,6 +232,28 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         }
     }
 
+    private final Map<String, JsonPath> attributeToJsonPathMap = new HashMap<>();
+
+    @OnScheduled
+    public void compileJsonPaths(ProcessContext processContext) {
+    	/*
+    	 * Build the JsonPath expressions from attributes before processing the
+    	 * FlowFiles so that we can quickly and efficiently read the JSON path results
+    	 */
+        for (final Map.Entry<PropertyDescriptor, String> entry : processContext.getProperties().entrySet()) {
+            if (!entry.getKey().isDynamic()) {
+                continue;
+            }
+            final JsonPath jsonPath = JsonPath.compile(entry.getValue());
+            attributeToJsonPathMap.put(entry.getKey().getName(), jsonPath);
+        }
+    }
+
+    @OnStopped
+    public void clearJsonPaths() {
+    	attributeToJsonPathMap.clear();
+    }
+
     @Override
     public void onTrigger(final ProcessContext processContext, final ProcessSession processSession) throws ProcessException {
 
@@ -242,17 +266,6 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         String representationOption = processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
         final String nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
-
-        /* Build the JsonPath expressions from attributes */
-        final Map<String, JsonPath> attributeToJsonPathMap = new HashMap<>();
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : processContext.getProperties().entrySet()) {
-            if (!entry.getKey().isDynamic()) {
-                continue;
-            }
-            final JsonPath jsonPath = JsonPath.compile(entry.getValue());
-            attributeToJsonPathMap.put(entry.getKey().getName(), jsonPath);
-        }
 
         final String destination = processContext.getProperty(DESTINATION).getValue();
         String returnType = processContext.getProperty(RETURN_TYPE).getValue();

@@ -52,6 +52,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEv
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.HtmlDecodeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.HtmlEncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
@@ -140,6 +142,8 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FORMAT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN_OR_EQUAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HTML_ENCODE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HTML_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HOSTNAME;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.INDEX_OF;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IP;
@@ -1081,6 +1085,14 @@ public class Query {
             case URL_DECODE: {
                 verifyArgCount(argEvaluators, 0, "urlDecode");
                 return addToken(new UrlDecodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlDecode");
+            }
+            case HTML_ENCODE: {
+                verifyArgCount(argEvaluators, 0, "htmlEncode");
+                return addToken(new HtmlEncodeEvaluator(toStringEvaluator(subjectEvaluator)), "htmlEncode");
+            }
+            case HTML_DECODE: {
+                verifyArgCount(argEvaluators, 0, "htmlDecode");
+                return addToken(new HtmlDecodeEvaluator(toStringEvaluator(subjectEvaluator)), "htmlDecode");
             }
             case SUBSTRING_BEFORE: {
                 verifyArgCount(argEvaluators, 1, "substringBefore");
