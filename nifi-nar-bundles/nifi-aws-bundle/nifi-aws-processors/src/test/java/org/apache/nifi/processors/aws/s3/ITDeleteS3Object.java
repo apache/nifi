@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
-
-@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
-public class TestDeleteS3Object extends AbstractS3Test {
+/**
+ * Provides integration level testing with actual AWS S3 resources for {@link DeleteS3Object} and requires additional configuration and resources to work.
+ */
+public class ITDeleteS3Object extends AbstractS3IT {
 
     @Test
     public void testSimpleDelete() throws IOException {

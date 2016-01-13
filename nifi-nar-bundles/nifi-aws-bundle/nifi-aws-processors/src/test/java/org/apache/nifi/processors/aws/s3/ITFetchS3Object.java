@@ -16,20 +16,21 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
-
-@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
-public class TestFetchS3Object extends AbstractS3Test {
+/**
+ * Provides integration level testing with actual AWS S3 resources for {@link FetchS3Object} and requires additional configuration and resources to work.
+ */
+public class ITFetchS3Object extends AbstractS3IT {
     @Test
     public void testSimpleGet() throws IOException {
         putTestFile("test-file", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));

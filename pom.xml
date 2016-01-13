@@ -1140,6 +1140,11 @@ language governing permissions and limitations under the License. -->
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>2.18</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>2.5.2</version>
                     <configuration>
@@ -1391,6 +1396,28 @@ language governing permissions and limitations under the License. -->
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <!-- Performs execution of Integration Tests using the Maven FailSafe Plugin. The view of integration tests in this context
+             are those tests interfacing with external sources and services requiring additional resources or credentials that cannot 
+             be explicitly provided. -->
+            <id>integration-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <!-- Checks style and licensing requirements. This is a good idea to run 
             for contributions and for the release process. While it would be nice to 
