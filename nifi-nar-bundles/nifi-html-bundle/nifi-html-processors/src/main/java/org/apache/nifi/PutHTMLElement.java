@@ -16,6 +16,8 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -42,7 +44,15 @@ import java.util.HashSet;
 import java.util.Collections;
 
 @Tags({"put", "html", "dom", "css", "element"})
-@CapabilityDescription("Creates a new HTML element in the input HTML")
+@SupportsBatching
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@CapabilityDescription("Places a new HTML element in the existing HTML DOM. The desired position for the new HTML element is specified by" +
+        " using CSS selector syntax. The incoming HTML is first converted into a HTML Document Object Model so that HTML DOM location may be located" +
+        " in a similar manner that CSS selectors are used to apply styles to HTML. The resulting HTML DOM is then \"queried\"" +
+        " using the user defined CSS selector string to find the position where the user desires to add the new HTML element." +
+        " Once the new HTML element is added to the DOM it is rendered to HTML and the result replaces the flowfile" +
+        " content with the updated HTML. A more thorough reference for the CSS selector syntax can be found at" +
+        " \"http://jsoup.org/apidocs/org/jsoup/select/Selector.html\"")
 @SeeAlso({GetHTMLElement.class, ModifyHTMLElement.class})
 public class PutHTMLElement extends AbstractHTMLProcessor {
 
@@ -64,7 +74,7 @@ public class PutHTMLElement extends AbstractHTMLProcessor {
             .name("Put Value")
             .description("Value used when creating the new Element. Value should be a valid HTML element. " +
                     "The text should be supplied unencoded: characters like '<', '>', etc will be properly HTML " +
-                    "encoded in the output.")
+                    "encoded in the resulting output.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -87,8 +97,8 @@ public class PutHTMLElement extends AbstractHTMLProcessor {
         final Set<Relationship> relationships = new HashSet<Relationship>();
         relationships.add(REL_ORIGINAL);
         relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
         relationships.add(REL_INVALID_HTML);
+        relationships.add(REL_NOT_FOUND);
         this.relationships = Collections.unmodifiableSet(relationships);
     }
 
@@ -120,10 +130,10 @@ public class PutHTMLElement extends AbstractHTMLProcessor {
                 for (Element ele : eles) {
                     switch (context.getProperty(PUT_LOCATION_TYPE).getValue()) {
                         case APPEND_ELEMENT:
-                            ele.append(context.getProperty(PUT_VALUE).evaluateAttributeExpressions().getValue());
+                            ele.append(context.getProperty(PUT_VALUE).evaluateAttributeExpressions(flowFile).getValue());
                             break;
                         case PREPEND_ELEMENT:
-                            ele.prepend(context.getProperty(PUT_VALUE).evaluateAttributeExpressions().getValue());
+                            ele.prepend(context.getProperty(PUT_VALUE).evaluateAttributeExpressions(flowFile).getValue());
                             break;
                     }
                 }
@@ -142,7 +152,7 @@ public class PutHTMLElement extends AbstractHTMLProcessor {
 
         } catch (Exception ex) {
             getLogger().error(ex.getMessage());
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(flowFile, REL_INVALID_HTML);
         }
 
     }

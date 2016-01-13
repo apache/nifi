@@ -17,8 +17,6 @@
 package org.apache.nifi;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -29,6 +27,7 @@ import org.jsoup.select.Elements;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.List;
 import static org.junit.Assert.assertTrue;
 
@@ -50,14 +49,11 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(PutHTMLElement.PUT_LOCATION_TYPE, PutHTMLElement.PREPEND_ELEMENT);
         testRunner.setProperty(PutHTMLElement.PUT_VALUE, MOD_VALUE);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(PutHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(PutHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(PutHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 
@@ -80,14 +76,11 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(PutHTMLElement.PUT_LOCATION_TYPE, PutHTMLElement.PREPEND_ELEMENT);
         testRunner.setProperty(PutHTMLElement.PUT_VALUE, MOD_VALUE);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(PutHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(PutHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(PutHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 
@@ -110,14 +103,11 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(PutHTMLElement.PUT_LOCATION_TYPE, PutHTMLElement.APPEND_ELEMENT);
         testRunner.setProperty(PutHTMLElement.PUT_VALUE, MOD_VALUE);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(PutHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(PutHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(PutHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 

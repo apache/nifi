@@ -16,6 +16,8 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -44,7 +46,17 @@ import java.util.HashSet;
 import java.util.Collections;
 
 @Tags({"modify", "html", "dom", "css", "element"})
-@CapabilityDescription("Modifies the value of an existing HTML element in the original input HTML")
+@SupportsBatching
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@CapabilityDescription("Modifies the value of an existing HTML element. The desired element to be modified is located by" +
+        " using CSS selector syntax. The incoming HTML is first converted into a HTML Document Object Model so that HTML elements may be selected" +
+        " in the similar manner that CSS selectors are used to apply styles to HTML. The resulting HTML DOM is then \"queried\"" +
+        " using the user defined CSS selector string to find the element the user desires to modify. If the HTML element is found" +
+        " the element's value is updated in the DOM using the value specified \"Modified Value\" property. All DOM elements" +
+        " that match the CSS selector will be updated. Once all of the DOM elements have been updated the DOM is rendered" +
+        " to HTML and the result replaces the flowfile content with the updated HTML. A more thorough reference for the" +
+        " CSS selector syntax can be found at" +
+        " \"http://jsoup.org/apidocs/org/jsoup/select/Selector.html\"")
 @SeeAlso({GetHTMLElement.class, PutHTMLElement.class})
 @WritesAttributes({@WritesAttribute(attribute="NumElementsModified", description="Total number of HTML " +
         "element modifications made")})
@@ -96,7 +108,6 @@ public class ModifyHTMLElement extends AbstractHTMLProcessor {
         final Set<Relationship> relationships = new HashSet<Relationship>();
         relationships.add(REL_ORIGINAL);
         relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
         relationships.add(REL_INVALID_HTML);
         relationships.add(REL_NOT_FOUND);
         this.relationships = Collections.unmodifiableSet(relationships);
@@ -157,7 +168,7 @@ public class ModifyHTMLElement extends AbstractHTMLProcessor {
 
         } catch (Exception ex) {
             getLogger().error(ex.getMessage());
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(flowFile, REL_INVALID_HTML);
         }
     }
 

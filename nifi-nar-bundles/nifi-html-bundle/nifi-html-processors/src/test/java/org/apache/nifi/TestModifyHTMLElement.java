@@ -17,8 +17,6 @@
 package org.apache.nifi;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -29,6 +27,7 @@ import org.jsoup.select.Elements;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.List;
 
 import static org.junit.Assert.assertNotNull;
@@ -54,14 +53,11 @@ public class TestModifyHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(ModifyHTMLElement.OUTPUT_TYPE, ModifyHTMLElement.ELEMENT_TEXT);
         testRunner.setProperty(ModifyHTMLElement.MODIFIED_VALUE, MOD_VALUE);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(ModifyHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(ModifyHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ModifyHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_NOT_FOUND, 0);
 
@@ -86,14 +82,11 @@ public class TestModifyHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(ModifyHTMLElement.OUTPUT_TYPE, ModifyHTMLElement.ELEMENT_TEXT);
         testRunner.setProperty(ModifyHTMLElement.MODIFIED_VALUE, "${\" " + MOD_VALUE + " \":trim()}");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(ModifyHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(ModifyHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ModifyHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_NOT_FOUND, 0);
 
@@ -116,14 +109,11 @@ public class TestModifyHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(ModifyHTMLElement.OUTPUT_TYPE, ModifyHTMLElement.ELEMENT_HTML);
         testRunner.setProperty(ModifyHTMLElement.MODIFIED_VALUE, MOD_VALUE);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(ModifyHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(ModifyHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ModifyHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_NOT_FOUND, 0);
 
@@ -147,14 +137,11 @@ public class TestModifyHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(ModifyHTMLElement.ATTRIBUTE_KEY, "href");
         testRunner.setProperty(ModifyHTMLElement.MODIFIED_VALUE, MOD_VALUE);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(ModifyHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(ModifyHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ModifyHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_NOT_FOUND, 0);
 
@@ -177,14 +164,11 @@ public class TestModifyHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(ModifyHTMLElement.OUTPUT_TYPE, ModifyHTMLElement.ELEMENT_HTML);
         testRunner.setProperty(ModifyHTMLElement.MODIFIED_VALUE, MOD_VALUE);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(ModifyHTMLElement.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(ModifyHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ModifyHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_ORIGINAL, 0);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_NOT_FOUND, 1);
     }
@@ -196,14 +180,11 @@ public class TestModifyHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(ModifyHTMLElement.OUTPUT_TYPE, ModifyHTMLElement.ELEMENT_HTML);
         testRunner.setProperty(ModifyHTMLElement.MODIFIED_VALUE, MOD_VALUE);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(ModifyHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(ModifyHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ModifyHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(ModifyHTMLElement.REL_NOT_FOUND, 0);
 

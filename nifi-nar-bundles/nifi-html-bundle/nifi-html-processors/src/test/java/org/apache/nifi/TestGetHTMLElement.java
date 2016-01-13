@@ -16,19 +16,20 @@
  */
 package org.apache.nifi;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Selector;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.Exception;
+import java.net.URL;
 import java.util.List;
-
-import static org.junit.Assert.assertTrue;
 
 public class TestGetHTMLElement extends AbstractHTMLTest {
 
@@ -44,18 +45,25 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
     }
 
     @Test
+    public void testCSSSelectorSyntaxValidator() throws IOException {
+        Document doc = Jsoup.parse(new URL("http://www.google.com"), 5000);
+        try {
+            doc.select("---jeremy");
+        } catch (Selector.SelectorParseException ex) {
+            String mes = ex.getMessage();
+            ex.printStackTrace();
+        }
+    }
+
+    @Test
     public void testNoElementFound() throws Exception {
         testRunner.setProperty(GetHTMLElement.CSS_SELECTOR, "b");   //Bold element is not present in sample HTML
-//        testRunner.setProperty(GetHTMLElement.APPEND_ELEMENT_VALUE, "");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 1);
     }
 
@@ -63,14 +71,11 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
     public void testInvalidSelector() throws Exception {
         testRunner.setProperty(GetHTMLElement.CSS_SELECTOR, "InvalidCSSSelectorSyntax");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 1);
     }
 
@@ -78,14 +83,11 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
     public void testSingleElementFound() throws Exception {
         testRunner.setProperty(GetHTMLElement.CSS_SELECTOR, "head");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
     }
@@ -94,14 +96,11 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
     public void testMultipleElementFound() throws Exception {
         testRunner.setProperty(GetHTMLElement.CSS_SELECTOR, "a");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 3);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
     }
@@ -113,22 +112,16 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
         testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "href");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
-        MockFlowFile fff = ffs.get(0);
-        String atValue = fff.getAttribute(GetHTMLElement.HTML_ELEMENT_ATTRIBUTE_NAME);
-        assertTrue(StringUtils.equals(ATL_WEATHER_LINK, atValue));
+        ffs.get(0).assertAttributeEquals(GetHTMLElement.HTML_ELEMENT_ATTRIBUTE_NAME, ATL_WEATHER_LINK);
     }
 
     @Test
@@ -138,21 +131,16 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
         testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "href");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
-        String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
-        assertTrue(StringUtils.equals(ATL_WEATHER_LINK, data));
+        ffs.get(0).assertContentEquals(ATL_WEATHER_LINK);
     }
 
     @Test
@@ -164,21 +152,16 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
         testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "href");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
-        String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
-        assertTrue(StringUtils.equals(PREPEND_VALUE + ATL_WEATHER_LINK, data));
+        ffs.get(0).assertContentEquals(PREPEND_VALUE + ATL_WEATHER_LINK);
     }
 
     @Test
@@ -189,14 +172,11 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.DESTINATION, GetHTMLElement.DESTINATION_CONTENT);
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_TEXT);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 1);
     }
@@ -210,21 +190,16 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
         testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "href");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
-        String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
-        assertTrue(StringUtils.equals(ATL_WEATHER_LINK + APPEND_VALUE, data));
+        ffs.get(0).assertContentEquals(ATL_WEATHER_LINK + APPEND_VALUE);
     }
 
     @Test
@@ -235,14 +210,11 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.DESTINATION, GetHTMLElement.DESTINATION_CONTENT);
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_TEXT);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 1);
     }
@@ -254,21 +226,16 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
         testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "Content");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
-        String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
-        assertTrue(StringUtils.equals(AUTHOR_NAME, data));
+        ffs.get(0).assertContentEquals(AUTHOR_NAME);
     }
 
     @Test
@@ -277,21 +244,16 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.DESTINATION, GetHTMLElement.DESTINATION_CONTENT);
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_TEXT);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
-        String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
-        assertTrue(StringUtils.equals(ATL_WEATHER_TEXT, data));
+        ffs.get(0).assertContentEquals(ATL_WEATHER_TEXT);
     }
 
     @Test
@@ -300,20 +262,15 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.DESTINATION, GetHTMLElement.DESTINATION_CONTENT);
         testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_HTML);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-        FlowFile ff = writeContentToNewFlowFile(HTML.getBytes(), session);
-
-        testRunner.enqueue(ff);
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
         testRunner.run();
 
         testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetHTMLElement.REL_FAILURE, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
         testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
-        String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
-        assertTrue(StringUtils.equals(GDR_WEATHER_TEXT, data));
+        ffs.get(0).assertContentEquals(GDR_WEATHER_TEXT);
     }
 }

@@ -17,6 +17,9 @@
 package org.apache.nifi;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -26,6 +29,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.select.Selector;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,6 +42,25 @@ public abstract class AbstractHTMLProcessor extends AbstractProcessor {
     protected static final String ELEMENT_DATA = "Data";
     protected static final String ELEMENT_ATTRIBUTE = "Attribute";
 
+    protected static final Validator CSS_SELECTOR_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
+            String reason = null;
+            try {
+                Document doc = Jsoup.parse("<html></html>");
+                doc.select(value);
+            } catch (final Selector.SelectorParseException e) {
+                reason = "\"" + value + "\" is an invalid CSS selector";
+            }
+
+            return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
+        }
+    };
+
     public static final PropertyDescriptor URL = new PropertyDescriptor
             .Builder().name("URL")
             .description("Base URL for the HTML page being parsed.")
@@ -49,16 +72,16 @@ public abstract class AbstractHTMLProcessor extends AbstractProcessor {
             .Builder().name("CSS Selector")
             .description("CSS selector syntax string used to extract the desired HTML element(s).")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(CSS_SELECTOR_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor HTML_CHARSET = new PropertyDescriptor
-            .Builder().name("HTML character encoding")
+            .Builder().name("HTML Character Encoding")
             .description("Character encoding of the input HTML")
             .defaultValue("UTF-8")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
@@ -69,11 +92,6 @@ public abstract class AbstractHTMLProcessor extends AbstractProcessor {
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Successfully parsed HTML element")
-            .build();
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("Failed to parse HTML content")
             .build();
 
     public static final Relationship REL_INVALID_HTML = new Relationship.Builder()
