@@ -448,6 +448,7 @@
                                                 <include>${staging.dir}/css/port-configuration.css</include>
                                                 <include>${staging.dir}/css/port-details.css</include>
                                                 <include>${staging.dir}/css/queue-listing.css</include>
+                                                <include>${staging.dir}/css/component-state.css</include>
                                                 <include>${staging.dir}/css/label-configuration.css</include>
                                                 <include>${staging.dir}/css/connection-configuration.css</include>
                                                 <include>${staging.dir}/css/connection-details.css</include>
