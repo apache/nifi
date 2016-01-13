@@ -50,6 +50,7 @@ import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
 import org.bouncycastle.cert.ocsp.RevokedStatus;
 import org.bouncycastle.cert.ocsp.SingleResp;
+import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
@@ -293,7 +294,10 @@ public class OcspCertificateValidator {
         try {
             // prepare the request
             final BigInteger subjectSerialNumber = subjectCertificate.getSerialNumber();
-            final CertificateID certificateId = new CertificateID(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1), new X509CertificateHolder(issuerCertificate.getEncoded()), subjectSerialNumber);
+            final DigestCalculatorProvider calculatorProviderBuilder = new JcaDigestCalculatorProviderBuilder().setProvider("BC").build();
+            final CertificateID certificateId = new CertificateID(calculatorProviderBuilder.get(CertificateID.HASH_SHA1),
+                    new X509CertificateHolder(issuerCertificate.getEncoded()),
+                    subjectSerialNumber);
 
             // generate the request
             final OCSPReqBuilder requestGenerator = new OCSPReqBuilder();

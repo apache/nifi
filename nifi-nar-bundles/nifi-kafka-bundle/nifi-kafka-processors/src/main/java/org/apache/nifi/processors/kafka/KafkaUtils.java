@@ -25,6 +25,7 @@ import org.I0Itec.zkclient.serialize.ZkSerializer;
 import kafka.admin.AdminUtils;
 import kafka.api.TopicMetadata;
 import kafka.utils.ZKStringSerializer;
+import kafka.utils.ZkUtils;
 import scala.collection.JavaConversions;
 
 /**
@@ -38,6 +39,7 @@ class KafkaUtils {
      */
     static int retrievePartitionCountForTopic(String zookeeperConnectionString, String topicName) {
         ZkClient zkClient = new ZkClient(zookeeperConnectionString);
+
         zkClient.setZkSerializer(new ZkSerializer() {
             @Override
             public byte[] serialize(Object o) throws ZkMarshallingError {
@@ -50,7 +52,7 @@ class KafkaUtils {
             }
         });
         scala.collection.Set<TopicMetadata> topicMetadatas = AdminUtils
-                .fetchTopicMetadataFromZk(JavaConversions.asScalaSet(Collections.singleton(topicName)), zkClient);
+                .fetchTopicMetadataFromZk(JavaConversions.asScalaSet(Collections.singleton(topicName)), ZkUtils.apply(zkClient, false));
         return topicMetadatas.size();
     }
 }

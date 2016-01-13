@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.web.security.x509.ocsp;
 
 import org.bouncycastle.asn1.x500.X500Name;
@@ -9,8 +25,6 @@ import org.bouncycastle.asn1.x509.X509Extension;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.ocsp.OCSPReq;
-import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -87,15 +101,16 @@ public class OcspCertificateValidatorTest {
      *
      * @param dn the DN
      * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws NoSuchProviderException
-     * @throws SignatureException
-     * @throws InvalidKeyException
-     * @throws OperatorCreationException
+     * @throws IOException               if an exception occurs
+     * @throws NoSuchAlgorithmException  if an exception occurs
+     * @throws CertificateException      if an exception occurs
+     * @throws NoSuchProviderException   if an exception occurs
+     * @throws SignatureException        if an exception occurs
+     * @throws InvalidKeyException       if an exception occurs
+     * @throws OperatorCreationException if an exception occurs
      */
-    private static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
+    private static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException,
+            InvalidKeyException, OperatorCreationException {
         KeyPair keyPair = generateKeyPair();
         return generateCertificate(dn, keyPair);
     }
@@ -106,15 +121,16 @@ public class OcspCertificateValidatorTest {
      * @param dn      the DN
      * @param keyPair the public key will be included in the certificate and the the private key is used to sign the certificate
      * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws NoSuchProviderException
-     * @throws SignatureException
-     * @throws InvalidKeyException
-     * @throws OperatorCreationException
+     * @throws IOException               if an exception occurs
+     * @throws NoSuchAlgorithmException  if an exception occurs
+     * @throws CertificateException      if an exception occurs
+     * @throws NoSuchProviderException   if an exception occurs
+     * @throws SignatureException        if an exception occurs
+     * @throws InvalidKeyException       if an exception occurs
+     * @throws OperatorCreationException if an exception occurs
      */
-    private static X509Certificate generateCertificate(String dn, KeyPair keyPair) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
+    private static X509Certificate generateCertificate(String dn, KeyPair keyPair) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException,
+            InvalidKeyException, OperatorCreationException {
         PrivateKey privateKey = keyPair.getPrivate();
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER).build(privateKey);
         SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
@@ -152,15 +168,16 @@ public class OcspCertificateValidatorTest {
      * @param issuerDn  the issuer DN
      * @param issuerKey the issuer private key
      * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws NoSuchProviderException
-     * @throws SignatureException
-     * @throws InvalidKeyException
-     * @throws OperatorCreationException
+     * @throws IOException               if an exception occurs
+     * @throws NoSuchAlgorithmException  if an exception occurs
+     * @throws CertificateException      if an exception occurs
+     * @throws NoSuchProviderException   if an exception occurs
+     * @throws SignatureException        if an exception occurs
+     * @throws InvalidKeyException       if an exception occurs
+     * @throws OperatorCreationException if an exception occurs
      */
-    private static X509Certificate generateIssuedCertificate(String dn, String issuerDn, PrivateKey issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
+    private static X509Certificate generateIssuedCertificate(String dn, String issuerDn, PrivateKey issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
         KeyPair keyPair = generateKeyPair();
         return generateIssuedCertificate(dn, keyPair.getPublic(), issuerDn, issuerKey);
     }
@@ -173,15 +190,16 @@ public class OcspCertificateValidatorTest {
      * @param issuerDn  the issuer DN
      * @param issuerKey the issuer private key
      * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws NoSuchProviderException
-     * @throws SignatureException
-     * @throws InvalidKeyException
-     * @throws OperatorCreationException
+     * @throws IOException               if an exception occurs
+     * @throws NoSuchAlgorithmException  if an exception occurs
+     * @throws CertificateException      if an exception occurs
+     * @throws NoSuchProviderException   if an exception occurs
+     * @throws SignatureException        if an exception occurs
+     * @throws InvalidKeyException       if an exception occurs
+     * @throws OperatorCreationException if an exception occurs
      */
-    private static X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, String issuerDn, PrivateKey issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
+    private static X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, String issuerDn, PrivateKey issuerKey) throws IOException, NoSuchAlgorithmException,
+            CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER).build(issuerKey);
         SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(publicKey.getEncoded());
         Date startDate = new Date(YESTERDAY);
@@ -198,50 +216,6 @@ public class OcspCertificateValidatorTest {
         return new JcaX509CertificateConverter().setProvider(PROVIDER)
                 .getCertificate(certificateHolder);
     }
-
-    private static OCSPResp generateFailedOCSPResponse(OCSPReq request) {
-        return null;
-    }
-
-//    private static OCSPResp generateSuccessfulOCSPResponse(OCSPReq request) {
-//
-//        int response = OCSPRespBuilder.INTERNAL_ERROR; // by default response as ERROR
-//
-//        SubjectPublicKeyInfo keyinfo = SubjectPublicKeyInfo.getInstance(caCert.getPublicKey().getEncoded());
-//        BasicOCSPRespBuilder respGen;
-//        try {
-//            respGen = new BasicOCSPRespBuilder(keyinfo, new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1)); //Create builder
-//        } catch (Exception e) {
-//            return null;
-//        }
-//
-//        Extension ext = request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce);
-//        if (ext != null) {
-//            respGen.setResponseExtensions(new Extensions(new Extension[]{ext})); // Put the nonce back in the response
-//        }
-//        Req[] requests = request.getRequestList();
-//
-//        for (int i = 0; i != requests.length; i++) { //For all the Req in the Request
-//
-//            CertificateID certID = requests[i].getCertID();
-//            BigInteger serial = certID.getSerialNumber();
-//
-//            if (CRLManager.serialNotInCRL(crl, serial)) { // If the certificate is not in the CRL
-//                respGen.addResponse(certID, CertificateStatus.GOOD); // Set the status to good
-//            } else {
-//                respGen.addResponse(certID, new RevokedStatus(new Date(), CRLReason.privilegeWithdrawn)); //Set status privilegeWithdrawn for the given ID
-//            }
-//        }
-//
-//        try {
-//            ContentSigner contentSigner = new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(privKey);
-//            BasicOCSPResp basicResp = respGen.build(contentSigner, new X509CertificateHolder[]{new X509CertificateHolder(caCert.getEncoded())}, new Date());
-//            response = OCSPRespBuilder.SUCCESSFUL; //Set response as successful
-//            return new OCSPRespBuilder().build(response, basicResp); // build the response
-//        } catch (Exception e) {
-//            return null;
-//        }
-//    }
 
     @Test
     public void testShouldGenerateCertificate() throws Exception {

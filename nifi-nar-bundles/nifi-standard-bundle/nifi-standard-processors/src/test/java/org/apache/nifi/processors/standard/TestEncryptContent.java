@@ -249,7 +249,7 @@ public class TestEncryptContent {
         // Assert
         Assert.assertEquals(1, results.size());
         ValidationResult vr = (ValidationResult) results.toArray()[0];
-        String expectedResult = " (No such file or directory)";
+        String expectedResult = "java.io.FileNotFoundException";
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
         Assert.assertTrue(message, vr.toString().contains(expectedResult));
     }
