@@ -310,6 +310,9 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 invalidateClient();
                 setState(stateValues, version, componentId);
             }
+            if (Code.NODEEXISTS == ke.code()) {
+                setState(stateValues, version, componentId);
+            }
 
             throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ke);
         } catch (final IOException ioe) {

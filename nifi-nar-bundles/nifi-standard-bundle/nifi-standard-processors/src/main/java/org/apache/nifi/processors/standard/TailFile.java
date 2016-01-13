@@ -150,6 +150,7 @@ public class TailFile extends AbstractProcessor {
         properties.add(ROLLING_FILENAME_PATTERN);
         properties.add(new PropertyDescriptor.Builder().fromPropertyDescriptor(STATE_FILE).defaultValue("./conf/state/" + getIdentifier()).build());
         properties.add(START_POSITION);
+        properties.add(FILE_LOCATION);
         return properties;
     }
 

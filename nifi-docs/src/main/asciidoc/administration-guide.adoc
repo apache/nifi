@@ -553,6 +553,8 @@ Note, the above `kinit` command requires that Kerberos client libraries be insta
 [source]
 yum install krb5-workstation krb5-libs krb5-auth-dialog
 
+Once this is complete, the /etc/krb5.conf will need to be configured appropriately for your organization's Kerberos envrionment.
+
 Now, when we start NiFi, it will use Kerberos to authentication as the `nifi` user when communicating with ZooKeeper.
 
 
