@@ -93,7 +93,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final AtomicBoolean lossTolerant;
     private final AtomicReference<ScheduledState> scheduledState;
     private final AtomicReference<String> comments;
-    private final AtomicReference<String> name;
     private final AtomicReference<Position> position;
     private final AtomicReference<String> annotationData;
     private final AtomicReference<String> schedulingPeriod; // stored as string so it's presented to user as they entered it
@@ -134,7 +133,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final Set<Relationship> emptySetOfRelationships = new HashSet<>();
         undefinedRelationshipsToTerminate = new AtomicReference<>(emptySetOfRelationships);
         comments = new AtomicReference<>("");
-        name = new AtomicReference<>(processor.getClass().getSimpleName());
         schedulingPeriod = new AtomicReference<>("0 sec");
         schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
         yieldPeriod = new AtomicReference<>(DEFAULT_YIELD_PERIOD);
@@ -147,6 +145,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         annotationData = new AtomicReference<>();
         isolated = new AtomicBoolean(false);
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);
+        this.setName(this.processor.getClass().getSimpleName());
 
         final Class<?> procClass = processor.getClass();
         triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenEmpty.class);
@@ -344,11 +343,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return Collections.unmodifiableSet(relationships);
     }
 
-    @Override
-    public String getName() {
-        return name.get();
-    }
-
     /**
      * @return the value of the processor's {@link CapabilityDescription} annotation, if one exists, else <code>null</code>.
      */
@@ -375,7 +369,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             if (isRunning()) {
                 throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
             }
-            this.name.set(name);
+            super.setName(name);
         } finally {
             writeLock.unlock();
         }
