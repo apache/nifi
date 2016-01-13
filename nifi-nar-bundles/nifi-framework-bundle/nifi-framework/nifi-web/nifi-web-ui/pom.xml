@@ -281,6 +281,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-toolbox.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-component-state.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-service.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-reporting-task.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-processor-configuration.js</include>

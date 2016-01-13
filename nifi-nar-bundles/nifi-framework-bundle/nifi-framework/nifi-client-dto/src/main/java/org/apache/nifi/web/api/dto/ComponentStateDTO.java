@@ -27,6 +27,7 @@ import javax.xml.bind.annotation.XmlType;
 public class ComponentStateDTO {
 
     private String componentId;
+    private String stateDescription;
     private StateMapDTO clusterState;
     private StateMapDTO localState;
 
@@ -42,6 +43,20 @@ public class ComponentStateDTO {
 
     public void setComponentId(String componentId) {
         this.componentId = componentId;
+    }
+
+    /**
+     * @return Description of the state this component persists.
+     */
+    @ApiModelProperty(
+        value = "Description of the state this component persists."
+    )
+    public String getStateDescription() {
+        return stateDescription;
+    }
+
+    public void setStateDescription(String stateDescription) {
+        this.stateDescription = stateDescription;
     }
 
     /**

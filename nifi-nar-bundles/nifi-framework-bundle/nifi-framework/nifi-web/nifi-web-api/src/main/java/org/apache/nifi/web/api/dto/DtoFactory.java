@@ -32,6 +32,7 @@ import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.authorization.Authority;
@@ -279,12 +280,28 @@ public final class DtoFactory {
      * @param clusterState cluster state
      * @return dto
      */
-    public ComponentStateDTO createComponentStateDTO(final String componentId, final StateMap localState, final StateMap clusterState) {
+    public ComponentStateDTO createComponentStateDTO(final String componentId, final Class<?> componentClass, final StateMap localState, final StateMap clusterState) {
         final ComponentStateDTO dto = new ComponentStateDTO();
         dto.setComponentId(componentId);
+        dto.setStateDescription(getStateDescription(componentClass));
         dto.setLocalState(createStateMapDTO(Scope.LOCAL, localState));
         dto.setClusterState(createStateMapDTO(Scope.CLUSTER, clusterState));
         return dto;
+    }
+
+    /**
+     * Gets the description of the state this component persists.
+     *
+     * @param componentClass the component class
+     * @return state description
+     */
+    private String getStateDescription(final Class<?> componentClass) {
+        final Stateful capabilityDesc = componentClass.getAnnotation(Stateful.class);
+        if (capabilityDesc != null) {
+            return capabilityDesc.description();
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -295,6 +312,10 @@ public final class DtoFactory {
      * @return dto
      */
     public StateMapDTO createStateMapDTO(final Scope scope, final StateMap stateMap) {
+        if (stateMap == null) {
+            return null;
+        }
+
         final StateMapDTO dto = new StateMapDTO();
         dto.setScope(scope.toString());
 
@@ -1066,6 +1087,7 @@ public final class DtoFactory {
         dto.setActiveThreadCount(reportingTaskNode.getActiveThreadCount());
         dto.setAnnotationData(reportingTaskNode.getAnnotationData());
         dto.setComments(reportingTaskNode.getComments());
+        dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
 
         final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
@@ -1133,6 +1155,7 @@ public final class DtoFactory {
         dto.setState(controllerServiceNode.getState().name());
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
+        dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
 
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
@@ -1610,6 +1633,7 @@ public final class DtoFactory {
         dto.setStyle(node.getStyle());
         dto.setParentGroupId(node.getProcessGroup().getIdentifier());
         dto.setInputRequirement(node.getInputRequirement().name());
+        dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
 
         dto.setType(node.getProcessor().getClass().getCanonicalName());
         dto.setName(node.getName());
