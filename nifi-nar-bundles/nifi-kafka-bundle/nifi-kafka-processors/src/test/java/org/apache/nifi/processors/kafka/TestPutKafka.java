@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
-import java.util.UUID;
 
 import org.apache.kafka.clients.producer.BufferExhaustedException;
 import org.apache.kafka.clients.producer.Callback;
@@ -76,24 +75,6 @@ public class TestPutKafka {
         for (int i = 1; i <= 9; i++) {
             assertTrue(Arrays.equals(String.valueOf(i).getBytes(StandardCharsets.UTF_8), messages.get(i + 1).value()));
         }
-    }
-
-    @Test
-    public void testPutKafka() throws Exception {
-        final TestableProcessor proc = new TestableProcessor();
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
-        runner.setProperty(PutKafka.TOPIC, "test.topic");
-
-        int size = 10;
-        for(int i=0; i < size; i++) {
-            runner.enqueue(UUID.randomUUID().toString().getBytes());
-        }
-
-        runner.run(size);
-
-        runner.assertTransferCount(PutKafka.REL_SUCCESS, size);
-
     }
 
     @Test

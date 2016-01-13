@@ -335,7 +335,7 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
     }
 
     protected Properties createConfig(final ProcessContext context) {
-		final String brokers = context.getProperty(SEED_BROKERS).evaluateAttributeExpressions().getValue();
+        final String brokers = context.getProperty(SEED_BROKERS).evaluateAttributeExpressions().getValue();
 
         final Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", brokers);
