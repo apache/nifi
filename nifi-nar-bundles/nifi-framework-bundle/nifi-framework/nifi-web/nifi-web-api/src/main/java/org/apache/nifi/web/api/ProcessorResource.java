@@ -624,6 +624,7 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Clears the state for a processor.
      *
+     * @param httpServletRequest servlet request
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param version The revision is used to verify the client is working with the latest version of the flow.
      * @param id The id of the processor
@@ -651,6 +652,7 @@ public class ProcessorResource extends ApplicationResource {
         }
     )
     public Response clearState(
+        @Context HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
             required = false
@@ -670,6 +672,13 @@ public class ProcessorResource extends ApplicationResource {
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            serviceFacade.verifyCanClearProcessorState(groupId, id);
+            return generateContinueResponse().build();
         }
 
         // get the revision specified by the user

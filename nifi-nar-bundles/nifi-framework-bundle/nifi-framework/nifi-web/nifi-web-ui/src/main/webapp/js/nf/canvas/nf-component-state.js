@@ -141,7 +141,7 @@ nf.ComponentState = (function () {
             $.each(localState.state, function (i, stateEntry) {
                 componentStateData.addItem($.extend({
                     id: count++,
-                    scope: stateEntry.nodeAddress
+                    scope: stateEntry.clusterNodeAddress
                 }, stateEntry));
             });
         }
@@ -224,9 +224,6 @@ nf.ComponentState = (function () {
             // clear state link
             $('#clear-link').on('click', function () {
                 if ($(this).hasClass('disabled') === false) {
-                    // clear the table
-                    clearTable();
-
                     // clear the state
                     var revision = nf.Client.getRevision();
                     var component = $('#component-state-table').data('component');
@@ -242,6 +239,9 @@ nf.ComponentState = (function () {
                         // update the revision
                         nf.Client.setRevision(response.revision);
 
+                        // clear the table
+                        clearTable();
+
                         // reload the table with no state
                         loadComponentState()
                     }).fail(nf.Common.handleAjaxError);
@@ -256,7 +256,7 @@ nf.ComponentState = (function () {
 
             // conditionally show the cluster node identifier
             if (nf.Canvas.isClustered()) {
-                componentStateColumns.push({id: 'scope', field: 'scope', name: 'Scope', sortable: true, resizable: true, formatter: scopeFormatter});
+                componentStateColumns.push({id: 'scope', field: 'scope', name: 'Scope', sortable: true, resizable: true});
             }
 
             var componentStateOptions = {
