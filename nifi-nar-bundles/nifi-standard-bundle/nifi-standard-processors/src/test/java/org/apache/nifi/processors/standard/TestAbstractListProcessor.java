@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +31,7 @@ import java.util.UUID;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -153,6 +155,43 @@ public class TestAbstractListProcessor {
 
         assertEquals(1, cache.fetchCount);
     }
+
+    @Test
+    public void testOnlyNewStateStored() throws IOException {
+        final ConcreteListProcessor proc = new ConcreteListProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        proc.addEntity("name", "id", 1492L);
+        proc.addEntity("name", "id2", 1492L);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
+        runner.clearTransferState();
+
+        final StateMap stateMap = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(1, stateMap.getVersion());
+
+        final Map<String, String> map = stateMap.toMap();
+        assertEquals(3, map.size());
+        assertEquals("1492", map.get("timestamp"));
+        assertTrue(map.containsKey("id.1"));
+        assertTrue(map.containsKey("id.2"));
+
+        proc.addEntity("new name", "new id", 1493L);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
+        final StateMap updatedStateMap = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(2, updatedStateMap.getVersion());
+
+        final Map<String, String> updatedValues = updatedStateMap.toMap();
+        assertEquals(2, updatedValues.size());
+        assertEquals("1493", updatedValues.get("timestamp"));
+        assertEquals("new id", updatedValues.get("id.1"));
+    }
+
 
     private static class DistributedCache extends AbstractControllerService implements DistributedMapCacheClient {
         private final Map<Object, Object> stored = new HashMap<>();

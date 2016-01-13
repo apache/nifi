@@ -363,11 +363,12 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             return;
         }
 
-        int listCount = 0;
         Long latestListingTimestamp = null;
+        final List<T> newEntries = new ArrayList<>();
         for (final T entity : entityList) {
-            final boolean list = (minTimestamp == null || entity.getTimestamp() > minTimestamp
-                || (entity.getTimestamp() == minTimestamp && !latestIdentifiersListed.contains(entity.getIdentifier())));
+            final boolean newTimestamp = minTimestamp == null || entity.getTimestamp() > minTimestamp;
+            final boolean newEntryForTimestamp = minTimestamp != null && entity.getTimestamp() == minTimestamp && !latestIdentifiersListed.contains(entity.getIdentifier());
+            final boolean list = newTimestamp || newEntryForTimestamp;
 
             // Create the FlowFile for this path.
             if (list) {
@@ -375,7 +376,14 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 FlowFile flowFile = session.create();
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.transfer(flowFile, REL_SUCCESS);
-                listCount++;
+
+                // If we don't have a new timestamp but just have a new entry, we need to
+                // add all of the previous entries to our entityList. If we have a new timestamp,
+                // then the previous entries can go away.
+                if (!newTimestamp) {
+                    newEntries.addAll(entityList);
+                }
+                newEntries.add(entity);
 
                 if (latestListingTimestamp == null || entity.getTimestamp() > latestListingTimestamp) {
                     latestListingTimestamp = entity.getTimestamp();
@@ -383,6 +391,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
         }
 
+        final int listCount = newEntries.size();
         if (listCount > 0) {
             getLogger().info("Successfully created listing with {} new objects", new Object[] {listCount});
             session.commit();
@@ -395,9 +404,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             // previously Primary Node left off.
             // We also store the state locally so that if the node is restarted, and the node cannot contact
             // the distributed state cache, the node can continue to run (if it is primary node).
-            final Set<String> identifiers = new HashSet<>(entityList.size());
+            final Set<String> identifiers = new HashSet<>(newEntries.size());
             try {
-                for (final T entity : entityList) {
+                for (final T entity : newEntries) {
                     identifiers.add(entity.getIdentifier());
                 }
                 persist(latestListingTimestamp, identifiers, context.getStateManager());
