@@ -44,15 +44,11 @@ import org.apache.nifi.components.state.StateManager;
 public @interface Stateful {
     /**
      * Provides a description of what information is being stored in the {@link StateManager}
-     *
-     * @return a description of what information is being stored in the {@link StateManager}
      */
     String description();
 
     /**
      * Indicates the Scope(s) associated with the State that is stored and retrieved.
-     *
-     * @return
      */
     Scope[]scopes();
 }

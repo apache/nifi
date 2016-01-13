@@ -798,8 +798,8 @@ public class StandardProcessorTestRunner implements TestRunner {
     /**
      * Returns the State Manager for the given Controller Service.
      *
-     * @param controllerService
-     * @return
+     * @param controllerService the Controller Service whose State Manager should be returned
+     * @return the State Manager for the given Controller Service
      */
     @Override
     public MockStateManager getStateManager(final ControllerService controllerService) {

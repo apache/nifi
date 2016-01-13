@@ -192,7 +192,7 @@ public class TailFile extends AbstractProcessor {
      * Recovers values for the State that was stored in a local file.
      *
      * @param context the ProcessContext that indicates where the state is stored
-     * @return a Map<String, String> that contains the keys defined in {@link TailFileState.StateKeys}
+     * @return a Map that contains the keys defined in {@link TailFileState.StateKeys}
      * @throws IOException if the state file exists but was unable to be read
      */
     private Map<String, String> recoverStateValuesFromFile(final ProcessContext context) throws IOException {

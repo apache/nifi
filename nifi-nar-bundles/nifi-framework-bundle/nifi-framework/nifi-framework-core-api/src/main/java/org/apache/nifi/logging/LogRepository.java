@@ -67,7 +67,7 @@ public interface LogRepository {
 
     /**
      * Sets the current logger for the component
-     * 
+     *
      * @param logger the logger to use
      */
     void setLogger(ComponentLog logger);

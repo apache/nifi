@@ -69,8 +69,8 @@ public interface StateManager {
      * If the state has not yet been set, the StateMap's version will be -1, and the map of values will be empty.
      *
      * @param scope the scope to use when fetching the state
-     * @return
-     * @throws IOException
+     * @return the current state for the component
+     * @throws IOException if unable to communicate with the underlying storage mechanism
      */
     StateMap getState(Scope scope) throws IOException;
 

@@ -35,7 +35,7 @@ public interface StateMap {
 
     /**
      * Returns the value associated with the given key
-     * 
+     *
      * @param key the key whose value should be retrieved
      * @return the value associated with the given key, or <code>null</code> if no value is associated
      *         with this key.

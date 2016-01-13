@@ -89,9 +89,9 @@ public class HDFSListing {
     }
 
     /**
-     * Converts this HDFSListing into a Map<String, String> so that it can be stored in a StateManager.
+     * Converts this HDFSListing into a Map&lt;String, String&gt; so that it can be stored in a StateManager.
      *
-     * @return a Map<String, String> that represents the same information as this HDFSListing
+     * @return a Map that represents the same information as this HDFSListing
      */
     public Map<String, String> toMap() {
         final Map<String, String> map = new HashMap<>(1 + matchingPaths.size());

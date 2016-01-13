@@ -122,7 +122,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Submits the given task to be executed exactly once in a background thread
-     * 
+     *
      * @param task the task to perform
      */
     public void submitFrameworkTask(final Runnable task) {

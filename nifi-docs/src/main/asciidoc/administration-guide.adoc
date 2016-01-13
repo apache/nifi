@@ -548,6 +548,11 @@ We can initialize our Kerberos ticket by running the following command:
 [source]
 kinit nifi
 
+Note, the above `kinit` command requires that Kerberos client libraries be installed. This is accomplished in Fedora-based Linux distributions via:
+
+[source]
+yum install krb5-workstation krb5-libs krb5-auth-dialog
+
 Now, when we start NiFi, it will use Kerberos to authentication as the `nifi` user when communicating with ZooKeeper.
 
 

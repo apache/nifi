@@ -36,7 +36,7 @@ public interface ConfiguredComponent {
 
     /**
      * Sets the property with the given name to the given value
-     * 
+     *
      * @param name the name of the property to update
      * @param value the value to update the property to
      * @param triggerOnPropertyModified if <code>true</code>, will trigger the #onPropertyModified method of the component
