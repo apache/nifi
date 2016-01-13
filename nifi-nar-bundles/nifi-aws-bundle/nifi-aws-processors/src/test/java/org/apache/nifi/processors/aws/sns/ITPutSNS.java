@@ -16,20 +16,21 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
-@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
-public class TestPutSNS {
+/**
+ * Provides integration level testing with actual AWS S3 resources for {@link PutSNS} and requires additional configuration and resources to work.
+ */
+public class ITPutSNS {
 
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 

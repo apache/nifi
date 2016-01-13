@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.auth.PropertiesCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.amazonaws.services.s3.model.DeleteBucketRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -26,26 +39,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-
 import static org.junit.Assert.fail;
 
-import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.amazonaws.services.s3.model.DeleteBucketRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-
 /**
- * Base class for S3 tests. Establishes a bucket and helper methods for creating test scenarios
+ * Base class for S3 Integration Tests. Establishes a bucket and helper methods for creating test scenarios
+ *
+ * @see ITDeleteS3Object
+ * @see ITFetchS3Object
+ * @see ITPutS3Object
  */
-public abstract class AbstractS3Test {
+public abstract class AbstractS3IT {
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
     protected final static String BUCKET_NAME = "test-bucket-00000000-0000-0000-0000-123456789021";
     protected final static String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";

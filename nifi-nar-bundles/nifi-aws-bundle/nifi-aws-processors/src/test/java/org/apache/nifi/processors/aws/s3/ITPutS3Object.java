@@ -16,23 +16,23 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.amazonaws.services.s3.model.StorageClass;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import com.amazonaws.services.s3.model.StorageClass;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
-public class TestPutS3Object extends AbstractS3Test {
+/**
+ * Provides integration level testing with actual AWS S3 resources for {@link PutS3Object} and requires additional configuration and resources to work.
+ */
+public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testSimplePut() throws IOException {
