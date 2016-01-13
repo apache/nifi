@@ -145,6 +145,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         annotationData = new AtomicReference<>();
         isolated = new AtomicBoolean(false);
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);
+        this.setName(this.processor.getClass().getSimpleName());
 
         final Class<?> procClass = processor.getClass();
         triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenEmpty.class);

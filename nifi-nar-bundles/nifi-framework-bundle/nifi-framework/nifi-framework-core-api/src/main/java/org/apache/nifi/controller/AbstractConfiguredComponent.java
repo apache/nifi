@@ -57,7 +57,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         this.component = component;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
-        this.name = new AtomicReference<>(component.getClass().getSimpleName());
+        this.name = new AtomicReference<>();
     }
 
     @Override
