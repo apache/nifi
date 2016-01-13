@@ -18,6 +18,7 @@ package org.apache.nifi.web;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.lf5.util.Resource;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -2168,23 +2169,32 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ComponentStateDTO getProcessorState(String groupId, String processorId) {
-        final StateMap clusterState = processorDAO.getState(groupId, processorId, Scope.CLUSTER);
+        final StateMap clusterState = isClustered() ? processorDAO.getState(groupId, processorId, Scope.CLUSTER) : null;
         final StateMap localState = processorDAO.getState(groupId, processorId, Scope.LOCAL);
-        return dtoFactory.createComponentStateDTO(processorId, localState, clusterState);
+
+        // processor will be non null as it was already found when getting the state
+        final ProcessorNode processor = processorDAO.getProcessor(groupId, processorId);
+        return dtoFactory.createComponentStateDTO(processorId, processor.getProcessor().getClass(), localState, clusterState);
     }
 
     @Override
     public ComponentStateDTO getControllerServiceState(String controllerServiceId) {
-        final StateMap clusterState = controllerServiceDAO.getState(controllerServiceId, Scope.CLUSTER);
+        final StateMap clusterState = isClustered() ? controllerServiceDAO.getState(controllerServiceId, Scope.CLUSTER) : null;
         final StateMap localState = controllerServiceDAO.getState(controllerServiceId, Scope.LOCAL);
-        return dtoFactory.createComponentStateDTO(controllerServiceId, localState, clusterState);
+
+        // controller service will be non null as it was already found when getting the state
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+        return dtoFactory.createComponentStateDTO(controllerServiceId, controllerService.getControllerServiceImplementation().getClass(), localState, clusterState);
     }
 
     @Override
     public ComponentStateDTO getReportingTaskState(String reportingTaskId) {
-        final StateMap clusterState = reportingTaskDAO.getState(reportingTaskId, Scope.CLUSTER);
+        final StateMap clusterState = isClustered() ? reportingTaskDAO.getState(reportingTaskId, Scope.CLUSTER) : null;
         final StateMap localState = reportingTaskDAO.getState(reportingTaskId, Scope.LOCAL);
-        return dtoFactory.createComponentStateDTO(reportingTaskId, localState, clusterState);
+
+        // reporting task will be non null as it was already found when getting the state
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
+        return dtoFactory.createComponentStateDTO(reportingTaskId, reportingTask.getReportingTask().getClass(), localState, clusterState);
     }
 
     @Override

@@ -232,6 +232,25 @@ nf.ContextMenu = (function () {
     };
 
     /**
+     * Determines whether the current selection is a processor.
+     *
+     * @param {selection} selection
+     */
+    var isStatefulProcessor = function (selection) {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if (nf.CanvasUtils.isProcessor(selection)) {
+            var processorData = selection.datum();
+            return processorData.component.persistsState === true;
+        } else {
+            return false;
+        }
+    };
+
+    /**
      * Determines whether the current selection is a process group.
      * 
      * @param {selection} selection
@@ -399,6 +418,7 @@ nf.ContextMenu = (function () {
         {condition: canStopTransmission, menuItem: {img: 'images/iconTransmissionInactive.png', text: 'Disable transmission', action: 'disableTransmission'}},
         {condition: supportsStats, menuItem: {img: 'images/iconChart.png', text: 'Stats', action: 'showStats'}},
         {condition: canAccessProvenance, menuItem: {img: 'images/iconProvenance.png', imgStyle: 'context-menu-provenance', text: 'Data provenance', action: 'openProvenance'}},
+        {condition: isStatefulProcessor, menuItem: {img: 'images/iconViewState.png', text: 'View state', action: 'viewState'}},
         {condition: canMoveToFront, menuItem: {img: 'images/iconToFront.png', text: 'Bring to front', action: 'toFront'}},
         {condition: isConnection, menuItem: {img: 'images/iconGoTo.png', text: 'Go to source', action: 'showSource'}},
         {condition: isConnection, menuItem: {img: 'images/iconGoTo.png', text: 'Go to destination', action: 'showDestination'}},

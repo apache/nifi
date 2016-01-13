@@ -1064,6 +1064,23 @@ nf.Actions = (function () {
         },
 
         /**
+         * Views the state for the specified processor.
+         *
+         * @param {selection} selection
+         */
+        viewState: function (selection) {
+            if (selection.size() !== 1 || !nf.CanvasUtils.isProcessor(selection)) {
+                return;
+            }
+
+            // get the processor data
+            var processor = selection.datum();
+
+            // view the state for the selected processor
+            nf.ComponentState.showState(processor.component, nf.CanvasUtils.supportsModification(selection));
+        },
+
+        /**
          * Opens the fill color dialog for the component in the specified selection.
          * 
          * @param {type} selection      The selection
