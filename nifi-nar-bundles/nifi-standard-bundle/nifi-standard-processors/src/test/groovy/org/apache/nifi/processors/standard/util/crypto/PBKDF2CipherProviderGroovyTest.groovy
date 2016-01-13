@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.standard.util.crypto
+
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -37,22 +38,18 @@ import static org.junit.Assert.fail
 public class PBKDF2CipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProviderGroovyTest.class);
 
-    private static List<EncryptionMethod> pbeEncryptionMethods = new ArrayList<>();
-    private static List<EncryptionMethod> limitedStrengthPbeEncryptionMethods = new ArrayList<>();
+    private static List<EncryptionMethod> pbeEncryptionMethods
+    private static List<EncryptionMethod> limitedStrengthPbeEncryptionMethods
+    private static List<EncryptionMethod> strongKDFEncryptionMethods
 
     private static final String PROVIDER_NAME = "BC";
     private static final int ITERATION_COUNT = 0;
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
-        for (EncryptionMethod em : EncryptionMethod.values()) {
-            if (em.getAlgorithm().toUpperCase().startsWith("PBE")) {
-                pbeEncryptionMethods.add(em);
-                if (!em.isUnlimitedStrength()) {
-                    limitedStrengthPbeEncryptionMethods.add(em);
-                }
-            }
-        }
+        pbeEncryptionMethods = EncryptionMethod.values().findAll { it.algorithm.toUpperCase().startsWith("PBE") }
+        limitedStrengthPbeEncryptionMethods = pbeEncryptionMethods.findAll { !it.isUnlimitedStrength() }
+        strongKDFEncryptionMethods = EncryptionMethod.values().findAll { it.isCompatibleWithStrongKDFs() }
     }
 
     @Before
@@ -86,7 +83,9 @@ public class PBKDF2CipherProviderGroovyTest {
     @Test
     public void testGetCipherShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
+        logger.info("Beginning of test")
+        logger.debug("Debug line")
+        PBECipherProvider cipherProvider = new PBKDF2CipherProvider("SHA-256", 1000);
 
         final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex("aabbccddeeff0011".toCharArray());
@@ -94,8 +93,8 @@ public class PBKDF2CipherProviderGroovyTest {
         final String plaintext = "This is a plaintext message.";
 
         // Act
-        for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
-            logger.debug("Using algorithm: {}", em.getAlgorithm());
+        for (EncryptionMethod em : strongKDFEncryptionMethods) {
+            logger.info("Using algorithm: {}", em.getAlgorithm());
 
             // Initialize a cipher for encryption
             Cipher cipher = cipherProvider.getCipher(em.getAlgorithm(), em.getProvider(), PASSWORD, SALT, true);
@@ -112,6 +111,8 @@ public class PBKDF2CipherProviderGroovyTest {
         }
     }
 
+    // TODO: without salt
+
     @Test
     public void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
@@ -127,7 +128,7 @@ public class PBKDF2CipherProviderGroovyTest {
 
         // Act
         for (EncryptionMethod em : pbeEncryptionMethods) {
-            logger.debug("Using algorithm: {}", em.getAlgorithm());
+            logger.info("Using algorithm: {}", em.getAlgorithm());
 
             // Initialize a cipher for encryption
             Cipher cipher = cipherProvider.getCipher(em.getAlgorithm(), em.getProvider(), PASSWORD, SALT, true);
@@ -161,7 +162,7 @@ public class PBKDF2CipherProviderGroovyTest {
 
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
-            logger.debug("Using algorithm: {}", em.getAlgorithm());
+            logger.info("Using algorithm: {}", em.getAlgorithm());
 
             // Initialize a legacy cipher for encryption
             Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());

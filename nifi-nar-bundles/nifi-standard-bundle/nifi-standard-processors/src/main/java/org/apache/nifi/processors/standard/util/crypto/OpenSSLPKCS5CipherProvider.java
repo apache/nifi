@@ -39,7 +39,8 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     private static final int ITERATION_COUNT = 0;
 
     /**
-     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the <a href="https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html">OpenSSL EVP_BytesToKey proprietary KDF</a> [essentially {@code MD5(password || salt) }].
+     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the
+     * <a href="https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html">OpenSSL EVP_BytesToKey proprietary KDF</a> [essentially {@code MD5(password || salt) }].
      *
      * @param algorithm   the algorithm name
      * @param provider    the provider name
@@ -54,7 +55,8 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     }
 
     /**
-     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the <a href="https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html">OpenSSL EVP_BytesToKey proprietary KDF</a> [essentially {@code MD5(password || salt) }].
+     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the
+     * <a href="https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html">OpenSSL EVP_BytesToKey proprietary KDF</a> [essentially {@code MD5(password || salt) }].
      *
      * @param algorithm   the algorithm name
      * @param provider    the provider name
@@ -73,7 +75,9 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
         }
     }
 
-    protected Cipher getInitializedCipher(String algorithm, String provider, String password, byte[] salt, boolean encryptMode) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
+    protected Cipher getInitializedCipher(String algorithm, String provider, String password, byte[] salt,
+                                          boolean encryptMode) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException,
+            InvalidAlgorithmParameterException {
         // Initialize secret key from password
         final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray());
         final SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, provider);

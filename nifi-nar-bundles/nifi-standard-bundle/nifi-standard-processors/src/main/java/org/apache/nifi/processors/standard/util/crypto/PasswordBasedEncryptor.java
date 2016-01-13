@@ -38,7 +38,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.List;
 
 public class PasswordBasedEncryptor implements Encryptor {
 
@@ -99,39 +98,13 @@ public class PasswordBasedEncryptor implements Encryptor {
         if (StringUtils.isEmpty(algorithm)) {
             return DEFAULT_MAX_ALLOWED_KEY_LENGTH;
         }
-        String parsedCipher = parseCipherFromAlgorithm(algorithm);
+        String parsedCipher = CipherUtility.parseCipherFromAlgorithm(algorithm);
         try {
             return Cipher.getMaxAllowedKeyLength(parsedCipher);
         } catch (NoSuchAlgorithmException e) {
             // Default algorithm max key length on unmodified JRE
             return DEFAULT_MAX_ALLOWED_KEY_LENGTH;
         }
-    }
-
-    private static String parseCipherFromAlgorithm(final String algorithm) {
-        // This is not optimal but the algorithms do not have a standard format
-        final String AES = "AES";
-        final String TDES = "TRIPLEDES";
-        final String DES = "DES";
-        final String RC4 = "RC4";
-        final String RC2 = "RC2";
-        final String TWOFISH = "TWOFISH";
-        final List<String> SYMMETRIC_CIPHERS = Arrays.asList(AES, TDES, DES, RC4, RC2, TWOFISH);
-
-        // The algorithms contain "TRIPLEDES" but the cipher name is "DESede"
-        final String ACTUAL_TDES_CIPHER = "DESede";
-
-        for (String cipher : SYMMETRIC_CIPHERS) {
-            if (algorithm.contains(cipher)) {
-                if (cipher.equals(TDES)) {
-                    return ACTUAL_TDES_CIPHER;
-                } else {
-                    return cipher;
-                }
-            }
-        }
-
-        return algorithm;
     }
 
     public static boolean supportsUnlimitedStrength() {

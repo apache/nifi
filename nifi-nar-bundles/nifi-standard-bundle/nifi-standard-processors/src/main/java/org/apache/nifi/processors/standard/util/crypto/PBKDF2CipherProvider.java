@@ -93,7 +93,6 @@ public class PBKDF2CipherProvider implements PBECipherProvider {
         gen.init(password.getBytes("UTF-8"), salt, getIterationCount());
         byte[] dk = ((KeyParameter) gen.generateDerivedParameters(getKeySize(algorithm))).getKey();
         SecretKey tempKey = new SecretKeySpec(dk, algorithm);
-
         Cipher cipher = Cipher.getInstance(algorithm, provider);
         cipher.init(encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, tempKey);
         return cipher;
@@ -104,8 +103,9 @@ public class PBKDF2CipherProvider implements PBECipherProvider {
     }
 
     protected int getKeySize(String algorithm) throws NoSuchAlgorithmException {
-        KeyGenerator keyGenerator = KeyGenerator.getInstance(algorithm);
-        return keyGenerator.generateKey().getEncoded().length;
+        String cipher = CipherUtility.parseCipherFromAlgorithm(algorithm);
+        KeyGenerator keyGenerator = KeyGenerator.getInstance(cipher);
+        return keyGenerator.generateKey().getEncoded().length * 8;
     }
 
     private MessageDigest resolvePRF(String prf) throws NoSuchAlgorithmException {

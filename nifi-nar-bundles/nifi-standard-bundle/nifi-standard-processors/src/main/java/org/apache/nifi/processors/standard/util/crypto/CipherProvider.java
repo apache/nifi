@@ -18,8 +18,7 @@ package org.apache.nifi.processors.standard.util.crypto;
 
 import javax.crypto.Cipher;
 
-// TODO: Should there be a common CipherProvider interface which this and KeyedCipherProvider extend?
-public interface PBECipherProvider {
+public interface CipherProvider {
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
      *
