@@ -20,13 +20,13 @@
         <div class="setting">
             <div class="setting-name">Name</div>
             <div class="setting-field">
-                <span id="component-state-name"></span>
+                <div id="component-state-name"></div>
             </div>
         </div>
         <div class="setting">
             <div class="setting-name">Description</div>
             <div class="setting-field">
-                <span id="component-state-description"></span>
+                <div id="component-state-description" class="ellipsis multiline"></div>
             </div>
         </div>
         <div id="component-state-filter-controls">

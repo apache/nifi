@@ -224,27 +224,40 @@ nf.ComponentState = (function () {
             // clear state link
             $('#clear-link').on('click', function () {
                 if ($(this).hasClass('disabled') === false) {
-                    // clear the state
-                    var revision = nf.Client.getRevision();
-                    var component = $('#component-state-table').data('component');
-                    $.ajax({
-                        type: 'POST',
-                        url: component.uri + '/state/clear-requests',
-                        data: {
-                            version: revision.version,
-                            clientId: revision.clientId
-                        },
-                        dataType: 'json'
-                    }).done(function (response) {
-                        // update the revision
-                        nf.Client.setRevision(response.revision);
+                    var componentStateTable = $('#component-state-table');
 
-                        // clear the table
-                        clearTable();
+                    // ensure there is state to clear
+                    var componentStateGrid = componentStateTable.data('gridInstance');
+                    var stateEntryCount = componentStateGrid.getDataLength();
 
-                        // reload the table with no state
-                        loadComponentState()
-                    }).fail(nf.Common.handleAjaxError);
+                    if (stateEntryCount > 0) {
+                        // clear the state
+                        var revision = nf.Client.getRevision();
+                        var component = componentStateTable.data('component');
+                        $.ajax({
+                            type: 'POST',
+                            url: component.uri + '/state/clear-requests',
+                            data: {
+                                version: revision.version,
+                                clientId: revision.clientId
+                            },
+                            dataType: 'json'
+                        }).done(function (response) {
+                            // update the revision
+                            nf.Client.setRevision(response.revision);
+
+                            // clear the table
+                            clearTable();
+
+                            // reload the table with no state
+                            loadComponentState()
+                        }).fail(nf.Common.handleAjaxError);
+                    } else {
+                        nf.Dialog.showOkDialog({
+                            dialogContent: 'This component has no state to clear.',
+                            overlayBackground: false
+                        });
+                    }
                 }
             });
 
@@ -336,7 +349,7 @@ nf.ComponentState = (function () {
 
                 // populate the name/description
                 $('#component-state-name').text(component.name);
-                $('#component-state-description').text(componentState.stateDescription);
+                $('#component-state-description').text(componentState.stateDescription).ellipsis();
 
                 // store the component
                 componentStateTable.data('component', component);

@@ -23,13 +23,13 @@
     position: absolute;
     overflow: hidden;
     width: 600px;
-    height: 500px;
     font-size: 10px;
     z-index: 1301;
     display: none;
 }
 
 #component-state-description {
+    width: 580px;
     height: 50px;
 }
 
@@ -79,10 +79,12 @@
 
 #clear-link-container {
     margin-top: 16px;
+    margin-bottom: 18px;
 }
 
 #clear-link.disabled {
     color: #bbb;
     font-style: italic;
     text-decoration: none !important;
+    cursor: default !important;
 }
