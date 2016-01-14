@@ -36,6 +36,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateServer.class);
 
     private QuorumPeerConfig quorumPeerConfig;
+    private boolean started = false;
 
     private ZooKeeperStateServer(final Properties zkProperties) throws IOException, ConfigException {
         quorumPeerConfig = new QuorumPeerConfig();
@@ -49,6 +50,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         serverConfig.readFrom(quorumPeerConfig);
         try {
             runFromConfig(serverConfig);
+            started = true;
         } catch (final IOException ioe) {
             throw new IOException("Failed to start embedded ZooKeeper Server", ioe);
         } catch (final Exception e) {
@@ -58,7 +60,10 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
 
     @Override
     public synchronized void shutdown() {
-        super.shutdown();
+        if (started) {
+            started = false;
+            super.shutdown();
+        }
     }
 
     public static ZooKeeperStateServer create(final NiFiProperties properties) throws IOException, ConfigException {

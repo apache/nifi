@@ -3096,6 +3096,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                                     zooKeeperStateServer.start();
                                 } catch (final Exception e) {
                                     LOG.error("NiFi was connected to the cluster but failed to start embedded ZooKeeper Server", e);
+                                    final Bulletin bulletin = BulletinFactory.createBulletin("Embedded ZooKeeper Server", Severity.ERROR.name(),
+                                        "Unable to started embedded ZooKeeper Server. See logs for more details. Will continue trying to start embedded server.");
+                                    getBulletinRepository().addBulletin(bulletin);
+
+                                    // We failed to start the server. Wait a bit and try again.
+                                    try {
+                                        Thread.sleep(TimeUnit.SECONDS.toMillis(5));
+                                    } catch (final InterruptedException ie) {
+                                        // If we are interrupted, stop trying.
+                                        Thread.currentThread().interrupt();
+                                        return;
+                                    }
+
+                                    processScheduler.submitFrameworkTask(this);
                                 }
                             }
                         });
