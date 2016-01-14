@@ -141,6 +141,8 @@ public class PostHTTP extends AbstractProcessor {
     public static final String LOCATION_URI_INTENT_NAME = "x-location-uri-intent";
     public static final String LOCATION_URI_INTENT_VALUE = "flowfile-hold";
     public static final String GZIPPED_HEADER = "flowfile-gzipped";
+    public static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
+    public static final String CONTENT_ENCODING_GZIP_VALUE = "gzip";
 
     public static final String PROTOCOL_VERSION_HEADER = "x-nifi-transfer-protocol-version";
     public static final String TRANSACTION_ID_HEADER = "x-nifi-transaction-id";
@@ -534,12 +536,7 @@ public class PostHTTP extends AbstractProcessor {
                 destinationAccepts = config.getDestinationAccepts();
                 if (destinationAccepts == null) {
                     try {
-                        if (sendAsFlowFile) {
-                            destinationAccepts = getDestinationAcceptance(client, url, getLogger(), transactionId);
-                        } else {
-                            destinationAccepts = new DestinationAccepts(false, false, false, false, null);
-                        }
-
+                        destinationAccepts = getDestinationAcceptance(sendAsFlowFile, client, url, getLogger(), transactionId);
                         config.setDestinationAccepts(destinationAccepts);
                     } catch (final IOException e) {
                         flowFile = session.penalize(flowFile);
@@ -673,7 +670,11 @@ public class PostHTTP extends AbstractProcessor {
         post.setHeader(PROTOCOL_VERSION_HEADER, PROTOCOL_VERSION);
         post.setHeader(TRANSACTION_ID_HEADER, transactionId);
         if (compressionLevel > 0 && accepts.isGzipAccepted()) {
-            post.setHeader(GZIPPED_HEADER, "true");
+            if (sendAsFlowFile) {
+                post.setHeader(GZIPPED_HEADER, "true");
+            } else {
+                post.setHeader(CONTENT_ENCODING_HEADER, CONTENT_ENCODING_GZIP_VALUE);
+            }
         }
 
         // Do the actual POST
@@ -841,57 +842,58 @@ public class PostHTTP extends AbstractProcessor {
         }
     }
 
-    private DestinationAccepts getDestinationAcceptance(final HttpClient client, final String uri, final ProcessorLog logger, final String transactionId) throws IOException {
+    private DestinationAccepts getDestinationAcceptance(final boolean sendAsFlowFile, final HttpClient client, final String uri,
+                                                        final ProcessorLog logger, final String transactionId) throws IOException {
         final HttpHead head = new HttpHead(uri);
-        head.addHeader(TRANSACTION_ID_HEADER, transactionId);
+        if (sendAsFlowFile) {
+            head.addHeader(TRANSACTION_ID_HEADER, transactionId);
+        }
         final HttpResponse response = client.execute(head);
+
+        // we assume that the destination can support FlowFile v1 always when the processor is also configured to send as a FlowFile
+        // otherwise, we do not bother to make any determinations concerning this compatibility
+        final boolean acceptsFlowFileV1 = sendAsFlowFile;
+        boolean acceptsFlowFileV2 = false;
+        boolean acceptsFlowFileV3 = false;
+        boolean acceptsGzip = false;
+        Integer protocolVersion = null;
 
         final int statusCode = response.getStatusLine().getStatusCode();
         if (statusCode == Status.METHOD_NOT_ALLOWED.getStatusCode()) {
-            // we assume that the destination can support FlowFile v1 always.
-            return new DestinationAccepts(false, false, true, false, null);
+            return new DestinationAccepts(acceptsFlowFileV3, acceptsFlowFileV2, acceptsFlowFileV1, false, null);
         } else if (statusCode == Status.OK.getStatusCode()) {
-            boolean acceptsFlowFileV3 = false;
-            boolean acceptsFlowFileV2 = false;
-            boolean acceptsFlowFileV1 = true;
-            boolean acceptsGzip = false;
-            Integer protocolVersion = null;
-
             Header[] headers = response.getHeaders(ACCEPT);
-            if (headers != null) {
-                for (final Header header : headers) {
-                    for (final String accepted : header.getValue().split(",")) {
-                        final String trimmed = accepted.trim();
-                        if (trimmed.equals(APPLICATION_FLOW_FILE_V3)) {
-                            acceptsFlowFileV3 = true;
-                        } else if (trimmed.equals(APPLICATION_FLOW_FILE_V2)) {
-                            acceptsFlowFileV2 = true;
-                        } else {
-                            // we assume that the destination accepts FlowFile V1 because legacy versions
-                            // of NiFi that accepted V1 did not use an Accept header to indicate it... or
-                            // any other header. So the bets thing we can do is just assume that V1 is
-                            // accepted, if we're going to send as FlowFile.
-                            acceptsFlowFileV1 = true;
+            // If configured to send as a flowfile, determine the capabilities of the endpoint
+            if (sendAsFlowFile) {
+                if (headers != null) {
+                    for (final Header header : headers) {
+                        for (final String accepted : header.getValue().split(",")) {
+                            final String trimmed = accepted.trim();
+                            if (trimmed.equals(APPLICATION_FLOW_FILE_V3)) {
+                                acceptsFlowFileV3 = true;
+                            } else if (trimmed.equals(APPLICATION_FLOW_FILE_V2)) {
+                                acceptsFlowFileV2 = true;
+                            }
                         }
                     }
                 }
-            }
 
-            final Header destinationVersion = response.getFirstHeader(PROTOCOL_VERSION_HEADER);
-            if (destinationVersion != null) {
-                try {
-                    protocolVersion = Integer.valueOf(destinationVersion.getValue());
-                } catch (final NumberFormatException e) {
-                    // nothing to do here really.... it's an invalid value, so treat the same as if not specified
+                final Header destinationVersion = response.getFirstHeader(PROTOCOL_VERSION_HEADER);
+                if (destinationVersion != null) {
+                    try {
+                        protocolVersion = Integer.valueOf(destinationVersion.getValue());
+                    } catch (final NumberFormatException e) {
+                        // nothing to do here really.... it's an invalid value, so treat the same as if not specified
+                    }
                 }
-            }
 
-            if (acceptsFlowFileV3) {
-                logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V3 + " if sending data as FlowFile");
-            } else if (acceptsFlowFileV2) {
-                logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V2 + " if sending data as FlowFile");
-            } else if (acceptsFlowFileV1) {
-                logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V1 + " if sending data as FlowFile");
+                if (acceptsFlowFileV3) {
+                    logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V3 + " if sending data as FlowFile");
+                } else if (acceptsFlowFileV2) {
+                    logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V2 + " if sending data as FlowFile");
+                } else if (acceptsFlowFileV1) {
+                    logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V1 + " if sending data as FlowFile");
+                }
             }
 
             headers = response.getHeaders(ACCEPT_ENCODING);
