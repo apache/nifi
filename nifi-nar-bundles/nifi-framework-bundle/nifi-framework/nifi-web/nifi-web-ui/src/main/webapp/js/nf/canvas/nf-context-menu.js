@@ -242,6 +242,11 @@ nf.ContextMenu = (function () {
             return false;
         }
 
+        // ensure the user is DFM
+        if (nf.Common.isDFM() === false) {
+            return false;
+        }
+
         if (nf.CanvasUtils.isProcessor(selection)) {
             var processorData = selection.datum();
             return processorData.component.persistsState === true;
