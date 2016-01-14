@@ -71,6 +71,9 @@ public class CaptureServlet extends HttpServlet {
     protected void doHead(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         response.setHeader("Accept", "application/flowfile-v3,application/flowfile-v2");
         response.setHeader("x-nifi-transfer-protocol-version", "1");
-        response.setHeader("Accept-Encoding", "gzip");
+        // Unless an acceptGzip parameter is explicitly set to false, respond that this server accepts gzip
+        if (!Boolean.toString(false).equalsIgnoreCase(request.getParameter("acceptGzip"))) {
+            response.setHeader("Accept-Encoding", "gzip");
+        }
     }
 }
