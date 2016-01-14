@@ -631,7 +631,7 @@ public class ProcessorResource extends ApplicationResource {
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}/state/clear-requests")
     @PreAuthorize("hasAnyRole('ROLE_DFM')")
