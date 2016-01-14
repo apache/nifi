@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard.util.crypto;
 
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.EncryptionMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,35 +35,35 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the NiFi legacy code, based on @see org.apache.nifi.processors.standard.util.crypto
      * .OpenSSLPKCS5CipherProvider#getCipher(java.lang.String, java.lang.String, java.lang.String, boolean) [essentially {@code MD5(password || salt) * 1000 }].
      *
-     * @param algorithm   the algorithm name
-     * @param provider    the provider name
-     * @param password    the secret input
-     * @param encryptMode true for encrypt, false for decrypt
+     * @param encryptionMethod the {@link EncryptionMethod}
+     * @param password         the secret input
+     * @param keyLength        the desired key length in bits (ignored because OpenSSL ciphers provide key length in algorithm name)
+     * @param encryptMode      true for encrypt, false for decrypt
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
     @Override
-    public Cipher getCipher(String algorithm, String provider, String password, boolean encryptMode) throws Exception {
-        return getCipher(algorithm, provider, password, new byte[0], encryptMode);
+    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception {
+        return getCipher(encryptionMethod, password, new byte[0], keyLength, encryptMode);
     }
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the NiFi legacy code, based on @see org.apache.nifi.processors.standard.util.crypto
      * .OpenSSLPKCS5CipherProvider#getCipher(java.lang.String, java.lang.String, java.lang.String, byte[], boolean) [essentially {@code MD5(password || salt) * 1000 }].
      *
-     * @param algorithm   the algorithm name
-     * @param provider    the provider name
-     * @param password    the secret input
-     * @param salt        the salt
-     * @param encryptMode true for encrypt, false for decrypt
+     * @param encryptionMethod the {@link EncryptionMethod}
+     * @param password         the secret input
+     * @param salt             the salt
+     * @param keyLength        the desired key length in bits (ignored because OpenSSL ciphers provide key length in algorithm name)
+     * @param encryptMode      true for encrypt, false for decrypt
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
     @Override
-    public Cipher getCipher(String algorithm, String provider, String password, byte[] salt, boolean encryptMode) throws Exception {
+    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, int keyLength, boolean encryptMode) throws Exception {
         try {
             // This method is defined in the OpenSSL implementation and just uses a locally-overridden iteration count
-            return getInitializedCipher(algorithm, provider, password, salt, encryptMode);
+            return getInitializedCipher(encryptionMethod, password, salt, encryptMode);
         } catch (Exception e) {
             throw new ProcessException("Error initializing the cipher", e);
         }

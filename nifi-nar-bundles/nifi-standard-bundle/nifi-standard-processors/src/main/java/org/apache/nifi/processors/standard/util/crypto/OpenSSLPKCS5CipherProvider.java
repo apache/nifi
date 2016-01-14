@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard.util.crypto;
 
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.EncryptionMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,42 +43,74 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the
      * <a href="https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html">OpenSSL EVP_BytesToKey proprietary KDF</a> [essentially {@code MD5(password || salt) }].
      *
-     * @param algorithm   the algorithm name
-     * @param provider    the provider name
-     * @param password    the secret input
-     * @param encryptMode true for encrypt, false for decrypt
+     * @param encryptionMethod the {@link EncryptionMethod}
+     * @param password         the secret input
+     * @param keyLength        the desired key length in bits (ignored because OpenSSL ciphers provide key length in algorithm name)
+     * @param encryptMode      true for encrypt, false for decrypt
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
     @Override
-    public Cipher getCipher(String algorithm, String provider, String password, boolean encryptMode) throws Exception {
-        return getCipher(algorithm, provider, password, new byte[0], encryptMode);
+    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception {
+        return getCipher(encryptionMethod, password, new byte[0], keyLength, encryptMode);
     }
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the
      * <a href="https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html">OpenSSL EVP_BytesToKey proprietary KDF</a> [essentially {@code MD5(password || salt) }].
      *
-     * @param algorithm   the algorithm name
-     * @param provider    the provider name
-     * @param password    the secret input
-     * @param salt        the salt
-     * @param encryptMode true for encrypt, false for decrypt
+     * @param encryptionMethod the {@link EncryptionMethod}
+     * @param password         the secret input
+     * @param salt             the salt
+     * @param keyLength        the desired key length in bits (ignored because OpenSSL ciphers provide key length in algorithm name)
+     * @param encryptMode      true for encrypt, false for decrypt
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
     @Override
-    public Cipher getCipher(String algorithm, String provider, String password, byte[] salt, boolean encryptMode) throws Exception {
+    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, int keyLength, boolean encryptMode) throws Exception {
         try {
-            return getInitializedCipher(algorithm, provider, password, salt, encryptMode);
+            return getInitializedCipher(encryptionMethod, password, salt, encryptMode);
         } catch (Exception e) {
             throw new ProcessException("Error initializing the cipher", e);
         }
     }
 
-    protected Cipher getInitializedCipher(String algorithm, String provider, String password, byte[] salt,
-                                          boolean encryptMode) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException,
+    /**
+     * Convenience method without key length parameter. See {@link OpenSSLPKCS5CipherProvider#getCipher(EncryptionMethod, String, int, boolean)}
+     *
+     * @param encryptionMethod the {@link EncryptionMethod}
+     * @param password         the secret input
+     * @param encryptMode      true for encrypt, false for decrypt
+     * @return the initialized cipher
+     * @throws Exception if there is a problem initializing the cipher
+     */
+    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, boolean encryptMode) throws Exception {
+        return getCipher(encryptionMethod, password, new byte[0], -1, encryptMode);
+    }
+
+    /**
+     * Convenience method without key length parameter. See {@link OpenSSLPKCS5CipherProvider#getCipher(EncryptionMethod, String, byte[], int, boolean)}
+     *
+     * @param encryptionMethod the {@link EncryptionMethod}
+     * @param password         the secret input
+     * @param salt             the salt
+     * @param encryptMode      true for encrypt, false for decrypt
+     * @return the initialized cipher
+     * @throws Exception if there is a problem initializing the cipher
+     */
+    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, boolean encryptMode) throws Exception {
+        return getCipher(encryptionMethod, password, salt, -1, encryptMode);
+    }
+
+    protected Cipher getInitializedCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, boolean encryptMode)
+            throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException,
             InvalidAlgorithmParameterException {
+        // TODO: Add validation checks
+
+        String algorithm = encryptionMethod.getAlgorithm();
+        String provider = encryptionMethod.getProvider();
+
         // Initialize secret key from password
         final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray());
         final SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, provider);

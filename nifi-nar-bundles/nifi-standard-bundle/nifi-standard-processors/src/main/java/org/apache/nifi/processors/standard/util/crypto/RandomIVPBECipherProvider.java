@@ -20,29 +20,20 @@ import org.apache.nifi.security.util.EncryptionMethod;
 
 import javax.crypto.Cipher;
 
-public interface PBECipherProvider {
+public interface RandomIVPBECipherProvider extends PBECipherProvider {
     /**
-     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
-     *
-     * @param encryptionMethod the {@link EncryptionMethod}
-     * @param password         the secret input
-     * @param keyLength        the desired key length in bits
-     * @param encryptMode      true for encrypt, false for decrypt
-     * @return the initialized cipher
-     * @throws Exception if there is a problem initializing the cipher
-     */
-    Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception;
-
-    /**
-     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
+     * Returns an initialized cipher for the specified algorithm. The key is derived by the KDF of the implementation. The IV is provided externally to allow for non-deterministic IVs, as IVs
+     * deterministically derived from the password are a potential vulnerability and compromise semantic security. See
+     * <a href="http://crypto.stackexchange.com/a/3970/12569">Ilmari Karonen's answer on Crypto Stack Exchange</a>
      *
      * @param encryptionMethod the {@link EncryptionMethod}
      * @param password         the secret input
      * @param salt             the salt
+     * @param iv               the IV
      * @param keyLength        the desired key length in bits
      * @param encryptMode      true for encrypt, false for decrypt
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
-    Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, int keyLength, boolean encryptMode) throws Exception;
+    Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, byte[] iv, int keyLength, boolean encryptMode) throws Exception;
 }
