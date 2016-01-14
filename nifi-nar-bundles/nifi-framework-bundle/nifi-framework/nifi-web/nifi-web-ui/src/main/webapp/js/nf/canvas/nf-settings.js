@@ -601,11 +601,15 @@ nf.Settings = (function () {
         // more details formatter
         var moreControllerServiceDetails = function (row, cell, value, columnDef, dataContext) {
             var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-controller-service" style="margin-top: 5px; float: left;" />';
+
+            // always include a button to view the usage
+            markup += '<img src="images/iconUsage.png" title="Usage" class="pointer controller-service-usage" style="margin-left: 6px; margin-top: 3px; float: left;" />';
+
             var hasErrors = !nf.Common.isEmpty(dataContext.validationErrors);
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
             
             if (hasErrors) {
-                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 1px; float: left;" />';
+                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 3px; float: left;" />';
             }
             
             if (hasBulletins) {
@@ -649,31 +653,33 @@ nf.Settings = (function () {
         var controllerServiceActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            // only DFMs can edit a controller service
+            // only DFMs can edit a controller service and view state
             if (nf.Common.isDFM()) {
                 if (dataContext.state === 'ENABLED' || dataContext.state === 'ENABLING') {
-                    markup += '<img src="images/iconDisable.png" title="Disable" class="pointer disable-controller-service" style="margin-top: 2px;" />&nbsp;';
+                    markup += '<img src="images/iconDisable.png" title="Disable" class="pointer disable-controller-service" style="margin-top: 2px;" />';
                 } else if (dataContext.state === 'DISABLED') {
-                    markup += '<img src="images/iconEdit.png" title="Edit" class="pointer edit-controller-service" style="margin-top: 2px;" />&nbsp;';
+                    markup += '<img src="images/iconEdit.png" title="Edit" class="pointer edit-controller-service" style="margin-top: 2px;" />';
                     
                     // if there are no validation errors allow enabling
                     if (nf.Common.isEmpty(dataContext.validationErrors)) {
-                        markup += '<img src="images/iconEnable.png" title="Enable" class="pointer enable-controller-service" style="margin-top: 2px;"/>&nbsp;';
+                        markup += '<img src="images/iconEnable.png" title="Enable" class="pointer enable-controller-service" style="margin-top: 2px; margin-left: 3px;"/>';
                     }
                     
-                    markup += '<img src="images/iconDelete.png" title="Remove" class="pointer delete-controller-service" style="margin-top: 2px;" />&nbsp;';
+                    markup += '<img src="images/iconDelete.png" title="Remove" class="pointer delete-controller-service" style="margin-top: 2px; margin-left: 3px;" />';
+                }
+
+                if (dataContext.persistsState === true) {
+                    markup += '<img src="images/iconViewState.png" title="View State" class="pointer view-state-controller-service" style="margin-top: 2px; margin-left: 3px;" />';
                 }
             }
 
-            // always include a button to view the usage
-            markup += '<img src="images/iconUsage.png" title="Usage" class="pointer controller-service-usage" style="margin-top: 2px;"/>&nbsp;';
 
             return markup;
         };
 
         // define the column model for the controller services table
         var controllerServicesColumns = [
-            {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: false, width: 65, maxWidth: 65},
+            {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: false, width: 90, maxWidth: 90},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
             {id: 'state', field: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true}
@@ -728,20 +734,22 @@ nf.Settings = (function () {
                     nf.ControllerService.disable(controllerService);
                 } else if (target.hasClass('delete-controller-service')) {
                     nf.ControllerService.remove(controllerService);
-                } else if (target.hasClass('controller-service-usage')) {
-                    // close the settings dialog
-                    $('#shell-close-button').click();
-                    
-                    // open the documentation for this reporting task
-                    nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
-                        select: nf.Common.substringAfterLast(controllerService.type, '.')
-                    })).done(function() {
-                        nf.Settings.showSettings();
-                    });
+                } else if (target.hasClass('view-state-controller-service')) {
+                    nf.ComponentState.showState(controllerService, controllerService.state === 'DISABLED');
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-controller-service')) {
                     nf.ControllerService.showDetails(controllerService);
+                } else if (target.hasClass('controller-service-usage')) {
+                    // close the settings dialog
+                    $('#shell-close-button').click();
+
+                    // open the documentation for this reporting task
+                    nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
+                            select: nf.Common.substringAfterLast(controllerService.type, '.')
+                        })).done(function() {
+                        nf.Settings.showSettings();
+                    });
                 }
             }
         });
@@ -1248,11 +1256,15 @@ nf.Settings = (function () {
 
         var moreReportingTaskDetails = function (row, cell, value, columnDef, dataContext) {
             var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-reporting-task" style="margin-top: 5px; float: left;" />';
+
+            // always include a button to view the usage
+            markup += '<img src="images/iconUsage.png" title="Usage" class="pointer reporting-task-usage" style="margin-left: 6px; margin-top: 3px;"/>';
+
             var hasErrors = !nf.Common.isEmpty(dataContext.validationErrors);
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
             
             if (hasErrors) {
-                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 1px; float: left;" />';
+                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 3px; float: left;" />';
             }
             
             if (hasBulletins) {
@@ -1295,31 +1307,33 @@ nf.Settings = (function () {
         var reportingTaskActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            // only DFMs can edit reporting tasks
+            // only DFMs can edit reporting tasks and view state
             if (nf.Common.isDFM()) {
                 if (dataContext.state === 'RUNNING') {
-                    markup += '<img src="images/iconStop.png" title="Stop" class="pointer stop-reporting-task" style="margin-top: 2px;" />&nbsp;';
+                    markup += '<img src="images/iconStop.png" title="Stop" class="pointer stop-reporting-task" style="margin-top: 2px;" />';
                 } else if (dataContext.state === 'STOPPED' || dataContext.state === 'DISABLED') {
-                    markup += '<img src="images/iconEdit.png" title="Edit" class="pointer edit-reporting-task" style="margin-top: 2px;" />&nbsp;';
+                    markup += '<img src="images/iconEdit.png" title="Edit" class="pointer edit-reporting-task" style="margin-top: 2px;" />';
                  
                     // support starting when stopped and no validation errors
                     if (dataContext.state === 'STOPPED' && nf.Common.isEmpty(dataContext.validationErrors)) {
-                        markup += '<img src="images/iconRun.png" title="Start" class="pointer start-reporting-task" style="margin-top: 2px;"/>&nbsp;';
+                        markup += '<img src="images/iconRun.png" title="Start" class="pointer start-reporting-task" style="margin-top: 2px; margin-left: 3px;"/>';
                     }
                     
-                    markup += '<img src="images/iconDelete.png" title="Remove" class="pointer delete-reporting-task" style="margin-top: 2px;" />&nbsp;';
+                    markup += '<img src="images/iconDelete.png" title="Remove" class="pointer delete-reporting-task" style="margin-top: 2px; margin-left: 3px;" />';
+                }
+
+                if (dataContext.persistsState === true) {
+                    markup += '<img src="images/iconViewState.png" title="View State" class="pointer view-state-reporting-task" style="margin-top: 2px; margin-left: 3px;" />';
                 }
             }
 
-            // always include a button to view the usage
-            markup += '<img src="images/iconUsage.png" title="Usage" class="pointer reporting-task-usage" style="margin-top: 2px;"/>&nbsp;';
 
             return markup;
         };
 
         // define the column model for the reporting tasks table
         var reportingTasksColumnModel = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 65, maxWidth: 65},
+            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 90, maxWidth: 90},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true, formatter: typeFormatter},
             {id: 'state', field: 'state', name: 'Run Status', sortable: true, resizeable: true, formatter: reportingTaskRunStatusFormatter}
@@ -1374,20 +1388,23 @@ nf.Settings = (function () {
                     nf.ReportingTask.stop(reportingTask);
                 } else if (target.hasClass('delete-reporting-task')) {
                     nf.ReportingTask.remove(reportingTask);
-                } else if (target.hasClass('reporting-task-usage')) {
-                    // close the settings dialog
-                    $('#shell-close-button').click();
-                    
-                    // open the documentation for this reporting task
-                    nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
-                        select: nf.Common.substringAfterLast(reportingTask.type, '.')
-                    })).done(function() {
-                        nf.Settings.showSettings();
-                    });
+                } else if (target.hasClass('view-state-reporting-task')) {
+                    var canClear = reportingTask.state === 'STOPPED' && reportingTask.activeThreadCount === 0;
+                    nf.ComponentState.showState(reportingTask, canClear);
                 }
             } else if (reportingTasksGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-reporting-task')) {
                     nf.ReportingTask.showDetails(reportingTask);
+                } else if (target.hasClass('reporting-task-usage')) {
+                    // close the settings dialog
+                    $('#shell-close-button').click();
+
+                    // open the documentation for this reporting task
+                    nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
+                            select: nf.Common.substringAfterLast(reportingTask.type, '.')
+                        })).done(function() {
+                        nf.Settings.showSettings();
+                    });
                 }
             }
         });

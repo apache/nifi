@@ -596,7 +596,7 @@ public class ControllerServiceResource extends ApplicationResource {
         }
 
         // get the component state
-        final ComponentStateDTO descriptor = serviceFacade.getControllerServiceState(id);
+        final ComponentStateDTO state = serviceFacade.getControllerServiceState(id);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -605,7 +605,7 @@ public class ControllerServiceResource extends ApplicationResource {
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
         entity.setRevision(revision);
-        entity.setComponentState(descriptor);
+        entity.setComponentState(state);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

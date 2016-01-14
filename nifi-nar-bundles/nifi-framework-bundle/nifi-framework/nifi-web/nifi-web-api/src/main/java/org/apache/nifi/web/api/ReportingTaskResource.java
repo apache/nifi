@@ -589,7 +589,7 @@ public class ReportingTaskResource extends ApplicationResource {
         }
 
         // get the component state
-        final ComponentStateDTO descriptor = serviceFacade.getReportingTaskState(id);
+        final ComponentStateDTO state = serviceFacade.getReportingTaskState(id);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -598,7 +598,7 @@ public class ReportingTaskResource extends ApplicationResource {
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
         entity.setRevision(revision);
-        entity.setComponentState(descriptor);
+        entity.setComponentState(state);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

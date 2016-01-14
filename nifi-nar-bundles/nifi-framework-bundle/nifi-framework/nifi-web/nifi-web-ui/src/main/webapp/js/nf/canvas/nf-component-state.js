@@ -120,6 +120,10 @@ nf.ComponentState = (function () {
         var componentStateGrid = $('#component-state-table').data('gridInstance');
         var componentStateData = componentStateGrid.getData();
         componentStateData.setItems([]);
+
+        // clear the total number entries
+        $('#displayed-component-state-entries').text('0');
+        $('#total-component-state-entries').text('0');
     };
 
     /**
@@ -169,7 +173,6 @@ nf.ComponentState = (function () {
         // clear the fields
         $('#component-state-name').text('');
         $('#component-state-description').text('');
-        $('#total-component-state-entries').text('');
 
         // clear any filter strings
         $('#component-state-filter').addClass(config.styles.filterList).val(config.filterText);
@@ -202,9 +205,9 @@ nf.ComponentState = (function () {
             // initialize the processor configuration dialog
             $('#component-state-dialog').modal({
                 headerText: 'Component State',
-                overlayBackground: true,
+                overlayBackground: false,
                 buttons: [{
-                    buttonText: 'Ok',
+                    buttonText: 'Close',
                     handler: {
                         click: function () {
                             $(this).modal('hide');
@@ -327,6 +330,7 @@ nf.ComponentState = (function () {
 
             // initialize the number of display items
             $('#displayed-component-state-entries').text('0');
+            $('#total-component-state-entries').text('0');
         },
 
         /**
