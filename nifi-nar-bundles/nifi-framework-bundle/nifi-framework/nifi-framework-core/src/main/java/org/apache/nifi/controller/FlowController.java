@@ -1083,83 +1083,95 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         this.shutdown = true;
         stopAllProcessors();
 
-        if (isTerminated() || timerDrivenEngineRef.get().isTerminating()) {
-            throw new IllegalStateException("Controller already stopped or still stopping...");
-        }
-
-        if (kill) {
-            this.timerDrivenEngineRef.get().shutdownNow();
-            this.eventDrivenEngineRef.get().shutdownNow();
-            LOG.info("Initiated immediate shutdown of flow controller...");
-        } else {
-            this.timerDrivenEngineRef.get().shutdown();
-            this.eventDrivenEngineRef.get().shutdown();
-            LOG.info("Initiated graceful shutdown of flow controller...waiting up to " + gracefulShutdownSeconds + " seconds");
-        }
-
-        clusterTaskExecutor.shutdown();
-
-        // Trigger any processors' methods marked with @OnShutdown to be called
-        rootGroup.shutdown();
-
-        // invoke any methods annotated with @OnShutdown on Controller Services
-        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
-            }
-        }
-
-        // invoke any methods annotated with @OnShutdown on Reporting Tasks
-        for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
-            final ConfigurationContext configContext = taskNode.getConfigurationContext();
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, taskNode.getReportingTask(), configContext);
-            }
-        }
-
+        readLock.lock();
         try {
-            this.timerDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds / 2, TimeUnit.SECONDS);
-            this.eventDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds / 2, TimeUnit.SECONDS);
-        } catch (final InterruptedException ie) {
-            LOG.info("Interrupted while waiting for controller termination.");
-        }
+            if (isTerminated() || timerDrivenEngineRef.get().isTerminating()) {
+                throw new IllegalStateException("Controller already stopped or still stopping...");
+            }
 
-        try {
-            flowFileRepository.close();
-        } catch (final Throwable t) {
-            LOG.warn("Unable to shut down FlowFileRepository due to {}", new Object[] {t});
-        }
+            if (kill) {
+                this.timerDrivenEngineRef.get().shutdownNow();
+                this.eventDrivenEngineRef.get().shutdownNow();
+                LOG.info("Initiated immediate shutdown of flow controller...");
+            } else {
+                this.timerDrivenEngineRef.get().shutdown();
+                this.eventDrivenEngineRef.get().shutdown();
+                LOG.info("Initiated graceful shutdown of flow controller...waiting up to " + gracefulShutdownSeconds
+                        + " seconds");
+            }
 
-        if (this.timerDrivenEngineRef.get().isTerminated() && eventDrivenEngineRef.get().isTerminated()) {
-            LOG.info("Controller has been terminated successfully.");
-        } else {
-            LOG.warn("Controller hasn't terminated properly.  There exists an uninterruptable thread that "
-                + "will take an indeterminate amount of time to stop.  Might need to kill the program manually.");
-        }
+            clusterTaskExecutor.shutdown();
 
-        if (externalSiteListener != null) {
-            externalSiteListener.stop();
-        }
+            // Trigger any processors' methods marked with @OnShutdown to be
+            // called
+            rootGroup.shutdown();
 
-        if (processScheduler != null) {
-            processScheduler.shutdown();
-        }
-
-        if (contentRepository != null) {
-            contentRepository.shutdown();
-        }
-
-        if (provenanceEventRepository != null) {
-            try {
-                provenanceEventRepository.close();
-            } catch (final IOException ioe) {
-                LOG.warn("There was a problem shutting down the Provenance Repository: " + ioe.toString());
-                if (LOG.isDebugEnabled()) {
-                    LOG.warn("", ioe);
+            // invoke any methods annotated with @OnShutdown on Controller
+            // Services
+            for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode,
+                            controllerServiceProvider, null);
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class,
+                            serviceNode.getControllerServiceImplementation(), configContext);
                 }
             }
+
+            // invoke any methods annotated with @OnShutdown on Reporting Tasks
+            for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
+                final ConfigurationContext configContext = taskNode.getConfigurationContext();
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, taskNode.getReportingTask(),
+                            configContext);
+                }
+            }
+
+            try {
+                this.timerDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds / 2, TimeUnit.SECONDS);
+                this.eventDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds / 2, TimeUnit.SECONDS);
+            } catch (final InterruptedException ie) {
+                LOG.info("Interrupted while waiting for controller termination.");
+            }
+
+            try {
+                flowFileRepository.close();
+            } catch (final Throwable t) {
+                LOG.warn("Unable to shut down FlowFileRepository due to {}", new Object[] { t });
+            }
+
+            if (this.timerDrivenEngineRef.get().isTerminated() && eventDrivenEngineRef.get().isTerminated()) {
+                LOG.info("Controller has been terminated successfully.");
+            } else {
+                LOG.warn("Controller hasn't terminated properly.  There exists an uninterruptable thread that "
+                        + "will take an indeterminate amount of time to stop.  Might need to kill the program manually.");
+            }
+
+            if (externalSiteListener != null) {
+                externalSiteListener.stop();
+            }
+
+            if (processScheduler != null) {
+                processScheduler.shutdown();
+            }
+
+            if (contentRepository != null) {
+                contentRepository.shutdown();
+            }
+
+            if (provenanceEventRepository != null) {
+                try {
+                    provenanceEventRepository.close();
+                } catch (final IOException ioe) {
+                    LOG.warn("There was a problem shutting down the Provenance Repository: " + ioe.toString());
+                    if (LOG.isDebugEnabled()) {
+                        LOG.warn("", ioe);
+                    }
+                }
+            }
+        } finally {
+            readLock.unlock();
         }
+
     }
 
     /**
