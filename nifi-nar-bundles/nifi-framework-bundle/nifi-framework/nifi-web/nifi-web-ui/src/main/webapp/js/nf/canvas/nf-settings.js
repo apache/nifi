@@ -583,9 +583,35 @@ nf.Settings = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-            var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-            return aString === bString ? 0 : aString > bString ? 1 : -1;
+            if (sortDetails.columnId === 'moreDetails') {
+                var aBulletins = 0;
+                if (!nf.Common.isEmpty(a.bulletins)) {
+                    aBulletins = a.bulletins.length;
+                }
+                var bBulletins = 0;
+                if (!nf.Common.isEmpty(b.bulletins)) {
+                    bBulletins = b.bulletins.length;
+                }
+                return aBulletins - bBulletins;
+            } else if (sortDetails.columnId === 'type') {
+                var aType = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? nf.Common.substringAfterLast(a[sortDetails.columnId], '.') : '';
+                var bType = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? nf.Common.substringAfterLast(b[sortDetails.columnId], '.') : '';
+                return aType === bType ? 0 : aType > bType ? 1 : -1;
+            } else if (sortDetails.columnId === 'state') {
+                var aState = 'Invalid';
+                if (nf.Common.isEmpty(a.validationErrors)) {
+                    aState = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                }
+                var bState = 'Invalid';
+                if (nf.Common.isEmpty(b.validationErrors)) {
+                    bState = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                }
+                return aState === bState ? 0 : aState > bState ? 1 : -1;
+            } else {
+                var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                return aString === bString ? 0 : aString > bString ? 1 : -1;
+            }
         };
 
         // perform the sort
@@ -674,7 +700,7 @@ nf.Settings = (function () {
 
         // define the column model for the controller services table
         var controllerServicesColumns = [
-            {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: false, width: 65, maxWidth: 65},
+            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: true, width: 65, maxWidth: 65, toolTip: 'Sorts based on presence of bulletins'},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
             {id: 'state', field: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true}
@@ -1321,7 +1347,7 @@ nf.Settings = (function () {
 
         // define the column model for the reporting tasks table
         var reportingTasksColumnModel = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 65, maxWidth: 65},
+            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 65, maxWidth: 65, toolTip: 'Sorts based on presence of bulletins'},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true, formatter: typeFormatter},
             {id: 'state', field: 'state', name: 'Run Status', sortable: true, resizeable: true, formatter: reportingTaskRunStatusFormatter}
