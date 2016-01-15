@@ -3463,8 +3463,15 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
          */
         if (mutableRequest) {
 
-            // if some (not all) nodes had a problematic response because of a missing counter, ensure the are not disconnected
-            if (!problematicNodeResponses.isEmpty() && problematicNodeResponses.size() < nodeResponses.size() && isMissingCounter(problematicNodeResponses, uri)) {
+            // all nodes failed
+            final boolean allNodesFailed = problematicNodeResponses.size() == nodeResponses.size();
+
+            // some nodes had a problematic response because of a missing counter, ensure the are not disconnected
+            final boolean someNodesFailedMissingCounter = !problematicNodeResponses.isEmpty() &&
+                problematicNodeResponses.size() < nodeResponses.size() && isMissingCounter(problematicNodeResponses, uri);
+
+            // ensure nodes stay connected in certain scenarios
+            if (allNodesFailed || someNodesFailedMissingCounter) {
                 for (final Map.Entry<Node, NodeResponse> updatedNodeEntry : updatedNodesMap.entrySet()) {
                     final NodeResponse nodeResponse = updatedNodeEntry.getValue();
                     final Node node = updatedNodeEntry.getKey();
