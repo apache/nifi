@@ -3467,8 +3467,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             final boolean allNodesFailed = problematicNodeResponses.size() == nodeResponses.size();
 
             // some nodes had a problematic response because of a missing counter, ensure the are not disconnected
-            final boolean someNodesFailedMissingCounter = !problematicNodeResponses.isEmpty() &&
-                problematicNodeResponses.size() < nodeResponses.size() && isMissingCounter(problematicNodeResponses, uri);
+            final boolean someNodesFailedMissingCounter = !problematicNodeResponses.isEmpty()
+                && problematicNodeResponses.size() < nodeResponses.size() && isMissingCounter(problematicNodeResponses, uri);
 
             // ensure nodes stay connected in certain scenarios
             if (allNodesFailed || someNodesFailedMissingCounter) {
