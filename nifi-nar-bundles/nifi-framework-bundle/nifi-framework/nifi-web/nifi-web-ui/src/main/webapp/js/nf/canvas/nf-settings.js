@@ -171,12 +171,6 @@ nf.Settings = (function () {
      * Hides the selected controller service.
      */
     var clearSelectedControllerService = function () {
-        if (nf.Canvas.isClustered()) {
-            $('#controller-service-availability-combo').combo('setSelectedOption', {
-                value: config.node
-            });
-        }
-        
         $('#controller-service-type-description').text('');
         $('#controller-service-type-name').text('');
         $('#selected-controller-service-name').text('');
@@ -517,6 +511,13 @@ nf.Settings = (function () {
                 }],
             handler: {
                 close: function () {
+                    // reset the node availability
+                    if (nf.Canvas.isClustered()) {
+                        $('#controller-service-availability-combo').combo('setSelectedOption', {
+                            value: config.node
+                        });
+                    }
+
                     // clear the selected row
                     clearSelectedControllerService();
 
@@ -921,12 +922,6 @@ nf.Settings = (function () {
      * Hides the selected reporting task.
      */
     var clearSelectedReportingTask = function () {
-        if (nf.Canvas.isClustered()) {
-            $('#reporting-task-availability-combo').combo('setSelectedOption', {
-                value: config.node
-            });
-        }
-        
         $('#reporting-task-type-description').text('');
         $('#reporting-task-type-name').text('');
         $('#selected-reporting-task-name').text('');
@@ -1215,6 +1210,13 @@ nf.Settings = (function () {
                 }],
             handler: {
                 close: function () {
+                    // reset the node availability
+                    if (nf.Canvas.isClustered()) {
+                        $('#reporting-task-availability-combo').combo('setSelectedOption', {
+                            value: config.node
+                        });
+                    }
+
                     // clear the selected row
                     clearSelectedReportingTask();
 
