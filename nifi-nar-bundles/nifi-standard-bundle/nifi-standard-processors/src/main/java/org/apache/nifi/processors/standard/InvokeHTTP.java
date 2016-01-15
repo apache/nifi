@@ -556,7 +556,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 throw new IllegalStateException("Status code unknown, connection hasn't been attempted.");
             }
 
-            // Create a map of the status attributes that are always written to the request and reponse FlowFiles
+            // Create a map of the status attributes that are always written to the request and response FlowFiles
             Map<String, String> statusAttributes = new HashMap<>();
             statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
             statusAttributes.put(STATUS_MESSAGE, statusMessage);
@@ -602,7 +602,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                         responseFlowFile = session.create();
                     }
 
-                    // write the status attributes
+                    // write attributes to response flowfile
                     responseFlowFile = session.putAllAttributes(responseFlowFile, statusAttributes);
 
                     // write the response headers as attributes
@@ -612,6 +612,10 @@ public final class InvokeHTTP extends AbstractProcessor {
                     // transfer the message body to the payload
                     // can potentially be null in edge cases
                     if (bodyExists) {
+                        // write content type attribute to response flowfile if it is available
+                        if (responseBody.contentType() != null) {
+                             responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
+                        }
                         if (teeInputStream != null) {
                             responseFlowFile = session.importFrom(teeInputStream, responseFlowFile);
                         } else {
