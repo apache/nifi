@@ -29,9 +29,6 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
 import org.apache.nifi.documentation.html.HtmlProcessorDocumentationWriter;
-import org.apache.nifi.documentation.init.ControllerServiceInitializer;
-import org.apache.nifi.documentation.init.ProcessorInitializer;
-import org.apache.nifi.documentation.init.ReportingTaskingInitializer;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
@@ -97,10 +94,6 @@ public class DocGenerator {
     private static void document(final File docsDir, final Class<? extends ConfigurableComponent> componentClass)
             throws InstantiationException, IllegalAccessException, IOException, InitializationException {
 
-        final ConfigurableComponent component = componentClass.newInstance();
-        final ConfigurableComponentInitializer initializer = getComponentInitializer(componentClass);
-        initializer.initialize(component);
-
         final DocumentationWriter writer = getDocumentWriter(componentClass);
 
         final File directory = new File(docsDir, componentClass.getCanonicalName());
@@ -112,10 +105,8 @@ public class DocGenerator {
         }
 
         try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumenationFile))) {
-            writer.write(component, output, hasAdditionalInfo(directory));
+            writer.write(componentClass, output, hasAdditionalInfo(directory));
         }
-
-        initializer.teardown(component);
     }
 
     /**
@@ -133,28 +124,6 @@ public class DocGenerator {
             return new HtmlDocumentationWriter();
         } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
             return new HtmlDocumentationWriter();
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns a ConfigurableComponentInitializer for the type of component.
-     * Currently Processor, ControllerService and ReportingTask are supported.
-     *
-     * @param componentClass the class that requires a
-     * ConfigurableComponentInitializer
-     * @return a ConfigurableComponentInitializer capable of initializing that
-     * specific type of class
-     */
-    private static ConfigurableComponentInitializer getComponentInitializer(
-            final Class<? extends ConfigurableComponent> componentClass) {
-        if (Processor.class.isAssignableFrom(componentClass)) {
-            return new ProcessorInitializer();
-        } else if (ControllerService.class.isAssignableFrom(componentClass)) {
-            return new ControllerServiceInitializer();
-        } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-            return new ReportingTaskingInitializer();
         }
 
         return null;

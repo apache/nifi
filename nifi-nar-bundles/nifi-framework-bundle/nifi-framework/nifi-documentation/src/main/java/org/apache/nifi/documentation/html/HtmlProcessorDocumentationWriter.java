@@ -18,18 +18,17 @@ package org.apache.nifi.documentation.html;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 
 /**
@@ -41,26 +40,25 @@ import org.apache.nifi.processor.Relationship;
 public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
     @Override
-    protected void writeAdditionalBodyInfo(final ConfigurableComponent configurableComponent,
+    protected void writeAdditionalBodyInfo(Class<? extends ConfigurableComponent> configurableComponentClass,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
-        final Processor processor = (Processor) configurableComponent;
-        writeRelationships(processor, xmlStreamWriter);
-        writeDynamicRelationships(processor, xmlStreamWriter);
-        writeAttributeInfo(processor, xmlStreamWriter);
+        writeRelationships(configurableComponentClass, xmlStreamWriter);
+        writeAttributeInfo(configurableComponentClass, xmlStreamWriter);
     }
 
     /**
      * Writes all the attributes that a processor says it reads and writes
      *
-     * @param processor the processor to describe
+     * @param configurableComponentClass class of {@link ConfigurableComponent}
      * @param xmlStreamWriter the xml stream writer to use
      * @throws XMLStreamException thrown if there was a problem writing the XML
      */
-    private void writeAttributeInfo(Processor processor, XMLStreamWriter xmlStreamWriter)
+    private void writeAttributeInfo(Class<? extends ConfigurableComponent> configurableComponentClass,
+            XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
 
-        handleReadsAttributes(xmlStreamWriter, processor);
-        handleWritesAttributes(xmlStreamWriter, processor);
+        handleReadsAttributes(xmlStreamWriter, configurableComponentClass);
+        handleWritesAttributes(xmlStreamWriter, configurableComponentClass);
     }
 
     private String defaultIfBlank(final String test, final String defaultValue) {
@@ -74,12 +72,13 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
      * Writes out just the attributes that are being read in a table form.
      *
      * @param xmlStreamWriter the xml stream writer to use
-     * @param processor the processor to describe
+     * @param configurableComponentClass class of {@link ConfigurableComponent}
      * @throws XMLStreamException xse
      */
-    private void handleReadsAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
+    private void handleReadsAttributes(XMLStreamWriter xmlStreamWriter,
+            Class<? extends ConfigurableComponent> configurableComponentClass)
             throws XMLStreamException {
-        List<ReadsAttribute> attributesRead = getReadsAttributes(processor);
+        List<ReadsAttribute> attributesRead = getReadsAttributes(configurableComponentClass);
 
         writeSimpleElement(xmlStreamWriter, "h3", "Reads Attributes: ");
         if (attributesRead.size() > 0) {
@@ -110,12 +109,12 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
      * Writes out just the attributes that are being written to in a table form.
      *
      * @param xmlStreamWriter the xml stream writer to use
-     * @param processor the processor to describe
+     * @param configurableComponentClass class of {@link ConfigurableComponent}
      * @throws XMLStreamException xse
      */
-    private void handleWritesAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
+    private void handleWritesAttributes(XMLStreamWriter xmlStreamWriter, Class<? extends ConfigurableComponent> configurableComponentClass)
             throws XMLStreamException {
-        List<WritesAttribute> attributesRead = getWritesAttributes(processor);
+        List<WritesAttribute> attributesRead = getWritesAttributes(configurableComponentClass);
 
         writeSimpleElement(xmlStreamWriter, "h3", "Writes Attributes: ");
         if (attributesRead.size() > 0) {
@@ -144,18 +143,18 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
     /**
      * Collects the attributes that a processor is reading from.
      *
-     * @param processor the processor to describe
+     * @param configurableComponentClass class of {@link ConfigurableComponent}
      * @return the list of attributes that processor is reading
      */
-    private List<ReadsAttribute> getReadsAttributes(Processor processor) {
+    private List<ReadsAttribute> getReadsAttributes(Class<? extends ConfigurableComponent> configurableComponentClass) {
         List<ReadsAttribute> attributes = new ArrayList<>();
 
-        ReadsAttributes readsAttributes = processor.getClass().getAnnotation(ReadsAttributes.class);
+        ReadsAttributes readsAttributes = configurableComponentClass.getAnnotation(ReadsAttributes.class);
         if (readsAttributes != null) {
             attributes.addAll(Arrays.asList(readsAttributes.value()));
         }
 
-        ReadsAttribute readsAttribute = processor.getClass().getAnnotation(ReadsAttribute.class);
+        ReadsAttribute readsAttribute = configurableComponentClass.getAnnotation(ReadsAttribute.class);
         if (readsAttribute != null) {
             attributes.add(readsAttribute);
         }
@@ -166,18 +165,18 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
     /**
      * Collects the attributes that a processor is writing to.
      *
-     * @param processor the processor to describe
+     * @param configurableComponentClass class of {@link ConfigurableComponent}
      * @return the list of attributes the processor is writing
      */
-    private List<WritesAttribute> getWritesAttributes(Processor processor) {
+    private List<WritesAttribute> getWritesAttributes(Class<? extends ConfigurableComponent> configurableComponentClass) {
         List<WritesAttribute> attributes = new ArrayList<>();
 
-        WritesAttributes writesAttributes = processor.getClass().getAnnotation(WritesAttributes.class);
+        WritesAttributes writesAttributes = configurableComponentClass.getAnnotation(WritesAttributes.class);
         if (writesAttributes != null) {
             attributes.addAll(Arrays.asList(writesAttributes.value()));
         }
 
-        WritesAttribute writeAttribute = processor.getClass().getAnnotation(WritesAttribute.class);
+        WritesAttribute writeAttribute = configurableComponentClass.getAnnotation(WritesAttribute.class);
         if (writeAttribute != null) {
             attributes.add(writeAttribute);
         }
@@ -188,16 +187,20 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
     /**
      * Writes a table describing the relations a processor has.
      *
-     * @param processor the processor to describe
+     * @param configurableComponentClass class of {@link ConfigurableComponent}
      * @param xmlStreamWriter the stream writer to use
      * @throws XMLStreamException thrown if there was a problem writing the xml
      */
-    private void writeRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter)
+    private void writeRelationships(Class<? extends ConfigurableComponent> configurableComponentClass,
+            final XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
 
         writeSimpleElement(xmlStreamWriter, "h3", "Relationships: ");
 
-        if (processor.getRelationships().size() > 0) {
+        Collection<Relationship> relationships = this.retrieveStaticFieldsOfType(configurableComponentClass,
+                Relationship.class);
+
+        if (relationships.size() > 0) {
             xmlStreamWriter.writeStartElement("table");
             xmlStreamWriter.writeAttribute("id", "relationships");
             xmlStreamWriter.writeStartElement("tr");
@@ -205,7 +208,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
             writeSimpleElement(xmlStreamWriter, "th", "Description");
             xmlStreamWriter.writeEndElement();
 
-            for (Relationship relationship : processor.getRelationships()) {
+            for (Relationship relationship : relationships) {
                 xmlStreamWriter.writeStartElement("tr");
                 writeSimpleElement(xmlStreamWriter, "td", relationship.getName());
                 writeSimpleElement(xmlStreamWriter, "td", relationship.getDescription());
@@ -215,42 +218,5 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         } else {
             xmlStreamWriter.writeCharacters("This processor has no relationships.");
         }
-    }
-
-    private void writeDynamicRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
-
-        List<DynamicRelationship> dynamicRelationships = getDynamicRelationships(processor);
-
-        if (dynamicRelationships.size() > 0) {
-            writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Relationships: ");
-            xmlStreamWriter.writeStartElement("p");
-            xmlStreamWriter.writeCharacters("A Dynamic Relationship may be created based on how the user configures the Processor.");
-            xmlStreamWriter.writeStartElement("table");
-            xmlStreamWriter.writeAttribute("id", "dynamic-relationships");
-            xmlStreamWriter.writeStartElement("tr");
-            writeSimpleElement(xmlStreamWriter, "th", "Name");
-            writeSimpleElement(xmlStreamWriter, "th", "Description");
-            xmlStreamWriter.writeEndElement();
-
-            for (DynamicRelationship dynamicRelationship : dynamicRelationships) {
-                xmlStreamWriter.writeStartElement("tr");
-                writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.name());
-                writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.description());
-                xmlStreamWriter.writeEndElement();
-            }
-            xmlStreamWriter.writeEndElement();
-            xmlStreamWriter.writeEndElement();
-        }
-    }
-
-    private List<DynamicRelationship> getDynamicRelationships(Processor processor) {
-        List<DynamicRelationship> results = new ArrayList<>();
-
-        DynamicRelationship dynamicRelationships = processor.getClass().getAnnotation(DynamicRelationship.class);
-        if (dynamicRelationships != null) {
-            results.add(dynamicRelationships);
-        }
-
-        return results;
     }
 }

@@ -28,6 +28,6 @@ import org.apache.nifi.components.ConfigurableComponent;
  */
 public interface DocumentationWriter {
 
-    void write(ConfigurableComponent configurableComponent, OutputStream streamToWriteTo,
+    void write(Class<? extends ConfigurableComponent> configurableComponentClass, OutputStream streamToWriteTo,
             boolean includesAdditionalDocumentation) throws IOException;
 }
