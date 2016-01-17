@@ -55,6 +55,7 @@ import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
@@ -608,6 +609,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 externalSiteListener.start();
             }
 
+            notifyComponentsConfigurationRestored();
+
             timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {
@@ -625,6 +628,31 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             initialized.set(true);
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    private void notifyComponentsConfigurationRestored() {
+        for (final ProcessorNode procNode : getGroup(getRootGroupId()).findAllProcessors()) {
+            final Processor processor = procNode.getProcessor();
+            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
+            }
+        }
+
+        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
+            final ControllerService service = serviceNode.getControllerServiceImplementation();
+
+            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
+            }
+        }
+
+        for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
+            final ReportingTask task = taskNode.getReportingTask();
+
+            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task);
+            }
         }
     }
 
@@ -909,6 +937,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             } catch (final Exception e) {
                 logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
+            }
+
+            if (firstTimeAdded) {
+                try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
+                }
             }
         }
 
@@ -1484,7 +1518,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                 for (final Map.Entry<String, String> entry : controllerServiceDTO.getProperties().entrySet()) {
                     if (entry.getValue() != null) {
-                        serviceNode.setProperty(entry.getKey(), entry.getValue(), true);
+                        serviceNode.setProperty(entry.getKey(), entry.getValue());
                     }
                 }
             }
@@ -1602,7 +1636,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 if (config.getProperties() != null) {
                     for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
                         if (entry.getValue() != null) {
-                            procNode.setProperty(entry.getKey(), entry.getValue(), true);
+                            procNode.setProperty(entry.getKey(), entry.getValue());
                         }
                     }
                 }
@@ -2638,6 +2672,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + task, e);
             }
@@ -2720,6 +2755,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
             new ControllerServiceLogObserver(getBulletinRepository(), serviceNode));
+
+        if (firstTimeAdded) {
+            final ControllerService service = serviceNode.getControllerServiceImplementation();
+
+            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
+            }
+        }
 
         return serviceNode;
     }

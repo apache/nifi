@@ -161,7 +161,7 @@ public class TailFile extends AbstractProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (FILENAME.equals(descriptor)) {
+        if (isConfigurationRestored() && FILENAME.equals(descriptor)) {
             state = new TailFileState(newValue, null, null, 0L, 0L, null, ByteBuffer.allocate(65536));
             tailFileChanged = true;
         }

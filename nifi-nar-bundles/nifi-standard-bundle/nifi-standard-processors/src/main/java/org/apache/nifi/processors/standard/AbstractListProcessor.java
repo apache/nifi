@@ -182,7 +182,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (isListingResetNecessary(descriptor)) {
+        if (isConfigurationRestored() && isListingResetNecessary(descriptor)) {
             lastListingTime = null; // clear lastListingTime so that we have to fetch new time
             latestIdentifiersListed = new HashSet<>();
             resetListing = true;

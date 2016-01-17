@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
@@ -119,6 +120,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         triggerSerially = null != processor.getClass().getAnnotation(TriggerSerially.class);
+
+        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
     }
 
     @SuppressWarnings("deprecation")

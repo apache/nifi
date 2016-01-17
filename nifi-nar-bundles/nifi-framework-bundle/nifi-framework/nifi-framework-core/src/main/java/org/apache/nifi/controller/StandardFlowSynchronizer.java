@@ -403,9 +403,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
             if (entry.getValue() == null) {
-                reportingTask.removeProperty(entry.getKey(), false);
+                reportingTask.removeProperty(entry.getKey());
             } else {
-                reportingTask.setProperty(entry.getKey(), entry.getValue(), false);
+                reportingTask.setProperty(entry.getKey(), entry.getValue());
             }
         }
 
@@ -735,9 +735,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
             if (entry.getValue() == null) {
-                procNode.removeProperty(entry.getKey(), false);
+                procNode.removeProperty(entry.getKey());
             } else {
-                procNode.setProperty(entry.getKey(), entry.getValue(), false);
+                procNode.setProperty(entry.getKey(), entry.getValue());
             }
         }
 

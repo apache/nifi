@@ -85,7 +85,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public void setProperty(final String name, final String value, final boolean triggerOnPropertyModified) {
+    public void setProperty(final String name, final String value) {
         if (null == name || null == value) {
             throw new IllegalArgumentException();
         }
@@ -114,12 +114,10 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                         }
                     }
 
-                    if (triggerOnPropertyModified) {
-                        try {
-                            component.onPropertyModified(descriptor, oldValue, value);
-                        } catch (final Exception e) {
-                            // nothing really to do here...
-                        }
+                    try {
+                        component.onPropertyModified(descriptor, oldValue, value);
+                    } catch (final Exception e) {
+                        // nothing really to do here...
                     }
                 }
             }
@@ -135,12 +133,11 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
      * if was a dynamic property.
      *
      * @param name the property to remove
-     * @param triggerOnPropertyModified specifies whether or not the onPropertyModified method should be called
      * @return true if removed; false otherwise
      * @throws java.lang.IllegalArgumentException if the name is null
      */
     @Override
-    public boolean removeProperty(final String name, final boolean triggerOnPropertyModified) {
+    public boolean removeProperty(final String name) {
         if (null == name) {
             throw new IllegalArgumentException();
         }
@@ -163,8 +160,10 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                         }
                     }
 
-                    if (triggerOnPropertyModified) {
+                    try {
                         component.onPropertyModified(descriptor, value, null);
+                    } catch (final Exception e) {
+                        // nothing really to do here...
                     }
 
                     return true;

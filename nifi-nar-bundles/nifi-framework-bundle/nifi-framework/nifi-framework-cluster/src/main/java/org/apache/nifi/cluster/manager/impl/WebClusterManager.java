@@ -71,6 +71,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.cluster.BulletinsPayload;
 import org.apache.nifi.cluster.HeartbeatPayload;
@@ -559,6 +560,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 if (serializedReportingTasks != null && serializedReportingTasks.length > 0) {
                     loadReportingTasks(serializedReportingTasks);
                 }
+
+                notifyComponentsConfigurationRestored();
             } catch (final IOException ioe) {
                 logger.warn("Failed to initialize cluster services due to: " + ioe, ioe);
                 stop();
@@ -692,6 +695,25 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 return null;
             default:
                 throw new ProtocolException("No handler defined for message type: " + protocolMessage.getType());
+        }
+    }
+
+
+    private void notifyComponentsConfigurationRestored() {
+        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
+            final ControllerService service = serviceNode.getControllerServiceImplementation();
+
+            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
+            }
+        }
+
+        for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
+            final ReportingTask task = taskNode.getReportingTask();
+
+            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task);
+            }
         }
     }
 
@@ -1053,7 +1075,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
                 for (final Map.Entry<PropertyDescriptor, String> entry : resolvedProps.entrySet()) {
                     if (entry.getValue() != null) {
-                        reportingTaskNode.setProperty(entry.getKey().getName(), entry.getValue(), false);
+                        reportingTaskNode.setProperty(entry.getKey().getName(), entry.getValue());
                     }
                 }
 
@@ -1128,6 +1150,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         if (firstTimeAdded) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + task, e);
             }
@@ -1433,6 +1456,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
                 new ControllerServiceLogObserver(getBulletinRepository(), serviceNode));
+
+        if (firstTimeAdded) {
+            final ControllerService service = serviceNode.getControllerServiceImplementation();
+
+            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
+            }
+        }
 
         return serviceNode;
     }

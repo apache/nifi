@@ -175,9 +175,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     final String propName = entry.getKey();
                     final String propVal = entry.getValue();
                     if (isNotNull(propName) && propVal == null) {
-                        processor.removeProperty(propName, true);
+                        processor.removeProperty(propName);
                     } else if (isNotNull(propName)) {
-                        processor.setProperty(propName, propVal, true);
+                        processor.setProperty(propName, propVal);
                     }
                 }
             }

@@ -155,9 +155,9 @@ public class ControllerServiceLoader {
 
         for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
             if (entry.getValue() == null) {
-                node.removeProperty(entry.getKey(), false);
+                node.removeProperty(entry.getKey());
             } else {
-                node.setProperty(entry.getKey(), entry.getValue(), false);
+                node.setProperty(entry.getKey(), entry.getValue());
             }
         }
     }

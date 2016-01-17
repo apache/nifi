@@ -124,7 +124,7 @@ public class TestStandardProcessScheduler {
         final ProcessorNode procNode = new StandardProcessorNode(proc, UUID.randomUUID().toString(),
                 new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider);
 
-        procNode.setProperty(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier(), true);
+        procNode.setProperty(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier());
 
         scheduler.enableControllerService(service);
         scheduler.startProcessor(procNode);

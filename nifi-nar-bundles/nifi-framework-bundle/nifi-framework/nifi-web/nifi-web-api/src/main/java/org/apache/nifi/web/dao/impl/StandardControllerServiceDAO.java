@@ -246,9 +246,9 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 final String propName = entry.getKey();
                 final String propVal = entry.getValue();
                 if (isNotNull(propName) && propVal == null) {
-                    controllerService.removeProperty(propName, true);
+                    controllerService.removeProperty(propName);
                 } else if (isNotNull(propName)) {
-                    controllerService.setProperty(propName, propVal, true);
+                    controllerService.setProperty(propName, propVal);
                 }
             }
         }

@@ -167,7 +167,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if ( descriptor.equals(DIRECTORY) ) {
+        if (isConfigurationRestored() && descriptor.equals(DIRECTORY)) {
             lastListingTime = null; // clear lastListingTime so that we have to fetch new time
             latestPathsListed = new HashSet<>();
         }
