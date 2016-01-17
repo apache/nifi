@@ -107,6 +107,7 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException,
             InvalidAlgorithmParameterException {
         // TODO: Add validation checks
+        // TODO: Check key length validity
 
         String algorithm = encryptionMethod.getAlgorithm();
         String provider = encryptionMethod.getProvider();

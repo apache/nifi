@@ -181,6 +181,11 @@ language governing permissions and limitations under the License. -->
             <type>jar</type>
         </dependency>
         <dependency>
+            <groupId>de.svenkubiak</groupId>
+            <artifactId>jBcrypt</artifactId>
+            <version>0.4.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
