@@ -310,6 +310,15 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor PROP_USE_CHUNKED_ENCODING = new PropertyDescriptor.Builder()
+            .name("Use Chunked Encoding")
+            .description("When POST'ing or PUT'ing content set this property to true in order to not pass the 'Content-length' header and instead send 'Transfer-Encoding' with "
+                    + "a value of 'chunked'. This will enable the data transfer mechanism which was introduced in HTTP 1.1 to pass data of unknown lengths in chunks.")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             PROP_METHOD,
             PROP_URL,
@@ -329,7 +338,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_OUTPUT_RESPONSE_REGARDLESS,
             PROP_TRUSTED_HOSTNAME,
             PROP_ADD_HEADERS_TO_REQUEST,
-            PROP_CONTENT_TYPE));
+            PROP_CONTENT_TYPE,
+            PROP_USE_CHUNKED_ENCODING));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -398,6 +408,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     }
 
     private volatile Pattern regexAttributesToSend = null;
+    private volatile boolean useChunked = false;
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
@@ -494,6 +505,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             okHttpClient.interceptors().add(new AuthenticationCacheInterceptor(authCache));
             okHttpClient.setAuthenticator(new CachingAuthenticatorDecorator(authenticator, authCache));
         }
+
+        useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
 
         okHttpClientAtomicReference.set(okHttpClient);
     }
@@ -750,6 +763,11 @@ public final class InvokeHTTP extends AbstractProcessor {
             @Override
             public void writeTo(BufferedSink sink) throws IOException {
                 session.exportTo(requestFlowFile, sink.outputStream());
+            }
+
+            @Override
+            public long contentLength(){
+                return useChunked ? -1 : requestFlowFile.getSize();
             }
         };
     }

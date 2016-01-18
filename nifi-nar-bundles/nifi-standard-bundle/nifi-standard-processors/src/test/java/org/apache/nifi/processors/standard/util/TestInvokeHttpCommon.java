@@ -1229,6 +1229,49 @@ public abstract class TestInvokeHttpCommon {
         Assert.assertEquals(expected1, actual1);
     }
 
+    @Test
+    public void testChunkedRequest() throws Exception {
+        MutativeMethodHandler mutativeMethodHandler = new MutativeMethodHandler(MutativeMethod.POST);
+        mutativeMethodHandler.setHeaderToTrack("Transfer-encoding");
+        addHandler(mutativeMethodHandler);
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
+        runner.setProperty(InvokeHTTP.PROP_METHOD,"POST");
+        runner.setProperty(InvokeHTTP.PROP_USE_CHUNKED_ENCODING,"true");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+
+        //expected in request status.code and status.message
+        //original flow file (+attributes)
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
+        final String expected = "Hello";
+        Assert.assertEquals(expected, actual);
+        bundle.assertAttributeEquals("Foo", "Bar");
+
+        //expected in response
+        //status code, status message, all headers from server response --> ff attributes
+        //server response message body into payload of ff
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals("Foo", "Bar");
+
+        String header = mutativeMethodHandler.getTrackedHeaderValue();
+        Assert.assertEquals("chunked",header);
+    }
+
+
     public static void createFlowFiles(final TestRunner testRunner) throws UnsupportedEncodingException {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
@@ -1260,6 +1303,8 @@ public abstract class TestInvokeHttpCommon {
     public static class MutativeMethodHandler extends AbstractHandler {
         private final MutativeMethod method;
         private final String expectedContentType;
+        private String headerToTrack;
+        private String trackedHeaderValue;
 
         public MutativeMethodHandler(final MutativeMethod method) {
             this(method, "application/plain-text");
@@ -1268,6 +1313,13 @@ public abstract class TestInvokeHttpCommon {
         public MutativeMethodHandler(final MutativeMethod method, final String expectedContentType) {
             this.method = method;
             this.expectedContentType = expectedContentType;
+        }
+        private void setHeaderToTrack(String headerToTrack){
+            this.headerToTrack = headerToTrack;
+        }
+
+        public String getTrackedHeaderValue(){
+            return trackedHeaderValue;
         }
 
         @Override
@@ -1279,6 +1331,7 @@ public abstract class TestInvokeHttpCommon {
             if(method.name().equals(request.getMethod())) {
                 assertEquals(this.expectedContentType,request.getHeader("Content-Type"));
                 final String body = request.getReader().readLine();
+                this.trackedHeaderValue = baseRequest.getHttpFields().get(headerToTrack);
                 assertEquals("Hello", body);
             } else {
                 response.setStatus(404);
