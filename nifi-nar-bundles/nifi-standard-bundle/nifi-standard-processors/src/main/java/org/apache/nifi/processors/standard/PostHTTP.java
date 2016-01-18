@@ -549,14 +549,14 @@ public class PostHTTP extends AbstractProcessor {
                 }
             }
 
-            // if we are not sending as flowfile, or if the destination doesn't accept V3 or V2 (streaming) format,
-            // then only use a single FlowFile
-            if (!sendAsFlowFile || !destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted()) {
+            bytesToSend += flowFile.getSize();
+            if (bytesToSend > maxBatchBytes.longValue()) {
                 break;
             }
 
-            bytesToSend += flowFile.getSize();
-            if (bytesToSend > maxBatchBytes.longValue()) {
+            // if we are not sending as flowfile, or if the destination doesn't accept V3 or V2 (streaming) format,
+            // then only use a single FlowFile
+            if (!sendAsFlowFile || !destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted()) {
                 break;
             }
         }
