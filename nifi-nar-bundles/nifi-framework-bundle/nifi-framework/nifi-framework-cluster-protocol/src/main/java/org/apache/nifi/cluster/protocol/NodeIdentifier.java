@@ -33,7 +33,6 @@ import org.apache.commons.lang3.StringUtils;
  * @Threadsafe
  */
 public class NodeIdentifier {
-
     /**
      * the unique identifier for the node
      */
@@ -106,7 +105,7 @@ public class NodeIdentifier {
         this.socketAddress = socketAddress;
         this.socketPort = socketPort;
         this.nodeDn = dn;
-        this.siteToSiteAddress = siteToSiteAddress;
+        this.siteToSiteAddress = siteToSiteAddress == null ? apiAddress : siteToSiteAddress;
         this.siteToSitePort = siteToSitePort;
         this.siteToSiteSecure = siteToSiteSecure;
     }
@@ -214,7 +213,9 @@ public class NodeIdentifier {
 
     @Override
     public String toString() {
-        return "[" + "id=" + id + ", apiAddress=" + apiAddress + ", apiPort=" + apiPort + ", socketAddress=" + socketAddress + ", socketPort=" + socketPort + ']';
+        return "[" + "id=" + id + ", apiAddress=" + apiAddress + ", apiPort=" + apiPort
+            + ", socketAddress=" + socketAddress + ", socketPort=" + socketPort
+            + ", siteToSiteAddress=" + siteToSiteAddress + ", siteToSitePort=" + siteToSitePort + ']';
     }
 
 }
