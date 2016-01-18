@@ -226,6 +226,47 @@ public abstract class TestInvokeHttpCommon {
     }
 
     @Test
+    public void testOutputResponseSetMimeTypeToResponseContentType() throws Exception {
+        addHandler(new GetOrHeadHandler());
+
+        String statusUrl = "/status/200";
+        runner.setProperty(InvokeHTTP.PROP_URL, url + statusUrl);
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "GET");
+        runner.setProperty(InvokeHTTP.PROP_OUTPUT_RESPONSE_REGARDLESS,"true");
+        runner.setProperty(InvokeHTTP.PROP_PUT_OUTPUT_IN_ATTRIBUTE,"outputBody");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY,0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+
+        // expected in request status.code and status.message
+        // original flow file (+attributes)
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
+        bundle.assertContentEquals("Hello".getBytes("UTF-8"));
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle.assertAttributeEquals("outputBody", statusUrl);
+        bundle.assertAttributeEquals("Foo", "Bar");
+
+        // expected in response
+        // status code, status message, all headers from server response --> ff attributes
+        // server response message body into payload of ff
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle1.assertContentEquals(statusUrl.getBytes("UTF-8"));
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals("Foo", "Bar");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("mime.type", "text/plain; charset=ISO-8859-1");
+    }
+
+    @Test
     public void testOutputResponseRegardlessWithOutputInAttributeLarge() throws Exception {
         addHandler(new GetLargeHandler());
 

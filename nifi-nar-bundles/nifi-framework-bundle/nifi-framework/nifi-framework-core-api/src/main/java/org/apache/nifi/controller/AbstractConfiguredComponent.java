@@ -45,7 +45,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final ValidationContextFactory validationContextFactory;
     private final ControllerServiceProvider serviceProvider;
 
-    private final AtomicReference<String> name = new AtomicReference<>();
+    private final AtomicReference<String> name;
     private final AtomicReference<String> annotationData = new AtomicReference<>();
 
     private final Lock lock = new ReentrantLock();
@@ -57,6 +57,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         this.component = component;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
+        this.name = new AtomicReference<>(component.getClass().getSimpleName());
     }
 
     @Override
