@@ -50,8 +50,15 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
         final Map<String, String> map = stateMap.toMap();
         out.writeInt(map.size());
         for (final Map.Entry<String, String> entry : map.entrySet()) {
-            out.writeUTF(entry.getKey());
-            out.writeUTF(entry.getValue());
+            final boolean hasKey = entry.getKey() != null;
+            final boolean hasValue = entry.getValue() != null;
+            if (hasKey) {
+                out.writeUTF(entry.getKey());
+            }
+
+            if (hasValue) {
+                out.writeUTF(entry.getValue());
+            }
         }
     }
 
@@ -73,8 +80,10 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
         final int numEntries = in.readInt();
         final Map<String, String> stateValues = new HashMap<>(numEntries);
         for (int i = 0; i < numEntries; i++) {
-            final String key = in.readUTF();
-            final String value = in.readUTF();
+            final boolean hasKey = in.readBoolean();
+            final String key = hasKey ? in.readUTF() : null;
+            final boolean hasValue = in.readBoolean();
+            final String value = hasValue ? in.readUTF() : null;
             stateValues.put(key, value);
         }
 

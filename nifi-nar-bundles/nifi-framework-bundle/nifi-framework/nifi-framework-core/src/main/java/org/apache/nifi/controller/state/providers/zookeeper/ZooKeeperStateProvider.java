@@ -254,8 +254,17 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             dos.writeByte(ENCODING_VERSION);
             dos.writeInt(stateValues.size());
             for (final Map.Entry<String, String> entry : stateValues.entrySet()) {
-                dos.writeUTF(entry.getKey());
-                dos.writeUTF(entry.getValue());
+                final boolean hasKey = entry.getKey() != null;
+                final boolean hasValue = entry.getValue() != null;
+                dos.writeBoolean(hasKey);
+                if (hasKey) {
+                    dos.writeUTF(entry.getKey());
+                }
+
+                dos.writeBoolean(hasValue);
+                if (hasValue) {
+                    dos.writeUTF(entry.getValue());
+                }
             }
             return baos.toByteArray();
         }
@@ -276,8 +285,11 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             final int numEntries = dis.readInt();
             final Map<String, String> stateValues = new HashMap<>(numEntries);
             for (int i = 0; i < numEntries; i++) {
-                final String key = dis.readUTF();
-                final String value = dis.readUTF();
+                final boolean hasKey = dis.readBoolean();
+                final String key = hasKey ? dis.readUTF() : null;
+
+                final boolean hasValue = dis.readBoolean();
+                final String value = hasValue ? dis.readUTF() : null;
                 stateValues.put(key, value);
             }
 
