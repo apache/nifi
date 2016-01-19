@@ -123,7 +123,7 @@ public class TailFile extends AbstractProcessor {
         .description("Specifies the file that should be used for storing state about what data has been ingested so that upon restart NiFi can resume from where it left off")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(false)
-        .required(true)
+        .required(false)
         .build();
     static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder()
         .name("Initial Start Position")
@@ -148,7 +148,7 @@ public class TailFile extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(FILENAME);
         properties.add(ROLLING_FILENAME_PATTERN);
-        properties.add(new PropertyDescriptor.Builder().fromPropertyDescriptor(STATE_FILE).defaultValue("./conf/state/" + getIdentifier()).build());
+        properties.add(STATE_FILE);
         properties.add(START_POSITION);
         properties.add(FILE_LOCATION);
         return properties;
