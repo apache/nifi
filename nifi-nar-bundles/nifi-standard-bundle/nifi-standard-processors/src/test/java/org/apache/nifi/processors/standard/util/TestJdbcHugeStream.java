@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard.util;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -36,7 +35,9 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Test streaming using large number of result set rows. 1. Read data from
@@ -52,7 +53,8 @@ import org.junit.Test;
  */
 public class TestJdbcHugeStream {
 
-    final static String DB_LOCATION = "target/db";
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @BeforeClass
     public static void setup() {
@@ -63,10 +65,9 @@ public class TestJdbcHugeStream {
     public void readSend2StreamHuge_FileBased() throws ClassNotFoundException, SQLException, IOException {
 
         // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
+        folder.delete();
 
-        try (final Connection con = createConnection()) {
+        try (final Connection con = createConnection(folder.getRoot().getAbsolutePath())) {
             loadTestData2Database(con, 100, 100, 100);
 
             try (final Statement st = con.createStatement()) {
@@ -127,17 +128,17 @@ public class TestJdbcHugeStream {
         // tables may not exist, this is not serious problem.
         try {
             st.executeUpdate(dropPersons);
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
         }
 
         try {
             st.executeUpdate(dropProducts);
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
         }
 
         try {
             st.executeUpdate(dropRelationships);
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
         }
 
         st.executeUpdate(createPersons);
@@ -186,10 +187,9 @@ public class TestJdbcHugeStream {
         return new String(text);
     }
 
-    private Connection createConnection() throws ClassNotFoundException, SQLException {
+    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-        return con;
+        return DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
     }
 
 }
