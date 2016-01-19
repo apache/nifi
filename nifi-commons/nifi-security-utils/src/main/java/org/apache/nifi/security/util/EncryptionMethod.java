@@ -87,6 +87,12 @@ public enum EncryptionMethod {
         return compatibleWithStrongKDFs;
     }
 
+    /**
+     * @return true if this algorithm does not rely on its own internal key derivation process
+     */
+    public boolean isKeyedCipher() {
+        return !algorithm.startsWith("PBE") && !algorithm.startsWith("PGP");
+    }
     @Override
     public String toString() {
         final ToStringBuilder builder = new ToStringBuilder(this);

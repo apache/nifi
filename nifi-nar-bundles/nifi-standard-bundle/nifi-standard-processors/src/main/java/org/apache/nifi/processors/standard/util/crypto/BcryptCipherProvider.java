@@ -37,7 +37,6 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,13 +44,15 @@ public class BcryptCipherProvider implements RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(BcryptCipherProvider.class);
 
     private final int workFactor;
-    // TODO: Change default work factor to 12
-    private static final int DEFAULT_WORK_FACTOR = 10;
+    /**
+     * TODO: This can be calculated automatically using the code {@see BcryptCipherProviderGroovyTest#calculateMinimumWorkFactor} or manually updated by a maintainer
+     */
+    private static final int DEFAULT_WORK_FACTOR = 12;
 
-    private static final Pattern BCRYPT_SALT_FORMAT = Pattern.compile("^\\$\\d\\w\\$\\d{2}\\$");
+    private static final Pattern BCRYPT_SALT_FORMAT = Pattern.compile("^\\$\\d\\w\\$\\d{2}\\$\\W{22}");
 
     /**
-     * Instantiates a Bcrypt cipher provider with the default work factor 10 (2^10 key expansion rounds).
+     * Instantiates a Bcrypt cipher provider with the default work factor 12 (2^12 key expansion rounds).
      */
     public BcryptCipherProvider() {
         this(DEFAULT_WORK_FACTOR);
@@ -64,6 +65,9 @@ public class BcryptCipherProvider implements RandomIVPBECipherProvider {
      */
     public BcryptCipherProvider(int workFactor) {
         this.workFactor = workFactor;
+        if (workFactor < DEFAULT_WORK_FACTOR) {
+            logger.warn("The provided work factor {} is below the recommended minimum {}", workFactor, DEFAULT_WORK_FACTOR);
+        }
     }
 
     /**
@@ -132,25 +136,26 @@ public class BcryptCipherProvider implements RandomIVPBECipherProvider {
             throw new IllegalArgumentException(encryptionMethod.name() + " is not compatible with Bcrypt");
         }
 
-        // TODO: Update documentation and check backward compatibility
         if (StringUtils.isEmpty(password)) {
             throw new IllegalArgumentException("Encryption with an empty password is not supported");
         }
 
-        // TODO: Check key length validity
-
         String algorithm = encryptionMethod.getAlgorithm();
         String provider = encryptionMethod.getProvider();
 
-        // TODO: Ignore provided salt?
+        final String cipherName = CipherUtility.parseCipherFromAlgorithm(algorithm);
+        if (!CipherUtility.isValidKeyLength(keyLength, cipherName)) {
+            throw new IllegalArgumentException(String.valueOf(keyLength) + " is not a valid key length for " + cipherName);
+        }
+
         String bcryptSalt = formatSaltForBcrypt(salt);
 
-        logger.warn("REMOVE Salt: {}", bcryptSalt);
         String hash = BCrypt.hashpw(password, bcryptSalt);
-        logger.warn("REMOVE Hash: {}", hash);
+
+        /* The SHA-512 hash is required in order to derive a key longer than 184 bits (the resulting size of the Bcrypt hash) and ensuring the avalanche effect causes higher key entropy (if all
+        derived keys follow a consistent pattern, it weakens the strength of the encryption) */
         MessageDigest digest = MessageDigest.getInstance("SHA-512", provider);
         byte[] dk = digest.digest(hash.getBytes("UTF-8"));
-
         dk = Arrays.copyOf(dk, keyLength / 8);
         SecretKey tempKey = new SecretKeySpec(dk, algorithm);
 
@@ -184,8 +189,10 @@ public class BcryptCipherProvider implements RandomIVPBECipherProvider {
         if (matcher.find()) {
             return rawSalt;
         } else {
-            String base64EncodedSalt = Base64.getEncoder().withoutPadding().encodeToString(salt);
-            return "$2a$" + StringUtils.leftPad(String.valueOf(workFactor), 2, "0") + "$" + base64EncodedSalt;
+            // TODO: The encoding is not consistent
+//            String base64EncodedSalt = Base64.getEncoder().withoutPadding().encodeToString(salt);
+//            return "$2a$" + StringUtils.leftPad(String.valueOf(workFactor), 2, "0") + "$" + base64EncodedSalt;
+            throw new IllegalArgumentException("The salt must be of the format $2a$10$gUVbkVzp79H8YaCOsCVZNu. To generate a salt, use BcryptCipherProvider#generateSalt()");
         }
     }
 

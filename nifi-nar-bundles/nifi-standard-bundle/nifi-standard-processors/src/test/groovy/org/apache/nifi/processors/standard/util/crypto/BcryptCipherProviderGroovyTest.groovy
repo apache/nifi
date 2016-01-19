@@ -32,6 +32,7 @@ import javax.crypto.spec.SecretKeySpec
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
+import static org.junit.Assert.assertTrue
 
 @RunWith(JUnit4.class)
 public class BcryptCipherProviderGroovyTest {
@@ -40,6 +41,7 @@ public class BcryptCipherProviderGroovyTest {
     private static List<EncryptionMethod> strongKDFEncryptionMethods
 
     private static final int DEFAULT_KEY_LENGTH = 128;
+    public static final String MICROBENCHMARK = "microbenchmark"
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -64,7 +66,7 @@ public class BcryptCipherProviderGroovyTest {
     @Test
     public void testGetCipherShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(10);
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PASSWORD = "shortPassword";
         final byte[] SALT = cipherProvider.generateSalt().bytes
@@ -96,7 +98,7 @@ public class BcryptCipherProviderGroovyTest {
     @Test
     public void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(10);
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PASSWORD = "shortPassword";
         final byte[] SALT = cipherProvider.generateSalt().bytes
@@ -131,7 +133,7 @@ public class BcryptCipherProviderGroovyTest {
         Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
                 PasswordBasedEncryptor.supportsUnlimitedStrength());
 
-        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(10);
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PASSWORD = "shortPassword";
         final byte[] SALT = cipherProvider.generateSalt().bytes
@@ -178,28 +180,10 @@ public class BcryptCipherProviderGroovyTest {
         assert calculatedHash == EXPECTED_HASH
     }
 
-    @Ignore("BouncyCastle implementation matches OpenBSD instead of paper-based BCrypt")
-    @Test
-    public void testBCGenerateShouldMatchTestVectors() {
-        // Arrange
-        final String PASSWORD = 'abcdefghijklmnopqrstuvwxyz'
-        final String SALT = 'fVH8e28OQRj9tqiDXs1e1u'
-        final String EXPECTED_HASH = '$2a$10$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq'
-        final int WORK_FACTOR = 10
-
-        // Act
-        byte[] calculatedHashBytes = org.bouncycastle.crypto.generators.BCrypt.generate(PASSWORD.bytes, Base64.decoder.decode(SALT), WORK_FACTOR)
-        String calculatedHash = Base64.encoder.withoutPadding().encodeToString(calculatedHashBytes)
-        logger.info("Generated ${calculatedHash}")
-
-        // Assert
-        assert "\$2a\$${WORK_FACTOR}\$${SALT}${calculatedHash}" as String == EXPECTED_HASH
-    }
-
     @Test
     public void testGetCipherShouldSupportExternalCompatibility() throws Exception {
         // Arrange
-        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(10);
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PLAINTEXT = "This is a plaintext message.";
         final String PASSWORD = "thisIsABadPassword";
@@ -257,11 +241,10 @@ public class BcryptCipherProviderGroovyTest {
         assert PLAINTEXT.equals(recovered);
     }
 
-    // TODO: May be redundant
     @Test
     public void testGetCipherShouldHandleFullSalt() throws Exception {
         // Arrange
-        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(10);
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PLAINTEXT = "This is a plaintext message.";
         final String PASSWORD = "thisIsABadPassword";
@@ -299,6 +282,31 @@ public class BcryptCipherProviderGroovyTest {
         assert PLAINTEXT.equals(recovered);
     }
 
+    @Test
+    public void testGetCipherShouldHandleUnformedSalt() throws Exception {
+        // Arrange
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
+
+        final String PASSWORD = "thisIsABadPassword";
+
+        final def INVALID_SALTS = ['$ab$00$acbdefghijklmnopqrstuv', 'bad_salt', '$3a$11$', 'x', '$2a$10$']
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}");
+
+        // Act
+        INVALID_SALTS.each { String salt ->
+            logger.info("Checking salt ${salt}")
+
+            def msg = shouldFail(IllegalArgumentException) {
+                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true);
+            }
+
+            // Assert
+            assert msg =~ "The salt must be of the format \\\$2a\\\$10\\\$gUVbkVzp79H8YaCOsCVZNu\\. To generate a salt, use BcryptCipherProvider#generateSalt"
+        }
+    }
+
     String bytesToBitString(byte[] bytes) {
         bytes.collect {
             String.format("%8s", Integer.toBinaryString(it & 0xFF)).replace(' ', '0')
@@ -306,13 +314,13 @@ public class BcryptCipherProviderGroovyTest {
     }
 
     String spaceString(String input, int blockSize = 4) {
-        input.collect { it.padLeft(blockSize, " ")}.join("")
+        input.collect { it.padLeft(blockSize, " ") }.join("")
     }
 
     @Test
-    public void testGetCipherShouldHandleEmptySalt() throws Exception {
+    public void testGetCipherShouldRejectEmptySalt() throws Exception {
         // Arrange
-        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(10);
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PASSWORD = "thisIsABadPassword";
 
@@ -331,7 +339,7 @@ public class BcryptCipherProviderGroovyTest {
     @Test
     public void testGetCipherForDecryptShouldRequireIV() throws Exception {
         // Arrange
-        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(10);
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PASSWORD = "shortPassword";
         final byte[] SALT = cipherProvider.generateSalt().bytes
@@ -359,5 +367,132 @@ public class BcryptCipherProviderGroovyTest {
         }
     }
 
-    // TODO: Test default constructor
+    @Test
+    public void testGetCipherShouldAcceptValidKeyLengths() throws Exception {
+        // Arrange
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4);
+
+        final String PASSWORD = "shortPassword";
+        final byte[] SALT = cipherProvider.generateSalt().bytes
+        final byte[] IV = Hex.decodeHex("00" * 16 as char[]);
+
+        final String PLAINTEXT = "This is a plaintext message.";
+
+        // Currently only AES ciphers are compatible with Bcrypt, so redundant to test all algorithms
+        final def VALID_KEY_LENGTHS = [128, 192, 256]
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+
+        // Act
+        VALID_KEY_LENGTHS.each { int keyLength ->
+            logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()} with key length ${keyLength}")
+
+            // Initialize a cipher for encryption
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true);
+            logger.info("IV: ${Hex.encodeHexString(IV)}")
+
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
+            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}");
+
+            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, false);
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes);
+            String recovered = new String(recoveredBytes, "UTF-8");
+            logger.info("Recovered: ${recovered}")
+
+            // Assert
+            assert PLAINTEXT.equals(recovered);
+        }
+    }
+
+    @Test
+    public void testGetCipherShouldNotAcceptInvalidKeyLengths() throws Exception {
+        // Arrange
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4);
+
+        final String PASSWORD = "shortPassword";
+        final byte[] SALT = cipherProvider.generateSalt().bytes
+        final byte[] IV = Hex.decodeHex("00" * 16 as char[]);
+
+        final String PLAINTEXT = "This is a plaintext message.";
+
+        // Currently only AES ciphers are compatible with Bcrypt, so redundant to test all algorithms
+        final def VALID_KEY_LENGTHS = [-1, 40, 64, 112, 512]
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+
+        // Act
+        VALID_KEY_LENGTHS.each { int keyLength ->
+            logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()} with key length ${keyLength}")
+
+            // Initialize a cipher for encryption
+            def msg = shouldFail(IllegalArgumentException) {
+                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true);
+            }
+
+            // Assert
+            assert msg =~ "${keyLength} is not a valid key length for AES"
+        }
+    }
+
+    @Test
+    public void testGenerateSaltShouldUseProvidedWorkFactor() throws Exception {
+        // Arrange
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(11);
+        int workFactor = cipherProvider.getWorkFactor()
+
+        // Act
+        final String salt = cipherProvider.generateSalt()
+        logger.info("Salt: ${salt}")
+
+        // Assert
+        assert salt =~ /^\$2[axy]\$\d{2}\$/
+        assert salt.contains("\$${workFactor}\$")
+    }
+
+    @Ignore("This test can be run on a specific machine to evaluate if the default work factor is sufficient")
+    @Test
+    public void testDefaultConstructorShouldProvideStrongWorkFactor() {
+        // Arrange
+        RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider();
+
+        // Values taken from http://wildlyinaccurate.com/bcrypt-choosing-a-work-factor/ and http://security.stackexchange.com/questions/17207/recommended-of-rounds-for-bcrypt
+
+        // Calculate the work factor to reach 500 ms
+        int minimumWorkFactor = calculateMinimumWorkFactor()
+        logger.info("Determined minimum safe work factor to be ${minimumWorkFactor}")
+
+        // Act
+        int workFactor = cipherProvider.getWorkFactor()
+        logger.info("Default work factor ${workFactor}")
+
+        // Assert
+        assertTrue("The default work factor for BcryptCipherProvider is too weak. Please update the default value to a stronger level.", workFactor >= minimumWorkFactor)
+    }
+
+    /**
+     * Returns the work factor required for a derivation to exceed 500 ms on this machine. Code adapted from http://security.stackexchange.com/questions/17207/recommended-of-rounds-for-bcrypt
+     *
+     * @return the minimum bcrypt work factor
+     */
+    private static int calculateMinimumWorkFactor() {
+        // Benchmark using a work factor of 5 (the second-lowest allowed)
+        int workFactor = 5
+
+        String salt = BCrypt.gensalt(workFactor)
+        long start = System.nanoTime()
+        BCrypt.hashpw(MICROBENCHMARK, salt)
+        long end = System.nanoTime()
+
+        double duration = (end - start) / 1_000_000.0
+        logger.info("Work factor ${workFactor} took ${duration} ms")
+
+        // Increasing work factor by 1 would double the run time.
+        // Keep increasing work factor until the estimated duration is over 500 ms
+        while (duration < 500) {
+            workFactor += 1
+            duration *= 2
+        }
+
+        logger.info("Returning work factor ${workFactor} for ${duration} ms")
+
+        return workFactor
+    }
 }

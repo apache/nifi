@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.standard.util.crypto
+
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -31,6 +32,7 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.security.Security
 
+import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.fail
 
 @RunWith(JUnit4.class)
@@ -226,5 +228,63 @@ public class OpenSSLPKCS5CipherProviderGroovyTest {
             // Assert
             assert plaintext.equals(recovered);
         }
+    }
+
+    @Test
+    public void testGetCipherShouldRequireEncryptionMethod() throws Exception {
+        // Arrange
+        OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
+
+        final String PASSWORD = "shortPassword";
+        final byte[] SALT = Hex.decodeHex("0011223344556677".toCharArray());
+
+        // Act
+        logger.info("Using algorithm: null");
+
+        def msg = shouldFail(IllegalArgumentException) {
+            Cipher providedCipher = cipherProvider.getCipher(null, PASSWORD, SALT, false);
+        }
+
+        // Assert
+        assert msg =~ "The encryption method must be specified"
+    }
+
+    @Test
+    public void testGetCipherShouldRequirePassword() throws Exception {
+        // Arrange
+        OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
+
+        final byte[] SALT = Hex.decodeHex("0011223344556677".toCharArray());
+        EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES
+
+        // Act
+        logger.info("Using algorithm: ${encryptionMethod}");
+
+        def msg = shouldFail(IllegalArgumentException) {
+            Cipher providedCipher = cipherProvider.getCipher(encryptionMethod, "", SALT, false);
+        }
+
+        // Assert
+        assert msg =~ "Encryption with an empty password is not supported"
+    }
+
+    @Test
+    public void testGetCipherShouldValidateSaltLength() throws Exception {
+        // Arrange
+        OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
+
+        final String PASSWORD = "shortPassword";
+        final byte[] SALT = Hex.decodeHex("00112233445566".toCharArray());
+        EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES
+
+        // Act
+        logger.info("Using algorithm: ${encryptionMethod}");
+
+        def msg = shouldFail(IllegalArgumentException) {
+            Cipher providedCipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, false);
+        }
+
+        // Assert
+        assert msg =~ "Salt must be 8 bytes US-ASCII encoded"
     }
 }

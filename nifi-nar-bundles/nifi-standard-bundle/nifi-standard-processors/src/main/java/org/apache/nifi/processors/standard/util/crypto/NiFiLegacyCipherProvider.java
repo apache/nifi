@@ -64,6 +64,8 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
         try {
             // This method is defined in the OpenSSL implementation and just uses a locally-overridden iteration count
             return getInitializedCipher(encryptionMethod, password, salt, encryptMode);
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             throw new ProcessException("Error initializing the cipher", e);
         }

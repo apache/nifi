@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 public class CipherUtility {
     /**
      * Returns the cipher algorithm from the full algorithm name. Useful for getting key lengths, etc.
-     * <p>
+     * <p/>
      * Ex: PBEWITHMD5AND128BITAES-CBC-OPENSSL -> AES
      *
      * @param algorithm the full algorithm name
@@ -60,17 +60,16 @@ public class CipherUtility {
 
     /**
      * Returns the cipher key length from the full algorithm name. Useful for getting key lengths, etc.
-     * <p>
+     * <p/>
      * Ex: PBEWITHMD5AND128BITAES-CBC-OPENSSL -> 128
      *
      * @param algorithm the full algorithm name
      * @return the key length or -1 if one cannot be extracted
      */
     public static int parseKeyLengthFromAlgorithm(final String algorithm) {
-        Pattern pattern = Pattern.compile("([\\d]+)BIT");
-        Matcher matcher = pattern.matcher(algorithm);
-        if (matcher.find()) {
-            return Integer.parseInt(matcher.group(1));
+        int keyLength = parseActualKeyLengthFromAlgorithm(algorithm);
+        if (keyLength != -1) {
+            return keyLength;
         } else {
             // Key length not explicitly named in algorithm
             String cipher = parseCipherFromAlgorithm(algorithm);
@@ -78,8 +77,87 @@ public class CipherUtility {
         }
     }
 
+    private static int parseActualKeyLengthFromAlgorithm(final String algorithm) {
+        Pattern pattern = Pattern.compile("([\\d]+)BIT");
+        Matcher matcher = pattern.matcher(algorithm);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        } else {
+            return -1;
+        }
+    }
+
+    /**
+     * Returns true if the provided key length is a valid key length for the provided cipher family. Does not reflect if the Unlimited Strength Cryptography Jurisdiction Policies are installed.
+     * Does not reflect if the key length is correct for a specific combination of cipher and PBE-derived key length.
+     * <p/>
+     * Ex:
+     * <p/>
+     * 256 is valid for {@code AES/CBC/PKCS7Padding} but not {@code PBEWITHMD5AND128BITAES-CBC-OPENSSL}. However, this method will return {@code true} for both because it only gets the cipher family, {@code AES}.
+     *
+     * 64, AES -> false
+     * [128, 192, 256], AES -> true
+     *
+     * @param keyLength the key length in bits
+     * @param cipher    the cipher family
+     * @return true if this key length is valid
+     */
+    public static boolean isValidKeyLength(int keyLength, final String cipher) {
+        if (StringUtils.isEmpty(cipher)) {
+            return false;
+        }
+        switch (cipher.toUpperCase()) {
+            case "DESEDE":
+                // 3DES keys have the cryptographic strength of 7/8 because of parity bits, but are often represented with n*8 bytes
+                final List<Integer> DESEDE_KLS = Arrays.asList(56, 64, 112, 128, 168, 192);
+                return DESEDE_KLS.contains(keyLength);
+            case "DES":
+                return keyLength == 56 || keyLength == 64;
+            case "RC2":
+            case "RC4":
+            case "RC5":
+                /** These ciphers can have arbitrary length keys but that's a really bad idea, {@see http://crypto.stackexchange.com/a/9963/12569}.
+                 * Also, RC* is deprecated and should be considered insecure */
+                return keyLength >= 40 && keyLength <= 2048;
+            case "AES":
+            case "TWOFISH":
+                return keyLength == 128 || keyLength == 192 || keyLength == 256;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Returns true if the provided key length is a valid key length for the provided algorithm. Does not reflect if the Unlimited Strength Cryptography Jurisdiction Policies are installed.
+     * <p/>
+     * Ex:
+     * <p/>
+     * 256 is valid for {@code AES/CBC/PKCS7Padding} but not {@code PBEWITHMD5AND128BITAES-CBC-OPENSSL}.
+     *
+     * 64, AES/CBC/PKCS7Padding -> false
+     * [128, 192, 256], AES/CBC/PKCS7Padding -> true
+     *
+     * 128, PBEWITHMD5AND128BITAES-CBC-OPENSSL -> true
+     * [192, 256], PBEWITHMD5AND128BITAES-CBC-OPENSSL -> false
+     *
+     * @param keyLength the key length in bits
+     * @param algorithm    the specific algorithm
+     * @return true if this key length is valid
+     */
+    public static boolean isValidKeyLengthForAlgorithm(int keyLength, final String algorithm) {
+        if (StringUtils.isEmpty(algorithm)) {
+            return false;
+        }
+        int parsedKeyLength = parseActualKeyLengthFromAlgorithm(algorithm);
+        if (parsedKeyLength != -1) {
+            return keyLength == parsedKeyLength;
+        } else {
+            // No explicit key length is named in the algorithm; use cipher family
+            return isValidKeyLength(keyLength, parseCipherFromAlgorithm(algorithm));
+        }
+    }
+
     private static int getDefaultKeyLengthForCipher(String cipher) {
-        // TODO: Clean up
         if (StringUtils.isEmpty(cipher)) {
             return -1;
         }

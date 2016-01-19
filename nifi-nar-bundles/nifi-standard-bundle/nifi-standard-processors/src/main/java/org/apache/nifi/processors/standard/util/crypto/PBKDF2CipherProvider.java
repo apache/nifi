@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -46,15 +45,19 @@ import java.security.spec.InvalidKeySpecException;
 
 public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProvider.class);
+    private static final int MINIMUM_SALT_LENGTH = 16;
 
     private final int iterationCount;
     private final Digest prf;
 
-    private static final String DEFAULT_PRF = "SHA-256";
-    private static final int DEFAULT_ITERATION_COUNT = 10000;
+    private static final String DEFAULT_PRF = "SHA-512";
+    /**
+     * TODO: This can be calculated automatically using the code {@see PBKDF2CipherProviderGroovyTest#calculateMinimumIterationCount} or manually updated by a maintainer
+     */
+    private static final int DEFAULT_ITERATION_COUNT = 128_000;
 
     /**
-     * Instantiates a PBKDF2 cipher provider with the default number of iterations and the default PRF. Currently 10,000 iterations and SHA-256.
+     * Instantiates a PBKDF2 cipher provider with the default number of iterations and the default PRF. Currently 128,000 iterations and SHA-512.
      */
     public PBKDF2CipherProvider() {
         this(DEFAULT_PRF, DEFAULT_ITERATION_COUNT);
@@ -62,19 +65,17 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
 
     /**
      * Instantiates a PBKDF2 cipher provider with the specified number of iterations and the specified PRF. Currently supports MD5, SHA1, SHA256, SHA384, and SHA512. Unknown PRFs will default to
-     * SHA256.
+     * SHA512.
      *
      * @param prf            a String representation of the PRF name, e.g. "SHA256", "SHA-384" "sha_512"
      * @param iterationCount the number of iterations
      */
     public PBKDF2CipherProvider(String prf, int iterationCount) {
         this.iterationCount = iterationCount;
-        try {
-            this.prf = resolvePRF(prf);
-        } catch (NoSuchAlgorithmException e) {
-            logger.warn("Error resolving PRF for PBKDF2. No such algorithm for '{}'", prf);
-            throw new IllegalArgumentException("'" + prf + "' is not a valid PRF", e);
+        if (iterationCount < DEFAULT_ITERATION_COUNT) {
+            logger.warn("The provided iteration count {} is below the recommended minimum {}", iterationCount, DEFAULT_ITERATION_COUNT);
         }
+        this.prf = resolvePRF(prf);
     }
 
     /**
@@ -139,26 +140,30 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
         if (encryptionMethod == null) {
             throw new IllegalArgumentException("The encryption method must be specified");
         }
+
         if (!encryptionMethod.isCompatibleWithStrongKDFs()) {
             throw new IllegalArgumentException(encryptionMethod.name() + " is not compatible with PBKDF2");
-        }
-
-        // TODO: Check key length validity
-
-        // TODO: Update documentation and check backward compatibility
-        if (StringUtils.isEmpty(password)) {
-            throw new IllegalArgumentException("Encryption with an empty password is not supported");
         }
 
         String algorithm = encryptionMethod.getAlgorithm();
         String provider = encryptionMethod.getProvider();
 
-        // TODO: The non-PBE algorithms don't contain key sizes in the names
-        final int keySize = keyLength != -1 ? keyLength : getKeySize(algorithm);
+        final String cipherName = CipherUtility.parseCipherFromAlgorithm(algorithm);
+        if (!CipherUtility.isValidKeyLength(keyLength, cipherName)) {
+            throw new IllegalArgumentException(String.valueOf(keyLength) + " is not a valid key length for " + cipherName);
+        }
+
+        if (StringUtils.isEmpty(password)) {
+            throw new IllegalArgumentException("Encryption with an empty password is not supported");
+        }
+
+        if (salt == null || salt.length < MINIMUM_SALT_LENGTH) {
+            throw new IllegalArgumentException("The salt must be at least " + MINIMUM_SALT_LENGTH + " bytes. To generate a salt, use PBKDF2CipherProvider#generateSalt()");
+        }
 
         PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(this.prf);
         gen.init(password.getBytes("UTF-8"), salt, getIterationCount());
-        byte[] dk = ((KeyParameter) gen.generateDerivedParameters(keySize)).getKey();
+        byte[] dk = ((KeyParameter) gen.generateDerivedParameters(keyLength)).getKey();
         SecretKey tempKey = new SecretKeySpec(dk, algorithm);
 
         // TODO: May be able to refactor below into KeyedCipherProvider
@@ -166,13 +171,13 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
 
         int ivLength = cipher.getBlockSize();
         // If an IV was not provided already, generate a random IV and inject it in the cipher
-        if (iv.length == 0) {
+        if (iv.length != ivLength) {
             if (encryptMode) {
                 iv = new byte[ivLength];
                 new SecureRandom().nextBytes(iv);
             } else {
                 // Can't decrypt without an IV
-                throw new IllegalArgumentException("Cannot decrypt without an IV");
+                throw new IllegalArgumentException("Cannot decrypt without a valid IV");
             }
         }
         cipher.init(encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, tempKey, new IvParameterSpec(iv));
@@ -180,14 +185,14 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
         return cipher;
     }
 
-    protected int getIterationCount() {
-        return iterationCount;
+    public byte[] generateSalt() {
+        byte[] salt = new byte[MINIMUM_SALT_LENGTH];
+        new SecureRandom().nextBytes(salt);
+        return salt;
     }
 
-    protected int getKeySize(String algorithm) throws NoSuchAlgorithmException {
-        String cipher = CipherUtility.parseCipherFromAlgorithm(algorithm);
-        KeyGenerator keyGenerator = KeyGenerator.getInstance(cipher);
-        return keyGenerator.generateKey().getEncoded().length * 8;
+    protected int getIterationCount() {
+        return iterationCount;
     }
 
     protected String getPRFName() {
@@ -198,21 +203,26 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
         }
     }
 
-    private Digest resolvePRF(String prf) throws NoSuchAlgorithmException {
-        // TODO: May refactor to provide other PRFs
-        prf = prf.toLowerCase().replaceAll("[\\W]+", "");
-        switch (prf) {
+    private Digest resolvePRF(final String prf) {
+        if (StringUtils.isEmpty(prf)) {
+            throw new IllegalArgumentException("Cannot resolve empty PRF");
+        }
+        String formattedPRF = prf.toLowerCase().replaceAll("[\\W]+", "");
+        logger.debug("Resolved PRF {} to {}", prf, formattedPRF);
+        switch (formattedPRF) {
             case "md5":
                 return new MD5Digest();
             case "sha1":
                 return new SHA1Digest();
             case "sha384":
                 return new SHA384Digest();
+            case "sha256":
+                return new SHA256Digest();
             case "sha512":
                 return new SHA512Digest();
-            case "sha256":
             default:
-                return new SHA256Digest();
+                logger.warn("Could not resolve PRF {}. Using default PRF {} instead", prf, DEFAULT_PRF);
+                return new SHA512Digest();
         }
     }
 }

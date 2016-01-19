@@ -35,10 +35,10 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
 
     // TripleDES must precede DES for automatic grouping precedence
     private static final List<String> CIPHERS = ["AES", "TRIPLEDES", "DES", "RC2", "RC4", "RC5", "TWOFISH"]
-    private static final List<String> PBE_ALGORITHMS = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }*.algorithm
-    private static final Map<String, List<String>> ALGORITHMS_MAPPED_BY_CIPHER = PBE_ALGORITHMS.groupBy { String algorithm -> CIPHERS.find { algorithm.contains(it) } }
+    private static final List<String> SYMMETRIC_ALGORITHMS = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") || it.algorithm.startsWith("AES") }*.algorithm
+    private static final Map<String, List<String>> ALGORITHMS_MAPPED_BY_CIPHER = SYMMETRIC_ALGORITHMS.groupBy { String algorithm -> CIPHERS.find { algorithm.contains(it) } }
 
-    // Manually mapped as of 01/13/16 0.5.0
+    // Manually mapped as of 01/19/16 0.5.0
     private static final Map<Integer, List<String>> ALGORITHMS_MAPPED_BY_KEY_LENGTH = [
             (40) : ["PBEWITHSHAAND40BITRC2-CBC",
                     "PBEWITHSHAAND40BITRC4"],
@@ -53,13 +53,22 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
                     "PBEWITHSHAAND128BITAES-CBC-BC",
                     "PBEWITHSHAAND128BITRC2-CBC",
                     "PBEWITHSHAAND128BITRC4",
-                    "PBEWITHSHAANDTWOFISH-CBC"],
+                    "PBEWITHSHAANDTWOFISH-CBC",
+                    "AES/CBC/PKCS7Padding",
+                    "AES/CTR/NoPadding",
+                    "AES/GCM/NoPadding"],
             (192): ["PBEWITHMD5AND192BITAES-CBC-OPENSSL",
                     "PBEWITHSHA256AND192BITAES-CBC-BC",
-                    "PBEWITHSHAAND192BITAES-CBC-BC"],
+                    "PBEWITHSHAAND192BITAES-CBC-BC",
+                    "AES/CBC/PKCS7Padding",
+                    "AES/CTR/NoPadding",
+                    "AES/GCM/NoPadding"],
             (256): ["PBEWITHMD5AND256BITAES-CBC-OPENSSL",
                     "PBEWITHSHA256AND256BITAES-CBC-BC",
-                    "PBEWITHSHAAND256BITAES-CBC-BC"]
+                    "PBEWITHSHAAND256BITAES-CBC-BC",
+                    "AES/CBC/PKCS7Padding",
+                    "AES/CTR/NoPadding",
+                    "AES/GCM/NoPadding"]
     ]
 
     @BeforeClass
@@ -84,12 +93,12 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testParseCipherFromAlgorithm() {
+    void testShouldParseCipherFromAlgorithm() {
         // Arrange
         final def EXPECTED_ALGORITHMS = ALGORITHMS_MAPPED_BY_CIPHER
 
         // Act
-        PBE_ALGORITHMS.each { String algorithm ->
+        SYMMETRIC_ALGORITHMS.each { String algorithm ->
             String cipher = CipherUtility.parseCipherFromAlgorithm(algorithm)
             logger.info("Extracted ${cipher} from ${algorithm}")
 
@@ -99,17 +108,99 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testParseKeyLengthFromAlgorithm() {
+    void testShouldParseKeyLengthFromAlgorithm() {
         // Arrange
         final def EXPECTED_ALGORITHMS = ALGORITHMS_MAPPED_BY_KEY_LENGTH
 
         // Act
-        PBE_ALGORITHMS.each { String algorithm ->
+        SYMMETRIC_ALGORITHMS.each { String algorithm ->
             int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(algorithm)
             logger.info("Extracted ${keyLength} from ${algorithm}")
 
             // Assert
             assert EXPECTED_ALGORITHMS.get(keyLength).contains(algorithm)
+        }
+    }
+
+    @Test
+    void testShouldDetermineValidKeyLength() {
+        // Arrange
+
+        // Act
+        ALGORITHMS_MAPPED_BY_KEY_LENGTH.each { int keyLength, List<String> algorithms ->
+            algorithms.each { String algorithm ->
+                logger.info("Checking ${keyLength} for ${algorithm}")
+
+                // Assert
+                assert CipherUtility.isValidKeyLength(keyLength, CipherUtility.parseCipherFromAlgorithm(algorithm))
+            }
+        }
+    }
+
+    @Test
+    void testShouldDetermineInvalidKeyLength() {
+        // Arrange
+
+        // Act
+        ALGORITHMS_MAPPED_BY_KEY_LENGTH.each { int keyLength, List<String> algorithms ->
+            algorithms.each { String algorithm ->
+                def invalidKeyLengths = [-1, 0, 1]
+                if (algorithm =~ "RC\\d") {
+                    invalidKeyLengths += [39, 2049]
+                } else {
+                    invalidKeyLengths += keyLength + 1
+                }
+                logger.info("Checking ${invalidKeyLengths.join(", ")} for ${algorithm}")
+
+                // Assert
+                invalidKeyLengths.each { int invalidKeyLength ->
+                    assert !CipherUtility.isValidKeyLength(invalidKeyLength, CipherUtility.parseCipherFromAlgorithm(algorithm))
+                }
+            }
+        }
+    }
+
+    @Test
+    void testShouldDetermineValidKeyLengthForAlgorithm() {
+        // Arrange
+
+        // Act
+        ALGORITHMS_MAPPED_BY_KEY_LENGTH.each { int keyLength, List<String> algorithms ->
+            algorithms.each { String algorithm ->
+                logger.info("Checking ${keyLength} for ${algorithm}")
+
+                // Assert
+                assert CipherUtility.isValidKeyLengthForAlgorithm(keyLength, algorithm)
+            }
+        }
+    }
+
+    @Test
+    void testShouldDetermineInvalidKeyLengthForAlgorithm() {
+        // Arrange
+
+        // Act
+        ALGORITHMS_MAPPED_BY_KEY_LENGTH.each { int keyLength, List<String> algorithms ->
+            algorithms.each { String algorithm ->
+                def invalidKeyLengths = [-1, 0, 1]
+                if (algorithm =~ "RC\\d") {
+                    invalidKeyLengths += [39, 2049]
+                } else {
+                    invalidKeyLengths += keyLength + 1
+                }
+                logger.info("Checking ${invalidKeyLengths.join(", ")} for ${algorithm}")
+
+                // Assert
+                invalidKeyLengths.each { int invalidKeyLength ->
+                    assert !CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm)
+                }
+            }
+        }
+
+        // Extra hard-coded checks
+        ["PBEWITHSHA256AND256BITAES-CBC-BC":192].each {String algorithm, int invalidKeyLength ->
+            logger.info("Checking ${invalidKeyLength} for ${algorithm}")
+            assert !CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm)
         }
     }
 }

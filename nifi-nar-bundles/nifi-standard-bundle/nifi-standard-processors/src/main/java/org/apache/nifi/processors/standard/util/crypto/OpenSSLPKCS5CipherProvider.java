@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.slf4j.Logger;
@@ -38,6 +39,8 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
 
     // Legacy magic number value
     private static final int ITERATION_COUNT = 0;
+    private static final int SALT_LENGTH = 8;
+    private static final byte[] EMPTY_SALT = new byte[8];
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the
@@ -71,6 +74,8 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     public Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, int keyLength, boolean encryptMode) throws Exception {
         try {
             return getInitializedCipher(encryptionMethod, password, salt, encryptMode);
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             throw new ProcessException("Error initializing the cipher", e);
         }
@@ -106,8 +111,18 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     protected Cipher getInitializedCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, boolean encryptMode)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException,
             InvalidAlgorithmParameterException {
-        // TODO: Add validation checks
-        // TODO: Check key length validity
+        if (encryptionMethod == null) {
+            throw new IllegalArgumentException("The encryption method must be specified");
+        }
+
+        if (StringUtils.isEmpty(password)) {
+            throw new IllegalArgumentException("Encryption with an empty password is not supported");
+        }
+
+        if (salt.length != SALT_LENGTH && salt.length != 0) {
+            // This does not enforce ASCII encoding, just length
+            throw new IllegalArgumentException("Salt must be 8 bytes US-ASCII encoded or empty");
+        }
 
         String algorithm = encryptionMethod.getAlgorithm();
         String provider = encryptionMethod.getProvider();
