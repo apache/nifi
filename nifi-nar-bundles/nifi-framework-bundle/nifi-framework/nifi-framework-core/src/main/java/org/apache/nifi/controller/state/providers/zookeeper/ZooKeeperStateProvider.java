@@ -115,7 +115,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
 
     public ZooKeeperStateProvider() throws Exception {
-        // TODO: Provide SSL Context??
     }
 
 

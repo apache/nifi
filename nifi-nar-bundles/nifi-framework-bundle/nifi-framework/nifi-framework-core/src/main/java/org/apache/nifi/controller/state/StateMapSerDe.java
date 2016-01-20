@@ -52,10 +52,12 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
         for (final Map.Entry<String, String> entry : map.entrySet()) {
             final boolean hasKey = entry.getKey() != null;
             final boolean hasValue = entry.getValue() != null;
+            out.writeBoolean(hasKey);
             if (hasKey) {
                 out.writeUTF(entry.getKey());
             }
 
+            out.writeBoolean(hasValue);
             if (hasValue) {
                 out.writeUTF(entry.getValue());
             }

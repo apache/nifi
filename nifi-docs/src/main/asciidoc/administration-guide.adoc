@@ -485,8 +485,8 @@ mechanisms for accomplishing this. The first mechanism is to provide authenticat
 The second option is to use a user name and password. This is configured by specifying a value for the `Username` and a value for the `Password` properties
 for the `ZooKeeperStateProvider` (see the <<state_providers>> section for more information). The important thing to keep in mind here, though, is that ZooKeeper
 will pass around the password in plain text. This means that using a user name and password should not be used unless ZooKeeper is running on localhost as a
-one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as an SSL connection. More information about connecting
-to ZooKeeper via SSL can be found in the <<zk_ssl_client>> section.
+one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as a VPN or an SSL connection. ZooKeeper will be
+providing support for SSL connections in version 0.5.0.
 
 
 
@@ -494,15 +494,15 @@ to ZooKeeper via SSL can be found in the <<zk_ssl_client>> section.
 === Securing ZooKeeper
 
 When NiFi communicates with ZooKeeper, all communications, by default, are non-secure, and anyone who logs into ZooKeeper is able to view and manipulate all
-of the NiFi state that is stored in ZooKeeper. We have two options to prevent this from being the case. We can use Kerberos to manage the authentication, or
-we can use SSL in order to encrypt communications between NiFi and ZooKeeper.
+of the NiFi state that is stored in ZooKeeper. To prevent this, we can use Kerberos to manage the authentication. At this time, ZooKeeper does not provide
+support for encryption via SSL. Support for SSL in ZooKeeper is being actively worked and is expected to be available in the 0.5.x version of ZooKeeper.
 
 In order to secure the communications, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
-NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos and SSL are provided below.
+NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
 
 
 [[zk_kerberos_client]]
-==== Kerberizing NiFi Client
+==== Kerberizing NiFi's ZooKeeper Client
 The preferred mechanism for authenticating users with ZooKeeper is to use Kerberos. In order to use Kerberos to authenticate, we must configure a few
 system properties, so that the ZooKeeper client knows who the user is and where the KeyTab file is.
 
@@ -556,11 +556,6 @@ yum install krb5-workstation krb5-libs krb5-auth-dialog
 Once this is complete, the /etc/krb5.conf will need to be configured appropriately for your organization's Kerberos envrionment.
 
 Now, when we start NiFi, it will use Kerberos to authentication as the `nifi` user when communicating with ZooKeeper.
-
-
-
-[[zk_ssl_client]]
-==== Using SSL to Communicate with ZooKeeper
 
 
 
@@ -632,11 +627,6 @@ The last line is optional but specifies that clients MUST use Kerberos to commun
 
 Now, we can start NiFi, and the embedded ZooKeeper server will use Kerberos as the authentication mechanism.
 
-
-
-
-[[zk_ssl_server]]
-==== Securing Embedded ZooKeeper with SSL
 
 
 
