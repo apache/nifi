@@ -629,21 +629,22 @@ public class TailFile extends AbstractProcessor {
         }
 
         final List<File> rolledOffFiles = new ArrayList<>();
-        final DirectoryStream<Path> dirStream = Files.newDirectoryStream(directory.toPath(), rollingPattern);
-        for (final Path path : dirStream) {
-            final File file = path.toFile();
-            final long lastMod = file.lastModified();
+        try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(directory.toPath(), rollingPattern)) {
+            for (final Path path : dirStream) {
+                final File file = path.toFile();
+                final long lastMod = file.lastModified();
 
-            if (file.lastModified() < minTimestamp) {
-                getLogger().debug("Found rolled off file {} but its last modified timestamp is before the cutoff (Last Mod = {}, Cutoff = {}) so will not consume it",
-                    new Object[] {file, lastMod, minTimestamp});
+                if (file.lastModified() < minTimestamp) {
+                    getLogger().debug("Found rolled off file {} but its last modified timestamp is before the cutoff (Last Mod = {}, Cutoff = {}) so will not consume it",
+                        new Object[] {file, lastMod, minTimestamp});
 
-                continue;
-            } else if (file.equals(tailFile)) {
-                continue;
+                    continue;
+                } else if (file.equals(tailFile)) {
+                    continue;
+                }
+
+                rolledOffFiles.add(file);
             }
-
-            rolledOffFiles.add(file);
         }
 
         // Sort files based on last modified timestamp. If same timestamp, use filename as a secondary sort, as often
