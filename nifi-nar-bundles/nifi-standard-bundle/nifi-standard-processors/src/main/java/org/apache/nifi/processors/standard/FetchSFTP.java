@@ -18,8 +18,6 @@
 package org.apache.nifi.processors.standard;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -30,8 +28,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
@@ -70,20 +66,6 @@ public class FetchSFTP extends FetchFileTransfer {
         properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
         properties.add(SFTPTransfer.USE_COMPRESSION);
         return properties;
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        if (!validationContext.getProperty(SFTPTransfer.PASSWORD).isSet() && !(validationContext.getProperty(SFTPTransfer.PRIVATE_KEY_PASSPHRASE).isSet()
-            && validationContext.getProperty(SFTPTransfer.PRIVATE_KEY_PATH).isSet())) {
-            return Collections.singleton(new ValidationResult.Builder()
-                .subject("Password")
-                .valid(false)
-                .explanation("Must set either password or Private Key Path & Passphrase")
-                .build());
-        }
-
-        return Collections.emptyList();
     }
 
     @Override
