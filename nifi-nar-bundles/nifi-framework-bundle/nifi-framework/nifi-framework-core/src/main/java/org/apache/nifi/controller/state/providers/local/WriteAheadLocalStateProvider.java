@@ -129,6 +129,8 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
 
     @Override
     public synchronized void shutdown() {
+        executor.shutdown();
+
         try {
             writeAheadLog.shutdown();
         } catch (final IOException ioe) {

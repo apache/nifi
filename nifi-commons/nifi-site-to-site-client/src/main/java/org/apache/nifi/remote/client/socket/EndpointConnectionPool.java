@@ -182,6 +182,7 @@ public class EndpointConnectionPool {
             public Thread newThread(final Runnable r) {
                 final Thread thread = defaultFactory.newThread(r);
                 thread.setName("NiFi Site-to-Site Connection Pool Maintenance");
+                thread.setDaemon(true);
                 return thread;
             }
         });
