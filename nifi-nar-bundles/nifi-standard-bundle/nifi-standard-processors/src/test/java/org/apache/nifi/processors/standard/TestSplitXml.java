@@ -92,6 +92,25 @@ public class TestSplitXml {
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT));
     }
 
+    @Test
+    public void testNamespaceDeclarations() throws Exception {
+        // Configure a namespace aware parser to ensure namespace
+        // declarations are handled correctly.
+        factory = SAXParserFactory.newInstance();
+        factory.setNamespaceAware(true);
+        saxParser = factory.newSAXParser( );
+
+        final TestRunner runner = TestRunners.newTestRunner(new SplitXml());
+        runner.setProperty(SplitXml.SPLIT_DEPTH, "3");
+        runner.enqueue(Paths.get("src/test/resources/TestXml/namespace.xml"));
+        runner.run();
+        runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitXml.REL_SPLIT, 2);
+
+        parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
+        parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT));
+    }
+
     public void parseFlowFiles(List<MockFlowFile> flowfiles) throws Exception, SAXException {
         for (MockFlowFile out : flowfiles) {
             final byte[] outData = out.toByteArray();
@@ -99,4 +118,5 @@ public class TestSplitXml {
             saxParser.parse(new InputSource(new StringReader(outXml)), new DefaultHandler());
         }
     }
+
 }

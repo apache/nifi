@@ -21,8 +21,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -193,6 +195,7 @@ public class SplitXml extends AbstractProcessor {
         private final int splitDepth;
         private final StringBuilder sb = new StringBuilder(XML_PROLOGUE);
         private int depth = 0;
+        private HashMap<String, String> prefixMap = new HashMap<>();
 
         public XmlSplitterSaxParser(XmlElementNotifier notifier, int splitDepth) {
             this.notifier = notifier;
@@ -261,6 +264,7 @@ public class SplitXml extends AbstractProcessor {
 
         @Override
         public void endPrefixMapping(String prefix) throws SAXException {
+            prefixMap.remove(prefixToNamespace(prefix));
         }
 
         @Override
@@ -293,11 +297,29 @@ public class SplitXml extends AbstractProcessor {
                 sb.append("<");
                 sb.append(qName);
 
+                final Set<String> attributeNames = new HashSet<>();
                 int attCount = atts.getLength();
                 for (int i = 0; i < attCount; i++) {
                     String attName = atts.getQName(i);
+                    attributeNames.add(attName);
                     String attValue = StringEscapeUtils.escapeXml10(atts.getValue(i));
                     sb.append(" ").append(attName).append("=").append("\"").append(attValue).append("\"");
+                }
+
+                // If this is the first node we're outputting write out
+                // any additional namespace declarations that are required
+                if (splitDepth == newDepth - 1) {
+                    for (Entry<String, String> entry : prefixMap.entrySet()) {
+                        // If we've already added this namespace as an attribute then continue
+                        if (attributeNames.contains(entry.getKey())) {
+                            continue;
+                        }
+                        sb.append(" ");
+                        sb.append(entry.getKey());
+                        sb.append("=\"");
+                        sb.append(entry.getValue());
+                        sb.append("\" ");
+                    }
                 }
 
                 sb.append(">");
@@ -306,6 +328,18 @@ public class SplitXml extends AbstractProcessor {
 
         @Override
         public void startPrefixMapping(String prefix, String uri) throws SAXException {
+            final String ns = prefixToNamespace(prefix);
+            prefixMap.put(ns, uri);
+        }
+
+        private String prefixToNamespace(String prefix) {
+            final String ns;
+            if (prefix.length() == 0) {
+                ns = "xmlns";
+            } else {
+                ns="xmlns:"+prefix;
+            }
+            return ns;
         }
     }
 

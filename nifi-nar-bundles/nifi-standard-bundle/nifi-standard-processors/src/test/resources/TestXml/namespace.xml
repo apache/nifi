@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle xmlns:foo="http://namespace/1">
+    <node>
+        <foo:subNode1 attribute="d&amp;b">
+            <value>Hello &amp; Goodbye</value>
+        </foo:subNode1>
+        <foo:subNode2 xmlns:goo="http://namespace/2">
+            <goo:value>World</goo:value>
+        </foo:subNode2>
+    </node>
+</bundle>
