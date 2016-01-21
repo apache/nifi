@@ -96,7 +96,7 @@ public class GetFile extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Input Directory")
-            .description("The input directory from which to pull files")
+            .description("The input directory from which to pull files. This needs to end with a trailing slash \ on Windows.")
             .required(true)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
             .expressionLanguageSupported(true)
