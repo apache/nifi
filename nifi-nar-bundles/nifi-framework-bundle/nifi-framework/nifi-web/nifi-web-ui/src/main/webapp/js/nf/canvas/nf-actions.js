@@ -1305,8 +1305,8 @@ nf.Actions = (function () {
             // perform the paste
             nf.Clipboard.paste().done(function (data) {
                 var copySnippet = $.Deferred(function (deferred) {
-                    var reject = function () {
-                        deferred.reject();
+                    var reject = function (xhr, status, error) {
+                        deferred.reject(xhr.responseText);
                     };
 
                     // create a snippet from the details
@@ -1349,18 +1349,20 @@ nf.Actions = (function () {
                                 // refresh the birdseye/toolbar
                                 nf.Birdseye.refresh();
                             });
-
-                            // reject the deferred
-                            reject();
-                        });
+                        }).fail(reject);
                     }).fail(reject);
                 }).promise();
 
                 // show the appropriate message is the copy fails
-                copySnippet.fail(function () {
-                    // unable to create the template
+                copySnippet.fail(function (responseText) {
+                    // look for a message
+                    var message = 'An error occurred while attempting to copy and paste.';
+                    if ($.trim(responseText) !== '') {
+                        message = responseText;
+                    }
+
                     nf.Dialog.showOkDialog({
-                        dialogContent: 'An error occurred while attempting to copy and paste.',
+                        dialogContent: nf.Common.escapeHtml(message),
                         overlayBackground: true
                     });
                 });

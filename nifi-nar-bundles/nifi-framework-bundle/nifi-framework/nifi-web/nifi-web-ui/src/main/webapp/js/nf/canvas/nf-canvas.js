@@ -626,6 +626,9 @@ nf.Canvas = (function () {
                 return;
             }
 
+            // get the current selection
+            var selection = nf.CanvasUtils.getSelection();
+
             // handle shortcuts
             if (isCtrl) {
                 if (evt.keyCode === 82) {
@@ -640,22 +643,28 @@ nf.Canvas = (function () {
 
                     evt.preventDefault();
                 } else if (evt.keyCode === 67) {
-                    // ctrl-c
-                    nf.Actions.copy(nf.CanvasUtils.getSelection());
+                    if (nf.Common.isDFM() && nf.CanvasUtils.isCopyable(selection)) {
+                        // ctrl-c
+                        nf.Actions.copy(selection);
 
-                    evt.preventDefault();
+                        evt.preventDefault();
+                    }
                 } else if (evt.keyCode === 86) {
-                    // ctrl-p
-                    nf.Actions.paste();
+                    if (nf.Common.isDFM() && nf.CanvasUtils.isPastable()) {
+                        // ctrl-p
+                        nf.Actions.paste(selection);
 
-                    evt.preventDefault();
+                        evt.preventDefault();
+                    }
                 }
             } else {
                 if (evt.keyCode === 46) {
-                    // delete
-                    nf.Actions['delete'](nf.CanvasUtils.getSelection());
+                    if (nf.Common.isDFM() && nf.CanvasUtils.isDeletable(selection)) {
+                        // delete
+                        nf.Actions['delete'](selection);
 
-                    evt.preventDefault();
+                        evt.preventDefault();
+                    }
                 }
             }
         });
