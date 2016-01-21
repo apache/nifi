@@ -161,6 +161,7 @@ nf.ComponentState = (function () {
 
         // complete the update
         componentStateData.endUpdate();
+        componentStateData.reSort();
 
         // update the total number of state entries
         $('#total-component-state-entries').text(count);
