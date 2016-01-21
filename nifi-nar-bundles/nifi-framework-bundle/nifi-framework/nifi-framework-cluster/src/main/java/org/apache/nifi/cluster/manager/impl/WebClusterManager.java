@@ -2555,7 +2555,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 || isControllerServicesEndpoint(uri, method) || isControllerServiceEndpoint(uri, method)
                 || isControllerServiceReferenceEndpoint(uri, method) || isControllerServiceStateEndpoint(uri, method)
                 || isReportingTasksEndpoint(uri, method) || isReportingTaskEndpoint(uri, method) || isReportingTaskStateEndpoint(uri, method)
-                || isDropRequestEndpoint(uri, method);
+                || isDropRequestEndpoint(uri, method) || isListFlowFilesEndpoint(uri, method);
     }
 
     private void mergeProcessorValidationErrors(final ProcessorDTO processor, Map<NodeIdentifier, ProcessorDTO> processorMap) {
