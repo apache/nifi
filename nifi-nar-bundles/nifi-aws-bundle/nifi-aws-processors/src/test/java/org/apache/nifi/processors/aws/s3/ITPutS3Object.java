@@ -16,23 +16,28 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.services.s3.model.StorageClass;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import com.amazonaws.services.s3.model.StorageClass;
-
-@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
-public class TestPutS3Object extends AbstractS3Test {
+/**
+ * Provides integration level testing with actual AWS S3 resources for {@link PutS3Object} and requires additional configuration and resources to work.
+ */
+public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testSimplePut() throws IOException {
@@ -52,6 +57,36 @@ public class TestPutS3Object extends AbstractS3Test {
         runner.run(3);
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 3);
+    }
+
+    @Test
+    public void testPutS3ObjectUsingCredentialsProviderService() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+
+        runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
+        runner.enableControllerService(serviceImpl);
+
+        runner.assertValid(serviceImpl);
+
+        runner.setProperty(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+
+        Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
+
+        for (int i = 0; i < 3; i++) {
+            final Map<String, String> attrs = new HashMap<>();
+            attrs.put("filename", String.valueOf(i) + ".txt");
+            runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        }
+        runner.run(3);
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 3);
+
     }
 
     @Test
@@ -136,5 +171,31 @@ public class TestPutS3Object extends AbstractS3Test {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+    }
+
+
+    @Test
+    public void testGetPropertyDescriptors() throws Exception {
+        PutS3Object processor = new PutS3Object();
+        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
+        assertEquals("size should be eq", 18, pd.size());
+        assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
+        assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
+        assertTrue(pd.contains(PutS3Object.BUCKET));
+        assertTrue(pd.contains(PutS3Object.CREDENTIALS_FILE));
+        assertTrue(pd.contains(PutS3Object.ENDPOINT_OVERRIDE));
+        assertTrue(pd.contains(PutS3Object.FULL_CONTROL_USER_LIST));
+        assertTrue(pd.contains(PutS3Object.KEY));
+        assertTrue(pd.contains(PutS3Object.OWNER));
+        assertTrue(pd.contains(PutS3Object.READ_ACL_LIST));
+        assertTrue(pd.contains(PutS3Object.READ_USER_LIST));
+        assertTrue(pd.contains(PutS3Object.REGION));
+        assertTrue(pd.contains(PutS3Object.SECRET_KEY));
+        assertTrue(pd.contains(PutS3Object.SSL_CONTEXT_SERVICE));
+        assertTrue(pd.contains(PutS3Object.TIMEOUT));
+        assertTrue(pd.contains(PutS3Object.EXPIRATION_RULE_ID));
+        assertTrue(pd.contains(PutS3Object.STORAGE_CLASS));
+        assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
+        assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
     }
 }

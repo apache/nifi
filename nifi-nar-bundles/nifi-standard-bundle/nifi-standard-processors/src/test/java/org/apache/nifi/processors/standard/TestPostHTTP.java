@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
@@ -298,5 +299,75 @@ public class TestPostHTTP {
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+    }
+
+    @Test
+    public void testSendWithCompressionServerAcceptGzip() throws Exception {
+        setup(null);
+
+        final String suppliedMimeType = "text/plain";
+        runner.setProperty(PostHTTP.URL, server.getUrl());
+        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(PostHTTP.COMPRESSION_LEVEL, "9");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
+
+        runner.enqueue(StringUtils.repeat("This is the song that never ends. It goes on and on my friend.", 100).getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        // Ensure that a 'Content-Encoding' header was set with a 'gzip' value
+        Assert.assertEquals(PostHTTP.CONTENT_ENCODING_GZIP_VALUE, lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
+    }
+
+    @Test
+    public void testSendWithoutCompressionServerAcceptGzip() throws Exception {
+        setup(null);
+
+        final String suppliedMimeType = "text/plain";
+        runner.setProperty(PostHTTP.URL, server.getUrl());
+        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(PostHTTP.COMPRESSION_LEVEL, "0");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
+
+        runner.enqueue(StringUtils.repeat("This is the song that never ends. It goes on and on my friend.", 100).getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        // Ensure that the request was not sent with a 'Content-Encoding' header
+        Assert.assertNull(lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
+    }
+
+    @Test
+    public void testSendWithCompressionServerNotAcceptGzip() throws Exception {
+        setup(null);
+
+        final String suppliedMimeType = "text/plain";
+        // Specify a property to the URL to have the CaptureServlet specify it doesn't accept gzip
+        runner.setProperty(PostHTTP.URL, server.getUrl()+"?acceptGzip=false");
+        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(PostHTTP.COMPRESSION_LEVEL, "9");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
+
+        runner.enqueue(StringUtils.repeat("This is the song that never ends. It goes on and on my friend.", 100).getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        // Ensure that the request was not sent with a 'Content-Encoding' header
+        Assert.assertNull(lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
     }
 }

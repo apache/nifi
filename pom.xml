@@ -773,7 +773,11 @@ language governing permissions and limitations under the License. -->
                 <version>6.8.8</version>
                 <scope>test</scope>
             </dependency>
-            
+            <dependency>            
+                <groupId>org.jsoup</groupId>
+                <artifactId>jsoup</artifactId>
+                <version>1.8.3</version>
+            </dependency>
             <!-- NiFi modules -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -908,6 +912,12 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hadoop-nar</artifactId>
+                <version>0.4.2-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-html-nar</artifactId>
                 <version>0.4.2-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
@@ -1159,6 +1169,11 @@ language governing permissions and limitations under the License. -->
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <argLine combine.children="append">-Xmx1G -Djava.net.preferIPv4Stack=true</argLine>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>2.18</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1442,6 +1457,28 @@ language governing permissions and limitations under the License. -->
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <!-- Performs execution of Integration Tests using the Maven FailSafe Plugin. The view of integration tests in this context
+             are those tests interfacing with external sources and services requiring additional resources or credentials that cannot 
+             be explicitly provided. -->
+            <id>integration-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <!-- Checks style and licensing requirements. This is a good idea to run 
             for contributions and for the release process. While it would be nice to 

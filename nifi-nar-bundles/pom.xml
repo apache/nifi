@@ -50,6 +50,7 @@
         <module>nifi-azure-bundle</module>
         <module>nifi-ldap-iaa-providers-bundle</module>
         <module>nifi-riemann-bundle</module>
+        <module>nifi-html-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>

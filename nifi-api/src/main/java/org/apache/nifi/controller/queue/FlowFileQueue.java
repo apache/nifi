@@ -211,11 +211,18 @@ public interface FlowFileQueue {
     DropFlowFileStatus cancelDropFlowFileRequest(String requestIdentifier);
 
     /**
+     * <p>
      * Initiates a request to obtain a listing of FlowFiles in this queue. This method returns a
      * ListFlowFileStatus that can be used to obtain information about the FlowFiles that exist
      * within the queue. Additionally, the ListFlowFileStatus provides a request identifier that
      * can then be passed to the {@link #getListFlowFileStatus(String)}. The listing of FlowFiles
      * will be returned ordered by the position of the FlowFile in the queue.
+     * </p>
+     *
+     * <p>
+     * Note that if maxResults is larger than the size of the "active queue" (i.e., the un-swapped queued,
+     * FlowFiles that are swapped out will not be returned.)
+     * </p>
      *
      * @param requestIdentifier the identifier of the List FlowFile Request
      * @param maxResults the maximum number of FlowFileSummary objects to add to the ListFlowFileStatus
@@ -226,45 +233,6 @@ public interface FlowFileQueue {
      *             is currently running.
      */
     ListFlowFileStatus listFlowFiles(String requestIdentifier, int maxResults);
-
-    /**
-     * Initiates a request to obtain a listing of FlowFiles in this queue. This method returns a
-     * ListFlowFileStatus that can be used to obtain information about the FlowFiles that exist
-     * within the queue. Additionally, the ListFlowFileStatus provides a request identifier that
-     * can then be passed to the {@link #getListFlowFileStatus(String)}
-     *
-     * @param requestIdentifier the identifier of the List FlowFile Request
-     * @param maxResults the maximum number of FlowFileSummary objects to add to the ListFlowFileStatus
-     * @param sortColumn specifies which column to sort on
-     * @param direction specifies which direction to sort the FlowFiles
-     *
-     * @return the status for the request
-     *
-     * @throws IllegalStateException if either the source or the destination of the connection to which this queue belongs
-     *             is currently running.
-     */
-    ListFlowFileStatus listFlowFiles(String requestIdentifier, int maxResults, SortColumn sortColumn, SortDirection direction);
-
-    /**
-     * Initiates a request to obtain a listing of FlowFiles in this queue. This method returns a
-     * ListFlowFileStatus that can be used to obtain information about the FlowFiles that exist
-     * within the queue. Additionally, the ListFlowFileStatus provides a request identifier that
-     * can then be passed to the {@link #getListFlowFileStatus(String)}
-     *
-     * @param requestIdentifier the identifier of the List FlowFile Request
-     * @param maxResults the maximum number of FlowFileSummary objects to add to the ListFlowFileStatus
-     * @param query an Expression Language expression that will be evaluated against all FlowFiles. Only FlowFiles that satisfy the expression will
-     *            be included in the results. The expression must be a valid expression and return a Boolean type
-     * @param sortColumn specifies which column to sort on
-     * @param direction specifies which direction to sort the FlowFiles
-     *
-     * @return the status for the request
-     *
-     * @throws IllegalStateException if either the source or the destination of the connection to which this queue belongs
-     *             is currently running.
-     * @throws IllegalArgumentException if query is not a valid Expression Language expression or does not return a boolean type
-     */
-    ListFlowFileStatus listFlowFiles(String requestIdentifier, int maxResults, String query, SortColumn sortColumn, SortDirection direction);
 
     /**
      * Returns the current status of a List FlowFile Request that was initiated via the {@link #listFlowFiles(String)}

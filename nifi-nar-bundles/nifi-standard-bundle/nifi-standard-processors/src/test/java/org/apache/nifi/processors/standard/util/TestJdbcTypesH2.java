@@ -20,7 +20,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -34,11 +33,14 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TestJdbcTypesH2 {
 
-    final static String DB_LOCATION = "~/var/test/h2";
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @BeforeClass
     public static void setup() {
@@ -75,11 +77,7 @@ public class TestJdbcTypesH2 {
 
     @Test
     public void testSQLTypesMapping() throws ClassNotFoundException, SQLException, IOException {
-       // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        final Connection con = createConnection();
+        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
         final Statement st = con.createStatement();
 
         try {
@@ -114,8 +112,8 @@ public class TestJdbcTypesH2 {
 
         final InputStream instream = new ByteArrayInputStream(serializedBytes);
 
-        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
-        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader)) {
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 // Reuse record object by passing it to next(). This saves us from
@@ -132,18 +130,17 @@ public class TestJdbcTypesH2 {
     public void testDriverLoad() throws ClassNotFoundException, SQLException {
 //        final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
 
-        Connection con = createConnection();
+        Connection con = createConnection(folder.getRoot().getAbsolutePath());
 
         assertNotNull(con);
         con.close();
     }
 
-    private Connection createConnection() throws ClassNotFoundException, SQLException {
+    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
 
 //        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        String connectionString = "jdbc:h2:file:" + DB_LOCATION + "/testdb7";
-        final Connection con = DriverManager.getConnection(connectionString, "SA", "");
-        return con;
+        String connectionString = "jdbc:h2:file:" + location + "/testdb7";
+        return DriverManager.getConnection(connectionString, "SA", "");
     }
 
 }

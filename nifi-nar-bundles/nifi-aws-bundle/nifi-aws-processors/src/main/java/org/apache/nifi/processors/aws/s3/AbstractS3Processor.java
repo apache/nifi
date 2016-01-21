@@ -25,10 +25,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
@@ -39,7 +40,7 @@ import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.Permission;
 
-public abstract class AbstractS3Processor extends AbstractAWSProcessor<AmazonS3Client> {
+public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
 
     public static final PropertyDescriptor FULL_CONTROL_USER_LIST = new PropertyDescriptor.Builder()
             .name("FullControl User List")
@@ -103,22 +104,47 @@ public abstract class AbstractS3Processor extends AbstractAWSProcessor<AmazonS3C
             .defaultValue("${filename}")
             .build();
 
+    /**
+     * Create client using credentials provider. This is the preferred way for creating clients
+     */
     @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
+    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+        getLogger().info("Creating client with credentials provider");
 
+        final AmazonS3Client s3 = new AmazonS3Client(credentialsProvider, config);
+
+        initalizeEndpointOverride(context, s3);
+
+        return s3;
+    }
+
+    private void initalizeEndpointOverride(final ProcessContext context, final AmazonS3Client s3) {
         // if ENDPOINT_OVERRIDE is set, use PathStyleAccess
         if(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).getValue()).isEmpty() == false){
             final S3ClientOptions s3Options = new S3ClientOptions();
             s3Options.setPathStyleAccess(true);
             s3.setS3ClientOptions(s3Options);
         }
+    }
+
+    /**
+     * Create client using AWSCredentials
+     *
+     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
+     */
+    @Override
+    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
+        getLogger().info("Creating client with awd credentials");
+
+        final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
+
+        initalizeEndpointOverride(context, s3);
 
         return s3;
     }
 
     protected Grantee createGrantee(final String value) {
-        if (isEmpty(value)) {
+        if (StringUtils.isEmpty(value)) {
             return null;
         }
 
@@ -130,7 +156,7 @@ public abstract class AbstractS3Processor extends AbstractAWSProcessor<AmazonS3C
     }
 
     protected final List<Grantee> createGrantees(final String value) {
-        if (isEmpty(value)) {
+        if (StringUtils.isEmpty(value)) {
             return Collections.emptyList();
         }
 
@@ -161,7 +187,7 @@ public abstract class AbstractS3Processor extends AbstractAWSProcessor<AmazonS3C
         final AccessControlList acl = new AccessControlList();
 
         final String ownerId = context.getProperty(OWNER).evaluateAttributeExpressions(flowFile).getValue();
-        if (!isEmpty(ownerId)) {
+        if (!StringUtils.isEmpty(ownerId)) {
             final Owner owner = new Owner();
             owner.setId(ownerId);
             acl.setOwner(owner);

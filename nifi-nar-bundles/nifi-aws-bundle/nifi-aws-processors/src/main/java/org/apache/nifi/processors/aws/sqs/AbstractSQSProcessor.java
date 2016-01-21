@@ -19,13 +19,14 @@ package org.apache.nifi.processors.aws.sqs;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 
-public abstract class AbstractSQSProcessor extends AbstractAWSProcessor<AmazonSQSClient> {
+public abstract class AbstractSQSProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonSQSClient> {
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
@@ -43,8 +44,25 @@ public abstract class AbstractSQSProcessor extends AbstractAWSProcessor<AmazonSQ
             .required(true)
             .build();
 
+    /**
+     * Create client using credentials provider. This is the preferred way for creating clients
+     */
+    @Override
+    protected AmazonSQSClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+        getLogger().info("Creating client using aws credentials provider ");
+
+        return new AmazonSQSClient(credentialsProvider, config);
+    }
+
+    /**
+     * Create client using AWSCredentails
+     *
+     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
+     */
     @Override
     protected AmazonSQSClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
+        getLogger().info("Creating client using aws credentials ");
+
         return new AmazonSQSClient(credentials, config);
     }
 

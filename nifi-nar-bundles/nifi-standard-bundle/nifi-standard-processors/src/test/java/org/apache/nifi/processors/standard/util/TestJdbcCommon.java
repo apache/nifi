@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -44,14 +43,17 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestJdbcCommon {
 
-    final static String DB_LOCATION = "target/db";
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @BeforeClass
     public static void setup() {
@@ -65,10 +67,9 @@ public class TestJdbcCommon {
     public void testCreateSchema() throws ClassNotFoundException, SQLException {
 
         // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
+        folder.delete();
 
-        final Connection con = createConnection();
+        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
         final Statement st = con.createStatement();
 
         try {
@@ -102,10 +103,9 @@ public class TestJdbcCommon {
     @Test
     public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
         // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
+        folder.delete();
 
-        final Connection con = createConnection();
+        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
         final Statement st = con.createStatement();
 
         try {
@@ -136,8 +136,8 @@ public class TestJdbcCommon {
 
         final InputStream instream = new ByteArrayInputStream(serializedBytes);
 
-        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
-        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader)) {
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 // Reuse record object by passing it to next(). This saves us from
@@ -282,8 +282,8 @@ public class TestJdbcCommon {
 
         final InputStream instream = new ByteArrayInputStream(serializedBytes);
 
-        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
-        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader)) {
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
@@ -300,11 +300,9 @@ public class TestJdbcCommon {
         assertNotNull(clazz);
     }
 
-    private Connection createConnection() throws ClassNotFoundException, SQLException {
-
+    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-        return con;
+        return DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
     }
 
 }
