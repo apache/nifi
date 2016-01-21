@@ -69,8 +69,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         this.provider = createProvider(properties);
     }
 
-    private ZooKeeperStateProvider createProvider(final Map<PropertyDescriptor, String> properties) throws Exception {
-        final ZooKeeperStateProvider provider = new ZooKeeperStateProvider();
+    private void initializeProvider(final ZooKeeperStateProvider provider, final Map<PropertyDescriptor, String> properties) throws IOException {
         provider.initialize(new StateProviderInitializationContext() {
             @Override
             public String getIdentifier() {
@@ -97,7 +96,11 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
                 return null;
             }
         });
+    }
 
+    private ZooKeeperStateProvider createProvider(final Map<PropertyDescriptor, String> properties) throws Exception {
+        final ZooKeeperStateProvider provider = new ZooKeeperStateProvider();
+        initializeProvider(provider, properties);
         provider.enable();
         return provider;
     }

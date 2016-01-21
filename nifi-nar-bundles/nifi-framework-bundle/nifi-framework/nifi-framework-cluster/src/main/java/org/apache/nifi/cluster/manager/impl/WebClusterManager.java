@@ -421,40 +421,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
         componentStatusSnapshotMillis = snapshotMillis;
 
-        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                readLock.lock();
-                try {
-                    for (final Node node : nodes) {
-                        if (Status.CONNECTED.equals(node.getStatus())) {
-                            ComponentStatusRepository statusRepository = componentMetricsRepositoryMap.get(node.getNodeId());
-                            if (statusRepository == null) {
-                                statusRepository = createComponentStatusRepository();
-                                componentMetricsRepositoryMap.put(node.getNodeId(), statusRepository);
-                            }
-
-                            // ensure this node has a payload
-                            if (node.getHeartbeat() != null && node.getHeartbeatPayload() != null) {
-                                // if nothing has been captured or the current heartbeat is newer, capture it - comparing the heatbeat created timestamp
-                                // is safe since its marked as XmlTransient so we're assured that its based off the same clock that created the last capture date
-                                if (statusRepository.getLastCaptureDate() == null || node.getHeartbeat().getCreatedTimestamp() > statusRepository.getLastCaptureDate().getTime()) {
-                                    statusRepository.capture(node.getHeartbeatPayload().getProcessGroupStatus());
-                                }
-                            }
-                        }
-                    }
-                } catch (final Throwable t) {
-                    logger.warn("Unable to capture component metrics from Node heartbeats: " + t);
-                    if (logger.isDebugEnabled()) {
-                        logger.warn("", t);
-                    }
-                } finally {
-                    readLock.unlock("capture component metrics from node heartbeats");
-                }
-            }
-        }, componentStatusSnapshotMillis, componentStatusSnapshotMillis, TimeUnit.MILLISECONDS);
-
         remoteInputPort = properties.getRemoteInputPort();
         if (remoteInputPort == null) {
             remoteSiteListener = null;
@@ -496,6 +462,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, new QuartzSchedulingAgent(null, reportingTaskEngine, null, encryptor));
         processScheduler.setMaxThreadCount(SchedulingStrategy.TIMER_DRIVEN, 10);
         processScheduler.setMaxThreadCount(SchedulingStrategy.CRON_DRIVEN, 10);
+        processScheduler.scheduleFrameworkTask(new CaptureComponentMetrics(), "Capture Component Metrics", componentStatusSnapshotMillis, componentStatusSnapshotMillis, TimeUnit.MILLISECONDS);
 
         controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
     }
@@ -4594,5 +4561,42 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     @Override
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         return controllerServiceProvider.getControllerServiceIdentifiers(serviceType);
+    }
+
+    /**
+     * Captures snapshots of components' metrics
+     */
+    private class CaptureComponentMetrics implements Runnable {
+        @Override
+        public void run() {
+            readLock.lock();
+            try {
+                for (final Node node : nodes) {
+                    if (Status.CONNECTED.equals(node.getStatus())) {
+                        ComponentStatusRepository statusRepository = componentMetricsRepositoryMap.get(node.getNodeId());
+                        if (statusRepository == null) {
+                            statusRepository = createComponentStatusRepository();
+                            componentMetricsRepositoryMap.put(node.getNodeId(), statusRepository);
+                        }
+
+                        // ensure this node has a payload
+                        if (node.getHeartbeat() != null && node.getHeartbeatPayload() != null) {
+                            // if nothing has been captured or the current heartbeat is newer, capture it - comparing the heatbeat created timestamp
+                            // is safe since its marked as XmlTransient so we're assured that its based off the same clock that created the last capture date
+                            if (statusRepository.getLastCaptureDate() == null || node.getHeartbeat().getCreatedTimestamp() > statusRepository.getLastCaptureDate().getTime()) {
+                                statusRepository.capture(node.getHeartbeatPayload().getProcessGroupStatus());
+                            }
+                        }
+                    }
+                }
+            } catch (final Throwable t) {
+                logger.warn("Unable to capture component metrics from Node heartbeats: " + t);
+                if (logger.isDebugEnabled()) {
+                    logger.warn("", t);
+                }
+            } finally {
+                readLock.unlock("capture component metrics from node heartbeats");
+            }
+        }
     }
 }

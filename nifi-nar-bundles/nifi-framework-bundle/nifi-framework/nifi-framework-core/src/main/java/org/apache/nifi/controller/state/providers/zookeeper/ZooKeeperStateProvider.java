@@ -114,7 +114,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     private List<ACL> acl;
 
 
-    public ZooKeeperStateProvider() throws Exception {
+    public ZooKeeperStateProvider() {
     }
 
 
@@ -232,6 +232,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             if (Code.SESSIONEXPIRED == ke.code()) {
                 invalidateClient();
                 onComponentRemoved(componentId);
+                return;
             }
 
             throw new IOException("Unable to remove state for component with ID '" + componentId + "' from ZooKeeper", ke);
@@ -309,6 +310,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             } catch (final KeeperException ke) {
                 if (ke.code() == Code.NONODE) {
                     createNode(path, data);
+                    return;
                 } else {
                     throw ke;
                 }
@@ -320,9 +322,11 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             if (Code.SESSIONEXPIRED == ke.code()) {
                 invalidateClient();
                 setState(stateValues, version, componentId);
+                return;
             }
             if (Code.NODEEXISTS == ke.code()) {
                 setState(stateValues, version, componentId);
+                return;
             }
 
             throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ke);
@@ -347,16 +351,19 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             if (Code.SESSIONEXPIRED == ke.code()) {
                 invalidateClient();
                 createNode(path, data);
+                return;
             }
 
             // Node already exists. Node must have been created by "someone else". Just set the data.
             if (ke.code() == Code.NODEEXISTS) {
                 try {
                     getZooKeeper().setData(path, data, -1);
+                    return;
                 } catch (final KeeperException ke1) {
                     // Node no longer exists -- it was removed by someone else. Go recreate the node.
                     if (ke1.code() == Code.NONODE) {
                         createNode(path, data);
+                        return;
                     }
                 } catch (final InterruptedException ie) {
                     throw new IOException("Failed to update cluster-wide state due to interruption", ie);

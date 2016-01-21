@@ -41,7 +41,7 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
 
             return manager.getState(scope);
         } catch (final IOException ioe) {
-            throw new IllegalStateException(String.format("Unable to get the state for the specified component %s: %s", componentId, ioe));
+            throw new IllegalStateException(String.format("Unable to get the state for the specified component %s: %s", componentId, ioe), ioe);
         }
     }
 
@@ -56,7 +56,7 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
             manager.clear(Scope.CLUSTER);
             manager.clear(Scope.LOCAL);
         } catch (final IOException ioe) {
-            throw new IllegalStateException(String.format("Unable to clear the state for the specified component %s: %s", componentId, ioe));
+            throw new IllegalStateException(String.format("Unable to clear the state for the specified component %s: %s", componentId, ioe), ioe);
         }
     }
 
