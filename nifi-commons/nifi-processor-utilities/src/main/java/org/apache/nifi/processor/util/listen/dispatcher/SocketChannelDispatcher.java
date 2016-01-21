@@ -82,6 +82,11 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
         this.keyQueue = new LinkedBlockingQueue<>(maxConnections);
         this.sslContext = sslContext;
         this.charset = charset;
+
+        if (bufferPool == null || bufferPool.size() == 0 || bufferPool.size() != maxConnections) {
+            throw new IllegalArgumentException(
+                    "A pool of available ByteBuffers equal to the maximum number of connections is required");
+        }
     }
 
     @Override

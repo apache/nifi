@@ -82,7 +82,7 @@ public class RELPSocketChannelHandler<E extends Event<SocketChannel>> extends St
             logger.debug("Done processing buffer");
 
         } catch (final RELPFrameException rfe) {
-            logger.error("Error reading RELP frames due to {}", rfe);
+            logger.error("Error reading RELP frames due to {}", new Object[] {rfe.getMessage()}, rfe);
             // if an invalid frame or bad data was sent then the decoder will be left in a
             // corrupted state, so lets close the connection and cause the client to re-establish
             dispatcher.completeConnection(key);

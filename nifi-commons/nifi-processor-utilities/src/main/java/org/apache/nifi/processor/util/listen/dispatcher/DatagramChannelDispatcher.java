@@ -57,6 +57,10 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
         this.bufferPool = bufferPool;
         this.events = events;
         this.logger = logger;
+
+        if (bufferPool == null || bufferPool.size() == 0) {
+            throw new IllegalArgumentException("A pool of available ByteBuffers is required");
+        }
     }
 
     @Override

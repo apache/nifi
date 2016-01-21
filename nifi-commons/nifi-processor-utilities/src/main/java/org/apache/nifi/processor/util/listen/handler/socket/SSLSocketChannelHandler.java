@@ -32,6 +32,7 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
@@ -91,6 +92,11 @@ public class SSLSocketChannelHandler<E extends Event<SocketChannel>> extends Soc
             }
         } catch (ClosedByInterruptException | InterruptedException e) {
             logger.debug("read loop interrupted, closing connection");
+            // Treat same as closed socket
+            eof = true;
+        } catch (ClosedChannelException e) {
+            // ClosedChannelException doesn't have a message so handle it separately from IOException
+            logger.error("Error reading from channel due to channel being closed", e);
             // Treat same as closed socket
             eof = true;
         } catch (IOException e) {
