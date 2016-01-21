@@ -336,6 +336,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void assertPenalizeCount(final int count) {
+        Assert.assertEquals(count, getPenalizedFlowFiles().size());
+    }
+
+    @Override
     public void assertValid() {
         context.assertValid();
     }
@@ -441,6 +446,23 @@ public class StandardProcessorTestRunner implements TestRunner {
         final List<MockFlowFile> flowFiles = new ArrayList<>();
         for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
             flowFiles.addAll(session.getFlowFilesForRelationship(relationship));
+        }
+
+        Collections.sort(flowFiles, new Comparator<MockFlowFile>() {
+            @Override
+            public int compare(final MockFlowFile o1, final MockFlowFile o2) {
+                return Long.compare(o1.getCreationTime(), o2.getCreationTime());
+            }
+        });
+
+        return flowFiles;
+    }
+
+    @Override
+    public List<MockFlowFile> getPenalizedFlowFiles() {
+        final List<MockFlowFile> flowFiles = new ArrayList<>();
+        for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
+            flowFiles.addAll(session.getPenalizedFlowFiles());
         }
 
         Collections.sort(flowFiles, new Comparator<MockFlowFile>() {

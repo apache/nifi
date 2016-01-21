@@ -107,6 +107,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+attributes)
@@ -153,6 +154,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         //expected in request status.code and status.message
         //original flow file (+attributes)

@@ -319,6 +319,14 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor PROP_PENALIZE_NO_RETRY = new PropertyDescriptor.Builder()
+            .name("Penalize on \"No Retry\"")
+            .description("Enabling this property will penalize FlowFiles that are routed to the \"No Retry\" relationship.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             PROP_METHOD,
             PROP_URL,
@@ -339,7 +347,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_TRUSTED_HOSTNAME,
             PROP_ADD_HEADERS_TO_REQUEST,
             PROP_CONTENT_TYPE,
-            PROP_USE_CHUNKED_ENCODING));
+            PROP_USE_CHUNKED_ENCODING,
+            PROP_PENALIZE_NO_RETRY));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -844,6 +853,9 @@ public final class InvokeHTTP extends AbstractProcessor {
             // 1xx, 3xx, 4xx -> NO RETRY
         } else {
             if (request != null) {
+                if (context.getProperty(PROP_PENALIZE_NO_RETRY).asBoolean()) {
+                    request = session.penalize(request);
+                }
                 session.transfer(request, REL_NO_RETRY);
             }
         }
