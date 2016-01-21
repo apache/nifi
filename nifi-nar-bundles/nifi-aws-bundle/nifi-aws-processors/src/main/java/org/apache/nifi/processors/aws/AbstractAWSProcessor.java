@@ -79,14 +79,14 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .build();
     public static final PropertyDescriptor ACCESS_KEY = new PropertyDescriptor.Builder()
             .name("Access Key")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
     public static final PropertyDescriptor SECRET_KEY = new PropertyDescriptor.Builder()
             .name("Secret Key")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
@@ -234,8 +234,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     }
 
     protected AWSCredentials getCredentials(final ProcessContext context) {
-        final String accessKey = context.getProperty(ACCESS_KEY).getValue();
-        final String secretKey = context.getProperty(SECRET_KEY).getValue();
+        final String accessKey = context.getProperty(ACCESS_KEY).evaluateAttributeExpressions().getValue();
+        final String secretKey = context.getProperty(SECRET_KEY).evaluateAttributeExpressions().getValue();
 
         final String credentialsFile = context.getProperty(CREDENTIALS_FILE).getValue();
 

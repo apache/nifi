@@ -149,8 +149,8 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
 
-        final String accessKey = context.getProperty(ACCESS_KEY).getValue();
-        final String secretKey = context.getProperty(SECRET_KEY).getValue();
+        final String accessKey = context.getProperty(ACCESS_KEY).evaluateAttributeExpressions().getValue();
+        final String secretKey = context.getProperty(SECRET_KEY).evaluateAttributeExpressions().getValue();
         final String assumeRoleArn = context.getProperty(ASSUME_ROLE_ARN).getValue();
         final Integer maxSessionTime = context.getProperty(MAX_SESSION_TIME).asInteger();
         final String assumeRoleName = context.getProperty(ASSUME_ROLE_NAME).getValue();
