@@ -61,6 +61,7 @@ public class MockProcessSession implements ProcessSession {
     private final Map<Relationship, List<MockFlowFile>> transferMap = new ConcurrentHashMap<>();
     private final MockFlowFileQueue processorQueue;
     private final Set<Long> beingProcessed = new HashSet<>();
+    private final List<MockFlowFile> penalized = new ArrayList<>();
 
     private final Map<Long, MockFlowFile> currentVersions = new HashMap<>();
     private final Map<Long, MockFlowFile> originalVersions = new HashMap<>();
@@ -429,11 +430,22 @@ public class MockProcessSession implements ProcessSession {
     @Override
     public void remove(final FlowFile flowFile) {
         validateState(flowFile);
-        final Iterator<Long> itr = beingProcessed.iterator();
-        while (itr.hasNext()) {
-            final Long ffId = itr.next();
+
+        final Iterator<MockFlowFile> penalizedItr = penalized.iterator();
+        while (penalizedItr.hasNext()) {
+            final MockFlowFile ff = penalizedItr.next();
+            if (Objects.equals(ff.getId(), flowFile.getId())) {
+                penalizedItr.remove();
+                penalized.remove(ff);
+                break;
+            }
+        }
+
+        final Iterator<Long> processedItr = beingProcessed.iterator();
+        while (processedItr.hasNext()) {
+            final Long ffId = processedItr.next();
             if (ffId != null && ffId.equals(flowFile.getId())) {
-                itr.remove();
+                processedItr.remove();
                 beingProcessed.remove(ffId);
                 removedCount++;
                 currentVersions.remove(ffId);
@@ -522,6 +534,9 @@ public class MockProcessSession implements ProcessSession {
         for (final List<MockFlowFile> list : transferMap.values()) {
             for (final MockFlowFile flowFile : list) {
                 processorQueue.offer(flowFile);
+                if (penalize) {
+                    penalized.add(flowFile);
+                }
             }
         }
 
@@ -529,6 +544,9 @@ public class MockProcessSession implements ProcessSession {
             final MockFlowFile flowFile = originalVersions.get(flowFileId);
             if (flowFile != null) {
                 processorQueue.offer(flowFile);
+                if (penalize) {
+                    penalized.add(flowFile);
+                }
             }
         }
 
@@ -538,6 +556,9 @@ public class MockProcessSession implements ProcessSession {
         originalVersions.clear();
         transferMap.clear();
         clearTransferState();
+        if (!penalize) {
+            penalized.clear();
+        }
     }
 
     @Override
@@ -694,6 +715,10 @@ public class MockProcessSession implements ProcessSession {
         }
 
         return list;
+    }
+
+    public List<MockFlowFile> getPenalizedFlowFiles() {
+        return penalized;
     }
 
     /**
@@ -1013,6 +1038,7 @@ public class MockProcessSession implements ProcessSession {
         final MockFlowFile newFlowFile = new MockFlowFile(mockFlowFile.getId(), flowFile);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
         newFlowFile.setPenalized();
+        penalized.add(newFlowFile);
         return newFlowFile;
     }
 
