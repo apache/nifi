@@ -31,17 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.UnsupportedEncodingException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
 
 public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProvider.class);
@@ -134,9 +126,7 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
         return getCipher(encryptionMethod, password, salt, new byte[0], keyLength, encryptMode);
     }
 
-    protected Cipher getInitializedCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, byte[] iv, int keyLength,
-                                          boolean encryptMode) throws NoSuchAlgorithmException, NoSuchProviderException,
-            InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnsupportedEncodingException {
+    protected Cipher getInitializedCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, byte[] iv, int keyLength, boolean encryptMode) throws Exception {
         if (encryptionMethod == null) {
             throw new IllegalArgumentException("The encryption method must be specified");
         }
@@ -146,7 +136,6 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
         }
 
         String algorithm = encryptionMethod.getAlgorithm();
-        String provider = encryptionMethod.getProvider();
 
         final String cipherName = CipherUtility.parseCipherFromAlgorithm(algorithm);
         if (!CipherUtility.isValidKeyLength(keyLength, cipherName)) {
@@ -166,23 +155,8 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
         byte[] dk = ((KeyParameter) gen.generateDerivedParameters(keyLength)).getKey();
         SecretKey tempKey = new SecretKeySpec(dk, algorithm);
 
-        // TODO: May be able to refactor below into KeyedCipherProvider
-        Cipher cipher = Cipher.getInstance(algorithm, provider);
-
-        int ivLength = cipher.getBlockSize();
-        // If an IV was not provided already, generate a random IV and inject it in the cipher
-        if (iv.length != ivLength) {
-            if (encryptMode) {
-                iv = new byte[ivLength];
-                new SecureRandom().nextBytes(iv);
-            } else {
-                // Can't decrypt without an IV
-                throw new IllegalArgumentException("Cannot decrypt without a valid IV");
-            }
-        }
-        cipher.init(encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, tempKey, new IvParameterSpec(iv));
-
-        return cipher;
+        KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
+        return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
     }
 
     public byte[] generateSalt() {

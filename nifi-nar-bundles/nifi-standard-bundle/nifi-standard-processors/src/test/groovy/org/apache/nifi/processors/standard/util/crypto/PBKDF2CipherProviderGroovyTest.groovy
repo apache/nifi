@@ -92,7 +92,33 @@ public class PBKDF2CipherProviderGroovyTest {
         }
     }
 
-    // TODO: Test incorrect (but non-0) length IV
+    @Test
+    public void testGetCipherShouldRejectInvalidIV() throws Exception {
+        // Arrange
+        RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT)
+
+        final String PASSWORD = "shortPassword";
+        final byte[] SALT = Hex.decodeHex(SALT_HEX as char[]);
+        final def INVALID_IVS = (0..15).collect { int length -> new byte[length] }
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+
+        // Act
+        INVALID_IVS.each { byte[] badIV ->
+            logger.info("IV: ${Hex.encodeHexString(badIV)} ${badIV.length}")
+
+            // Encrypt should print a warning about the bad IV but overwrite it
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, true)
+
+            // Decrypt should fail
+            def msg = shouldFail(IllegalArgumentException) {
+                cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, false)
+            }
+
+            // Assert
+            assert msg =~ "Cannot decrypt without a valid IV"
+        }
+    }
 
     @Test
     public void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
@@ -485,5 +511,19 @@ public class PBKDF2CipherProviderGroovyTest {
         c.call()
         long end = System.nanoTime()
         return (end - start) / 1_000_000.0
+    }
+
+    @Test
+    public void testGenerateSaltShouldProvideValidSalt() throws Exception {
+        // Arrange
+        RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT)
+
+        // Act
+        byte[] salt = cipherProvider.generateSalt()
+        logger.info("Checking salt ${salt}")
+
+        // Assert
+        assert salt.length == 16
+        assert salt != [(0x00 as byte) * 16]
     }
 }

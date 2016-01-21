@@ -363,7 +363,7 @@ public class BcryptCipherProviderGroovyTest {
             }
 
             // Assert
-            assert msg =~ "Cannot decrypt without an IV"
+            assert msg =~ "Cannot decrypt without a valid IV"
         }
     }
 

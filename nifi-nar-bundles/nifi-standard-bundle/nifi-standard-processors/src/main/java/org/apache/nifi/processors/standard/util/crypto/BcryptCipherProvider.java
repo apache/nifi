@@ -24,18 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,7 +41,7 @@ public class BcryptCipherProvider implements RandomIVPBECipherProvider {
      */
     private static final int DEFAULT_WORK_FACTOR = 12;
 
-    private static final Pattern BCRYPT_SALT_FORMAT = Pattern.compile("^\\$\\d\\w\\$\\d{2}\\$\\W{22}");
+    private static final Pattern BCRYPT_SALT_FORMAT = Pattern.compile("^\\$\\d\\w\\$\\d{2}\\$[\\w\\/\\.]{22}");
 
     /**
      * Instantiates a Bcrypt cipher provider with the default work factor 12 (2^12 key expansion rounds).
@@ -126,9 +118,7 @@ public class BcryptCipherProvider implements RandomIVPBECipherProvider {
         return getCipher(encryptionMethod, password, salt, new byte[0], keyLength, encryptMode);
     }
 
-    protected Cipher getInitializedCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, byte[] iv, int keyLength,
-                                          boolean encryptMode) throws NoSuchAlgorithmException, NoSuchProviderException,
-            InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnsupportedEncodingException {
+    protected Cipher getInitializedCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, byte[] iv, int keyLength, boolean encryptMode) throws Exception {
         if (encryptionMethod == null) {
             throw new IllegalArgumentException("The encryption method must be specified");
         }
@@ -159,23 +149,8 @@ public class BcryptCipherProvider implements RandomIVPBECipherProvider {
         dk = Arrays.copyOf(dk, keyLength / 8);
         SecretKey tempKey = new SecretKeySpec(dk, algorithm);
 
-        // TODO: May be able to refactor below into KeyedCipherProvider
-        Cipher cipher = Cipher.getInstance(algorithm, provider);
-
-        int ivLength = cipher.getBlockSize();
-        // If an IV was not provided already, generate a random IV and inject it in the cipher
-        if (iv.length == 0) {
-            if (encryptMode) {
-                iv = new byte[ivLength];
-                new SecureRandom().nextBytes(iv);
-            } else {
-                // Can't decrypt without an IV
-                throw new IllegalArgumentException("Cannot decrypt without an IV");
-            }
-        }
-        cipher.init(encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, tempKey, new IvParameterSpec(iv));
-
-        return cipher;
+        KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
+        return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
     }
 
     private String formatSaltForBcrypt(byte[] salt) throws UnsupportedEncodingException {
