@@ -96,6 +96,14 @@
     overflow: hidden;
 }
 
+div.provenance-icon {
+    background-image: url(../images/iconProvenance.png);
+    background-position: top left;
+    background-size: cover;
+    width: 20px;
+    height: 20px;
+}
+
 /* queue listing table */
 
 #queue-listing-message {

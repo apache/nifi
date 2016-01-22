@@ -459,7 +459,7 @@ nf.QueueListing = (function () {
             // function for formatting durations
             var durationFormatter = function (row, cell, value, columnDef, dataContext) {
                 return nf.Common.formatDuration(value);
-            }
+            };
 
             // function for formatting penalization
             var penalizedFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -470,7 +470,7 @@ nf.QueueListing = (function () {
                 }
 
                 return markup;
-            }
+            };
 
             // initialize the queue listing table
             var queueListingColumns = [
@@ -487,6 +487,16 @@ nf.QueueListing = (function () {
             // conditionally show the cluster node identifier
             if (nf.Canvas.isClustered()) {
                 queueListingColumns.push({id: 'clusterNodeAddress', name: 'Node', field: 'clusterNodeAddress', sortable: false, resizable: true});
+            }
+
+            // add an actions column when the user can access provenance
+            if (nf.Common.canAccessProvenance()) {
+                // function for formatting actions
+                var actionsFormatter = function () {
+                    return '<div title="Provenance" class="pointer provenance-icon view-provenance"></div>';
+                };
+
+                queueListingColumns.push({id: 'actions', name: '&nbsp;', resizable: false, formatter: actionsFormatter, sortable: false, width: 50, maxWidth: 50});
             }
 
             var queueListingOptions = {
@@ -519,6 +529,16 @@ nf.QueueListing = (function () {
                 if (queueListingGrid.getColumns()[args.cell].id === 'moreDetails') {
                     if (target.hasClass('show-flowfile-details')) {
                         showFlowFileDetails(item);
+                    }
+                } else if (queueListingGrid.getColumns()[args.cell].id === 'actions') {
+                    if (target.hasClass('view-provenance')) {
+                        // close the settings dialog
+                        $('#shell-close-button').click();
+
+                        // open the provenance page with the specified component
+                        nf.Shell.showPage('provenance?' + $.param({
+                            flowFileUuid: item.uuid
+                        }));
                     }
                 }
             });

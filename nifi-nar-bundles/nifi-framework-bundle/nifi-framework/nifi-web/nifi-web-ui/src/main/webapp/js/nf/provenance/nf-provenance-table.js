@@ -431,9 +431,11 @@ nf.ProvenanceTable = (function () {
         $('<div class="searchable-field-value"><input type="text" class="searchable-field-input"/></div>').appendTo(searchableField);
         $('<div class="clear"></div>').appendTo(searchableField);
 
-        // make the component id accessible for populating
+        // make the searchable accessible for populating
         if (field.id === 'ProcessorID') {
             searchableField.find('input').addClass('searchable-component-id');
+        } else if (field.id === 'FlowFileUUID') {
+            searchableField.find('input').addClass('searchable-flowfile-uuid');
         }
 
         // ensure the no searchable fields message is hidden
@@ -997,7 +999,7 @@ nf.ProvenanceTable = (function () {
          * query. If not query is specified or it is empty, the most recent entries will
          * be returned.
          * 
-         * @param {type} query
+         * @param {object} query
          */
         loadProvenanceTable: function (query) {
             var provenanceProgress = $('#provenance-percent-complete');
