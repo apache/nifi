@@ -207,7 +207,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         final Set<ControllerServiceNode> serviceSet = new HashSet<>(toDisable);
 
         for (final ControllerServiceNode nodeToDisable : toDisable) {
-            nodeToDisable.verifyCanDisable(serviceSet);
+            if (nodeToDisable.isActive()) {
+                nodeToDisable.verifyCanDisable(serviceSet);
+            }
         }
 
         Collections.reverse(toDisable);
@@ -593,7 +595,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         final Set<ControllerServiceNode> serviceSet = new HashSet<>(toDisable);
 
         for (final ControllerServiceNode nodeToDisable : toDisable) {
-            nodeToDisable.verifyCanDisable(serviceSet);
+            if (nodeToDisable.isActive()) {
+                nodeToDisable.verifyCanDisable(serviceSet);
+            }
         }
     }
 
