@@ -32,7 +32,9 @@ public class CamelProcessorTest {
     public final TemporaryFolder temp = new TemporaryFolder();
 
     @Test
-    public void testValidators() {  logger.info("Hello"); Assert.assertTrue(true);  }
+    public void testValidators() {
+        logger.info("Hello"); Assert.assertTrue(true);
+        }
 
 
 
