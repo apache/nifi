@@ -166,8 +166,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                                 .input(input)
                                 .subject(getName())
                                 .valid(false)
-                                .explanation("Controller Service is not valid: "
-                                        + ((result.getExplanation() == null || result.getExplanation().trim().isEmpty()) ? "(Service does not provide any explanation)" : result.getExplanation()))
+                                .explanation("Controller Service is not valid: " + result)
                                 .build();
                     }
                 }
