@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.listen.AbstractListenEventProcessor;
+import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -64,7 +65,7 @@ import java.util.concurrent.LinkedBlockingQueue;
         "portion of one or more RELP frames. In the case where the RELP frames contain syslog messages, the " +
         "output of this processor can be sent to a ParseSyslog processor for further processing.")
 @WritesAttributes({
-        @WritesAttribute(attribute="relp.comand", description="The command of the RELP frames."),
+        @WritesAttribute(attribute="relp.command", description="The command of the RELP frames."),
         @WritesAttribute(attribute="relp.sender", description="The sending host of the messages."),
         @WritesAttribute(attribute="relp.port", description="The sending port the messages were received over."),
         @WritesAttribute(attribute="relp.txnr", description="The transaction number of the message. Only included if <Batch Size> is 1."),
@@ -103,7 +104,7 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
     @Override
     protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<RELPEvent> events) throws IOException {
         final EventFactory<RELPEvent> eventFactory = new RELPEventFactory();
-        final ChannelHandlerFactory<RELPEvent> handlerFactory = new RELPSocketChannelHandlerFactory<>();
+        final ChannelHandlerFactory<RELPEvent,AsyncChannelDispatcher> handlerFactory = new RELPSocketChannelHandlerFactory<>();
 
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asInteger();
         final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();

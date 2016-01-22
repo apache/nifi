@@ -17,9 +17,9 @@
 package org.apache.nifi.processor.util.listen.handler;
 
 import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 
 import java.nio.channels.SelectionKey;
 import java.nio.charset.Charset;
@@ -28,10 +28,10 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Base class for all channel handlers.
  */
-public abstract class ChannelHandler<E extends Event> implements Runnable {
+public abstract class ChannelHandler<E extends Event, D extends ChannelDispatcher> implements Runnable {
 
     protected final SelectionKey key;
-    protected final ChannelDispatcher dispatcher;
+    protected final D dispatcher;
     protected final Charset charset;
     protected final EventFactory<E> eventFactory;
     protected final BlockingQueue<E> events;
@@ -39,7 +39,7 @@ public abstract class ChannelHandler<E extends Event> implements Runnable {
 
 
     public ChannelHandler(final SelectionKey key,
-                          final ChannelDispatcher dispatcher,
+                          final D dispatcher,
                           final Charset charset,
                           final EventFactory<E> eventFactory,
                           final BlockingQueue<E> events,

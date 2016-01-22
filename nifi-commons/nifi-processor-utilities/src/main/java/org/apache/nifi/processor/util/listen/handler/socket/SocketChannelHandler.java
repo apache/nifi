@@ -17,9 +17,9 @@
 package org.apache.nifi.processor.util.listen.handler.socket;
 
 import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandler;
 
 import java.nio.channels.SelectionKey;
@@ -30,12 +30,12 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Base class for socket channel handlers.
  */
-public abstract class SocketChannelHandler<E extends Event<SocketChannel>> extends ChannelHandler<E> {
+public abstract class SocketChannelHandler<E extends Event<SocketChannel>> extends ChannelHandler<E, AsyncChannelDispatcher> {
 
     static final byte TCP_DELIMITER = '\n';
 
     public SocketChannelHandler(final SelectionKey key,
-                                final ChannelDispatcher dispatcher,
+                                final AsyncChannelDispatcher dispatcher,
                                 final Charset charset,
                                 final EventFactory<E> eventFactory,
                                 final BlockingQueue<E> events,

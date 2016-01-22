@@ -119,6 +119,8 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             .description("Messages received successfully will be sent out this relationship.")
             .build();
 
+    public static final int POLL_TIMEOUT_MS = 100;
+
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
 
@@ -238,7 +240,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         if (event == null) {
             try {
                 if (longPoll) {
-                    event = events.poll(100, TimeUnit.MILLISECONDS);
+                    event = events.poll(POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                 } else {
                     event = events.poll();
                 }

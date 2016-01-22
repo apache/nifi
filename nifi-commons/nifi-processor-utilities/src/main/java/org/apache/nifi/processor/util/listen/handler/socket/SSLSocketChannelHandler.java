@@ -18,7 +18,7 @@ package org.apache.nifi.processor.util.listen.handler.socket;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelAttachment;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -47,7 +47,7 @@ public class SSLSocketChannelHandler<E extends Event<SocketChannel>> extends Soc
     private final ByteArrayOutputStream currBytes = new ByteArrayOutputStream(4096);
 
     public SSLSocketChannelHandler(final SelectionKey key,
-                                   final ChannelDispatcher dispatcher,
+                                   final AsyncChannelDispatcher dispatcher,
                                    final Charset charset,
                                    final EventFactory<E> eventFactory,
                                    final BlockingQueue<E> events,

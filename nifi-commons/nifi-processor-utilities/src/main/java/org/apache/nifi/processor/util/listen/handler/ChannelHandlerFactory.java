@@ -17,28 +17,28 @@
 package org.apache.nifi.processor.util.listen.handler;
 
 import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 
 import java.nio.channels.SelectionKey;
 import java.nio.charset.Charset;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Factory that can produce ChannelHandlers for the given type.
+ * Factory that can produce ChannelHandlers for the given type of Event and ChannelDispatcher.
  */
-public interface ChannelHandlerFactory<E extends Event> {
+public interface ChannelHandlerFactory<E extends Event, D extends ChannelDispatcher> {
 
-    ChannelHandler<E> createHandler(final SelectionKey key,
-                                    final ChannelDispatcher dispatcher,
+    ChannelHandler<E, D> createHandler(final SelectionKey key,
+                                    final D dispatcher,
                                     final Charset charset,
                                     final EventFactory<E> eventFactory,
                                     final BlockingQueue<E> events,
                                     final ProcessorLog logger);
 
-    ChannelHandler<E> createSSLHandler(final SelectionKey key,
-                                       final ChannelDispatcher dispatcher,
+    ChannelHandler<E, D> createSSLHandler(final SelectionKey key,
+                                       final D dispatcher,
                                        final Charset charset,
                                        final EventFactory<E> eventFactory,
                                        final BlockingQueue<E> events,

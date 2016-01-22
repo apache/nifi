@@ -47,10 +47,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Accepts Socket connections on the given port and creates a handler for each connection to
  * be executed by a thread pool.
  */
-public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements ChannelDispatcher {
+public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements AsyncChannelDispatcher {
 
     private final EventFactory<E> eventFactory;
-    private final ChannelHandlerFactory<E> handlerFactory;
+    private final ChannelHandlerFactory<E, AsyncChannelDispatcher> handlerFactory;
     private final BlockingQueue<ByteBuffer> bufferPool;
     private final BlockingQueue<E> events;
     private final ProcessorLog logger;
@@ -66,7 +66,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
 
 
     public SocketChannelDispatcher(final EventFactory<E> eventFactory,
-                                   final ChannelHandlerFactory<E> handlerFactory,
+                                   final ChannelHandlerFactory<E, AsyncChannelDispatcher> handlerFactory,
                                    final BlockingQueue<ByteBuffer> bufferPool,
                                    final BlockingQueue<E> events,
                                    final ProcessorLog logger,
@@ -229,7 +229,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
         try {
             bufferPool.put(attachment.getByteBuffer());
         } catch (InterruptedException e) {
-            // nothing to do here
+            Thread.currentThread().interrupt();
         }
         currentConnections.decrementAndGet();
     }

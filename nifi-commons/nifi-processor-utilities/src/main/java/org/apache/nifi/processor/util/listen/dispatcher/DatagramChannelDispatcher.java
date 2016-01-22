@@ -120,6 +120,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                 }
             } catch (InterruptedException e) {
                 stopped = true;
+                Thread.currentThread().interrupt();
             } catch (IOException e) {
                 logger.error("Error reading from DatagramChannel", e);
             }
@@ -129,7 +130,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
             try {
                 bufferPool.put(buffer);
             } catch (InterruptedException e) {
-                // nothing to do here
+                Thread.currentThread().interrupt();
             }
         }
     }
@@ -149,16 +150,6 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
     public void close() {
         IOUtils.closeQuietly(selector);
         IOUtils.closeQuietly(datagramChannel);
-    }
-
-    @Override
-    public void completeConnection(SelectionKey key) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void addBackForSelection(SelectionKey key) {
-        throw new UnsupportedOperationException();
     }
 
 }

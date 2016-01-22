@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard.relp.handler;
 
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
@@ -47,14 +47,14 @@ public class RELPFrameHandler<E extends Event<SocketChannel>> {
     private final EventFactory<E> eventFactory;
     private final BlockingQueue<E> events;
     private final SelectionKey key;
-    private final ChannelDispatcher dispatcher;
+    private final AsyncChannelDispatcher dispatcher;
     private final RELPEncoder encoder;
 
     public RELPFrameHandler(final SelectionKey selectionKey,
                             final Charset charset,
                             final EventFactory<E> eventFactory,
                             final BlockingQueue<E> events,
-                            final ChannelDispatcher dispatcher) {
+                            final AsyncChannelDispatcher dispatcher) {
         this.key = selectionKey;
         this.charset = charset;
         this.eventFactory = eventFactory;

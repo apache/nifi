@@ -18,11 +18,11 @@ package org.apache.nifi.processor.util.listen.handler.socket;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelAttachment;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
-import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelAttachment;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.response.socket.SocketChannelResponder;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 
@@ -46,7 +46,7 @@ public class StandardSocketChannelHandler<E extends Event<SocketChannel>> extend
     private final ByteArrayOutputStream currBytes = new ByteArrayOutputStream(4096);
 
     public StandardSocketChannelHandler(final SelectionKey key,
-                                        final ChannelDispatcher dispatcher,
+                                        final AsyncChannelDispatcher dispatcher,
                                         final Charset charset,
                                         final EventFactory<E> eventFactory,
                                         final BlockingQueue<E> events,

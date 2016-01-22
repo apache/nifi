@@ -38,6 +38,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.DatagramChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
@@ -295,7 +296,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
             }
 
-            final ChannelHandlerFactory<RawSyslogEvent<SocketChannel>> handlerFactory = new SocketChannelHandlerFactory<>();
+            final ChannelHandlerFactory<RawSyslogEvent<SocketChannel>, AsyncChannelDispatcher> handlerFactory = new SocketChannelHandlerFactory<>();
             return new SocketChannelDispatcher(eventFactory, handlerFactory, bufferPool, events, getLogger(), maxConnections, sslContext, charset);
         }
     }

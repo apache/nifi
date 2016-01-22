@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.standard.relp.handler;
 
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.socket.SSLSocketChannelHandler;
@@ -43,7 +43,7 @@ public class RELPSSLSocketChannelHandler<E extends Event<SocketChannel>> extends
     private RELPFrameHandler<E> frameHandler;
 
     public RELPSSLSocketChannelHandler(final SelectionKey key,
-                                       final ChannelDispatcher dispatcher,
+                                       final AsyncChannelDispatcher dispatcher,
                                        final Charset charset,
                                        final EventFactory<E> eventFactory,
                                        final BlockingQueue<E> events,

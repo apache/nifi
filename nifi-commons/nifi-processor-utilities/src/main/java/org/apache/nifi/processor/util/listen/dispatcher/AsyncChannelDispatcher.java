@@ -16,36 +16,25 @@
  */
 package org.apache.nifi.processor.util.listen.dispatcher;
 
-import java.io.IOException;
+import java.nio.channels.SelectionKey;
 
 /**
- * Dispatches handlers for a given channel.
+ * A ChannelDispatcher that handles channels asynchronously.
  */
-public interface ChannelDispatcher extends Runnable {
+public interface AsyncChannelDispatcher extends ChannelDispatcher {
 
     /**
-     * Opens the dispatcher listening on the given port and attempts to set the
-     * OS socket buffer to maxBufferSize.
+     * Informs the dispatcher that the connection for the given key is complete.
      *
-     * @param port the port to listen on
-     * @param maxBufferSize the size to set the OS socket buffer to
-     * @throws IOException if an error occurred listening on the given port
+     * @param key a key that was previously selected
      */
-    void open(int port, int maxBufferSize) throws IOException;
+    void completeConnection(SelectionKey key);
 
     /**
-     * @return the port being listened to
+     * Informs the dispatcher that the connection for the given key can be added back for selection.
+     *
+     * @param key a key that was previously selected
      */
-    int getPort();
-
-    /**
-     * Stops the main dispatcher thread.
-     */
-    void stop();
-
-    /**
-     * Closes all listeners and stops all handler threads.
-     */
-    void close();
+    void addBackForSelection(SelectionKey key);
 
 }

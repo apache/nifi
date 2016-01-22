@@ -17,9 +17,9 @@
 package org.apache.nifi.processor.util.listen.handler.socket;
 
 import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandler;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 
@@ -31,11 +31,11 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Default factory for creating socket channel handlers.
  */
-public class SocketChannelHandlerFactory<E extends Event<SocketChannel>> implements ChannelHandlerFactory<E> {
+public class SocketChannelHandlerFactory<E extends Event<SocketChannel>> implements ChannelHandlerFactory<E, AsyncChannelDispatcher> {
 
     @Override
-    public ChannelHandler<E> createHandler(final SelectionKey key,
-                                           final ChannelDispatcher dispatcher,
+    public ChannelHandler<E, AsyncChannelDispatcher> createHandler(final SelectionKey key,
+                                           final AsyncChannelDispatcher dispatcher,
                                            final Charset charset,
                                            final EventFactory<E> eventFactory,
                                            final BlockingQueue<E> events,
@@ -44,8 +44,8 @@ public class SocketChannelHandlerFactory<E extends Event<SocketChannel>> impleme
     }
 
     @Override
-    public ChannelHandler<E> createSSLHandler(final SelectionKey key,
-                                              final ChannelDispatcher dispatcher,
+    public ChannelHandler<E, AsyncChannelDispatcher> createSSLHandler(final SelectionKey key,
+                                              final AsyncChannelDispatcher dispatcher,
                                               final Charset charset,
                                               final EventFactory<E> eventFactory,
                                               final BlockingQueue<E> events,
