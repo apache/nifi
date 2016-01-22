@@ -42,7 +42,9 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.context.support.FileSystemXmlApplicationContext;
 
 /**
  * This processor runs a Camel Route.
@@ -131,9 +133,15 @@ public class CamelProcessor extends AbstractProcessor {
     public void onScheduled(final SchedulingContext context) {
         if (getCamelContext() == null) {
             try {
-                camelContext = new SpringCamelContext(new ClassPathXmlApplicationContext(context
-                    .getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue()));
-                // camelContext.start();
+                String camelContextPath=context
+                    .getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue();
+                ApplicationContext applicationContext;
+                if(camelContextPath.startsWith("classpath:")){
+                    applicationContext=new ClassPathXmlApplicationContext(camelContextPath.split(":")[1]);
+                }else{
+                    applicationContext=new FileSystemXmlApplicationContext(camelContextPath.split(":")[1]);
+                }
+                camelContext = new SpringCamelContext(applicationContext);
                 camelContext.addStartupListener(new CamelContextStartupListener(getLogger()));
                 camelContext.start();
                 getLogger().info("Camel Spring Context initialized");
