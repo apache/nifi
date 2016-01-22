@@ -23,7 +23,7 @@
     <artifactId>nifi-camel-bundle</artifactId>
     <version>0.4.2-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <description>A bundle of processors that run Flume sources/sinks</description>
+    <description>A bundle of processor(s) that run Camel Routes </description>
     <dependencyManagement>
         <dependencies>
             <dependency>

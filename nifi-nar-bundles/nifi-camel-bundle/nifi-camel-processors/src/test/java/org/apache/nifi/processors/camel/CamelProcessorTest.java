@@ -28,8 +28,6 @@ public class CamelProcessorTest {
     private static final Logger logger =
         LoggerFactory.getLogger(CamelProcessorTest.class);
 
-    @Rule
-    public final TemporaryFolder temp = new TemporaryFolder();
 
     @Test
     public void testValidators() {
