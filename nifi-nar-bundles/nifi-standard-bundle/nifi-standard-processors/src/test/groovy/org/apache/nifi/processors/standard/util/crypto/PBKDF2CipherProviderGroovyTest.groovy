@@ -42,7 +42,7 @@ public class PBKDF2CipherProviderGroovyTest {
     private static final int TEST_ITERATION_COUNT = 1000
     private final String DEFAULT_PRF = "SHA-512"
     private final String SALT_HEX = "0123456789ABCDEFFEDCBA9876543210"
-    private final String IV_HEX = "00" * 16
+    private final String IV_HEX = "01" * 16
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -467,10 +467,10 @@ public class PBKDF2CipherProviderGroovyTest {
         final int RUNS = 10
 
         // Benchmark using an iteration count of 10k
-        int iterationCount = 1_000
+        int iterationCount = 10_000
 
         final byte[] SALT = [0x00 as byte] * 16
-        final byte[] IV = [0x00 as byte] * 16
+        final byte[] IV = [0x01 as byte] * 16
 
         String defaultPrf = new PBKDF2CipherProvider().getPRFName()
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(defaultPrf, iterationCount)
@@ -520,7 +520,7 @@ public class PBKDF2CipherProviderGroovyTest {
 
         // Act
         byte[] salt = cipherProvider.generateSalt()
-        logger.info("Checking salt ${salt}")
+        logger.info("Checking salt ${Hex.encodeHexString(salt)}")
 
         // Assert
         assert salt.length == 16

@@ -32,6 +32,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 
 public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
@@ -39,7 +40,7 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
 
     // Legacy magic number value
     private static final int ITERATION_COUNT = 0;
-    private static final int SALT_LENGTH = 8;
+    private static final int DEFAULT_SALT_LENGTH = 8;
     private static final byte[] EMPTY_SALT = new byte[8];
 
     /**
@@ -119,7 +120,7 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
             throw new IllegalArgumentException("Encryption with an empty password is not supported");
         }
 
-        if (salt.length != SALT_LENGTH && salt.length != 0) {
+        if (salt.length != DEFAULT_SALT_LENGTH && salt.length != 0) {
             // This does not enforce ASCII encoding, just length
             throw new IllegalArgumentException("Salt must be 8 bytes US-ASCII encoded or empty");
         }
@@ -140,5 +141,17 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
 
     protected int getIterationCount() {
         return ITERATION_COUNT;
+    }
+
+    @Override
+    public byte[] generateSalt() {
+        byte[] salt = new byte[getDefaultSaltLength()];
+        new SecureRandom().nextBytes(salt);
+        return salt;
+    }
+
+    @Override
+    public int getDefaultSaltLength() {
+        return DEFAULT_SALT_LENGTH;
     }
 }

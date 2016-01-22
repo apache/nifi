@@ -287,4 +287,18 @@ public class OpenSSLPKCS5CipherProviderGroovyTest {
         // Assert
         assert msg =~ "Salt must be 8 bytes US-ASCII encoded"
     }
+
+    @Test
+    public void testGenerateSaltShouldProvideValidSalt() throws Exception {
+        // Arrange
+        PBECipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider()
+
+        // Act
+        byte[] salt = cipherProvider.generateSalt()
+        logger.info("Checking salt ${Hex.encodeHexString(salt)}")
+
+        // Assert
+        assert salt.length == cipherProvider.getDefaultSaltLength()
+        assert salt != [(0x00 as byte) * cipherProvider.defaultSaltLength]
+    }
 }

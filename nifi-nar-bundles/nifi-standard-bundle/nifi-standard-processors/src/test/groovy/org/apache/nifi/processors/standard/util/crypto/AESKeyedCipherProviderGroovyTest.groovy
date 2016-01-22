@@ -46,6 +46,10 @@ public class AESKeyedCipherProviderGroovyTest {
     @BeforeClass
     public static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
+
+        logger.metaClass.methodMissing = { String name, args ->
+            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+        }
     }
 
     @Before
@@ -201,7 +205,7 @@ public class AESKeyedCipherProviderGroovyTest {
 
         // Act
         def msg = shouldFail(IllegalArgumentException) {
-             cipherProvider.getCipher(null, key, true)
+            cipherProvider.getCipher(null, key, true)
         }
 
         // Assert
@@ -282,7 +286,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherShouldRejectInvalidIV() throws Exception {
+    public void testGetCipherShouldRejectInvalidIVLengths() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -301,9 +305,36 @@ public class AESKeyedCipherProviderGroovyTest {
             def msg = shouldFail(IllegalArgumentException) {
                 cipher = cipherProvider.getCipher(encryptionMethod, key, badIV, false)
             }
+            logger.expected(msg)
 
             // Assert
             assert msg =~ "Cannot decrypt without a valid IV"
         }
+    }
+
+    @Test
+    public void testGetCipherShouldRejectEmptyIV() throws Exception {
+        // Arrange
+        KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+
+        byte[] badIV = [0x00 as byte] * 16 as byte[]
+
+        // Act
+        logger.info("IV: ${Hex.encodeHexString(badIV)} ${badIV.length}")
+
+        // Encrypt should print a warning about the bad IV but overwrite it
+        Cipher cipher = cipherProvider.getCipher(encryptionMethod, key, badIV, true)
+        logger.info("IV after encrypt: ${Hex.encodeHexString(cipher.getIV())}")
+
+        // Decrypt should fail
+        def msg = shouldFail(IllegalArgumentException) {
+            cipher = cipherProvider.getCipher(encryptionMethod, key, badIV, false)
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Cannot decrypt without a valid IV"
     }
 }

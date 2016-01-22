@@ -33,11 +33,12 @@ import org.slf4j.LoggerFactory;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
 public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProvider.class);
-    private static final int MINIMUM_SALT_LENGTH = 16;
+    private static final int DEFAULT_SALT_LENGTH = 16;
 
     private final int iterationCount;
     private final Digest prf;
@@ -46,7 +47,7 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
     /**
      * TODO: This can be calculated automatically using the code {@see PBKDF2CipherProviderGroovyTest#calculateMinimumIterationCount} or manually updated by a maintainer
      */
-    private static final int DEFAULT_ITERATION_COUNT = 128_000;
+    private static final int DEFAULT_ITERATION_COUNT = 160_000;
 
     /**
      * Instantiates a PBKDF2 cipher provider with the default number of iterations and the default PRF. Currently 128,000 iterations and SHA-512.
@@ -98,6 +99,8 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
      *
+     * The IV can be retrieved by the calling method using {@link Cipher#getIV()}.
+     *
      * @param encryptionMethod the {@link EncryptionMethod}
      * @param password         the secret input
      * @param keyLength        the desired key length in bits
@@ -112,6 +115,8 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
+     *
+     * The IV can be retrieved by the calling method using {@link Cipher#getIV()}.
      *
      * @param encryptionMethod the {@link EncryptionMethod}
      * @param password         the secret input
@@ -146,12 +151,12 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
             throw new IllegalArgumentException("Encryption with an empty password is not supported");
         }
 
-        if (salt == null || salt.length < MINIMUM_SALT_LENGTH) {
-            throw new IllegalArgumentException("The salt must be at least " + MINIMUM_SALT_LENGTH + " bytes. To generate a salt, use PBKDF2CipherProvider#generateSalt()");
+        if (salt == null || salt.length < DEFAULT_SALT_LENGTH) {
+            throw new IllegalArgumentException("The salt must be at least " + DEFAULT_SALT_LENGTH + " bytes. To generate a salt, use PBKDF2CipherProvider#generateSalt()");
         }
 
         PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(this.prf);
-        gen.init(password.getBytes("UTF-8"), salt, getIterationCount());
+        gen.init(password.getBytes(StandardCharsets.UTF_8), salt, getIterationCount());
         byte[] dk = ((KeyParameter) gen.generateDerivedParameters(keyLength)).getKey();
         SecretKey tempKey = new SecretKeySpec(dk, algorithm);
 
@@ -159,10 +164,16 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
         return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
     }
 
+    @Override
     public byte[] generateSalt() {
-        byte[] salt = new byte[MINIMUM_SALT_LENGTH];
+        byte[] salt = new byte[DEFAULT_SALT_LENGTH];
         new SecureRandom().nextBytes(salt);
         return salt;
+    }
+
+    @Override
+    public int getDefaultSaltLength() {
+        return DEFAULT_SALT_LENGTH;
     }
 
     protected int getIterationCount() {

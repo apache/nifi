@@ -36,6 +36,8 @@ public interface PBECipherProvider {
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
      *
+     * The IV can be retrieved by the calling method using {@link Cipher#getIV()}.
+     *
      * @param encryptionMethod the {@link EncryptionMethod}
      * @param password         the secret input
      * @param salt             the salt
@@ -45,4 +47,20 @@ public interface PBECipherProvider {
      * @throws Exception if there is a problem initializing the cipher
      */
     Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, int keyLength, boolean encryptMode) throws Exception;
+
+    /**
+     * Returns a random salt suitable for this cipher provider.
+     *
+     * @see PBECipherProvider#getDefaultSaltLength()
+     *
+     * @return a random salt
+     */
+    byte[] generateSalt();
+
+    /**
+     * Returns the default salt length for this implementation.
+     *
+     * @return the default salt length in bytes
+     */
+    int getDefaultSaltLength();
 }

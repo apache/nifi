@@ -54,7 +54,7 @@ public class AESKeyedCipherProvider implements KeyedCipherProvider {
      *
      * @param encryptionMethod the {@link EncryptionMethod}
      * @param key              the key
-     * @param iv               the IV or nonce
+     * @param iv               the IV or nonce (cannot be all 0x00)
      * @param encryptMode      true for encrypt, false for decrypt
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
@@ -107,11 +107,24 @@ public class AESKeyedCipherProvider implements KeyedCipherProvider {
         }
 
         Cipher cipher = Cipher.getInstance(algorithm, provider);
+        final String operation = encryptMode ? "encrypt" : "decrypt";
+
+        boolean ivIsInvalid = false;
 
         // If an IV was not provided already, generate a random IV and inject it in the cipher
         int ivLength = cipher.getBlockSize();
         if (iv.length != ivLength) {
-            logger.warn("An IV was provided of length {} bytes for {} but should be {} bytes", iv.length, encryptMode ? "encrypt" : "decrypt", ivLength);
+            logger.warn("An IV was provided of length {} bytes for {}ion but should be {} bytes", iv.length, operation, ivLength);
+            ivIsInvalid = true;
+        }
+
+        final byte[] emptyIv = new byte[ivLength];
+        if (Arrays.equals(iv, emptyIv)) {
+            logger.warn("An empty IV was provided of length {} for {}ion", iv.length, operation);
+            ivIsInvalid = true;
+        }
+
+        if (ivIsInvalid) {
             if (encryptMode) {
                 logger.warn("Generating new IV. The value can be obtained in the calling code by invoking 'cipher.getIV()';");
                 iv = generateIV();
