@@ -50,7 +50,7 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
  * This processor runs a Camel Route.
  */
 @Tags({"camel", "route", "put"})
-@InputRequirement(Requirement.INPUT_REQUIRED)
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Runs a Camel Route. Each input FlowFile is converted into a Camel Exchange "
                        + "for processing by configured Route.")
 public class CamelProcessor extends AbstractProcessor {
@@ -64,8 +64,8 @@ public class CamelProcessor extends AbstractProcessor {
     public static final PropertyDescriptor CAMEL_SPRING_CONTEXT_FILE_PATH = new PropertyDescriptor.Builder()
         .name("Camel Spring Config File Path")
         .description("The Classpath where NiFi can find Spring Application context file"
-                         + " Ex: /META-INF/camel-application-context.xml")
-        .defaultValue("/META-INF/camel-application-context.xml").required(true).addValidator(Validator.VALID)
+                         + " Ex: classpath:/META-INF/camel-application-context.xml")
+        .defaultValue("classpath:/META-INF/camel-application-context.xml").required(true).addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor CAMEL_ENTRY_POINT_URI = new PropertyDescriptor.Builder()
