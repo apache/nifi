@@ -48,7 +48,6 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 /**
  * This processor runs a Camel Route.
  */
-@TriggerSerially
 @Tags({"camel", "route", "put"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Runs a Camel Route. Each input FlowFile is converted into a Camel Exchange "
@@ -90,11 +89,10 @@ public class CamelProcessor extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile incomingCSV = session.get();
-        if (incomingCSV == null) {
+        FlowFile incomingFlowFile = session.get();
+        if (incomingFlowFile == null) {
             return;
         }
-
         if (camelContext != null
             && !(camelContext.isSetupRoutes() || camelContext.isStartingRoutes() || camelContext
                 .isSuspended())) {
@@ -104,18 +102,18 @@ public class CamelProcessor extends AbstractProcessor {
         }
 
         Exchange exchange = new DefaultExchange(camelContext);
-        exchange.getIn().setBody(incomingCSV);
+        exchange.getIn().setBody(incomingFlowFile);
         exchange = camelContext.createProducerTemplate().send(context.getProperty(CAMEL_ENTRY_POINT_URI)
                                                                   .getValue(), exchange);
         if (exchange != null && !(exchange.isFailed())) {
             session.transfer(exchange.getIn().getBody(FlowFile.class), SUCCESS);
         } else {
             if (exchange.isFailed()) {
-                incomingCSV.getAttributes().put("camelRouteException",
+                incomingFlowFile.getAttributes().put("camelRouteException",
                                                 exchange.getException() != null ? exchange.getException()
                                                     .toString() : null);
             }
-            session.transfer(incomingCSV, FAILURE);
+            session.transfer(incomingFlowFile, FAILURE);
         }
     }
 
