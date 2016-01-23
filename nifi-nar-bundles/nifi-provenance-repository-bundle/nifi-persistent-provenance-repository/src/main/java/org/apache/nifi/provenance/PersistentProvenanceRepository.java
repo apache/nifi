@@ -240,6 +240,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                                     } catch (final Exception e) {
                                         logger.error("Failed to roll over Provenance Event Log due to {}", e.toString());
                                         logger.error("", e);
+                                        eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to roll over Provenance Event Log due to " + e.toString());
                                     }
                                 }
                             } finally {
@@ -730,7 +731,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 } catch (final Exception e) {
                     logger.error("Failed to Rollover Provenance Event Repository file due to {}", e.toString());
                     logger.error("", e);
-                    eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to Rollover Provenance Event Repository file due to " + e.toString());
+                    eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to Rollover Provenance Event Log due to " + e.toString());
                 } finally {
                     // we must re-lock the readLock, as the finally block below is going to unlock it.
                     readLock.lock();
@@ -756,7 +757,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     } catch (final IOException e) {
                         logger.error("Failed to Rollover Provenance Event Repository file due to {}", e.toString());
                         logger.error("", e);
-                        eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to Rollover Provenance Event Repository file due to " + e.toString());
+                        eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to Rollover Provenance Event Log due to " + e.toString());
                     }
                 }
             } finally {
@@ -1142,6 +1143,22 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         return journalFileCount;
     }
 
+
+    /**
+     * Method is exposed for unit testing
+     *
+     * @param force whether or not to force a rollover.
+     * @throws IOException if unable to complete rollover
+     */
+    void rolloverWithLock(final boolean force) throws IOException {
+        writeLock.lock();
+        try {
+            rollover(force);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
     /**
      * <p>
      * MUST be called with the write lock held.
@@ -1163,19 +1180,26 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         if (force || recordsWrittenSinceRollover.get() > 0L || dirtyWriterCount.get() > 0) {
             final List<File> journalsToMerge = new ArrayList<>();
             for (final RecordWriter writer : writers) {
-                final File writerFile = writer.getFile();
-                journalsToMerge.add(writerFile);
-                try {
-                    writer.close();
-                } catch (final IOException ioe) {
-                    logger.warn("Failed to close {} due to {}", writer, ioe.toString());
-                    if ( logger.isDebugEnabled() ) {
-                        logger.warn("", ioe);
+                if (!writer.isClosed()) {
+                    final File writerFile = writer.getFile();
+                    journalsToMerge.add(writerFile);
+                    try {
+                        writer.close();
+                    } catch (final IOException ioe) {
+                        logger.warn("Failed to close {} due to {}", writer, ioe.toString());
+                        if (logger.isDebugEnabled()) {
+                            logger.warn("", ioe);
+                        }
                     }
                 }
             }
-            if ( logger.isDebugEnabled() ) {
-                logger.debug("Going to merge {} files for journals starting with ID {}", journalsToMerge.size(), LuceneUtil.substringBefore(journalsToMerge.get(0).getName(), "."));
+
+            if (logger.isDebugEnabled()) {
+                if (journalsToMerge.isEmpty()) {
+                    logger.debug("No journals to merge; all RecordWriters were already closed");
+                } else {
+                    logger.debug("Going to merge {} files for journals starting with ID {}", journalsToMerge.size(), LuceneUtil.substringBefore(journalsToMerge.get(0).getName(), "."));
+                }
             }
 
             // Choose a storage directory to store the merged file in.
@@ -1183,66 +1207,69 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             final List<File> storageDirs = configuration.getStorageDirectories();
             final File storageDir = storageDirs.get((int) (storageDirIdx % storageDirs.size()));
 
-            // Run the rollover logic in a background thread.
-            final AtomicReference<Future<?>> futureReference = new AtomicReference<>();
-            final int recordsWritten = recordsWrittenSinceRollover.getAndSet(0);
-            final Runnable rolloverRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        final File fileRolledOver;
-
+            Future<?> future = null;
+            if (!journalsToMerge.isEmpty()) {
+                // Run the rollover logic in a background thread.
+                final AtomicReference<Future<?>> futureReference = new AtomicReference<>();
+                final int recordsWritten = recordsWrittenSinceRollover.getAndSet(0);
+                final Runnable rolloverRunnable = new Runnable() {
+                    @Override
+                    public void run() {
                         try {
-                            fileRolledOver = mergeJournals(journalsToMerge, getMergeFile(journalsToMerge, storageDir), eventReporter);
-                        } catch (final IOException ioe) {
-                            logger.error("Failed to merge Journal Files {} into a Provenance Log File due to {}", journalsToMerge, ioe.toString());
-                            logger.error("", ioe);
-                            return;
-                        }
+                            final File fileRolledOver;
 
-                        if (fileRolledOver == null) {
-                            logger.debug("Couldn't merge journals. Will try again in 10 seconds. journalsToMerge: {}, storageDir: {}", journalsToMerge, storageDir);
-                            return;
-                        }
-                        final File file = fileRolledOver;
-
-                        // update our map of id to Path
-                        // We need to make sure that another thread doesn't also update the map at the same time. We cannot
-                        // use the write lock when purging old events, and we want to use the same approach here.
-                        boolean updated = false;
-                        final Long fileFirstEventId = Long.valueOf(LuceneUtil.substringBefore(fileRolledOver.getName(), "."));
-                        while (!updated) {
-                            final SortedMap<Long, Path> existingPathMap = idToPathMap.get();
-                            final SortedMap<Long, Path> newIdToPathMap = new TreeMap<>(new PathMapComparator());
-                            newIdToPathMap.putAll(existingPathMap);
-                            newIdToPathMap.put(fileFirstEventId, file.toPath());
-                            updated = idToPathMap.compareAndSet(existingPathMap, newIdToPathMap);
-                        }
-
-                        logger.info("Successfully Rolled over Provenance Event file containing {} records", recordsWritten);
-                        rolloverCompletions.getAndIncrement();
-
-                        // We have finished successfully. Cancel the future so that we don't run anymore
-                        Future<?> future;
-                        while ((future = futureReference.get()) == null) {
                             try {
-                                Thread.sleep(10L);
-                            } catch (final InterruptedException ie) {
+                                fileRolledOver = mergeJournals(journalsToMerge, getMergeFile(journalsToMerge, storageDir), eventReporter);
+                            } catch (final IOException ioe) {
+                                logger.error("Failed to merge Journal Files {} into a Provenance Log File due to {}", journalsToMerge, ioe.toString());
+                                logger.error("", ioe);
+                                return;
                             }
+
+                            if (fileRolledOver == null) {
+                                logger.debug("Couldn't merge journals. Will try again in 10 seconds. journalsToMerge: {}, storageDir: {}", journalsToMerge, storageDir);
+                                return;
+                            }
+                            final File file = fileRolledOver;
+
+                            // update our map of id to Path
+                            // We need to make sure that another thread doesn't also update the map at the same time. We cannot
+                            // use the write lock when purging old events, and we want to use the same approach here.
+                            boolean updated = false;
+                            final Long fileFirstEventId = Long.valueOf(LuceneUtil.substringBefore(fileRolledOver.getName(), "."));
+                            while (!updated) {
+                                final SortedMap<Long, Path> existingPathMap = idToPathMap.get();
+                                final SortedMap<Long, Path> newIdToPathMap = new TreeMap<>(new PathMapComparator());
+                                newIdToPathMap.putAll(existingPathMap);
+                                newIdToPathMap.put(fileFirstEventId, file.toPath());
+                                updated = idToPathMap.compareAndSet(existingPathMap, newIdToPathMap);
+                            }
+
+                            logger.info("Successfully Rolled over Provenance Event file containing {} records", recordsWritten);
+                            rolloverCompletions.getAndIncrement();
+
+                            // We have finished successfully. Cancel the future so that we don't run anymore
+                            Future<?> future;
+                            while ((future = futureReference.get()) == null) {
+                                try {
+                                    Thread.sleep(10L);
+                                } catch (final InterruptedException ie) {
+                                }
+                            }
+
+                            future.cancel(false);
+                        } catch (final Throwable t) {
+                            logger.error("Failed to rollover Provenance repository due to {}", t.toString());
+                            logger.error("", t);
                         }
-
-                        future.cancel(false);
-                    } catch (final Throwable t) {
-                        logger.error("Failed to rollover Provenance repository due to {}", t.toString());
-                        logger.error("", t);
                     }
-                }
-            };
+                };
 
-            // We are going to schedule the future to run immediately and then repeat every 10 seconds. This allows us to keep retrying if we
-            // fail for some reason. When we succeed, the Runnable will cancel itself.
-            final Future<?> future = rolloverExecutor.scheduleWithFixedDelay(rolloverRunnable, 0, 10, TimeUnit.SECONDS);
-            futureReference.set(future);
+                // We are going to schedule the future to run immediately and then repeat every 10 seconds. This allows us to keep retrying if we
+                // fail for some reason. When we succeed, the Runnable will cancel itself.
+                future = rolloverExecutor.scheduleWithFixedDelay(rolloverRunnable, 0, 10, TimeUnit.SECONDS);
+                futureReference.set(future);
+            }
 
             streamStartTime.set(System.currentTimeMillis());
             bytesWrittenSinceRollover.set(0);
@@ -1271,7 +1298,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 while (journalFileCount > journalCountThreshold || repoSize > sizeThreshold) {
                     // if a shutdown happens while we are in this loop, kill the rollover thread and break
                     if (this.closed.get()) {
-                        future.cancel(true);
+                        if (future != null) {
+                            future.cancel(true);
+                        }
+
                         break;
                     }
 
@@ -1504,7 +1534,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     }
 
                     if (eventReporter != null) {
-                        eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to merge Journal Files due to " + ioe.toString());
+                        eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "re " + ioe.toString());
                     }
                 }
             }

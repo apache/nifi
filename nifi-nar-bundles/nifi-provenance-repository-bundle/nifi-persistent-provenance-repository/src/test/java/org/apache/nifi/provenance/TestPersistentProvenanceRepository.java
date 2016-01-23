@@ -27,6 +27,7 @@ import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,8 @@ public class TestPersistentProvenanceRepository {
     private RepositoryConfiguration config;
 
     public static final int DEFAULT_ROLLOVER_MILLIS = 2000;
+    private EventReporter eventReporter;
+    private List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
 
     private RepositoryConfiguration createConfiguration() {
         config = new RepositoryConfiguration();
@@ -107,6 +110,17 @@ public class TestPersistentProvenanceRepository {
     @Before
     public void printTestName() {
         System.out.println("\n\n\n***********************  " + name.getMethodName() + "  *****************************");
+
+        reportedEvents.clear();
+        eventReporter = new EventReporter() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void reportEvent(Severity severity, String category, String message) {
+                reportedEvents.add(new ReportedEvent(severity, category, message));
+                System.out.println(severity + " : " + category + " : " + message);
+            }
+        };
     }
 
     @After
@@ -146,14 +160,7 @@ public class TestPersistentProvenanceRepository {
 
 
     private EventReporter getEventReporter() {
-        return new EventReporter() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public void reportEvent(Severity severity, String category, String message) {
-                System.out.println(severity + " : " + category + " : " + message);
-            }
-        };
+        return eventReporter;
     }
 
     @Test
@@ -1238,6 +1245,68 @@ public class TestPersistentProvenanceRepository {
         assertEquals("12345678901234567890123456789012345678901234567890", retrieved.getAttributes().get("75chars"));
     }
 
+
+    @Test
+    public void testFailureToCreateWriterDoesNotPreventSubsequentRollover() throws IOException, InterruptedException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxAttributeChars(50);
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+
+        // Create a repo that will allow only a single writer to be created.
+        final IOException failure = new IOException("Already created writers once. Unit test causing failure.");
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
+            int iterations = 0;
+
+            @Override
+            protected RecordWriter[] createWriters(RepositoryConfiguration config, long initialRecordId) throws IOException {
+                if (iterations++ == 1) {
+                    throw failure;
+                } else {
+                    return super.createWriters(config, initialRecordId);
+                }
+            }
+        };
+
+        // initialize with our event reporter
+        repo.initialize(getEventReporter());
+
+        // create some events in the journal files.
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("75chars", "123456789012345678901234567890123456789012345678901234567890123456789012345");
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        for (int i = 0; i < 50; i++) {
+            final ProvenanceEventRecord event = builder.build();
+            repo.registerEvent(event);
+        }
+
+        // Attempt to rollover but fail to create new writers.
+        try {
+            repo.rolloverWithLock(true);
+            Assert.fail("Expected to get IOException when calling rolloverWithLock");
+        } catch (final IOException ioe) {
+            assertTrue(ioe == failure);
+        }
+
+        // Wait for the first rollover to succeed.
+        repo.waitForRollover();
+
+        // This time when we rollover, we should not have a problem rolling over.
+        repo.rolloverWithLock(true);
+
+        // Ensure that no errors were reported.
+        assertEquals(0, reportedEvents.size());
+    }
+
+
     @Test
     public void testBehaviorOnOutOfMemory() throws IOException, InterruptedException {
         final RepositoryConfiguration config = createConfiguration();
@@ -1343,4 +1412,28 @@ public class TestPersistentProvenanceRepository {
         }
     }
 
+
+    private static class ReportedEvent {
+        private final Severity severity;
+        private final String category;
+        private final String message;
+
+        public ReportedEvent(final Severity severity, final String category, final String message) {
+            this.severity = severity;
+            this.category = category;
+            this.message = message;
+        }
+
+        public String getCategory() {
+            return category;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public Severity getSeverity() {
+            return severity;
+        }
+    }
 }
