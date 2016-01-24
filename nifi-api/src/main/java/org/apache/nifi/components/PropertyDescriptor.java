@@ -160,15 +160,19 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                 }
 
                 final Collection<ValidationResult> validationResults = controllerService.validate(context.getControllerServiceValidationContext(controllerService));
+                final List<ValidationResult> invalidResults = new ArrayList<>();
                 for (final ValidationResult result : validationResults) {
                     if (!result.isValid()) {
-                        return new ValidationResult.Builder()
-                                .input(input)
-                                .subject(getName())
-                                .valid(false)
-                                .explanation("Controller Service is not valid: " + result)
-                                .build();
+                        invalidResults.add(result);
                     }
+                }
+                if (!invalidResults.isEmpty()) {
+                    return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(getName())
+                        .valid(false)
+                        .explanation("Controller Service is not valid: " + (invalidResults.size() > 1 ? invalidResults : invalidResults.get(0)))
+                        .build();
                 }
 
                 return new ValidationResult.Builder()
