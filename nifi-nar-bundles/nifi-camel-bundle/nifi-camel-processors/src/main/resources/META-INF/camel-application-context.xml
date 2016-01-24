@@ -22,7 +22,7 @@
    <camelContext xmlns="http://camel.apache.org/schema/spring">
 
 		<route >
-			<from uri="vm:nifiEntryPoint" />
+			<from uri="direct-vm:nifiEntryPoint" />
 			<to uri="log:org.me.testlog?level=WARN" />
 			<to uri="mock:mockout"/>
 		</route>	

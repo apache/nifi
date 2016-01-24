@@ -21,10 +21,15 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
+import org.apache.camel.ProducerTemplate;
+import org.apache.camel.ServiceStatus;
 import org.apache.camel.impl.DefaultExchange;
+import org.apache.camel.impl.DefaultShutdownStrategy;
+import org.apache.camel.spi.ShutdownStrategy;
 import org.apache.camel.spring.SpringCamelContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -40,11 +45,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
+import org.springframework.context.support.GenericXmlApplicationContext;
+import org.springframework.core.io.ByteArrayResource;
 
 /**
  * This processor runs a Camel Route.
@@ -68,18 +75,26 @@ public class CamelProcessor extends AbstractProcessor {
         .defaultValue("classpath:/META-INF/camel-application-context.xml").required(true).addValidator(Validator.VALID)
         .build();
 
+    public static final PropertyDescriptor CAMEL_SPRING_CONTEXT_DEF = new PropertyDescriptor.Builder()
+    .name("Camel Spring Context Definition")
+    .description("Content of Spring Application context ")
+    .defaultValue("").addValidator(Validator.VALID)
+    .build();
+
     public static final PropertyDescriptor CAMEL_ENTRY_POINT_URI = new PropertyDescriptor.Builder()
         .name("Camel EntryPoint")
-        .description("EntryPoint for NiFi in Camel Route" + " Ex: vm:nifiEntryPoint")
-        .defaultValue("vm:nifiEntryPoint").required(true).addValidator(Validator.VALID).build();
+        .description("EntryPoint for NiFi in Camel Route" + " Ex: direct-vm:nifiEntryPoint")
+        .defaultValue("direct-vm:nifiEntryPoint").required(true).addValidator(Validator.VALID).build();
 
-    private static CamelContext camelContext = null;
+    private static SpringCamelContext camelContext = null;
 
     private ImmutableList<PropertyDescriptor> descriptors;
 
-    private ImmutableSet<Relationship> relationships;
+    private ImmutableSet<Relationship> relationships=ImmutableSet.of(SUCCESS, FAILURE);
 
-    public static synchronized CamelContext getCamelContext() {
+    private ThreadLocal<ProducerTemplate> threadLocal=new ThreadLocal<>();
+
+    public static synchronized SpringCamelContext getCamelContext() {
         return camelContext;
     }
 
@@ -94,18 +109,24 @@ public class CamelProcessor extends AbstractProcessor {
         if (incomingFlowFile == null) {
             return;
         }
-        if (camelContext != null
-            && !(camelContext.isSetupRoutes() || camelContext.isStartingRoutes() || camelContext
-                .isSuspended())) {
-            getLogger().info("Got hold of a running CamelContext " + camelContext.getName());
-        } else {
-            throw new ProcessException("Camel Route is in unusable state");
-        }
-
+        CamelContext camelContext=getCamelContext();
         Exchange exchange = new DefaultExchange(camelContext);
         exchange.getIn().setBody(incomingFlowFile);
-        exchange = camelContext.createProducerTemplate().send(context.getProperty(CAMEL_ENTRY_POINT_URI)
-                                                                  .getValue(), exchange);
+        ProducerTemplate producerTemplate=threadLocal.get();
+        try{
+            if(producerTemplate!=null){
+                producerTemplate.start();
+            }else{
+                producerTemplate= camelContext.createProducerTemplate();
+                producerTemplate.setDefaultEndpointUri(context.getProperty(CAMEL_ENTRY_POINT_URI)
+                                                   .getValue());
+                //threadLocal.set(producerTemplate);
+            }
+            exchange = producerTemplate.send(exchange);
+            producerTemplate.stop();
+        }catch(Exception e){
+            throw new ProcessException(e);
+        }
         if (exchange != null && !(exchange.isFailed())) {
             session.transfer(exchange.getIn().getBody(FlowFile.class), SUCCESS);
         } else {
@@ -116,12 +137,12 @@ public class CamelProcessor extends AbstractProcessor {
             }
             session.transfer(incomingFlowFile, FAILURE);
         }
+        session.commit();
     }
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        this.descriptors = ImmutableList.of(CAMEL_SPRING_CONTEXT_FILE_PATH, CAMEL_ENTRY_POINT_URI);
-        this.relationships = ImmutableSet.of(SUCCESS, FAILURE);
+        this.descriptors = ImmutableList.of(CAMEL_SPRING_CONTEXT_FILE_PATH, CAMEL_SPRING_CONTEXT_DEF, CAMEL_ENTRY_POINT_URI);
     }
 
     @Override
@@ -130,19 +151,31 @@ public class CamelProcessor extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(final SchedulingContext context) {
-        if (getCamelContext() == null) {
+    public void onScheduled(final ProcessContext context) {
+        if (getCamelContext() == null
+            || getCamelContext().getStatus()==ServiceStatus.Stopped
+            || getCamelContext().getStatus()==ServiceStatus.Stopping) {
             try {
+                String camelContextDef=context
+                    .getProperty(CAMEL_SPRING_CONTEXT_DEF).getValue();
                 String camelContextPath=context
                     .getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue();
                 ApplicationContext applicationContext;
-                if(camelContextPath.startsWith("classpath:")){
-                    applicationContext=new ClassPathXmlApplicationContext(camelContextPath.split(":")[1]);
+                if(camelContextDef!=null && camelContextDef.trim().length()>0){
+                    applicationContext= new GenericXmlApplicationContext(new ByteArrayResource(camelContextDef.getBytes(),"InMemory Camel COntext Definition"));
                 }else{
-                    applicationContext=new FileSystemXmlApplicationContext(camelContextPath.split(":")[1]);
+                    if(camelContextPath.startsWith("classpath:")){
+                        applicationContext=new ClassPathXmlApplicationContext(camelContextPath.split(":")[1]);
+                    }else{
+                        applicationContext=new FileSystemXmlApplicationContext(camelContextPath.split(":")[1]);
+                    }
                 }
                 camelContext = new SpringCamelContext(applicationContext);
                 camelContext.addStartupListener(new CamelContextStartupListener(getLogger()));
+                ShutdownStrategy shutdownStrategy=new DefaultShutdownStrategy();
+                shutdownStrategy.setTimeout(1);
+                shutdownStrategy.setTimeUnit(TimeUnit.SECONDS);
+                camelContext.setShutdownStrategy(shutdownStrategy);
                 camelContext.start();
                 getLogger().info("Camel Spring Context initialized");
             } catch (Exception exception) {
@@ -157,10 +190,11 @@ public class CamelProcessor extends AbstractProcessor {
         if (getCamelContext() != null) {
             try {
                 getCamelContext().stop();
+                getCamelContext().destroy();
+                ((AbstractApplicationContext)getCamelContext().getApplicationContext()).close();
             } catch (Exception e) {
-                // Nothing To Do
+               e.printStackTrace();
             }
         }
     }
-
 }
