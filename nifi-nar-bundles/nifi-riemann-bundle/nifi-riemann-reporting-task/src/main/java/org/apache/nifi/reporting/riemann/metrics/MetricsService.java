@@ -52,14 +52,6 @@ public class MetricsService {
         return servicePrefix;
     }
 
-    public Collection<String> getServiceTags() {
-        return serviceTags;
-    }
-
-    public String getHostName() {
-        return hostName;
-    }
-
     public void setAdditionalAttributes(Map<String, String> additionalAttributes) {
         this.additionalAttributes.clear();
         if (additionalAttributes != null) {
@@ -69,8 +61,9 @@ public class MetricsService {
 
     /**
      * Create a list of Riemann events using the provided JVM virtual machine metrics
-     * 
+     *
      * @param virtualMachineMetrics
+     *          JVM virtual machine metrics
      * @return List of Riemann events
      */
     public List<Proto.Event> createJVMEvents(VirtualMachineMetrics virtualMachineMetrics) {
@@ -149,7 +142,6 @@ public class MetricsService {
         }
 
         for (Map.Entry<String, VirtualMachineMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
-            final String gcName = entry.getKey().replace(" ", "");
             final long runs = entry.getValue().getRuns();
             final long timeMS = entry.getValue().getTime(TimeUnit.MILLISECONDS);
             // JVM Garbage Collection Run Count
@@ -168,8 +160,9 @@ public class MetricsService {
 
     /**
      * Create a list of Riemann events for all individual processors within the NiFi data flow
-     * 
+     *
      * @param statuses
+     *          Collection of processor statuses
      * @return List of Riemann events
      */
     public List<Proto.Event> createProcessorEvents(Collection<ProcessorStatus> statuses) {
@@ -257,8 +250,8 @@ public class MetricsService {
 
     /**
      * Create a list of Riemann events for overall aggregated metrics in the NiFi data flow
-     * 
      * @param status
+     *          Processor group status
      * @return List of Riemann events
      */
     public List<Proto.Event> createProcessGroupEvents(ProcessGroupStatus status) {
@@ -346,8 +339,8 @@ public class MetricsService {
 
     /**
      * Create list of Riemann events from a list of bulletin messages
-     * 
      * @param bulletins
+     *          List of bulletin board messages
      * @return List of Riemann events
      */
     public List<Proto.Event> createBulletinEvents(List<Bulletin> bulletins) {

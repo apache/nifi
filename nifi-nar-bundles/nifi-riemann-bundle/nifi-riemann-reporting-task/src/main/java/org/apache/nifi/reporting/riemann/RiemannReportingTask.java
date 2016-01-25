@@ -44,7 +44,8 @@ import com.google.common.collect.Maps;
 import com.yammer.metrics.core.VirtualMachineMetrics;
 
 @Tags({ "reporting", "riemann", "metrics" })
-@DynamicProperty(name = "Attribute Name", value = "Attribute Value", supportsExpressionLanguage = false, description = "Additional attributes may be attached to the event by adding dynamic properties")
+@DynamicProperty(name = "Attribute Name", value = "Attribute Value", supportsExpressionLanguage = false,
+        description = "Additional attributes may be attached to the event by adding dynamic properties")
 @CapabilityDescription("Publish NiFi metrics to Riemann. These metrics include " + "JVM, Processor, and General Data Flow metrics. In addition, you may also forward bulletin " + "board messages.")
 public class RiemannReportingTask extends AbstractReportingTask {
     public static final PropertyDescriptor RIEMANN_HOST = new PropertyDescriptor.Builder().name("Riemann Address").description("Hostname of Riemann server").required(true)
@@ -151,6 +152,7 @@ public class RiemannReportingTask extends AbstractReportingTask {
      * Retrieves all new bulletins in the `BulletinRepository` since the last time this method was called.
      *
      * @param context
+     *          Reporting context
      * @return new bulletins
      */
     private List<Bulletin> getNewBulletins(ReportingContext context) {
