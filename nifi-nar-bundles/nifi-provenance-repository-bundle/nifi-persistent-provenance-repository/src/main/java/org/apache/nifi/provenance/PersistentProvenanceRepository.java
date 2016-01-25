@@ -1028,7 +1028,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         for (final File logFile : logFiles) {
             try (final RecordReader reader = RecordReaders.newRecordReader(logFile, null, Integer.MAX_VALUE)) {
                 final StandardProvenanceEventRecord event = reader.nextRecord();
-                return event.getEventTime();
+                if (event != null) {
+                    return event.getEventTime();
+                }
             } catch (final IOException ioe) {
                 logger.warn("Failed to obtain timestamp of first event from Provenance Event Log File {}", logFile);
             }
