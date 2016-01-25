@@ -212,7 +212,6 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     @OnUnscheduled
     public void onUnscheduled() {
         if (dispatcher != null) {
-            dispatcher.stop();
             dispatcher.close();
         }
     }

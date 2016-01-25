@@ -309,7 +309,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     @OnUnscheduled
     public void onUnscheduled() {
         if (channelDispatcher != null) {
-            channelDispatcher.stop();
             channelDispatcher.close();
         }
     }

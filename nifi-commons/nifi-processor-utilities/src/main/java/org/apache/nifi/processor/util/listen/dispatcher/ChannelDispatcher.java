@@ -39,11 +39,6 @@ public interface ChannelDispatcher extends Runnable {
     int getPort();
 
     /**
-     * Stops the main dispatcher thread.
-     */
-    void stop();
-
-    /**
      * Closes all listeners and stops all handler threads.
      */
     void close();

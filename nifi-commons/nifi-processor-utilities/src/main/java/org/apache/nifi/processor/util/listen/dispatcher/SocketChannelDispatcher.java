@@ -91,7 +91,8 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
 
     @Override
     public void open(final int port, int maxBufferSize) throws IOException {
-        this.executor = Executors.newFixedThreadPool(maxConnections);
+        stopped = false;
+        executor = Executors.newFixedThreadPool(maxConnections);
 
         final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(false);
@@ -114,9 +115,11 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
         while (!stopped) {
             try {
                 int selected = selector.select();
-                if (selected > 0){
+                // if stopped the selector could already be closed which would result in a ClosedSelectorException
+                if (selected > 0 && !stopped){
                     Iterator<SelectionKey> selectorKeys = selector.selectedKeys().iterator();
-                    while (selectorKeys.hasNext()){
+                    // if stopped we don't want to modify the keys because close() may still be in progress
+                    while (selectorKeys.hasNext() && !stopped) {
                         SelectionKey key = selectorKeys.next();
                         selectorKeys.remove();
                         if (!key.isValid()){
@@ -197,27 +200,33 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
     }
 
     @Override
-    public void stop() {
-        stopped = true;
-        selector.wakeup();
-    }
-
-    @Override
     public void close() {
-        executor.shutdown();
-        try {
-            // Wait a while for existing tasks to terminate
-            if (!executor.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException ie) {
-            // (Re-)Cancel if current thread also interrupted
-            executor.shutdownNow();
-            // Preserve interrupt status
-            Thread.currentThread().interrupt();
+        stopped = true;
+        if (selector != null) {
+            selector.wakeup();
         }
-        for(SelectionKey key : selector.keys()){
-            IOUtils.closeQuietly(key.channel());
+
+        if (executor != null) {
+            executor.shutdown();
+            try {
+                // Wait a while for existing tasks to terminate
+                if (!executor.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException ie) {
+                // (Re-)Cancel if current thread also interrupted
+                executor.shutdownNow();
+                // Preserve interrupt status
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        if (selector != null) {
+            synchronized (selector.keys()) {
+                for (SelectionKey key : selector.keys()) {
+                    IOUtils.closeQuietly(key.channel());
+                }
+            }
         }
         IOUtils.closeQuietly(selector);
     }
