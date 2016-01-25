@@ -227,10 +227,9 @@ public class PostHTTP extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor CHUNKED_ENCODING = new PropertyDescriptor.Builder()
             .name("Use Chunked Encoding")
-            .description("Specifies whether or not to use Chunked Encoding to send the data. If false, the entire content of the FlowFile will be buffered into memory.")
-            .required(true)
+            .description("Specifies whether or not to use Chunked Encoding to send the data. This property is ignored in the event the contents are compressed "
+                    + "or sent as FlowFiles.")
             .allowableValues("true", "false")
-            .defaultValue("true")
             .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -329,6 +328,15 @@ public class PostHTTP extends AbstractProcessor {
                     .valid(false)
                     .subject("Proxy server configuration")
                     .build());
+        }
+
+        boolean sendAsFlowFile = context.getProperty(SEND_AS_FLOWFILE).asBoolean();
+        int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+        boolean chunkedSet = context.getProperty(CHUNKED_ENCODING).isSet();
+
+        if(compressionLevel == 0 && !sendAsFlowFile && !chunkedSet) {
+            results.add(new ValidationResult.Builder().valid(false).subject(CHUNKED_ENCODING.getName())
+                    .explanation("if compression level is 0 and not sending as a FlowFile, then the \'"+CHUNKED_ENCODING.getName()+"\' property must be set").build());
         }
 
         return results;
@@ -625,9 +633,21 @@ public class PostHTTP extends AbstractProcessor {
                     out.flush();
                 }
             }
-        });
+        }) {
 
-        entity.setChunked(context.getProperty(CHUNKED_ENCODING).asBoolean());
+            @Override
+            public long getContentLength() {
+                if(compressionLevel == 0 && !sendAsFlowFile && !context.getProperty(CHUNKED_ENCODING).asBoolean() ) {
+                    return toSend.get(0).getSize();
+                } else {
+                    return -1;
+                }
+            }
+        };
+
+        if(context.getProperty(CHUNKED_ENCODING).isSet()) {
+            entity.setChunked(context.getProperty(CHUNKED_ENCODING).asBoolean());
+        }
         post.setEntity(entity);
         post.setConfig(requestConfig);
 
