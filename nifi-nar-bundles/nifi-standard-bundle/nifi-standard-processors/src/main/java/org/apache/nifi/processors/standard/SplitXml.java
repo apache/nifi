@@ -318,7 +318,7 @@ public class SplitXml extends AbstractProcessor {
                         sb.append(entry.getKey());
                         sb.append("=\"");
                         sb.append(entry.getValue());
-                        sb.append("\" ");
+                        sb.append("\"");
                     }
                 }
 

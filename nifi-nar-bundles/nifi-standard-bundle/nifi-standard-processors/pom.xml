@@ -293,6 +293,8 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestUnpackContent/data.flowfilev2</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.flowfilev3</exclude>
                         <exclude>src/test/resources/TestXml/xml-bundle-1</exclude>
+                        <exclude>src/test/resources/TestXml/namespaceSplit1.xml</exclude>
+                        <exclude>src/test/resources/TestXml/namespaceSplit2.xml</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFile.txt.bz2</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFile.txt.gz</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFile1.txt.bz2</exclude>

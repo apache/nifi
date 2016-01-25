@@ -109,6 +109,11 @@ public class TestSplitXml {
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT));
+
+        final MockFlowFile split1 = runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT).get(0);
+        split1.assertContentEquals(Paths.get("src/test/resources/TestXml/namespaceSplit1.xml"));
+        final MockFlowFile split2 = runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT).get(1);
+        split2.assertContentEquals(Paths.get("src/test/resources/TestXml/namespaceSplit2.xml"));
     }
 
     public void parseFlowFiles(List<MockFlowFile> flowfiles) throws Exception, SAXException {
