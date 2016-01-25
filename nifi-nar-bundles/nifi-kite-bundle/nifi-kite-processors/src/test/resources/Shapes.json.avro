@@ -1,0 +1,34 @@
+{
+  "type" : "record",
+  "name" : "contact",
+  "namespace" : "com.jeremydyer",
+  "fields" : [ {
+    "name" : "shapes",
+    "type" : {
+      "type" : "array",
+      "items" : {
+        "type" : "record",
+        "name" : "shapes",
+        "namespace" : "",
+        "fields" : [ {
+          "name" : "shape",
+          "type" : "string",
+          "doc" : "Type inferred from '\"circle\"'"
+        }, {
+          "name" : "color",
+          "type" : "string",
+          "doc" : "Type inferred from '\"red\"'"
+        }, {
+          "name" : "width",
+          "type" : "int",
+          "doc" : "Type inferred from '100'"
+        }, {
+          "name" : "height",
+          "type" : "int",
+          "doc" : "Type inferred from '100'"
+        } ]
+      }
+    },
+    "doc" : "Type inferred from '[{\"shape\":\"circle\",\"color\":\"red\",\"width\":100,\"height\":100},{\"shape\":\"square\",\"color\":\"red\",\"width\":100,\"height\":100},{\"shape\":\"sphere\",\"color\":\"red\",\"width\":100,\"height\":100},{\"shape\":\"triangle\",\"color\":\"red\",\"width\":100,\"height\":100},{\"shape\":\"rectangle\",\"color\":\"red\",\"width\":100,\"height\":100}]'"
+  } ]
+}
