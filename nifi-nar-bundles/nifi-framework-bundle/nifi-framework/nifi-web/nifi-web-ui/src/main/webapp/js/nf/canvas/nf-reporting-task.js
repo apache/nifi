@@ -356,7 +356,7 @@ nf.ReportingTask = (function () {
             $('#reporting-task-properties').propertytable({
                 readOnly: false,
                 dialogContainer: '#new-reporting-task-property-container',
-                deferredDescriptor: getReportingTaskPropertyDescriptor,
+                descriptorDeferred: getReportingTaskPropertyDescriptor,
                 goToServiceDeferred: goToServiceFromProperty
             });
         },
@@ -377,7 +377,7 @@ nf.ReportingTask = (function () {
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
                     readOnly: false,
                     dialogContainer: '#new-reporting-task-property-container',
-                    deferredDescriptor: getReportingTaskPropertyDescriptor,
+                    descriptorDeferred: getReportingTaskPropertyDescriptor,
                     goToServiceDeferred: goToServiceFromProperty
                 });
                 
