@@ -90,7 +90,7 @@ language governing permissions and limitations under the License. -->
         <org.slf4j.version>1.7.12</org.slf4j.version>
         <jetty.version>9.2.11.v20150529</jetty.version>
         <lucene.version>4.10.4</lucene.version>
-        <spring.version>4.1.6.RELEASE</spring.version>
+        <spring.version>4.2.4.RELEASE</spring.version>
         <spring.security.version>4.0.3.RELEASE</spring.security.version>
         <jersey.version>1.19</jersey.version>
         <hadoop.version>2.6.2</hadoop.version>
