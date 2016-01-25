@@ -165,7 +165,6 @@ public class TestRELPSocketChannelHandler {
 
         } finally {
             // stop the dispatcher thread and ensure we shut down handler threads
-            dispatcher.stop();
             dispatcher.close();
         }
     }

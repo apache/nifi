@@ -65,8 +65,10 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
 
     @Override
     public void open(final int port, int maxBufferSize) throws IOException {
+        stopped = false;
         datagramChannel = DatagramChannel.open();
         datagramChannel.configureBlocking(false);
+
         if (maxBufferSize > 0) {
             datagramChannel.setOption(StandardSocketOptions.SO_RCVBUF, maxBufferSize);
             final int actualReceiveBufSize = datagramChannel.getOption(StandardSocketOptions.SO_RCVBUF);
@@ -87,9 +89,11 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
         while (!stopped) {
             try {
                 int selected = selector.select();
-                if (selected > 0){
+                // if stopped the selector could already be closed which would result in a ClosedSelectorException
+                if (selected > 0 && !stopped) {
                     Iterator<SelectionKey> selectorKeys = selector.selectedKeys().iterator();
-                    while (selectorKeys.hasNext()) {
+                    // if stopped we don't want to modify the keys because close() may still be in progress
+                    while (selectorKeys.hasNext() && !stopped) {
                         SelectionKey key = selectorKeys.next();
                         selectorKeys.remove();
                         if (!key.isValid()) {
@@ -141,13 +145,11 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
     }
 
     @Override
-    public void stop() {
-        selector.wakeup();
-        stopped = true;
-    }
-
-    @Override
     public void close() {
+        stopped = true;
+        if (selector != null) {
+            selector.wakeup();
+        }
         IOUtils.closeQuietly(selector);
         IOUtils.closeQuietly(datagramChannel);
     }
