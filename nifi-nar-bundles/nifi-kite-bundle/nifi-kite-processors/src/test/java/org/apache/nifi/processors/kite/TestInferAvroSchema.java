@@ -74,7 +74,7 @@ public class TestInferAvroSchema {
         runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(new File("src/test/resources/Shapes_Header.csv.avro").toPath());
+        flowFile.assertContentEquals(new File("src/test/resources/Shapes_header.csv.avro").toPath());
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
     }
 
@@ -130,7 +130,7 @@ public class TestInferAvroSchema {
         runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 1);
 
         MockFlowFile data = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
-        data.assertContentEquals(Paths.get("src/test/resources/Shapes_Header.csv.avro"));
+        data.assertContentEquals(Paths.get("src/test/resources/Shapes_header.csv.avro"));
         data.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
     }
 
