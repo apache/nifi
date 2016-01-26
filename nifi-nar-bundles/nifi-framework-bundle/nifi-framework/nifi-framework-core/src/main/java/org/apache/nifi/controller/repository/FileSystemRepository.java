@@ -84,6 +84,7 @@ import org.slf4j.LoggerFactory;
 public class FileSystemRepository implements ContentRepository {
 
     public static final int SECTIONS_PER_CONTAINER = 1024;
+    public static final long MIN_CLEANUP_INTERVAL_MILLIS = 1000;
     public static final String ARCHIVE_DIR_NAME = "archive";
     public static final Pattern MAX_ARCHIVE_SIZE_PATTERN = Pattern.compile("\\d{1,2}%");
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemRepository.class);
@@ -226,17 +227,8 @@ public class FileSystemRepository implements ContentRepository {
             executor.scheduleWithFixedDelay(new ArchiveOrDestroyDestructableClaims(), 1, 1, TimeUnit.SECONDS);
         }
 
-        final String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
-        final long cleanupMillis;
-        if (archiveCleanupFrequency == null) {
-            cleanupMillis = 1000L;
-        } else {
-            try {
-                cleanupMillis = FormatUtils.getTimeDuration(archiveCleanupFrequency.trim(), TimeUnit.MILLISECONDS);
-            } catch (final Exception e) {
-                throw new RuntimeException("Invalid value set for property " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
-            }
-        }
+        final long cleanupMillis = this.determineCleanupInterval(properties);
+
         for (final Map.Entry<String, Path> containerEntry : containers.entrySet()) {
             final String containerName = containerEntry.getKey();
             final Path containerPath = containerEntry.getValue();
@@ -1704,4 +1696,29 @@ public class FileSystemRepository implements ContentRepository {
         }
     }
 
+    /**
+     * Will determine the scheduling interval to be used by archive cleanup task
+     * (in milliseconds). This method will enforce the minimum allowed value of
+     * 1 second (1000 milliseconds). If attempt is made to set lower value a
+     * warning will be logged and the method will return minimum value of 1000
+     */
+    private long determineCleanupInterval(NiFiProperties properties) {
+        long cleanupInterval = MIN_CLEANUP_INTERVAL_MILLIS;
+        String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
+        if (archiveCleanupFrequency != null) {
+            try {
+                cleanupInterval = FormatUtils.getTimeDuration(archiveCleanupFrequency.trim(), TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                throw new RuntimeException(
+                        "Invalid value set for property " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
+            }
+            if (cleanupInterval < MIN_CLEANUP_INTERVAL_MILLIS) {
+                LOG.warn("The value of " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY + " property is set to '"
+                        + archiveCleanupFrequency + "' which is "
+                        + "below the allowed minimum of 1 second (1000 milliseconds). Minimum value of 1 sec will be used as scheduling interval for archive cleanup task.");
+                cleanupInterval = MIN_CLEANUP_INTERVAL_MILLIS;
+            }
+        }
+        return cleanupInterval;
+    }
 }
