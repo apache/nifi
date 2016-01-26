@@ -21,11 +21,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -195,7 +196,7 @@ public class SplitXml extends AbstractProcessor {
         private final int splitDepth;
         private final StringBuilder sb = new StringBuilder(XML_PROLOGUE);
         private int depth = 0;
-        private HashMap<String, String> prefixMap = new HashMap<>();
+        private Map<String, String> prefixMap = new TreeMap<>();
 
         public XmlSplitterSaxParser(XmlElementNotifier notifier, int splitDepth) {
             this.notifier = notifier;
