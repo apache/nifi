@@ -26,7 +26,13 @@
 			<to uri="log:org.me.testlog?level=WARN" />
 			<to uri="mock:mockout"/>
 		</route>	
+		<route >
+			<from uri="direct-vm:nifiEntryPoint2" />
+			<to uri="bean:sayHello"/>
+			<to uri="log:org.me.testlog?level=WARN" />
+			<to uri="mock:mockout"/>
+		</route>	
 
 	</camelContext>
-
+<bean id="sayHello" class="org.apache.nifi.processors.camel.beans.SayHelloBean"/>
 </beans>

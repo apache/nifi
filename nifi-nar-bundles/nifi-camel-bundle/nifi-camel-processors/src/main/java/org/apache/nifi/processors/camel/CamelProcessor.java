@@ -110,6 +110,7 @@ public class CamelProcessor extends AbstractProcessor {
         CamelContext camelContext=getCamelContext();
         Exchange exchange = new DefaultExchange(camelContext);
         exchange.getIn().setBody(flowFile);
+        exchange.getIn().setHeader("nifiSession", session);
         ProducerTemplate producerTemplate= camelContext.createProducerTemplate();
         producerTemplate.setDefaultEndpointUri(context.getProperty(CAMEL_ENTRY_POINT_URI)
                                                    .getValue());
