@@ -125,7 +125,7 @@ language governing permissions and limitations under the License. -->
         </repository>
         <repository>
             <id>jcenter</id>
-            <url>http://jcenter.bintray.com </url>
+            <url>http://jcenter.bintray.com</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -1489,6 +1489,92 @@ language governing permissions and limitations under the License. -->
                         </plugin>
                     </plugins>
                 </pluginManagement>
+            </build>
+        </profile>
+        <profile>
+            <!-- Custom profile for Groovy tests -->
+            <id>groovy-unit-test</id>
+            <activation>
+                <property>
+                    <name>groovy</name>
+                    <value>test</value>
+                </property>
+            </activation>
+
+            <dependencies>
+                <dependency>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-all</artifactId>
+                    <version>2.4.5</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>add-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/main/groovy</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-test-source</id>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/test/groovy</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.2</version>
+                        <configuration>
+                            <compilerId>groovy-eclipse-compiler</compilerId>
+                            <source>1.7</source>
+                            <target>1.7</target>
+                            <includes>
+                                <include>**/*.java</include>
+                                <include>**/*.groovy</include>
+                            </includes>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.codehaus.groovy</groupId>
+                                <artifactId>groovy-eclipse-compiler</artifactId>
+                                <version>2.9.2-01</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.codehaus.groovy</groupId>
+                                <artifactId>groovy-eclipse-batch</artifactId>
+                                <version>2.4.3-01</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-compiler</artifactId>
+                        <version>2.9.2-01</version>
+                        <extensions>true</extensions>
+                    </plugin>
+                </plugins>
             </build>
         </profile>
     </profiles>

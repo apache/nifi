@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.EncryptContent;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPCompressedData;
@@ -46,9 +47,11 @@ public class PGPUtil {
     public static final int BUFFER_SIZE = 65536;
     public static final int BLOCK_SIZE = 4096;
 
-    public static void encrypt(InputStream in, OutputStream out, String algorithm, String provider, int cipher, String filename,
-                               PGPKeyEncryptionMethodGenerator encryptionMethodGenerator) throws IOException, PGPException {
-
+    public static void encrypt(InputStream in, OutputStream out, String algorithm, String provider, int cipher, String filename, PGPKeyEncryptionMethodGenerator encryptionMethodGenerator) throws
+            IOException, PGPException {
+        if (StringUtils.isEmpty(algorithm)) {
+            throw new IllegalArgumentException("The algorithm must be specified");
+        }
         final boolean isArmored = EncryptContent.isPGPArmoredAlgorithm(algorithm);
         OutputStream output = out;
         if (isArmored) {
@@ -76,7 +79,7 @@ public class PGPUtil {
 
                         final byte[] buffer = new byte[BLOCK_SIZE];
                         int len;
-                        while ((len = in.read(buffer)) >= 0) {
+                        while ((len = in.read(buffer)) > -1) {
                             literalOut.write(buffer, 0, len);
                         }
                     }
