@@ -190,8 +190,12 @@ Language supports four different data types:
 - *String*: A String is a sequence of characters that can consist of numbers, letters, white space, and
 	special characters.
 - *Number*: A Number is an integer comprised of one or more digits (`0` through `9`). The Expression Language 
-	does not provide support for fractional numbers. Dates and times are represented in the
-	Expression Language as Numbers, representing the number of milliseconds since midnight GMT on January 1, 1970.
+	does not provide support for fractional numbers. When converting to numbers from Date data types, they are represented as
+	the number of milliseconds since midnight GMT on January 1, 1970.
+- *Date*: A Date is an object that holds a Date and Time. Utilizing the <<dates>> and <<type_cast>> functions this data
+	type can be converted to/from Strings and numbers. If the whole Expression Language expression is evaluated to be a
+	date then it will be converted to a String with the format: "<Day of Week> <Month> <Day of Month> <Hour>:<Minute>:<Second> <Time Zone> <Year>".
+	Also expressed as "E MMM dd HH:mm:ss z yyyy" in Java SimpleDateFormat format. For example: "Wed Dec 31 12:00:04 UTC 2016".
 - *Boolean*: A Boolean is one of either `true` or `false`.
 
 All attributes are considered to be of type String.
@@ -1338,10 +1342,9 @@ Expressions will provide the following results:
 [.function]
 === toDate
 
-*Description*: [.description]#Converts a String into a Number, based on the format specified by the argument. The argument
-	must be a String that is a valid Java SimpleDateFormat syntax. The Subject is expected to be a String
-	that is formatted according the argument. The return value is the number of milliseconds since 
-	Midnight GMT on January 1, 1970.#
+*Description*: [.description]#Converts a String into a Date data type, based on the format specified by the argument. The argument
+	must be a String that is a valid Java SimpleDateFormat syntax. The Subject is expected to be a String that is formatted
+	according the argument.#
 
 *Subject Type*: [.subject]#String#
 
@@ -1350,12 +1353,12 @@ Expressions will provide the following results:
 		- [.argName]#_format_# : [.argDesc]#The current format to use when parsing the Subject, in the Java SimpleDateFormat syntax.#
 
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Date#
 
 *Examples*: If the attribute "year" has the value "2014" and the attribute "time" has the value "2014/12/31 15:36:03.264Z",
-	then the Expression `${year:toDate('yyyy')}` will return the number of milliseconds between Midnight GMT on January 1, 1970
-	and Midnight GMT on January 1, 2014. The Expression `${time:toDate("yyyy/MM/dd HH:mm:ss.SSS'Z'")}` will result in the
-	number of milliseconds between Midnight GMT on January 1, 1970 and 15:36:03.264 GMT on December 31, 2014.
+	then the Expression `${year:toDate('yyyy')}` will return a Date data type with a value representing Midnight GMT on
+	January 1, 2014. The Expression `${time:toDate("yyyy/MM/dd HH:mm:ss.SSS'Z'")}` will result in a Date data type for
+	15:36:03.264 GMT on December 31, 2014.
 	
 Often, this function is used in conjunction with the <<format>> function to change the format of a date/time. For example,
 if the attribute "date" has the value "12-24-2014" and we want to change the format to "2014/12/24", we can do so by
@@ -1367,18 +1370,22 @@ chaining together the two functions: `${date:toDate('MM-dd-yyyy'):format('yyyy/M
 [.function]
 === now
 
-*Description*: [.description]#The `now` function returns the current date and time as the number of milliseconds since Midnight GMT on
-	January 1, 1970.#
+*Description*: [.description]#Returns the current date and time as a Date data type object.#
 
 *Subject Type*: [.subjectless]#No Subject#
 
 *Arguments*: No arguments
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Date#
 
-*Examples*: We can format the current date and time by using the `now` function in conjunction with the <<format>> function:
-	`${now():format('yyyy/MM/dd HH:mm:ss')}`.
+*Examples*: We can get the current date and time as a Date data type by using the `now` function: `${now()}`. As an example,
+	on Wednesday December 31st 2014 at 36 minutes after 3pm and 36.123 seconds EST `${now()}` would be evaluated to be a
+	Date type representing that time. Since whole Expression Language expressions can only return Strings it would formatted as
+	`Wed Dec 31 15:36:03 EST 2014` when the expression completes.
 
+The utilizing the <<toNumber>> method, `now` can provide the current date and time as the number of milliseconds since
+Midnight GMT on January 1, 1970. For instance, if instead of executing `${now()}` in the previous example `${now():toNumber()}`
+was run then it would output `1453843201123`. This way preserves the millisecond field.
 
 
 
