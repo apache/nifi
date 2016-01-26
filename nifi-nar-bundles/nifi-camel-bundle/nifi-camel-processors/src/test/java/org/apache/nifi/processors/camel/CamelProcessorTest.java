@@ -42,7 +42,8 @@ public class CamelProcessorTest {
      * Returned response FlowFile will be tested for the same content as original.
      */
     @Test
-    public void testProcessor() {
+    public void testProcessorBasic() {
+        testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint");
         String content="Hello NiFi, said Camel";
         testRunner.enqueue(content);
         testRunner.run();
@@ -53,7 +54,21 @@ public class CamelProcessorTest {
         LOGGER.debug("Content Processed Successully");
     }
 
-
+    /**
+     * This test will up a dummy camel route to send a Flow File as camel exchange.
+     * Modified response FlowFile will be tested for a string , pushed from camel.
+     */
+    @Test
+    public void testProcessorFlowFileMod() {
+        testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint2");
+        testRunner.enqueue("Hello");
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(CamelProcessor.SUCCESS, 1);
+        final MockFlowFile processedFlowFile = testRunner
+                .getFlowFilesForRelationship(CamelProcessor.SUCCESS).get(0);
+        processedFlowFile.assertContentEquals("Hello NiFi");
+        LOGGER.debug("Content Processed Successully");
+    }
 
 
 }
