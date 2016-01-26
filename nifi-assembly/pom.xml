@@ -282,6 +282,16 @@ language governing permissions and limitations under the License. -->
 	        <artifactId>nifi-splunk-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-jms-cf-service-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-jms-processors-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
     <properties>

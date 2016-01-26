@@ -1032,6 +1032,18 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-jms-cf-service-nar</artifactId>
+                <version>0.6.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-jms-processors-nar</artifactId>
+                <version>0.6.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hbase_1_1_2-client-service-nar</artifactId>
                 <version>0.6.0-SNAPSHOT</version>
                 <type>nar</type>

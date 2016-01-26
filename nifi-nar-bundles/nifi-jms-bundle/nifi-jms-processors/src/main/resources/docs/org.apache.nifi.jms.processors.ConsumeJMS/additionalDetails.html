@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>ConsumeJMS</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>
+    This processor consumes messages from JMS compliant messaging system and converts them to a FlowFile to be routed to the next component in the flow.
+</p>
+<p>
+    This processor does two things. It constructs FlowFile by extracting information from the consumed JMS message including body, standard 
+    <a href="http://docs.spring.io/spring-integration/api/org/springframework/integration/jms/JmsHeaders.html">JMS Headers</a> and Properties. 
+    The message body is written to a FlowFile while standard JMS Headers and Properties are set as FlowFile attributes.
+</p>
+
+<h2>Configuration Details</h2>
+<p>
+    At the time of writing this document it only defines the essential configuration properties which are suitable for most cases. 
+    Other properties will be defined later as this component progresses.
+    Configuring ConsumeJMS:
+</p>
+<ol>
+    <li><b>User Name</b> - [OPTIONAL] User Name used for authentication and authorization when this processor obtains <i>javax.jms.Connection</i> 
+    from the pre-configured <i>javax.jms.ConnectionFactory</i> (see below).
+    </li>
+    <li><b>Password</b> - [OPTIONAL] Password used in conjunction with <b>User Name</b>.
+    </li>
+    <li><b>Destination Name</b> - [REQUIRED] the name of the <i>javax.jms.Destination</i>. 
+    Usually provided by administrator (e.g., 'topic://myTopic'). 
+    </li>
+    <li><b>Destination Type</b> - [OPTIONAL] the type of the <i>javax.jms.Destination</i>. Could be one of 'QUEUE' or 'TOPIC'
+    Usually provided by the administrator. Defaults to 'TOPIC'. 
+    </li>
+    <li><b>Session Cache size</b> - [OPTIONAL] Specify the desired size for the JMS Session cache (per JMS Session type). This cache 
+    size is the maximum limit for the number of cached Sessions.
+    Usually provided by the administrator (e.g., '2453'). Defaults to '1'.
+    </li>
+    <li><b>Connection Factory Service</b> - [REQUIRED] link to a pre-configured instance of org.apache.nifi.jms.cf.JMSConnectionFactoryProvider.
+    </li>
+</ol>
+
+</body>
+</html>
