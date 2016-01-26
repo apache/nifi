@@ -18,6 +18,9 @@ package org.apache.nifi.processors.standard.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -101,6 +104,26 @@ public class TestJdbcCommon {
     }
 
     @Test
+    public void testCreateSchemaNoColumns() throws ClassNotFoundException, SQLException {
+
+        final ResultSet resultSet = mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(0);
+        when(resultSetMetaData.getTableName(1)).thenThrow(SQLException.class);
+
+        final Schema schema = JdbcCommon.createSchema(resultSet);
+        assertNotNull(schema);
+
+        // records name, should be result set first column table name
+        // Notice! sql select may join data from different tables, other columns
+        // may have different table names
+        assertEquals("NiFi_ExecuteSQL_Record", schema.getName());
+        assertNull(schema.getField("ID"));
+
+    }
+
+    @Test
     public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
         // remove previous test database, if any
         folder.delete();
@@ -165,14 +188,14 @@ public class TestJdbcCommon {
                 continue;
             }
 
-            final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
-            Mockito.when(metadata.getColumnCount()).thenReturn(1);
-            Mockito.when(metadata.getColumnType(1)).thenReturn(type);
-            Mockito.when(metadata.getColumnName(1)).thenReturn(field.getName());
-            Mockito.when(metadata.getTableName(1)).thenReturn("table");
+            final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+            when(metadata.getColumnCount()).thenReturn(1);
+            when(metadata.getColumnType(1)).thenReturn(type);
+            when(metadata.getColumnName(1)).thenReturn(field.getName());
+            when(metadata.getTableName(1)).thenReturn("table");
 
-            final ResultSet rs = Mockito.mock(ResultSet.class);
-            Mockito.when(rs.getMetaData()).thenReturn(metadata);
+            final ResultSet rs = mock(ResultSet.class);
+            when(rs.getMetaData()).thenReturn(metadata);
 
             try {
                 JdbcCommon.createSchema(rs);
@@ -185,15 +208,15 @@ public class TestJdbcCommon {
 
     @Test
     public void testSignedIntShouldBeInt() throws SQLException, IllegalArgumentException, IllegalAccessException {
-        final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
-        Mockito.when(metadata.getColumnCount()).thenReturn(1);
-        Mockito.when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
-        Mockito.when(metadata.isSigned(1)).thenReturn(true);
-        Mockito.when(metadata.getColumnName(1)).thenReturn("Col1");
-        Mockito.when(metadata.getTableName(1)).thenReturn("Table1");
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(metadata.isSigned(1)).thenReturn(true);
+        when(metadata.getColumnName(1)).thenReturn("Col1");
+        when(metadata.getTableName(1)).thenReturn("Table1");
 
-        final ResultSet rs = Mockito.mock(ResultSet.class);
-        Mockito.when(rs.getMetaData()).thenReturn(metadata);
+        final ResultSet rs = mock(ResultSet.class);
+        when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
         Assert.assertNotNull(schema);
@@ -219,15 +242,15 @@ public class TestJdbcCommon {
 
     @Test
     public void testUnsignedIntShouldBeLong() throws SQLException, IllegalArgumentException, IllegalAccessException {
-        final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
-        Mockito.when(metadata.getColumnCount()).thenReturn(1);
-        Mockito.when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
-        Mockito.when(metadata.isSigned(1)).thenReturn(false);
-        Mockito.when(metadata.getColumnName(1)).thenReturn("Col1");
-        Mockito.when(metadata.getTableName(1)).thenReturn("Table1");
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(metadata.isSigned(1)).thenReturn(false);
+        when(metadata.getColumnName(1)).thenReturn("Col1");
+        when(metadata.getTableName(1)).thenReturn("Table1");
 
-        final ResultSet rs = Mockito.mock(ResultSet.class);
-        Mockito.when(rs.getMetaData()).thenReturn(metadata);
+        final ResultSet rs = mock(ResultSet.class);
+        when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
         Assert.assertNotNull(schema);
@@ -254,14 +277,14 @@ public class TestJdbcCommon {
 
     @Test
     public void testConvertToAvroStreamForBigDecimal() throws SQLException, IOException {
-        final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
-        Mockito.when(metadata.getColumnCount()).thenReturn(1);
-        Mockito.when(metadata.getColumnType(1)).thenReturn(Types.NUMERIC);
-        Mockito.when(metadata.getColumnName(1)).thenReturn("Chairman");
-        Mockito.when(metadata.getTableName(1)).thenReturn("table");
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.NUMERIC);
+        when(metadata.getColumnName(1)).thenReturn("Chairman");
+        when(metadata.getTableName(1)).thenReturn("table");
 
-        final ResultSet rs = Mockito.mock(ResultSet.class);
-        Mockito.when(rs.getMetaData()).thenReturn(metadata);
+        final ResultSet rs = mock(ResultSet.class);
+        when(rs.getMetaData()).thenReturn(metadata);
 
         final AtomicInteger counter = new AtomicInteger(1);
         Mockito.doAnswer(new Answer<Boolean>() {
@@ -272,7 +295,7 @@ public class TestJdbcCommon {
         }).when(rs).next();
 
         final BigDecimal bigDecimal = new BigDecimal(38D);
-        Mockito.when(rs.getObject(Mockito.anyInt())).thenReturn(bigDecimal);
+        when(rs.getObject(Mockito.anyInt())).thenReturn(bigDecimal);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
