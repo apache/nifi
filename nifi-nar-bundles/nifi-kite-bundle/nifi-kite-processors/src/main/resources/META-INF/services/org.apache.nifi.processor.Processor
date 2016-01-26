@@ -16,3 +16,4 @@ org.apache.nifi.processors.kite.StoreInKiteDataset
 org.apache.nifi.processors.kite.ConvertCSVToAvro
 org.apache.nifi.processors.kite.ConvertJSONToAvro
 org.apache.nifi.processors.kite.ConvertAvroSchema
+org.apache.nifi.processors.kite.InferAvroSchema
