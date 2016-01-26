@@ -29,4 +29,20 @@
             <artifactId>nifi-camel-processors</artifactId>
         </dependency>
     </dependencies>
+    <build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<!-- To Generate NOTICE file run: mvn org.jasig.maven:maven-notice-plugin:generate -->
+					<groupId>org.jasig.maven</groupId>
+					<artifactId>maven-notice-plugin</artifactId>
+					<version>1.0.6.1</version>
+					<configuration>
+						<outputDir>${basedir}/src/main/resources/META-INF</outputDir>
+						<generateChildNotices>false</generateChildNotices>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
 </project>
