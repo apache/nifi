@@ -62,10 +62,10 @@ import org.springframework.core.io.ByteArrayResource;
                        + "for processing by configured Route.")
 public class CamelProcessor extends AbstractProcessor {
 
-    private static final Relationship SUCCESS = new Relationship.Builder().name("success")
+    protected static final Relationship SUCCESS = new Relationship.Builder().name("success")
         .description("Camel Route has Executed Successfully").build();
 
-    private static final Relationship FAILURE = new Relationship.Builder().name("failure")
+    protected static final Relationship FAILURE = new Relationship.Builder().name("failure")
         .description("Camel Route has Failed to Execute").build();
 
     public static final PropertyDescriptor CAMEL_SPRING_CONTEXT_FILE_PATH = new PropertyDescriptor.Builder()
@@ -92,8 +92,6 @@ public class CamelProcessor extends AbstractProcessor {
 
     private ImmutableSet<Relationship> relationships=ImmutableSet.of(SUCCESS, FAILURE);
 
-    private ThreadLocal<ProducerTemplate> threadLocal=new ThreadLocal<>();
-
     public static synchronized SpringCamelContext getCamelContext() {
         return camelContext;
     }
@@ -104,25 +102,19 @@ public class CamelProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile incomingFlowFile = session.get();
-        if (incomingFlowFile == null) {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
             return;
         }
         CamelContext camelContext=getCamelContext();
         Exchange exchange = new DefaultExchange(camelContext);
-        exchange.getIn().setBody(incomingFlowFile);
-        ProducerTemplate producerTemplate=threadLocal.get();
-        try{
-            if(producerTemplate!=null){
-                producerTemplate.start();
-            }else{
-                producerTemplate= camelContext.createProducerTemplate();
-                producerTemplate.setDefaultEndpointUri(context.getProperty(CAMEL_ENTRY_POINT_URI)
+        exchange.getIn().setBody(flowFile);
+        ProducerTemplate producerTemplate= camelContext.createProducerTemplate();
+        producerTemplate.setDefaultEndpointUri(context.getProperty(CAMEL_ENTRY_POINT_URI)
                                                    .getValue());
-                //threadLocal.set(producerTemplate);
-            }
-            exchange = producerTemplate.send(exchange);
+        exchange = producerTemplate.send(exchange);
+        try{
             producerTemplate.stop();
         }catch(Exception e){
             throw new ProcessException(e);
@@ -130,14 +122,11 @@ public class CamelProcessor extends AbstractProcessor {
         if (exchange != null && !(exchange.isFailed())) {
             session.transfer(exchange.getIn().getBody(FlowFile.class), SUCCESS);
         } else {
-            if (exchange.isFailed()) {
-                incomingFlowFile.getAttributes().put("camelRouteException",
-                                                exchange.getException() != null ? exchange.getException()
-                                                    .toString() : null);
+            if (exchange.isFailed() && exchange.getException() != null) {
+                session.putAttribute(flowFile, "camelRouteException", exchange.getException().getMessage());
             }
-            session.transfer(incomingFlowFile, FAILURE);
+            session.transfer(flowFile, FAILURE);
         }
-        session.commit();
     }
 
     @Override
@@ -179,7 +168,7 @@ public class CamelProcessor extends AbstractProcessor {
                 camelContext.start();
                 getLogger().info("Camel Spring Context initialized");
             } catch (Exception exception) {
-                getLogger().warn(exception.getLocalizedMessage(), exception);
+                getLogger().error("Failed to Shutdown Camel Spring Context", exception);
             }
         }
 
@@ -193,7 +182,7 @@ public class CamelProcessor extends AbstractProcessor {
                 getCamelContext().destroy();
                 ((AbstractApplicationContext)getCamelContext().getApplicationContext()).close();
             } catch (Exception e) {
-               e.printStackTrace();
+               getLogger().error("Failed to Shutdown Camel Spring Context", e);
             }
         }
     }

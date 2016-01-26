@@ -16,21 +16,42 @@
  */
 package org.apache.nifi.processors.camel;
 
-import org.junit.Assert;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class CamelProcessorTest {
 
-    private static final Logger logger =
+    private static final Logger LOGGER =
         LoggerFactory.getLogger(CamelProcessorTest.class);
+    private TestRunner testRunner;
+
+    @Before
+    public void init() {
+        testRunner = TestRunners.newTestRunner(CamelProcessor.class);
+    }
 
 
+    /**
+     * This test will up a dummy camel route to send a Flow File as camel exchange.
+     * Returned response FlowFile will be tested for the same content as original.
+     */
     @Test
-    public void testValidators() {
-        logger.info("Hello"); Assert.assertTrue(true);
-        }
+    public void testProcessor() {
+        String content="Hello NiFi, said Camel";
+        testRunner.enqueue(content);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(CamelProcessor.SUCCESS, 1);
+        final MockFlowFile processedFlowFile = testRunner
+                .getFlowFilesForRelationship(CamelProcessor.SUCCESS).get(0);
+        processedFlowFile.assertContentEquals(content);
+        LOGGER.debug("Content Processed Successully");
+    }
 
 
 
