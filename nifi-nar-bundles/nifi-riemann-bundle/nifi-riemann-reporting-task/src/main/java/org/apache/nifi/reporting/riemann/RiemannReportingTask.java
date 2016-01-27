@@ -17,10 +17,12 @@
 package org.apache.nifi.reporting.riemann;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -48,35 +50,35 @@ import com.yammer.metrics.core.VirtualMachineMetrics;
         description = "Additional attributes may be attached to the event by adding dynamic properties")
 @CapabilityDescription("Publish NiFi metrics to Riemann. These metrics include " + "JVM, Processor, and General Data Flow metrics. In addition, you may also forward bulletin " + "board messages.")
 public class RiemannReportingTask extends AbstractReportingTask {
-    public static final PropertyDescriptor RIEMANN_HOST = new PropertyDescriptor.Builder().name("Riemann Address").description("Hostname of Riemann server").required(true)
+    private static final PropertyDescriptor RIEMANN_HOST = new PropertyDescriptor.Builder().name("Riemann Address").description("Hostname of Riemann server").required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-    public static final PropertyDescriptor RIEMANN_PORT = new PropertyDescriptor.Builder().name("Riemann Port").description("Port that Riemann is listening on").required(true).defaultValue("5555")
+    private static final PropertyDescriptor RIEMANN_PORT = new PropertyDescriptor.Builder().name("Riemann Port").description("Port that Riemann is listening on").required(true).defaultValue("5555")
             .addValidator(StandardValidators.PORT_VALIDATOR).build();
-    public static final PropertyDescriptor TRANSPORT_PROTOCOL = new PropertyDescriptor.Builder().name("Transport Protocol").description("Transport protocol to speak to Riemann in").required(true)
+    private static final PropertyDescriptor TRANSPORT_PROTOCOL = new PropertyDescriptor.Builder().name("Transport Protocol").description("Transport protocol to speak to Riemann in").required(true)
             .allowableValues(new Transport[] { Transport.TCP, Transport.UDP }).defaultValue("TCP").build();
-    public static final PropertyDescriptor SERVICE_PREFIX = new PropertyDescriptor.Builder().name("Prefix for Service Name").description("Prefix to use when reporting to Riemann").defaultValue("nifi")
+    private static final PropertyDescriptor SERVICE_PREFIX = new PropertyDescriptor.Builder().name("Prefix for Service Name").description("Prefix to use when reporting to Riemann").defaultValue("nifi")
             .required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-    public static final PropertyDescriptor WRITE_TIMEOUT = new PropertyDescriptor.Builder().name("Timeout").description("Timeout in milliseconds when writing events to Riemann").required(true)
+    private static final PropertyDescriptor WRITE_TIMEOUT = new PropertyDescriptor.Builder().name("Timeout").description("Timeout in milliseconds when writing events to Riemann").required(true)
             .defaultValue("500ms").addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).build();
-    static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder().name("Hostname").description("The Hostname of this NiFi instance to report to Riemann").required(true)
+    private static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder().name("Hostname").description("The Hostname of this NiFi instance to report to Riemann").required(true)
             .expressionLanguageSupported(true).defaultValue("${hostname(true)}").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-    static final PropertyDescriptor TAGS = new PropertyDescriptor.Builder().name("Tags").description("Comma separated list of tags to include ").required(true).expressionLanguageSupported(true)
+    private static final PropertyDescriptor TAGS = new PropertyDescriptor.Builder().name("Tags").description("Comma separated list of tags to include ").required(true).expressionLanguageSupported(true)
             .defaultValue("nifi,metrics").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-    static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder().name("JVM Metrics").description("Forwards NiFi JVM metrics to Riemann").allowableValues("true", "false")
+    private static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder().name("JVM Metrics").description("Forwards NiFi JVM metrics to Riemann").allowableValues("true", "false")
             .required(true).defaultValue("true").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
-    static final PropertyDescriptor SEND_NIFI_METRICS = new PropertyDescriptor.Builder().name("NiFi Metrics").description("Forwards aggregated data flow metrics to Riemann")
+    private static final PropertyDescriptor SEND_NIFI_METRICS = new PropertyDescriptor.Builder().name("NiFi Metrics").description("Forwards aggregated data flow metrics to Riemann")
             .allowableValues("true", "false").required(true).defaultValue("true").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
-    static final PropertyDescriptor SEND_PROCESSOR_METRICS = new PropertyDescriptor.Builder().name("Processor Metrics").description("Forwards metrics for individual processor to Riemann")
+    private static final PropertyDescriptor SEND_PROCESSOR_METRICS = new PropertyDescriptor.Builder().name("Processor Metrics").description("Forwards metrics for individual processor to Riemann")
             .allowableValues("true", "false").required(true).defaultValue("true").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
-    static final PropertyDescriptor SEND_BULLETIN_MESSAGES = new PropertyDescriptor.Builder().name("Bulletin Messages").description("Forwards messages from the Bulletin board to Riemann")
+    private static final PropertyDescriptor SEND_BULLETIN_MESSAGES = new PropertyDescriptor.Builder().name("Bulletin Messages").description("Forwards messages from the Bulletin board to Riemann")
             .allowableValues("true", "false").required(true).defaultValue("true").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
-    static final PropertyDescriptor MIN_BULLETIN_LEVEL = new PropertyDescriptor.Builder().name("Minimum Bulletin Level")
+    private static final PropertyDescriptor MIN_BULLETIN_LEVEL = new PropertyDescriptor.Builder().name("Minimum Bulletin Level")
             .description("Only forward bulletin messages at this level and above to Riemann").allowableValues(LogLevel.values()).required(true).defaultValue("WARNING").build();
-    protected volatile Transport transport;
+    protected Transport transport;
     private volatile long lastObservedBulletinId = 0;
     private volatile RiemannClient riemannClient = null;
-    private volatile MetricsService metricsService;
-    private volatile VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+    private MetricsService metricsService;
+    private final VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -93,7 +95,7 @@ public class RiemannReportingTask extends AbstractReportingTask {
         properties.add(SEND_BULLETIN_MESSAGES);
         properties.add(MIN_BULLETIN_LEVEL);
         properties.add(WRITE_TIMEOUT);
-        return properties;
+        return Collections.unmodifiableList(properties);
     }
 
     @Override
@@ -165,8 +167,6 @@ public class RiemannReportingTask extends AbstractReportingTask {
                 if (LogLevel.valueOf(bulletin.getLevel()).getValue() >= logLevelValue) {
                     filteredBulletins.add(bulletin);
                 }
-            }
-            for (Bulletin bulletin : bulletins) {
                 lastObservedBulletinId = Math.max(lastObservedBulletinId, bulletin.getId());
             }
         }
