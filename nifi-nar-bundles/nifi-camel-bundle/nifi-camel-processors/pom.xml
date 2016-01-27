@@ -64,6 +64,11 @@
         	<version>${camel.version}</version>
         </dependency>
         <dependency>
+        	<groupId>org.apache.camel</groupId>
+        	<artifactId>camel-grape</artifactId>
+        	<version>${camel.version}</version>
+        </dependency>
+        <dependency>
         	<groupId>com.google.guava</groupId>
         	<artifactId>guava</artifactId>
         </dependency>

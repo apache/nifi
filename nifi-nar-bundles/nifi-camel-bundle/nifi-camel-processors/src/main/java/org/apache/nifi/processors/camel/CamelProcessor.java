@@ -18,6 +18,7 @@ package org.apache.nifi.processors.camel;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import groovy.lang.GroovyClassLoader;
 
 import java.util.List;
 import java.util.Set;
@@ -31,6 +32,8 @@ import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.impl.DefaultShutdownStrategy;
 import org.apache.camel.spi.ShutdownStrategy;
 import org.apache.camel.spring.SpringCamelContext;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,6 +41,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -59,7 +64,7 @@ import org.springframework.core.io.ByteArrayResource;
 @Tags({"camel", "route", "put"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Runs a Camel Route. Each input FlowFile is converted into a Camel Exchange "
-                       + "for processing by configured Route.")
+                       + "for processing by configured Route. It exports ProcessSession to camel exchange header 'nifiSession'")
 public class CamelProcessor extends AbstractProcessor {
 
     protected static final Relationship SUCCESS = new Relationship.Builder().name("success")
@@ -85,6 +90,16 @@ public class CamelProcessor extends AbstractProcessor {
         .name("Camel EntryPoint")
         .description("EntryPoint for NiFi in Camel Route" + " Ex: direct-vm:nifiEntryPoint")
         .defaultValue("direct-vm:nifiEntryPoint").required(true).addValidator(Validator.VALID).build();
+
+    /**
+     *@see <a href="http://camel.apache.org/grape.html">  Camel Grape Documentation</a>
+     */
+    public static final PropertyDescriptor EXT_LIBRARIES = new PropertyDescriptor.Builder()
+    .name("Extra Libraries")
+    .description("Comma Seperated List of Extra Libraries/Features to Download and Use [ in GroupId/ArtifactId/version format]. "
+        + "Ex: org.apache.camel/camel-mail/2.16.1,\n"
+        + "org.apache.camel/camel-infinispan/2.16.1")
+    .required(false).addValidator(new GrapeGrabValidator()).build();
 
     private static SpringCamelContext camelContext = null;
 
@@ -132,7 +147,8 @@ public class CamelProcessor extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        this.descriptors = ImmutableList.of(CAMEL_SPRING_CONTEXT_FILE_PATH, CAMEL_SPRING_CONTEXT_DEF, CAMEL_ENTRY_POINT_URI);
+        this.descriptors = ImmutableList.of(CAMEL_SPRING_CONTEXT_FILE_PATH, CAMEL_SPRING_CONTEXT_DEF,
+                                            CAMEL_ENTRY_POINT_URI,EXT_LIBRARIES);
     }
 
     @Override
@@ -161,6 +177,7 @@ public class CamelProcessor extends AbstractProcessor {
                     }
                 }
                 camelContext = new SpringCamelContext(applicationContext);
+                camelContext.setApplicationContextClassLoader(new GroovyClassLoader(camelContext.getApplicationContextClassLoader()));
                 camelContext.addStartupListener(new CamelContextStartupListener(getLogger()));
                 ShutdownStrategy shutdownStrategy=new DefaultShutdownStrategy();
                 shutdownStrategy.setTimeout(1);
@@ -187,4 +204,37 @@ public class CamelProcessor extends AbstractProcessor {
             }
         }
     }
+
+    /**
+     * To validate {@link groovy.lang.Grab Grab} URLs for {@link groovy.grape.Grape Grape}.
+     * @see <a href="http://camel.apache.org/grape.html">  Camel Grape Documentation</a>
+     */
+    private static class GrapeGrabValidator implements Validator {
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if(!StringUtils.isEmpty(input)){
+            final String[] grapeGrabURLs = input.split(",");
+            for (final String grapeGrabURL : grapeGrabURLs) {
+                String [] eitherOfGAVs=grapeGrabURL.split("/\\/");
+                String validationError=null;
+                if(eitherOfGAVs.length!=3){
+                    validationError="Pattern Should be in Group/Artifact/Version Format.";
+                }else{
+                    if(!eitherOfGAVs[2].equalsIgnoreCase("default")
+                        && !NumberUtils.isDigits(eitherOfGAVs[2].replaceAll("\\.", ""))){
+                        validationError="Version number Should be dotted digits or default";
+                    }
+                }
+                if(validationError!=null){
+                    return new ValidationResult.Builder().subject(subject).input(input)
+                        .explanation(validationError).valid(false).build();
+                }
+            }
+            }
+
+            return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+        }
+
+    }
+
 }

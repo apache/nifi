@@ -41,8 +41,23 @@
 						<outputDir>${basedir}/src/main/resources/META-INF</outputDir>
 						<generateChildNotices>false</generateChildNotices>
 					</configuration>
+					<executions>
+						<execution>
+							<id>generate-notice</id>
+							<phase>generate-resources</phase>
+							<goals>
+								<goal>generate</goal>
+							</goals>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>
+		<plugins>
+			<plugin>
+				<groupId>org.jasig.maven</groupId>
+				<artifactId>maven-notice-plugin</artifactId>
+			</plugin>
+		</plugins>
 	</build>
 </project>
