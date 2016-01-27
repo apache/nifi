@@ -15,8 +15,12 @@ This project includes:
   AOP alliance under Public Domain
   Apache Commons Compress under The Apache Software License, Version 2.0
   Apache Commons Lang under Apache License, Version 2.0
+  Apache Groovy under The Apache Software License, Version 2.0
+  Apache Ivy under The Apache Software License, Version 2.0
   Camel :: Core under The Apache Software License, Version 2.0
+  Camel :: Grape under The Apache Software License, Version 2.0
   Camel :: Spring under The Apache Software License, Version 2.0
+  Commons IO under The Apache Software License, Version 2.0
   Guava: Google Core Libraries for Java under The Apache Software License, Version 2.0
   Hamcrest Core under New BSD License
   JUnit under Eclipse Public License 1.0
