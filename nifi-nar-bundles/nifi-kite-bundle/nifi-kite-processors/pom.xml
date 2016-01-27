@@ -26,7 +26,6 @@
 
     <properties>
         <kite.version>1.0.0</kite.version>
-        <hive.version>1.2.0</hive.version>
         <findbugs-annotations.version>1.3.9-1</findbugs-annotations.version>
     </properties>
 
@@ -59,26 +58,8 @@
 
         <dependency>
             <groupId>org.kitesdk</groupId>
-            <artifactId>kite-data-hive</artifactId>
-            <version>${kite.version}</version>
-            <exclusions>
-                <exclusion>
-                    <!-- Use findbugs-annotations instead -->
-                    <groupId>com.google.code.findbugs</groupId>
-                    <artifactId>jsr305</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>parquet-hive-bundle</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.kitesdk</groupId>
             <artifactId>kite-hadoop-dependencies</artifactId>
             <type>pom</type>
-            <scope>provided</scope>
             <version>${kite.version}</version>
             <exclusions>
                 <exclusion>
@@ -88,103 +69,6 @@
                 <exclusion>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- Hive dependencies to connect to the MetaStore -->
-        <dependency>
-            <groupId>org.apache.hive.hcatalog</groupId>
-            <artifactId>hive-hcatalog-core</artifactId>
-            <version>${hive.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.code.findbugs</groupId>
-                    <artifactId>jsr305</artifactId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jersey-servlet</artifactId>
-                    <groupId>com.sun.jersey</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jersey-core</artifactId>
-                    <groupId>com.sun.jersey</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jersey-server</artifactId>
-                    <groupId>com.sun.jersey</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>servlet-api</artifactId>
-                    <groupId>javax.servlet</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jetty-all</artifactId>
-                    <groupId>org.eclipse.jetty.aggregate</groupId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hive</groupId>
-                    <artifactId>hive-exec</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hive</groupId>
-                    <artifactId>hive-cli</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hive</groupId>
-                    <artifactId>hive-service</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>parquet-hadoop-bundle</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-mapreduce-client-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.antlr</groupId>
-                    <artifactId>antlr-runtime</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.ant</groupId>
-                    <artifactId>ant</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.json</groupId>
-                    <artifactId>json</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-pool</groupId>
-                    <artifactId>commons-pool</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-dbcp</groupId>
-                    <artifactId>commons-dbcp</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.jolbox</groupId>
-                    <artifactId>bonecp</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.derby</groupId>
-                    <artifactId>derby</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpclient</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpcore</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>jline</groupId>
-                    <artifactId>jline</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
