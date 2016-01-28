@@ -62,7 +62,8 @@ import org.apache.nifi.processor.util.StandardValidators;
     "'keep original' the entry is not replaced.'")
 @WritesAttribute(attribute = "cached", description = "All FlowFiles will have an attribute 'cached'. The value of this " +
     "attribute is true, is the FlowFile is cached, otherwise false.")
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer"})
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
+        "org.apache.nifi.processors.standard.FetchDistributedMapCache"})
 public class PutDistributedMapCache extends AbstractProcessor {
 
     public static final String CACHED_ATTRIBUTE_NAME = "cached";
