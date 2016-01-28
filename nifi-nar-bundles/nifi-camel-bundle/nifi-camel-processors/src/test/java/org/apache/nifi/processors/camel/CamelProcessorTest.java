@@ -72,6 +72,12 @@ public class CamelProcessorTest {
         LOGGER.debug("Content Processed Successully");
     }
 
+    /**
+     * This test will up a dummy camel route with dependency[camel-stream], which is not avail in classpath.
+     * Inside the Processor Groovy-Grape will be used to satisfy that dependency by downloading from maven repository.
+     * Then the enqueued {@link MockFlowFile} will be captured back at output of the {@link CamelProcessor}
+     * and will be tested for a string , pushed from camel.
+     */
     @Test
     public void testProcessorGrapeGrab() {
         testRunner.setProperty(CamelProcessor.CAMEL_SPRING_CONTEXT_FILE_PATH,
