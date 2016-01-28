@@ -30,14 +30,32 @@ high throughput, and priority-based queuing. NiFi provides fine-grained data pro
 cloned, modified, sent, and ultimately dropped upon reaching its configured end-state.
 
 See the Admin Guide for information about system requirements, installation, and configuration. Once NiFi is installed,
-use a supported web browser to view the User Interface. Supported web browsers include:
+use a supported web browser to view the User Interface (UI).
 
-* Internet Explorer 9+ (see note below)
-* Mozilla FireFox 24+
-* Google Chrome 36+
-* Safari 8
 
-Note that there is a known issue in Internet Explorer (IE) 10 and 11 that can cause problems when moving items on the NiFi canvas. If you encounter this problem, we suggest using a browser other than IE. This known issue is described here: https://connect.microsoft.com/IE/Feedback/Details/1050422.
+Browser Support
+---------------
+[options="header"]
+|======================
+|Browser  |Version
+|Chrome   |Current and Current - 1
+|FireFox  |Current and Current - 1
+|Edge     |Current
+|Safari   |Current and Current - 1
+|======================
+
+Current and Current - 1 indicates that the UI is supported in the current stable release of that browser and the preceding one. For instance, if
+the current stable release is 45.X then the officially supported versions will be 45.X and 44.X.
+
+Current indicates that the UI is supported in the current stable release of that browser.
+
+The supported browser versions are driven by the capabilities the UI employs and the dependencies it uses. UI features will be developed and tested
+against the supported browsers. Any problem using a supported browser should be reported to Apache NiFi.
+
+=== Unsupported Browsers
+
+While the UI may run successfully in unsupported browsers, it is not actively tested against them. Additionally, the UI is designed as a desktop
+experience and is not currently supported in mobile browsers.
 
 
 [template="glossary", id="terminology"]
