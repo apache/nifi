@@ -168,8 +168,15 @@ public class CamelProcessor extends AbstractProcessor {
                 shutdownStrategy.setTimeout(1);
                 shutdownStrategy.setTimeUnit(TimeUnit.SECONDS);
                 camelContext.setShutdownStrategy(shutdownStrategy);
-               ProducerTemplate template = camelContext.createProducerTemplate();
-               template.sendBody("grape:grape", "org.apache.camel/camel-stream/"+camelContext.getVersion());
+                final String grapeGrabURLs=context.getProperty(EXT_LIBRARIES).getValue();
+                ProducerTemplate template = camelContext.createProducerTemplate();
+                //Let's load Extra Libraries using grape those might not be present in classpath.
+                if(!StringUtils.isEmpty(grapeGrabURLs)){
+                    for (String  grapeGrabURL : grapeGrabURLs.split(",")) {
+                        String [] gav=grapeGrabURL.split("/");
+                        template.sendBody("grape:grape", gav[0]+"/"+gav[1]+"/"+(gav[2].equalsIgnoreCase("default")?camelContext.getVersion():gav[2]));
+                    }
+                }
                 String camelContextDef=context
                     .getProperty(CAMEL_SPRING_CONTEXT_DEF).getValue();
                 String camelContextPath=context
@@ -205,13 +212,15 @@ public class CamelProcessor extends AbstractProcessor {
     public void stopped(){
         if (getCamelContext() != null && getCamelContext().getApplicationContext()!=null) {
             try {
-                getCamelContext().createProducerTemplate()
-                    .sendBodyAndHeader("grape:grape","Clear Downloaded Dependencies", GrapeConstants.getGRAPE_COMMAND(), GrapeCommand.clearPatches);
+                ProducerTemplate template=getCamelContext().createProducerTemplate();
+                template.sendBodyAndHeader("grape:grape","Clear Downloaded Dependencies", GrapeConstants.getGRAPE_COMMAND(), GrapeCommand.clearPatches);
+                template.stop();
                 getCamelContext().stop();
                 getCamelContext().destroy();
-                ((AbstractApplicationContext)getCamelContext().getApplicationContext()).close();
             } catch (Exception e) {
                getLogger().error("Failed to Shutdown Camel Spring Context", e);
+            }finally{
+                ((AbstractApplicationContext)getCamelContext().getApplicationContext()).close();
             }
         }
     }
