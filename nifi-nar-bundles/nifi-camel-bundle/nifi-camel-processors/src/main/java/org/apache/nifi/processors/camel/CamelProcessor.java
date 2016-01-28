@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.camel;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import groovy.lang.GroovyClassLoader;
@@ -28,6 +29,8 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.ServiceStatus;
+import org.apache.camel.component.grape.GrapeCommand;
+import org.apache.camel.component.grape.GrapeConstants;
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.impl.DefaultShutdownStrategy;
 import org.apache.camel.spi.ShutdownStrategy;
@@ -51,10 +54,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
 
@@ -76,8 +76,8 @@ public class CamelProcessor extends AbstractProcessor {
     public static final PropertyDescriptor CAMEL_SPRING_CONTEXT_FILE_PATH = new PropertyDescriptor.Builder()
         .name("Camel Spring Config File Path")
         .description("The Classpath where NiFi can find Spring Application context file"
-                         + " Ex: classpath:/META-INF/camel-application-context.xml")
-        .defaultValue("classpath:/META-INF/camel-application-context.xml").required(true).addValidator(Validator.VALID)
+                         + " Ex: classpath*:/META-INF/camel-application-context.xml")
+        .defaultValue("classpath*:/META-INF/camel-application-context.xml").required(true).addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor CAMEL_SPRING_CONTEXT_DEF = new PropertyDescriptor.Builder()
@@ -99,7 +99,7 @@ public class CamelProcessor extends AbstractProcessor {
     .description("Comma Seperated List of Extra Libraries/Features to Download and Use [ in GroupId/ArtifactId/version format]. "
         + "Ex: org.apache.camel/camel-mail/2.16.1,\n"
         + "org.apache.camel/camel-infinispan/2.16.1")
-    .required(false).addValidator(new GrapeGrabValidator()).build();
+    .required(false).addValidator(GrapeGrabValidator.INSTANCE).build();
 
     private static SpringCamelContext camelContext = null;
 
@@ -107,7 +107,7 @@ public class CamelProcessor extends AbstractProcessor {
 
     private ImmutableSet<Relationship> relationships=ImmutableSet.of(SUCCESS, FAILURE);
 
-    public static synchronized SpringCamelContext getCamelContext() {
+    private static synchronized SpringCamelContext getCamelContext() {
         return camelContext;
     }
 
@@ -157,36 +157,45 @@ public class CamelProcessor extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) {
+    public void onScheduled(final ProcessContext context) throws Exception {
         if (getCamelContext() == null
             || getCamelContext().getStatus()==ServiceStatus.Stopped
             || getCamelContext().getStatus()==ServiceStatus.Stopping) {
             try {
-                String camelContextDef=context
-                    .getProperty(CAMEL_SPRING_CONTEXT_DEF).getValue();
-                String camelContextPath=context
-                    .getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue();
-                ApplicationContext applicationContext;
-                if(camelContextDef!=null && camelContextDef.trim().length()>0){
-                    applicationContext= new GenericXmlApplicationContext(new ByteArrayResource(camelContextDef.getBytes(),"InMemory Camel COntext Definition"));
-                }else{
-                    if(camelContextPath.startsWith("classpath:")){
-                        applicationContext=new ClassPathXmlApplicationContext(camelContextPath.split(":")[1]);
-                    }else{
-                        applicationContext=new FileSystemXmlApplicationContext(camelContextPath.split(":")[1]);
-                    }
-                }
-                camelContext = new SpringCamelContext(applicationContext);
+                camelContext=new SpringCamelContext(new GenericXmlApplicationContext("classpath*:/META-INF/spring/parent-application-context.xml"));
                 camelContext.setApplicationContextClassLoader(new GroovyClassLoader(camelContext.getApplicationContextClassLoader()));
-                camelContext.addStartupListener(new CamelContextStartupListener(getLogger()));
                 ShutdownStrategy shutdownStrategy=new DefaultShutdownStrategy();
                 shutdownStrategy.setTimeout(1);
                 shutdownStrategy.setTimeUnit(TimeUnit.SECONDS);
                 camelContext.setShutdownStrategy(shutdownStrategy);
+               ProducerTemplate template = camelContext.createProducerTemplate();
+               template.sendBody("grape:grape", "org.apache.camel/camel-stream/"+camelContext.getVersion());
+                String camelContextDef=context
+                    .getProperty(CAMEL_SPRING_CONTEXT_DEF).getValue();
+                String camelContextPath=context
+                    .getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue();
+                //Give a little Time for Grape to Grab & load missing dependencies
+                //TODO: Should have a call-back on copletion of dependecy loading
+                Thread.sleep(3000);
+
+              //Merge Classloader & SpringApplication Context to new one
+                GenericXmlApplicationContext applicationContext=new GenericXmlApplicationContext();
+                applicationContext.setParent(camelContext.getApplicationContext());
+                applicationContext.setClassLoader(camelContext.getApplicationContextClassLoader());
+
+                if(!Strings.isNullOrEmpty(camelContextDef)){
+                    applicationContext.load(
+                         new ByteArrayResource(camelContextDef.getBytes()));
+                }else{
+                    applicationContext.load(camelContextPath);
+                }
+                applicationContext.refresh();
+                camelContext.setApplicationContext(applicationContext);
                 camelContext.start();
                 getLogger().info("Camel Spring Context initialized");
             } catch (Exception exception) {
-                getLogger().error("Failed to Shutdown Camel Spring Context", exception);
+                getLogger().error("Failed to Startup Camel Spring Context", exception);
+                throw exception;
             }
         }
 
@@ -194,8 +203,10 @@ public class CamelProcessor extends AbstractProcessor {
 
     @OnStopped
     public void stopped(){
-        if (getCamelContext() != null) {
+        if (getCamelContext() != null && getCamelContext().getApplicationContext()!=null) {
             try {
+                getCamelContext().createProducerTemplate()
+                    .sendBodyAndHeader("grape:grape","Clear Downloaded Dependencies", GrapeConstants.getGRAPE_COMMAND(), GrapeCommand.clearPatches);
                 getCamelContext().stop();
                 getCamelContext().destroy();
                 ((AbstractApplicationContext)getCamelContext().getApplicationContext()).close();
@@ -209,13 +220,15 @@ public class CamelProcessor extends AbstractProcessor {
      * To validate {@link groovy.lang.Grab Grab} URLs for {@link groovy.grape.Grape Grape}.
      * @see <a href="http://camel.apache.org/grape.html">  Camel Grape Documentation</a>
      */
-    private static class GrapeGrabValidator implements Validator {
+    enum GrapeGrabValidator implements Validator {
+        INSTANCE;
+
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if(!StringUtils.isEmpty(input)){
             final String[] grapeGrabURLs = input.split(",");
             for (final String grapeGrabURL : grapeGrabURLs) {
-                String [] eitherOfGAVs=grapeGrabURL.split("/\\/");
+                String [] eitherOfGAVs=grapeGrabURL.split("/");
                 String validationError=null;
                 if(eitherOfGAVs.length!=3){
                     validationError="Pattern Should be in Group/Artifact/Version Format.";
@@ -234,7 +247,6 @@ public class CamelProcessor extends AbstractProcessor {
 
             return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
         }
-
     }
 
 }

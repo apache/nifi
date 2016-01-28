@@ -18,20 +18,32 @@ package org.apache.nifi.processors.camel;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.StartupListener;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ProcessorLog;
 
 public class CamelContextStartupListener implements StartupListener {
 
     private final ProcessorLog processLog;
+    private final String grapeGrabURLs;
 
-    public CamelContextStartupListener(ProcessorLog logger) {
+    public CamelContextStartupListener(final ProcessorLog logger, final String grapeGrabURLs) {
         this.processLog = logger;
+        this.grapeGrabURLs=grapeGrabURLs;
     }
 
     @Override
     public void onCamelContextStarted(CamelContext context, boolean alreadyStarted) throws Exception {
         if (!alreadyStarted) {
             processLog.info("Camel Spring Context Started");
+        }
+
+        //Let's load Extra Libraries using grape those might not be present in classpath.
+        if(!StringUtils.isEmpty(grapeGrabURLs)){
+            for (String  grapeGrabURL : grapeGrabURLs.split(",")) {
+                String [] gav=grapeGrabURL.split("/");
+                context.createProducerTemplate()
+                .sendBody("grape:grape", gav[0]+"/"+gav[1]+"/"+(gav[2].equalsIgnoreCase("default")?context.getVersion():gav[2]));
+            }
         }
     }
 }

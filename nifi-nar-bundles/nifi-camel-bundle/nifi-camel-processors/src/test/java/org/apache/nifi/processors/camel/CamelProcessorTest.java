@@ -19,6 +19,7 @@ package org.apache.nifi.processors.camel;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -70,5 +71,41 @@ public class CamelProcessorTest {
         LOGGER.debug("Content Processed Successully");
     }
 
+    @Test
+    public void testProcessorGrapeGrab() {
+        testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint3");
+        testRunner.setProperty(CamelProcessor.EXT_LIBRARIES, "org.apache.camel/camel-mail/2.16.1");
+        testRunner.enqueue("Hello");
+        testRunner.run(1);
+        testRunner.assertAllFlowFilesTransferred(CamelProcessor.SUCCESS, 1);
+        final MockFlowFile processedFlowFile = testRunner
+                .getFlowFilesForRelationship(CamelProcessor.SUCCESS).get(0);
+        processedFlowFile.assertContentEquals("Hello");
+        LOGGER.debug("Content Processed Successully");
+    }
+
+
+    @Test
+    public void testValidatorWithNull(){
+        Assert.assertTrue(CamelProcessor.GrapeGrabValidator.INSTANCE.validate("GrapeGrabValidation", null, null).isValid());
+    }
+
+    @Test
+    public void testValidatorWithEmptyString(){
+        String input ="";
+        Assert.assertTrue(CamelProcessor.GrapeGrabValidator.INSTANCE.validate("GrapeGrabValidation", input, null).isValid());
+    }
+
+    @Test
+    public void testValidatorWithInvalidGrapeURL(){
+        String input ="a/b/c/1.2.1";
+        Assert.assertFalse(CamelProcessor.GrapeGrabValidator.INSTANCE.validate("GrapeGrabValidation", input, null).isValid());
+    }
+
+    @Test
+    public void testValidatorWithValidGrapeURL(){
+        String input ="a/b/1.2.1";
+        Assert.assertTrue(CamelProcessor.GrapeGrabValidator.INSTANCE.validate("GrapeGrabValidation", input, null).isValid());
+    }
 
 }
