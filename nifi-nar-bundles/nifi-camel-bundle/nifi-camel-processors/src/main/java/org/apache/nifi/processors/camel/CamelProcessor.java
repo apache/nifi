@@ -101,13 +101,13 @@ public class CamelProcessor extends AbstractProcessor {
         + "org.apache.camel/camel-infinispan/2.16.1")
     .required(false).addValidator(GrapeGrabValidator.INSTANCE).build();
 
-    private static SpringCamelContext camelContext = null;
+    private  SpringCamelContext camelContext = null;
 
     private ImmutableList<PropertyDescriptor> descriptors;
 
     private ImmutableSet<Relationship> relationships=ImmutableSet.of(SUCCESS, FAILURE);
 
-    private static synchronized SpringCamelContext getCamelContext() {
+    private synchronized SpringCamelContext getCamelContext() {
         return camelContext;
     }
 
