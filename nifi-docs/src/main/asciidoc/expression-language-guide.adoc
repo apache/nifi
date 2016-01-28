@@ -1383,9 +1383,21 @@ chaining together the two functions: `${date:toDate('MM-dd-yyyy'):format('yyyy/M
 	Date type representing that time. Since whole Expression Language expressions can only return Strings it would formatted as
 	`Wed Dec 31 15:36:03 EST 2014` when the expression completes.
 
-The utilizing the <<toNumber>> method, `now` can provide the current date and time as the number of milliseconds since
+Utilizing the <<toNumber>> method, `now` can provide the current date and time as the number of milliseconds since
 Midnight GMT on January 1, 1970. For instance, if instead of executing `${now()}` in the previous example `${now():toNumber()}`
-was run then it would output `1453843201123`. This way preserves the millisecond field.
+was run then it would output `1453843201123`. This method provides millisecond-level precision and provides the ability to
+manipulate the value.
+
+.now Examples
+|==================================================================================================================
+| Expression | Value
+| `${now()}` | A Date type representing the current date and time to the nearest millisecond
+| `${now():toNumber()}` | The number of milliseconds since midnight GMT Jan 1, 1970 (`1453843201123`, for example)
+| `${now():toNumber():minus(86400000)` | A number presenting the time 24 hours ago
+| `${now():format('yyyy')}` | The current year
+| `${now():toNumber():minus(86400000):format('E')}` | The day of the week that was yesterday,
+													  as a 3-letter abbreviation (For example, `Wed`)
+|==================================================================================================================
 
 
 
