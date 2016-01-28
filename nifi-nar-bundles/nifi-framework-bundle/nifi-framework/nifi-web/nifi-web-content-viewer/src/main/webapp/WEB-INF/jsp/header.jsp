@@ -28,6 +28,8 @@
         <link rel="stylesheet" href="../nifi/css/reset.css" type="text/css" />
         <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
+        <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
+        <script type="text/javascript" src="../nifi/js/nf/nf-universal-capture.js"></script>
         <script type="text/javascript">
             var $$ = $.noConflict(true);
             $$(document).ready(function () {

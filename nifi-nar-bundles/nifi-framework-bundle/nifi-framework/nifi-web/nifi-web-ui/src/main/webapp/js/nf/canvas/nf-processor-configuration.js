@@ -471,7 +471,7 @@ nf.ProcessorConfiguration = (function () {
                     }],
                 select: function () {
                     // remove all property detail dialogs
-                    nf.Common.removeAllPropertyDetailDialogs();
+                    nf.UniversalCapture.removeAllPropertyDetailDialogs();
                     
                     // update the processor property table size in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {

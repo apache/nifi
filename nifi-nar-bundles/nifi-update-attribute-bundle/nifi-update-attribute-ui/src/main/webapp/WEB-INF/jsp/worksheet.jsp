@@ -53,6 +53,7 @@
         <script type="text/javascript" src="../nifi/js/jquery/slickgrid/slick.grid.js"></script>
         <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
+        <script type="text/javascript" src="../nifi/js/nf/nf-universal-capture.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/nfeditor/languages/nfel.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/nfeditor/jquery.nfeditor.js"></script>
         <script type="text/javascript" src="js/application.js"></script>

@@ -23,9 +23,11 @@
     z-index: 1301;
     display: none;
     padding: 10px;
-    border: 3px solid #365C6A;
-    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
     cursor: move;
+}
+
+#label-configuration-contents {
+    margin-top: -50px;
 }
 
 #label-value {
@@ -43,12 +45,4 @@
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
-}
-
-#label-configuration-button-container {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    padding: 0 8px 10px;
 }

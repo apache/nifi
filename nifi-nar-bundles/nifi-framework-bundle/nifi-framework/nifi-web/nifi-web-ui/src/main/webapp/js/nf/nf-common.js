@@ -517,15 +517,6 @@ nf.Common = (function () {
         },
 
         /**
-         * Removes all read only property detail dialogs.
-         */
-        removeAllPropertyDetailDialogs: function () {
-            var propertyDetails = $('body').children('div.property-detail');
-            propertyDetails.find('div.nfel-editor').nfeditor('destroy');
-            propertyDetails.hide().remove();
-        },
-
-        /**
          * Formats the tooltip for the specified property.
          * 
          * @param {object} propertyDescriptor      The property descriptor

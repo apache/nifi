@@ -537,92 +537,8 @@ nf.Canvas = (function () {
                 nf.Settings.resetTableSize();
             }
         }).on('keydown', function (evt) {
-            var isCtrl = evt.ctrlKey || evt.metaKey;
-
-            // consider escape, before checking dialogs
-            if (!isCtrl && evt.keyCode === 27) {
-                // esc
-
-                // prevent escape when a property value is being edited and it is unable to close itself 
-                // (due to focus loss on field) - allowing this to continue would could cause other
-                // unsaved changes to be lost as it would end up cancel the entire configuration dialog
-                // not just the field itself
-                if ($('div.value-combo').is(':visible') || $('div.slickgrid-nfel-editor').is(':visible') || $('div.slickgrid-editor').is(':visible')) {
-                    return;
-                }
-
-                // first consider read only property detail dialog
-                if ($('div.property-detail').is(':visible')) {
-                    nf.Common.removeAllPropertyDetailDialogs();
-
-                    // prevent further bubbling as we're already handled it
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                } else {
-                    var target = $(evt.target);
-                    if (target.length) {
-                        var isBody = target.get(0) === $('#canvas-body').get(0);
-                        var inShell = target.closest('#shell-dialog').length;
-
-                        // special handling for body and shell
-                        if (isBody || inShell) {
-                            var cancellables = $('.cancellable');
-                            if (cancellables.length) {
-                                var zIndexMax = null;
-                                var dialogMax = null;
-
-                                // identify the top most cancellable
-                                $.each(cancellables, function (_, cancellable) {
-                                    var dialog = $(cancellable);
-                                    var zIndex = dialog.css('zIndex');
-
-                                    // if the dialog has a zIndex consider it
-                                    if (dialog.is(':visible') && nf.Common.isDefinedAndNotNull(zIndex)) {
-                                        zIndex = parseInt(zIndex, 10);
-                                        if (zIndexMax === null || zIndex > zIndexMax) {
-                                            zIndexMax = zIndex;
-                                            dialogMax = dialog;
-                                        }
-                                    }
-                                });
-
-                                // if we've identified a dialog to close do so and stop propagation
-                                if (dialogMax !== null) {
-                                    // hide the cancellable
-                                    if (dialogMax.hasClass('modal')) {
-                                        dialogMax.modal('hide');
-                                    } else {
-                                        dialogMax.hide();
-                                    }
-
-                                    // prevent further bubbling as we're already handled it
-                                    evt.stopPropagation();
-                                    evt.preventDefault();
-                                }
-                            }
-                        } else {
-                            // otherwise close the closest visible cancellable
-                            var parentDialog = target.closest('.cancellable:visible').first();
-                            if (parentDialog.length) {
-                                if (parentDialog.hasClass('modal')) {
-                                    parentDialog.modal('hide');
-                                } else {
-                                    parentDialog.hide();
-                                }
-
-                                // prevent further bubbling as we're already handled it
-                                evt.stopPropagation();
-                                evt.preventDefault();
-                            }
-                        }
-                    }
-                }
-
-                return;
-            }
-
             // if a dialog is open, disable canvas shortcuts
-            if ($('.dialog').is(':visible')) {
+            if ($('.dialog').is(':visible') || $('#search-field').is(':focus')) {
                 return;
             }
 
@@ -630,41 +546,45 @@ nf.Canvas = (function () {
             var selection = nf.CanvasUtils.getSelection();
 
             // handle shortcuts
+            var isCtrl = evt.ctrlKey || evt.metaKey;
             if (isCtrl) {
                 if (evt.keyCode === 82) {
                     // ctrl-r
                     nf.Actions.reloadStatus();
 
-                    evt.preventDefault();
+                    // default prevented in nf-universal-capture.js
                 } else if (evt.keyCode === 65) {
                     // ctrl-a
                     nf.Actions.selectAll();
                     nf.CanvasToolbar.refresh();
 
+                    // only want to prevent default if the action was performed, otherwise default select all would be overridden
                     evt.preventDefault();
                 } else if (evt.keyCode === 67) {
+                    // ctrl-c
                     if (nf.Common.isDFM() && nf.CanvasUtils.isCopyable(selection)) {
-                        // ctrl-c
                         nf.Actions.copy(selection);
 
+                        // only want to prevent default if the action was performed, otherwise default copy would be overridden
                         evt.preventDefault();
                     }
                 } else if (evt.keyCode === 86) {
+                    // ctrl-v
                     if (nf.Common.isDFM() && nf.CanvasUtils.isPastable()) {
-                        // ctrl-p
                         nf.Actions.paste(selection);
 
+                        // only want to prevent default if the action was performed, otherwise default paste would be overridden
                         evt.preventDefault();
                     }
                 }
             } else {
-                if (evt.keyCode === 46) {
+                if (evt.keyCode == 8 || evt.keyCode === 46) {
+                    // backspace or delete
                     if (nf.Common.isDFM() && nf.CanvasUtils.isDeletable(selection)) {
-                        // delete
                         nf.Actions['delete'](selection);
-
-                        evt.preventDefault();
                     }
+
+                    // default prevented in nf-universal-capture.js
                 }
             }
         });

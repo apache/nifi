@@ -393,8 +393,7 @@ nf.StatusHistory = (function () {
 
         // show/center the dialog if necessary
         if (!statusHistoryDialog.is(':visible')) {
-            $('#glass-pane').show();
-            statusHistoryDialog.center().show();
+            statusHistoryDialog.modal('show');
         }
 
         // the container for the main chart
@@ -1163,24 +1162,36 @@ nf.StatusHistory = (function () {
                 }
             });
 
-            // make the new property dialog draggable
-            $('#status-history-dialog').draggable({
+            // configure the dialog and make it draggable
+            $('#status-history-dialog').modal({
+                overlayBackground: false,
+                buttons: [{
+                    buttonText: 'Close',
+                    handler: {
+                        click: function () {
+                            this.modal('hide');
+                        }
+                    }
+                }],
+                handler: {
+                    close: function () {
+                        // remove the current status history
+                        $('#status-history-dialog').removeData('status-history').hide();
+
+                        // reset the dom
+                        $('#status-history-chart-container').empty();
+                        $('#status-history-chart-control-container').empty();
+                        $('#status-history-details').empty();
+
+                        // clear the extent and selected descriptor
+                        brushExtent = null;
+                        descriptor = null;
+                        instances = null;
+                    }
+                }
+            }).draggable({
                 cancel: '#status-history-chart-container, #status-history-chart-control-container, div.status-history-detail, div.button, div.combo, div.summary-refresh',
                 containment: 'parent'
-            }).on('click', '#status-history-close', function () {
-                // remove the current status history
-                $('#status-history-dialog').removeData('status-history').hide();
-                $('#glass-pane').hide();
-
-                // reset the dom
-                $('#status-history-chart-container').empty();
-                $('#status-history-chart-control-container').empty();
-                $('#status-history-details').empty();
-
-                // clear the extent and selected descriptor
-                brushExtent = null;
-                descriptor = null;
-                instances = null;
             });
         },
         

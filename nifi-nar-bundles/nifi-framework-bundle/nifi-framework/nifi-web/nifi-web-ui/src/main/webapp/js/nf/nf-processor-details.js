@@ -70,7 +70,7 @@ nf.ProcessorDetails = (function () {
                     }],
                 select: function () {
                     // remove all property detail dialogs
-                    nf.Common.removeAllPropertyDetailDialogs();
+                    nf.UniversalCapture.removeAllPropertyDetailDialogs();
                     
                     // resize the property grid in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
