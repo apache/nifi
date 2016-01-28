@@ -32,6 +32,18 @@
 			<to uri="log:org.me.testlog?level=WARN" />
 			<to uri="mock:mockout"/>
 		</route>
+		
+		<route id="defaultRoute">
+			<description>
+				Here we never defined camel-stream dependency in pom or by any other means.
+				Still camel will be able to load that using Groovy-Grape
+			</description>
+			<from uri="direct-vm:nifiEntryPoint3"/>
+			<to uri="log:org.me.testlog?level=WARN" />
+			<to uri="stream:out"/>
+			<to uri="mock:mockout"/>
+		</route>	
+
 	</camelContext>
 <bean id="sayHello" class="org.apache.nifi.processors.camel.beans.SayHelloBean"/>
 </beans>

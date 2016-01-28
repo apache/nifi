@@ -74,8 +74,10 @@ public class CamelProcessorTest {
 
     @Test
     public void testProcessorGrapeGrab() {
+        testRunner.setProperty(CamelProcessor.CAMEL_SPRING_CONTEXT_FILE_PATH,
+                               "classpath*:/META-INF/camel-undefined-dependency-application-context.xml");
         testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint3");
-        testRunner.setProperty(CamelProcessor.EXT_LIBRARIES, "org.apache.camel/camel-mail/2.16.1");
+        testRunner.setProperty(CamelProcessor.EXT_LIBRARIES, "org.apache.camel/camel-stream/2.16.1");
         testRunner.enqueue("Hello");
         testRunner.run(3);
         testRunner.assertAllFlowFilesTransferred(CamelProcessor.SUCCESS, 1);
