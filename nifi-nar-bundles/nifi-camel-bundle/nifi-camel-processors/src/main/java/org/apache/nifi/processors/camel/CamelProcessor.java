@@ -181,9 +181,8 @@ public class CamelProcessor extends AbstractProcessor {
                     .getProperty(CAMEL_SPRING_CONTEXT_DEF).getValue();
                 String camelContextPath=context
                     .getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue();
-                //Give a little Time for Grape to Grab & load missing dependencies
-                //TODO: Should have a call-back on copletion of dependecy loading
-                Thread.sleep(3000);
+
+                //TODO: call-back on completion of dependency loading or wait a little or rely on synchronous ProducerTemplate#send
 
               //Merge Classloader & SpringApplication Context to new one
                 GenericXmlApplicationContext applicationContext=new GenericXmlApplicationContext();
