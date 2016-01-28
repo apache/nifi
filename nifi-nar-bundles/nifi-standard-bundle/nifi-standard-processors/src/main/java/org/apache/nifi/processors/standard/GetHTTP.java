@@ -99,7 +99,9 @@ import org.apache.nifi.util.StopWatch;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("Fetches a file via HTTP")
+@CapabilityDescription("Fetches data from an HTTP or HTTPS URL and writes the data to the content of a FlowFile. Once the content has been fetched, the ETag and Last Modified "
+    + "dates are remembered (if the web server supports these concepts). This allows the Processor to fetch new data only if the remote data has changed. That is, once the "
+    + "content has been fetched from the given URL, it will not be fetched again until the content on the remote server changes.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
     @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
