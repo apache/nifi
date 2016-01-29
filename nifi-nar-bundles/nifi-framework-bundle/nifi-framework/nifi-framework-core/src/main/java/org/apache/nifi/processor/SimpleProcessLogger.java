@@ -262,13 +262,14 @@ public class SimpleProcessLogger implements ProcessorLog {
         }
 
         msg = "{} " + msg;
-        Object[] os = {component, t.toString()};
+        Object[] os = t == null ? new Object[]{component} : new Object[]{component, t.toString()};
         logger.error(msg, os);
-        if (logger.isDebugEnabled()) {
+        if (t != null){
             logger.error("", t);
+            logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
+        } else {
+            logRepository.addLogMessage(LogLevel.ERROR, msg, os);
         }
-
-        logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
     }
 
     @Override
@@ -289,26 +290,7 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void error(String msg) {
-        if (!isErrorEnabled()) {
-            return;
-        }
-
-        msg = "{} " + msg;
-        final Object[] os = {component};
-
-        logger.error(msg, os);
-        logRepository.addLogMessage(LogLevel.ERROR, msg, os);
-    }
-
-    private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
-        final Object[] modifiedArgs = new Object[os.length + 2];
-        modifiedArgs[0] = component.toString();
-        for (int i = 0; i < os.length; i++) {
-            modifiedArgs[i + 1] = os[i];
-        }
-        modifiedArgs[modifiedArgs.length - 1] = (t == null) ? "" : t.toString();
-
-        return modifiedArgs;
+        this.error(msg, (Throwable) null);
     }
 
     @Override
@@ -321,10 +303,19 @@ public class SimpleProcessLogger implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.error(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.error("", t);
-        }
+        logger.error("", t);
         logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
+    }
+
+    private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
+        final Object[] modifiedArgs = new Object[os.length + 2];
+        modifiedArgs[0] = component.toString();
+        for (int i = 0; i < os.length; i++) {
+            modifiedArgs[i + 1] = os[i];
+        }
+        modifiedArgs[modifiedArgs.length - 1] = (t == null) ? "" : t.toString();
+
+        return modifiedArgs;
     }
 
     @Override
