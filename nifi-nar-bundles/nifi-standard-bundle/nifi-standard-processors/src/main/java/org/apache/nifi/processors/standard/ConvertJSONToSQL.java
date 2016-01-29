@@ -100,6 +100,15 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         "Any field in the JSON document that cannot be mapped to a column in the database is ignored");
     static final AllowableValue FAIL_UNMATCHED_FIELD = new AllowableValue("Fail", "Fail",
         "If the JSON document has any field that cannot be mapped to a column in the database, the FlowFile will be routed to the failure relationship");
+    static final AllowableValue IGNORE_UNMATCHED_COLUMN = new AllowableValue("Ignore Unmatched Columns",
+            "Ignore Unmatched Columns",
+            "Any column in the database that does not have a field in the JSON document will be assumed to not be required.  No notification will be logged");
+    static final AllowableValue WARNING_UNMATCHED_COLUMN = new AllowableValue("Warn on Unmatched Columns",
+            "Warning Unmatched Columns",
+            "Any column in the database that does not have a field in the JSON document will be assumed to not be required.  A warning will be logged");
+    static final AllowableValue FAIL_UNMATCHED_COLUMN = new AllowableValue("Fail on Unmatched Columns",
+            "Fail on Unmatched Columns",
+            "A flow will fail if any column in the database that does not have a field in the JSON document.  An error will be logged");
 
     static final PropertyDescriptor CONNECTION_POOL = new PropertyDescriptor.Builder()
             .name("JDBC Connection Pool")
@@ -159,6 +168,12 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .build();
 
+    static final PropertyDescriptor UNMATCHED_COLUMN_BEHAVIOR = new PropertyDescriptor.Builder()
+            .name("Unmatched Column Behavior")
+            .description("If an incoming JSON element does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation")
+            .allowableValues(IGNORE_UNMATCHED_COLUMN, WARNING_UNMATCHED_COLUMN ,FAIL_UNMATCHED_COLUMN)
+            .defaultValue(FAIL_UNMATCHED_COLUMN.getValue())
+            .build();
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
@@ -193,6 +208,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         properties.add(SCHEMA_NAME);
         properties.add(TRANSLATE_FIELD_NAMES);
         properties.add(UNMATCHED_FIELD_BEHAVIOR);
+        properties.add(UNMATCHED_COLUMN_BEHAVIOR);
         properties.add(UPDATE_KEY);
         return properties;
     }
@@ -232,6 +248,10 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final SchemaKey schemaKey = new SchemaKey(catalog, tableName);
         final boolean includePrimaryKeys = UPDATE_TYPE.equals(statementType) && updateKeys == null;
+
+        // Is the unmatched column behaviour fail or warning?
+        final boolean failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
+        final boolean warningUnmappedColumns = WARNING_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
 
         // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
         // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
@@ -309,9 +329,9 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 final String fqTableName = tableNameBuilder.toString();
 
                 if (INSERT_TYPE.equals(statementType)) {
-                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields);
+                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns);
                 } else {
-                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields);
+                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns);
                 }
             } catch (final ProcessException pe) {
                 getLogger().error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
@@ -359,13 +379,20 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     }
 
     private String generateInsert(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
-        final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields) {
+        final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+        final boolean warningUnmappedColumns) {
 
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
         for (final String requiredColName : schema.getRequiredColumnNames()) {
             final String normalizedColName = normalizeColumnName(requiredColName, translateFieldNames);
             if (!normalizedFieldNames.contains(normalizedColName)) {
-                throw new ProcessException("JSON does not have a value for the Required column '" + requiredColName + "'");
+                String missingColMessage = "JSON does not have a value for the Required column '" + requiredColName + "'";
+                if (failUnmappedColumns) {
+                    getLogger().error(missingColMessage);
+                    throw new ProcessException(missingColMessage);
+                } else if (warningUnmappedColumns) {
+                    getLogger().warn(missingColMessage);
+                }
             }
         }
 
@@ -426,7 +453,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     }
 
     private String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
-        final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields) {
+        final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+        final boolean warningUnmappedColumns) {
 
         final Set<String> updateKeyNames;
         if (updateKeys == null) {
@@ -456,7 +484,14 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             normalizedUpdateNames.add(normalizedUK);
 
             if (!normalizedFieldNames.contains(normalizedUK)) {
-                throw new ProcessException("JSON does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'");
+                String missingColMessage = "JSON does not have a value for the "
+                        + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'";
+                if (failUnmappedColumns) {
+                    getLogger().error(missingColMessage);
+                    throw new ProcessException(missingColMessage);
+                } else if (warningUnmappedColumns) {
+                    getLogger().warn(missingColMessage);
+                }
             }
         }
 
