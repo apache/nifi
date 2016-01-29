@@ -101,7 +101,7 @@ public class TestPutSolrContentStream {
         try (FileInputStream fileIn = new FileInputStream(SOLR_JSON_MULTIPLE_DOCS_FILE)) {
             runner.enqueue(fileIn);
 
-            runner.run();
+            runner.run(1, false);
             runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
@@ -133,7 +133,7 @@ public class TestPutSolrContentStream {
         try (FileInputStream fileIn = new FileInputStream(CUSTOM_JSON_SINGLE_DOC_FILE)) {
             runner.enqueue(fileIn);
 
-            runner.run();
+            runner.run(1, false);
             runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
@@ -159,7 +159,7 @@ public class TestPutSolrContentStream {
         try (FileInputStream fileIn = new FileInputStream(CSV_MULTIPLE_DOCS_FILE)) {
             runner.enqueue(fileIn);
 
-            runner.run();
+            runner.run(1, false);
             runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
@@ -185,7 +185,7 @@ public class TestPutSolrContentStream {
         try (FileInputStream fileIn = new FileInputStream(XML_MULTIPLE_DOCS_FILE)) {
             runner.enqueue(fileIn);
 
-            runner.run();
+            runner.run(1, false);
             runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
@@ -225,7 +225,7 @@ public class TestPutSolrContentStream {
 
         // run the processor with a delete-by-query command
         runner.enqueue("<delete><query>first:bob</query></delete>".getBytes("UTF-8"));
-        runner.run();
+        runner.run(1, false);
 
         // prove the document got deleted
         qResponse = solrClient.query(query);
@@ -344,6 +344,7 @@ public class TestPutSolrContentStream {
         runner.setProperty(PutSolrContentStream.COLLECTION, "someCollection1");
         runner.assertValid();
     }
+
 
     @Test
     public void testSolrTypeStandardShouldNotRequireCollection() {

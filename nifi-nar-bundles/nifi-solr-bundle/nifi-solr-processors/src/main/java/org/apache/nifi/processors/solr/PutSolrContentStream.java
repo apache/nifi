@@ -123,6 +123,12 @@ public class PutSolrContentStream extends SolrProcessor {
         descriptors.add(CONTENT_STREAM_PATH);
         descriptors.add(CONTENT_TYPE);
         descriptors.add(COMMIT_WITHIN);
+        descriptors.add(SOLR_SOCKET_TIMEOUT);
+        descriptors.add(SOLR_CONNECTION_TIMEOUT);
+        descriptors.add(SOLR_MAX_CONNECTIONS);
+        descriptors.add(SOLR_MAX_CONNECTIONS_PER_HOST);
+        descriptors.add(ZK_CLIENT_TIMEOUT);
+        descriptors.add(ZK_CONNECTION_TIMEOUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
