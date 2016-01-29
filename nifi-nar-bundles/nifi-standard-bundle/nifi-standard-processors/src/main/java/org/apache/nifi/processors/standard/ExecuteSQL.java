@@ -143,7 +143,7 @@ public class ExecuteSQL extends AbstractProcessor {
         final StopWatch stopWatch = new StopWatch(true);
 
         try (final Connection con = dbcpService.getConnection();
-            final Statement st = con.createStatement()) {
+             final Statement st = con.createStatement()) {
             st.setQueryTimeout(queryTimeout); // timeout in seconds
             final LongHolder nrOfRows = new LongHolder(0L);
             if (fileToProcess == null) {
