@@ -50,5 +50,5 @@ public @interface Stateful {
     /**
      * Indicates the Scope(s) associated with the State that is stored and retrieved.
      */
-    Scope[]scopes();
+    Scope[] scopes();
 }

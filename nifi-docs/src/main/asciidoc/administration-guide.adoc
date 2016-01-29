@@ -400,18 +400,20 @@ may be referenced by their identifiers. By default, the Local State Provider is 
 persists the data to the _$NIFI_HOME/state_ directory. The default Cluster State Provider is configured to be a `ZooKeeperStateProvider`.
 The default ZooKeeper-based provider must have its `Connect String` property populated before it can be used. It is also advisable,
 if multiple NiFi instances will use the same ZooKeeper instance, that the value of the `Root Node` property be changed. For instance,
-one might set the value to `/nifi/<team name>/production`.
+one might set the value to `/nifi/<team name>/production`. A `Connect String` takes the form of comma separated <host>:<port> tuples,
+such as my-zk-server1:2181,my-zk-server2:2181,my-zk-server3:2181. In the event a port is not specified for any of the hosts, the ZooKeeper
+default of 2181 is assumed.
 
 When adding data to ZooKeeper, there are two options for Access Control: `Open` and `CreatorOnly`. If the `Access Control` property is
 set to `Open`, then anyone is allowed to log into ZooKeeper and have full permissions to see, change, delete, or administer the data.
-If `CreatorOnly` is specified, then only user that is allowed to read, change, delete, or administer the data is the user that was used
-to create the data. In order to use the `CreatorOnly` option, NiFi must provide some form of authentication. See the <<zk_access_control>>
+If `CreatorOnly` is specified, then only the user that created the data is allowed to read, change, delete, or administer the data.
+In order to use the `CreatorOnly` option, NiFi must provide some form of authentication. See the <<zk_access_control>>
 section below for more information on how to configure authentication.
 
 If NiFi is configured to run in a standalone mode, the `cluster-state-provider` element need not be populated in the _state-management.xml_
 file and will actually be ignored if they are populated. However, the `local-state-provider` element must always be present and populated.
 Additionally, if NiFi is run in a cluster, each node must also have the `cluster-state-provider` element present and properly configured.
-Otherwise, NiFi will fail to startup. 
+Otherwise, NiFi will fail to startup.
 
 While there are not many properties that need to be configured for these providers, they were externalized into a separate _state-providers.xml_
 file, rather than being configured via the _nifi.properties_ file, simply because different implementations may require different properties,
@@ -427,7 +429,7 @@ instead of the Local State Provider.
 [[embedded_zookeeper]]
 === Embedded ZooKeeper Server
 As mentioned above, the default State Provider for cluster-wide state is the `ZooKeeperStateProvider`. At the time of this writing, this is the
-only State Provider that exists for handling cluster-wide state. What this means is that NiFi has a dependencies on ZooKeeper in order to
+only State Provider that exists for handling cluster-wide state. What this means is that NiFi has dependencies on ZooKeeper in order to
 behave as a cluster. However, there are many environments in which NiFi is deployed where there is no existing ZooKeeper ensemble being maintained.
 In order to avoid the burden of forcing administrators to also maintain a separate ZooKeeper instance, NiFi provides the option of starting an
 embedded ZooKeeper server.
@@ -439,7 +441,7 @@ running ZooKeeper on 4 nodes provides no more benefit than running on 3 nodes, Z
 However, it is up to the administrator to determine the number of nodes most appropriate to the particular deployment of NiFi.
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
-in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, This properties file needs to be populated
+in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
 with the list of ZooKeeper servers. Each of these servers is configured as <hostname>:<client port>[:<leader election port>]. For example, `myhost:2888:3888`.
 This list of nodes should be the same nodes in the NiFi cluster that have the `nifi.state.management.embedded.zookeeper.start`
 property set to `true`. Also note that because ZooKeeper will be listening on these ports, the firewall may need to be configured to open these ports
@@ -486,7 +488,7 @@ The second option is to use a user name and password. This is configured by spec
 for the `ZooKeeperStateProvider` (see the <<state_providers>> section for more information). The important thing to keep in mind here, though, is that ZooKeeper
 will pass around the password in plain text. This means that using a user name and password should not be used unless ZooKeeper is running on localhost as a
 one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as a VPN or an SSL connection. ZooKeeper will be
-providing support for SSL connections in version 0.5.0.
+providing support for SSL connections in version 3.5.0.
 
 
 
@@ -495,7 +497,7 @@ providing support for SSL connections in version 0.5.0.
 
 When NiFi communicates with ZooKeeper, all communications, by default, are non-secure, and anyone who logs into ZooKeeper is able to view and manipulate all
 of the NiFi state that is stored in ZooKeeper. To prevent this, we can use Kerberos to manage the authentication. At this time, ZooKeeper does not provide
-support for encryption via SSL. Support for SSL in ZooKeeper is being actively worked and is expected to be available in the 0.5.x version of ZooKeeper.
+support for encryption via SSL. Support for SSL in ZooKeeper is being actively developed and is expected to be available in the 3.5.x release version.
 
 In order to secure the communications, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
 NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.

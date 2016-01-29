@@ -596,10 +596,10 @@ that the instance is clustered and write the code accordingly.
 State is stored using the StateManager's `set`, `replace`, `putIfAbsent`, `remove`, and `clear` methods. All of these methods,
 with the exception of `clear` take as the first argument the key to be set. The key that is used is unique only to the same
 instance of the component and for the same Scope. That is, if two Processors store a value using the key _My Key_, those Processors
-will not conflict with each other, even if both Processors are of the same type (e.g., both are of type ListFile). Furthermore,
+will not conflict with each other, even if both Processors are of the same type (e.g., both are of type ListFile) and scope. Furthermore,
 if a Processor stores a value with the key of _My Key_ using the `Scope.CLUSTER` scope, and then attempts to retrieve the value
 using the `Scope.NODE` scope, the value retrieved will be `null`. Each Processor's state, then, is stored in isolation from other
-Processor's state. A unique key can be thought of as a triple of <Processor Instance, Key, Scope>.
+Processors' state. A unique key can be thought of as a triple of <Processor Instance, Key, Scope>.
 
 It follows, then, that two Processors cannot share the same state. There are, however, some circumstances in which it is very
 necessary to share state between two Processors of different types, or two Processors of the same type. This can be accomplished
@@ -793,7 +793,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 ----
 
 === Documenting Related Components
-Often Processors and ControllerServices are related to one another.  Sometimes its a put/get relation as in `PutFile` and `GetFile`.  
+Often Processors and ControllerServices are related to one another.  Sometimes it is a put/get relation as in `PutFile` and `GetFile`.
 Sometimes a Processor uses a ControllerService like `InvokeHTTP` and `StandardSSLContextService`.  Sometimes one ControllerService uses another
 like `DistributedMapCacheClientService` and `DistributedMapCacheServer`.  Developers of these extension points may relate these
 different components using the `SeeAlso` tag.  This annotation links these components in the documentation.  

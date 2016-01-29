@@ -1000,9 +1000,6 @@ public class NiFiProperties extends Properties {
         return new File(getProperty(STATE_MANAGEMENT_CONFIG_FILE, DEFAULT_STATE_MANAGEMENT_CONFIG_FILE));
     }
 
-    /*
-     * public static final String STATE_MANAGEMENT_MAX_ZOOKEEPER_SERVERS = "nifi.state.management.embedded.zookeeper.max.instances";
-     */
     public String getLocalStateProviderId() {
         return getProperty(STATE_MANAGEMENT_LOCAL_PROVIDER_ID);
     }

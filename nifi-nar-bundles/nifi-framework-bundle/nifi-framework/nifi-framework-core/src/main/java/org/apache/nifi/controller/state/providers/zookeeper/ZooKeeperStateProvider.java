@@ -60,7 +60,8 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     static final PropertyDescriptor CONNECTION_STRING = new PropertyDescriptor.Builder()
         .name("Connect String")
-        .description("The ZooKeeper Connect String to use. This is a comma-separated list of hostnames/IP addresses, such as \"host1, host2, 127.0.0.1, host4, host5\"")
+        .description("The ZooKeeper Connect String to use. This is a comma-separated list of hostname/IP and port tuples, such as \"host1:2181,host2:2181,127.0.0.1:2181\". If a port is not " +
+            "specified it defaults to the ZooKeeper client port default of 2181")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .build();
@@ -216,7 +217,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     private void verifyEnabled() throws IOException {
         if (!isEnabled()) {
-            throw new IOException("Cannot update or retrieve cluster state becuase node is no longer connected to a cluster");
+            throw new IOException("Cannot update or retrieve cluster state because node is no longer connected to a cluster");
         }
     }
 
