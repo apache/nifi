@@ -26,7 +26,9 @@ import java.util.Properties;
 
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
+import org.apache.zookeeper.server.ServerConfig;
 import org.apache.zookeeper.server.ZKDatabase;
+import org.apache.zookeeper.server.ZooKeeperServer;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.quorum.QuorumPeer;
@@ -43,6 +45,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
 
     private ServerCnxnFactory connectionFactory;
     private FileTxnSnapLog transactionLog;
+    private ZooKeeperServer embeddedZkServer;
     private QuorumPeer quorumPeer;
 
     private ZooKeeperStateServer(final Properties zkProperties) throws IOException, ConfigException {
@@ -51,7 +54,44 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
     }
 
     public synchronized void start() throws IOException {
+        if (quorumPeerConfig.isDistributed()) {
+            startDistributed();
+        } else {
+            startStandalone();
+        }
+    }
+
+    private void startStandalone() throws IOException {
         logger.info("Starting Embedded ZooKeeper Server");
+
+        final ServerConfig config = new ServerConfig();
+        config.readFrom(quorumPeerConfig);
+        try {
+            started = true;
+
+            transactionLog = new FileTxnSnapLog(new File(config.getDataLogDir()), new File(config.getDataDir()));
+
+            embeddedZkServer = new ZooKeeperServer();
+            embeddedZkServer.setTxnLogFactory(transactionLog);
+            embeddedZkServer.setTickTime(config.getTickTime());
+            embeddedZkServer.setMinSessionTimeout(config.getMinSessionTimeout());
+            embeddedZkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
+
+            connectionFactory = ServerCnxnFactory.createFactory();
+            connectionFactory.configure(config.getClientPortAddress(), config.getMaxClientCnxns());
+            connectionFactory.startup(embeddedZkServer);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Embedded ZooKeeper Server interrupted", e);
+        } catch (final IOException ioe) {
+            throw new IOException("Failed to start embedded ZooKeeper Server", ioe);
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to start embedded ZooKeeper Server", e);
+        }
+    }
+
+    private void startDistributed() throws IOException {
+        logger.info("Starting Embedded ZooKeeper Peer");
 
         try {
             started = true;
@@ -81,9 +121,9 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
 
             quorumPeer.start();
         } catch (final IOException ioe) {
-            throw new IOException("Failed to start embedded ZooKeeper Server", ioe);
+            throw new IOException("Failed to start embedded ZooKeeper Peer", ioe);
         } catch (final Exception e) {
-            throw new RuntimeException("Failed to start embedded ZooKeeper Server", e);
+            throw new RuntimeException("Failed to start embedded ZooKeeper Peer", e);
         }
     }
 
@@ -106,6 +146,10 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
 
             if (quorumPeer != null && quorumPeer.isRunning()) {
                 quorumPeer.shutdown();
+            }
+
+            if (embeddedZkServer != null && embeddedZkServer.isRunning()) {
+                embeddedZkServer.shutdown();
             }
         }
     }

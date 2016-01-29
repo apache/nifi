@@ -442,7 +442,7 @@ However, it is up to the administrator to determine the number of nodes most app
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
 in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
-with the list of ZooKeeper servers. Each of these servers is configured as <hostname>:<client port>[:<leader election port>]. For example, `myhost:2888:3888`.
+with the list of ZooKeeper servers. Each of these servers is configured as <hostname>:<quorum port>[:<leader election port>]. For example, `myhost:2888:3888`.
 This list of nodes should be the same nodes in the NiFi cluster that have the `nifi.state.management.embedded.zookeeper.start`
 property set to `true`. Also note that because ZooKeeper will be listening on these ports, the firewall may need to be configured to open these ports
 for incoming traffic, at least between nodes in the cluster. Additionally, the port to listen on for client connections must be opened in the firewall.
@@ -460,6 +460,8 @@ mkdir state/zookeeper
 echo 1 > state/zookeeper/myid
 
 For the next NiFi Node that will run ZooKeeper, we can accomplish this by performing the following commands:
+
+[source]
 cd $NIFI_HOME
 mkdir state
 mkdir state/zookeeper
