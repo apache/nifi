@@ -50,6 +50,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.client.ConnectStringParser;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
@@ -62,7 +63,18 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         .name("Connect String")
         .description("The ZooKeeper Connect String to use. This is a comma-separated list of hostname/IP and port tuples, such as \"host1:2181,host2:2181,127.0.0.1:2181\". If a port is not " +
             "specified it defaults to the ZooKeeper client port default of 2181")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(new Validator() {
+            @Override
+            public ValidationResult validate(String subject, String input, ValidationContext context) {
+                final String connectionString = context.getProperty(CONNECTION_STRING).getValue();
+                try {
+                    new ConnectStringParser(connectionString);
+                } catch (Exception e) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Invalid Connect String: " + connectionString).valid(false).build();
+                }
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid Connect String").valid(true).build();
+            }
+        })
         .required(false)
         .build();
     static final PropertyDescriptor SESSION_TIMEOUT = new PropertyDescriptor.Builder()
@@ -148,7 +160,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                     .build());
             }
         }
-
         return validationFailures;
     }
 
@@ -251,7 +262,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     private byte[] serialize(final Map<String, String> stateValues) throws IOException {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            final DataOutputStream dos = new DataOutputStream(baos)) {
+             final DataOutputStream dos = new DataOutputStream(baos)) {
             dos.writeByte(ENCODING_VERSION);
             dos.writeInt(stateValues.size());
             for (final Map.Entry<String, String> entry : stateValues.entrySet()) {
@@ -273,7 +284,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     private StateMap deserialize(final byte[] data, final int recordVersion, final String componentId) throws IOException {
         try (final ByteArrayInputStream bais = new ByteArrayInputStream(data);
-            final DataInputStream dis = new DataInputStream(bais)) {
+             final DataInputStream dis = new DataInputStream(bais)) {
 
             final byte encodingVersion = dis.readByte();
             if (encodingVersion > ENCODING_VERSION) {
@@ -422,6 +433,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     @Override
     public void clear(final String componentId) throws IOException {
         verifyEnabled();
-        setState(Collections.<String, String> emptyMap(), componentId);
+        setState(Collections.<String, String>emptyMap(), componentId);
     }
 }
