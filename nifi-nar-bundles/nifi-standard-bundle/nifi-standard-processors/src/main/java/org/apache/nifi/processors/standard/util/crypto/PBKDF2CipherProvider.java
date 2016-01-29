@@ -36,7 +36,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
-public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
+public class PBKDF2CipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProvider.class);
     private static final int DEFAULT_SALT_LENGTH = 16;
 
@@ -94,6 +94,11 @@ public class PBKDF2CipherProvider implements RandomIVPBECipherProvider {
         } catch (Exception e) {
             throw new ProcessException("Error initializing the cipher", e);
         }
+    }
+
+    @Override
+    Logger getLogger() {
+        return logger;
     }
 
     /**

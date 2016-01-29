@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard.util.crypto;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,12 +29,17 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 
 public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(OpenSSLPKCS5CipherProvider.class);
@@ -42,6 +48,9 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     private static final int ITERATION_COUNT = 0;
     private static final int DEFAULT_SALT_LENGTH = 8;
     private static final byte[] EMPTY_SALT = new byte[8];
+
+    private static final String OPENSSL_EVP_HEADER_MARKER = "Salted__";
+    private static final int OPENSSL_EVP_HEADER_SIZE = 8;
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the
@@ -153,5 +162,50 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     @Override
     public int getDefaultSaltLength() {
         return DEFAULT_SALT_LENGTH;
+    }
+
+    /**
+     * Returns the salt provided as part of the cipher stream, or throws an exception if one cannot be detected.
+     *
+     * @param in the cipher InputStream
+     * @return the salt
+     */
+    @Override
+    public byte[] readSalt(InputStream in) throws IOException {
+        if (in == null) {
+            throw new IllegalArgumentException("Cannot read salt from null InputStream");
+        }
+
+        // The header and salt format is "Salted__salt x8b" in ASCII
+        byte[] salt = new byte[DEFAULT_SALT_LENGTH];
+
+        // Try to read the header and salt from the input
+        byte[] header = new byte[OPENSSL_EVP_HEADER_SIZE];
+
+        // Mark the stream in case there is no salt
+        in.mark(OPENSSL_EVP_HEADER_SIZE + 1);
+        StreamUtils.fillBuffer(in, header);
+
+        final byte[] headerMarkerBytes = OPENSSL_EVP_HEADER_MARKER.getBytes(StandardCharsets.US_ASCII);
+
+        if (!Arrays.equals(headerMarkerBytes, header)) {
+            // No salt present
+            salt = new byte[0];
+            // Reset the stream because we skipped 8 bytes of cipher text
+            in.reset();
+        }
+
+        StreamUtils.fillBuffer(in, salt);
+        return salt;
+    }
+
+    @Override
+    public void writeSalt(byte[] salt, OutputStream out) throws IOException {
+        if (out == null) {
+            throw new IllegalArgumentException("Cannot write salt to null OutputStream");
+        }
+
+        out.write(OPENSSL_EVP_HEADER_MARKER.getBytes(StandardCharsets.US_ASCII));
+        out.write(salt);
     }
 }

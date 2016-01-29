@@ -19,8 +19,11 @@ package org.apache.nifi.processors.standard.util.crypto;
 import org.apache.nifi.security.util.EncryptionMethod;
 
 import javax.crypto.Cipher;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-public interface PBECipherProvider {
+public interface PBECipherProvider extends CipherProvider {
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
      *
@@ -35,7 +38,7 @@ public interface PBECipherProvider {
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
-     *
+     * <p/>
      * The IV can be retrieved by the calling method using {@link Cipher#getIV()}.
      *
      * @param encryptionMethod the {@link EncryptionMethod}
@@ -51,9 +54,8 @@ public interface PBECipherProvider {
     /**
      * Returns a random salt suitable for this cipher provider.
      *
-     * @see PBECipherProvider#getDefaultSaltLength()
-     *
      * @return a random salt
+     * @see PBECipherProvider#getDefaultSaltLength()
      */
     byte[] generateSalt();
 
@@ -63,4 +65,21 @@ public interface PBECipherProvider {
      * @return the default salt length in bytes
      */
     int getDefaultSaltLength();
+
+    /**
+     * Returns the salt provided as part of the cipher stream, or throws an exception if one cannot be detected.
+     *
+     * @param in the cipher InputStream
+     * @return the salt
+     */
+    byte[] readSalt(InputStream in) throws IOException;
+
+    /**
+     * Writes the salt provided as part of the cipher stream, or throws an exception if it cannot be written.
+     *
+     * @param salt the salt
+     * @param out  the cipher OutputStream
+     * @return the salt
+     */
+    void writeSalt(byte[] salt, OutputStream out) throws IOException;
 }

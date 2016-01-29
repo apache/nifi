@@ -107,7 +107,7 @@ public class BcryptCipherProviderGroovyTest {
 
         final String PASSWORD = "shortPassword";
         final byte[] SALT = cipherProvider.generateSalt()
-        final byte[] IV = Hex.decodeHex("00" * 16 as char[]);
+        final byte[] IV = Hex.decodeHex("01" * 16 as char[]);
 
         final String plaintext = "This is a plaintext message.";
 
@@ -391,7 +391,7 @@ public class BcryptCipherProviderGroovyTest {
 
         final String PASSWORD = "shortPassword";
         final byte[] SALT = cipherProvider.generateSalt()
-        final byte[] IV = Hex.decodeHex("00" * 16 as char[]);
+        final byte[] IV = Hex.decodeHex("01" * 16 as char[]);
 
         final String PLAINTEXT = "This is a plaintext message.";
 

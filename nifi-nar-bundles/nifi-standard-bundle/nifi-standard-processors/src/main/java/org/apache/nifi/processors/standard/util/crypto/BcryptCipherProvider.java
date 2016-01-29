@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class BcryptCipherProvider implements RandomIVPBECipherProvider {
+public class BcryptCipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(BcryptCipherProvider.class);
 
     private final int workFactor;
@@ -86,6 +86,11 @@ public class BcryptCipherProvider implements RandomIVPBECipherProvider {
         } catch (Exception e) {
             throw new ProcessException("Error initializing the cipher", e);
         }
+    }
+
+    @Override
+    Logger getLogger() {
+        return logger;
     }
 
     /**

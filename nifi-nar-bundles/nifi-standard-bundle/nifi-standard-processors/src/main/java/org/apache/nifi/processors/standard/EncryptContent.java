@@ -307,7 +307,7 @@ public class EncryptContent extends AbstractProcessor {
                 }
             } else { // PBE
                 final char[] passphrase = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
-                encryptor = new PasswordBasedEncryptor(algorithm, providerName, passphrase, kdf);
+                encryptor = new PasswordBasedEncryptor(encryptionMethod, passphrase, kdf);
             }
 
             if (encrypt) {

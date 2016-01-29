@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ScryptCipherProvider implements RandomIVPBECipherProvider {
+public class ScryptCipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(ScryptCipherProvider.class);
 
     private final int n;
@@ -104,6 +104,11 @@ public class ScryptCipherProvider implements RandomIVPBECipherProvider {
         } catch (Exception e) {
             throw new ProcessException("Error initializing the cipher", e);
         }
+    }
+
+    @Override
+    Logger getLogger() {
+        return logger;
     }
 
     /**

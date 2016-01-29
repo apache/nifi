@@ -17,13 +17,20 @@
 package org.apache.nifi.processors.standard.util.crypto;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processor.exception.ProcessException;
 
+import javax.crypto.Cipher;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CipherUtility {
+
+    public static final int BUFFER_SIZE = 65536;
+
     /**
      * Returns the cipher algorithm from the full algorithm name. Useful for getting key lengths, etc.
      * <p/>
@@ -93,8 +100,9 @@ public class CipherUtility {
      * <p/>
      * Ex:
      * <p/>
-     * 256 is valid for {@code AES/CBC/PKCS7Padding} but not {@code PBEWITHMD5AND128BITAES-CBC-OPENSSL}. However, this method will return {@code true} for both because it only gets the cipher family, {@code AES}.
-     *
+     * 256 is valid for {@code AES/CBC/PKCS7Padding} but not {@code PBEWITHMD5AND128BITAES-CBC-OPENSSL}. However, this method will return {@code true} for both because it only gets the cipher
+     * family, {@code AES}.
+     * <p/>
      * 64, AES -> false
      * [128, 192, 256], AES -> true
      *
@@ -133,15 +141,15 @@ public class CipherUtility {
      * Ex:
      * <p/>
      * 256 is valid for {@code AES/CBC/PKCS7Padding} but not {@code PBEWITHMD5AND128BITAES-CBC-OPENSSL}.
-     *
+     * <p/>
      * 64, AES/CBC/PKCS7Padding -> false
      * [128, 192, 256], AES/CBC/PKCS7Padding -> true
-     *
+     * <p/>
      * 128, PBEWITHMD5AND128BITAES-CBC-OPENSSL -> true
      * [192, 256], PBEWITHMD5AND128BITAES-CBC-OPENSSL -> false
      *
      * @param keyLength the key length in bits
-     * @param algorithm    the specific algorithm
+     * @param algorithm the specific algorithm
      * @return true if this key length is valid
      */
     public static boolean isValidKeyLengthForAlgorithm(int keyLength, final String algorithm) {
@@ -172,6 +180,27 @@ public class CipherUtility {
             case "RC5":
             default:
                 return 128;
+        }
+    }
+
+    public static void processStreams(Cipher cipher, InputStream in, OutputStream out) {
+        try {
+            final byte[] buffer = new byte[BUFFER_SIZE];
+            int len;
+            while ((len = in.read(buffer)) > 0) {
+                final byte[] decryptedBytes = cipher.update(buffer, 0, len);
+                if (decryptedBytes != null) {
+                    out.write(decryptedBytes);
+                }
+            }
+
+            try {
+                out.write(cipher.doFinal());
+            } catch (final Exception e) {
+                throw new ProcessException(e);
+            }
+        } catch (Exception e) {
+            throw new ProcessException(e);
         }
     }
 }

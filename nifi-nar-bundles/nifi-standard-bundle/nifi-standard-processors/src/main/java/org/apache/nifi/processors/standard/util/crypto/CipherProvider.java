@@ -16,23 +16,8 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
-import javax.crypto.SecretKey;
-
-public interface KeyDeriver {
-
-    /**
-     * Returns the key derived from this input.
-     *
-     * @param password the secret input
-     * @param salt     the salt in bytes
-     * @return the key
-     */
-    SecretKey deriveKey(String password, byte[] salt);
-
-    /**
-     * Generates a random salt compatible with this implementation of the Key Derivation Function.
-     *
-     * @return the salt in bytes
-     */
-    byte[] generateSalt();
+/**
+ * Marker interface for cipher providers.
+ */
+public interface CipherProvider {
 }

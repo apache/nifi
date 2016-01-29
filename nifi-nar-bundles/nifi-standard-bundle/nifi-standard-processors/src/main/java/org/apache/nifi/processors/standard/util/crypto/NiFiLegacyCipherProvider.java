@@ -16,12 +16,17 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(NiFiLegacyCipherProvider.class);
@@ -69,6 +74,31 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
         } catch (Exception e) {
             throw new ProcessException("Error initializing the cipher", e);
         }
+    }
+
+    @Override
+    public byte[] readSalt(InputStream in) throws IOException, ProcessException {
+        if (in == null) {
+            throw new IllegalArgumentException("Cannot read salt from null InputStream");
+        }
+
+        // The first 16 bytes of the input stream are the salt
+        if (in.available() < getDefaultSaltLength()) {
+            throw new ProcessException("The cipher stream is too small to contain the salt");
+        }
+        byte[] salt = new byte[getDefaultSaltLength()];
+        StreamUtils.fillBuffer(in, salt);
+        logger.info("[REMOVE] Read salt {}", Hex.encodeHexString(salt));
+        return salt;
+    }
+
+    @Override
+    public void writeSalt(byte[] salt, OutputStream out) throws IOException {
+        if (out == null) {
+            throw new IllegalArgumentException("Cannot write salt to null OutputStream");
+        }
+        logger.info("[REMOVE] Writing salt {}", Hex.encodeHexString(salt));
+        out.write(salt);
     }
 
     protected int getIterationCount() {

@@ -57,6 +57,13 @@ public class TestEncryptContent {
             if (method.isUnlimitedStrength()) {
                 continue;   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
             }
+
+            // TODO: Add KeyedEncryptor but not yet supported
+            if (method.isKeyedCipher()) {
+                continue;
+            }
+
+            logger.info("Attempting {}", method.name());
             testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, method.name());
             testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
 

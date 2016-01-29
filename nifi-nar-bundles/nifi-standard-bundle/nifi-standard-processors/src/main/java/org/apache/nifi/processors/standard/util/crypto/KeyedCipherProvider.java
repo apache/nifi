@@ -21,7 +21,7 @@ import org.apache.nifi.security.util.EncryptionMethod;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 
-public interface KeyedCipherProvider {
+public interface KeyedCipherProvider extends CipherProvider {
     /**
      * Returns an initialized cipher for the specified algorithm. The IV is provided externally to allow for non-deterministic IVs, as IVs
      * deterministically derived from the password are a potential vulnerability and compromise semantic security. See
