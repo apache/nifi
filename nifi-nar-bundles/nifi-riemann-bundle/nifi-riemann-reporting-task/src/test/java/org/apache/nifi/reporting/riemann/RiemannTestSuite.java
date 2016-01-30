@@ -24,11 +24,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.Maps;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RunStatus;
@@ -68,7 +70,7 @@ public class RiemannTestSuite {
     protected static long AVERAGE_LINEAGE_DURATION = 1345;
     protected static long PROCESSING_NANOS = 123456789;
     protected static RunStatus RUN_STATUS = RunStatus.Stopped;
-    protected final MetricsService service = new MetricsService(SERVICE_PREFIX, HOST, new String[] { "nifi" });
+    protected final MetricsService service = new MetricsService(SERVICE_PREFIX, HOST, new String[] { "nifi" }, new HashMap<String, String>());
     protected ProcessGroupStatus processGroupStatus;
     protected ProcessorStatus processorStatus;
     protected RiemannClient riemannMockClient;

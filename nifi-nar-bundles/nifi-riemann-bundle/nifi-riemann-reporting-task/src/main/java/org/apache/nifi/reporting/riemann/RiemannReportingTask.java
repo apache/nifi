@@ -22,14 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
@@ -46,8 +43,7 @@ import com.google.common.collect.Maps;
 import com.yammer.metrics.core.VirtualMachineMetrics;
 
 @Tags({ "reporting", "riemann", "metrics" })
-@DynamicProperty(name = "Attribute Name", value = "Attribute Value", supportsExpressionLanguage = false,
-        description = "Additional attributes may be attached to the event by adding dynamic properties")
+@DynamicProperty(name = "Attribute Name", value = "Attribute Value", supportsExpressionLanguage = false, description = "Additional attributes may be attached to the event by adding dynamic properties")
 @CapabilityDescription("Publish NiFi metrics to Riemann. These metrics include " + "JVM, Processor, and General Data Flow metrics. In addition, you may also forward bulletin " + "board messages.")
 public class RiemannReportingTask extends AbstractReportingTask {
     private static final PropertyDescriptor RIEMANN_HOST = new PropertyDescriptor.Builder().name("Riemann Address").description("Hostname of Riemann server").required(true)
@@ -56,14 +52,14 @@ public class RiemannReportingTask extends AbstractReportingTask {
             .addValidator(StandardValidators.PORT_VALIDATOR).build();
     private static final PropertyDescriptor TRANSPORT_PROTOCOL = new PropertyDescriptor.Builder().name("Transport Protocol").description("Transport protocol to speak to Riemann in").required(true)
             .allowableValues(new Transport[] { Transport.TCP, Transport.UDP }).defaultValue("TCP").build();
-    private static final PropertyDescriptor SERVICE_PREFIX = new PropertyDescriptor.Builder().name("Prefix for Service Name").description("Prefix to use when reporting to Riemann").defaultValue("nifi")
-            .required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    private static final PropertyDescriptor SERVICE_PREFIX = new PropertyDescriptor.Builder().name("Prefix for Service Name").description("Prefix to use when reporting to Riemann")
+            .defaultValue("nifi").required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
     private static final PropertyDescriptor WRITE_TIMEOUT = new PropertyDescriptor.Builder().name("Timeout").description("Timeout in milliseconds when writing events to Riemann").required(true)
             .defaultValue("500ms").addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).build();
     private static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder().name("Hostname").description("The Hostname of this NiFi instance to report to Riemann").required(true)
             .expressionLanguageSupported(true).defaultValue("${hostname(true)}").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-    private static final PropertyDescriptor TAGS = new PropertyDescriptor.Builder().name("Tags").description("Comma separated list of tags to include ").required(true).expressionLanguageSupported(true)
-            .defaultValue("nifi,metrics").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    private static final PropertyDescriptor TAGS = new PropertyDescriptor.Builder().name("Tags").description("Comma separated list of tags to include ").required(true)
+            .expressionLanguageSupported(true).defaultValue("nifi,metrics").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
     private static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder().name("JVM Metrics").description("Forwards NiFi JVM metrics to Riemann").allowableValues("true", "false")
             .required(true).defaultValue("true").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
     private static final PropertyDescriptor SEND_NIFI_METRICS = new PropertyDescriptor.Builder().name("NiFi Metrics").description("Forwards aggregated data flow metrics to Riemann")
@@ -74,11 +70,11 @@ public class RiemannReportingTask extends AbstractReportingTask {
             .allowableValues("true", "false").required(true).defaultValue("true").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
     private static final PropertyDescriptor MIN_BULLETIN_LEVEL = new PropertyDescriptor.Builder().name("Minimum Bulletin Level")
             .description("Only forward bulletin messages at this level and above to Riemann").allowableValues(LogLevel.values()).required(true).defaultValue("WARNING").build();
-    protected Transport transport;
+    private final VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+    protected boolean isTcp;
     private volatile long lastObservedBulletinId = 0;
     private volatile RiemannClient riemannClient = null;
-    private MetricsService metricsService;
-    private final VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+    private volatile MetricsService metricsService;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -107,39 +103,46 @@ public class RiemannReportingTask extends AbstractReportingTask {
     @OnStopped
     public final void cleanUpClient() {
         if (riemannClient != null) {
+            // should never throw an exception
             this.riemannClient.close();
         }
         this.riemannClient = null;
     }
 
-    @OnScheduled
-    public void onScheduled(final ConfigurationContext context) throws ProcessException {
-        if (riemannClient == null || !riemannClient.isConnected()) {
-            transport = Transport.valueOf(context.getProperty(TRANSPORT_PROTOCOL).getValue());
-            String host = context.getProperty(RIEMANN_HOST).evaluateAttributeExpressions().getValue();
-            int port = context.getProperty(RIEMANN_PORT).asInteger();
-            RiemannClient client = null;
-            try {
-                switch (transport) {
-                case TCP:
-                    client = RiemannClient.tcp(host, port);
-                    break;
-                case UDP:
-                    client = RiemannClient.udp(host, port);
-                    break;
-                }
-                client.connect();
-                riemannClient = client;
-            } catch (IOException e) {
-                if (client != null) {
-                    client.close();
-                }
-                throw new ProcessException(String.format("Unable to connect to Riemann [%s:%d] (%s)\n%s", host, port, transport, e.getMessage()));
+    /**
+     * Creates Riemann client connection
+     * 
+     * @param context
+     *            config context
+     */
+    public void createRiemannClient(ReportingContext context) {
+        isTcp = Transport.valueOf(context.getProperty(TRANSPORT_PROTOCOL).getValue()) == Transport.TCP;
+        String host = context.getProperty(RIEMANN_HOST).evaluateAttributeExpressions().getValue();
+        int port = context.getProperty(RIEMANN_PORT).asInteger();
+        RiemannClient client = null;
+        try {
+            if (isTcp) {
+                client = RiemannClient.tcp(host, port);
+            } else {
+                client = RiemannClient.udp(host, port);
             }
+            client.connect();
+            riemannClient = client;
+        } catch (IOException e) {
+            if (client != null) {
+                client.close();
+            }
+            throw new ProcessException(String.format("Unable to connect to Riemann [%s:%d] (TCP: %s)\n%s", host, port, isTcp, e.getMessage()));
         }
-        metricsService = new MetricsService(context.getProperty(SERVICE_PREFIX).getValue(), context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue(),
-                context.getProperty(TAGS).getValue().split(","));
+    }
 
+    /**
+     * Creates Metrics service for reporting NiFi metrics to Riemann
+     * 
+     * @param context
+     *            config context
+     */
+    public void createMetricsService(ReportingContext context) {
         // Add dynamic properties as attributes to messages
         Map<String, String> additionalProperties = Maps.newHashMapWithExpectedSize(context.getProperties().size());
         for (PropertyDescriptor propertyDescriptor : context.getProperties().keySet()) {
@@ -147,14 +150,15 @@ public class RiemannReportingTask extends AbstractReportingTask {
                 additionalProperties.put(propertyDescriptor.getName(), context.getProperty(propertyDescriptor).getValue());
             }
         }
-        metricsService.setAdditionalAttributes(additionalProperties);
+        metricsService = new MetricsService(context.getProperty(SERVICE_PREFIX).getValue(), context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(TAGS).getValue().split(","), additionalProperties);
     }
 
     /**
      * Retrieves all new bulletins in the `BulletinRepository` since the last time this method was called.
      *
      * @param context
-     *          Reporting context
+     *            Reporting context
      * @return new bulletins
      */
     private List<Bulletin> getNewBulletins(ReportingContext context) {
@@ -175,6 +179,12 @@ public class RiemannReportingTask extends AbstractReportingTask {
 
     @Override
     public void onTrigger(ReportingContext context) {
+        // Create Riemann client and metrics service if not initialized or not connected
+        if (riemannClient == null || !riemannClient.isConnected()) {
+            createRiemannClient(context);
+            createMetricsService(context);
+        }
+
         try {
             final long start = System.currentTimeMillis();
 
@@ -205,7 +215,7 @@ public class RiemannReportingTask extends AbstractReportingTask {
             }
 
             // Block until all messages are sent - TCP only
-            if (transport == Transport.TCP) {
+            if (isTcp) {
                 for (IPromise<Proto.Msg> promise : promises) {
                     Proto.Msg returnMessage = promise.deref(context.getProperty(WRITE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
                     if (returnMessage == null) {

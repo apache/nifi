@@ -23,6 +23,11 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
+  <properties>
+    <riemann.version>0.4.0</riemann.version>
+    <guava.version>18.0</guava.version>
+  </properties>
+
   <artifactId>nifi-riemann-bundle</artifactId>
   <packaging>pom</packaging>
   <modules>
@@ -40,7 +45,7 @@
     <dependency>
       <groupId>com.aphyr</groupId>
       <artifactId>riemann-java-client</artifactId>
-      <version>0.4.0</version>
+      <version>${riemann.version}</version>
     </dependency>
   </dependencies>
   <dependencyManagement>

@@ -39,31 +39,25 @@ public class MetricsService {
     private final String servicePrefix;
     private final Collection<String> serviceTags;
     private final String hostName;
-    private Map<String, String> additionalAttributes = Maps.newHashMap();
+    private final Map<String, String> additionalAttributes;
 
-    public MetricsService(String servicePrefix, String hostName, String[] serviceTags) {
+    public MetricsService(String servicePrefix, String hostName, String[] serviceTags, Map<String, String> additionalAttributes) {
         this.servicePrefix = servicePrefix;
         this.hostName = hostName;
         this.serviceTags = new ArrayList<>(serviceTags.length);
         Collections.addAll(this.serviceTags, serviceTags);
+        this.additionalAttributes = additionalAttributes;
     }
 
     public String getServicePrefix() {
         return servicePrefix;
     }
 
-    public void setAdditionalAttributes(Map<String, String> additionalAttributes) {
-        this.additionalAttributes.clear();
-        if (additionalAttributes != null) {
-            this.additionalAttributes.putAll(additionalAttributes);
-        }
-    }
-
     /**
      * Create a list of Riemann events using the provided JVM virtual machine metrics
      *
      * @param virtualMachineMetrics
-     *          JVM virtual machine metrics
+     *            JVM virtual machine metrics
      * @return List of Riemann events
      */
     public List<Proto.Event> createJVMEvents(VirtualMachineMetrics virtualMachineMetrics) {
@@ -162,7 +156,7 @@ public class MetricsService {
      * Create a list of Riemann events for all individual processors within the NiFi data flow
      *
      * @param statuses
-     *          Collection of processor statuses
+     *            Collection of processor statuses
      * @return List of Riemann events
      */
     public List<Proto.Event> createProcessorEvents(Collection<ProcessorStatus> statuses) {
@@ -250,8 +244,9 @@ public class MetricsService {
 
     /**
      * Create a list of Riemann events for overall aggregated metrics in the NiFi data flow
+     * 
      * @param status
-     *          Processor group status
+     *            Processor group status
      * @return List of Riemann events
      */
     public List<Proto.Event> createProcessGroupEvents(ProcessGroupStatus status) {
@@ -339,8 +334,9 @@ public class MetricsService {
 
     /**
      * Create list of Riemann events from a list of bulletin messages
+     * 
      * @param bulletins
-     *          List of bulletin board messages
+     *            List of bulletin board messages
      * @return List of Riemann events
      */
     public List<Proto.Event> createBulletinEvents(List<Bulletin> bulletins) {
