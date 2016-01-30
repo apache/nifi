@@ -21,9 +21,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import groovy.lang.GroovyClassLoader;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
@@ -32,11 +35,18 @@ import org.apache.camel.ServiceStatus;
 import org.apache.camel.component.grape.GrapeCommand;
 import org.apache.camel.component.grape.GrapeConstants;
 import org.apache.camel.impl.DefaultExchange;
-import org.apache.camel.impl.DefaultShutdownStrategy;
-import org.apache.camel.spi.ShutdownStrategy;
 import org.apache.camel.spring.SpringCamelContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.ivy.Ivy;
+import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
+import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
+import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.apache.ivy.core.report.ResolveReport;
+import org.apache.ivy.core.resolve.ResolveOptions;
+import org.apache.ivy.core.settings.IvySettings;
+import org.apache.ivy.plugins.parser.xml.XmlModuleDescriptorWriter;
+import org.apache.ivy.plugins.resolver.URLResolver;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -77,7 +87,7 @@ public class CamelProcessor extends AbstractProcessor {
         .name("Camel Spring Config File Path")
         .description("The Classpath where NiFi can find Spring Application context file"
                          + " Ex: classpath*:/META-INF/camel-application-context.xml")
-        .defaultValue("classpath*:/META-INF/camel-application-context.xml").required(true).addValidator(Validator.VALID)
+        .defaultValue("").addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor CAMEL_SPRING_CONTEXT_DEF = new PropertyDescriptor.Builder()
@@ -162,43 +172,38 @@ public class CamelProcessor extends AbstractProcessor {
             || getCamelContext().getStatus()==ServiceStatus.Stopped
             || getCamelContext().getStatus()==ServiceStatus.Stopping) {
             try {
-                camelContext=new SpringCamelContext(new GenericXmlApplicationContext("classpath*:/META-INF/spring/parent-application-context.xml"));
-                camelContext.setApplicationContextClassLoader(new GroovyClassLoader(camelContext.getApplicationContextClassLoader()));
-                ShutdownStrategy shutdownStrategy=new DefaultShutdownStrategy();
-                shutdownStrategy.setTimeout(1);
-                shutdownStrategy.setTimeUnit(TimeUnit.SECONDS);
-                camelContext.setShutdownStrategy(shutdownStrategy);
                 final String grapeGrabURLs=context.getProperty(EXT_LIBRARIES).getValue();
-                ProducerTemplate template = camelContext.createProducerTemplate();
                 //Let's load Extra Libraries using grape those might not be present in classpath.
+                final List<File> resolvedDependencies=new LinkedList<>();
                 if(!StringUtils.isEmpty(grapeGrabURLs)){
                     for (String  grapeGrabURL : grapeGrabURLs.split(",")) {
                         String [] gav=grapeGrabURL.split("/");
-                        template.sendBody("grape:grape", gav[0]+"/"+gav[1]+"/"+(gav[2].equalsIgnoreCase("default")?camelContext.getVersion():gav[2]));
+                        File file=resolveArtifact( gav[0],gav[1],(gav[2].equalsIgnoreCase("default")?camelContext.getVersion():gav[2]));
+                        resolvedDependencies.add(file);
                     }
                 }
-                String camelContextDef=context
-                    .getProperty(CAMEL_SPRING_CONTEXT_DEF).getValue();
-                String camelContextPath=context
-                    .getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue();
+                String camelContextDef=context.getProperty(CAMEL_SPRING_CONTEXT_DEF).getValue();
+                String camelContextPath=context.getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue();
 
-                //TODO: call-back on completion of dependency loading or wait a little or rely on synchronous ProducerTemplate#send
-
-              //Merge Classloader & SpringApplication Context to new one
+                boolean contextDefined=!(Strings.isNullOrEmpty(camelContextDef) && Strings.isNullOrEmpty(camelContextPath));
+                if(contextDefined){
+                    final GroovyClassLoader classLoader=new GroovyClassLoader(Thread.currentThread().getContextClassLoader());
+                    for (File file : resolvedDependencies) {
+                        classLoader.addClasspath(file.getAbsolutePath());
+                    }
                 GenericXmlApplicationContext applicationContext=new GenericXmlApplicationContext();
-                applicationContext.setParent(camelContext.getApplicationContext());
-                applicationContext.setClassLoader(camelContext.getApplicationContextClassLoader());
-
+                applicationContext.setClassLoader(classLoader);
                 if(!Strings.isNullOrEmpty(camelContextDef)){
                     applicationContext.load(
                          new ByteArrayResource(camelContextDef.getBytes()));
-                }else{
+                }else if(!Strings.isNullOrEmpty(camelContextPath)){
                     applicationContext.load(camelContextPath);
                 }
                 applicationContext.refresh();
-                camelContext.setApplicationContext(applicationContext);
+                camelContext=new SpringCamelContext(applicationContext);
                 camelContext.start();
-                getLogger().info("Camel Spring Context initialized");
+                getLogger().info("Camel Spring Context initialized: " + camelContext.getName());
+                }
             } catch (Exception exception) {
                 getLogger().error("Failed to Startup Camel Spring Context", exception);
                 throw exception;
@@ -255,6 +260,55 @@ public class CamelProcessor extends AbstractProcessor {
 
             return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
         }
+    }
+
+    private File resolveArtifact(String groupId, String artifactId, String version) throws IOException,
+    ParseException {
+        // creates clear ivy settings
+        IvySettings ivySettings = new IvySettings();
+        // url resolver for configuration of maven repo
+        URLResolver resolver = new URLResolver();
+        resolver.setM2compatible(true);
+        resolver.setName("central");
+        // you can specify the url resolution pattern strategy
+        resolver
+        .addArtifactPattern("http://repo1.maven.org/maven2/[organisation]/[module]/[revision]/[artifact](-[revision]).[ext]");
+        // adding maven repo resolver
+        ivySettings.addResolver(resolver);
+        // set to the default resolver
+        ivySettings.setDefaultResolver(resolver.getName());
+        // creates an Ivy instance with settings
+        Ivy ivy = Ivy.newInstance(ivySettings);
+
+        File ivyfile = File.createTempFile("ivy", ".xml");
+        ivyfile.deleteOnExit();
+
+        //String[] dep = new String[] {groupId, artifactId, version};
+
+        DefaultModuleDescriptor md = DefaultModuleDescriptor.newDefaultInstance(ModuleRevisionId
+                                                                                .newInstance(groupId, artifactId + "-caller", "working"));
+
+        DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(
+                                                                         md,
+                                                                         ModuleRevisionId.newInstance(groupId,
+                                                                                                      artifactId,
+                                                                                                       version),
+                                                                                                      false, false, true);
+        md.addDependency(dd);
+
+        // creates an ivy configuration file
+        XmlModuleDescriptorWriter.write(md, ivyfile);
+
+        String[] confs = new String[] {"default"};
+        ResolveOptions resolveOptions = new ResolveOptions().setConfs(confs);
+
+        // init resolve report
+        ResolveReport report = ivy.resolve(ivyfile.toURL(), resolveOptions);
+
+        // so you can get the jar library
+        File jarArtifactFile = report.getAllArtifactsReports()[0].getLocalFile();
+
+        return jarArtifactFile;
     }
 
 }

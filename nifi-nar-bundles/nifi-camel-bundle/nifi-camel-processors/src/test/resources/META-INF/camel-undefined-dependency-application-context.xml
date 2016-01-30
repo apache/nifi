@@ -20,19 +20,6 @@
         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
        ">
    <camelContext xmlns="http://camel.apache.org/schema/spring">
-
-		<route >
-			<from uri="direct-vm:nifiEntryPoint" />
-			<to uri="log:org.me.testlog?level=WARN" />
-			<to uri="mock:mockout"/>
-		</route>	
-		<route >
-			<from uri="direct-vm:nifiEntryPoint2" />
-			<to uri="bean:sayHello"/>
-			<to uri="log:org.me.testlog?level=WARN" />
-			<to uri="mock:mockout"/>
-		</route>
-		
 		<route id="defaultRoute">
 			<description>
 				Here we never defined camel-stream dependency in pom or by any other means.
@@ -42,8 +29,7 @@
 			<to uri="log:org.me.testlog?level=WARN" />
 			<to uri="stream:out"/>
 			<to uri="mock:mockout"/>
-		</route>	
+		</route>
 
 	</camelContext>
-<bean id="sayHello" class="org.apache.nifi.processors.camel.beans.SayHelloBean"/>
 </beans>

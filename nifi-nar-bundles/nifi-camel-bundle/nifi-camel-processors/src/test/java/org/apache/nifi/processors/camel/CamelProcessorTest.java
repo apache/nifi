@@ -45,6 +45,7 @@ public class CamelProcessorTest {
      */
     @Test
     public void testProcessorBasic() {
+        testRunner.setProperty(CamelProcessor.CAMEL_SPRING_CONTEXT_FILE_PATH,"classpath*:/META-INF/camel-application-context.xml");
         testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint");
         String content="Hello NiFi, said Camel";
         testRunner.enqueue(content);
@@ -62,6 +63,7 @@ public class CamelProcessorTest {
      */
     @Test
     public void testProcessorFlowFileMod() {
+        testRunner.setProperty(CamelProcessor.CAMEL_SPRING_CONTEXT_FILE_PATH,"classpath*:/META-INF/camel-application-context.xml");
         testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint2");
         testRunner.enqueue("Hello");
         testRunner.run(3);
