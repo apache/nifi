@@ -198,9 +198,54 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
         }
 
         // Extra hard-coded checks
-        ["PBEWITHSHA256AND256BITAES-CBC-BC":192].each {String algorithm, int invalidKeyLength ->
+        ["PBEWITHSHA256AND256BITAES-CBC-BC": 192].each { String algorithm, int invalidKeyLength ->
             logger.info("Checking ${invalidKeyLength} for ${algorithm}")
             assert !CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm)
+        }
+    }
+
+    @Test
+    void testShouldGetValidKeyLengthsForAlgorithm() {
+        // Arrange
+
+        def rcKeyLengths = (40..2048).asList()
+        def CIPHER_KEY_SIZES = [
+                AES    : [128, 192, 256],
+                DES    : [56, 64],
+                DESede : [56, 64, 112, 128, 168, 192],
+                RC2    : rcKeyLengths,
+                RC4    : rcKeyLengths,
+                RC5    : rcKeyLengths,
+                TWOFISH: [128, 192, 256]
+        ]
+
+        def SINGLE_KEY_SIZE_ALGORITHMS = EncryptionMethod.values()*.algorithm.findAll { CipherUtility.parseActualKeyLengthFromAlgorithm(it) != -1 }
+        logger.info("Single key size algorithms: ${SINGLE_KEY_SIZE_ALGORITHMS}")
+        def MULTIPLE_KEY_SIZE_ALGORITHMS = EncryptionMethod.values()*.algorithm - SINGLE_KEY_SIZE_ALGORITHMS
+        MULTIPLE_KEY_SIZE_ALGORITHMS.removeAll { it.contains("PGP") }
+        logger.info("Multiple key size algorithms: ${MULTIPLE_KEY_SIZE_ALGORITHMS}")
+
+        // Act
+        SINGLE_KEY_SIZE_ALGORITHMS.each { String algorithm ->
+            def EXPECTED_KEY_SIZES = [CipherUtility.parseKeyLengthFromAlgorithm(algorithm)]
+
+            def validKeySizes = CipherUtility.getValidKeyLengthsForAlgorithm(algorithm)
+            logger.info("Checking ${algorithm} ${validKeySizes} against expected ${EXPECTED_KEY_SIZES}")
+
+            // Assert
+            assert validKeySizes == EXPECTED_KEY_SIZES
+        }
+
+        // Act
+        MULTIPLE_KEY_SIZE_ALGORITHMS.each { String algorithm ->
+            String cipher = CipherUtility.parseCipherFromAlgorithm(algorithm)
+            def EXPECTED_KEY_SIZES = CIPHER_KEY_SIZES[cipher]
+
+            def validKeySizes = CipherUtility.getValidKeyLengthsForAlgorithm(algorithm)
+            logger.info("Checking ${algorithm} ${validKeySizes} against expected ${EXPECTED_KEY_SIZES}")
+
+            // Assert
+            assert validKeySizes == EXPECTED_KEY_SIZES
         }
     }
 }

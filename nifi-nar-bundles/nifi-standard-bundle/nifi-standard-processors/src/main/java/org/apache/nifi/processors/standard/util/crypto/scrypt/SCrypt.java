@@ -39,7 +39,7 @@ import static java.lang.System.arraycopy;
  * Taken from Will Glozer's port of Colin Percival's C implementation. Glozer's project located at <a href="https://github.com/wg/scrypt">https://github.com/wg/scrypt</a> was released under the ASF
  * 2.0 license and has not been updated since May 25, 2013 and there are outstanding issues which have been patched in this version.
  * <p/>
- * An implementation of the <a href="http://www.tarsnap.com/scrypt/scrypt.pdf"/>scrypt</a>
+ * An implementation of the <a href="http://www.tarsnap.com/scrypt/scrypt.pdf">scrypt</a>
  * key derivation function.
  * <p/>
  * Allows for hashing passwords using the
@@ -240,7 +240,7 @@ public class Scrypt {
     }
 
     /**
-     * Implementation of the <a href="http://www.tarsnap.com/scrypt/scrypt.pdf"/>scrypt KDF</a>.
+     * Implementation of the <a href="http://www.tarsnap.com/scrypt/scrypt.pdf">scrypt KDF</a>.
      *
      * @param password password
      * @param salt     salt
@@ -325,7 +325,6 @@ public class Scrypt {
      * @param c     the iteration count
      * @param dkLen the intended length, in octets, of the derived key
      * @return The derived key
-     * @throws GeneralSecurityException
      */
     private static byte[] pbkdf2(String alg, byte[] p, byte[] s, int c, int dkLen) throws GeneralSecurityException {
         Mac mac = Mac.getInstance(alg);
@@ -343,7 +342,7 @@ public class Scrypt {
      * @param c     the iteration count
      * @param dk    the byte array that derived key will be placed in
      * @param dkLen the intended length, in octets, of the derived key
-     * @throws GeneralSecurityException
+     * @throws GeneralSecurityException if the key length is too long
      */
     private static void pbkdf2(Mac mac, byte[] s, int c, byte[] dk, int dkLen) throws GeneralSecurityException {
         int hLen = mac.getMacLength();

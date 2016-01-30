@@ -58,7 +58,7 @@ public class TestEncryptContent {
                 continue;   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
             }
 
-            // TODO: Add KeyedEncryptor but not yet supported
+            // KeyedCiphers tested in TestEncryptContentGroovy.groovy
             if (method.isKeyedCipher()) {
                 continue;
             }

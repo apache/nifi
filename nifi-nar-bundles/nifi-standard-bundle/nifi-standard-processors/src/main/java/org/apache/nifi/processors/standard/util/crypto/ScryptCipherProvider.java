@@ -198,7 +198,8 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
             throw new IllegalArgumentException("Cannot parse empty salt");
         }
 
-        /** Salt format is $s0$params$saltB64 where params is encoded according to {@link Scrypt#parseParameters(String)}*/
+        /** Salt format is $s0$params$saltB64 where params is encoded according to
+         *  {@link Scrypt#parseParameters(String)}*/
         final String[] saltComponents = scryptSalt.split("\\$");
         // TODO: Remove
         logger.info("[REMOVE] Salt components: {} {} {} {}", saltComponents[0], saltComponents[1], saltComponents[2], saltComponents[3]);

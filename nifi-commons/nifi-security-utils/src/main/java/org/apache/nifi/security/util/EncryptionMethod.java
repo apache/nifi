@@ -93,6 +93,7 @@ public enum EncryptionMethod {
     public boolean isKeyedCipher() {
         return !algorithm.startsWith("PBE") && !algorithm.startsWith("PGP");
     }
+
     @Override
     public String toString() {
         final ToStringBuilder builder = new ToStringBuilder(this);
@@ -101,6 +102,7 @@ public enum EncryptionMethod {
         builder.append("Requires unlimited strength JCE policy", unlimitedStrength);
         builder.append("Algorithm Provider", provider);
         builder.append("Compatible with strong KDFs", compatibleWithStrongKDFs);
+        builder.append("Keyed cipher", isKeyedCipher());
         return builder.toString();
     }
 }

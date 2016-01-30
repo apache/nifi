@@ -25,6 +25,7 @@ import javax.crypto.Cipher;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -43,21 +44,27 @@ public class CipherUtility {
      * @return the generic cipher name or the full algorithm if one cannot be extracted
      */
     public static String parseCipherFromAlgorithm(final String algorithm) {
+        if (StringUtils.isEmpty(algorithm)) {
+            return algorithm;
+        }
+        String formattedAlgorithm = algorithm.toUpperCase();
+
         // This is not optimal but the algorithms do not have a standard format
         final String AES = "AES";
         final String TDES = "TRIPLEDES";
+        final String TDES_ALTERNATE = "DESEDE";
         final String DES = "DES";
         final String RC4 = "RC4";
         final String RC2 = "RC2";
         final String TWOFISH = "TWOFISH";
-        final List<String> SYMMETRIC_CIPHERS = Arrays.asList(AES, TDES, DES, RC4, RC2, TWOFISH);
+        final List<String> SYMMETRIC_CIPHERS = Arrays.asList(AES, TDES, TDES_ALTERNATE, DES, RC4, RC2, TWOFISH);
 
         // The algorithms contain "TRIPLEDES" but the cipher name is "DESede"
         final String ACTUAL_TDES_CIPHER = "DESede";
 
         for (String cipher : SYMMETRIC_CIPHERS) {
-            if (algorithm.contains(cipher)) {
-                if (cipher.equals(TDES)) {
+            if (formattedAlgorithm.contains(cipher)) {
+                if (cipher.equals(TDES) || cipher.equals(TDES_ALTERNATE)) {
                     return ACTUAL_TDES_CIPHER;
                 } else {
                     return cipher;
@@ -117,25 +124,26 @@ public class CipherUtility {
         if (StringUtils.isEmpty(cipher)) {
             return false;
         }
-        switch (cipher.toUpperCase()) {
-            case "DESEDE":
-                // 3DES keys have the cryptographic strength of 7/8 because of parity bits, but are often represented with n*8 bytes
-                final List<Integer> DESEDE_KLS = Arrays.asList(56, 64, 112, 128, 168, 192);
-                return DESEDE_KLS.contains(keyLength);
-            case "DES":
-                return keyLength == 56 || keyLength == 64;
-            case "RC2":
-            case "RC4":
-            case "RC5":
-                /** These ciphers can have arbitrary length keys but that's a really bad idea, {@see http://crypto.stackexchange.com/a/9963/12569}.
-                 * Also, RC* is deprecated and should be considered insecure */
-                return keyLength >= 40 && keyLength <= 2048;
-            case "AES":
-            case "TWOFISH":
-                return keyLength == 128 || keyLength == 192 || keyLength == 256;
-            default:
-                return false;
-        }
+//        switch (cipher.toUpperCase()) {
+//            case "DESEDE":
+//                // 3DES keys have the cryptographic strength of 7/8 because of parity bits, but are often represented with n*8 bytes
+//                final List<Integer> DESEDE_KLS = Arrays.asList(56, 64, 112, 128, 168, 192);
+//                return DESEDE_KLS.contains(keyLength);
+//            case "DES":
+//                return keyLength == 56 || keyLength == 64;
+//            case "RC2":
+//            case "RC4":
+//            case "RC5":
+//                /** These ciphers can have arbitrary length keys but that's a really bad idea, {@see http://crypto.stackexchange.com/a/9963/12569}.
+//                 * Also, RC* is deprecated and should be considered insecure */
+//                return keyLength >= 40 && keyLength <= 2048;
+//            case "AES":
+//            case "TWOFISH":
+//                return keyLength == 128 || keyLength == 192 || keyLength == 256;
+//            default:
+//                return false;
+//        }
+        return getValidKeyLengthsForAlgorithm(cipher).contains(keyLength);
     }
 
     /**
@@ -159,12 +167,45 @@ public class CipherUtility {
         if (StringUtils.isEmpty(algorithm)) {
             return false;
         }
-        int parsedKeyLength = parseActualKeyLengthFromAlgorithm(algorithm);
-        if (parsedKeyLength != -1) {
-            return keyLength == parsedKeyLength;
-        } else {
-            // No explicit key length is named in the algorithm; use cipher family
-            return isValidKeyLength(keyLength, parseCipherFromAlgorithm(algorithm));
+       return getValidKeyLengthsForAlgorithm(algorithm).contains(keyLength);
+    }
+
+    public static List<Integer> getValidKeyLengthsForAlgorithm(String algorithm) {
+        List<Integer> validKeyLengths = new ArrayList<>();
+        if (StringUtils.isEmpty(algorithm)) {
+            return validKeyLengths;
+        }
+
+        // Some algorithms specify a single key size
+        int keyLength = parseActualKeyLengthFromAlgorithm(algorithm);
+        if (keyLength != -1) {
+            validKeyLengths.add(keyLength);
+            return validKeyLengths;
+        }
+
+        // The algorithm does not specify a key size
+        String cipher = parseCipherFromAlgorithm(algorithm);
+        switch (cipher.toUpperCase()) {
+            case "DESEDE":
+                // TODO: Some algorithms specify Keying Option 1 or 2
+                // 3DES keys have the cryptographic strength of 7/8 because of parity bits, but are often represented with n*8 bytes
+                return Arrays.asList(56, 64, 112, 128, 168, 192);
+            case "DES":
+                return Arrays.asList(56, 64);
+            case "RC2":
+            case "RC4":
+            case "RC5":
+                /** These ciphers can have arbitrary length keys but that's a really bad idea, {@see http://crypto.stackexchange.com/a/9963/12569}.
+                 * Also, RC* is deprecated and should be considered insecure */
+                for (int i = 40; i <= 2048; i++) {
+                    validKeyLengths.add(i);
+                }
+                return validKeyLengths;
+            case "AES":
+            case "TWOFISH":
+                return Arrays.asList(128, 192, 256);
+            default:
+                return validKeyLengths;
         }
     }
 

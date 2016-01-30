@@ -79,7 +79,6 @@ public interface PBECipherProvider extends CipherProvider {
      *
      * @param salt the salt
      * @param out  the cipher OutputStream
-     * @return the salt
      */
     void writeSalt(byte[] salt, OutputStream out) throws IOException;
 }

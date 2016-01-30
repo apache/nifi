@@ -27,7 +27,7 @@ public enum KeyDerivationFunction {
     NIFI_LEGACY("NiFi legacy KDF", "MD5 @ 1000 iterations"),
     OPENSSL_EVP_BYTES_TO_KEY("OpenSSL EVP_BytesToKey", "Single iteration MD5 compatible with PKCS#5 v1.5"),
     BCRYPT("Bcrypt", "Bcrypt with configurable work factor: see https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations"),
-    SCRYPT("Scrypt", "Scrypt with configurable work factor: see https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations"),
+    SCRYPT("Scrypt", "Scrypt with configurable cost parameters: see https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations"),
     PBKDF2("PBKDF2", "PBKDF2 with configurable hash function and iteration count: see https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations"),
     NONE("None", "The cipher is given a raw key conforming to the algorithm specifications");
 
@@ -45,6 +45,10 @@ public enum KeyDerivationFunction {
 
     public String getDescription() {
         return description;
+    }
+
+    public boolean isStrongKDF() {
+        return (name.equalsIgnoreCase(BCRYPT.name) || name.equals(SCRYPT.name) || name.equals(PBKDF2.name));
     }
 
     @Override
