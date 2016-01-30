@@ -40,7 +40,7 @@ import java.util.List;
  * This is a standard implementation of {@link KeyedCipherProvider} which supports {@code AES} cipher families with arbitrary modes of operation (currently only {@code CBC}, {@code CTR}, and {@code
  * GCM} are supported as {@link EncryptionMethod}s.
  */
-public class AESKeyedCipherProvider implements KeyedCipherProvider {
+public class AESKeyedCipherProvider extends KeyedCipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(AESKeyedCipherProvider.class);
     private static final int IV_LENGTH = 16;
     private static final List<Integer> VALID_KEY_LENGTHS = Arrays.asList(128, 192, 256);

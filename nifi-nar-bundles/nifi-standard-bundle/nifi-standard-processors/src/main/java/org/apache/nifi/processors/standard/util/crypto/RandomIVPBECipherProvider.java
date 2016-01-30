@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 
 import javax.crypto.Cipher;
@@ -54,57 +51,21 @@ public abstract class RandomIVPBECipherProvider implements PBECipherProvider {
 
     abstract Logger getLogger();
 
-    private byte[] readBytesFromInputStream(InputStream in, String label, int limit, int minimum, byte[] delimiter) throws IOException, ProcessException {
-        if (in == null) {
-            throw new IllegalArgumentException("Cannot read " + label + " from null InputStream");
-        }
-
-        // If the value is not detected within the first n bytes, throw an exception
-        in.mark(limit);
-
-        // The first n bytes of the input stream contain the value up to the custom delimiter
-        if (in.available() < minimum) {
-            throw new ProcessException("The cipher stream is too small to contain the " + label);
-        }
-        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-        byte[] stoppedBy = StreamUtils.copyExclusive(in, bytesOut, limit + delimiter.length, delimiter);
-
-        if (stoppedBy != null) {
-            byte[] bytes = bytesOut.toByteArray();
-            getLogger().info("[REMOVE] Read {}: {}", label, Hex.encodeHexString(bytes));
-            return bytes;
-        }
-
-        // If no delimiter was found, reset the cursor
-        getLogger().warn("No {} read from cipher input stream", label);
-        in.reset();
-        return null;
-    }
-
-    private void writeBytesToOutputStream(OutputStream out, byte[] value, String label, byte[] delimiter) throws IOException {
-        if (out == null) {
-            throw new IllegalArgumentException("Cannot write " + label + " to null OutputStream");
-        }
-        getLogger().info("[REMOVE] Writing {} {} and delimiter {}", label, Hex.encodeHexString(value), Hex.encodeHexString(delimiter));
-        out.write(value);
-        out.write(delimiter);
-    }
-
     @Override
     public byte[] readSalt(InputStream in) throws IOException, ProcessException {
-       return readBytesFromInputStream(in, "salt", MAX_SALT_LIMIT, getDefaultSaltLength(), SALT_DELIMITER);
+       return CipherUtility.readBytesFromInputStream(in, "salt", MAX_SALT_LIMIT, getDefaultSaltLength(), SALT_DELIMITER);
     }
 
     @Override
     public void writeSalt(byte[] salt, OutputStream out) throws IOException {
-       writeBytesToOutputStream(out, salt, "salt", SALT_DELIMITER);
+        CipherUtility.writeBytesToOutputStream(out, salt, "salt", SALT_DELIMITER);
     }
 
     public byte[] readIV(InputStream in) throws IOException, ProcessException {
-        return readBytesFromInputStream(in, "IV", MAX_IV_LIMIT, MAX_IV_LIMIT, IV_DELIMITER);
+        return CipherUtility.readBytesFromInputStream(in, "IV", MAX_IV_LIMIT, MAX_IV_LIMIT, IV_DELIMITER);
     }
 
     public void writeIV(byte[] iv, OutputStream out) throws IOException {
-       writeBytesToOutputStream(out, iv, "IV", IV_DELIMITER);
+        CipherUtility.writeBytesToOutputStream(out, iv, "IV", IV_DELIMITER);
     }
 }

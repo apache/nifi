@@ -155,4 +155,5 @@ public class PasswordBasedEncryptorGroovyTest {
         assert PLAINTEXT.equals(recovered)
     }
 
+    // TODO: Add tests for invalid cipher streams (missing salt, missing IV, missing delimiters, etc.)
 }

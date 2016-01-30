@@ -16,12 +16,21 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
-public interface KeyedCipherProvider extends CipherProvider {
+public abstract class KeyedCipherProvider implements CipherProvider {
+    static final byte[] IV_DELIMITER = "NiFiIV".getBytes(StandardCharsets.UTF_8);
+    // This is 16 bytes for AES but can vary for other ciphers
+    static final int MAX_IV_LIMIT = 16;
+
     /**
      * Returns an initialized cipher for the specified algorithm. The IV is provided externally to allow for non-deterministic IVs, as IVs
      * deterministically derived from the password are a potential vulnerability and compromise semantic security. See
@@ -34,7 +43,7 @@ public interface KeyedCipherProvider extends CipherProvider {
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
-    Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, byte[] iv, boolean encryptMode) throws Exception;
+    abstract Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, byte[] iv, boolean encryptMode) throws Exception;
 
     /**
      * Returns an initialized cipher for the specified algorithm. The IV will be generated internally (for encryption). If decryption is requested, it will throw an exception.
@@ -45,12 +54,20 @@ public interface KeyedCipherProvider extends CipherProvider {
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher or if decryption is requested
      */
-    Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, boolean encryptMode) throws Exception;
+    abstract Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, boolean encryptMode) throws Exception;
 
     /**
      * Generates a new random IV of the correct length.
      *
      * @return the IV
      */
-    byte[] generateIV();
+    abstract byte[] generateIV();
+
+    public byte[] readIV(InputStream in) throws IOException, ProcessException {
+        return CipherUtility.readBytesFromInputStream(in, "IV", MAX_IV_LIMIT, MAX_IV_LIMIT, IV_DELIMITER);
+    }
+
+    public void writeIV(byte[] iv, OutputStream out) throws IOException {
+        CipherUtility.writeBytesToOutputStream(out, iv, "IV", IV_DELIMITER);
+    }
 }

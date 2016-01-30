@@ -18,8 +18,11 @@ package org.apache.nifi.processors.standard.util.crypto;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 
 import javax.crypto.Cipher;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -202,5 +205,38 @@ public class CipherUtility {
         } catch (Exception e) {
             throw new ProcessException(e);
         }
+    }
+
+    public static byte[] readBytesFromInputStream(InputStream in, String label, int limit, int minimum, byte[] delimiter) throws IOException, ProcessException {
+        if (in == null) {
+            throw new IllegalArgumentException("Cannot read " + label + " from null InputStream");
+        }
+
+        // If the value is not detected within the first n bytes, throw an exception
+        in.mark(limit);
+
+        // The first n bytes of the input stream contain the value up to the custom delimiter
+        if (in.available() < minimum) {
+            throw new ProcessException("The cipher stream is too small to contain the " + label);
+        }
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        byte[] stoppedBy = StreamUtils.copyExclusive(in, bytesOut, limit + delimiter.length, delimiter);
+
+        if (stoppedBy != null) {
+            byte[] bytes = bytesOut.toByteArray();
+            return bytes;
+        }
+
+        // If no delimiter was found, reset the cursor
+        in.reset();
+        return null;
+    }
+
+    public static void writeBytesToOutputStream(OutputStream out, byte[] value, String label, byte[] delimiter) throws IOException {
+        if (out == null) {
+            throw new IllegalArgumentException("Cannot write " + label + " to null OutputStream");
+        }
+        out.write(value);
+        out.write(delimiter);
     }
 }

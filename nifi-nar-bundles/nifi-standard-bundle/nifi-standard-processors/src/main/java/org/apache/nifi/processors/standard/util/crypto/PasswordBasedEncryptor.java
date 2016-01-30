@@ -54,9 +54,17 @@ public class PasswordBasedEncryptor implements Encryptor {
     public PasswordBasedEncryptor(final EncryptionMethod encryptionMethod, final char[] password, KeyDerivationFunction kdf) {
         super();
         try {
+            if (encryptionMethod == null) {
+                throw new IllegalArgumentException("Cannot initialize password-based encryptor with null encryption method");
+            }
             this.encryptionMethod = encryptionMethod;
+            if (kdf == null || kdf.equals(KeyDerivationFunction.NONE)) {
+                throw new IllegalArgumentException("Cannot initialize password-based encryptor with null KDF");
+            }
             this.kdf = kdf;
-            // Store the password
+            if (password == null || password.length == 0) {
+                throw new IllegalArgumentException("Cannot initialize password-based encryptor with empty password");
+            }
             this.password = new PBEKeySpec(password);
         } catch (Exception e) {
             throw new ProcessException(e);
@@ -108,7 +116,6 @@ public class PasswordBasedEncryptor implements Encryptor {
                 throw new ProcessException("Cannot decrypt because file size is smaller than salt size", e);
             }
 
-            // TODO: NPE
             // Determine necessary key length
             int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(encryptionMethod.getAlgorithm());
 
@@ -119,10 +126,8 @@ public class PasswordBasedEncryptor implements Encryptor {
                 if (cipherProvider instanceof RandomIVPBECipherProvider) {
                     RandomIVPBECipherProvider rivpcp = (RandomIVPBECipherProvider) cipherProvider;
                     byte[] iv = rivpcp.readIV(in);
-                    // TODO: NPE
                     cipher = rivpcp.getCipher(encryptionMethod, new String(password.getPassword()), salt, iv, keyLength, false);
                 } else {
-                    // TODO: NPE
                     cipher = cipherProvider.getCipher(encryptionMethod, new String(password.getPassword()), salt, keyLength, false);
                 }
                 CipherUtility.processStreams(cipher, in, out);
@@ -148,13 +153,11 @@ public class PasswordBasedEncryptor implements Encryptor {
             // Write to output stream
             cipherProvider.writeSalt(salt, out);
 
-            // TODO: NPE
             // Determine necessary key length
             int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(encryptionMethod.getAlgorithm());
 
             // Generate cipher
             try {
-                // TODO: NPE
                 Cipher cipher = cipherProvider.getCipher(encryptionMethod, new String(password.getPassword()), salt, keyLength, true);
                 // Write IV if necessary
                 if (cipherProvider instanceof RandomIVPBECipherProvider) {
