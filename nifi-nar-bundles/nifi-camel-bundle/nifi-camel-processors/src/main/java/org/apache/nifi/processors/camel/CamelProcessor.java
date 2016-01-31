@@ -65,6 +65,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
@@ -112,13 +113,13 @@ public class CamelProcessor extends AbstractProcessor {
         + "org.apache.camel/camel-infinispan/2.16.1")
     .required(false).addValidator(GrapeGrabValidator.INSTANCE).build();
 
-    private  SpringCamelContext camelContext = null;
+    private  CamelContext camelContext = null;
 
     private ImmutableList<PropertyDescriptor> descriptors;
 
     private ImmutableSet<Relationship> relationships=ImmutableSet.of(SUCCESS, FAILURE);
 
-    private synchronized SpringCamelContext getCamelContext() {
+    private CamelContext getCamelContext() {
         return camelContext;
     }
 
@@ -178,7 +179,7 @@ public class CamelProcessor extends AbstractProcessor {
 
                 boolean contextDefined=!(Strings.isNullOrEmpty(camelContextDef) && Strings.isNullOrEmpty(camelContextPath));
                 if(contextDefined){
-                    final GroovyClassLoader classLoader=new GroovyClassLoader(Thread.currentThread().getContextClassLoader());
+                    final GroovyClassLoader classLoader=new GroovyClassLoader(getClass().getClassLoader());
                     final String grapeGrabURLs=context.getProperty(EXT_LIBRARIES).getValue();
                     //Let's load Extra Libraries those might not be present in classpath.
                     List<File> resolvedDependencies=null;
@@ -188,6 +189,7 @@ public class CamelProcessor extends AbstractProcessor {
                             classLoader.addClasspath(file.getAbsolutePath());
                         }
                     }
+                @SuppressWarnings("resource") //We are closing it at @OnShutDown if applicable
                 GenericXmlApplicationContext applicationContext=new GenericXmlApplicationContext();
                 applicationContext.setClassLoader(classLoader);
                 if(!Strings.isNullOrEmpty(camelContextDef)){
@@ -197,8 +199,7 @@ public class CamelProcessor extends AbstractProcessor {
                     applicationContext.load(camelContextPath);
                 }
                 applicationContext.refresh();
-                camelContext=new SpringCamelContext(applicationContext);
-                camelContext.start();
+                camelContext=applicationContext.getBean(SpringCamelContext.class);
                 getLogger().info("Camel Spring Context initialized: " + camelContext.getName());
                 }
             } catch (Exception exception) {
@@ -211,17 +212,21 @@ public class CamelProcessor extends AbstractProcessor {
 
     @OnStopped
     public void stopped(){
-        if (getCamelContext() != null && getCamelContext().getApplicationContext()!=null) {
+        if (getCamelContext() != null) {
             try {
                 ProducerTemplate template=getCamelContext().createProducerTemplate();
                 template.sendBodyAndHeader("grape:grape","Clear Downloaded Dependencies", GrapeConstants.getGRAPE_COMMAND(), GrapeCommand.clearPatches);
                 template.stop();
                 getCamelContext().stop();
-                getCamelContext().destroy();
             } catch (Exception e) {
                getLogger().error("Failed to Shutdown Camel Spring Context", e);
             }finally{
-                ((AbstractApplicationContext)getCamelContext().getApplicationContext()).close();
+                if(camelContext instanceof SpringCamelContext){//Only for Spring Application Context
+                    ApplicationContext applicationContext= ((SpringCamelContext)camelContext).getApplicationContext();
+                    if(applicationContext instanceof AbstractApplicationContext){
+                        ((AbstractApplicationContext)applicationContext).close();
+                    }
+                }
             }
         }
     }

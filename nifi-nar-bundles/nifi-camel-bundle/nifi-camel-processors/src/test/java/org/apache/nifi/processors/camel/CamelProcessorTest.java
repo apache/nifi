@@ -31,11 +31,13 @@ public class CamelProcessorTest {
     private static final Logger LOGGER =
         LoggerFactory.getLogger(CamelProcessorTest.class);
     private TestRunner testRunner;
+    private static final int THREAD_COUNT=1;
+    private static final int ITERATION=1;
 
     @Before
     public void init() {
         testRunner = TestRunners.newTestRunner(CamelProcessor.class);
-        testRunner.setThreadCount(2);
+        testRunner.setThreadCount(THREAD_COUNT);
     }
 
 
@@ -49,7 +51,7 @@ public class CamelProcessorTest {
         testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint");
         String content="Hello NiFi, said Camel";
         testRunner.enqueue(content);
-        testRunner.run(3);
+        testRunner.run(ITERATION);
         testRunner.assertAllFlowFilesTransferred(CamelProcessor.SUCCESS, 1);
         final MockFlowFile processedFlowFile = testRunner
                 .getFlowFilesForRelationship(CamelProcessor.SUCCESS).get(0);
@@ -66,7 +68,7 @@ public class CamelProcessorTest {
         testRunner.setProperty(CamelProcessor.CAMEL_SPRING_CONTEXT_FILE_PATH,"classpath*:/META-INF/camel-application-context.xml");
         testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint2");
         testRunner.enqueue("Hello");
-        testRunner.run(3);
+        testRunner.run(ITERATION);
         testRunner.assertAllFlowFilesTransferred(CamelProcessor.SUCCESS, 1);
         final MockFlowFile processedFlowFile = testRunner
                 .getFlowFilesForRelationship(CamelProcessor.SUCCESS).get(0);
@@ -87,7 +89,7 @@ public class CamelProcessorTest {
         testRunner.setProperty(CamelProcessor.CAMEL_ENTRY_POINT_URI, "direct-vm:nifiEntryPoint3");
         testRunner.setProperty(CamelProcessor.EXT_LIBRARIES, "org.apache.camel/camel-stream/2.16.1");
         testRunner.enqueue("Hello");
-        testRunner.run(3);
+        testRunner.run(ITERATION);
         testRunner.assertAllFlowFilesTransferred(CamelProcessor.SUCCESS, 1);
         final MockFlowFile processedFlowFile = testRunner
                 .getFlowFilesForRelationship(CamelProcessor.SUCCESS).get(0);
