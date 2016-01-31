@@ -42,6 +42,7 @@ import org.apache.ivy.Ivy;
 import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
 import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.apache.ivy.core.report.ArtifactDownloadReport;
 import org.apache.ivy.core.report.ResolveReport;
 import org.apache.ivy.core.resolve.ResolveOptions;
 import org.apache.ivy.core.settings.IvySettings;
@@ -172,24 +173,20 @@ public class CamelProcessor extends AbstractProcessor {
             || getCamelContext().getStatus()==ServiceStatus.Stopped
             || getCamelContext().getStatus()==ServiceStatus.Stopping) {
             try {
-                final String grapeGrabURLs=context.getProperty(EXT_LIBRARIES).getValue();
-                //Let's load Extra Libraries using grape those might not be present in classpath.
-                final List<File> resolvedDependencies=new LinkedList<>();
-                if(!StringUtils.isEmpty(grapeGrabURLs)){
-                    for (String  grapeGrabURL : grapeGrabURLs.split(",")) {
-                        String [] gav=grapeGrabURL.split("/");
-                        File file=resolveArtifact( gav[0],gav[1],(gav[2].equalsIgnoreCase("default")?camelContext.getVersion():gav[2]));
-                        resolvedDependencies.add(file);
-                    }
-                }
                 String camelContextDef=context.getProperty(CAMEL_SPRING_CONTEXT_DEF).getValue();
                 String camelContextPath=context.getProperty(CAMEL_SPRING_CONTEXT_FILE_PATH).getValue();
 
                 boolean contextDefined=!(Strings.isNullOrEmpty(camelContextDef) && Strings.isNullOrEmpty(camelContextPath));
                 if(contextDefined){
                     final GroovyClassLoader classLoader=new GroovyClassLoader(Thread.currentThread().getContextClassLoader());
-                    for (File file : resolvedDependencies) {
-                        classLoader.addClasspath(file.getAbsolutePath());
+                    final String grapeGrabURLs=context.getProperty(EXT_LIBRARIES).getValue();
+                    //Let's load Extra Libraries those might not be present in classpath.
+                    List<File> resolvedDependencies=null;
+                    if(!StringUtils.isEmpty(grapeGrabURLs)){
+                        resolvedDependencies=DefaultArtifactResolver.INSTANCE.resolveArtifact(grapeGrabURLs.split(","));
+                        for (File file : resolvedDependencies) {
+                            classLoader.addClasspath(file.getAbsolutePath());
+                        }
                     }
                 GenericXmlApplicationContext applicationContext=new GenericXmlApplicationContext();
                 applicationContext.setClassLoader(classLoader);
@@ -262,53 +259,59 @@ public class CamelProcessor extends AbstractProcessor {
         }
     }
 
-    private File resolveArtifact(String groupId, String artifactId, String version) throws IOException,
-    ParseException {
-        // creates clear ivy settings
-        IvySettings ivySettings = new IvySettings();
-        // url resolver for configuration of maven repo
-        URLResolver resolver = new URLResolver();
-        resolver.setM2compatible(true);
-        resolver.setName("central");
-        // you can specify the url resolution pattern strategy
-        resolver
-        .addArtifactPattern("http://repo1.maven.org/maven2/[organisation]/[module]/[revision]/[artifact](-[revision]).[ext]");
-        // adding maven repo resolver
-        ivySettings.addResolver(resolver);
-        // set to the default resolver
-        ivySettings.setDefaultResolver(resolver.getName());
-        // creates an Ivy instance with settings
-        Ivy ivy = Ivy.newInstance(ivySettings);
-
-        File ivyfile = File.createTempFile("ivy", ".xml");
-        ivyfile.deleteOnExit();
-
-        //String[] dep = new String[] {groupId, artifactId, version};
-
-        DefaultModuleDescriptor md = DefaultModuleDescriptor.newDefaultInstance(ModuleRevisionId
-                                                                                .newInstance(groupId, artifactId + "-caller", "working"));
-
-        DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(
-                                                                         md,
-                                                                         ModuleRevisionId.newInstance(groupId,
-                                                                                                      artifactId,
-                                                                                                       version),
-                                                                                                      false, false, true);
-        md.addDependency(dd);
-
-        // creates an ivy configuration file
-        XmlModuleDescriptorWriter.write(md, ivyfile);
-
-        String[] confs = new String[] {"default"};
-        ResolveOptions resolveOptions = new ResolveOptions().setConfs(confs);
-
-        // init resolve report
-        ResolveReport report = ivy.resolve(ivyfile.toURL(), resolveOptions);
-
-        // so you can get the jar library
-        File jarArtifactFile = report.getAllArtifactsReports()[0].getLocalFile();
-
-        return jarArtifactFile;
+    enum DefaultArtifactResolver implements ArtifactResolver {
+        INSTANCE;
+        @Override
+        public List<File> resolveArtifact(String ... gavs) throws IOException,
+        ParseException {
+            
+            // creates clear ivy settings
+            IvySettings ivySettings = new IvySettings();
+            // url resolver for configuration of maven repo
+            URLResolver resolver = new URLResolver();
+            resolver.setM2compatible(true);
+            resolver.setName("central");
+            // you can specify the url resolution pattern strategy
+            resolver
+            .addArtifactPattern("http://repo1.maven.org/maven2/[organisation]/[module]/[revision]/[artifact](-[revision]).[ext]");
+            // adding maven repo resolver
+            ivySettings.addResolver(resolver);
+            // set to the default resolver
+            ivySettings.setDefaultResolver(resolver.getName());
+            // creates an Ivy instance with settings
+            Ivy ivy = Ivy.newInstance(ivySettings);
+    
+            File ivyfile = File.createTempFile("ivy", ".xml");
+            ivyfile.deleteOnExit();
+    
+            DefaultModuleDescriptor md = DefaultModuleDescriptor.newDefaultInstance(ModuleRevisionId
+                                                                                    .newInstance("org.apache.nifi", "camelprocessor-caller", "working"));
+            for (String gav : gavs) {
+            String[] dep = gav.split("/");
+            DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(
+                                                                             md,
+                                                                             ModuleRevisionId.newInstance(dep[0],
+                                                                                                          dep[1],
+                                                                                                          dep[2]),
+                                                                                                          false, false, true);
+            md.addDependency(dd);
+            }
+    
+            // creates an ivy configuration file
+            XmlModuleDescriptorWriter.write(md, ivyfile);
+    
+            String[] confs = new String[] {"default"};
+            ResolveOptions resolveOptions = new ResolveOptions().setConfs(confs);
+    
+            // init resolve report
+            ResolveReport report = ivy.resolve(ivyfile.toURL(), resolveOptions);
+            // so you can get the jar library
+            List<File> jarArtifactFiles = new LinkedList<>();
+            for (ArtifactDownloadReport artifactDownloadReport : report.getAllArtifactsReports()) {
+                jarArtifactFiles.add(artifactDownloadReport.getLocalFile());
+            } 
+            return jarArtifactFiles;
+        }
     }
 
 }
