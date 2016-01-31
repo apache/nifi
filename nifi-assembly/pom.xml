@@ -447,6 +447,7 @@ language governing permissions and limitations under the License. -->
                                     <includeArtifactIds>nifi-docs</includeArtifactIds>
                                     <includeGroupIds>org.apache.nifi</includeGroupIds>
                                     <excludeTransitive>false</excludeTransitive>
+                                    <excludes>LICENSE,NOTICE</excludes>
                                 </configuration>
                             </execution>
                         </executions>
@@ -455,6 +456,7 @@ language governing permissions and limitations under the License. -->
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
                         <configuration>
+                            <name>nifi</name>
                             <summary>Apache NiFi</summary>
                             <description>Apache NiFi is dataflow system based on the Flow-Based Programming concepts.</description>
                             <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
@@ -534,7 +536,20 @@ language governing permissions and limitations under the License. -->
                                             <directory>/opt/nifi/nifi-${project.version}/lib/bootstrap</directory>
                                             <dependency>
                                                 <includes>
+                                                    <include>commons-io:commons-io</include>
+                                                    <include>org.apache.commons:commons-lang3</include>
+                                                    <include>org.antlr:antlr-runtime</include>
+                                                    <include>javax.activation:activation</include>
+                                                    <include>javax.mail:mail</include>
+                                                    <include>org.apache.nifi:nifi-security-utils</include>
+                                                    <include>org.apache.nifi:nifi-utils</include>
+                                                    <include>org.apache.nifi:nifi-processor-utils</include>
+                                                    <include>org.apache.nifi:nifi-expression-language</include>
                                                     <include>org.apache.nifi:nifi-bootstrap</include>
+                                                    <include>org.apache.nifi:nifi-api</include>
+                                                    <include>org.slf4j:slf4j-api</include>
+                                                    <include>ch.qos.logback:logback-classic</include>
+                                                    <include>ch.qos.logback:logback-core</include>
                                                 </includes>
                                             </dependency>
                                         </mapping>
