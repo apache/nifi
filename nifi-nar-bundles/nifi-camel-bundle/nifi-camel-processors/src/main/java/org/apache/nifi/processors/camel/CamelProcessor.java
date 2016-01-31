@@ -264,7 +264,6 @@ public class CamelProcessor extends AbstractProcessor {
         @Override
         public List<File> resolveArtifact(String ... gavs) throws IOException,
         ParseException {
-            
             // creates clear ivy settings
             IvySettings ivySettings = new IvySettings();
             // url resolver for configuration of maven repo
@@ -280,10 +279,8 @@ public class CamelProcessor extends AbstractProcessor {
             ivySettings.setDefaultResolver(resolver.getName());
             // creates an Ivy instance with settings
             Ivy ivy = Ivy.newInstance(ivySettings);
-    
             File ivyfile = File.createTempFile("ivy", ".xml");
             ivyfile.deleteOnExit();
-    
             DefaultModuleDescriptor md = DefaultModuleDescriptor.newDefaultInstance(ModuleRevisionId
                                                                                     .newInstance("org.apache.nifi", "camelprocessor-caller", "working"));
             for (String gav : gavs) {
@@ -296,22 +293,18 @@ public class CamelProcessor extends AbstractProcessor {
                                                                                                           false, false, true);
             md.addDependency(dd);
             }
-    
             // creates an ivy configuration file
             XmlModuleDescriptorWriter.write(md, ivyfile);
-    
             String[] confs = new String[] {"default"};
             ResolveOptions resolveOptions = new ResolveOptions().setConfs(confs);
-    
             // init resolve report
             ResolveReport report = ivy.resolve(ivyfile.toURL(), resolveOptions);
             // so you can get the jar library
             List<File> jarArtifactFiles = new LinkedList<>();
             for (ArtifactDownloadReport artifactDownloadReport : report.getAllArtifactsReports()) {
                 jarArtifactFiles.add(artifactDownloadReport.getLocalFile());
-            } 
+            }
             return jarArtifactFiles;
         }
     }
-
 }
