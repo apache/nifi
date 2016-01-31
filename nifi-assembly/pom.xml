@@ -533,9 +533,43 @@ language governing permissions and limitations under the License. -->
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib/bootstrap</directory>
                                             <dependency>
-                                                <includes>
-                                                    <include>org.apache.nifi:nifi-bootstrap</include>
-                                                </includes>
+                                                <excludes>
+                                                    <exclude>org.apache.nifi:nifi-resources</exclude>
+                                                    <exclude>org.apache.nifi:nifi-docs</exclude>
+                                                    <!-- All NAR files should be excluded from lib/bootstrap -->
+                                                    <exclude>org.apache.nifi:nifi-framework-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-provenance-repository-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-standard-services-api-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-ssl-context-service-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-distributed-cache-services-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-standard-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-jetty-bundle</exclude>
+                                                    <exclude>org.apache.nifi:nifi-update-attribute-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-hadoop-libraries-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-hadoop-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-kafka-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-http-context-map-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-html-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-kite-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-flume-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-ldap-iaa-providers-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-dbcp-service-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-mongodb-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-solr-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-social-media-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-hl7-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-language-translation-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-geo-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-aws-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-ambari-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-avro-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-image-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-couchbase-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-hbase-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-riemann-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-hbase_1_1_2-client-service-nar</exclude>
+                                                    <exclude>org.apache.nifi:nifi-azure-nar</exclude>
+                                                </excludes>
                                             </dependency>
                                         </mapping>
                                         <mapping>
