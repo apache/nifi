@@ -159,7 +159,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor MULTIPART_S3_AGEOFF_INTERVAL = new PropertyDescriptor.Builder()
             .name("Multipart Upload AgeOff Interval")
             .description("Specifies the interval at which existing multipart uploads in AWS S3 will be evaluated " +
-                    "for ageoff.  Calls to onTrigger() will initiate the ageoff evaluation if this interval has been " +
+                    "for ageoff.  When processor is triggered it will initiate the ageoff evaluation if this interval has been " +
                     "exceeded.")
             .required(true)
             .defaultValue("60 min")
@@ -214,7 +214,19 @@ public class PutS3Object extends AbstractS3Processor {
         return new File(PERSISTENCE_ROOT + getIdentifier());
     }
 
-    protected synchronized MultipartState getLocalState(final String s3ObjectKey) throws IOException {
+    protected boolean localUploadExistsInS3(final AmazonS3Client s3, final String bucket, final MultipartState localState) {
+        ListMultipartUploadsRequest listRequest = new ListMultipartUploadsRequest(bucket);
+        MultipartUploadListing listing = s3.listMultipartUploads(listRequest);
+        for (MultipartUpload upload : listing.getMultipartUploads()) {
+            if (upload.getUploadId().equals(localState.getUploadId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected synchronized MultipartState getLocalState(final AmazonS3Client s3, final String bucket,
+                                                        final String s3ObjectKey) throws IOException {
         // get local state if it exists
         MultipartState currState = null;
         final File persistenceFile = getPersistenceFile();
@@ -226,8 +238,15 @@ public class PutS3Object extends AbstractS3Processor {
                     final String localSerialState = props.getProperty(s3ObjectKey);
                     if (localSerialState != null) {
                         currState = new MultipartState(localSerialState);
-                        getLogger().info("Local state for {} loaded with uploadId {} and {} partETags",
-                                new Object[]{s3ObjectKey, currState.getUploadId(), currState.getPartETags().size()});
+                        if (localUploadExistsInS3(s3, bucket, currState)) {
+                            getLogger().info("Local state for {} loaded with uploadId {} and {} partETags",
+                                    new Object[]{s3ObjectKey, currState.getUploadId(), currState.getPartETags().size()});
+                        } else {
+                            getLogger().info("Local state for {} with uploadId {} does not exist in S3, deleting local state",
+                                    new Object[]{s3ObjectKey, currState.getUploadId()});
+                            persistLocalState(s3ObjectKey, null);
+                            currState = null;
+                        }
                     }
                 }
             } catch (IOException ioe) {
@@ -266,11 +285,13 @@ public class PutS3Object extends AbstractS3Processor {
                         new Object[]{persistenceFile.getAbsolutePath(), ioe.getMessage()});
             }
         } else {
-            try {
-                Files.delete(persistenceFile.toPath());
-            } catch (IOException ioe) {
-                getLogger().error("Could not remove state file {} due to {}.",
-                        new Object[]{persistenceFile.getAbsolutePath(), ioe.getMessage()});
+            if (persistenceFile.exists()) {
+                try {
+                    Files.delete(persistenceFile.toPath());
+                } catch (IOException ioe) {
+                    getLogger().error("Could not remove state file {} due to {}.",
+                            new Object[]{persistenceFile.getAbsolutePath(), ioe.getMessage()});
+                }
             }
         }
     }
@@ -389,7 +410,7 @@ public class PutS3Object extends AbstractS3Processor {
                             //------------------------------------------------------------
                             MultipartState currentState;
                             try {
-                                currentState = getLocalState(cacheKey);
+                                currentState = getLocalState(s3, bucket, cacheKey);
                                 if (currentState != null) {
                                     if (currentState.getPartETags().size() > 0) {
                                         final PartETag lastETag = currentState.getPartETags().get(
