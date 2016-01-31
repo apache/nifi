@@ -53,6 +53,7 @@
         <module>nifi-html-bundle</module>
         <module>nifi-scripting-bundle</module>
         <module>nifi-elasticsearch-bundle</module>
+        <module>nifi-amqp-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
