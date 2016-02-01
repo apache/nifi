@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -69,7 +71,7 @@ public class ITPutS3Object extends AbstractS3IT {
     final static Long S3_MINIMUM_PART_SIZE = 50L * 1024L * 1024L;
     final static Long S3_MAXIMUM_OBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
 
-    final static Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32,32}");
+    final static Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32,32}(-[0-9]+)?");
 
     @Test
     public void testSimplePut() throws IOException {
@@ -225,7 +227,7 @@ public class ITPutS3Object extends AbstractS3IT {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 18, pd.size());
+        assertEquals("size should be eq", 22, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -414,10 +416,28 @@ public class ITPutS3Object extends AbstractS3IT {
         state3orig.setContentLength(5678L);
         processor.persistLocalState(cacheKey3, state3orig);
 
+        final List<MultipartUpload> uploadList = new ArrayList<>();
+        final MultipartUpload upload1 = new MultipartUpload();
+        upload1.setKey(key);
+        upload1.setUploadId("");
+        uploadList.add(upload1);
+        final MultipartUpload upload2 = new MultipartUpload();
+        upload2.setKey(key + "-v2");
+        upload2.setUploadId("1234");
+        uploadList.add(upload2);
+        final MultipartUpload upload3 = new MultipartUpload();
+        upload3.setKey(key + "-v3");
+        upload3.setUploadId("5678");
+        uploadList.add(upload3);
+        final MultipartUploadListing uploadListing = new MultipartUploadListing();
+        uploadListing.setMultipartUploads(uploadList);
+        final MockAmazonS3Client mockClient = new MockAmazonS3Client();
+        mockClient.setListing(uploadListing);
+
         /*
          * reload and validate stored state
          */
-        final PutS3Object.MultipartState state1new = processor.getLocalState(cacheKey1);
+        final PutS3Object.MultipartState state1new = processor.getLocalState(mockClient, bucket, cacheKey1);
         Assert.assertEquals("", state1new.getUploadId());
         Assert.assertEquals(0L, state1new.getFilePosition().longValue());
         Assert.assertEquals(new ArrayList<PartETag>(), state1new.getPartETags());
@@ -425,7 +445,7 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertEquals(StorageClass.fromValue(StorageClass.Standard.toString()), state1new.getStorageClass());
         Assert.assertEquals(0L, state1new.getContentLength().longValue());
 
-        final PutS3Object.MultipartState state2new = processor.getLocalState(cacheKey2);
+        final PutS3Object.MultipartState state2new = processor.getLocalState(mockClient, bucket, cacheKey2);
         Assert.assertEquals("1234", state2new.getUploadId());
         Assert.assertEquals(0L, state2new.getFilePosition().longValue());
         Assert.assertEquals(new ArrayList<PartETag>(), state2new.getPartETags());
@@ -433,7 +453,7 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertEquals(StorageClass.fromValue(StorageClass.Standard.toString()), state2new.getStorageClass());
         Assert.assertEquals(1234L, state2new.getContentLength().longValue());
 
-        final PutS3Object.MultipartState state3new = processor.getLocalState(cacheKey3);
+        final PutS3Object.MultipartState state3new = processor.getLocalState(mockClient, bucket, cacheKey3);
         Assert.assertEquals("5678", state3new.getUploadId());
         Assert.assertEquals(0L, state3new.getFilePosition().longValue());
         Assert.assertEquals(new ArrayList<PartETag>(), state3new.getPartETags());
@@ -490,16 +510,30 @@ public class ITPutS3Object extends AbstractS3IT {
         state3orig.getPartETags().remove(state3orig.getPartETags().size() - 1);
         processor.persistLocalState(cacheKey3, state3orig);
 
+        final List<MultipartUpload> uploadList = new ArrayList<>();
+        final MultipartUpload upload1 = new MultipartUpload();
+        upload1.setKey(key + "-bv2");
+        upload1.setUploadId("1234");
+        uploadList.add(upload1);
+        final MultipartUpload upload2 = new MultipartUpload();
+        upload2.setKey(key + "-bv3");
+        upload2.setUploadId("5678");
+        uploadList.add(upload2);
+        final MultipartUploadListing uploadListing = new MultipartUploadListing();
+        uploadListing.setMultipartUploads(uploadList);
+        final MockAmazonS3Client mockClient = new MockAmazonS3Client();
+        mockClient.setListing(uploadListing);
+
         /*
          * load state and validate that
          *     1. v2 restore shows 4 tags
          *     2. v3 restore shows 2 tags
          */
-        final PutS3Object.MultipartState state2new = processor.getLocalState(cacheKey2);
+        final PutS3Object.MultipartState state2new = processor.getLocalState(mockClient, bucket, cacheKey2);
         Assert.assertEquals("1234", state2new.getUploadId());
         Assert.assertEquals(4, state2new.getPartETags().size());
 
-        final PutS3Object.MultipartState state3new = processor.getLocalState(cacheKey3);
+        final PutS3Object.MultipartState state3new = processor.getLocalState(mockClient, bucket, cacheKey3);
         Assert.assertEquals("5678", state3new.getUploadId());
         Assert.assertEquals(2, state3new.getPartETags().size());
     }
@@ -513,6 +547,16 @@ public class ITPutS3Object extends AbstractS3IT {
         final String key = runner.getProcessContext().getProperty(PutS3Object.KEY).getValue();
         final String cacheKey = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key + "-sr";
 
+        final List<MultipartUpload> uploadList = new ArrayList<>();
+        final MultipartUpload upload1 = new MultipartUpload();
+        upload1.setKey(key);
+        upload1.setUploadId("1234");
+        uploadList.add(upload1);
+        final MultipartUploadListing uploadListing = new MultipartUploadListing();
+        uploadListing.setMultipartUploads(uploadList);
+        final MockAmazonS3Client mockClient = new MockAmazonS3Client();
+        mockClient.setListing(uploadListing);
+
         /*
          * store state, retrieve and validate, remove and validate
          */
@@ -521,12 +565,12 @@ public class ITPutS3Object extends AbstractS3IT {
         stateOrig.setContentLength(1234L);
         processor.persistLocalState(cacheKey, stateOrig);
 
-        PutS3Object.MultipartState state1 = processor.getLocalState(cacheKey);
+        PutS3Object.MultipartState state1 = processor.getLocalState(mockClient, bucket, cacheKey);
         Assert.assertEquals("1234", state1.getUploadId());
         Assert.assertEquals(1234L, state1.getContentLength().longValue());
 
         processor.persistLocalState(cacheKey, null);
-        PutS3Object.MultipartState state2 = processor.getLocalState(cacheKey);
+        PutS3Object.MultipartState state2 = processor.getLocalState(mockClient, bucket, cacheKey);
         Assert.assertNull(state2);
     }
 
@@ -619,7 +663,7 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertEquals(FILE1_NAME, ff1.getAttribute(CoreAttributes.FILENAME.key()));
         Assert.assertEquals(BUCKET_NAME, ff1.getAttribute(PutS3Object.S3_BUCKET_KEY));
         Assert.assertEquals(FILE1_NAME, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
-        Assert.assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
+            Assert.assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
         Assert.assertEquals(tempByteCount, ff1.getSize());
     }
 
@@ -714,6 +758,19 @@ public class ITPutS3Object extends AbstractS3IT {
 
         uploadList = processor.getS3AgeoffList(context, client, now+2000);
         Assert.assertEquals(0, uploadList.getMultipartUploads().size());
+    }
+
+    private class MockAmazonS3Client extends AmazonS3Client {
+        MultipartUploadListing listing;
+        public void setListing(MultipartUploadListing newlisting) {
+            listing = newlisting;
+        }
+
+        @Override
+        public MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest listMultipartUploadsRequest)
+                throws AmazonClientException, AmazonServiceException {
+            return listing;
+        }
     }
 
     public class TestablePutS3Object extends PutS3Object {
