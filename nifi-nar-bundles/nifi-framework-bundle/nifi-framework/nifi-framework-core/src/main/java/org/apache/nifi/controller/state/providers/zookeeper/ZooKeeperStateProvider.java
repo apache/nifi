@@ -46,6 +46,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
@@ -322,6 +323,28 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     }
 
     private void setState(final Map<String, String> stateValues, final int version, final String componentId) throws IOException {
+        try {
+            setState(stateValues, version, componentId, true);
+        } catch (final NoNodeException nne) {
+            // should never happen because we are passing 'true' for allowNodeCreation
+            throw new IOException("Unable to create Node in ZooKeeper to set state for component with ID " + componentId, nne);
+        }
+    }
+
+    /**
+     * Sets the component state to the given stateValues if and only if the version is equal to the version currently
+     * tracked by ZooKeeper (or if the version is -1, in which case the state will be updated regardless of the version).
+     *
+     * @param stateValues the new values to set
+     * @param version the expected version of the ZNode
+     * @param componentId the ID of the component whose state is being updated
+     * @param allowNodeCreation if <code>true</code> and the corresponding ZNode does not exist in ZooKeeper, it will be created; if <code>false</code>
+     *            and the corresponding node does not exist in ZooKeeper, a {@link KeeperException.NoNodeException} will be thrown
+     *
+     * @throws IOException if unable to communicate with ZooKeeper
+     * @throws NoNodeException if the corresponding ZNode does not exist in ZooKeeper and allowNodeCreation is set to <code>false</code>
+     */
+    private void setState(final Map<String, String> stateValues, final int version, final String componentId, final boolean allowNodeCreation) throws IOException, NoNodeException {
         verifyEnabled();
 
         try {
@@ -331,31 +354,31 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             final ZooKeeper keeper = getZooKeeper();
             try {
                 keeper.setData(path, data, version);
-            } catch (final KeeperException ke) {
-                final Code exceptionCode = ke.code();
-                if (exceptionCode == Code.NONODE) {
+            } catch (final NoNodeException nne) {
+                if (allowNodeCreation) {
                     createNode(path, data);
                     return;
                 } else {
-                    throw ke;
+                    throw nne;
                 }
             }
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", e);
+        } catch (final NoNodeException nne) {
+            throw nne;
         } catch (final KeeperException ke) {
-            final Code exceptionCode = ke.code();
-            if (Code.SESSIONEXPIRED == exceptionCode) {
+            if (Code.SESSIONEXPIRED == ke.code()) {
                 invalidateClient();
-                setState(stateValues, version, componentId);
+                setState(stateValues, version, componentId, allowNodeCreation);
                 return;
             }
-            if (Code.NODEEXISTS == exceptionCode) {
-                setState(stateValues, version, componentId);
+            if (Code.NODEEXISTS == ke.code()) {
+                setState(stateValues, version, componentId, allowNodeCreation);
                 return;
             }
 
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " with exception code " + exceptionCode, ke);
+            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ke);
         } catch (final IOException ioe) {
             throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ioe);
         }
@@ -436,8 +459,10 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         verifyEnabled();
 
         try {
-            setState(newValue, (int) oldValue.getVersion(), componentId);
+            setState(newValue, (int) oldValue.getVersion(), componentId, false);
             return true;
+        } catch (final NoNodeException nne) {
+            return false;
         } catch (final IOException ioe) {
             final Throwable cause = ioe.getCause();
             if (cause != null && cause instanceof KeeperException) {

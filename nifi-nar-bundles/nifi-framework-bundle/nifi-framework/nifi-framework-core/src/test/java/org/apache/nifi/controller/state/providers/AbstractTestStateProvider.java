@@ -148,6 +148,45 @@ public abstract class AbstractTestStateProvider {
         assertTrue(stateMap.toMap().isEmpty());
     }
 
+    @Test
+    public void testReplaceWithNonExistingValue() throws Exception {
+        final StateProvider provider = getProvider();
+        StateMap stateMap = provider.getState(componentId);
+        assertNotNull(stateMap);
+
+        final Map<String, String> newValue = new HashMap<>();
+        newValue.put("value", "value");
+
+        final boolean replaced = provider.replace(stateMap, newValue, componentId);
+        assertFalse(replaced);
+    }
+
+    @Test
+    public void testReplaceWithNonExistingValueAndVersionGreaterThanNegativeOne() throws Exception {
+        final StateProvider provider = getProvider();
+        final StateMap stateMap = new StateMap() {
+            @Override
+            public long getVersion() {
+                return 4;
+            }
+
+            @Override
+            public String get(String key) {
+                return null;
+            }
+
+            @Override
+            public Map<String, String> toMap() {
+                return Collections.emptyMap();
+            }
+        };
+
+        final Map<String, String> newValue = new HashMap<>();
+        newValue.put("value", "value");
+
+        final boolean replaced = provider.replace(stateMap, newValue, componentId);
+        assertFalse(replaced);
+    }
 
     protected abstract StateProvider getProvider();
 }

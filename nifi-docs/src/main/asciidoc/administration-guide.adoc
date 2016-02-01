@@ -410,9 +410,9 @@ If `CreatorOnly` is specified, then only the user that created the data is allow
 In order to use the `CreatorOnly` option, NiFi must provide some form of authentication. See the <<zk_access_control>>
 section below for more information on how to configure authentication.
 
-If NiFi is configured to run in a standalone mode, the `cluster-state-provider` element need not be populated in the _state-management.xml_
-file and will actually be ignored if they are populated. However, the `local-state-provider` element must always be present and populated.
-Additionally, if NiFi is run in a cluster, each node must also have the `cluster-state-provider` element present and properly configured.
+If NiFi is configured to run in a standalone mode, the `cluster-provider` element need not be populated in the _state-management.xml_
+file and will actually be ignored if they are populated. However, the `local-provider` element must always be present and populated.
+Additionally, if NiFi is run in a cluster, each node must also have the `cluster-provider` element present and properly configured.
 Otherwise, NiFi will fail to startup.
 
 While there are not many properties that need to be configured for these providers, they were externalized into a separate _state-providers.xml_
