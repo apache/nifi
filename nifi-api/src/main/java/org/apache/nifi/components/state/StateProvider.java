@@ -124,4 +124,10 @@ public interface StateProvider extends ConfigurableComponent {
      * @return <code>true</code> if the provider is enabled, <code>false</code> otherwise.
      */
     boolean isEnabled();
+
+    /**
+     * Provides a listing of {@link Scope}s supported by the StateProvider
+     * @return the {@link Scope}s supported by the configuration
+     */
+    Scope[] getSupportedScopes();
 }

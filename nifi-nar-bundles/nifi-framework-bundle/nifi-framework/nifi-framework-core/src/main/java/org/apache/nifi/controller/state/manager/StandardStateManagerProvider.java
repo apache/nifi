@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -157,6 +158,12 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             provider = instantiateStateProvider(providerClassName);
         } catch (final Exception e) {
             throw new RuntimeException("Cannot create " + providerDescription + " of type " + providerClassName, e);
+        }
+
+        if (!ArrayUtils.contains(provider.getSupportedScopes(), scope)) {
+            throw new RuntimeException("Cannot use " + providerDescription + " ("+providerClassName+") as it only supports scope(s) " + ArrayUtils.toString(provider.getSupportedScopes()) + " but " +
+                "instance"
+                + " is configured to use scope " + scope);
         }
 
         final Map<PropertyDescriptor, PropertyValue> propertyMap = new HashMap<>();

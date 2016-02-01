@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.controller.state.StandardStateMap;
@@ -48,7 +49,7 @@ import org.wali.UpdateType;
 import org.wali.WriteAheadRepository;
 
 /**
- * Provides state management for local (node-only) state, backed by a write-ahead log
+ * Provides state management for local (standalone) state, backed by a write-ahead log
  */
 public class WriteAheadLocalStateProvider extends AbstractStateProvider {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadLocalStateProvider.class);
@@ -178,6 +179,11 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
     public void onComponentRemoved(final String componentId) throws IOException {
         clear(componentId);
         componentProviders.remove(componentId);
+    }
+
+    @Override
+    public Scope[] getSupportedScopes() {
+        return new Scope[]{Scope.LOCAL};
     }
 
     private static class ComponentProvider {

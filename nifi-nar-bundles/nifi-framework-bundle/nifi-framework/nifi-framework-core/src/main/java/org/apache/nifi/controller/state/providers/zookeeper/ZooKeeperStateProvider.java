@@ -37,6 +37,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.controller.state.StandardStateMap;
@@ -54,6 +55,11 @@ import org.apache.zookeeper.client.ConnectStringParser;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
+/**
+ * ZooKeeperStateProvider utilizes a ZooKeeper based store, whether provided internally via configuration and enabling of the {@link org.apache.nifi.controller.state.server.ZooKeeperStateServer}
+ * or through an externally configured location.  This implementation caters to a clustered NiFi environment and accordingly only provides {@link Scope#CLUSTER} scoping to enforce
+ * consistency across configuration interactions.
+ */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
     static final AllowableValue OPEN_TO_WORLD = new AllowableValue("Open", "Open", "ZNodes will be open to any ZooKeeper client.");
     static final AllowableValue CREATOR_ONLY = new AllowableValue("CreatorOnly", "CreatorOnly",
@@ -228,7 +234,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     private void verifyEnabled() throws IOException {
         if (!isEnabled()) {
-            throw new IOException("Cannot update or retrieve cluster state because node is no longer connected to a cluster");
+            throw new IOException("Cannot update or retrieve cluster state because node is no longer connected to a cluster.");
         }
     }
 
@@ -252,6 +258,11 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             Thread.currentThread().interrupt();
             throw new IOException("Failed to remove state for component with ID '" + componentId + "' from ZooKeeper due to being interrupted", e);
         }
+    }
+
+    @Override
+    public Scope[] getSupportedScopes() {
+        return new Scope[]{Scope.CLUSTER};
     }
 
     @Override
