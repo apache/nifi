@@ -42,7 +42,6 @@ import org.apache.nifi.controller.state.StandardStateManager;
 import org.apache.nifi.controller.state.StandardStateProviderInitializationContext;
 import org.apache.nifi.controller.state.config.StateManagerConfiguration;
 import org.apache.nifi.controller.state.config.StateProviderConfiguration;
-import org.apache.nifi.controller.state.config.StateProviderScope;
 import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.StandardValidationContext;
@@ -77,17 +76,17 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
     private static StateProvider createLocalStateProvider(final NiFiProperties properties) throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
-        return createStateProvider(configFile, StateProviderScope.LOCAL, properties);
+        return createStateProvider(configFile, Scope.LOCAL, properties);
     }
 
 
     private static StateProvider createClusteredStateProvider(final NiFiProperties properties) throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
-        return createStateProvider(configFile, StateProviderScope.CLUSTER, properties);
+        return createStateProvider(configFile, Scope.CLUSTER, properties);
     }
 
 
-    private static StateProvider createStateProvider(final File configFile, final StateProviderScope scope, final NiFiProperties properties) throws ConfigParseException, IOException {
+    private static StateProvider createStateProvider(final File configFile, final Scope scope, final NiFiProperties properties) throws ConfigParseException, IOException {
         final String providerId;
         final String providerIdPropertyName;
         final String providerDescription;
@@ -121,7 +120,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         }
 
         if (providerId == null) {
-            if (scope == StateProviderScope.CLUSTER) {
+            if (scope == Scope.CLUSTER) {
                 throw new IllegalStateException("Cannot create Cluster State Provider because the '" + providerIdPropertyName
                     + "' property is missing from the NiFi Properties file. In order to run NiFi in a cluster, the " + providerIdPropertyName
                     + " property must be configured in nifi.properties");

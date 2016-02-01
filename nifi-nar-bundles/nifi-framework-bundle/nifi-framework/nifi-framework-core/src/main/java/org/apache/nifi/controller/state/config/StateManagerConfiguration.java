@@ -29,6 +29,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.state.ConfigParseException;
 import org.apache.nifi.util.DomUtils;
 import org.w3c.dom.Document;
@@ -50,7 +51,7 @@ public class StateManagerConfiguration {
         return providers.get(providerId);
     }
 
-    public List<StateProviderConfiguration> getStateProviderConfigurations(final StateProviderScope scope) {
+    public List<StateProviderConfiguration> getStateProviderConfigurations(final Scope scope) {
         final List<StateProviderConfiguration> configs = new ArrayList<>();
         for (final StateProviderConfiguration config : providers.values()) {
             if (config.getScope() == scope) {
@@ -83,7 +84,7 @@ public class StateManagerConfiguration {
 
         final Map<String, StateProviderConfiguration> configs = new HashMap<>();
         for (final Element localProviderElement : localProviderElements) {
-            final StateProviderConfiguration providerConfig = parseProviderConfiguration(localProviderElement, StateProviderScope.LOCAL, configFile);
+            final StateProviderConfiguration providerConfig = parseProviderConfiguration(localProviderElement, Scope.LOCAL, configFile);
             if (configs.containsKey(providerConfig.getId())) {
                 throw new ConfigParseException("State Management config file " + configFile + " is not a valid configuration file, "
                     + "as it contains multiple providers with the \"id\" of \"" + providerConfig.getId() + "\"");
@@ -94,7 +95,7 @@ public class StateManagerConfiguration {
 
         final List<Element> clusterProviderElements = DomUtils.getChildElementsByTagName(rootElement, "cluster-provider");
         for (final Element clusterProviderElement : clusterProviderElements) {
-            final StateProviderConfiguration providerConfig = parseProviderConfiguration(clusterProviderElement, StateProviderScope.CLUSTER, configFile);
+            final StateProviderConfiguration providerConfig = parseProviderConfiguration(clusterProviderElement, Scope.CLUSTER, configFile);
             if (configs.containsKey(providerConfig.getId())) {
                 throw new ConfigParseException("State Management config file " + configFile + " is not a valid configuration file, "
                     + "as it contains multiple providers with the \"id\" of \"" + providerConfig.getId() + "\"");
@@ -106,7 +107,7 @@ public class StateManagerConfiguration {
         return new StateManagerConfiguration(configs);
     }
 
-    private static StateProviderConfiguration parseProviderConfiguration(final Element providerElement, final StateProviderScope scope, final File configFile) throws ConfigParseException {
+    private static StateProviderConfiguration parseProviderConfiguration(final Element providerElement, final Scope scope, final File configFile) throws ConfigParseException {
         final String elementName = providerElement.getNodeName();
 
         final String id = DomUtils.getChildText(providerElement, "id");

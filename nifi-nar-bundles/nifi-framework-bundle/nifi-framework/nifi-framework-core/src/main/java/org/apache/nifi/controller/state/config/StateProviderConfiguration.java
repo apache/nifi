@@ -17,16 +17,18 @@
 
 package org.apache.nifi.controller.state.config;
 
+import org.apache.nifi.components.state.Scope;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class StateProviderConfiguration {
     private final String id;
-    private final StateProviderScope scope;
+    private final Scope scope;
     private final String className;
     private final Map<String, String> properties;
 
-    public StateProviderConfiguration(final String id, final String className, final StateProviderScope scope, final Map<String, String> properties) {
+    public StateProviderConfiguration(final String id, final String className, final Scope scope, final Map<String, String> properties) {
         this.id = id;
         this.className = className;
         this.scope = scope;
@@ -45,7 +47,7 @@ public class StateProviderConfiguration {
         return properties;
     }
 
-    public StateProviderScope getScope() {
+    public Scope getScope() {
         return scope;
     }
 }
