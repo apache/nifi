@@ -106,13 +106,12 @@ $(document).ready(function () {
                     evt.preventDefault();
                 }
             } else {
-                if (!$('input').is(':focus') && (evt.keyCode == 8 || evt.keyCode === 46)) {
+                if (!$('input, textarea').is(':focus') && (evt.keyCode == 8 || evt.keyCode === 46)) {
                     // backspace or delete
                     evt.preventDefault();
                 }
             }
         }
-
     });
 });
 
