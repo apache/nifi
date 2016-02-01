@@ -439,7 +439,15 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             setState(newValue, (int) oldValue.getVersion(), componentId);
             return true;
         } catch (final IOException ioe) {
-            return false;
+            final Throwable cause = ioe.getCause();
+            if (cause != null && cause instanceof KeeperException) {
+                final KeeperException ke = (KeeperException) cause;
+                if (Code.BADVERSION == ke.code()) {
+                    return false;
+                }
+            }
+
+            throw ioe;
         }
     }
 
