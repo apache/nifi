@@ -418,7 +418,7 @@ public class TestConvertJSONToSQL {
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
         runner.setProperty(ConvertJSONToSQL.STATEMENT_TYPE, "INSERT");
-        runner.setProperty(ConvertJSONToSQL.UNMATCHED_COLUMN_BEHAVIOR, "Fail Unmatched Columns");
+        runner.setProperty(ConvertJSONToSQL.UNMATCHED_COLUMN_BEHAVIOR, ConvertJSONToSQL.FAIL_UNMATCHED_COLUMN);
         runner.enqueue(Paths.get("src/test/resources/TestConvertJSONToSQL/person-1.json"));
         runner.run();
 
@@ -443,7 +443,7 @@ public class TestConvertJSONToSQL {
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
         runner.setProperty(ConvertJSONToSQL.STATEMENT_TYPE, "INSERT");
-        runner.setProperty(ConvertJSONToSQL.UNMATCHED_COLUMN_BEHAVIOR, "Warning Unmatched Columns");
+        runner.setProperty(ConvertJSONToSQL.UNMATCHED_COLUMN_BEHAVIOR, ConvertJSONToSQL.WARNING_UNMATCHED_COLUMN);
         runner.enqueue(Paths.get("src/test/resources/TestConvertJSONToSQL/person-1.json"));
         runner.run();
 
@@ -514,7 +514,7 @@ public class TestConvertJSONToSQL {
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
         runner.setProperty(ConvertJSONToSQL.STATEMENT_TYPE, "UPDATE");
         runner.setProperty(ConvertJSONToSQL.UPDATE_KEY, "name,  code, extra");
-        runner.setProperty(ConvertJSONToSQL.UNMATCHED_COLUMN_BEHAVIOR, "Fail Unmatched Columns");
+        runner.setProperty(ConvertJSONToSQL.UNMATCHED_COLUMN_BEHAVIOR, ConvertJSONToSQL.FAIL_UNMATCHED_COLUMN);
         runner.enqueue(Paths.get("src/test/resources/TestConvertJSONToSQL/person-1.json"));
         runner.run();
 
@@ -540,7 +540,7 @@ public class TestConvertJSONToSQL {
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
         runner.setProperty(ConvertJSONToSQL.STATEMENT_TYPE, "UPDATE");
         runner.setProperty(ConvertJSONToSQL.UPDATE_KEY, "name,  code, extra");
-        runner.setProperty(ConvertJSONToSQL.UNMATCHED_COLUMN_BEHAVIOR, "Warning Unmatched Columns");
+        runner.setProperty(ConvertJSONToSQL.UNMATCHED_COLUMN_BEHAVIOR, ConvertJSONToSQL.WARNING_UNMATCHED_COLUMN);
         runner.enqueue(Paths.get("src/test/resources/TestConvertJSONToSQL/person-1.json"));
         runner.run();
 
