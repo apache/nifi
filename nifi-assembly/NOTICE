@@ -790,6 +790,21 @@ The following binary components are provided under the Apache Software License v
              This product includes software developed by
              The Groovy community (http://groovy.codehaus.org/).
 
+(ASLv2) Carrotsearch HPPC
+      The following NOTICE information applies:
+      HPPC borrowed code, ideas or both from:
+
+       * Apache Lucene, http://lucene.apache.org/
+         (Apache license)
+       * Fastutil, http://fastutil.di.unimi.it/
+         (Apache license)
+       * Koloboke, https://github.com/OpenHFT/Koloboke
+         (Apache license)
+
+    (ASLv2) t-digest
+       The following NOTICE information applies:
+       The code for the t-digest was originally authored by Ted Dunning
+       A number of small but very helpful changes have been contributed by Adrien Grand (https://github.com/jpountz)
 
 ************************
 Common Development and Distribution License 1.1
@@ -913,3 +928,8 @@ The following binary components are provided to the 'Public Domain'.  See projec
 
     (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - http://tukaani.org/xz/java.html
     (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)
+
+The following binary components are provided under the Creative Commons Zero license version 1.0.  See project link for details.
+
+    (CC0v1.0) JSR166e for Twitter (com.twitter:jsr166e:jar:1.1.0 - https://github.com/twitter/jsr166e)
+
