@@ -780,6 +780,16 @@ The following binary components are provided under the Apache Software License v
 
     (ASLv2) EventHubs Client (com.microsoft.eventhubs.client:eventhubs-client:0.9.1 - https://github.com/hdinsight/eventhubs-client/)
 
+    (ASLv2) Groovy (org.codehaus.groovy:groovy:jar:2.4.5 - http://www.groovy-lang.org)
+      The following NOTICE information applies:
+          Groovy Language
+             Copyright 2003-2015 The respective authors and developers
+             Developers and Contributors are listed in the project POM file
+             and Gradle build file
+
+             This product includes software developed by
+             The Groovy community (http://groovy.codehaus.org/).
+
 
 ************************
 Common Development and Distribution License 1.1
@@ -851,6 +861,12 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - http://www.h2database.com/html/license.html)
     (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.3 - http://logback.qos.ch/)
     (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.3 - http://logback.qos.ch/)
+    (EPLv1.0) JRuby (org.jruby:jruby-complete:9.0.4.0 - http://jruby.org).
+
+        JRuby is licensed under three licenses - the EPL 1.0, GPL 2 and LGPL 2.1. Apache NiFi uses the EPL v1.0 license.
+
+        The following NOTICE information applies:
+            Copyright (c) 2007-2015 The JRuby project
 
 *****************
 Mozilla Public License v2.0
@@ -868,6 +884,26 @@ The following binary components are provided under the Mozilla Public License v1
 
     (MPL 1.1) HAPI Base (ca.uhn.hapi:hapi-base:2.2 - http://hl7api.sourceforge.net/)
     (MPL 1.1) HAPI Structures (ca.uhn.hapi:hapi-structures-v*:2.2 - http://hl7api.sourceforge.net/)
+
+******************
+Python Software Foundation License v2
+******************
+
+The following binary components are provided under the Python Software Foundation License v2
+
+  (PSFLv2) Jython (org.python:jython-standalone:2.7.0 - http://www.jython.org/)
+    The following NOTICE information applies:
+        Copyright (c) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Jython Developers All rights reserved.
+
+******************
+MIT License
+******************
+
+The following binary components are provided under an MIT-style license
+
+  (MIT) Luaj (org.luaj:luaj-jse:3.0.1 - http://www.luaj.org/luaj/3.0/README.html)
+    The following NOTICE information applies:
+        Copyright (c) 2009-2011 Luaj.org. All rights reserved.
 
 *****************
 Public Domain
