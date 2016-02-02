@@ -52,6 +52,7 @@
         <module>nifi-riemann-bundle</module>
         <module>nifi-html-bundle</module>
         <module>nifi-scripting-bundle</module>
+        <module>nifi-elasticsearch-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
