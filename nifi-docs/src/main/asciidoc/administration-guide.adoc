@@ -366,6 +366,199 @@ a Remote Process Group. In that scenario, all the nodes
 in the remote cluster can be included in the same group. When the ADMIN wants to grant port access to the remote
 cluster, s/he can grant it to the group and avoid having to grant it individually to each node in the cluster.
 
+[[encryption]]
+Encryption Configuration
+------------------------
+
+This section provides an overview of the capabilities of NiFi to encrypt and decrypt data. 
+
+The `EncryptContent` processor allows for the encryption and decryption of data, both internal to NiFi and integrated with external systems, such as `openssl` and other data sources and consumers.
+
+[[key-derivation-functions]]
+Key Derivation Functions
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Key Derivation Functions (KDF) are mechanisms by which human-readable information, usually a password or other secret information, is translated into a cryptographic key suitable for data protection. For further information, read https://en.wikipedia.org/wiki/Key_derivation_function[the Wikipedia entry on Key Derivation Functions].
+Currently, KDFs are ingested by `CipherProvider` implementations and return a fully-initialized `Cipher` object to be used for encryption or decryption. Due to the use of a `CipherProviderFactory`, the KDFs are not customizable at this time. Future enhancements will include the ability to provide custom cost parameters to the KDF at initialization time. As a work-around, `CipherProvider` instances can be initialized with custom cost parameters in the constructor but this is not currently supported by the `CipherProviderFactory`.
+Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent` processor for password-based encryption (PBE)) and relevant notes:
+
+* NiFi Legacy KDF
+** The original KDF used by NiFi for internal key derivation for PBE, this is 1000 iterations of the MD5 digest over the concatenation of the password and 16 bytes of random salt. 
+** This KDF is *deprecated as of NiFi 0.5.0* and should only be used for backwards compatibility to decrypt data that was previously encrypted by a legacy version of NiFi.
+* OpenSSL PKCS#5 v1.5 EVP_BytesToKey
+** This KDF was added in v0.4.0.
+** This KDF is provided for compatibility with data encrypted using OpenSSL's default PBE, known as `EVP_BytesToKey`. This is a single iteration of MD5 over the concatenation of the password and 8 bytes of random ASCII salt. OpenSSL recommends using `PBKDF2` for key derivation but does not expose the library method necessary to the command-line tool, so this KDF is still the de facto default for command-line encryption.
+* Bcrypt
+** This KDF was added in v0.5.0.
+** https://en.wikipedia.org/wiki/Bcrypt[Bcrypt] is an adaptive function based on the https://en.wikipedia.org/wiki/Blowfish_(cipher)[Blowfish] cipher. This KDF is strongly recommended as it automatically incorporates a random 16 byte salt, configurable cost parameter (or "work factor"), and is hardened against brute-force attacks using https://en.wikipedia.org/wiki/General-purpose_computing_on_graphics_processing_units[GPGPU] (which share memory between cores) by requiring access to "large" blocks of memory during the key derivation. It is less resistant to https://en.wikipedia.org/wiki/Field-programmable_gate_array[FPGA] brute-force attacks where the gate arrays have access to individual embedded RAM blocks.
+** Because the length of a Bcrypt-derived key is always 184 bits, the complete output is then fed to a `SHA-512` digest and truncated to the desired key length. This provides the benefit of the avalanche effect on the formatted input.
+** The recommended minimum work factor is 12 (2^12^ key derivation rounds) (as of 2/1/2016 on commodity hardware) and should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `BcryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongWorkFactor()` to calculate safe minimums).
+** The salt format is `$2a$10$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the three sections are as follows:
+*** `2a` - the version of the format. An extensive explanation can be found http://blog.ircmaxell.com/2012/12/seven-ways-to-screw-up-bcrypt.html[here]. NiFi currently uses `2a` for all salts generated internally.
+*** `10` - the work factor. This is actually the log~2~ value, so the total iteration count would be 2^10^ in this case.
+*** `ABCDEFGHIJKLMNOPQRSTUV` - the 22 character, Base64-encoded, unpadded, raw salt value. This decodes to a 16 byte salt used in the key derivation.
+* Scrypt
+** This KDF was added in v0.5.0.
+** https://en.wikipedia.org/wiki/Scrypt[Scrypt] is an adaptive function designed in response to `bcrypt`. This KDF is recommended as it requires relatively large amounts of memory for each derivation, making it resistant to hardware brute-force attacks.
+** The recommended minimum cost is `N`=2^14^, `r`=8, `p`=1 (as of 2/1/2016 on commodity hardware) and should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `ScryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongParameters()` to calculate safe minimums).
+** The salt format is `$s0$e0101$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the three sections are as follows:
+*** `s0` - the version of the format. NiFi currently uses `s0` for all salts generated internally.
+*** `e0101` - the cost parameters. This is actually a hexadecimal encoding of `N`, `r`, `p` using shifts. This can be formed/parsed using `Scrypt#encodeParams()` and `Scrypt#parseParameters()`.
+**** Some external libraries encode `N`, `r`, and `p` separately in the form `$400$1$1$`. A utility method is available at `ScryptCipherProvider#translateSalt()` which will convert the external form to the internal form.
+*** `ABCDEFGHIJKLMNOPQRSTUV` - the 11-44 character, Base64-encoded, unpadded, raw salt value. This decodes to a 8-32 byte salt used in the key derivation.
+* PBKDF2
+** This KDF was added in v0.5.0.
+** https://en.wikipedia.org/wiki/PBKDF2[Password-Based Key Derivation Function 2] is an adaptive derivation function which uses an internal pseudorandom function (PRF) and iterates it many times over a password and salt (at least 16 bytes).
+** The PRF is recommended to be `HMAC/SHA-256` or `HMAC/SHA-512`. The use of an HMAC cryptographic hash function mitigates a length extension attack.
+** The recommended minimum number of iterations is 160,000 (as of 2/1/2016 on commodity hardware). This number should be doubled every two years (see schedule below or use `PBKDF2CipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongIterationCount()` to calculate safe minimums).
+** This KDF is not memory-hard (can be parallelized massively with commodity hardware) but is still recommended as sufficient by http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf[NIST SP 800-132 (PDF)] and many cryptographers (when used with a proper iteration count and HMAC cryptographic hash function).
+* None
+** This KDF was added in v0.5.0.
+** This KDF performs no operation on the input and is a marker to indicate the raw key is provided to the cipher. The key must be provided in hexadecimal encoding and be of a valid length for the associated cipher/algorithm.
+
+Additional Resources
+^^^^^^^^^^^^^^^^^^^^
+
+* http://stackoverflow.com/a/30308723/70465[Explanation of optimal scrypt cost parameters and relationships]
+* http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf[NIST Special Publication 800-132]
+* https://www.owasp.org/index.php/Password_Storage_Cheat_Sheet#Work_Factor[OWASP Password Storage Work Factor Calculations]
+* http://security.stackexchange.com/a/3993/16485[PBKDF2 rounds calculations]
+* http://blog.ircmaxell.com/2014/03/why-i-dont-recommend-scrypt.html[Scrypt as KDF vs password storage vulnerabilities]
+* http://security.stackexchange.com/a/26253/16485[Scrypt vs. Bcrypt (as of 2010)]
+* http://security.stackexchange.com/a/6415/16485[Bcrypt vs PBKDF2]
+* http://wildlyinaccurate.com/bcrypt-choosing-a-work-factor/[Choosing a work factor for Bcrypt]
+* https://docs.spring.io/spring-security/site/docs/current/apidocs/org/springframework/security/crypto/bcrypt/BCrypt.html[Spring Security Bcrypt]
+* https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5]
+* https://www.openssl.org/docs/manmaster/crypto/PKCS5_PBKDF2_HMAC.html[OpenSSL PBKDF2 KDF]
+* http://security.stackexchange.com/a/29139/16485[OpenSSL KDF flaws description]
+
+Salt and IV Encoding
+~~~~~~~~~~~~~~~~~~~~
+
+Initially, the `EncryptContent` processor had a single method of deriving the encryption key from a user-provided password. This is now referred to as `NiFiLegacy` mode, effectively `MD5 digest, 1000 iterations`. In v0.4.0, another method of deriving the key, `OpenSSL PKCS#5 v1.5 EVP_BytesToKey` was added for compatibility with content encrypted outside of NiFi using the `openssl` command-line tool. Both of these <<key-derivation-functions, Key Derivation Functions>> (KDF) had hard-coded digest functions and iteration counts, and the salt format was also hard-coded. With v0.5.0, additional KDFs are introduced with variable iteration counts, work factors, and salt formats. In addition, _raw keyed encryption_ was also introduced. This required the capacity to encode arbitrary salts and Initialization Vectors (IV) into the cipher stream in order to be recovered by NiFi or a follow-on system to decrypt these messages.
+
+For the existing KDFs, the salt format has not changed.
+
+NiFi Legacy
+^^^^^^^^^^^
+
+The first 16 bytes of the input are the salt. On decryption, the salt is read in and combined with the password to derive the encryption key and IV.
+
+image:nifi-legacy-salt.png["NiFi Legacy Salt Encoding"]
+
+OpenSSL PKCS#5 v1.5 EVP_BytesToKey
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+OpenSSL allows for salted or unsalted key derivation. _*Unsalted key derivation is a security risk and is not recommended.*_ If a salt is present, the first 8 bytes of the input are the ASCII string "`Salted__`" (`0x53 61 6C 74 65 64 5F 5F`) and the next 8 bytes are the ASCII-encoded salt. On decryption, the salt is read in and combined with the password to derive the encryption key and IV. If there is no salt header, the entire input is considered to be the cipher text.
+
+image:openssl-salt.png["OpenSSL Salt Encoding"]
+
+For new KDFs, each of which allow for non-deterministic IVs, the IV must be stored alongside the cipher text. This is not a vulnerability, as the IV is not required to be secret, but simply to be unique for messages encrypted using the same key to reduce the success of cryptographic attacks. For these KDFs, the output consists of the salt, followed by the salt delimiter, UTF-8 string "`NiFiSALT`" (`0x4E 69 46 69 53 41 4C 54`) and then the IV, followed by the IV delimiter, UTF-8 string "`NiFiIV`" (`0x4E 69 46 69 49 56`), followed by the cipher text.
+
+Bcrypt, Scrypt, PBKDF2
+^^^^^^^^^^^^^^^^^^^^^^
+
+image:bcrypt-salt.png["Bcrypt Salt & IV Encoding"]
+
+image:scrypt-salt.png["Scrypt Salt & IV Encoding"]
+
+image:pbkdf2-salt.png["PBKDF2 Salt & IV Encoding"]
+
+Java Cryptography Extension (JCE) Limited Strength Jurisdiction Policies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because of US export regulations, default JVMs have http://docs.oracle.com/javase/7/docs/technotes/guides/security/SunProviders.html#importlimits[limits imposed on the strength of cryptographic operations] available to them. For example, AES operations are limited to `128 bit keys` by default. While `AES-128` is cryptographically safe, this can have unintended consequences, specifically on Password-based Encryption (PBE).
+
+PBE is the process of deriving a cryptographic key for encryption or decryption from _user-provided secret material_, usually a password. Rather than a human remembering a (random-appearing) 32 or 64 character hexadecimal string, a password or passphrase is used.
+
+A number of PBE algorithms provided by NiFi impose strict limits on the length of the password due to the underlying key length checks. Below is a table listing the maximum password length on a JVM with limited cryptographic strength.
+
+.Maximum Password Length on Limited Cryptographic Strength JVM
+|===
+|Algorithm |Max Password Length
+
+|`PBEWITHMD5AND128BITAES-CBC-OPENSSL`
+|16
+
+|`PBEWITHMD5AND192BITAES-CBC-OPENSSL`
+|16
+
+|`PBEWITHMD5AND256BITAES-CBC-OPENSSL`
+|16
+
+|`PBEWITHMD5ANDDES`
+|16
+
+|`PBEWITHMD5ANDRC2`
+|16
+
+|`PBEWITHSHA1ANDRC2`
+|16
+
+|`PBEWITHSHA1ANDDES`
+|16
+
+|`PBEWITHSHAAND128BITAES-CBC-BC`
+|7
+
+|`PBEWITHSHAAND192BITAES-CBC-BC`
+|7
+
+|`PBEWITHSHAAND256BITAES-CBC-BC`
+|7
+
+|`PBEWITHSHAAND40BITRC2-CBC`
+|7
+
+|`PBEWITHSHAAND128BITRC2-CBC`
+|7
+
+|`PBEWITHSHAAND40BITRC4`
+|7
+
+|`PBEWITHSHAAND128BITRC4`
+|7
+
+|`PBEWITHSHA256AND128BITAES-CBC-BC`
+|7
+
+|`PBEWITHSHA256AND192BITAES-CBC-BC`
+|7
+
+|`PBEWITHSHA256AND256BITAES-CBC-BC`
+|7
+
+|`PBEWITHSHAAND2-KEYTRIPLEDES-CBC`
+|7
+
+|`PBEWITHSHAAND3-KEYTRIPLEDES-CBC`
+|7
+
+|`PBEWITHSHAANDTWOFISH-CBC`
+|7
+|===
+
+Allow Insecure Cryptographic Modes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, the `Allow Insecure Cryptographic Modes` property in `EncryptContent` processor settings is set to `not-allowed`. This means that if a password of fewer than `10` characters is provided, a validation error will occur. 10 characters is a conservative estimate and does not take into consideration full entropy calculations, patterns, etc.
+
+image:allow-weak-crypto.png["Allow Insecure Cryptographic Modes", width=940]
+
+On a JVM with limited strength cryptography, some PBE algorithms limit the maximum password length to 7, and in this case it will not be possible to provide a "safe" password. It is recommended to install the JCE Unlimited Strength Jurisdiction Policy files for the JVM to mitigate this issue.
+
+* http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html[JCE Unlimited Strength Jurisdiction Policy files for Java 7]
+* http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html[JCE Unlimited Strength Jurisdiction Policy files for Java 8]
+
+If on a system where the unlimited strength policies cannot be installed, it is recommended to switch to an algorithm that supports longer passwords (see table above). 
+
+[WARNING]
+.Allowing Weak Crypto
+=====================
+If it is not possible to install the unlimited strength jurisdiction policies, the `Allow Weak Crypto` setting can be changed to `allowed`, but *this is _not_ recommended*. Changing this setting explicitly acknowledges the inherent risk in using weak cryptographic configurations.
+=====================
+
+It is preferable to request upstream/downstream systems to switch to https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption] or use a "strong" https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations[Key Derivation Function (KDF) supported by NiFi].
 
 [[clustering]]
 Clustering Configuration
@@ -806,8 +999,8 @@ Security Configuration section of this Administrator's Guide.
 
 |====
 |*Property*|*Description*
-|nifi.sensitive.props.key|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
-|nifi.sensitive.props.algorithm|The algorithm used to encrypt sensitive properties. The default value is PBEWITHMD5AND256BITAES-CBC-OPENSSL.
+|nifi.sensitive.props.key|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
+|nifi.sensitive.props.algorithm|The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
 |nifi.sensitive.props.provider|The sensitive property provider. The default value is BC.
 |nifi.security.keystore*|The full path and name of the keystore. It is blank by default.
 |nifi.security.keystoreType|The keystore type. It is blank by default.

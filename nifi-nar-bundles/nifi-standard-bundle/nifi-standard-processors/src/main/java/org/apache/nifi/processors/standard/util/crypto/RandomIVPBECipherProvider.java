@@ -53,7 +53,7 @@ public abstract class RandomIVPBECipherProvider implements PBECipherProvider {
 
     @Override
     public byte[] readSalt(InputStream in) throws IOException, ProcessException {
-       return CipherUtility.readBytesFromInputStream(in, "salt", MAX_SALT_LIMIT, getDefaultSaltLength(), SALT_DELIMITER);
+       return CipherUtility.readBytesFromInputStream(in, "salt", MAX_SALT_LIMIT, SALT_DELIMITER);
     }
 
     @Override
@@ -62,7 +62,7 @@ public abstract class RandomIVPBECipherProvider implements PBECipherProvider {
     }
 
     public byte[] readIV(InputStream in) throws IOException, ProcessException {
-        return CipherUtility.readBytesFromInputStream(in, "IV", MAX_IV_LIMIT, MAX_IV_LIMIT, IV_DELIMITER);
+        return CipherUtility.readBytesFromInputStream(in, "IV", MAX_IV_LIMIT, IV_DELIMITER);
     }
 
     public void writeIV(byte[] iv, OutputStream out) throws IOException {

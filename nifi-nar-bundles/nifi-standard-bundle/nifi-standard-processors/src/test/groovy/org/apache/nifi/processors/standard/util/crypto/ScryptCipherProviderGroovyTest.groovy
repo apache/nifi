@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard.util.crypto
 
+import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.processors.standard.util.crypto.scrypt.Scrypt
 import org.apache.nifi.security.util.EncryptionMethod
@@ -49,6 +50,7 @@ public class ScryptCipherProviderGroovyTest {
 
     private static final int DEFAULT_KEY_LENGTH = 128;
     public static final String MICROBENCHMARK = "microbenchmark"
+    private static ArrayList<Integer> AES_KEY_LENGTHS
 
     RandomIVPBECipherProvider cipherProvider
 
@@ -60,6 +62,12 @@ public class ScryptCipherProviderGroovyTest {
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+        }
+
+        if (PasswordBasedEncryptor.supportsUnlimitedStrength()) {
+            AES_KEY_LENGTHS = [128, 192, 256]
+        } else {
+            AES_KEY_LENGTHS = [128]
         }
     }
 
@@ -225,9 +233,9 @@ public class ScryptCipherProviderGroovyTest {
         logger.info("Formed Java-style salt: ${javaSalt}")
 
         // Convert hash from hex to Base64
-        String base64Hash = Base64.encoder.withoutPadding().encodeToString(Hex.decodeHex(hashHex as char[]))
+        String base64Hash = CipherUtility.encodeBase64NoPadding(Hex.decodeHex(hashHex as char[]))
         logger.info("Converted hash from hex ${hashHex} to Base64 ${base64Hash}")
-        assert Hex.encodeHexString(Base64.decoder.decode(base64Hash)) == hashHex
+        assert Hex.encodeHexString(Base64.decodeBase64(base64Hash)) == hashHex
 
         logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}");
         logger.info("External cipher text: ${CIPHER_TEXT} ${cipherBytes.length}");
@@ -402,7 +410,7 @@ public class ScryptCipherProviderGroovyTest {
         final String PLAINTEXT = "This is a plaintext message.";
 
         // Currently only AES ciphers are compatible with Bcrypt, so redundant to test all algorithms
-        final def VALID_KEY_LENGTHS = [128, 192, 256]
+        final def VALID_KEY_LENGTHS = AES_KEY_LENGTHS
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
 
         // Act

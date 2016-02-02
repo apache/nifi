@@ -30,8 +30,6 @@ public class CipherProviderFactory {
     private static Map<KeyDerivationFunction, Class<? extends CipherProvider>> registeredCipherProviders;
 
     static {
-        // TODO: Automatically register available cipher providers
-
         registeredCipherProviders = new HashMap<>();
         registeredCipherProviders.put(KeyDerivationFunction.NIFI_LEGACY, NiFiLegacyCipherProvider.class);
         registeredCipherProviders.put(KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY, OpenSSLPKCS5CipherProvider.class);
@@ -54,10 +52,6 @@ public class CipherProviderFactory {
             }
         }
 
-        // TODO: Return default instance if KDF not recognized?
         throw new IllegalArgumentException("No cipher provider registered for " + kdf.getName());
     }
-
-    // TODO: Add accessor methods for PBE/Keyed cipher providers
-    // TODO: Add accessor methods for parameterized cipher providers
 }

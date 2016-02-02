@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processors.standard.util.crypto.scrypt;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processors.standard.util.crypto.CipherUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +28,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import static java.lang.Integer.MAX_VALUE;
@@ -49,8 +50,6 @@ import static java.lang.System.arraycopy;
 public class Scrypt {
     private static final Logger logger = LoggerFactory.getLogger(Scrypt.class);
 
-    private static final Base64.Encoder ENCODER = Base64.getEncoder().withoutPadding();
-    private static final Base64.Decoder DECODER = Base64.getDecoder();
     private static final int DEFAULT_SALT_LENGTH = 16;
 
     /**
@@ -114,7 +113,7 @@ public class Scrypt {
 
         StringBuilder sb = new StringBuilder((salt.length) * 2);
         sb.append("$s0$").append(params).append('$');
-        sb.append(ENCODER.encodeToString(salt));
+        sb.append(CipherUtility.encodeBase64NoPadding(salt));
 
         return sb.toString();
     }
@@ -126,7 +125,7 @@ public class Scrypt {
     private static String formatHash(byte[] salt, int n, int r, int p, byte[] derived) {
         StringBuilder sb = new StringBuilder((salt.length + derived.length) * 2);
         sb.append(formatSalt(salt, n, r, p)).append('$');
-        sb.append(ENCODER.encodeToString(derived));
+        sb.append(CipherUtility.encodeBase64NoPadding(derived));
 
         return sb.toString();
     }
@@ -171,8 +170,8 @@ public class Scrypt {
             int r = splitParams.get(1);
             int p = splitParams.get(2);
 
-            byte[] salt = DECODER.decode(parts[3]);
-            byte[] derived0 = DECODER.decode(parts[4]);
+            byte[] salt = Base64.decodeBase64(parts[3]);
+            byte[] derived0 = Base64.decodeBase64(parts[4]);
 
             // Previously this was hard-coded to 32 bits but the publicly-available scrypt methods accept arbitrary bit lengths
             int hashLength = derived0.length * 8;
@@ -268,7 +267,6 @@ public class Scrypt {
             throw new IllegalArgumentException("Parameter N is too large");
         }
 
-        // TODO: Enforce boundary of (2**32 - 1) * 32 / MFLen?
         // Must be enforced before r check
         if (p > MAX_VALUE / 128) {
             throw new IllegalArgumentException("Parameter p is too large");
@@ -294,8 +292,6 @@ public class Scrypt {
             logger.warn("A salt of length {} was used for scrypt key derivation", saltLength);
 //            throw new IllegalArgumentException("Salt must be between 8 and 32 bytes");
         }
-
-        // TODO: Check dkLen
 
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(password, "HmacSHA256"));

@@ -38,6 +38,7 @@ public class PasswordBasedEncryptor implements Encryptor {
     private KeyDerivationFunction kdf;
 
     private static final int DEFAULT_MAX_ALLOWED_KEY_LENGTH = 128;
+    private static final int MINIMUM_SAFE_PASSWORD_LENGTH = 10;
 
     private static boolean isUnlimitedStrengthCryptographyEnabled;
 
@@ -82,6 +83,15 @@ public class PasswordBasedEncryptor implements Encryptor {
             // Default algorithm max key length on unmodified JRE
             return DEFAULT_MAX_ALLOWED_KEY_LENGTH;
         }
+    }
+
+    /**
+     * Returns a recommended minimum length for passwords. This can be modified over time and does not take full entropy calculations (patterns, character space, etc.) into account.
+     *
+     * @return the minimum safe password length
+     */
+    public static int getMinimumSafePasswordLength() {
+        return MINIMUM_SAFE_PASSWORD_LENGTH;
     }
 
     public static boolean supportsUnlimitedStrength() {

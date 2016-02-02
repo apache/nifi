@@ -64,7 +64,7 @@ public abstract class KeyedCipherProvider implements CipherProvider {
     abstract byte[] generateIV();
 
     public byte[] readIV(InputStream in) throws IOException, ProcessException {
-        return CipherUtility.readBytesFromInputStream(in, "IV", MAX_IV_LIMIT, MAX_IV_LIMIT, IV_DELIMITER);
+        return CipherUtility.readBytesFromInputStream(in, "IV", MAX_IV_LIMIT, IV_DELIMITER);
     }
 
     public void writeIV(byte[] iv, OutputStream out) throws IOException {

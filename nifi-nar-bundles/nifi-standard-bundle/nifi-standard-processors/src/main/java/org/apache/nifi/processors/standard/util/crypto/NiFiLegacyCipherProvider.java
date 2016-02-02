@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -28,13 +27,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/**
+ * Provides a cipher initialized with the original NiFi key derivation process for password-based encryption (MD5 @ 1000 iterations). This is not a secure
+ * {@link org.apache.nifi.security.util.KeyDerivationFunction} (KDF) and should no longer be used.
+ * It is provided only for backward-compatibility with legacy data. A strong KDF should be selected for any future use.
+ *
+ * @see BcryptCipherProvider
+ * @see ScryptCipherProvider
+ * @see PBKDF2CipherProvider
+ */
+@Deprecated
 public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(NiFiLegacyCipherProvider.class);
 
     // Legacy magic number value
     private static final int ITERATION_COUNT = 1000;
-
-    // TODO: Add deprecated annotation once support for legacy crypto is dropped
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the NiFi legacy code, based on @see org.apache.nifi.processors.standard.util.crypto
@@ -88,7 +95,6 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
         }
         byte[] salt = new byte[getDefaultSaltLength()];
         StreamUtils.fillBuffer(in, salt);
-        logger.info("[REMOVE] Read salt {}", Hex.encodeHexString(salt));
         return salt;
     }
 
@@ -97,7 +103,6 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
         if (out == null) {
             throw new IllegalArgumentException("Cannot write salt to null OutputStream");
         }
-        logger.info("[REMOVE] Writing salt {}", Hex.encodeHexString(salt));
         out.write(salt);
     }
 

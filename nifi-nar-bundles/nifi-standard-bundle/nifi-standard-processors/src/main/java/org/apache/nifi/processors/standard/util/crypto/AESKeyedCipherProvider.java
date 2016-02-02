@@ -45,8 +45,6 @@ public class AESKeyedCipherProvider extends KeyedCipherProvider {
     private static final int IV_LENGTH = 16;
     private static final List<Integer> VALID_KEY_LENGTHS = Arrays.asList(128, 192, 256);
 
-    // TODO: Abstract to SymmetricKeyedCipherProvider for RC*, DES, 3DES, Blowfish to use in underlying NiFiLegacy and OpenSSLPKCS5 implementations
-
     /**
      * Returns an initialized cipher for the specified algorithm. The IV is provided externally to allow for non-deterministic IVs, as IVs
      * deterministically derived from the password are a potential vulnerability and compromise semantic security. See

@@ -119,6 +119,4 @@ public class KeyedEncryptorGroovyTest {
         logger.info("Recovered: {}", recovered)
         assert PLAINTEXT.equals(recovered)
     }
-
-    // TODO: Add tests for invalid cipher streams (missing IV, missing delimiters, etc.)
 }

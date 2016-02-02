@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard
 
 import org.apache.nifi.components.ValidationResult
+import org.apache.nifi.processors.standard.util.crypto.CipherUtility
 import org.apache.nifi.processors.standard.util.crypto.PasswordBasedEncryptor
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
@@ -42,6 +43,9 @@ import java.security.Security
 @RunWith(JUnit4.class)
 public class TestEncryptContentGroovy {
     private static final Logger logger = LoggerFactory.getLogger(TestEncryptContentGroovy.class)
+
+    private static final String WEAK_CRYPTO_ALLOWED = EncryptContent.WEAK_CRYPTO_ALLOWED_NAME
+    private static final String WEAK_CRYPTO_NOT_ALLOWED = EncryptContent.WEAK_CRYPTO_NOT_ALLOWED_NAME
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -243,11 +247,17 @@ public class TestEncryptContentGroovy {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
         MockProcessContext pc
-        final String PASSWORD = "thisIsABadPassword"
+        final String PASSWORD = "short"
 
-        def encryptionMethods = EncryptionMethod.values().findAll { !it.isKeyedCipher() && !(it.algorithm.contains("PGP")) }
+        def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
+        if (!PasswordBasedEncryptor.supportsUnlimitedStrength()) {
+            // Remove all unlimited strength algorithms
+            encryptionMethods.removeAll { it.unlimitedStrength }
+        }
+
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
         runner.setProperty(EncryptContent.PASSWORD, PASSWORD)
+        runner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_ALLOWED)
 
         encryptionMethods.each { EncryptionMethod encryptionMethod ->
             logger.info("Trying encryption method ${encryptionMethod.name()}")
@@ -266,11 +276,11 @@ public class TestEncryptContentGroovy {
                 results = pc.validate()
 
                 // Assert
-                Assert.assertEquals(1, results.size())
                 logger.expected(results)
+                Assert.assertEquals(1, results.size())
                 ValidationResult keyLengthInvalidVR = results.first()
 
-                String expectedResult = "'key-derivation-function' is invalid because Key Derivation Function is required to be NIFI_LEGACY, OPENSSL_EVP_BYTES_TO_KEY when using " +
+                String expectedResult = "'Key Derivation Function' is invalid because Key Derivation Function is required to be NIFI_LEGACY, OPENSSL_EVP_BYTES_TO_KEY when using " +
                         "algorithm ${encryptionMethod.algorithm}"
                 String message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
                 Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
@@ -330,5 +340,140 @@ public class TestEncryptContentGroovy {
         }
     }
 
-    // TODO: testShouldValidatePasswordForPBECipher
+    @Test
+    public void testShouldCheckMaximumLengthOfPasswordOnLimitedStrengthCryptoJVM() throws IOException {
+        // Arrange
+        Assume.assumeTrue("Only run on systems with limited strength crypto", !PasswordBasedEncryptor.supportsUnlimitedStrength())
+
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
+        testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_ALLOWED)
+
+        Collection<ValidationResult> results
+        MockProcessContext pc
+
+        def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
+
+        // Use .find instead of .each to allow "breaks" using return false
+        encryptionMethods.find { EncryptionMethod encryptionMethod ->
+            def invalidPasswordLength = CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod) + 1
+            String tooLongPassword = "x" * invalidPasswordLength
+            if (encryptionMethod.isUnlimitedStrength() || encryptionMethod.isKeyedCipher()) {
+                return false   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
+            }
+
+            testRunner.setProperty(EncryptContent.PASSWORD, tooLongPassword)
+            logger.info("Attempting ${encryptionMethod.algorithm} with password of length ${invalidPasswordLength}")
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
+            testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
+
+            testRunner.clearTransferState()
+            testRunner.enqueue(new byte[0])
+            pc = (MockProcessContext) testRunner.getProcessContext()
+
+            // Act
+            results = pc.validate()
+
+            // Assert
+            logger.expected(results)
+            Assert.assertEquals(1, results.size())
+            ValidationResult passwordLengthVR = results.first()
+
+            String expectedResult = "'Password' is invalid because Password length greater than ${invalidPasswordLength - 1} characters is not supported by" +
+                    " this JVM due to lacking JCE Unlimited Strength Jurisdiction Policy files."
+            String message = "'" + passwordLengthVR.toString() + "' contains '" + expectedResult + "'"
+            Assert.assertTrue(message, passwordLengthVR.toString().contains(expectedResult))
+        }
+    }
+
+    @Test
+    public void testShouldCheckLengthOfPasswordWhenNotAllowed() throws IOException {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
+
+        Collection<ValidationResult> results
+        MockProcessContext pc
+
+        def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
+
+        boolean limitedStrengthCrypto = !PasswordBasedEncryptor.supportsUnlimitedStrength()
+        boolean allowWeakCrypto = false
+        testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_NOT_ALLOWED)
+
+        // Use .find instead of .each to allow "breaks" using return false
+        encryptionMethods.find { EncryptionMethod encryptionMethod ->
+            // Determine the minimum of the algorithm-accepted length or the global safe minimum to ensure only one validation result
+            def shortPasswordLength = [PasswordBasedEncryptor.getMinimumSafePasswordLength() - 1, CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod) - 1].min()
+            String shortPassword = "x" * shortPasswordLength
+            if (encryptionMethod.isUnlimitedStrength() || encryptionMethod.isKeyedCipher()) {
+                return false   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
+            }
+
+            testRunner.setProperty(EncryptContent.PASSWORD, shortPassword)
+            logger.info("Attempting ${encryptionMethod.algorithm} with password of length ${shortPasswordLength}")
+            logger.state("Limited strength crypto ${limitedStrengthCrypto} and allow weak crypto: ${allowWeakCrypto}")
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
+            testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
+
+            testRunner.clearTransferState()
+            testRunner.enqueue(new byte[0])
+            pc = (MockProcessContext) testRunner.getProcessContext()
+
+            // Act
+            results = pc.validate()
+
+            // Assert
+            logger.expected(results)
+            Assert.assertEquals(1, results.size())
+            ValidationResult passwordLengthVR = results.first()
+
+            String expectedResult = "'Password' is invalid because Password length less than ${PasswordBasedEncryptor.getMinimumSafePasswordLength()} characters is potentially unsafe. " +
+                    "See Admin Guide."
+            String message = "'" + passwordLengthVR.toString() + "' contains '" + expectedResult + "'"
+            Assert.assertTrue(message, passwordLengthVR.toString().contains(expectedResult))
+        }
+    }
+
+    @Test
+    public void testShouldNotCheckLengthOfPasswordWhenAllowed() throws IOException {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
+
+        Collection<ValidationResult> results
+        MockProcessContext pc
+
+        def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
+
+        boolean limitedStrengthCrypto = !PasswordBasedEncryptor.supportsUnlimitedStrength()
+        boolean allowWeakCrypto = true
+        testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_ALLOWED)
+
+        // Use .find instead of .each to allow "breaks" using return false
+        encryptionMethods.find { EncryptionMethod encryptionMethod ->
+            // Determine the minimum of the algorithm-accepted length or the global safe minimum to ensure only one validation result
+            def shortPasswordLength = [PasswordBasedEncryptor.getMinimumSafePasswordLength() - 1, CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod) - 1].min()
+            String shortPassword = "x" * shortPasswordLength
+            if (encryptionMethod.isUnlimitedStrength() || encryptionMethod.isKeyedCipher()) {
+                return false   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
+            }
+
+            testRunner.setProperty(EncryptContent.PASSWORD, shortPassword)
+            logger.info("Attempting ${encryptionMethod.algorithm} with password of length ${shortPasswordLength}")
+            logger.state("Limited strength crypto ${limitedStrengthCrypto} and allow weak crypto: ${allowWeakCrypto}")
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
+            testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
+
+            testRunner.clearTransferState()
+            testRunner.enqueue(new byte[0])
+            pc = (MockProcessContext) testRunner.getProcessContext()
+
+            // Act
+            results = pc.validate()
+
+            // Assert
+            Assert.assertEquals(results.toString(), 0, results.size())
+        }
+    }
 }

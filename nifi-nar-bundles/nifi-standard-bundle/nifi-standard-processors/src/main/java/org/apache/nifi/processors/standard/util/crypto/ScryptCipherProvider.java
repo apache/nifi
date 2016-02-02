@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard.util.crypto;
 
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -31,7 +32,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,7 +43,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
     private final int r;
     private final int p;
     /**
-     * TODO: These values can be calculated automatically using the code {@see ScryptCipherProviderGroovyTest#calculateMinimumParameters} or manually updated by a maintainer
+     * These values can be calculated automatically using the code {@see ScryptCipherProviderGroovyTest#calculateMinimumParameters} or manually updated by a maintainer
      */
     private static final int DEFAULT_N = Double.valueOf(Math.pow(2, 14)).intValue();
     private static final int DEFAULT_R = 8;
@@ -175,8 +175,6 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         parseSalt(scryptSalt, rawSalt, params);
 
         String hash = Scrypt.scrypt(password, rawSalt, params.get(0), params.get(1), params.get(2), keyLength);
-        // TODO: Remove
-        logger.warn("[REMOVE] Derived hash: {}", hash);
 
         // Split out the derived key from the hash and form a key object
         final String[] hashComponents = hash.split("\\$");
@@ -184,9 +182,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         if (hashComponents.length < HASH_INDEX) {
             throw new ProcessException("There was an error generating a scrypt hash -- the resulting hash was not properly formatted");
         }
-        byte[] keyBytes = Base64.getDecoder().decode(hashComponents[HASH_INDEX]);
-        // TODO: Remove
-        logger.warn("[REMOVE] Derived key: {}", Hex.encodeHexString(keyBytes));
+        byte[] keyBytes = Base64.decodeBase64(hashComponents[HASH_INDEX]);
         SecretKey tempKey = new SecretKeySpec(keyBytes, algorithm);
 
         KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
@@ -201,27 +197,21 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         /** Salt format is $s0$params$saltB64 where params is encoded according to
          *  {@link Scrypt#parseParameters(String)}*/
         final String[] saltComponents = scryptSalt.split("\\$");
-        // TODO: Remove
-        logger.info("[REMOVE] Salt components: {} {} {} {}", saltComponents[0], saltComponents[1], saltComponents[2], saltComponents[3]);
         if (saltComponents.length < 4) {
             throw new IllegalArgumentException("Could not parse salt");
         }
-        byte[] salt = Base64.getDecoder().decode(saltComponents[3]);
+        byte[] salt = Base64.decodeBase64(saltComponents[3]);
         if (rawSalt.length < salt.length) {
             byte[] tempBytes = new byte[salt.length];
             System.arraycopy(rawSalt, 0, tempBytes, 0, rawSalt.length);
             rawSalt = tempBytes;
         }
         System.arraycopy(salt, 0, rawSalt, 0, salt.length);
-        // TODO: Remove
-        logger.info("[REMOVE] Hex salt: {}", Hex.encodeHexString(salt));
 
         if (params == null) {
             params = new ArrayList<>(3);
         }
         params.addAll(Scrypt.parseParameters(saltComponents[2]));
-        // TODO: Remove
-        logger.info("[REMOVE] Params: n = {}, r = {}, p = {}", params.get(0), params.get(1), params.get(2));
     }
 
     /**

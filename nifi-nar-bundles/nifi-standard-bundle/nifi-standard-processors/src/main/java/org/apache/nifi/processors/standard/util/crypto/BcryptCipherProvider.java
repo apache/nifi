@@ -18,8 +18,8 @@ package org.apache.nifi.processors.standard.util.crypto;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.util.crypto.bcrypt.BCrypt;
 import org.apache.nifi.security.util.EncryptionMethod;
-import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,12 +32,14 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+//import org.mindrot.jbcrypt.BCrypt;
+
 public class BcryptCipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(BcryptCipherProvider.class);
 
     private final int workFactor;
     /**
-     * TODO: This can be calculated automatically using the code {@see BcryptCipherProviderGroovyTest#calculateMinimumWorkFactor} or manually updated by a maintainer
+     * This can be calculated automatically using the code {@see BcryptCipherProviderGroovyTest#calculateMinimumWorkFactor} or manually updated by a maintainer
      */
     private static final int DEFAULT_WORK_FACTOR = 12;
     private static final int DEFAULT_SALT_LENGTH = 16;
@@ -178,9 +180,6 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
         if (matcher.find()) {
             return rawSalt;
         } else {
-            // TODO: The encoding is not consistent
-//            String base64EncodedSalt = Base64.getEncoder().withoutPadding().encodeToString(salt);
-//            return "$2a$" + StringUtils.leftPad(String.valueOf(workFactor), 2, "0") + "$" + base64EncodedSalt;
             throw new IllegalArgumentException("The salt must be of the format $2a$10$gUVbkVzp79H8YaCOsCVZNu. To generate a salt, use BcryptCipherProvider#generateSalt()");
         }
     }

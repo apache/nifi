@@ -51,6 +51,7 @@ import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.util.StopWatch;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -71,6 +72,9 @@ public class EncryptContent extends AbstractProcessor {
 
     public static final String ENCRYPT_MODE = "Encrypt";
     public static final String DECRYPT_MODE = "Decrypt";
+
+    private static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
+    private static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
@@ -132,12 +136,21 @@ public class EncryptContent extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor RAW_KEY_HEX = new PropertyDescriptor.Builder()
             .name("raw-key-hex")
-            .displayName("Raw key (hexadecimal)")
+            .displayName("Raw Key (hexadecimal)")
             .description("In keyed encryption, this is the raw key, encoded in hexadecimal")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
+    public static final PropertyDescriptor ALLOW_WEAK_CRYPTO = new PropertyDescriptor.Builder()
+            .name("allow-weak-crypto")
+            .displayName("Allow insecure cryptographic modes")
+            .description("Overrides the default behavior to prevent unsafe combinations of encryption algorithms and short passwords on JVMs with limited strength cryptographic jurisdiction policies")
+            .required(true)
+            .allowableValues(buildWeakCryptoAllowableValues())
+            .defaultValue(buildDefaultWeakCryptoAllowableValue().getValue())
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Any FlowFile that is successfully encrypted or decrypted will be routed to success").build();
 
@@ -172,18 +185,32 @@ public class EncryptContent extends AbstractProcessor {
         return allowableValues.toArray(new AllowableValue[0]);
     }
 
+    private static AllowableValue[] buildWeakCryptoAllowableValues() {
+        List<AllowableValue> allowableValues = new ArrayList<>();
+        allowableValues.add(new AllowableValue(WEAK_CRYPTO_ALLOWED_NAME, "Allowed", "Operation will not be blocked and no alerts will be presented " +
+                "when unsafe combinations of encryption algorithms and passwords are provided"));
+        allowableValues.add(buildDefaultWeakCryptoAllowableValue());
+        return allowableValues.toArray(new AllowableValue[0]);
+    }
+
+    private static AllowableValue buildDefaultWeakCryptoAllowableValue() {
+        return new AllowableValue(WEAK_CRYPTO_NOT_ALLOWED_NAME, "Not Allowed", "When set, operation will be blocked and alerts will be presented to the user " +
+                "if unsafe combinations of encryption algorithms and passwords are provided on a JVM with limited strength crypto. To fix this, see the Admin Guide.");
+    }
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(MODE);
         properties.add(KEY_DERIVATION_FUNCTION);
         properties.add(ENCRYPTION_ALGORITHM);
+        properties.add(ALLOW_WEAK_CRYPTO);
         properties.add(PASSWORD);
+        properties.add(RAW_KEY_HEX);
         properties.add(PUBLIC_KEYRING);
         properties.add(PUBLIC_KEY_USERID);
         properties.add(PRIVATE_KEYRING);
         properties.add(PRIVATE_KEYRING_PASSPHRASE);
-        properties.add(RAW_KEY_HEX);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -217,133 +244,181 @@ public class EncryptContent extends AbstractProcessor {
         final EncryptionMethod encryptionMethod = EncryptionMethod.valueOf(methodValue);
         final String algorithm = encryptionMethod.getAlgorithm();
         final String password = context.getProperty(PASSWORD).getValue();
-        final String kdf = context.getProperty(KEY_DERIVATION_FUNCTION).getValue();
+        final KeyDerivationFunction kdf = KeyDerivationFunction.valueOf(context.getProperty(KEY_DERIVATION_FUNCTION).getValue());
         final String keyHex = context.getProperty(RAW_KEY_HEX).getValue();
         if (isPGPAlgorithm(algorithm)) {
-            if (password == null) {
-                final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
-                if (encrypt) {
-                    // need both public-keyring-file and public-key-user-id set
-                    final String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
-                    final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
-                    if (publicKeyring == null || publicUserId == null) {
-                        validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
-                                .explanation(algorithm + " encryption without a " + PASSWORD.getDisplayName() + " requires both "
-                                        + PUBLIC_KEYRING.getDisplayName() + " and " + PUBLIC_KEY_USERID.getDisplayName())
-                                .build());
-                    } else {
-                        // verify the public keyring contains the user id
-                        try {
-                            if (OpenPGPKeyBasedEncryptor.getPublicKey(publicUserId, publicKeyring) == null) {
-                                validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
-                                        .explanation(PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
-                                                + " does not contain user id " + publicUserId)
-                                        .build());
-                            }
-                        } catch (final Exception e) {
-                            validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
-                                    .explanation("Invalid " + PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
-                                            + " because " + e.toString())
-                                    .build());
-                        }
-                    }
-                } else {
-                    // need both private-keyring-file and private-keyring-passphrase set
-                    final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
-                    final String keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).getValue();
-                    if (privateKeyring == null || keyringPassphrase == null) {
-                        validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getName())
-                                .explanation(algorithm + " decryption without a " + PASSWORD.getDisplayName() + " requires both "
-                                        + PRIVATE_KEYRING.getDisplayName() + " and " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
-                                .build());
-                    } else {
-                        final String providerName = EncryptionMethod.valueOf(methodValue).getProvider();
-                        // verify the passphrase works on the private keyring
-                        try {
-                            if (!OpenPGPKeyBasedEncryptor.validateKeyring(providerName, privateKeyring, keyringPassphrase.toCharArray())) {
-                                validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getDisplayName())
-                                        .explanation(PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
-                                                + " could not be opened with the provided " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
-                                        .build());
-                            }
-                        } catch (final Exception e) {
-                            validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getDisplayName())
-                                    .explanation("Invalid " + PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
-                                            + " because " + e.toString())
-                                    .build());
-                        }
-                    }
-                }
-            }
-        } else if (encryptionMethod.isKeyedCipher()) { // Raw key
-            if (!PasswordBasedEncryptor.supportsUnlimitedStrength()) {
-                if (encryptionMethod.isUnlimitedStrength()) {
-                    validationResults.add(new ValidationResult.Builder().subject(ENCRYPTION_ALGORITHM.getName())
-                            .explanation(methodValue + " (" + algorithm + ") is not supported by this JVM due to lacking JCE Unlimited " +
-                                    "Strength Jurisdiction Policy files.").build());
-                }
-            }
-            int allowedKeyLength = PasswordBasedEncryptor.getMaxAllowedKeyLength(ENCRYPTION_ALGORITHM.getName());
-
-            if (StringUtils.isEmpty(keyHex)) {
-                validationResults.add(new ValidationResult.Builder().subject(RAW_KEY_HEX.getName())
-                        .explanation(RAW_KEY_HEX.getDisplayName() + " is required when using algorithm " + algorithm).build());
-            } else {
-                byte[] keyBytes = new byte[0];
-                try {
-                    keyBytes = Hex.decodeHex(keyHex.toCharArray());
-                } catch (DecoderException e) {
-                    validationResults.add(new ValidationResult.Builder().subject(RAW_KEY_HEX.getName())
-                            .explanation("Key must be valid hexadecimal string.").build());
-                }
-                if (keyBytes.length * 8 > allowedKeyLength) {
-                    validationResults.add(new ValidationResult.Builder().subject(RAW_KEY_HEX.getName())
-                            .explanation("Key length greater than " + allowedKeyLength + " bits is not supported by this JVM" +
-                                    " due to lacking JCE Unlimited Strength Jurisdiction Policy files.").build());
-                }
-                if (!CipherUtility.isValidKeyLengthForAlgorithm(keyBytes.length * 8, algorithm)) {
-                    List<Integer> validKeyLengths = CipherUtility.getValidKeyLengthsForAlgorithm(algorithm);
-                    validationResults.add(new ValidationResult.Builder().subject(RAW_KEY_HEX.getName())
-                            .explanation("Key must be valid length [" + StringUtils.join(validKeyLengths, ", ") + "].").build());
-                }
-            }
-
-            // Perform some analysis on the selected encryption algorithm to ensure the JVM can support it and the associated key
-
-            List<String> kdfsForKeyedCipher = getKDFsForKeyedCipher();
-            if (StringUtils.isEmpty(kdf) || !kdfsForKeyedCipher.contains(kdf)) {
-                validationResults.add(new ValidationResult.Builder().subject(KEY_DERIVATION_FUNCTION.getName())
-                        .explanation(KEY_DERIVATION_FUNCTION.getDisplayName() + " is required to be " + StringUtils.join(kdfsForKeyedCipher, ", ") + " when using algorithm " + algorithm).build());
-            }
-        } else { // PBE
-            if (!PasswordBasedEncryptor.supportsUnlimitedStrength()) {
-                if (encryptionMethod.isUnlimitedStrength()) {
-                    validationResults.add(new ValidationResult.Builder().subject(ENCRYPTION_ALGORITHM.getName())
-                            .explanation(methodValue + " (" + algorithm + ") is not supported by this JVM due to lacking JCE Unlimited " +
-                                    "Strength Jurisdiction Policy files.").build());
-                }
-            }
-            int allowedKeyLength = PasswordBasedEncryptor.getMaxAllowedKeyLength(ENCRYPTION_ALGORITHM.getName());
-
-            if (StringUtils.isEmpty(password)) {
-                validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
-                        .explanation(PASSWORD.getDisplayName() + " is required when using algorithm " + algorithm).build());
-            } else {
-                if (password.getBytes().length * 8 > allowedKeyLength) {
-                    validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
-                            .explanation("Password length greater than " + allowedKeyLength + " bits is not supported by this JVM" +
-                                    " due to lacking JCE Unlimited Strength Jurisdiction Policy files.").build());
-                }
-            }
-
-            // Perform some analysis on the selected encryption algorithm to ensure the JVM can support it and the associated key
-
-            List<String> kdfsForPBECipher = getKDFsForPBECipher(encryptionMethod);
-            if (StringUtils.isEmpty(kdf) || !kdfsForPBECipher.contains(kdf)) {
-                validationResults.add(new ValidationResult.Builder().subject(KEY_DERIVATION_FUNCTION.getName())
-                        .explanation(KEY_DERIVATION_FUNCTION.getDisplayName() + " is required to be " + StringUtils.join(kdfsForPBECipher, ", ") + " when using algorithm " + algorithm).build());
+            final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
+            final String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
+            final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
+            final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
+            final String privateKeyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).getValue();
+            validationResults.addAll(validatePGP(encryptionMethod, password, encrypt, publicKeyring, publicUserId, privateKeyring, privateKeyringPassphrase));
+        } else { // Not PGP
+            if (encryptionMethod.isKeyedCipher()) { // Raw key
+                validationResults.addAll(validateKeyed(encryptionMethod, kdf, keyHex));
+            } else { // PBE
+                boolean allowWeakCrypto = context.getProperty(ALLOW_WEAK_CRYPTO).getValue().equalsIgnoreCase(WEAK_CRYPTO_ALLOWED_NAME);
+                validationResults.addAll(validatePBE(encryptionMethod, kdf, password, allowWeakCrypto));
             }
         }
+        return validationResults;
+    }
+
+    private List<ValidationResult> validatePGP(EncryptionMethod encryptionMethod, String password, boolean encrypt, String publicKeyring, String publicUserId, String privateKeyring,
+                                               String privateKeyringPassphrase) {
+        List<ValidationResult> validationResults = new ArrayList<>();
+
+        if (password == null) {
+            if (encrypt) {
+                // If encrypting without a password, require both public-keyring-file and public-key-user-id
+                if (publicKeyring == null || publicUserId == null) {
+                    validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
+                            .explanation(encryptionMethod.getAlgorithm() + " encryption without a " + PASSWORD.getDisplayName() + " requires both "
+                                    + PUBLIC_KEYRING.getDisplayName() + " and " + PUBLIC_KEY_USERID.getDisplayName())
+                            .build());
+                } else {
+                    // Verify the public keyring contains the user id
+                    try {
+                        if (OpenPGPKeyBasedEncryptor.getPublicKey(publicUserId, publicKeyring) == null) {
+                            validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
+                                    .explanation(PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
+                                            + " does not contain user id " + publicUserId)
+                                    .build());
+                        }
+                    } catch (final Exception e) {
+                        validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
+                                .explanation("Invalid " + PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
+                                        + " because " + e.toString())
+                                .build());
+                    }
+                }
+            } else { // Decrypt
+                // Require both private-keyring-file and private-keyring-passphrase
+                if (privateKeyring == null || privateKeyringPassphrase == null) {
+                    validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getName())
+                            .explanation(encryptionMethod.getAlgorithm() + " decryption without a " + PASSWORD.getDisplayName() + " requires both "
+                                    + PRIVATE_KEYRING.getDisplayName() + " and " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
+                            .build());
+                } else {
+                    final String providerName = encryptionMethod.getProvider();
+                    // Verify the passphrase works on the private keyring
+                    try {
+                        if (!OpenPGPKeyBasedEncryptor.validateKeyring(providerName, privateKeyring, privateKeyringPassphrase.toCharArray())) {
+                            validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getDisplayName())
+                                    .explanation(PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
+                                            + " could not be opened with the provided " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
+                                    .build());
+                        }
+                    } catch (final Exception e) {
+                        validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getDisplayName())
+                                .explanation("Invalid " + PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
+                                        + " because " + e.toString())
+                                .build());
+                    }
+                }
+            }
+        }
+
+        return validationResults;
+    }
+
+    private List<ValidationResult> validatePBE(EncryptionMethod encryptionMethod, KeyDerivationFunction kdf, String password, boolean allowWeakCrypto) {
+        List<ValidationResult> validationResults = new ArrayList<>();
+        boolean limitedStrengthCrypto = !PasswordBasedEncryptor.supportsUnlimitedStrength();
+
+        // Password required (short circuits validation because other conditions depend on password presence)
+        if (StringUtils.isEmpty(password)) {
+            validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
+                    .explanation(PASSWORD.getDisplayName() + " is required when using algorithm " + encryptionMethod.getAlgorithm()).build());
+            return validationResults;
+        }
+
+        // If weak crypto is not explicitly allowed via override, check the password length and algorithm
+        final int passwordBytesLength = password.getBytes(StandardCharsets.UTF_8).length;
+        if (!allowWeakCrypto) {
+            final int minimumSafePasswordLength = PasswordBasedEncryptor.getMinimumSafePasswordLength();
+            if (passwordBytesLength < minimumSafePasswordLength) {
+                validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
+                        .explanation("Password length less than " + minimumSafePasswordLength + " characters is potentially unsafe. See Admin Guide.").build());
+            }
+        }
+
+        // Multiple checks on machine with limited strength crypto
+        if (limitedStrengthCrypto) {
+            // Cannot use unlimited strength ciphers on machine that lacks policies
+            if (encryptionMethod.isUnlimitedStrength()) {
+                validationResults.add(new ValidationResult.Builder().subject(ENCRYPTION_ALGORITHM.getName())
+                        .explanation(encryptionMethod.name() + " (" + encryptionMethod.getAlgorithm() + ") is not supported by this JVM due to lacking JCE Unlimited " +
+                                "Strength Jurisdiction Policy files. See Admin Guide.").build());
+            }
+
+            // Check if the password exceeds the limit
+            final boolean passwordLongerThanLimit = !CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(passwordBytesLength, encryptionMethod);
+            if (passwordLongerThanLimit) {
+                int maxPasswordLength = CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod);
+                validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
+                        .explanation("Password length greater than " + maxPasswordLength + " characters is not supported by this JVM" +
+                                " due to lacking JCE Unlimited Strength Jurisdiction Policy files. See Admin Guide.").build());
+            }
+        }
+
+        // Check the KDF for compatibility with this algorithm
+        List<String> kdfsForPBECipher = getKDFsForPBECipher(encryptionMethod);
+        if (kdf == null || !kdfsForPBECipher.contains(kdf.name())) {
+            final String displayName = KEY_DERIVATION_FUNCTION.getDisplayName();
+            validationResults.add(new ValidationResult.Builder().subject(displayName)
+                    .explanation(displayName + " is required to be " + StringUtils.join(kdfsForPBECipher,
+                            ", ") + " when using algorithm " + encryptionMethod.getAlgorithm() + ". See Admin Guide.").build());
+        }
+
+        return validationResults;
+    }
+
+    private List<ValidationResult> validateKeyed(EncryptionMethod encryptionMethod, KeyDerivationFunction kdf, String keyHex) {
+        List<ValidationResult> validationResults = new ArrayList<>();
+        boolean limitedStrengthCrypto = !PasswordBasedEncryptor.supportsUnlimitedStrength();
+
+        if (limitedStrengthCrypto) {
+            if (encryptionMethod.isUnlimitedStrength()) {
+                validationResults.add(new ValidationResult.Builder().subject(ENCRYPTION_ALGORITHM.getName())
+                        .explanation(encryptionMethod.name() + " (" + encryptionMethod.getAlgorithm() + ") is not supported by this JVM due to lacking JCE Unlimited " +
+                                "Strength Jurisdiction Policy files. See Admin Guide.").build());
+            }
+        }
+        int allowedKeyLength = PasswordBasedEncryptor.getMaxAllowedKeyLength(ENCRYPTION_ALGORITHM.getName());
+
+        if (StringUtils.isEmpty(keyHex)) {
+            validationResults.add(new ValidationResult.Builder().subject(RAW_KEY_HEX.getName())
+                    .explanation(RAW_KEY_HEX.getDisplayName() + " is required when using algorithm " + encryptionMethod.getAlgorithm() + ". See Admin Guide.").build());
+        } else {
+            byte[] keyBytes = new byte[0];
+            try {
+                keyBytes = Hex.decodeHex(keyHex.toCharArray());
+            } catch (DecoderException e) {
+                validationResults.add(new ValidationResult.Builder().subject(RAW_KEY_HEX.getName())
+                        .explanation("Key must be valid hexadecimal string. See Admin Guide.").build());
+            }
+            if (keyBytes.length * 8 > allowedKeyLength) {
+                validationResults.add(new ValidationResult.Builder().subject(RAW_KEY_HEX.getName())
+                        .explanation("Key length greater than " + allowedKeyLength + " bits is not supported by this JVM" +
+                                " due to lacking JCE Unlimited Strength Jurisdiction Policy files. See Admin Guide.").build());
+            }
+            if (!CipherUtility.isValidKeyLengthForAlgorithm(keyBytes.length * 8, encryptionMethod.getAlgorithm())) {
+                List<Integer> validKeyLengths = CipherUtility.getValidKeyLengthsForAlgorithm(encryptionMethod.getAlgorithm());
+                validationResults.add(new ValidationResult.Builder().subject(RAW_KEY_HEX.getName())
+                        .explanation("Key must be valid length [" + StringUtils.join(validKeyLengths, ", ") + "]. See Admin Guide.").build());
+            }
+        }
+
+        // Perform some analysis on the selected encryption algorithm to ensure the JVM can support it and the associated key
+
+        List<String> kdfsForKeyedCipher = getKDFsForKeyedCipher();
+        if (kdf == null || !kdfsForKeyedCipher.contains(kdf.name())) {
+            validationResults.add(new ValidationResult.Builder().subject(KEY_DERIVATION_FUNCTION.getName())
+                    .explanation(KEY_DERIVATION_FUNCTION.getDisplayName() + " is required to be " + StringUtils.join(kdfsForKeyedCipher, ", ") + " when using algorithm " +
+                            encryptionMethod.getAlgorithm()).build());
+        }
+
         return validationResults;
     }
 

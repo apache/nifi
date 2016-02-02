@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.standard.util.crypto
+
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -92,6 +93,11 @@ public class NiFiLegacyCipherProviderGroovyTest {
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
             logger.info("Using algorithm: {}", em.getAlgorithm());
 
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+                logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
+                continue
+            }
+
             // Initialize a cipher for encryption
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, true);
 
@@ -153,6 +159,11 @@ public class NiFiLegacyCipherProviderGroovyTest {
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
             logger.info("Using algorithm: {}", em.getAlgorithm());
 
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+                logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
+                continue
+            }
+
             // Initialize a legacy cipher for encryption
             Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());
 
@@ -181,6 +192,11 @@ public class NiFiLegacyCipherProviderGroovyTest {
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
             logger.info("Using algorithm: {}", em.getAlgorithm());
+
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+                logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
+                continue
+            }
 
             // Initialize a legacy cipher for encryption
             Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());
@@ -225,6 +241,48 @@ public class NiFiLegacyCipherProviderGroovyTest {
 
             // Assert
             assert plaintext.equals(recovered);
+        }
+    }
+
+    /**
+     * This test determines for each PBE encryption algorithm if it actually requires the JCE unlimited strength jurisdiction policies to be installed.
+     * Even some algorithms that use 128-bit keys (which should be allowed on all systems) throw exceptions because BouncyCastle derives the key
+     * from the password using a long digest result at the time of key length checking.
+     * @throws IOException
+     */
+    @Test
+    public void testShouldDetermineDependenceOnUnlimitedStrengthCrypto() throws IOException {
+        def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
+
+        boolean unlimitedCryptoSupported = PasswordBasedEncryptor.supportsUnlimitedStrength()
+        logger.info("This JVM supports unlimited strength crypto: ${unlimitedCryptoSupported}")
+
+        def longestSupportedPasswordByEM = [:]
+
+        encryptionMethods.each { EncryptionMethod encryptionMethod ->
+            logger.info("Attempting ${encryptionMethod.name()} (${encryptionMethod.algorithm}) which claims unlimited strength required: ${encryptionMethod.unlimitedStrength}")
+
+            (1..20).find { int length ->
+                String password = "x" * length
+
+                try {
+                    NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
+                    Cipher cipher = cipherProvider.getCipher(encryptionMethod, password, true)
+                    return false
+                } catch (Exception e) {
+                    logger.error("Unable to create the cipher with ${encryptionMethod.algorithm} and password ${password} (${password.length()}) due to ${e.getMessage()}")
+                    if (!longestSupportedPasswordByEM.containsKey(encryptionMethod)) {
+                        longestSupportedPasswordByEM.put(encryptionMethod, password.length() - 1)
+                    }
+                    return true
+                }
+            }
+            logger.info("\n")
+        }
+
+        logger.info("Longest supported password by encryption method:")
+        longestSupportedPasswordByEM.each { EncryptionMethod encryptionMethod, int length ->
+            logger.info("\t${encryptionMethod.algorithm}\t${length}")
         }
     }
 }

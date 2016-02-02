@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
@@ -27,13 +29,49 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CipherUtility {
 
     public static final int BUFFER_SIZE = 65536;
+    private static final Pattern KEY_LENGTH_PATTERN = Pattern.compile("([\\d]+)BIT");
+
+    private static final Map<String, Integer> MAX_PASSWORD_LENGTH_BY_ALGORITHM;
+
+    static {
+        Map<String, Integer> aMap = new HashMap<>();
+        /**
+         * These values were determined empirically by running {@link NiFiLegacyCipherProviderGroovyTest#testShouldDetermineDependenceOnUnlimitedStrengthCrypto()}
+         *, which evaluates each algorithm in a try/catch harness with increasing password size until it throws an exception.
+         * This was performed on a JVM without the Unlimited Strength Jurisdiction cryptographic policy files installed.
+         */
+        aMap.put("PBEWITHMD5AND128BITAES-CBC-OPENSSL", 16);
+        aMap.put("PBEWITHMD5AND192BITAES-CBC-OPENSSL", 16);
+        aMap.put("PBEWITHMD5AND256BITAES-CBC-OPENSSL", 16);
+        aMap.put("PBEWITHMD5ANDDES", 16);
+        aMap.put("PBEWITHMD5ANDRC2", 16);
+        aMap.put("PBEWITHSHA1ANDRC2", 16);
+        aMap.put("PBEWITHSHA1ANDDES", 16);
+        aMap.put("PBEWITHSHAAND128BITAES-CBC-BC", 7);
+        aMap.put("PBEWITHSHAAND192BITAES-CBC-BC", 7);
+        aMap.put("PBEWITHSHAAND256BITAES-CBC-BC", 7);
+        aMap.put("PBEWITHSHAAND40BITRC2-CBC", 7);
+        aMap.put("PBEWITHSHAAND128BITRC2-CBC", 7);
+        aMap.put("PBEWITHSHAAND40BITRC4", 7);
+        aMap.put("PBEWITHSHAAND128BITRC4", 7);
+        aMap.put("PBEWITHSHA256AND128BITAES-CBC-BC", 7);
+        aMap.put("PBEWITHSHA256AND192BITAES-CBC-BC", 7);
+        aMap.put("PBEWITHSHA256AND256BITAES-CBC-BC", 7);
+        aMap.put("PBEWITHSHAAND2-KEYTRIPLEDES-CBC", 7);
+        aMap.put("PBEWITHSHAAND3-KEYTRIPLEDES-CBC", 7);
+        aMap.put("PBEWITHSHAANDTWOFISH-CBC", 7);
+        MAX_PASSWORD_LENGTH_BY_ALGORITHM = Collections.unmodifiableMap(aMap);
+    }
 
     /**
      * Returns the cipher algorithm from the full algorithm name. Useful for getting key lengths, etc.
@@ -95,8 +133,7 @@ public class CipherUtility {
     }
 
     private static int parseActualKeyLengthFromAlgorithm(final String algorithm) {
-        Pattern pattern = Pattern.compile("([\\d]+)BIT");
-        Matcher matcher = pattern.matcher(algorithm);
+        Matcher matcher = KEY_LENGTH_PATTERN.matcher(algorithm);
         if (matcher.find()) {
             return Integer.parseInt(matcher.group(1));
         } else {
@@ -124,25 +161,6 @@ public class CipherUtility {
         if (StringUtils.isEmpty(cipher)) {
             return false;
         }
-//        switch (cipher.toUpperCase()) {
-//            case "DESEDE":
-//                // 3DES keys have the cryptographic strength of 7/8 because of parity bits, but are often represented with n*8 bytes
-//                final List<Integer> DESEDE_KLS = Arrays.asList(56, 64, 112, 128, 168, 192);
-//                return DESEDE_KLS.contains(keyLength);
-//            case "DES":
-//                return keyLength == 56 || keyLength == 64;
-//            case "RC2":
-//            case "RC4":
-//            case "RC5":
-//                /** These ciphers can have arbitrary length keys but that's a really bad idea, {@see http://crypto.stackexchange.com/a/9963/12569}.
-//                 * Also, RC* is deprecated and should be considered insecure */
-//                return keyLength >= 40 && keyLength <= 2048;
-//            case "AES":
-//            case "TWOFISH":
-//                return keyLength == 128 || keyLength == 192 || keyLength == 256;
-//            default:
-//                return false;
-//        }
         return getValidKeyLengthsForAlgorithm(cipher).contains(keyLength);
     }
 
@@ -167,7 +185,7 @@ public class CipherUtility {
         if (StringUtils.isEmpty(algorithm)) {
             return false;
         }
-       return getValidKeyLengthsForAlgorithm(algorithm).contains(keyLength);
+        return getValidKeyLengthsForAlgorithm(algorithm).contains(keyLength);
     }
 
     public static List<Integer> getValidKeyLengthsForAlgorithm(String algorithm) {
@@ -187,7 +205,6 @@ public class CipherUtility {
         String cipher = parseCipherFromAlgorithm(algorithm);
         switch (cipher.toUpperCase()) {
             case "DESEDE":
-                // TODO: Some algorithms specify Keying Option 1 or 2
                 // 3DES keys have the cryptographic strength of 7/8 because of parity bits, but are often represented with n*8 bytes
                 return Arrays.asList(56, 64, 112, 128, 168, 192);
             case "DES":
@@ -238,17 +255,13 @@ public class CipherUtility {
                 }
             }
 
-            try {
-                out.write(cipher.doFinal());
-            } catch (final Exception e) {
-                throw new ProcessException(e);
-            }
+            out.write(cipher.doFinal());
         } catch (Exception e) {
             throw new ProcessException(e);
         }
     }
 
-    public static byte[] readBytesFromInputStream(InputStream in, String label, int limit, int minimum, byte[] delimiter) throws IOException, ProcessException {
+    public static byte[] readBytesFromInputStream(InputStream in, String label, int limit, byte[] delimiter) throws IOException, ProcessException {
         if (in == null) {
             throw new IllegalArgumentException("Cannot read " + label + " from null InputStream");
         }
@@ -257,9 +270,6 @@ public class CipherUtility {
         in.mark(limit);
 
         // The first n bytes of the input stream contain the value up to the custom delimiter
-        if (in.available() < minimum) {
-            throw new ProcessException("The cipher stream is too small to contain the " + label);
-        }
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         byte[] stoppedBy = StreamUtils.copyExclusive(in, bytesOut, limit + delimiter.length, delimiter);
 
@@ -279,5 +289,32 @@ public class CipherUtility {
         }
         out.write(value);
         out.write(delimiter);
+    }
+
+    public static String encodeBase64NoPadding(final byte[] bytes) {
+        String base64UrlNoPadding = Base64.encodeBase64URLSafeString(bytes);
+        base64UrlNoPadding = base64UrlNoPadding.replaceAll("-", "+");
+        base64UrlNoPadding = base64UrlNoPadding.replaceAll("_", "/");
+        return base64UrlNoPadding;
+    }
+
+    public static boolean passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(final int passwordLength, EncryptionMethod encryptionMethod) {
+        if (encryptionMethod == null) {
+            throw new IllegalArgumentException("Cannot evaluate an empty encryption method algorithm");
+        }
+
+            return passwordLength <= getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod);
+    }
+
+    public static int getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(EncryptionMethod encryptionMethod) {
+        if (encryptionMethod == null) {
+            throw new IllegalArgumentException("Cannot evaluate an empty encryption method algorithm");
+        }
+
+        if (MAX_PASSWORD_LENGTH_BY_ALGORITHM.containsKey(encryptionMethod.getAlgorithm())) {
+            return MAX_PASSWORD_LENGTH_BY_ALGORITHM.get(encryptionMethod.getAlgorithm());
+        } else {
+            return -1;
+        }
     }
 }

@@ -43,12 +43,23 @@ public class PBKDF2CipherProviderGroovyTest {
     private final String DEFAULT_PRF = "SHA-512"
     private final String SALT_HEX = "0123456789ABCDEFFEDCBA9876543210"
     private final String IV_HEX = "01" * 16
+    private static ArrayList<Integer> AES_KEY_LENGTHS
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
 
         strongKDFEncryptionMethods = EncryptionMethod.values().findAll { it.isCompatibleWithStrongKDFs() }
+
+        logger.metaClass.methodMissing = { String name, args ->
+            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+        }
+
+        if (PasswordBasedEncryptor.supportsUnlimitedStrength()) {
+            AES_KEY_LENGTHS = [128, 192, 256]
+        } else {
+            AES_KEY_LENGTHS = [128]
+        }
     }
 
     @Before
@@ -385,7 +396,7 @@ public class PBKDF2CipherProviderGroovyTest {
         final String PLAINTEXT = "This is a plaintext message.";
 
         // Currently only AES ciphers are compatible with PBKDF2, so redundant to test all algorithms
-        final def VALID_KEY_LENGTHS = [128, 192, 256]
+        final def VALID_KEY_LENGTHS = AES_KEY_LENGTHS
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
 
         // Act

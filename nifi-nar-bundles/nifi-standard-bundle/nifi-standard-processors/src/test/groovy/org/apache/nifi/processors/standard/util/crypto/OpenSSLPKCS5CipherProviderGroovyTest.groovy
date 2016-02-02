@@ -85,7 +85,7 @@ public class OpenSSLPKCS5CipherProviderGroovyTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "short";
         final byte[] SALT = Hex.decodeHex("aabbccddeeff0011".toCharArray());
 
         final String plaintext = "This is a plaintext message.";
@@ -93,6 +93,11 @@ public class OpenSSLPKCS5CipherProviderGroovyTest {
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
             logger.info("Using algorithm: {}", em.getAlgorithm());
+
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+                logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
+                continue
+            }
 
             // Initialize a cipher for encryption
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, true);
@@ -155,6 +160,11 @@ public class OpenSSLPKCS5CipherProviderGroovyTest {
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
             logger.info("Using algorithm: {}", em.getAlgorithm());
 
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+                logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
+                continue
+            }
+
             // Initialize a legacy cipher for encryption
             Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());
 
@@ -175,7 +185,7 @@ public class OpenSSLPKCS5CipherProviderGroovyTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "short";
         final byte[] SALT = new byte[0];
 
         final String plaintext = "This is a plaintext message.";
@@ -183,6 +193,11 @@ public class OpenSSLPKCS5CipherProviderGroovyTest {
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
             logger.info("Using algorithm: {}", em.getAlgorithm());
+
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+                logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
+                continue
+            }
 
             // Initialize a legacy cipher for encryption
             Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());

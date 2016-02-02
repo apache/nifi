@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processors.standard.util.crypto
 
+import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex
+import org.apache.nifi.processors.standard.util.crypto.bcrypt.BCrypt
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
@@ -27,8 +29,9 @@ import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.Logger
+
+//import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 
 import javax.crypto.Cipher
@@ -47,6 +50,7 @@ public class BcryptCipherProviderGroovyTest {
 
     private static final int DEFAULT_KEY_LENGTH = 128;
     public static final String MICROBENCHMARK = "microbenchmark"
+    private static ArrayList<Integer> AES_KEY_LENGTHS
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -56,6 +60,12 @@ public class BcryptCipherProviderGroovyTest {
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+        }
+
+        if (PasswordBasedEncryptor.supportsUnlimitedStrength()) {
+            AES_KEY_LENGTHS = [128, 192, 256]
+        } else {
+            AES_KEY_LENGTHS = [128]
         }
     }
 
@@ -202,11 +212,11 @@ public class BcryptCipherProviderGroovyTest {
         logger.info("Full Hash: ${FULL_HASH}")
         final String HASH = FULL_HASH[-31..-1]
         logger.info("     Hash: ${HASH.padLeft(60, " ")}")
-        logger.info(" B64 Salt: ${Base64.encoder.withoutPadding().encodeToString(SALT).padLeft(29, " ")}")
+        logger.info(" B64 Salt: ${CipherUtility.encodeBase64NoPadding(SALT).padLeft(29, " ")}")
 
         String extractedSalt = FULL_HASH[7..<29]
         logger.info("Extracted Salt:   ${extractedSalt}")
-        String extractedSaltHex = Hex.encodeHexString(Base64.decoder.decode(extractedSalt))
+        String extractedSaltHex = Hex.encodeHexString(Base64.decodeBase64(extractedSalt))
         logger.info("Extracted Salt (hex): ${extractedSaltHex}")
         logger.info(" Expected Salt (hex): ${Hex.encodeHexString(SALT)}")
 
@@ -267,7 +277,7 @@ public class BcryptCipherProviderGroovyTest {
 
         String extractedSalt = FULL_HASH[7..<29]
         logger.info("Extracted Salt:   ${extractedSalt}")
-        String extractedSaltHex = Hex.encodeHexString(Base64.decoder.decode(extractedSalt))
+        String extractedSaltHex = Hex.encodeHexString(Base64.decodeBase64(extractedSalt))
         logger.info("Extracted Salt (hex): ${extractedSaltHex}")
 
         final String CIPHER_TEXT = "3a226ba2b3c8fe559acb806620001246db289375ba8075a68573478b56a69f15"
@@ -396,7 +406,7 @@ public class BcryptCipherProviderGroovyTest {
         final String PLAINTEXT = "This is a plaintext message.";
 
         // Currently only AES ciphers are compatible with Bcrypt, so redundant to test all algorithms
-        final def VALID_KEY_LENGTHS = [128, 192, 256]
+        final def VALID_KEY_LENGTHS = AES_KEY_LENGTHS
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
 
         // Act

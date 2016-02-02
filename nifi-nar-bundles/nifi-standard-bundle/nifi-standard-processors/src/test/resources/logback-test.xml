@@ -22,8 +22,6 @@
         </encoder>
     </appender>
 
-    <variable name="overrideLog" value="DEBUG"/>
-
     <appender name="TARGET_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>target/log.txt</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -40,7 +38,7 @@
         </encoder>
     </appender>
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
-    <logger name="org.apache.nifi" level="${overrideLog:-INFO}"/>
+    <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.processors.standard.util.crypto" level="DEBUG"/>
 
     <!-- Logger for managing logging statements for nifi clusters. -->
@@ -63,8 +61,7 @@
         <appender-ref ref="TARGET_FILE"/>
     </logger>
 
-    <!--<root level="${overrideLog:-DEBUG}">-->
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
 

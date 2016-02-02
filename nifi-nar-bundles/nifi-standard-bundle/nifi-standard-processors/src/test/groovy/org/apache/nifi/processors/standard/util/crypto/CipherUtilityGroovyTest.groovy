@@ -198,10 +198,10 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
         }
 
         // Extra hard-coded checks
-        ["PBEWITHSHA256AND256BITAES-CBC-BC": 192].each { String algorithm, int invalidKeyLength ->
-            logger.info("Checking ${invalidKeyLength} for ${algorithm}")
-            assert !CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm)
-        }
+        String algorithm = "PBEWITHSHA256AND256BITAES-CBC-BC"
+        int invalidKeyLength = 192
+        logger.info("Checking ${invalidKeyLength} for ${algorithm}")
+        assert !CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm)
     }
 
     @Test

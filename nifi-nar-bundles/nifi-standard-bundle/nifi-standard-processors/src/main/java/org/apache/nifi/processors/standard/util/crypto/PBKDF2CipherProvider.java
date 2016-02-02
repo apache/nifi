@@ -45,7 +45,7 @@ public class PBKDF2CipherProvider extends RandomIVPBECipherProvider {
 
     private static final String DEFAULT_PRF = "SHA-512";
     /**
-     * TODO: This can be calculated automatically using the code {@see PBKDF2CipherProviderGroovyTest#calculateMinimumIterationCount} or manually updated by a maintainer
+     * This can be calculated automatically using the code {@see PBKDF2CipherProviderGroovyTest#calculateMinimumIterationCount} or manually updated by a maintainer
      */
     private static final int DEFAULT_ITERATION_COUNT = 160_000;
 

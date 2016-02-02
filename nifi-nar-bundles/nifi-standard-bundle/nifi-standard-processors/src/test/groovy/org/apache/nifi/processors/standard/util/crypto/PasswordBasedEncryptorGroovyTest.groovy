@@ -22,6 +22,7 @@ import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -64,6 +65,8 @@ public class PasswordBasedEncryptorGroovyTest {
         logger.info("Plaintext: {}", PLAINTEXT)
         InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
 
+        String shortPassword = "shortPassword"
+
         def encryptionMethodsAndKdfs = [
                 (KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY): EncryptionMethod.MD5_128AES,
                 (KeyDerivationFunction.NIFI_LEGACY)             : EncryptionMethod.MD5_128AES,
@@ -78,7 +81,7 @@ public class PasswordBasedEncryptorGroovyTest {
             OutputStream recoveredStream = new ByteArrayOutputStream()
 
             logger.info("Using ${kdf.name} and ${encryptionMethod.name()}")
-            PasswordBasedEncryptor encryptor = new PasswordBasedEncryptor(encryptionMethod, PASSWORD.toCharArray(), kdf)
+            PasswordBasedEncryptor encryptor = new PasswordBasedEncryptor(encryptionMethod, shortPassword.toCharArray(), kdf)
 
             StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
             StreamCallback decryptionCallback = encryptor.getDecryptionCallback()
@@ -104,6 +107,8 @@ public class PasswordBasedEncryptorGroovyTest {
     @Test
     public void testShouldDecryptLegacyOpenSSLSaltedCipherText() throws Exception {
         // Arrange
+        Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", PasswordBasedEncryptor.supportsUnlimitedStrength())
+
         final String PLAINTEXT = new File("${TEST_RESOURCES_PREFIX}/plain.txt").text
         logger.info("Plaintext: {}", PLAINTEXT)
         byte[] cipherBytes = new File("${TEST_RESOURCES_PREFIX}/salted_128_raw.enc").bytes
@@ -131,6 +136,8 @@ public class PasswordBasedEncryptorGroovyTest {
     @Test
     public void testShouldDecryptLegacyOpenSSLUnsaltedCipherText() throws Exception {
         // Arrange
+        Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", PasswordBasedEncryptor.supportsUnlimitedStrength())
+
         final String PLAINTEXT = new File("${TEST_RESOURCES_PREFIX}/plain.txt").text
         logger.info("Plaintext: {}", PLAINTEXT)
         byte[] cipherBytes = new File("${TEST_RESOURCES_PREFIX}/unsalted_128_raw.enc").bytes
@@ -154,6 +161,4 @@ public class PasswordBasedEncryptorGroovyTest {
         logger.info("Recovered: {}", recovered)
         assert PLAINTEXT.equals(recovered)
     }
-
-    // TODO: Add tests for invalid cipher streams (missing salt, missing IV, missing delimiters, etc.)
 }

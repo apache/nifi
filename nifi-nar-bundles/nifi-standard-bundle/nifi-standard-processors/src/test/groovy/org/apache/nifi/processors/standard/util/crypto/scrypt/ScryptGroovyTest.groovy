@@ -95,11 +95,6 @@ public class ScryptGroovyTest {
         // Arrange
 
         // These values are taken from Colin Percival's scrypt paper: https://www.tarsnap.com/scrypt/scrypt.pdf
-        final byte[] HASH_1 = Hex.decodeHex("77d6576238657b203b19ca42c18a0497" +
-                "f16b4844e3074ae8dfdffa3fede21442" +
-                "fcd0069ded0948f8326a753a0fc81f17" +
-                "e8d3e0fb2e0d3628cf35e20c38d18906" as char[])
-
         final byte[] HASH_2 = Hex.decodeHex("fdbabe1c9d3472007856e7190d01e9fe" +
                 "7c6ad7cbc8237830e77376634b373162" +
                 "2eaf30d92e22a3886ff109279d9830da" +
@@ -112,13 +107,6 @@ public class ScryptGroovyTest {
 
         final def TEST_VECTORS = [
                 // Empty password is not supported by JCE
-//                [password: "",
-//                 salt    : "",
-//                 n       : 16,
-//                 r       : 1,
-//                 p       : 1,
-//                 dkLen   : 64 * 8,
-//                 hash    : HASH_1],
                 [password: "password",
                  salt    : "NaCl",
                  n       : 1024,
