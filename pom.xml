@@ -583,9 +583,9 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
-				<artifactId>activemq-broker</artifactId>
+                <artifactId>activemq-broker</artifactId>
                 <version>5.12.1</version>
-                <scope>tests</scope>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.lucene</groupId>
@@ -1028,6 +1028,12 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-scripting-nar</artifactId>
+                <version>0.4.2-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
                 <version>0.4.2-SNAPSHOT</version>
             </dependency>
@@ -1409,8 +1415,8 @@ language governing permissions and limitations under the License. -->
     <profiles>
         <profile>
             <!-- Performs execution of Integration Tests using the Maven FailSafe Plugin. The view of integration tests in this context
-             are those tests interfacing with external sources and services requiring additional resources or credentials that cannot 
-             be explicitly provided. -->
+            are those tests interfacing with external sources and services requiring additional resources or credentials that cannot
+            be explicitly provided. -->
             <id>integration-tests</id>
             <build>
                 <plugins>
