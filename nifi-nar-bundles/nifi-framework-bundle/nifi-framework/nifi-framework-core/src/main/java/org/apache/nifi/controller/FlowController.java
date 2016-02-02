@@ -3108,6 +3108,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // update primary
             this.primary = primary;
             eventDrivenWorkerQueue.setPrimary(primary);
+
+            // update the heartbeat bean
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
         } finally {
             rwLock.writeLock().unlock();
         }
