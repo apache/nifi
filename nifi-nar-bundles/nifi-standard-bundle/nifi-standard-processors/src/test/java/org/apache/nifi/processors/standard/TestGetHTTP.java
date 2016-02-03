@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
@@ -31,10 +25,14 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.servlet.ServletHandler;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -49,23 +47,6 @@ public class TestGetHTTP {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.GetHTTP", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestGetHTTP", "debug");
-        File confDir = new File("conf");
-        if (!confDir.exists()) {
-            confDir.mkdir();
-        }
-    }
-
-    @AfterClass
-    public static void after() {
-        File confDir = new File("conf");
-        assertTrue(confDir.exists());
-        File[] files = confDir.listFiles();
-        if (files.length > 0) {
-            for (File file : files) {
-                assertTrue("Failed to delete " + file.getName(), file.delete());
-            }
-        }
-        assertTrue(confDir.delete());
     }
 
     @Test
