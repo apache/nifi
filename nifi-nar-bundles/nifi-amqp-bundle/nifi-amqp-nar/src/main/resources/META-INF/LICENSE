@@ -201,12 +201,3 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-APACHE NIFI SUBCOMPONENTS:
-
-The Apache NiFi project contains subcomponents with separate copyright
-notices and license terms. Your use of the source code for the these
-subcomponents is subject to the terms and conditions of the following
-licenses. 
-
-The binary distribution of this product bundles 'RabbitMQ Client API' which is
-licensed under Apache Public License 2.0.
