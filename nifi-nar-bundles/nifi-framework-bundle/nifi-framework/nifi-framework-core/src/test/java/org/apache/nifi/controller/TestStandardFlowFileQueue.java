@@ -537,8 +537,8 @@ public class TestStandardFlowFileQueue {
             }
         }
 
-        private static String createFakeUUID(){
-            final String s=Long.toHexString(idGenerator.incrementAndGet());
+        private  String createFakeUUID(){
+            final String s=Long.toHexString(id);
             return new StringBuffer("00000000-0000-0000-0000000000000000".substring(0,(35-s.length()))+s).insert(23, '-').toString();
         }
 
