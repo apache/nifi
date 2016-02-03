@@ -46,7 +46,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -229,7 +228,12 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(SCRIPT_BODY).getValue();
-        modulePath = context.getProperty(MODULES).evaluateAttributeExpressions().getValue();
+        String modulePath = context.getProperty(MODULES).getValue();
+        if (!StringUtils.isEmpty(modulePath)) {
+            modules = modulePath.split(",");
+        } else {
+            modules = new String[0];
+        }
         setup();
     }
 
@@ -294,18 +298,13 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
             final ProcessorLog logger = getLogger();
             final String message = "Unable to load script: " + e;
 
-            // If the module path has not yet been set, then this script is likely being loaded too early and depends
-            // on modules the processor does not yet know about. If this is the case, it will be reloaded later on
-            // property change (modules) or when scheduled
-            if (modulePath != null) {
-                logger.error(message, e);
-                results.add(new ValidationResult.Builder()
-                        .subject("ScriptValidation")
-                        .valid(false)
-                        .explanation("Unable to load script due to " + e)
-                        .input(scriptPath)
-                        .build());
-            }
+            logger.error(message, e);
+            results.add(new ValidationResult.Builder()
+                    .subject("ScriptValidation")
+                    .valid(false)
+                    .explanation("Unable to load script due to " + e)
+                    .input(scriptPath)
+                    .build());
         }
 
         // store the updated validation results
@@ -364,9 +363,9 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                 final Invocable invocable = (Invocable) scriptEngine;
 
                 // Find a custom configurator and invoke their eval() method
-                ScriptEngineConfigurator configurator = scriptEngineConfiguratorMap.get(scriptEngineName);
+                ScriptEngineConfigurator configurator = scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
                 if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptBody, modulePath);
+                    configurator.eval(scriptEngine, scriptBody, modules);
                 } else {
                     // evaluate the script
                     scriptEngine.eval(scriptBody);
@@ -449,19 +448,20 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
 
-        // Verify that exactly one of "script file" or "script body" is set
-        Map<PropertyDescriptor, String> propertyMap = context.getProperties();
-        if (StringUtils.isEmpty(propertyMap.get(SCRIPT_FILE)) == StringUtils.isEmpty(propertyMap.get(SCRIPT_BODY))) {
-            Set<ValidationResult> results = new HashSet<>();
-            results.add(new ValidationResult.Builder().valid(false).explanation(
-                    "Exactly one of Script File or Script Body must be set").build());
-            return results;
+        Collection<ValidationResult> commonValidationResults = super.customValidate(context);
+        if(!commonValidationResults.isEmpty()) {
+            return commonValidationResults;
         }
 
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(SCRIPT_BODY).getValue();
-        modulePath = context.getProperty(MODULES).evaluateAttributeExpressions().getValue();
+        String modulePath = context.getProperty(MODULES).getValue();
+        if (!StringUtils.isEmpty(modulePath)) {
+            modules = modulePath.split(",");
+        } else {
+            modules = new String[0];
+        }
         setup();
 
         // Now that InvokeScriptedProcessor is validated, we can call validate on the scripted processor

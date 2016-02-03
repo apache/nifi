@@ -86,10 +86,10 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
 
     public static final PropertyDescriptor MODULES = new PropertyDescriptor.Builder()
             .name("Module Directory")
-            .description("Path to a directory which contains modules required by the script.")
+            .description("Comma-separated list of paths to files and/or directories which contain modules required by the script.")
             .required(false)
-            .expressionLanguageSupported(true)
-            .addValidator(new StandardValidators.DirectoryExistsValidator(true, false))
+            .expressionLanguageSupported(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     // A map from engine name to a custom configurator for that engine
@@ -100,7 +100,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
     protected String scriptEngineName;
     protected String scriptPath;
     protected String scriptBody;
-    protected String modulePath;
+    protected String[] modules;
     protected List<PropertyDescriptor> descriptors;
     protected ScriptEngine scriptEngine;
 
@@ -196,7 +196,6 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
     /**
      * Performs common setup operations when the processor is scheduled to run. This method assumes the member
      * variables associated with properties have been filled.
-     *
      */
     public void setup() {
 
@@ -204,11 +203,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
             ServiceLoader<ScriptEngineConfigurator> configuratorServiceLoader =
                     ServiceLoader.load(ScriptEngineConfigurator.class);
             for (ScriptEngineConfigurator configurator : configuratorServiceLoader) {
-                String configuratorScriptEngineName = configurator.getScriptEngineName();
-                if (configuratorScriptEngineName != null
-                        && configuratorScriptEngineName.equals(scriptEngineName)) {
-                    scriptEngineConfiguratorMap.put(configurator.getScriptEngineName(), configurator);
-                }
+                scriptEngineConfiguratorMap.put(configurator.getScriptEngineName().toLowerCase(), configurator);
             }
         }
         setupEngine();
@@ -226,29 +221,42 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
         try {
             ProcessorLog log = getLogger();
 
+            ScriptEngineConfigurator configurator = scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
+
+            // Get a list of URLs from the configurator (if present), or just convert modules from Strings to URLs
+            URL[] additionalClasspathURLs = null;
+            if (configurator != null) {
+                additionalClasspathURLs = configurator.getModuleURLsForClasspath(modules, log);
+            } else {
+                if (modules != null) {
+                    List<URL> urls = new LinkedList<>();
+                    for (String modulePathString : modules) {
+                        try {
+                            urls.add(new File(modulePathString).toURI().toURL());
+                        } catch (MalformedURLException mue) {
+                            log.error("{} is not a valid file, ignoring", new Object[]{modulePathString}, mue);
+                        }
+                    }
+                    additionalClasspathURLs = urls.toArray(new URL[urls.size()]);
+                }
+            }
+
             // Need the right classloader when the engine is created. This ensures the NAR's execution class loader
             // (plus the module path) becomes the parent for the script engine
-            ClassLoader scriptEngineModuleClassLoader = createScriptEngineModuleClassLoader(modulePath);
+            ClassLoader scriptEngineModuleClassLoader = createScriptEngineModuleClassLoader(additionalClasspathURLs);
             if (scriptEngineModuleClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(scriptEngineModuleClassLoader);
             }
+
             scriptEngine = createScriptEngine();
-            ServiceLoader<ScriptEngineConfigurator> configuratorServiceLoader =
-                    ServiceLoader.load(ScriptEngineConfigurator.class);
-            for (ScriptEngineConfigurator configurator : configuratorServiceLoader) {
-                String configuratorScriptEngineName = configurator.getScriptEngineName();
-                try {
-                    if (configuratorScriptEngineName != null
-                            && configuratorScriptEngineName.equalsIgnoreCase(scriptEngineName)) {
-                        configurator.init(scriptEngine, modulePath);
-                        scriptEngineConfiguratorMap.put(configurator.getScriptEngineName(), configurator);
-                    }
-                } catch (ScriptException se) {
-                    log.error("Error initializing script engine configurator {}",
-                            new Object[]{configuratorScriptEngineName});
-                    if (log.isDebugEnabled()) {
-                        log.error("Error initializing script engine configurator", se);
-                    }
+            try {
+                if (configurator != null) {
+                    configurator.init(scriptEngine, modules);
+                }
+            } catch (ScriptException se) {
+                log.error("Error initializing script engine configurator {}", new Object[]{scriptEngineName});
+                if (log.isDebugEnabled()) {
+                    log.error("Error initializing script engine configurator", se);
                 }
             }
 
@@ -278,25 +286,18 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
     /**
      * Creates a classloader to be used by the selected script engine and the provided script file. This
      * classloader has this class's classloader as a parent (versus the current thread's context
-     * classloader) and also adds the specified module directory to the classpath. This enables scripts
+     * classloader) and also adds the specified module URLs to the classpath. This enables scripts
      * to use other scripts, modules, etc. without having to build them into the scripting NAR.
      * If the parameter is null or empty, this class's classloader is returned
      *
-     * @param modulePath The path to a directory containing modules to be used by the script(s)
+     * @param modules An array of URLs to add to the class loader
      */
-    protected ClassLoader createScriptEngineModuleClassLoader(String modulePath) {
-        URLClassLoader newModuleClassLoader = null;
+    protected ClassLoader createScriptEngineModuleClassLoader(URL[] modules) {
         ClassLoader thisClassLoader = this.getClass().getClassLoader();
-        if (StringUtils.isEmpty(modulePath)) {
+        if (modules == null) {
             return thisClassLoader;
         }
-        try {
-            newModuleClassLoader =
-                    new URLClassLoader(
-                            new URL[]{new File(modulePath).toURI().toURL()}, thisClassLoader);
-        } catch (MalformedURLException mue) {
-            getLogger().error("Couldn't find modules directory at " + modulePath, mue);
-        }
-        return newModuleClassLoader;
+
+        return new URLClassLoader(modules, thisClassLoader);
     }
 }

@@ -17,8 +17,11 @@
 package org.apache.nifi.processors.script;
 
 
+import org.apache.nifi.logging.ComponentLog;
+
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
+import java.net.URL;
 
 /**
  * This interface describes callback methods used by the ExecuteScript/InvokeScript processors to perform
@@ -28,8 +31,10 @@ public interface ScriptEngineConfigurator {
 
     String getScriptEngineName();
 
-    Object init(ScriptEngine engine, String modulePath) throws ScriptException;
+    URL[] getModuleURLsForClasspath(String[] modulePaths, ComponentLog log);
 
-    Object eval(ScriptEngine engine, String scriptBody, String modulePath) throws ScriptException;
+    Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException;
+
+    Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException;
 
 }

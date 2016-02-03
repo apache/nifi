@@ -31,6 +31,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -121,7 +122,12 @@ public class ExecuteScript extends AbstractScriptProcessor {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(SCRIPT_BODY).getValue();
-        modulePath = context.getProperty(MODULES).evaluateAttributeExpressions().getValue();
+        String modulePath = context.getProperty(MODULES).getValue();
+        if (!StringUtils.isEmpty(modulePath)) {
+            modules = modulePath.split(",");
+        } else {
+            modules = new String[0];
+        }
         super.setup();
         scriptToRun = scriptBody;
 
@@ -182,11 +188,11 @@ public class ExecuteScript extends AbstractScriptProcessor {
 
                 // Execute any engine-specific configuration before the script is evaluated
                 ScriptEngineConfigurator configurator =
-                        scriptEngineConfiguratorMap.get(scriptEngineName);
+                        scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
 
                 // Evaluate the script with the configurator (if it exists) or the engine
                 if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptToRun, modulePath);
+                    configurator.eval(scriptEngine, scriptToRun, modules);
                 } else {
                     scriptEngine.eval(scriptToRun);
                 }

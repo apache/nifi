@@ -16,12 +16,10 @@
  */
 package org.apache.nifi.processors.script.impl;
 
-import org.apache.nifi.processors.script.ScriptEngineConfigurator;
-
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
-public class GroovyScriptEngineConfigurator implements ScriptEngineConfigurator {
+public class GroovyScriptEngineConfigurator extends AbstractModuleClassloaderConfigurator {
 
     private static final String PRELOADS =
             "import org.apache.nifi.components.*\n"
@@ -41,14 +39,16 @@ public class GroovyScriptEngineConfigurator implements ScriptEngineConfigurator 
         return "Groovy";
     }
 
+
+
     @Override
-    public Object init(ScriptEngine engine, String modulePath) throws ScriptException {
+    public Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException {
         scriptEngine = engine;
         return scriptEngine;
     }
 
     @Override
-    public Object eval(ScriptEngine engine, String scriptBody, String modulePath) throws ScriptException {
+    public Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
         scriptEngine = engine;
         return engine.eval(PRELOADS + scriptBody);
     }

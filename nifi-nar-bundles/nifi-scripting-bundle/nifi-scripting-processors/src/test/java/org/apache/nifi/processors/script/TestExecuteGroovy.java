@@ -103,7 +103,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(ExecuteScript.SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ExecuteScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/test_onTrigger_newFlowFile.groovy");
-        runner.setProperty(ExecuteScript.MODULES, "target/test/resources/groovy");
+        runner.setProperty(ExecuteScript.MODULES, TEST_RESOURCE_LOCATION + "groovy");
 
         runner.assertValid();
         runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));

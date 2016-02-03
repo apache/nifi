@@ -15,3 +15,4 @@
 
 org.apache.nifi.processors.script.impl.JythonScriptEngineConfigurator
 org.apache.nifi.processors.script.impl.GroovyScriptEngineConfigurator
+org.apache.nifi.processors.script.impl.JavascriptScriptEngineConfigurator
