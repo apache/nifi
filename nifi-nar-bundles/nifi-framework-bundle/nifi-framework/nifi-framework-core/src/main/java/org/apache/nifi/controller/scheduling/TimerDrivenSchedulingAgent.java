@@ -42,7 +42,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TimerDrivenSchedulingAgent implements SchedulingAgent {
+public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(TimerDrivenSchedulingAgent.class);
     private final long noWorkYieldNanos;
@@ -78,7 +78,7 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void schedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
+    public void doSchedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
         final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, scheduleState);
         final long schedulingNanos = taskNode.getSchedulingPeriod(TimeUnit.NANOSECONDS);
 
@@ -91,7 +91,7 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void schedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public void doSchedule(final Connectable connectable, final ScheduleState scheduleState) {
 
         final List<ScheduledFuture<?>> futures = new ArrayList<>();
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
@@ -197,7 +197,7 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void unschedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public void doUnschedule(final Connectable connectable, final ScheduleState scheduleState) {
         for (final ScheduledFuture<?> future : scheduleState.getFutures()) {
             // stop scheduling to run but do not interrupt currently running tasks.
             future.cancel(false);
@@ -207,7 +207,7 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void unschedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
+    public void doUnschedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
         for (final ScheduledFuture<?> future : scheduleState.getFutures()) {
             // stop scheduling to run but do not interrupt currently running tasks.
             future.cancel(false);

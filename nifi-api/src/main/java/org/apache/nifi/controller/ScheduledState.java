@@ -33,5 +33,9 @@ public enum ScheduledState {
     /**
      * Entity is currently scheduled to run
      */
-    RUNNING;
+    RUNNING,
+
+    STARTING,
+
+    STOPPING;
 }
