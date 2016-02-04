@@ -107,7 +107,7 @@ public class GetHBase extends AbstractProcessor {
             .name("Distributed Cache Service")
             .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from HBase" +
                     " so that if a new node begins pulling data, it won't duplicate all of the work that has been done.")
-        .required(false)
+            .required(false)
             .identifiesControllerService(DistributedMapCacheClient.class)
             .build();
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -156,7 +156,7 @@ public class GetHBase extends AbstractProcessor {
 
     private volatile ScanResult lastResult = null;
     private volatile List<Column> columns = new ArrayList<>();
-    private volatile boolean electedPrimaryNode = false;
+    private volatile boolean justElectedPrimaryNode = false;
     private volatile String previousTable = null;
 
     @Override
@@ -236,9 +236,7 @@ public class GetHBase extends AbstractProcessor {
 
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
-        if (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE) {
-            electedPrimaryNode = true;
-        }
+        justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
     }
 
     @OnRemoved
@@ -411,7 +409,7 @@ public class GetHBase extends AbstractProcessor {
                 lastResult = scanResult;
             }
 
-            // save state to local storage and to distributed cache
+            // save state using the framework's state manager
             storeState(lastResult, context.getStateManager());
         } catch (final IOException e) {
             getLogger().error("Failed to receive data from HBase due to {}", e);
@@ -478,7 +476,7 @@ public class GetHBase extends AbstractProcessor {
 
         ScanResult scanResult = lastResult;
         // if we have no previous result, or we just became primary, pull from distributed cache
-        if (scanResult == null || electedPrimaryNode) {
+        if (scanResult == null || justElectedPrimaryNode) {
             if (client != null) {
                 final Object obj = client.get(getKey(), stringSerDe, objectSerDe);
                 if (obj == null || !(obj instanceof ScanResult)) {
@@ -490,7 +488,7 @@ public class GetHBase extends AbstractProcessor {
             }
 
             // no requirement to pull an update from the distributed cache anymore.
-            electedPrimaryNode = false;
+            justElectedPrimaryNode = false;
         }
 
         // Check the persistence file. We want to use the latest timestamp that we have so that

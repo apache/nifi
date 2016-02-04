@@ -163,7 +163,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     private volatile Set<String> latestIdentifiersListed = new HashSet<>();
     private volatile Long lastListingTime = null;
-    private volatile boolean electedPrimaryNode = false;
+    private volatile boolean justElectedPrimaryNode = false;
     private volatile boolean resetListing = false;
 
     static final String TIMESTAMP = "timestamp";
@@ -198,9 +198,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
-        if (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE) {
-            electedPrimaryNode = true;
-        }
+        justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
     }
 
     @OnScheduled
@@ -222,7 +220,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         // delete the local file, since it is no longer needed
         final File localFile = new File(path);
-        if (localFile.exists() && !!localFile.delete()) {
+        if (localFile.exists() && !localFile.delete()) {
             getLogger().warn("Migrated state but failed to delete local persistence file");
         }
 
@@ -322,7 +320,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         try {
             // We need to fetch the state from the cluster if we don't yet know the last listing time,
             // or if we were just elected the primary node
-            if (this.lastListingTime == null || electedPrimaryNode) {
+            if (this.lastListingTime == null || justElectedPrimaryNode) {
                 final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
                 final Map<String, String> stateValues = stateMap.toMap();
                 final String timestamp = stateValues.get(TIMESTAMP);
@@ -343,6 +341,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                         latestIdentifiersListed.add(value);
                     }
                 }
+
+                justElectedPrimaryNode = false;
             }
         } catch (final IOException ioe) {
             getLogger().error("Failed to retrieve timestamp of last listing from Distributed Cache Service. Will not perform listing until this is accomplished.");
