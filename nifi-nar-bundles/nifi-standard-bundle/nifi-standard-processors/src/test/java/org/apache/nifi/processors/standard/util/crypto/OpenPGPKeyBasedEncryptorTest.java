@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.processors.standard.util.crypto;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.processor.io.StreamCallback;
@@ -38,14 +38,18 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.Security;
 
-public class OpenPGPPasswordBasedEncryptorTest {
-    private static final Logger logger = LoggerFactory.getLogger(OpenPGPPasswordBasedEncryptorTest.class);
+public class OpenPGPKeyBasedEncryptorTest {
+    private static final Logger logger = LoggerFactory.getLogger(OpenPGPKeyBasedEncryptorTest.class);
 
     private final File plainFile = new File("src/test/resources/TestEncryptContent/text.txt");
-    private final File encryptedFile = new File("src/test/resources/TestEncryptContent/text.txt.asc");
+    private final File unsignedFile = new File("src/test/resources/TestEncryptContent/text.txt.unsigned.gpg");
+    private final File encryptedFile = new File("src/test/resources/TestEncryptContent/text.txt.gpg");
+
+    private static final String SECRET_KEYRING_PATH = "src/test/resources/TestEncryptContent/secring.gpg";
+    private static final String PUBLIC_KEYRING_PATH = "src/test/resources/TestEncryptContent/pubring.gpg";
+    private static final String USER_ID = "NiFi PGP Test Key (Short test key for NiFi PGP unit tests) <alopresto.apache+test@gmail.com>";
 
     private static final String PASSWORD = "thisIsABadPassword";
-    private static final String LEGACY_PASSWORD = "Hello, World!";
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -67,17 +71,21 @@ public class OpenPGPPasswordBasedEncryptorTest {
         // Arrange
         final String PLAINTEXT = "This is a plaintext message.";
         logger.info("Plaintext: {}", PLAINTEXT);
-        InputStream plainStream = new java.io.ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"));
+        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"));
         OutputStream cipherStream = new ByteArrayOutputStream();
         OutputStream recoveredStream = new ByteArrayOutputStream();
 
         // No file, just streams
         String filename = "tempFile.txt";
 
-        OpenPGPPasswordBasedEncryptor encryptor = new OpenPGPPasswordBasedEncryptor(EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), PASSWORD.toCharArray(), filename);
-
+        // Encryptor does not require password
+        OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(
+            EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), PUBLIC_KEYRING_PATH, USER_ID, new char[0], filename);
         StreamCallback encryptionCallback = encryptor.getEncryptionCallback();
-        StreamCallback decryptionCallback = encryptor.getDecryptionCallback();
+
+        OpenPGPKeyBasedEncryptor decryptor = new OpenPGPKeyBasedEncryptor(
+            EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(), filename);
+        StreamCallback decryptionCallback = decryptor.getDecryptionCallback();
 
         // Act
         encryptionCallback.process(plainStream, cipherStream);
@@ -101,13 +109,14 @@ public class OpenPGPPasswordBasedEncryptorTest {
         byte[] plainBytes = Files.readAllBytes(Paths.get(plainFile.getPath()));
         final String PLAINTEXT = new String(plainBytes, "UTF-8");
 
-        InputStream cipherStream = new FileInputStream(encryptedFile);
+        InputStream cipherStream = new FileInputStream(unsignedFile);
         OutputStream recoveredStream = new ByteArrayOutputStream();
 
         // No file, just streams
-        String filename = encryptedFile.getName();
+        String filename = unsignedFile.getName();
 
-        OpenPGPPasswordBasedEncryptor encryptor = new OpenPGPPasswordBasedEncryptor(EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), LEGACY_PASSWORD.toCharArray(), filename);
+        OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(
+            EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(), filename);
 
         StreamCallback decryptionCallback = encryptor.getDecryptionCallback();
 

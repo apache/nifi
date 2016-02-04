@@ -21,7 +21,7 @@
             <immediateFlush>false</immediateFlush>
         </encoder>
     </appender>
-    
+
     <appender name="TARGET_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>target/log.txt</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -36,14 +36,15 @@
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
             <immediateFlush>true</immediateFlush>
         </encoder>
-    </appender>    
+    </appender>
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     <logger name="org.apache.nifi" level="INFO"/>
-    
+    <logger name="org.apache.nifi.processors.standard.util.crypto" level="DEBUG"/>
+
     <!-- Logger for managing logging statements for nifi clusters. -->
     <logger name="org.apache.nifi.cluster" level="INFO"/>
 
-    <!-- 
+    <!--
         Logger for logging HTTP requests received by the web server.  Setting
         log level to 'debug' activates HTTP request logging.
     -->
@@ -57,11 +58,11 @@
 
     <logger name="org.apache.nifi.processors.standard" level="DEBUG"/>
     <logger name="target.file" level="DEBUG" additivity="true">
-        <appender-ref ref="TARGET_FILE" />
+        <appender-ref ref="TARGET_FILE"/>
     </logger>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
-    
+
 </configuration>
