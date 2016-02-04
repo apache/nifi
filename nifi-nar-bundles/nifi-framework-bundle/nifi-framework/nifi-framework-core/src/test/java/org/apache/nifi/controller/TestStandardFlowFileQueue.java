@@ -533,10 +533,14 @@ public class TestStandardFlowFileQueue {
             this.size = size;
 
             if (!attributes.containsKey(CoreAttributes.UUID.key())) {
-                attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
+                attributes.put(CoreAttributes.UUID.key(), createFakeUUID());
             }
         }
 
+        private  String createFakeUUID(){
+            final String s=Long.toHexString(id);
+            return new StringBuffer("00000000-0000-0000-0000000000000000".substring(0,(35-s.length()))+s).insert(23, '-').toString();
+        }
 
         @Override
         public long getId() {
