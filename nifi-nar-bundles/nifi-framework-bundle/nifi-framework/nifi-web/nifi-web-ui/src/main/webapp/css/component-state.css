@@ -31,6 +31,8 @@
 #component-state-description {
     width: 580px;
     height: 50px;
+    font-size: 10px;
+    line-height: 12px;
 }
 
 /*

@@ -49,13 +49,15 @@
     font-size: 12pt;
     font-weight: bold;
     color: #527991;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     width: 588px;
 }
 
 #reporting-task-type-description {
     width: 588px;
-    height: 60px;
+    height: 62px;
+    font-size: 10px;
+    line-height: 12px;
 }
 
 #reporting-task-availability-container {
