@@ -32,6 +32,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -77,21 +78,21 @@ public class TestGetHTTP {
             controller.run(2);
 
             // verify the lastModified and entityTag are updated
-            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG, "", Scope.LOCAL);
-            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG+":"+destination, "", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
 
             // ran twice, but got one...which is good
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
 
             // verify remote.source flowfile attribute
             controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0).assertAttributeEquals("gethttp.remote.source", "localhost");
-
             controller.clearTransferState();
 
             // turn off checking for etag and lastModified
             RESTServiceContentModified.IGNORE_ETAG = true;
             RESTServiceContentModified.IGNORE_LAST_MODIFIED = true;
             controller.run(2);
+
             // ran twice, got two...which is good
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 2);
             controller.clearTransferState();
@@ -114,28 +115,97 @@ public class TestGetHTTP {
             RESTServiceContentModified.IGNORE_ETAG = false;
             RESTServiceContentModified.ETAG = 1;
             controller.run(2);
+
             // ran twice, got 1...but should have new cached etag
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
-            controller.getStateManager().assertStateEquals(GetHTTP.ETAG, "1", Scope.LOCAL);
+            String eTagStateValue = controller.getStateManager().getState(Scope.LOCAL).get(GetHTTP.ETAG+":"+destination);
+            assertEquals("1",GetHTTP.parseStateValue(eTagStateValue).getValue());
             controller.clearTransferState();
 
             // turn off checking for Etag, turn on checking for lastModified, but change value
             RESTServiceContentModified.IGNORE_LAST_MODIFIED = false;
             RESTServiceContentModified.IGNORE_ETAG = true;
             RESTServiceContentModified.modificationDate = System.currentTimeMillis() / 1000 * 1000 + 5000;
-            String lastMod = controller.getStateManager().getState(Scope.LOCAL).get(GetHTTP.LAST_MODIFIED);
+            String lastMod = controller.getStateManager().getState(Scope.LOCAL).get(GetHTTP.LAST_MODIFIED+":"+destination);
             controller.run(2);
+
             // ran twice, got 1...but should have new cached etag
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
-            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED, lastMod, Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination, lastMod, Scope.LOCAL);
             controller.clearTransferState();
 
-            // shutdown web service
         } finally {
+            // shutdown web service
             server.shutdownServer();
         }
     }
 
+
+    @Test
+    public final void testContentModifiedTwoServers() throws Exception {
+        // set up web services
+        ServletHandler handler1 = new ServletHandler();
+        handler1.addServletWithMapping(RESTServiceContentModified.class, "/*");
+
+        ServletHandler handler2 = new ServletHandler();
+        handler2.addServletWithMapping(RESTServiceContentModified.class, "/*");
+
+        // create the services
+        TestServer server1 = new TestServer();
+        server1.addHandler(handler1);
+
+        TestServer server2 = new TestServer();
+        server2.addHandler(handler2);
+
+        try {
+            server1.startServer();
+            server2.startServer();
+
+            // this is the base urls with the random ports
+            String destination1 = server1.getUrl();
+            String destination2 = server2.getUrl();
+
+            // set up NiFi mock controller
+            controller = TestRunners.newTestRunner(GetHTTP.class);
+            controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
+            controller.setProperty(GetHTTP.URL, destination1);
+            controller.setProperty(GetHTTP.FILENAME, "testFile");
+            controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+
+            controller.getStateManager().assertStateNotSet(GetHTTP.ETAG+":"+destination1, Scope.LOCAL);
+            controller.getStateManager().assertStateNotSet(GetHTTP.LAST_MODIFIED+":"+destination1, Scope.LOCAL);
+            controller.run(2);
+
+            // verify the lastModified and entityTag are updated
+            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG+":"+destination1, "", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination1, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
+
+            // ran twice, but got one...which is good
+            controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
+
+            controller.clearTransferState();
+
+            controller.setProperty(GetHTTP.URL, destination2);
+            controller.getStateManager().assertStateNotSet(GetHTTP.ETAG+":"+destination2, Scope.LOCAL);
+            controller.getStateManager().assertStateNotSet(GetHTTP.LAST_MODIFIED+":"+destination2, Scope.LOCAL);
+
+            controller.run(2);
+
+            // ran twice, but got one...which is good
+            controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
+
+            // verify the lastModified's and entityTags are updated
+            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG+":"+destination1, "", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination1, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG+":"+destination2, "", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination2, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
+
+        } finally {
+            // shutdown web services
+            server1.shutdownServer();
+            server2.shutdownServer();
+        }
+    }
 
     @Test
     public final void testUserAgent() throws Exception {

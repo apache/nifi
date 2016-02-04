@@ -75,6 +75,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
@@ -91,11 +92,14 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.Tuple;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Fetches a file via HTTP. If the HTTP server supports it, the Processor then stores the Last Modified time and the ETag "
-    + "so that data will not be pulled again until the remote data changes or until the state is cleared.")
+    + "so that data will not be pulled again until the remote data changes or until the state is cleared. Note that due to limitations on state "
+    + "management, stored \"last modified\" and etag fields never expire. If the URL in GetHttp uses Expression Language that is unbounded, there "
+    + "is the potential for Out of Memory Errors to occur.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
     @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
@@ -400,16 +404,18 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             final HttpGet get = new HttpGet(url);
             get.setConfig(requestConfigBuilder.build());
 
+            final StateMap beforeStateMap;
+
             try {
-                final StateMap stateMap = context.getStateManager().getState(Scope.LOCAL);
-                final String lastModified = stateMap.get(LAST_MODIFIED);
+                beforeStateMap = context.getStateManager().getState(Scope.LOCAL);
+                final String lastModified = beforeStateMap.get(LAST_MODIFIED+":" + url);
                 if (lastModified != null) {
-                    get.addHeader(HEADER_IF_MODIFIED_SINCE, lastModified);
+                    get.addHeader(HEADER_IF_MODIFIED_SINCE, parseStateValue(lastModified).getValue());
                 }
 
-                final String etag = stateMap.get(ETAG);
+                final String etag = beforeStateMap.get(ETAG+":" + url);
                 if (etag != null) {
-                    get.addHeader(HEADER_IF_NONE_MATCH, etag);
+                    get.addHeader(HEADER_IF_NONE_MATCH, parseStateValue(etag).getValue());
                 }
             } catch (final IOException ioe) {
                 throw new ProcessException(ioe);
@@ -461,20 +467,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 logger.info("Successfully received {} from {} at a rate of {}; transferred to success", new Object[]{flowFile, url, dataRate});
                 session.commit();
 
-                final Map<String, String> updatedState = new HashMap<>(2);
-                final Header lastModified = response.getFirstHeader(HEADER_LAST_MODIFIED);
-                if (lastModified != null) {
-                    updatedState.put(LAST_MODIFIED, lastModified.getValue());
-                }
+                updateStateMap(context,response,beforeStateMap,url);
 
-                final Header etag = response.getFirstHeader(HEADER_ETAG);
-                if (etag != null) {
-                    updatedState.put(ETAG, etag.getValue());
-                }
-
-                if (!updatedState.isEmpty()) {
-                    context.getStateManager().setState(updatedState, Scope.LOCAL);
-                }
             } catch (final IOException e) {
                 context.yield();
                 session.rollback();
@@ -489,5 +483,71 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         } finally {
             conMan.shutdown();
         }
+    }
+
+    private void updateStateMap(ProcessContext context, HttpResponse response, StateMap beforeStateMap, String url){
+        try {
+            Map<String,String> workingMap = new HashMap<>();
+            workingMap.putAll(beforeStateMap.toMap());
+            final StateManager stateManager = context.getStateManager();
+            StateMap oldValue = beforeStateMap;
+
+            long currentTime = System.currentTimeMillis();
+
+            final Header receivedLastModified = response.getFirstHeader(HEADER_LAST_MODIFIED);
+            if (receivedLastModified != null) {
+                workingMap.put(LAST_MODIFIED + ":" + url, currentTime+":"+receivedLastModified.getValue());
+            }
+
+            final Header receivedEtag = response.getFirstHeader(HEADER_ETAG);
+            if (receivedEtag != null) {
+                workingMap.put(ETAG + ":" + url, currentTime+":"+receivedEtag.getValue());
+            }
+
+            boolean replaceSucceeded = stateManager.replace(oldValue, workingMap, Scope.LOCAL);
+            boolean changed;
+
+            while(!replaceSucceeded){
+                oldValue = stateManager.getState(Scope.LOCAL);
+                workingMap.clear();
+                workingMap.putAll(oldValue.toMap());
+
+                changed = false;
+
+                if(receivedLastModified != null){
+                    Tuple<String,String> storedLastModifiedTuple = parseStateValue(workingMap.get(LAST_MODIFIED+":"+url));
+
+                    if(Long.parseLong(storedLastModifiedTuple.getKey()) < currentTime){
+                        workingMap.put(LAST_MODIFIED + ":" + url, currentTime+":"+receivedLastModified.getValue());
+                        changed = true;
+                    }
+                }
+
+                if(receivedEtag != null){
+                    Tuple<String,String> storedLastModifiedTuple = parseStateValue(workingMap.get(ETAG+":"+url));
+
+                    if(Long.parseLong(storedLastModifiedTuple.getKey()) < currentTime){
+                        workingMap.put(ETAG + ":" + url, currentTime+":"+receivedEtag.getValue());
+                        changed = true;
+                    }
+                }
+
+                if(changed) {
+                    replaceSucceeded = stateManager.replace(oldValue, workingMap, Scope.LOCAL);
+                } else {
+                    break;
+                }
+            }
+        } catch (final IOException ioe) {
+            throw new ProcessException(ioe);
+        }
+    }
+
+    protected static Tuple<String, String> parseStateValue(String mapValue){
+        int indexOfColon = mapValue.indexOf(":");
+
+        String timestamp = mapValue.substring(0,indexOfColon);
+        String value = mapValue.substring(indexOfColon+1);
+        return new Tuple<>(timestamp,value);
     }
 }
