@@ -50,7 +50,7 @@ public class ScheduleState {
         return scheduled.get();
     }
 
-    public void setScheduled(final boolean scheduled) {
+    void setScheduled(final boolean scheduled) {
         this.scheduled.set(scheduled);
         mustCallOnStoppedMethods.set(true);
 
@@ -61,6 +61,12 @@ public class ScheduleState {
 
     public long getLastStopTime() {
         return lastStopTime;
+    }
+
+    @Override
+    public String toString() {
+        return new StringBuilder().append("activeThreads:").append(activeThreadCount.get()).append("; ")
+                .append("scheduled:").append(scheduled.get()).append("; ").toString();
     }
 
     /**

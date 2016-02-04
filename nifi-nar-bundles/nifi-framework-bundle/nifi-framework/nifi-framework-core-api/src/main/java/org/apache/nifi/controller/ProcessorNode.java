@@ -18,6 +18,8 @@ package org.apache.nifi.controller;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -25,6 +27,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -53,8 +56,6 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     @Override
     public abstract boolean isValid();
-
-    public abstract void setScheduledState(ScheduledState scheduledState);
 
     public abstract void setBulletinLevel(LogLevel bulletinLevel);
 
@@ -99,4 +100,49 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
      */
     public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
 
+    /**
+     * Will start the {@link Processor} represented by this
+     * {@link ProcessorNode}. Starting processor typically means invoking it's
+     * operation that is annotated with @OnScheduled and then executing a
+     * callback provided by the {@link ProcessScheduler} to which typically
+     * initiates
+     * {@link Processor#onTrigger(ProcessContext, org.apache.nifi.processor.ProcessSessionFactory)}
+     * cycle.
+     *
+     * @param scheduler
+     *            implementation of {@link ScheduledExecutorService} used to
+     *            initiate processor <i>start</i> task
+     * @param administrativeYieldMillis
+     *            the amount of milliseconds to wait for administrative yield
+     * @param processContext
+     *            the instance of {@link ProcessContext} and
+     *            {@link ControllerServiceLookup}
+     * @param schedulingAgentCallback
+     *            the callback provided by the {@link ProcessScheduler} to
+     *            execute upon successful start of the Processor
+     */
+    public abstract <T extends ProcessContext & ControllerServiceLookup> void start(ScheduledExecutorService scheduler,
+            long administrativeYieldMillis, T processContext, Runnable schedulingAgentCallback);
+
+    /**
+     * Will stop the {@link Processor} represented by this {@link ProcessorNode}.
+     * Stopping processor typically means invoking it's operation that is
+     * annotated with @OnUnschedule and then @OnStopped.
+     *
+     * @param scheduler
+     *            implementation of {@link ScheduledExecutorService} used to
+     *            initiate processor <i>stop</i> task
+     * @param processContext
+     *            the instance of {@link ProcessContext} and
+     *            {@link ControllerServiceLookup}
+     * @param activeThreadMonitorCallback
+     *            the callback provided by the {@link ProcessScheduler} to
+     *            report the count of processor's active threads. Typically it
+     *            is used to ensure that operations annotated with @OnUnschedule
+     *            and then @OnStopped are not invoked until such count reaches
+     *            0, essentially allowing tasks to finish before bringing
+     *            processor to a halt.
+     */
+    public abstract <T extends ProcessContext & ControllerServiceLookup> void stop(ScheduledExecutorService scheduler,
+            T processContext, Callable<Boolean> activeThreadMonitorCallback);
 }
