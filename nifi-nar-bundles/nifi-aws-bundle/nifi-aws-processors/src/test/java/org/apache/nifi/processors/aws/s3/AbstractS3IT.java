@@ -37,7 +37,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Iterator;
 
 import static org.junit.Assert.fail;
 
@@ -50,9 +49,14 @@ import static org.junit.Assert.fail;
  */
 public abstract class AbstractS3IT {
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
-    protected final static String BUCKET_NAME = "test-bucket-00000000-0000-0000-0000-123456789021";
     protected final static String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";
-    protected final static String REGION = "eu-west-1";
+    protected final static String REGION = "us-west-1";
+    // Adding REGION to bucket prevents errors of
+    //      "A conflicting conditional operation is currently in progress against this resource."
+    // when bucket is rapidly added/deleted and consistency propogation causes this error.
+    // (Should not be necessary if REGION remains static, but added to prevent future frustration.)
+    // [see http://stackoverflow.com/questions/13898057/aws-error-message-a-conflicting-conditional-operation-is-currently-in-progress]
+    protected final static String BUCKET_NAME = "test-bucket-00000000-0000-0000-0000-123456789021-" + REGION;
 
     // Static so multiple Tests can use same client
     protected static AmazonS3Client client;
@@ -99,8 +103,7 @@ public abstract class AbstractS3IT {
             ObjectListing objectListing = client.listObjects(BUCKET_NAME);
 
             while (true) {
-                for (Iterator<?> iterator = objectListing.getObjectSummaries().iterator(); iterator.hasNext(); ) {
-                    S3ObjectSummary objectSummary = (S3ObjectSummary) iterator.next();
+                for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
                     client.deleteObject(BUCKET_NAME, objectSummary.getKey());
                 }
 
