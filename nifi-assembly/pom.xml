@@ -483,8 +483,14 @@ language governing permissions and limitations under the License. -->
                             </defineStatements>
                             <defaultDirmode>750</defaultDirmode>
                             <defaultFilemode>640</defaultFilemode>
-                            <defaultUsername>root</defaultUsername>
-                            <defaultGroupname>root</defaultGroupname>
+                            <defaultUsername>nifi</defaultUsername>
+                            <defaultGroupname>nifi</defaultGroupname>
+                             <preinstallScriptlet>
+                             	<script>
+                             		/usr/bin/getent group nifi || /usr/sbin/groupadd -r nifi;
+ 									/usr/bin/getent passwd nifi || /usr/sbin/useradd -r -d /opt/nifi -s /sbin/nologin nifi
+                             	</script>
+                             </preinstallScriptlet>
                         </configuration>
                         <executions>
                             <execution>
