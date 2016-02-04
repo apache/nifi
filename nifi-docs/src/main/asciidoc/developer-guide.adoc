@@ -1803,7 +1803,7 @@ that references a Controller Service as such:
 ----
 public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
   .name("SSL Context Service")
-  .details("Specified the SSL Context Service that can be used to create secure connections")
+  .description("Specified the SSL Context Service that can be used to create secure connections")
   .required(true)
   .identifiesControllerService(SSLContextService.class)
   .build();
