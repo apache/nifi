@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -29,6 +30,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
@@ -49,6 +51,10 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
     @WritesAttribute(attribute = "filename", description = "The name of the file on the SFTP Server"),
     @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the SFTP Server from which the file was pulled"),
 })
+@Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored, "
+    + "along with the filename all files that share that same timestamp. This allows the Processor to list only files that have been added or modified after "
+    + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node only and if "
+    + "a new Primary Node is selected, the new node will not duplicate the data that was listed by the previous Primary Node.")
 public class ListSFTP extends ListFileTransfer {
 
     @Override
@@ -84,5 +90,12 @@ public class ListSFTP extends ListFileTransfer {
     @Override
     protected String getProtocolName() {
         return "sftp";
+    }
+
+    @Override
+    protected Scope getStateScope(final ProcessContext context) {
+        // Use cluster scope so that component can be run on Primary Node Only and can still
+        // pick up where it left off, even if the Primary Node changes.
+        return Scope.CLUSTER;
     }
 }

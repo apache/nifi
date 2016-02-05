@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -53,7 +54,9 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -92,7 +95,14 @@ import org.apache.nifi.processors.standard.util.FileInfo;
                 "rw-rw-r--")
 })
 @SeeAlso({GetFile.class, PutFile.class, FetchFile.class})
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored, "
+    + "along with the filenames of all files that share that same timestamp. This allows the Processor to list only files that have been added or modified after "
+    + "this date the next time that the Processor is run. Whether the state is stored with a Local or Cluster scope depends on the value of the "
+    + "<Input Directory Location> property.")
 public class ListFile extends AbstractListProcessor<FileInfo> {
+    static final AllowableValue LOCATION_LOCAL = new AllowableValue("Local", "Local", "Input Directory is located on a local disk. State will be stored locally on each node in the cluster.");
+    static final AllowableValue LOCATION_REMOTE = new AllowableValue("Remote", "Remote", "Input Directory is located on a remote system. State will be stored across the cluster so that "
+        + "the listing can be performed on Primary Node Only and another node can pick up where the last node left off, if the Primary Node changes");
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Input Directory")
@@ -108,6 +118,14 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
+            .build();
+
+    public static final PropertyDescriptor DIRECTORY_LOCATION = new PropertyDescriptor.Builder()
+            .name("Input Directory Location")
+            .description("Specifies where the Input Directory is located. This is used to determine whether state should be stored locally or across the cluster.")
+            .allowableValues(LOCATION_LOCAL, LOCATION_REMOTE)
+            .defaultValue(LOCATION_LOCAL.getValue())
+            .required(true)
             .build();
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
@@ -182,6 +200,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(DIRECTORY);
         properties.add(RECURSE);
+        properties.add(DIRECTORY_LOCATION);
         properties.add(FILE_FILTER);
         properties.add(PATH_FILTER);
         properties.add(MIN_AGE);
@@ -272,6 +291,16 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @Override
     protected String getPath(final ProcessContext context) {
         return context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+    }
+
+    @Override
+    protected Scope getStateScope(final ProcessContext context) {
+        final String location = context.getProperty(DIRECTORY_LOCATION).getValue();
+        if (LOCATION_REMOTE.getValue().equalsIgnoreCase(location)) {
+            return Scope.CLUSTER;
+        }
+
+        return Scope.LOCAL;
     }
 
     @Override

@@ -35,6 +35,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 
 public interface TestRunner {
 
@@ -838,4 +839,15 @@ public interface TestRunner {
      * @return the logger
      */
     public MockProcessorLog getControllerServiceLogger(final String identifier);
+
+    /**
+     * @return the State Manager that is used to stored and retrieve state
+     */
+    MockStateManager getStateManager();
+
+    /**
+     * @param service the controller service of interest
+     * @return the State Manager that is used to store and retrieve state for the given controller service
+     */
+    MockStateManager getStateManager(ControllerService service);
 }

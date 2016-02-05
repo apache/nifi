@@ -25,6 +25,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.FlowController;
@@ -59,6 +60,10 @@ public class QuartzSchedulingAgent implements SchedulingAgent {
         this.contextFactory = contextFactory;
         this.flowEngine = flowEngine;
         this.encryptor = enryptor;
+    }
+
+    private StateManager getStateManager(final String componentId) {
+        return flowController.getStateManagerProvider().getStateManager(componentId);
     }
 
     @Override
@@ -133,14 +138,15 @@ public class QuartzSchedulingAgent implements SchedulingAgent {
         final List<AtomicBoolean> triggers = new ArrayList<>();
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
             final Callable<Boolean> continuallyRunTask;
+
             if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
                 final ProcessorNode procNode = (ProcessorNode) connectable;
 
-                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor);
+                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor, getStateManager(connectable.getIdentifier()));
                 ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController, contextFactory, scheduleState, standardProcContext);
                 continuallyRunTask = runnableTask;
             } else {
-                final ConnectableProcessContext connProcContext = new ConnectableProcessContext(connectable, encryptor);
+                final ConnectableProcessContext connProcContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
                 continuallyRunTask = new ContinuallyRunConnectableTask(contextFactory, connectable, scheduleState, connProcContext);
             }
 

@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
@@ -57,6 +58,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -68,6 +70,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
 
 public class StandardProcessorTestRunner implements TestRunner {
@@ -79,6 +82,8 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final SharedSessionState sharedState;
     private final AtomicLong idGenerator;
     private final boolean triggerSerially;
+    private final MockStateManager processorStateManager;
+    private final Map<String, MockStateManager> controllerServiceStateManagers = new HashMap<>();
 
     private int numThreads = 1;
     private final AtomicInteger invocations = new AtomicInteger(0);
@@ -101,7 +106,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.sharedState = new SharedSessionState(processor, idGenerator);
         this.flowFileQueue = sharedState.getFlowFileQueue();
         this.sessionFactory = new MockSessionFactory(sharedState, processor);
-        this.context = new MockProcessContext(processor);
+        this.processorStateManager = new MockStateManager(processor);
+        this.context = new MockProcessContext(processor, processorStateManager);
 
         detectDeprecatedAnnotations(processor);
 
@@ -116,6 +122,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         triggerSerially = null != processor.getClass().getAnnotation(TriggerSerially.class);
+
+        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
     }
 
     @SuppressWarnings("deprecation")
@@ -578,7 +586,9 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         final MockProcessorLog logger = new MockProcessorLog(identifier, service);
         controllerServiceLoggers.put(identifier, logger);
-        final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger);
+        final MockStateManager serviceStateManager = new MockStateManager(service);
+        final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger, serviceStateManager);
+        controllerServiceStateManagers.put(identifier, serviceStateManager);
         initContext.addControllerServices(context);
         service.initialize(initContext);
 
@@ -598,7 +608,12 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertNotValid(final ControllerService service) {
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final StateManager serviceStateManager = controllerServiceStateManagers.get(service.getIdentifier());
+        if (serviceStateManager == null) {
+            throw new IllegalStateException("Controller Service has not been added to this TestRunner via the #addControllerService method");
+        }
+
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -612,7 +627,12 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertValid(final ControllerService service) {
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final StateManager serviceStateManager = controllerServiceStateManagers.get(service.getIdentifier());
+        if (serviceStateManager == null) {
+            throw new IllegalStateException("Controller Service has not been added to this TestRunner via the #addControllerService method");
+        }
+
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -718,11 +738,16 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public ValidationResult setProperty(final ControllerService service, final PropertyDescriptor property, final String value) {
+        final MockStateManager serviceStateManager = controllerServiceStateManagers.get(service.getIdentifier());
+        if (serviceStateManager == null) {
+            throw new IllegalStateException("Controller service " + service + " has not been added to this TestRunner via the #addControllerService method");
+        }
+
         final ControllerServiceConfiguration configuration = getConfigToUpdate(service);
         final Map<PropertyDescriptor, String> curProps = configuration.getProperties();
         final Map<PropertyDescriptor, String> updatedProps = new HashMap<>(curProps);
 
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
         final ValidationResult validationResult = property.validate(value, validationContext);
 
         updatedProps.put(property, value);
@@ -769,6 +794,22 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void clearProvenanceEvents() {
         sharedState.clearProvenanceEvents();
+    }
+
+    @Override
+    public MockStateManager getStateManager() {
+        return processorStateManager;
+    }
+
+    /**
+     * Returns the State Manager for the given Controller Service.
+     *
+     * @param controllerService the Controller Service whose State Manager should be returned
+     * @return the State Manager for the given Controller Service
+     */
+    @Override
+    public MockStateManager getStateManager(final ControllerService controllerService) {
+        return controllerServiceStateManagers.get(controllerService.getIdentifier());
     }
 
     public MockProcessorLog getLogger() {

@@ -134,6 +134,8 @@ public interface ControllerServiceNode extends ConfiguredComponent {
 
     void verifyCanUpdate();
 
+    void verifyCanClearState();
+
     /**
      * Returns 'true' if this service is active. The service is considered to be
      * active if and only if it's

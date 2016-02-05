@@ -16,11 +16,31 @@
  */
 package org.apache.nifi.hbase;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.hbase.GetHBase.ScanResult;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.util.StringSerDe;
 import org.apache.nifi.reporting.InitializationException;
@@ -30,17 +50,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class TestGetHBase {
 
@@ -148,27 +157,17 @@ public class TestGetHBase {
         hBaseClient.addResult("row4", cells, now + 1);
         runner.run();
         runner.assertAllFlowFilesTransferred(GetHBase.REL_SUCCESS, 5);
+        runner.clearTransferState();
 
         proc = new MockGetHBase(stateFile);
-        final TestRunner newRunner = TestRunners.newTestRunner(proc);
-
-        newRunner.addControllerService("cacheClient", cacheClient);
-        newRunner.enableControllerService(cacheClient);
-
-        newRunner.addControllerService("hbaseClient", hBaseClient);
-        newRunner.enableControllerService(hBaseClient);
-
-        newRunner.setProperty(GetHBase.TABLE_NAME, "nifi");
-        newRunner.setProperty(GetHBase.DISTRIBUTED_CACHE_SERVICE, "cacheClient");
-        newRunner.setProperty(GetHBase.HBASE_CLIENT_SERVICE, "hbaseClient");
 
         hBaseClient.addResult("row0", cells, now - 2);
         hBaseClient.addResult("row1", cells, now - 1);
         hBaseClient.addResult("row2", cells, now - 1);
         hBaseClient.addResult("row3", cells, now);
 
-        newRunner.run(100);
-        newRunner.assertAllFlowFilesTransferred(GetHBase.REL_SUCCESS, 0);
+        runner.run(100);
+        runner.assertAllFlowFilesTransferred(GetHBase.REL_SUCCESS, 0);
     }
 
     @Test
@@ -271,8 +270,7 @@ public class TestGetHBase {
         runner.assertAllFlowFilesTransferred(GetHBase.REL_SUCCESS, 4);
 
         // should have a local state file and a cache entry before removing
-        Assert.assertTrue(proc.getStateFile().exists());
-        Assert.assertTrue(cacheClient.containsKey(proc.getKey(), new StringSerDe()));
+        runner.getStateManager().assertStateSet(Scope.CLUSTER);
 
         proc.onRemoved(runner.getProcessContext());
 
@@ -331,7 +329,7 @@ public class TestGetHBase {
     }
 
     @Test
-    public void testParseColumns() {
+    public void testParseColumns() throws IOException {
         runner.setProperty(GetHBase.COLUMNS, "cf1,cf2:cq1,cf3");
         proc.parseColumns(runner.getProcessContext());
 
@@ -364,6 +362,47 @@ public class TestGetHBase {
         runner.setProperty(GetHBase.COLUMNS, "colA");
         runner.assertNotValid();
     }
+
+
+    @Test
+    public void testScanResultConvert() {
+        final long timestamp = 14L;
+        final Map<String, Set<String>> cellHashes = new LinkedHashMap<>();
+
+        final Set<String> row1Cells = new HashSet<>();
+        row1Cells.add("hello");
+        row1Cells.add("there");
+        cellHashes.put("abc", row1Cells);
+
+        final Set<String> row2Cells = new HashSet<>();
+        row2Cells.add("good-bye");
+        row2Cells.add("there");
+        cellHashes.put("xyz", row2Cells);
+
+        final ScanResult scanResult = new GetHBase.ScanResult(timestamp, cellHashes);
+
+        final Map<String, String> flatMap = scanResult.toFlatMap();
+        assertEquals(7, flatMap.size());
+        assertEquals("abc", flatMap.get("row.0"));
+
+        final String row0Cell0 = flatMap.get("row.0.0");
+        final String row0Cell1 = flatMap.get("row.0.1");
+        assertTrue(row0Cell0.equals("hello") || row0Cell0.equals("there"));
+        assertTrue(row0Cell1.equals("hello") || row0Cell1.equals("there"));
+        assertNotSame(row0Cell0, row0Cell1);
+
+        assertEquals("xyz", flatMap.get("row.1"));
+        final String row1Cell0 = flatMap.get("row.1.0");
+        final String row1Cell1 = flatMap.get("row.1.1");
+        assertTrue(row1Cell0.equals("good-bye") || row1Cell0.equals("there"));
+        assertTrue(row1Cell1.equals("good-bye") || row1Cell1.equals("there"));
+        assertNotSame(row1Cell0, row1Cell1);
+
+        final ScanResult reverted = ScanResult.fromFlatMap(flatMap);
+        assertEquals(timestamp, reverted.getTimestamp());
+        assertEquals(cellHashes, reverted.getMatchingCells());
+    }
+
 
     // Mock processor to override the location of the state file
     private static class MockGetHBase extends GetHBase {

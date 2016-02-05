@@ -38,6 +38,8 @@ import java.util.concurrent.Executors;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
@@ -46,8 +48,8 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
+import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
@@ -69,6 +71,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private final ConcurrentMap<String, ControllerServiceNode> controllerServices;
     private static final Set<Method> validDisabledMethods;
     private final BulletinRepository bulletinRepo;
+    private final StateManagerProvider stateManagerProvider;
 
     static {
         // methods that are okay to be called when the service is disabled.
@@ -82,12 +85,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         validDisabledMethods = Collections.unmodifiableSet(validMethods);
     }
 
-    public StandardControllerServiceProvider(final ProcessScheduler scheduler, final BulletinRepository bulletinRepo) {
+    public StandardControllerServiceProvider(final ProcessScheduler scheduler, final BulletinRepository bulletinRepo, final StateManagerProvider stateManagerProvider) {
         // the following 2 maps must be updated atomically, but we do not lock around them because they are modified
         // only in the createControllerService method, and both are modified before the method returns
         this.controllerServices = new ConcurrentHashMap<>();
         this.processScheduler = scheduler;
         this.bulletinRepo = bulletinRepo;
+        this.stateManagerProvider = stateManagerProvider;
     }
 
     private Class<?>[] getInterfaces(final Class<?> cls) {
@@ -108,6 +112,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         if (superClass != null) {
             populateInterfaces(superClass, interfacesDefinedThusFar);
         }
+    }
+
+    private StateManager getStateManager(final String componentId) {
+        return stateManagerProvider.getStateManager(componentId);
     }
 
     @Override
@@ -171,7 +179,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             logger.info("Created Controller Service of type {} with identifier {}", type, id);
 
             final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
-            originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this));
+            originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this, getStateManager(id)));
 
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this);
 
@@ -491,6 +499,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         controllerServices.remove(serviceNode.getIdentifier());
+
+        stateManagerProvider.onComponentRemoved(serviceNode.getIdentifier());
     }
 
     @Override

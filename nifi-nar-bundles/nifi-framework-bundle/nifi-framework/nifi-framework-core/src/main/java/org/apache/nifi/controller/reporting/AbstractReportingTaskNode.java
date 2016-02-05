@@ -218,6 +218,11 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     }
 
     @Override
+    public void verifyCanClearState() {
+        verifyCanUpdate();
+    }
+
+    @Override
     public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
         switch (getScheduledState()) {
             case DISABLED:

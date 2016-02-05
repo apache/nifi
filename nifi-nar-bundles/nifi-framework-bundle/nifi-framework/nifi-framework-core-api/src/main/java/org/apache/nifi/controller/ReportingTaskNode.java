@@ -98,4 +98,6 @@ public interface ReportingTaskNode extends ConfiguredComponent {
     void verifyCanDelete();
 
     void verifyCanUpdate();
+
+    void verifyCanClearState();
 }

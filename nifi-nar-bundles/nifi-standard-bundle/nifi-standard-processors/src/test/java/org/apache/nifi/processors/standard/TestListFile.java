@@ -86,20 +86,6 @@ public class TestListFile  {
         }
     }
 
-    @Test
-    public void testGetSupportedPropertyDescriptors() throws Exception {
-        List<PropertyDescriptor> properties = processor.getSupportedPropertyDescriptors();
-        assertEquals(9, properties.size());
-        assertEquals(ListFile.DIRECTORY, properties.get(0));
-        assertEquals(ListFile.RECURSE, properties.get(1));
-        assertEquals(ListFile.FILE_FILTER, properties.get(2));
-        assertEquals(ListFile.PATH_FILTER, properties.get(3));
-        assertEquals(ListFile.MIN_AGE, properties.get(4));
-        assertEquals(ListFile.MAX_AGE, properties.get(5));
-        assertEquals(ListFile.MIN_SIZE, properties.get(6));
-        assertEquals(ListFile.MAX_SIZE, properties.get(7));
-        assertEquals(ListFile.IGNORE_HIDDEN_FILES, properties.get(8));
-    }
 
     @Test
     public void testGetRelationships() throws Exception {

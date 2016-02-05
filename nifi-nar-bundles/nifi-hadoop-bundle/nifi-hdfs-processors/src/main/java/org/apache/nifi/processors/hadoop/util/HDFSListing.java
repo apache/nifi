@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.processors.hadoop.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlTransient;
@@ -34,6 +37,11 @@ import org.apache.hadoop.fs.Path;
 public class HDFSListing {
     private Date latestTimestamp;
     private Collection<String> matchingPaths;
+
+    public static class StateKeys {
+        public static final String TIMESTAMP = "timestamp";
+        public static final String PATH_PREFIX = "path.";
+    }
 
     /**
      * @return the modification date of the newest file that was contained in the HDFS Listing
@@ -80,4 +88,41 @@ public class HDFSListing {
         this.matchingPaths = matchingPaths;
     }
 
+    /**
+     * Converts this HDFSListing into a Map&lt;String, String&gt; so that it can be stored in a StateManager.
+     *
+     * @return a Map that represents the same information as this HDFSListing
+     */
+    public Map<String, String> toMap() {
+        final Map<String, String> map = new HashMap<>(1 + matchingPaths.size());
+        map.put(StateKeys.TIMESTAMP, String.valueOf(latestTimestamp.getTime()));
+
+        int counter = 0;
+        for (final String path : matchingPaths) {
+            map.put(StateKeys.PATH_PREFIX + String.valueOf(counter++), path);
+        }
+
+        return map;
+    }
+
+    public static HDFSListing fromMap(final Map<String, String> map) {
+        if (map == null || map.isEmpty()) {
+            return null;
+        }
+
+        final String timestampValue = map.get(StateKeys.TIMESTAMP);
+        final long timestamp = Long.parseLong(timestampValue);
+
+        final Collection<String> matchingPaths = new ArrayList<>(map.size() - 1);
+        for (final Map.Entry<String, String> entry : map.entrySet()) {
+            if (entry.getKey().startsWith(StateKeys.PATH_PREFIX)) {
+                matchingPaths.add(entry.getValue());
+            }
+        }
+
+        final HDFSListing listing = new HDFSListing();
+        listing.setLatestTimestamp(new Date(timestamp));
+        listing.setMatchingPaths(matchingPaths);
+        return listing;
+    }
 }

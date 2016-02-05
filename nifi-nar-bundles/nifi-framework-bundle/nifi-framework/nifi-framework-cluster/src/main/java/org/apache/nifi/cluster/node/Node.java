@@ -22,7 +22,6 @@ import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

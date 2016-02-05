@@ -572,24 +572,33 @@ nf.ProcessorConfiguration = (function () {
                 // get the processor details
                 var processor = selectionData.component;
 
+                var requests = [];
+
                 // reload the processor in case an property descriptors have updated
-                var reloadProcessor = nf.Processor.reload(processor);
-                
+                requests.push(nf.Processor.reload(processor));
+
                 // get the processor history
-                var loadHistory = $.ajax({
+                requests.push($.ajax({
                     type: 'GET',
                     url: '../nifi-api/controller/history/processors/' + encodeURIComponent(processor.id),
                     dataType: 'json'
-                });
+                }));
+
+                // get the processor state if we're a DFM
+                if (nf.Common.isDFM()) {
+                    requests.push();
+                }
                 
                 // once everything is loaded, show the dialog
-                $.when(reloadProcessor, loadHistory).done(function (processorResponse, historyResponse) {
+                $.when.apply(window, requests).done(function (processorResponse, historyResponse, stateResponse) {
                     // get the updated processor
                     processor = processorResponse[0].processor;
                     
                     // get the processor history
                     var processorHistory = historyResponse[0].componentHistory;
-                    
+
+                    console.log(stateResponse);
+
                     // record the processor details
                     $('#processor-configuration').data('processorDetails', processor);
 

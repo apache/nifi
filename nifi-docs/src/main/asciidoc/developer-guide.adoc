@@ -216,6 +216,13 @@ class, calling the appropriate methods
 to fill in the details of the Relationship, and finally calling the
 `build` method.
 
+[[state_manager]]
+==== StateManager
+The StateManager provides Processors, Reporting Tasks, and Controller Services a mechanism
+for easily storing and retrieving state. The API is similar to that of ConcurrentHashMap
+but requires a Scope for each operation. The Scope indicates whether the state is to be
+retrieved/stored locally or in a cluster-wide manner. For more information, see the
+<<state_manager>> section.
 
 [[processor_initialization_context]]
 ==== ProcessorInitializationContext
@@ -558,6 +565,64 @@ for instance, they should not be
 relied upon for critical business logic.
 
 
+[[state_manager]]
+=== State Manager
+
+From the ProcessContext, ReportingContext, and ControllerServiceInitializationContext, components are
+able to call the `getStateManager()` method. This State Manager is responsible for providing a simple API
+for storing and retrieving state. As such, the API is designed to be quite similar to the ConcurrentMap
+API, which most Java developers are already familiar with.
+
+
+[[state_scope]]
+==== Scope
+One very notable difference between the StateManager API and the ConcurrentMap API, however, is the presence
+of a Scope object on each method call of the StateManager. This Scope will either be `Scope.NODE` or `Scope.CLUSTER`.
+If NiFi is run in a cluster, this Scope provides important information to the framework about how the operation should
+occur.
+
+If state as stored using `Scope.CLUSTER`, then all nodes in the cluster will be communicating with the same
+state storage mechanism, as if all nodes were to share a single ConcurrentMap. If state is stored and retrieved using
+`Scope.NODE`, then each node will see a different representation of the state.
+
+It is also worth noting that if NiFi is configured to run as a standalone instance, rather than running in a cluster,
+a scope of `Scope.NODE` is always used. This is done in order to allow the developer of a NiFi component to write the code
+in one consistent way, without worrying about whether or not the NiFi instance is clustered. The developer should instead assume
+that the instance is clustered and write the code accordingly.
+
+
+==== Storing and Retrieving State
+
+State is stored using the StateManager's `set`, `replace`, `putIfAbsent`, `remove`, and `clear` methods. All of these methods,
+with the exception of `clear` take as the first argument the key to be set. The key that is used is unique only to the same
+instance of the component and for the same Scope. That is, if two Processors store a value using the key _My Key_, those Processors
+will not conflict with each other, even if both Processors are of the same type (e.g., both are of type ListFile) and scope. Furthermore,
+if a Processor stores a value with the key of _My Key_ using the `Scope.CLUSTER` scope, and then attempts to retrieve the value
+using the `Scope.NODE` scope, the value retrieved will be `null`. Each Processor's state, then, is stored in isolation from other
+Processors' state. A unique key can be thought of as a triple of <Processor Instance, Key, Scope>.
+
+It follows, then, that two Processors cannot share the same state. There are, however, some circumstances in which it is very
+necessary to share state between two Processors of different types, or two Processors of the same type. This can be accomplished
+by using a Controller Service. By storing and retrieving state from a Controller Service, multiple Processors can use the same
+Controller Service and the state can be exposed via the Controller Service's API.
+
+
+==== Unit Tests
+NiFi's Mock Framework provides an extensive collection of tools to perform unit testing of Processors. Processor unit tests typically
+begin with the `TestRunner` class. As a result, the `TestRunner` class contains a `getStateManager` method of its own. The StateManager
+that is returned, however, is of a specific type: `MockStateManager`. This implementation provides several methods in addition to those
+defined by the `StateManager` interface, that help developers to more easily develop unit tests.
+
+First, the `MockStateManager` implements the `StateManager` interface, so all of the state can be examined from within a unit test.
+Additionally, the `MockStateManager` exposes a handful of `assert*` methods to perform assertions that the State is set as expected.
+There are times, however, that state could be updated multiple times during the run of a single invocation of a Processor's `onTrigger`
+method. In this case, inspecting the values after running the Processor may not be sufficient. Additionally, we must always remember at each
+step to check the value of the stored state, which can become error-prone and burdensome for the developer.
+
+For these reasons, the `MockStateManager` provides an additional method, named `failIfStateSet`. This method instructs the State Manager that
+the unit test should immediately fail if the state for a given key is ever set, or if it is set to a specific value. The `doNotFailIfStateSet`
+method can then be used to instruct the Mock Framework to clear this state and allow state to be set to any value.
+
 
 
 === Reporting Processor Activity
@@ -728,7 +793,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 ----
 
 === Documenting Related Components
-Often Processors and ControllerServices are related to one another.  Sometimes its a put/get relation as in `PutFile` and `GetFile`.  
+Often Processors and ControllerServices are related to one another.  Sometimes it is a put/get relation as in `PutFile` and `GetFile`.
 Sometimes a Processor uses a ControllerService like `InvokeHTTP` and `StandardSSLContextService`.  Sometimes one ControllerService uses another
 like `DistributedMapCacheClientService` and `DistributedMapCacheServer`.  Developers of these extension points may relate these
 different components using the `SeeAlso` tag.  This annotation links these components in the documentation.  

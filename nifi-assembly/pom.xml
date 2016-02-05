@@ -303,6 +303,12 @@ language governing permissions and limitations under the License. -->
         <nifi.templates.directory>./conf/templates</nifi.templates.directory>
         <nifi.database.directory>./database_repository</nifi.database.directory>
 
+        <nifi.state.management.configuration.file>./conf/state-management.xml</nifi.state.management.configuration.file>
+        <nifi.state.management.embedded.zookeeper.start>false</nifi.state.management.embedded.zookeeper.start>
+        <nifi.state.management.embedded.zookeeper.properties>./conf/zookeeper.properties</nifi.state.management.embedded.zookeeper.properties>
+        <nifi.state.management.provider.local>local-provider</nifi.state.management.provider.local>
+        <nifi.state.management.provider.cluster>zk-provider</nifi.state.management.provider.cluster>
+        
         <nifi.flowfile.repository.implementation>org.apache.nifi.controller.repository.WriteAheadFlowFileRepository</nifi.flowfile.repository.implementation>
         <nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
         <nifi.flowfile.repository.partitions>256</nifi.flowfile.repository.partitions>

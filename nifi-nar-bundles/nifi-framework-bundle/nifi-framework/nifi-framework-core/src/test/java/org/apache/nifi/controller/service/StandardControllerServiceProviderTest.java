@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.StandardFlowServiceTest;
 import org.apache.nifi.nar.ExtensionManager;
@@ -25,6 +27,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class StandardControllerServiceProviderTest {
 
@@ -43,7 +46,28 @@ public class StandardControllerServiceProviderTest {
     public void setup() throws Exception {
         String id = "id";
         String clazz = "org.apache.nifi.controller.service.util.TestControllerService";
-        ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null);
+        ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, new StateManagerProvider() {
+            @Override
+            public StateManager getStateManager(final String componentId) {
+                return Mockito.mock(StateManager.class);
+            }
+
+            @Override
+            public void shutdown() {
+            }
+
+            @Override
+            public void enableClusterProvider() {
+            }
+
+            @Override
+            public void disableClusterProvider() {
+            }
+
+            @Override
+            public void onComponentRemoved(String componentId) {
+            }
+        });
         ControllerServiceNode node = provider.createControllerService(clazz, id, true);
         proxied = node.getProxiedControllerService();
         implementation = node.getControllerServiceImplementation();

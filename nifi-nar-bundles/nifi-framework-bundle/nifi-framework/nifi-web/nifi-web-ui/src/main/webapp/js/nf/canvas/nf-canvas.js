@@ -1080,6 +1080,7 @@ nf.Canvas = (function () {
                             nf.Settings.init();
                             nf.Actions.init();
                             nf.QueueListing.init();
+                            nf.ComponentState.init();
 
                             // initialize the component behaviors
                             nf.Draggable.init();

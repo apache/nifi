@@ -605,4 +605,8 @@ public abstract class AbstractPort implements Port {
             throw new IllegalStateException(this + " has " + threadCount + " threads still active");
         }
     }
+
+    @Override
+    public void verifyCanClearState() {
+    }
 }

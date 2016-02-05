@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.cluster.manager.impl;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -29,10 +33,6 @@ import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.reporting.EventAccess;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ClusteredEventAccess implements EventAccess {
 

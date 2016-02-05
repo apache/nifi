@@ -133,7 +133,7 @@ public class ClusterManagerServerProtocol implements ServerProtocol {
                 continue;
             }
 
-            dos.writeUTF(nodeInfo.getHostname());
+            dos.writeUTF(nodeInfo.getSiteToSiteHostname());
             dos.writeInt(nodeInfo.getSiteToSitePort());
             dos.writeBoolean(nodeInfo.isSiteToSiteSecure());
             dos.writeInt(nodeInfo.getTotalFlowFiles());
