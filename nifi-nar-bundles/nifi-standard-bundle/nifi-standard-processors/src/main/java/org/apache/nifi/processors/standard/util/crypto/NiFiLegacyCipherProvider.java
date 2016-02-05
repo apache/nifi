@@ -26,6 +26,7 @@ import javax.crypto.Cipher;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.SecureRandom;
 
 /**
  * Provides a cipher initialized with the original NiFi key derivation process for password-based encryption (MD5 @ 1000 iterations). This is not a secure
@@ -83,17 +84,55 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
         }
     }
 
+    public byte[] generateSalt(EncryptionMethod encryptionMethod) {
+        byte[] salt = new byte[calculateSaltLength(encryptionMethod)];
+        new SecureRandom().nextBytes(salt);
+        return salt;
+    }
+
+    protected void validateSalt(EncryptionMethod encryptionMethod, byte[] salt) {
+        final int saltLength = calculateSaltLength(encryptionMethod);
+        if (salt.length != saltLength && salt.length != 0) {
+            throw new IllegalArgumentException("Salt must be " + saltLength + " bytes or empty");
+        }
+    }
+
+    private int calculateSaltLength(EncryptionMethod encryptionMethod) {
+        try {
+            Cipher cipher = Cipher.getInstance(encryptionMethod.getAlgorithm(), encryptionMethod.getProvider());
+            return cipher.getBlockSize() > 0 ? cipher.getBlockSize() : getDefaultSaltLength();
+        } catch (Exception e) {
+            logger.warn("Encountered exception determining salt length from encryption method {}", encryptionMethod.getAlgorithm(), e);
+            final int defaultSaltLength = getDefaultSaltLength();
+            logger.warn("Returning default length: {} bytes", defaultSaltLength);
+            return defaultSaltLength;
+        }
+    }
+
     @Override
     public byte[] readSalt(InputStream in) throws IOException, ProcessException {
+        return readSalt(EncryptionMethod.AES_CBC, in);
+    }
+
+    /**
+     * Returns the salt provided as part of the cipher stream, or throws an exception if one cannot be detected.
+     * This method is only implemented by {@link NiFiLegacyCipherProvider} because the legacy salt generation was dependent on the cipher block size.
+     *
+     * @param encryptionMethod the encryption method
+     * @param in the cipher InputStream
+     * @return the salt
+     */
+    public byte[] readSalt(EncryptionMethod encryptionMethod, InputStream in) throws IOException {
         if (in == null) {
             throw new IllegalArgumentException("Cannot read salt from null InputStream");
         }
 
-        // The first 16 bytes of the input stream are the salt
-        if (in.available() < getDefaultSaltLength()) {
+        // The first 8-16 bytes (depending on the cipher blocksize) of the input stream are the salt
+        final int saltLength = calculateSaltLength(encryptionMethod);
+        if (in.available() < saltLength) {
             throw new ProcessException("The cipher stream is too small to contain the salt");
         }
-        byte[] salt = new byte[getDefaultSaltLength()];
+        byte[] salt = new byte[saltLength];
         StreamUtils.fillBuffer(in, salt);
         return salt;
     }

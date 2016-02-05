@@ -180,13 +180,13 @@ public class TestEncryptContent {
     }
 
     @Test
-    public void testDecryptShouldDefaultToLegacyKDF() throws IOException {
+    public void testDecryptShouldDefaultToBcrypt() throws IOException {
         // Arrange
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
 
         // Assert
         Assert.assertEquals("Decrypt should default to Legacy KDF", testRunner.getProcessor().getPropertyDescriptor(EncryptContent.KEY_DERIVATION_FUNCTION
-                .getName()).getDefaultValue(), KeyDerivationFunction.NIFI_LEGACY.name());
+                .getName()).getDefaultValue(), KeyDerivationFunction.BCRYPT.name());
     }
 
     @Test
@@ -194,6 +194,7 @@ public class TestEncryptContent {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         runner.setProperty(EncryptContent.PASSWORD, "Hello, World!");
         runner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+        runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name());
         runner.enqueue(new byte[4]);
         runner.run();
         runner.assertAllFlowFilesTransferred(EncryptContent.REL_FAILURE, 1);
@@ -354,6 +355,7 @@ public class TestEncryptContent {
         runner.enqueue(new byte[0]);
         final EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES;
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name());
+        runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name());
         runner.setProperty(EncryptContent.PASSWORD, "ThisIsAPasswordThatIsLongerThanSixteenCharacters");
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();

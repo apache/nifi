@@ -121,7 +121,12 @@ public class PasswordBasedEncryptor implements Encryptor {
             // Read salt
             byte[] salt;
             try {
-                salt = cipherProvider.readSalt(in);
+                // NiFi legacy code determined the salt length based on the cipher block size
+                if (cipherProvider instanceof NiFiLegacyCipherProvider) {
+                    salt = ((NiFiLegacyCipherProvider) cipherProvider).readSalt(encryptionMethod, in);
+                } else {
+                    salt = cipherProvider.readSalt(in);
+                }
             } catch (final EOFException e) {
                 throw new ProcessException("Cannot decrypt because file size is smaller than salt size", e);
             }
@@ -158,7 +163,13 @@ public class PasswordBasedEncryptor implements Encryptor {
             PBECipherProvider cipherProvider = (PBECipherProvider) CipherProviderFactory.getCipherProvider(kdf);
 
             // Generate salt
-            byte[] salt = cipherProvider.generateSalt();
+            byte[] salt;
+            // NiFi legacy code determined the salt length based on the cipher block size
+            if (cipherProvider instanceof NiFiLegacyCipherProvider) {
+                salt = ((NiFiLegacyCipherProvider) cipherProvider).generateSalt(encryptionMethod);
+            } else {
+                salt = cipherProvider.generateSalt();
+            }
 
             // Write to output stream
             cipherProvider.writeSalt(salt, out);

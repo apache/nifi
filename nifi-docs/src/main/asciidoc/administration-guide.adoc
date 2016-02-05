@@ -383,7 +383,7 @@ Currently, KDFs are ingested by `CipherProvider` implementations and return a fu
 Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent` processor for password-based encryption (PBE)) and relevant notes:
 
 * NiFi Legacy KDF
-** The original KDF used by NiFi for internal key derivation for PBE, this is 1000 iterations of the MD5 digest over the concatenation of the password and 16 bytes of random salt. 
+** The original KDF used by NiFi for internal key derivation for PBE, this is 1000 iterations of the MD5 digest over the concatenation of the password and 8 or 16 bytes of random salt (the salt length depends on the selected cipher block size).
 ** This KDF is *deprecated as of NiFi 0.5.0* and should only be used for backwards compatibility to decrypt data that was previously encrypted by a legacy version of NiFi.
 * OpenSSL PKCS#5 v1.5 EVP_BytesToKey
 ** This KDF was added in v0.4.0.
@@ -405,7 +405,7 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 *** `s0` - the version of the format. NiFi currently uses `s0` for all salts generated internally.
 *** `e0101` - the cost parameters. This is actually a hexadecimal encoding of `N`, `r`, `p` using shifts. This can be formed/parsed using `Scrypt#encodeParams()` and `Scrypt#parseParameters()`.
 **** Some external libraries encode `N`, `r`, and `p` separately in the form `$400$1$1$`. A utility method is available at `ScryptCipherProvider#translateSalt()` which will convert the external form to the internal form.
-*** `ABCDEFGHIJKLMNOPQRSTUV` - the 11-44 character, Base64-encoded, unpadded, raw salt value. This decodes to a 8-32 byte salt used in the key derivation.
+*** `ABCDEFGHIJKLMNOPQRSTUV` - the 12-44 character, Base64-encoded, unpadded, raw salt value. This decodes to a 8-32 byte salt used in the key derivation.
 * PBKDF2
 ** This KDF was added in v0.5.0.
 ** https://en.wikipedia.org/wiki/PBKDF2[Password-Based Key Derivation Function 2] is an adaptive derivation function which uses an internal pseudorandom function (PRF) and iterates it many times over a password and salt (at least 16 bytes).
@@ -442,7 +442,7 @@ For the existing KDFs, the salt format has not changed.
 NiFi Legacy
 ^^^^^^^^^^^
 
-The first 16 bytes of the input are the salt. On decryption, the salt is read in and combined with the password to derive the encryption key and IV.
+The first 8 or 16 bytes of the input are the salt. The salt length is determined based on the selected algorithm's cipher block length. If the cipher block size cannot be determined (such as with a stream cipher like `RC4`), the default value of 8 bytes is used. On decryption, the salt is read in and combined with the password to derive the encryption key and IV.
 
 image:nifi-legacy-salt.png["NiFi Legacy Salt Encoding"]
 
