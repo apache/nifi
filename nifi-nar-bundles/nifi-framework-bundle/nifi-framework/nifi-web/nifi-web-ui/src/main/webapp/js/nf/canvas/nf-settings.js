@@ -171,12 +171,6 @@ nf.Settings = (function () {
      * Hides the selected controller service.
      */
     var clearSelectedControllerService = function () {
-        if (nf.Canvas.isClustered()) {
-            $('#controller-service-availability-combo').combo('setSelectedOption', {
-                value: config.node
-            });
-        }
-
         $('#controller-service-type-description').text('');
         $('#controller-service-type-name').text('');
         $('#selected-controller-service-name').text('');
@@ -357,14 +351,14 @@ nf.Settings = (function () {
         if (nf.Canvas.isClustered()) {
             $('#controller-service-availability-combo').combo({
                 options: [{
-                        text: 'Node',
-                        value: config.node,
-                        description: 'This controller service will be available on the nodes only.'
-                    }, {
-                        text: 'Cluster Manager',
-                        value: config.ncm,
-                        description: 'This controller service will be available on the cluster manager only.'
-                    }]
+                    text: 'Node',
+                    value: config.node,
+                    description: 'This controller service will be available on the nodes only.'
+                }, {
+                    text: 'Cluster Manager',
+                    value: config.ncm,
+                    description: 'This controller service will be available on the cluster manager only.'
+                }]
             });
             $('#controller-service-availability-container').show();
         }
@@ -501,20 +495,20 @@ nf.Settings = (function () {
             headerText: 'Add Controller Service',
             overlayBackground: false,
             buttons: [{
-                    buttonText: 'Add',
-                    handler: {
-                        click: function () {
-                            addSelectedControllerService();
-                        }
+                buttonText: 'Add',
+                handler: {
+                    click: function () {
+                        addSelectedControllerService();
                     }
-                }, {
-                    buttonText: 'Cancel',
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
+                }
+            }, {
+                buttonText: 'Cancel',
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
                     }
-                }],
+                }
+            }],
             handler: {
                 close: function () {
                     // reset the node availability
@@ -706,15 +700,13 @@ nf.Settings = (function () {
                 }
             }
 
-            // always include a button to view the usage
-            markup += '<img src="images/iconUsage.png" title="Usage" class="pointer controller-service-usage" style="margin-top: 2px;"/>&nbsp;';
 
             return markup;
         };
 
         // define the column model for the controller services table
         var controllerServicesColumns = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: true, width: 65, maxWidth: 65, toolTip: 'Sorts based on presence of bulletins'},
+            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: true, width: 90, maxWidth: 90, toolTip: 'Sorts based on presence of bulletins'},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
             {id: 'state', field: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true}
@@ -771,20 +763,6 @@ nf.Settings = (function () {
                     nf.ControllerService.remove(controllerService);
                 } else if (target.hasClass('view-state-controller-service')) {
                     nf.ComponentState.showState(controllerService, controllerService.state === 'DISABLED');
-                }
-            } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
-                if (target.hasClass('view-controller-service')) {
-                    nf.ControllerService.showDetails(controllerService);
-                } else if (target.hasClass('controller-service-usage')) {
-                    // close the settings dialog
-                    $('#shell-close-button').click();
-
-                    // open the documentation for this reporting task
-                    nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
-                            select: nf.Common.substringAfterLast(controllerService.type, '.')
-                        })).done(function() {
-                        nf.Settings.showSettings();
-                    });
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-controller-service')) {
@@ -968,12 +946,6 @@ nf.Settings = (function () {
      * Hides the selected reporting task.
      */
     var clearSelectedReportingTask = function () {
-        if (nf.Canvas.isClustered()) {
-            $('#reporting-task-availability-combo').combo('setSelectedOption', {
-                value: config.node
-            });
-        }
-
         $('#reporting-task-type-description').text('');
         $('#reporting-task-type-name').text('');
         $('#selected-reporting-task-name').text('');
@@ -1102,14 +1074,14 @@ nf.Settings = (function () {
         if (nf.Canvas.isClustered()) {
             $('#reporting-task-availability-combo').combo({
                 options: [{
-                        text: 'Node',
-                        value: config.node,
-                        description: 'This reporting task will be available on the nodes only.'
-                    }, {
-                        text: 'Cluster Manager',
-                        value: config.ncm,
-                        description: 'This reporting task will be available on the cluster manager only.'
-                    }]
+                    text: 'Node',
+                    value: config.node,
+                    description: 'This reporting task will be available on the nodes only.'
+                }, {
+                    text: 'Cluster Manager',
+                    value: config.ncm,
+                    description: 'This reporting task will be available on the cluster manager only.'
+                }]
             });
             $('#reporting-task-availability-container').show();
         }
@@ -1246,20 +1218,20 @@ nf.Settings = (function () {
             headerText: 'Add Reporting Task',
             overlayBackground: false,
             buttons: [{
-                    buttonText: 'Add',
-                    handler: {
-                        click: function () {
-                            addSelectedReportingTask();
-                        }
+                buttonText: 'Add',
+                handler: {
+                    click: function () {
+                        addSelectedReportingTask();
                     }
-                }, {
-                    buttonText: 'Cancel',
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
+                }
+            }, {
+                buttonText: 'Cancel',
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
                     }
-                }],
+                }
+            }],
             handler: {
                 close: function () {
                     // reset the node availability
@@ -1373,15 +1345,13 @@ nf.Settings = (function () {
                 }
             }
 
-            // always include a button to view the usage
-            markup += '<img src="images/iconUsage.png" title="Usage" class="pointer reporting-task-usage" style="margin-top: 2px;"/>&nbsp;';
 
             return markup;
         };
 
         // define the column model for the reporting tasks table
         var reportingTasksColumnModel = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 65, maxWidth: 65, toolTip: 'Sorts based on presence of bulletins'},
+            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 90, maxWidth: 90, toolTip: 'Sorts based on presence of bulletins'},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true, formatter: typeFormatter},
             {id: 'state', field: 'state', name: 'Run Status', sortable: true, resizeable: true, formatter: reportingTaskRunStatusFormatter}
@@ -1439,20 +1409,6 @@ nf.Settings = (function () {
                 } else if (target.hasClass('view-state-reporting-task')) {
                     var canClear = reportingTask.state === 'STOPPED' && reportingTask.activeThreadCount === 0;
                     nf.ComponentState.showState(reportingTask, canClear);
-                }
-            } else if (reportingTasksGrid.getColumns()[args.cell].id === 'moreDetails') {
-                if (target.hasClass('view-reporting-task')) {
-                    nf.ReportingTask.showDetails(reportingTask);
-                } else if (target.hasClass('reporting-task-usage')) {
-                    // close the settings dialog
-                    $('#shell-close-button').click();
-
-                    // open the documentation for this reporting task
-                    nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
-                            select: nf.Common.substringAfterLast(reportingTask.type, '.')
-                        })).done(function() {
-                        nf.Settings.showSettings();
-                    });
                 }
             } else if (reportingTasksGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-reporting-task')) {
@@ -1602,15 +1558,15 @@ nf.Settings = (function () {
                 tabStyle: 'settings-tab',
                 selectedTabStyle: 'settings-selected-tab',
                 tabs: [{
-                        name: 'General',
-                        tabContentId: 'general-settings-tab-content'
-                    }, {
-                        name: 'Controller Services',
-                        tabContentId: 'controller-services-tab-content'
-                    }, {
-                        name: 'Reporting Tasks',
-                        tabContentId: 'reporting-tasks-tab-content'
-                    }],
+                    name: 'General',
+                    tabContentId: 'general-settings-tab-content'
+                }, {
+                    name: 'Controller Services',
+                    tabContentId: 'controller-services-tab-content'
+                }, {
+                    name: 'Reporting Tasks',
+                    tabContentId: 'reporting-tasks-tab-content'
+                }],
                 select: function () {
                     var tab = $(this).text();
                     if (tab === 'General') {
