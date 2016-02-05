@@ -345,7 +345,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 justElectedPrimaryNode = false;
             }
         } catch (final IOException ioe) {
-            getLogger().error("Failed to retrieve timestamp of last listing from Distributed Cache Service. Will not perform listing until this is accomplished.");
+            getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
             context.yield();
             return;
         }
