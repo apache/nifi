@@ -487,8 +487,7 @@ language governing permissions and limitations under the License. -->
                             <defaultGroupname>nifi</defaultGroupname>
                              <preinstallScriptlet>
                              	<script>
-                             		/usr/bin/getent group nifi || /usr/sbin/groupadd -r nifi;
- 									/usr/bin/getent passwd nifi || /usr/sbin/useradd -r -d /opt/nifi -s /sbin/nologin nifi
+                             		/usr/bin/getent group nifi || /usr/sbin/groupadd -r nifi;	/usr/bin/getent passwd nifi || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin nifi
                              	</script>
                              </preinstallScriptlet>
                         </configuration>
