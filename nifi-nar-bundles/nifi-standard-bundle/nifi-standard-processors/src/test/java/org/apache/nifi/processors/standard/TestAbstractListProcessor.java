@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.io.Charsets;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -42,9 +44,15 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TestAbstractListProcessor {
+
+    @Rule
+    public final TemporaryFolder testFolder = new TemporaryFolder();
 
     @Test
     public void testOnlyNewEntriesEmitted() {
@@ -121,7 +129,7 @@ public class TestAbstractListProcessor {
     }
 
     @Test
-    public void testStateMigrated() throws InitializationException {
+    public void testStateMigratedFromCacheService() throws InitializationException {
         final ConcreteListProcessor proc = new ConcreteListProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
         final DistributedCache cache = new DistributedCache();
@@ -140,6 +148,50 @@ public class TestAbstractListProcessor {
         expectedState.put(AbstractListProcessor.TIMESTAMP, "1492");
         expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", "id");
         stateManager.assertStateEquals(expectedState, Scope.CLUSTER);
+    }
+
+    @Test
+    public void testNoStateToMigrate() throws Exception {
+        final ConcreteListProcessor proc = new ConcreteListProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+
+        runner.run();
+
+        final MockStateManager stateManager = runner.getStateManager();
+        final Map<String, String> expectedState = new HashMap<>();
+        stateManager.assertStateEquals(expectedState, Scope.CLUSTER);
+    }
+
+    @Test
+    public void testStateMigratedFromLocalFile() throws Exception {
+        final ConcreteListProcessor proc = new ConcreteListProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+
+        // Create a file that we will populate with the desired state
+        File persistenceFile = testFolder.newFile(proc.persistenceFilename);
+        // Override the processor's internal persistence file
+        proc.persistenceFile = persistenceFile;
+
+        // Local File persistence was a properties file format of <key>=<JSON entity listing representation>
+        // Our ConcreteListProcessor is centered around files which are provided for a given path
+        final String serviceState = proc.getPath(runner.getProcessContext()) + "={\"latestTimestamp\":1492,\"matchingIdentifiers\":[\"id\"]}";
+
+        // Create a persistence file of the format anticipated
+        try (FileOutputStream fos = new FileOutputStream(persistenceFile);) {
+            fos.write(serviceState.getBytes(Charsets.UTF_8));
+        }
+
+        runner.run();
+
+        // Verify the local persistence file is removed
+        Assert.assertTrue("Failed to remove persistence file", !persistenceFile.exists());
+
+        // Verify the state manager now maintains the associated state
+        final Map<String, String> expectedState = new HashMap<>();
+        expectedState.put(AbstractListProcessor.TIMESTAMP, "1492");
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", "id");
+
+        runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
     }
 
     @Test
@@ -239,9 +291,13 @@ public class TestAbstractListProcessor {
     private static class ConcreteListProcessor extends AbstractListProcessor<ListableEntity> {
         private final List<ListableEntity> entities = new ArrayList<>();
 
+        public final String persistenceFilename = "ListProcessor-local-state-" + UUID.randomUUID().toString() + ".json";
+        public String persistenceFolder = "target/";
+        public File persistenceFile = new File(persistenceFolder + persistenceFilename);
+
         @Override
         protected File getPersistenceFile() {
-            return new File("target/ListProcessor-local-state-" + UUID.randomUUID().toString() + ".json");
+            return persistenceFile;
         }
 
         public void addEntity(final String name, final String identifier, final long timestamp) {

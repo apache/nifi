@@ -218,12 +218,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
         }
 
-        // delete the local file, since it is no longer needed
-        final File localFile = new File(path);
-        if (localFile.exists() && !localFile.delete()) {
-            getLogger().warn("Migrated state but failed to delete local persistence file");
-        }
-
         // remove entry from Distributed cache server
         if (client != null) {
             try {
@@ -284,6 +278,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     latestIdentifiersListed.clear();
                     latestIdentifiersListed.addAll(listing.getMatchingIdentifiers());
                 }
+            }
+
+            // delete the local file, since it is no longer needed
+            if (persistenceFile.exists() && !persistenceFile.delete()) {
+                getLogger().warn("Migrated state but failed to delete local persistence file");
             }
         }
 
