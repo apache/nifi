@@ -1302,6 +1302,7 @@ language governing permissions and limitations under the License. -->
                 <version>1.6.5</version>
                 <extensions>true</extensions>
                 <configuration>
+                    <stagingProgressTimeoutMinutes>15</stagingProgressTimeoutMinutes>
                     <serverId>repository.apache.org</serverId>
                     <nexusUrl>https://repository.apache.org/</nexusUrl>
                 </configuration>
