@@ -487,7 +487,7 @@ language governing permissions and limitations under the License. -->
                             <defaultGroupname>nifi</defaultGroupname>
                              <preinstallScriptlet>
                              	<script>
-                             		/usr/bin/getent group nifi || /usr/sbin/groupadd -r nifi;	/usr/bin/getent passwd nifi || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin nifi
+                             		/usr/bin/getent group nifi || /usr/sbin/groupadd -r nifi;	/usr/bin/getent passwd nifi || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin -c "NiFi System User" nifi
                              	</script>
                              </preinstallScriptlet>
                         </configuration>
@@ -522,6 +522,9 @@ language governing permissions and limitations under the License. -->
                                             </sources>
                                         </mapping>
                                         <mapping>
+                                            <directory>/opt/nifi</directory>
+                                        </mapping>
+                                        <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/bin</directory>
                                             <filemode>750</filemode>
                                             <sources>
@@ -541,6 +544,9 @@ language governing permissions and limitations under the License. -->
                                                     <filter>true</filter>
                                                 </source>
                                             </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
