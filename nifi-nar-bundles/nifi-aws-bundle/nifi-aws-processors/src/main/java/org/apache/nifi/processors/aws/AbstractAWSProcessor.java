@@ -77,6 +77,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
+
     public static final PropertyDescriptor ACCESS_KEY = new PropertyDescriptor.Builder()
             .name("Access Key")
             .expressionLanguageSupported(true)
@@ -84,6 +85,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
+
     public static final PropertyDescriptor SECRET_KEY = new PropertyDescriptor.Builder()
             .name("Secret Key")
             .expressionLanguageSupported(true)
@@ -91,6 +93,23 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
+
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("Proxy Host")
+            .description("Proxy host name or IP")
+            .expressionLanguageSupported(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROXY_HOST_PORT = new PropertyDescriptor.Builder()
+            .name("Proxy Host Port")
+            .description("Proxy host port")
+            .expressionLanguageSupported(true)
+            .required(false)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
             .name("Region")
             .required(true)
@@ -161,6 +180,12 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
         }
 
+        final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
+        final boolean proxyHostPortSet = validationContext.getProperty(PROXY_HOST_PORT).isSet();
+        if ( ((!proxyHostSet) && proxyHostPortSet) || (proxyHostSet && (!proxyHostPortSet)) ) {
+            problems.add(new ValidationResult.Builder().input("Proxy Host Port").valid(false).explanation("Both proxy host and port must be set").build());
+        }
+
         return problems;
     }
 
@@ -180,6 +205,13 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
             SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, null);
             config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+        }
+
+        if (context.getProperty(PROXY_HOST).isSet()) {
+            String proxyHost = context.getProperty(PROXY_HOST).getValue();
+            config.setProxyHost(proxyHost);
+            Integer proxyPort = context.getProperty(PROXY_HOST_PORT).asInteger();
+            config.setProxyPort(proxyPort);
         }
 
         return config;
