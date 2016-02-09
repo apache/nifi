@@ -23,13 +23,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -64,59 +64,44 @@ import org.codehaus.jackson.map.ObjectMapper;
  * Those remote resources may be files, "objects", "messages", or any other sort of entity that may need to be listed in such a way that
  * we identity the entity only once. Each of these objects, messages, etc. is referred to as an "entity" for the scope of this Processor.
  * </p>
- *
  * <p>
  * This class is responsible for triggering the listing to occur, filtering the results returned such that only new (unlisted) entities
  * or entities that have been modified will be emitted from the Processor.
  * </p>
- *
  * <p>
  * In order to make use of this abstract class, the entities listed must meet the following criteria:
  * </p>
- *
  * <ul>
- *  <li>
- *      Entity must have a timestamp associated with it. This timestamp is used to determine if entities are "new" or not. Any entity that is
- *      returned by the listing will be considered "new" if the timestamp is later than the latest timestamp pulled.
- *  </li>
- *  <li>
- *      Entity must have a unique identifier. This is used in conjunction with the timestamp in order to determine whether or not the entity is
- *      new. If the timestamp of an entity is before the latest timestamp pulled, then the entity is not considered new. If the timestamp is later
- *      than the last timestamp pulled, then the entity is considered new. If the timestamp is equal to the latest timestamp pulled, then the entity's
- *      identifier is compared to all of the entity identifiers that have that same timestamp in order to determine whether or not the entity has been
- *      seen already.
- *  </li>
- *  <li>
- *      Entity must have a user-readable name that can be used for logging purposes.
- *  </li>
+ * <li>
+ * Entity must have a timestamp associated with it. This timestamp is used to determine if entities are "new" or not. Any entity that is
+ * returned by the listing will be considered "new" if the timestamp is later than the latest timestamp pulled.
+ * </li>
+ * <li>
+ * If the timestamp of an entity is before OR equal to the latest timestamp pulled, then the entity is not considered new. If the timestamp is later
+ * than the last timestamp pulled, then the entity is considered new.
+ * </li>
+ * <li>
+ * Entity must have a user-readable name that can be used for logging purposes.
+ * </li>
  * </ul>
- *
  * <p>
- * This class persists state across restarts so that even if NiFi is restarted, duplicates will not be pulled from the remote system. This is performed using
- * two different mechanisms. First, state is stored locally. This allows the system to be restarted and begin processing where it left off. The state that is
- * stored is the latest timestamp that has been pulled (as determined by the timestamps of the entities that are returned), as well as the unique identifier of
- * each entity that has that timestamp. See the section above for information about how these pieces of information are used in order to determine entity uniqueness.
+ * This class persists state across restarts so that even if NiFi is restarted, duplicates will not be pulled from the target system given the above criteria. This is
+ * performed using the {@link StateManager}. This allows the system to be restarted and begin processing where it left off. The state that is stored is the latest timestamp
+ * that has been pulled (as determined by the timestamps of the entities that are returned). See the section above for information about how this information isused in order to
+ * determine new entities.
  * </p>
- *
  * <p>
- * In addition to storing state locally, the Processor exposes an optional <code>Distributed Cache Service</code> property. In standalone deployment of NiFi, this is
- * not necessary. However, in a clustered environment, subclasses of this class are expected to be run only on primary node. While this means that the local state is
- * accurate as long as the primary node remains constant, the primary node in the cluster can be changed. As a result, if running in a clustered environment, it is
- * recommended that this property be set. This allows the same state that is described above to also be replicated across the cluster. If this property is set, then
- * on restart the Processor will not begin listing until it has retrieved an updated state from this service, as it does not know whether or not another node has
- * modified the state in the mean time.
+ * NOTE: This processor performs migrations of legacy state mechanisms inclusive of locally stored, file-based state and the optional utilization of the <code>Distributed Cache
+ * Service</code> property to the new {@link StateManager} functionality. Upon successful migration, the associated data from one or both of the legacy mechanisms is purged.
  * </p>
- *
  * <p>
  * For each new entity that is listed, the Processor will send a FlowFile to the 'success' relationship. The FlowFile will have no content but will have some set
  * of attributes (defined by the concrete implementation) that can be used to fetch those remote resources or interact with them in whatever way makes sense for
  * the configured dataflow.
  * </p>
- *
  * <p>
  * Subclasses are responsible for the following:
  * </p>
- *
  * <ul>
  * <li>
  * Perform a listing of remote resources. The subclass will implement the {@link #performListing(ProcessContext, Long)} method, which creates a listing of all
@@ -141,9 +126,10 @@ import org.codehaus.jackson.map.ObjectMapper;
  * </ul>
  */
 @TriggerSerially
-@Stateful(scopes={Scope.LOCAL, Scope.CLUSTER}, description="After a listing of resources is performed, the latest timestamp of any of the resources is stored in the component's state, "
-    + "along with all resources that have that same timestmap so that the Processor can avoid data duplication. The scope used depends on the implementation.")
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "After a listing of resources is performed, the latest timestamp of any of the resources is stored in the component's state. "
+    + "The scope used depends on the implementation.")
 public abstract class AbstractListProcessor<T extends ListableEntity> extends AbstractProcessor {
+
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
         .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from the remote server so that if a new node "
@@ -153,21 +139,25 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         .identifiesControllerService(DistributedMapCacheClient.class)
         .build();
 
-
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("All FlowFiles that are received are routed to success")
         .build();
 
-
-    private volatile Set<String> latestIdentifiersListed = new HashSet<>();
     private volatile Long lastListingTime = null;
+    private volatile Long lastProcessedTime = 0L;
+    private volatile Long lastRunTime = 0L;
     private volatile boolean justElectedPrimaryNode = false;
-    private volatile boolean resetListing = false;
+    private volatile boolean resetState = false;
 
-    static final String TIMESTAMP = "timestamp";
-    static final String IDENTIFIER_PREFIX = "id";
+    /*
+     * A constant used in determining an internal "yield" of processing files. Given the logic to provide a pause on the newest
+     * files according to timestamp, it is ensured that at least the specified millis has been eclipsed to avoid getting scheduled
+     * near instantaneously after the prior iteration effectively voiding the built in buffer
+     */
+    static final long LISTING_LAG_MILLIS = 100L;
+    static final String LISTING_TIMESTAMP_KEY = "listing.timestamp";
+    static final String PROCESSED_TIMESTAMP_KEY = "processed.timestamp";
 
     protected File getPersistenceFile() {
         return new File("conf/state/" + getIdentifier());
@@ -183,11 +173,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (isConfigurationRestored() && isListingResetNecessary(descriptor)) {
-            lastListingTime = null; // clear lastListingTime so that we have to fetch new time
-            latestIdentifiersListed = new HashSet<>();
-            resetListing = true;
+            resetTimeStates(); // clear lastListingTime so that we have to fetch new time
+            resetState = true;
         }
     }
+
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -218,49 +208,53 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
         }
 
-        // remove entry from Distributed cache server
-        if (client != null) {
-            try {
-                client.remove(path, new StringSerDe());
-            } catch (final IOException ioe) {
-                getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
-                    + "State Management service, so the Distributed Cache Service is no longer needed.");
-            }
+        // When scheduled to run, check if the associated timestamp is null, signifying a clearing of state and reset the internal timestamp
+        if (lastListingTime != null && stateMap.get(LISTING_TIMESTAMP_KEY) == null) {
+            getLogger().info("Detected that state was cleared for this component.  Resetting internal values.");
+            resetTimeStates();
         }
 
-        if (resetListing) {
+        if (resetState) {
             context.getStateManager().clear(getStateScope(context));
-            resetListing = false;
+            resetState = false;
         }
     }
 
     /**
      * This processor used to use the DistributedMapCacheClient in order to store cluster-wide state, before the introduction of
      * the StateManager. This method will migrate state from that DistributedMapCacheClient, or from a local file, to the StateManager,
-     * if any state already exists
+     * if any state already exists. More specifically, this will extract out the relevant timestamp for when the processor last ran
      *
-     * @param path the path to migrate state for
-     * @param client the DistributedMapCacheClient that is capable of obtaining the current state
+     * @param path         the path to migrate state for
+     * @param client       the DistributedMapCacheClient that is capable of obtaining the current state
      * @param stateManager the StateManager to use in order to store the new state
-     * @param scope the scope to use
+     * @param scope        the scope to use
      * @throws IOException if unable to retrieve or store the state
      */
     private void migrateState(final String path, final DistributedMapCacheClient client, final StateManager stateManager, final Scope scope) throws IOException {
         Long minTimestamp = null;
-        final Set<String> latestIdentifiersListed = new HashSet<>();
 
-        // Retrieve state from Distributed Cache Client
+        // Retrieve state from Distributed Cache Client, establishing the latest file seen
         if (client != null) {
             final StringSerDe serde = new StringSerDe();
             final String serializedState = client.get(getKey(path), serde, serde);
             if (serializedState != null && !serializedState.isEmpty()) {
                 final EntityListing listing = deserialize(serializedState);
                 minTimestamp = listing.getLatestTimestamp().getTime();
-                latestIdentifiersListed.addAll(listing.getMatchingIdentifiers());
+            }
+
+            // remove entry from distributed cache server
+            if (client != null) {
+                try {
+                    client.remove(path, new StringSerDe());
+                } catch (final IOException ioe) {
+                    getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
+                        + "State Management service, so the Distributed Cache Service is no longer needed.");
+                }
             }
         }
 
-        // Retrieve state from locally persisted file
+        // Retrieve state from locally persisted file, and compare these to the minTimestamp established from the distributedCache, if there was one
         final File persistenceFile = getPersistenceFile();
         if (persistenceFile.exists()) {
             final Properties props = new Properties();
@@ -273,10 +267,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             if (locallyPersistedValue != null) {
                 final EntityListing listing = deserialize(locallyPersistedValue);
                 final long localTimestamp = listing.getLatestTimestamp().getTime();
+                // if the local file's latest timestamp is beyond that of the value provided from the cache, replace
                 if (minTimestamp == null || localTimestamp > minTimestamp) {
                     minTimestamp = localTimestamp;
-                    latestIdentifiersListed.clear();
-                    latestIdentifiersListed.addAll(listing.getMatchingIdentifiers());
                 }
             }
 
@@ -287,18 +280,14 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (minTimestamp != null) {
-            persist(minTimestamp, latestIdentifiersListed, stateManager, scope);
+            persist(minTimestamp, minTimestamp, stateManager, scope);
         }
     }
 
-    private void persist(final long timestamp, final Collection<String> identifiers, final StateManager stateManager, final Scope scope) throws IOException {
-        final Map<String, String> updatedState = new HashMap<>(identifiers.size() + 1);
-        updatedState.put(TIMESTAMP, String.valueOf(timestamp));
-        int counter = 0;
-        for (final String identifier : identifiers) {
-            final String index = String.valueOf(++counter);
-            updatedState.put(IDENTIFIER_PREFIX + "." + index, identifier);
-        }
+    private void persist(final long listingTimestamp, final long processedTimestamp, final StateManager stateManager, final Scope scope) throws IOException {
+        final Map<String, String> updatedState = new HashMap<>(1);
+        updatedState.put(LISTING_TIMESTAMP_KEY, String.valueOf(listingTimestamp));
+        updatedState.put(PROCESSED_TIMESTAMP_KEY, String.valueOf(processedTimestamp));
         stateManager.setState(updatedState, scope);
     }
 
@@ -316,41 +305,38 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         Long minTimestamp = lastListingTime;
-        try {
-            // We need to fetch the state from the cluster if we don't yet know the last listing time,
-            // or if we were just elected the primary node
-            if (this.lastListingTime == null || justElectedPrimaryNode) {
+
+        if (this.lastListingTime == null || this.lastProcessedTime == null || justElectedPrimaryNode) {
+            try {
+                // Attempt to retrieve state from the state manager if a last listing was not yet established or
+                // if just elected the primary node
                 final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
-                final Map<String, String> stateValues = stateMap.toMap();
-                final String timestamp = stateValues.get(TIMESTAMP);
-
-                if (timestamp == null) {
-                    minTimestamp = 0L;
-                    latestIdentifiersListed.clear();
-                } else {
-                    minTimestamp = this.lastListingTime = Long.parseLong(timestamp);
-                    latestIdentifiersListed.clear();
-                    for (final Map.Entry<String, String> entry : stateValues.entrySet()) {
-                        final String key = entry.getKey();
-                        final String value = entry.getValue();
-                        if (TIMESTAMP.equals(key)) {
-                            continue;
-                        }
-
-                        latestIdentifiersListed.add(value);
+                final String listingTimestampString = stateMap.get(LISTING_TIMESTAMP_KEY);
+                final String lastProcessedString= stateMap.get(PROCESSED_TIMESTAMP_KEY);
+                if (lastProcessedString != null) {
+                    this.lastProcessedTime = Long.parseLong(lastProcessedString);
+                }
+                if (listingTimestampString != null) {
+                    minTimestamp = Long.parseLong(listingTimestampString);
+                    // If our determined timestamp is the same as that of our last listing, skip this execution as there are no updates
+                    if (minTimestamp == this.lastListingTime) {
+                        context.yield();
+                        return;
+                    } else {
+                        this.lastListingTime = minTimestamp;
                     }
                 }
-
                 justElectedPrimaryNode = false;
+            } catch (final IOException ioe) {
+                getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
+                context.yield();
+                return;
             }
-        } catch (final IOException ioe) {
-            getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
-            context.yield();
-            return;
         }
 
         final List<T> entityList;
         try {
+            // track of when this last executed for consideration of the lag millis
             entityList = performListing(context, minTimestamp);
         } catch (final IOException e) {
             getLogger().error("Failed to perform listing on remote host due to {}", e);
@@ -358,65 +344,93 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             return;
         }
 
-        if (entityList == null) {
+        if (entityList == null || entityList.isEmpty()) {
             context.yield();
             return;
         }
 
         Long latestListingTimestamp = null;
-        final List<T> newEntries = new ArrayList<>();
+        final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>();
+
+        // Build a sorted map to determine the latest possible entries
         for (final T entity : entityList) {
-            final boolean newTimestamp = minTimestamp == null || entity.getTimestamp() > minTimestamp;
-            final boolean newEntryForTimestamp = minTimestamp != null && entity.getTimestamp() == minTimestamp && !latestIdentifiersListed.contains(entity.getIdentifier());
-            final boolean list = newTimestamp || newEntryForTimestamp;
+            final long entityTimestamp = entity.getTimestamp();
+            // New entries are all those that occur at or after the associated timestamp
+            final boolean newEntry = minTimestamp == null || entityTimestamp >= minTimestamp && entityTimestamp > lastProcessedTime;
 
-            // Create the FlowFile for this path.
-            if (list) {
-                final Map<String, String> attributes = createAttributes(entity, context);
-                FlowFile flowFile = session.create();
-                flowFile = session.putAllAttributes(flowFile, attributes);
-                session.transfer(flowFile, REL_SUCCESS);
-
-                // If we don't have a new timestamp but just have a new entry, we need to
-                // add all of the previous entries to our entityList. If we have a new timestamp,
-                // then the previous entries can go away.
-                if (!newTimestamp) {
-                    newEntries.addAll(entityList);
+            if (newEntry) {
+                List<T> entitiesForTimestamp = orderedEntries.get(entity.getTimestamp());
+                if (entitiesForTimestamp == null) {
+                    entitiesForTimestamp = new ArrayList<T>();
+                    orderedEntries.put(entity.getTimestamp(), entitiesForTimestamp);
                 }
-                newEntries.add(entity);
+                entitiesForTimestamp.add(entity);
+            }
+        }
 
-                if (latestListingTimestamp == null || entity.getTimestamp() > latestListingTimestamp) {
-                    latestListingTimestamp = entity.getTimestamp();
+        int flowfilesCreated = 0;
+
+        if (orderedEntries.size() > 0) {
+            latestListingTimestamp = orderedEntries.lastKey();
+
+            // If the last listing time is equal to the newest entries previously seen,
+            // another iteration has occurred without new files and special handling is needed to avoid starvation
+            if (latestListingTimestamp.equals(lastListingTime)) {
+                /* We are done when either:
+                 *   - the latest listing timestamp is If we have not eclipsed the minimal listing lag needed due to being triggered too soon after the last run
+                 *   - the latest listing timestamp is equal to the last processed time, meaning we handled those items originally passed over
+                 */
+                if (System.currentTimeMillis() - lastRunTime < LISTING_LAG_MILLIS || latestListingTimestamp.equals(lastProcessedTime)) {
+                    context.yield();
+                    return;
+                }
+            } else {
+                // Otherwise, newest entries are held back one cycle to avoid issues in writes occurring exactly when the listing is being performed to avoid missing data
+                orderedEntries.remove(latestListingTimestamp);
+            }
+
+            for (List<T> timestampEntities : orderedEntries.values()) {
+                for (T entity : timestampEntities) {
+                    // Create the FlowFile for this path.
+                    final Map<String, String> attributes = createAttributes(entity, context);
+                    FlowFile flowFile = session.create();
+                    flowFile = session.putAllAttributes(flowFile, attributes);
+                    session.transfer(flowFile, REL_SUCCESS);
+                    flowfilesCreated++;
                 }
             }
         }
 
-        final int listCount = newEntries.size();
-        if (listCount > 0) {
-            getLogger().info("Successfully created listing with {} new objects", new Object[] {listCount});
-            session.commit();
-
-            // We have performed a listing and pushed the FlowFiles out.
-            // Now, we need to persist state about the Last Modified timestamp of the newest file
-            // that we pulled in. We do this in order to avoid pulling in the same file twice.
-            // However, we want to save the state both locally and remotely.
-            // We store the state remotely so that if a new Primary Node is chosen, it can pick up where the
-            // previously Primary Node left off.
-            // We also store the state locally so that if the node is restarted, and the node cannot contact
-            // the distributed state cache, the node can continue to run (if it is primary node).
-            final Set<String> identifiers = new HashSet<>(newEntries.size());
-            try {
-                for (final T entity : newEntries) {
-                    identifiers.add(entity.getIdentifier());
-                }
-                persist(latestListingTimestamp, identifiers, context.getStateManager(), getStateScope(context));
-            } catch (final IOException ioe) {
-                getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
-                    + "if another node begins executing this Processor, data duplication may occur.", ioe);
+        // As long as we have a listing timestamp, there is meaningful state to capture regardless of any outputs generated
+        if (latestListingTimestamp != null) {
+            boolean processedNewFiles = flowfilesCreated > 0;
+            if (processedNewFiles) {
+                // If there have been files created, update the last timestamp we processed
+                lastProcessedTime = orderedEntries.lastKey();
+                getLogger().info("Successfully created listing with {} new objects", new Object[]{flowfilesCreated});
+                session.commit();
             }
 
-            lastListingTime = latestListingTimestamp;
-            latestIdentifiersListed = identifiers;
+            lastRunTime = System.currentTimeMillis();
+
+            if (!latestListingTimestamp.equals(lastListingTime) || processedNewFiles) {
+                // We have performed a listing and pushed any FlowFiles out that may have been generated
+                // Now, we need to persist state about the Last Modified timestamp of the newest file
+                // that we evaluated. We do this in order to avoid pulling in the same file twice.
+                // However, we want to save the state both locally and remotely.
+                // We store the state remotely so that if a new Primary Node is chosen, it can pick up where the
+                // previously Primary Node left off.
+                // We also store the state locally so that if the node is restarted, and the node cannot contact
+                // the distributed state cache, the node can continue to run (if it is primary node).
+                try {
+                    lastListingTime = latestListingTimestamp;
+                    persist(latestListingTimestamp, lastProcessedTime, context.getStateManager(), getStateScope(context));
+                } catch (final IOException ioe) {
+                    getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
+                        + "if another node begins executing this Processor, data duplication may occur.", ioe);
+                }
+            }
+
         } else {
             getLogger().debug("There is no data to list. Yielding.");
             context.yield();
@@ -430,13 +444,18 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
     }
 
+    private void resetTimeStates() {
+        lastListingTime = null;
+        lastProcessedTime = 0L;
+        lastRunTime = 0L;
+    }
 
     /**
      * Creates a Map of attributes that should be applied to the FlowFile to represent this entity. This processor will emit a FlowFile for each "new" entity
      * (see the documentation for this class for a discussion of how this class determines whether or not an entity is "new"). The FlowFile will contain no
      * content. The attributes that will be included are exactly the attributes that are returned by this method.
      *
-     * @param entity the entity represented by the FlowFile
+     * @param entity  the entity represented by the FlowFile
      * @param context the ProcessContext for obtaining configuration information
      * @return a Map of attributes for this entity
      */
@@ -460,9 +479,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * will be filtered out by the Processor. Therefore, it is not necessary that implementations perform this filtering but can be more efficient
      * if the filtering can be performed on the server side prior to retrieving the information.
      *
-     * @param context the ProcessContex to use in order to pull the appropriate entities
+     * @param context      the ProcessContex to use in order to pull the appropriate entities
      * @param minTimestamp the minimum timestamp of entities that should be returned.
-     *
      * @return a Listing of entities that have a timestamp >= minTimestamp
      */
     protected abstract List<T> performListing(final ProcessContext context, final Long minTimestamp) throws IOException;
