@@ -282,8 +282,8 @@ public class SnippetResource extends ApplicationResource {
     @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-            value = "Gets a reporting task property descriptor",
-            response = PropertyDescriptorEntity.class,
+            value = "Creates a snippet",
+            response = SnippetEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
