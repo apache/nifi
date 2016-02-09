@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -55,54 +54,57 @@ public class TestAbstractListProcessor {
     public final TemporaryFolder testFolder = new TemporaryFolder();
 
     @Test
-    public void testOnlyNewEntriesEmitted() {
+    public void testOnlyNewEntriesEmitted() throws Exception {
         final ConcreteListProcessor proc = new ConcreteListProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.run();
 
+        final long initialTimestamp = System.currentTimeMillis();
+
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
-        proc.addEntity("name", "id", 1492L);
+        proc.addEntity("name", "id", initialTimestamp);
+        proc.addEntity("name", "id2", initialTimestamp);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
-        runner.clearTransferState();
-
-        proc.addEntity("name", "id2", 1492L);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
-        runner.clearTransferState();
-
-        proc.addEntity("name", "id2", 1492L);
-        runner.run();
+        // First run, the above listed entries would be skipped to avoid write synchronization issues
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        proc.addEntity("name", "id3", 1491L);
+        // Ensure we have covered the necessary lag period to avoid issues where the processor was immediately scheduled to run again
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        // Running again, our two previously seen files are now cleared to be released
         runner.run();
-        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
         runner.clearTransferState();
 
-        proc.addEntity("name", "id2", 1492L);
+        // Verify no new old files show up
+        proc.addEntity("name", "id2", initialTimestamp);
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        proc.addEntity("name", "id2", 1493L);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
-        runner.clearTransferState();
-
-        proc.addEntity("name", "id2", 1493L);
+        proc.addEntity("name", "id3", initialTimestamp - 1);
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        proc.addEntity("name", "id2", 1493L);
+        proc.addEntity("name", "id2", initialTimestamp);
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        proc.addEntity("name", "id", 1494L);
+        // Now a new file beyond the current time enters
+        proc.addEntity("name", "id2", initialTimestamp + 1);
+
+        // Nothing occurs for the first iteration as it is withheld
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        // But it should now show up that the appropriate pause has been eclipsed
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
         runner.clearTransferState();
@@ -123,8 +125,8 @@ public class TestAbstractListProcessor {
         runner.run();
 
         final Map<String, String> expectedState = new HashMap<>();
-        expectedState.put(AbstractListProcessor.TIMESTAMP, "1492");
-        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", "id");
+        // Ensure only timestamp is migrated
+        expectedState.put(AbstractListProcessor.TIMESTAMP_KEY, "1492");
         runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
     }
 
@@ -145,8 +147,8 @@ public class TestAbstractListProcessor {
 
         final MockStateManager stateManager = runner.getStateManager();
         final Map<String, String> expectedState = new HashMap<>();
-        expectedState.put(AbstractListProcessor.TIMESTAMP, "1492");
-        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", "id");
+        // Ensure only timestamp is migrated
+        expectedState.put(AbstractListProcessor.TIMESTAMP_KEY, "1492");
         stateManager.assertStateEquals(expectedState, Scope.CLUSTER);
     }
 
@@ -188,10 +190,55 @@ public class TestAbstractListProcessor {
 
         // Verify the state manager now maintains the associated state
         final Map<String, String> expectedState = new HashMap<>();
-        expectedState.put(AbstractListProcessor.TIMESTAMP, "1492");
-        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", "id");
-
+        // Ensure only timestamp is migrated
+        expectedState.put(AbstractListProcessor.TIMESTAMP_KEY, "1492");
         runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
+    }
+
+    @Test
+    public void testResumeListingAfterClearingState() throws Exception {
+        final ConcreteListProcessor proc = new ConcreteListProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+
+        final long initialEventTimestamp = System.currentTimeMillis();
+        proc.addEntity("name", "id", initialEventTimestamp);
+        proc.addEntity("name", "id2", initialEventTimestamp);
+
+        // Add entities but these should not be transferred as they are the latest values
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+
+        // after providing a pause in listings, the files should now  transfer
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
+        runner.clearTransferState();
+
+        // Verify entities are not transferred again for the given state
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        // Clear state for this processor, eradicating timestamp
+        runner.getStateManager().clear(Scope.CLUSTER);
+        Assert.assertEquals("State is not empty for this component after clearing", 0, runner.getStateManager().getState(Scope.CLUSTER).toMap().size());
+
+
+        // As before, we are unsure of when these files were delivered relative to system time, and additional cycle(s) need to occur before transfer
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        // Ensure the original files are now transferred again.
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
+        runner.clearTransferState();
     }
 
     @Test
@@ -209,14 +256,22 @@ public class TestAbstractListProcessor {
     }
 
     @Test
-    public void testOnlyNewStateStored() throws IOException {
+    public void testOnlyNewStateStored() throws Exception {
         final ConcreteListProcessor proc = new ConcreteListProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.run();
 
+        final long initialTimestamp = System.currentTimeMillis();
+
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
-        proc.addEntity("name", "id", 1492L);
-        proc.addEntity("name", "id2", 1492L);
+        proc.addEntity("name", "id", initialTimestamp);
+        proc.addEntity("name", "id2", initialTimestamp);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
@@ -226,22 +281,30 @@ public class TestAbstractListProcessor {
         assertEquals(1, stateMap.getVersion());
 
         final Map<String, String> map = stateMap.toMap();
-        assertEquals(3, map.size());
-        assertEquals("1492", map.get("timestamp"));
-        assertTrue(map.containsKey("id.1"));
-        assertTrue(map.containsKey("id.2"));
+        // Ensure only timestamp is migrated
+        assertEquals(1, map.size());
+        assertEquals(Long.toString(initialTimestamp), map.get("timestamp"));
 
-        proc.addEntity("new name", "new id", 1493L);
+        proc.addEntity("new name", "new id", initialTimestamp + 1);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
-        final StateMap updatedStateMap = runner.getStateManager().getState(Scope.CLUSTER);
+        // Verify that the new entry has not been emitted but it has triggered an updated state
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+
+        StateMap updatedStateMap = runner.getStateManager().getState(Scope.CLUSTER);
         assertEquals(2, updatedStateMap.getVersion());
 
         final Map<String, String> updatedValues = updatedStateMap.toMap();
-        assertEquals(2, updatedValues.size());
-        assertEquals("1493", updatedValues.get("timestamp"));
-        assertEquals("new id", updatedValues.get("id.1"));
+        assertEquals(1, updatedValues.size());
+        assertEquals(Long.toString(initialTimestamp + 1), updatedValues.get("timestamp"));
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
+
+        updatedStateMap = runner.getStateManager().getState(Scope.CLUSTER);
+        assertEquals(2, updatedStateMap.getVersion());
     }
 
 
