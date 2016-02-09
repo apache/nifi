@@ -28,6 +28,7 @@ import java.util.List;
 public class StateMapDTO {
 
     private String scope;
+    private int totalEntryCount;
     private List<StateEntryDTO> state;
 
     /**
@@ -42,6 +43,20 @@ public class StateMapDTO {
 
     public void setScope(String scope) {
         this.scope = scope;
+    }
+
+    /**
+     * @return The total number of state entries. When the state map is lengthy, only of portion of the entries are returned.
+     */
+    @ApiModelProperty(
+        value = "The total number of state entries. When the state map is lengthy, only of portion of the entries are returned."
+    )
+    public int getTotalEntryCount() {
+        return totalEntryCount;
+    }
+
+    public void setTotalEntryCount(int totalEntryCount) {
+        this.totalEntryCount = totalEntryCount;
     }
 
     /**

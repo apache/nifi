@@ -39,6 +39,15 @@
     Component state filter
 */
 
+#component-state-partial-results-container {
+    float: left;
+    color: #9f6000;
+    font-size: 9px;
+    font-weight: bold;
+    line-height: normal;
+    margin-top: 34px;
+}
+
 #component-state-filter-controls {
     float: right;
     margin-top: 10px;

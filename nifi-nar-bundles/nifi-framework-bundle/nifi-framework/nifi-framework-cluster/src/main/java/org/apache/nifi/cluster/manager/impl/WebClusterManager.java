@@ -151,6 +151,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
+import org.apache.nifi.controller.state.SortedStateUtils;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
@@ -2574,8 +2575,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     private void mergeComponentState(final ComponentStateDTO componentState, Map<NodeIdentifier, ComponentStateDTO> componentStateMap) {
-        final List<StateEntryDTO> localStateEntries = new ArrayList<>();
+        List<StateEntryDTO> localStateEntries = new ArrayList<>();
 
+        int totalStateEntries = 0;
         for (final Map.Entry<NodeIdentifier, ComponentStateDTO> nodeEntry : componentStateMap.entrySet()) {
             final ComponentStateDTO nodeComponentState = nodeEntry.getValue();
             final NodeIdentifier nodeId = nodeEntry.getKey();
@@ -2583,6 +2585,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
             final StateMapDTO nodeLocalStateMap = nodeComponentState.getLocalState();
             if (nodeLocalStateMap.getState() != null) {
+                totalStateEntries += nodeLocalStateMap.getTotalEntryCount();
+
                 for (final StateEntryDTO nodeStateEntry : nodeLocalStateMap.getState()) {
                     nodeStateEntry.setClusterNodeId(nodeId.getId());
                     nodeStateEntry.setClusterNodeAddress(nodeAddress);
@@ -2591,7 +2595,16 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             }
         }
 
+        // ensure appropriate sort
+        Collections.sort(localStateEntries, SortedStateUtils.getEntryDtoComparator());
+
+        // sublist if necessary
+        if (localStateEntries.size() > SortedStateUtils.MAX_COMPONENT_STATE_ENTRIES) {
+            localStateEntries = localStateEntries.subList(0, SortedStateUtils.MAX_COMPONENT_STATE_ENTRIES);
+        }
+
         // add all the local state entries
+        componentState.getLocalState().setTotalEntryCount(totalStateEntries);
         componentState.getLocalState().setState(localStateEntries);
     }
 

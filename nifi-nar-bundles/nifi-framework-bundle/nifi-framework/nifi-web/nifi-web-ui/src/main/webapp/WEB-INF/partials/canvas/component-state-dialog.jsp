@@ -29,13 +29,19 @@
                 <div id="component-state-description" class="ellipsis multiline"></div>
             </div>
         </div>
-        <div id="component-state-filter-controls">
-            <div id="component-state-filter-container">
-                <input type="text" id="component-state-filter"/>
+        <div>
+            <div id="component-state-partial-results-container" class="hidden">
+                Showing partial results
             </div>
-            <div id="component-state-filter-status">
-                Displaying&nbsp;<span id="displayed-component-state-entries"></span>&nbsp;of&nbsp;<span id="total-component-state-entries"></span>
+            <div id="component-state-filter-controls">
+                <div id="component-state-filter-container">
+                    <input type="text" id="component-state-filter"/>
+                </div>
+                <div id="component-state-filter-status">
+                    Displaying&nbsp;<span id="displayed-component-state-entries"></span>&nbsp;of&nbsp;<span id="total-component-state-entries"></span>
+                </div>
             </div>
+            <div class="clear"></div>
         </div>
         <div id="component-state-table"></div>
         <div id="clear-link-container">

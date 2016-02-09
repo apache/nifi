@@ -71,6 +71,7 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
+import org.apache.nifi.controller.state.SortedStateUtils;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -137,11 +138,13 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -319,14 +322,21 @@ public final class DtoFactory {
         final StateMapDTO dto = new StateMapDTO();
         dto.setScope(scope.toString());
 
-        final List<StateEntryDTO> stateEntries = new ArrayList<>();
+        final TreeMap<String, String> sortedState = new TreeMap(SortedStateUtils.getKeyComparator());
         final Map<String, String> state = stateMap.toMap();
-        for (final Map.Entry<String, String> entry : state.entrySet()) {
+        sortedState.putAll(state);
+
+        int count = 0;
+        final List<StateEntryDTO> stateEntries = new ArrayList<>();
+        final Set<Map.Entry<String, String>> entrySet = sortedState.entrySet();
+        for (final Iterator<Entry<String, String>> iter = entrySet.iterator(); iter.hasNext() && count++ < SortedStateUtils.MAX_COMPONENT_STATE_ENTRIES;) {
+            final Map.Entry<String, String> entry = iter.next();
             final StateEntryDTO entryDTO = new StateEntryDTO();
             entryDTO.setKey(entry.getKey());
             entryDTO.setValue(entry.getValue());
             stateEntries.add(entryDTO);
         }
+        dto.setTotalEntryCount(state.size());
         dto.setState(stateEntries);
 
         return dto;

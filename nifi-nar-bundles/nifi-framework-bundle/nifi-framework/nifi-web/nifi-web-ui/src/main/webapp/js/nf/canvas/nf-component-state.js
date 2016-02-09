@@ -121,6 +121,9 @@ nf.ComponentState = (function () {
         var componentStateData = componentStateGrid.getData();
         componentStateData.setItems([]);
 
+        // hide the partial results details message
+        $('#component-state-partial-results-container').hide();
+
         // clear the total number entries
         $('#displayed-component-state-entries').text('0');
         $('#total-component-state-entries').text('0');
@@ -133,6 +136,8 @@ nf.ComponentState = (function () {
      */
     var loadComponentState = function (localState, clusterState) {
         var count = 0;
+        var totalEntries = 0;
+        var showPartialDetails = false;
 
         var componentStateGrid = $('#component-state-table').data('gridInstance');
         var componentStateData = componentStateGrid.getData();
@@ -148,6 +153,11 @@ nf.ComponentState = (function () {
                     scope: stateEntry.clusterNodeAddress
                 }, stateEntry));
             });
+            totalEntries += localState.totalEntryCount;
+
+            if (nf.Common.isDefinedAndNotNull(localState.state) && localState.totalEntryCount !== localState.state.length) {
+                showPartialDetails = true;
+            }
         }
 
         if (nf.Common.isDefinedAndNotNull(clusterState)) {
@@ -157,14 +167,23 @@ nf.ComponentState = (function () {
                     scope: 'Cluster'
                 }, stateEntry));
             });
+            totalEntries += clusterState.totalEntryCount;
+
+            if (nf.Common.isDefinedAndNotNull(clusterState.state) && clusterState.totalEntryCount !== clusterState.state.length) {
+                showPartialDetails = true;
+            }
         }
 
         // complete the update
         componentStateData.endUpdate();
         componentStateData.reSort();
 
+        if (showPartialDetails) {
+            $('#component-state-partial-results-container').show();
+        }
+
         // update the total number of state entries
-        $('#total-component-state-entries').text(count);
+        $('#total-component-state-entries').text(nf.Common.formatInteger(totalEntries));
     };
 
     /**

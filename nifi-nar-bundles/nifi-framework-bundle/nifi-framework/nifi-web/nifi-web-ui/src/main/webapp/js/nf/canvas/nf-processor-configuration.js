@@ -590,14 +590,12 @@ nf.ProcessorConfiguration = (function () {
                 }
                 
                 // once everything is loaded, show the dialog
-                $.when.apply(window, requests).done(function (processorResponse, historyResponse, stateResponse) {
+                $.when.apply(window, requests).done(function (processorResponse, historyResponse) {
                     // get the updated processor
                     processor = processorResponse[0].processor;
                     
                     // get the processor history
                     var processorHistory = historyResponse[0].componentHistory;
-
-                    console.log(stateResponse);
 
                     // record the processor details
                     $('#processor-configuration').data('processorDetails', processor);
