@@ -154,7 +154,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     private volatile Long lastListingTime = null;
     private volatile Long lastProcessedTime = 0L;
-    private volatile Long lastRunTime = null;
+    private volatile Long lastRunTime = 0L;
     private volatile boolean justElectedPrimaryNode = false;
     private volatile boolean resetState = false;
 
@@ -164,7 +164,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * near instantaneously after the prior iteration effectively voiding the built in buffer
      */
     static final long LISTING_LAG_MILLIS = 100L;
-    static final String TIMESTAMP_KEY = "timestamp";
+    static final String LISTING_TIMESTAMP_KEY = "listing.timestamp";
+    static final String PROCESSED_TIMESTAMP_KEY = "processed.timestamp";
 
     protected File getPersistenceFile() {
         return new File("conf/state/" + getIdentifier());
@@ -216,7 +217,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         // When scheduled to run, check if the associated timestamp is null, signifying a clearing of state and reset the internal timestamp
-        if (lastListingTime != null && stateMap.get(TIMESTAMP_KEY) == null) {
+        if (lastListingTime != null && stateMap.get(LISTING_TIMESTAMP_KEY) == null) {
             getLogger().info("Detected that state was cleared for this component.  Resetting internal values.");
             resetTimeStates();
         }
@@ -287,13 +288,14 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (minTimestamp != null) {
-            persist(minTimestamp, stateManager, scope);
+            persist(minTimestamp, minTimestamp, stateManager, scope);
         }
     }
 
-    private void persist(final long timestamp, final StateManager stateManager, final Scope scope) throws IOException {
+    private void persist(final long listingTimestamp, final long processedTimestamp, final StateManager stateManager, final Scope scope) throws IOException {
         final Map<String, String> updatedState = new HashMap<>(1);
-        updatedState.put(TIMESTAMP_KEY, String.valueOf(timestamp));
+        updatedState.put(LISTING_TIMESTAMP_KEY, String.valueOf(listingTimestamp));
+        updatedState.put(PROCESSED_TIMESTAMP_KEY, String.valueOf(processedTimestamp));
         stateManager.setState(updatedState, scope);
     }
 
@@ -312,14 +314,18 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         Long minTimestamp = lastListingTime;
 
-        if (this.lastListingTime == null || justElectedPrimaryNode) {
+        if (this.lastListingTime == null || this.lastProcessedTime == null || justElectedPrimaryNode) {
             try {
                 // Attempt to retrieve state from the state manager if a last listing was not yet established or
                 // if just elected the primary node
                 final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
-                final String timestampString = stateMap.get(TIMESTAMP_KEY);
-                if (timestampString != null) {
-                    minTimestamp = Long.parseLong(timestampString);
+                final String listingTimestampString = stateMap.get(LISTING_TIMESTAMP_KEY);
+                final String lastProcessedString= stateMap.get(PROCESSED_TIMESTAMP_KEY);
+                if (lastProcessedString != null) {
+                    this.lastProcessedTime = Long.parseLong(lastProcessedString);
+                }
+                if (listingTimestampString != null) {
+                    minTimestamp = Long.parseLong(listingTimestampString);
                     // If our determined timestamp is the same as that of our last listing, skip this execution as there are no updates
                     if (minTimestamp == this.lastListingTime) {
                         context.yield();
@@ -378,10 +384,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             // If the last listing time is equal to the newest entries previously seen,
             // another iteration has occurred without new files and special handling is needed to avoid starvation
             if (latestListingTimestamp.equals(lastListingTime)) {
-            /* We are done when either:
-             *   - the latest listing timestamp is If we have not eclipsed the minimal listing lag needed due to being triggered too soon after the last run
-             *   - the latest listing timestamp is equal to the last processed time, meaning we handled those items originally passed over
-             */
+                /* We are done when either:
+                 *   - the latest listing timestamp is If we have not eclipsed the minimal listing lag needed due to being triggered too soon after the last run
+                 *   - the latest listing timestamp is equal to the last processed time, meaning we handled those items originally passed over
+                 */
                 if (System.currentTimeMillis() - lastRunTime < LISTING_LAG_MILLIS || latestListingTimestamp.equals(lastProcessedTime)) {
                     context.yield();
                     return;
@@ -405,7 +411,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         // As long as we have a listing timestamp, there is meaningful state to capture regardless of any outputs generated
         if (latestListingTimestamp != null) {
-            if (flowfilesCreated > 0) {
+            boolean processedNewFiles = flowfilesCreated > 0;
+            if (processedNewFiles) {
                 // If there have been files created, update the last timestamp we processed
                 lastProcessedTime = orderedEntries.lastKey();
                 getLogger().info("Successfully created listing with {} new objects", new Object[]{flowfilesCreated});
@@ -414,7 +421,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
             lastRunTime = System.currentTimeMillis();
 
-            if (!latestListingTimestamp.equals(lastListingTime)) {
+            if (!latestListingTimestamp.equals(lastListingTime) || processedNewFiles) {
                 // We have performed a listing and pushed any FlowFiles out that may have been generated
                 // Now, we need to persist state about the Last Modified timestamp of the newest file
                 // that we evaluated. We do this in order to avoid pulling in the same file twice.
@@ -425,7 +432,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 // the distributed state cache, the node can continue to run (if it is primary node).
                 try {
                     lastListingTime = latestListingTimestamp;
-                    persist(latestListingTimestamp, context.getStateManager(), getStateScope(context));
+                    persist(latestListingTimestamp, lastProcessedTime, context.getStateManager(), getStateScope(context));
                 } catch (final IOException ioe) {
                     getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
                         + "if another node begins executing this Processor, data duplication may occur.", ioe);
@@ -448,7 +455,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     private void resetTimeStates() {
         lastListingTime = null;
         lastProcessedTime = 0L;
-        lastRunTime = null;
+        lastRunTime = 0L;
     }
 
     /**
