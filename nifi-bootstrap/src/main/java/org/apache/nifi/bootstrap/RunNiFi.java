@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.bootstrap;
 
+import com.sun.tools.attach.AttachNotSupportedException;
+import com.sun.tools.attach.VirtualMachine;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,6 +44,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -157,7 +161,7 @@ public class RunNiFi {
         return Arrays.copyOfRange(orig, 1, orig.length);
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException, AttachNotSupportedException {
         if (args.length < 1 || args.length > 3) {
             printUsage();
             return;
@@ -186,6 +190,7 @@ public class RunNiFi {
             case "status":
             case "dump":
             case "restart":
+            case "env":
                 break;
             default:
                 printUsage();
@@ -214,6 +219,9 @@ public class RunNiFi {
                 break;
             case "dump":
                 runNiFi.dump(dumpFile);
+                break;
+            case "env":
+                runNiFi.env();
                 break;
         }
     }
@@ -544,6 +552,21 @@ public class RunNiFi {
         } else {
             logger.info("Apache NiFi is not running");
         }
+    }
+
+    public void env() throws AttachNotSupportedException, IOException{
+        final Logger logger = cmdLogger;
+        final Status status = getStatus(logger);
+        if(status.getPid() == null){
+            logger.info("Apache NiFi is not running");
+            return;
+        }
+        VirtualMachine vm= VirtualMachine.attach(status.getPid());
+        final Properties sysProps=vm.getSystemProperties();
+        for(Entry<Object, Object> syspropEntry: sysProps.entrySet()){
+            logger.info(syspropEntry.getKey().toString() + " = " +syspropEntry.getValue().toString());
+        }
+        vm.detach();
     }
 
     /**
