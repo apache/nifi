@@ -45,7 +45,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestListFile  {
+public class TestListFile {
 
     final String TESTDIR = "target/test/data/in";
     final File testDir = new File(TESTDIR);
@@ -112,9 +112,16 @@ public class TestListFile  {
         // process first file and set new timestamp
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.run();
+
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(1, successFiles.size());
+        final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles1.size());
 
         // create second file
         final File file2 = new File(TESTDIR + "/listing2.txt");
@@ -123,6 +130,12 @@ public class TestListFile  {
 
         // process second file after timestamp
         runner.clearTransferState();
+        runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -147,11 +160,18 @@ public class TestListFile  {
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(3, successFiles4.size());
+        assertEquals(2, successFiles4.size());
+
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 1);
     }
 
     @Test
-    public void testFilterAge() throws IOException {
+    public void testFilterAge() throws Exception {
         final File file1 = new File(TESTDIR + "/age1.txt");
         assertTrue(file1.createNewFile());
         assertTrue(file1.setLastModified(time0millis));
@@ -167,9 +187,15 @@ public class TestListFile  {
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 2);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(3, successFiles1.size());
+        assertEquals(1, successFiles1.size());
 
         // exclude oldest
         runner.clearTransferState();
@@ -178,7 +204,13 @@ public class TestListFile  {
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(2, successFiles2.size());
+        assertEquals(1, successFiles2.size());
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 1);
 
         // exclude newest
         runner.clearTransferState();
@@ -187,7 +219,7 @@ public class TestListFile  {
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(2, successFiles3.size());
+        assertEquals(1, successFiles3.size());
 
         // exclude oldest and newest
         runner.clearTransferState();
@@ -196,11 +228,18 @@ public class TestListFile  {
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(1, successFiles4.size());
+        assertEquals(0, successFiles4.size());
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 1);
     }
 
     @Test
-    public void testFilterSize() throws IOException {
+    public void testFilterSize() throws Exception {
         final byte[] bytes1000 = new byte[1000];
         final byte[] bytes5000 = new byte[5000];
         final byte[] bytes10000 = new byte[10000];
@@ -227,6 +266,13 @@ public class TestListFile  {
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(3, successFiles1.size());
@@ -238,6 +284,14 @@ public class TestListFile  {
         runner.setProperty(ListFile.MIN_SIZE, "0 b");
         runner.setProperty(ListFile.MAX_SIZE, "7500 b");
         runner.run();
+
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(2, successFiles2.size());
@@ -248,6 +302,12 @@ public class TestListFile  {
         runner.removeProperty(ListFile.MAX_AGE);
         runner.setProperty(ListFile.MIN_SIZE, "2500 b");
         runner.removeProperty(ListFile.MAX_SIZE);
+        runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -260,13 +320,20 @@ public class TestListFile  {
         runner.setProperty(ListFile.MIN_SIZE, "2500 b");
         runner.setProperty(ListFile.MAX_SIZE, "7500 b");
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles4.size());
     }
 
     @Test
-    public void testFilterHidden() throws IOException {
+    public void testFilterHidden() throws Exception {
         FileOutputStream fos;
 
         final File file1 = new File(TESTDIR + "/hidden1.txt");
@@ -293,6 +360,11 @@ public class TestListFile  {
         runner.removeProperty(ListFile.MAX_SIZE);
         runner.setProperty(ListFile.IGNORE_HIDDEN_FILES, "false");
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(2, successFiles1.size());
@@ -301,13 +373,18 @@ public class TestListFile  {
         runner.clearTransferState();
         runner.setProperty(ListFile.IGNORE_HIDDEN_FILES, "true");
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles2.size());
     }
 
     @Test
-    public void testFilterFilePattern() throws IOException {
+    public void testFilterFilePattern() throws Exception {
         final File file1 = new File(TESTDIR + "/file1-abc-apple.txt");
         assertTrue(file1.createNewFile());
 
@@ -325,6 +402,11 @@ public class TestListFile  {
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.setProperty(ListFile.FILE_FILTER, ListFile.FILE_FILTER.getDefaultValue());
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(4, successFiles1.size());
@@ -333,13 +415,18 @@ public class TestListFile  {
         runner.clearTransferState();
         runner.setProperty(ListFile.FILE_FILTER, ".*-xyz-.*");
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(2, successFiles2.size());
     }
 
     @Test
-    public void testFilterPathPattern() throws IOException {
+    public void testFilterPathPattern() throws Exception {
         final File subdir1 = new File(TESTDIR + "/subdir1");
         assertTrue(subdir1.mkdirs());
 
@@ -363,6 +450,11 @@ public class TestListFile  {
         runner.setProperty(ListFile.FILE_FILTER, ListFile.FILE_FILTER.getDefaultValue());
         runner.setProperty(ListFile.RECURSE, "true");
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(4, successFiles1.size());
@@ -371,6 +463,11 @@ public class TestListFile  {
         runner.clearTransferState();
         runner.setProperty(ListFile.PATH_FILTER, "subdir1");
         runner.setProperty(ListFile.RECURSE, "true");
+        runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -381,13 +478,18 @@ public class TestListFile  {
         runner.setProperty(ListFile.PATH_FILTER, "subdir2");
         runner.setProperty(ListFile.RECURSE, "true");
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles3.size());
     }
 
     @Test
-    public void testRecurse() throws IOException {
+    public void testRecurse() throws Exception {
         final File subdir1 = new File(TESTDIR + "/subdir1");
         assertTrue(subdir1.mkdirs());
 
@@ -407,6 +509,12 @@ public class TestListFile  {
         runner.clearTransferState();
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.setProperty(ListFile.RECURSE, "true");
+        runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
         runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS, 3);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -435,13 +543,21 @@ public class TestListFile  {
         runner.clearTransferState();
         runner.setProperty(ListFile.RECURSE, "false");
         runner.run();
+
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles2.size());
     }
 
     @Test
-    public void testReadable() throws IOException {
+    public void testReadable() throws Exception {
         final File file1 = new File(TESTDIR + "/file1.txt");
         assertTrue(file1.createNewFile());
 
@@ -456,13 +572,18 @@ public class TestListFile  {
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.setProperty(ListFile.RECURSE, "true");
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
-        final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(3, successFiles1.size());
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 3);
     }
 
     @Test
-    public void testAttributesSet() throws IOException {
+    public void testAttributesSet() throws Exception {
         // create temp file and time constant
         final File file1 = new File(TESTDIR + "/file1.txt");
         assertTrue(file1.createNewFile());
@@ -477,6 +598,13 @@ public class TestListFile  {
         runner.clearTransferState();
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        runner.run();
+
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles1.size());

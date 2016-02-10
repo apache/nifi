@@ -95,8 +95,8 @@ import org.apache.nifi.processors.standard.util.FileInfo;
                 "rw-rw-r--")
 })
 @SeeAlso({GetFile.class, PutFile.class, FetchFile.class})
-@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored, "
-    + "along with the filenames of all files that share that same timestamp. This allows the Processor to list only files that have been added or modified after "
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. "
+    + "This allows the Processor to list only files that have been added or modified after "
     + "this date the next time that the Processor is run. Whether the state is stored with a Local or Cluster scope depends on the value of the "
     + "<Input Directory Location> property.")
 public class ListFile extends AbstractListProcessor<FileInfo> {
