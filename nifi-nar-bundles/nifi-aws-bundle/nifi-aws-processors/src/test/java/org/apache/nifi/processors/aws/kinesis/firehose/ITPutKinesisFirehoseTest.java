@@ -27,6 +27,10 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+/**
+ * This
+ *
+ */
 public class ITPutKinesisFirehoseTest {
 
     private TestRunner runner;
@@ -104,6 +108,9 @@ public class ITPutKinesisFirehoseTest {
         runner.assertNotValid();
     }
 
+    /**
+     * Comment out ignore for integration tests (requires creds files)
+     */
     @Test
     @Ignore
     public void testIntegrationSuccess() throws Exception {
@@ -123,6 +130,9 @@ public class ITPutKinesisFirehoseTest {
         out.assertContentEquals("test".getBytes());
     }
 
+    /**
+     * Comment out ignore for integration tests (requires creds files)
+     */
     @Test
     @Ignore
     public void testIntegrationFailedBadStreamName() throws Exception {
