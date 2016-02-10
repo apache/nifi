@@ -118,6 +118,15 @@ locateJava() {
             fi
         fi
     fi
+    # if command is env, attempt to add more to the classpath
+    if [ "$1" = "env" ]; then
+        [ "x${TOOLS_JAR}" =  "x" ] && [ -n "${JAVA_HOME}" ] && TOOLS_JAR=$(find -H "${JAVA_HOME}" -name "tools.jar")
+        [ "x${TOOLS_JAR}" =  "x" ] && TOOLS_JAR=$(find -H "${JAVA_HOME}" -name "classes.jar")
+        if [ "x${TOOLS_JAR}" =  "x" ]; then
+             warn "Could not locate tools.jar or classes.jar. Please set manually to avail all command features."
+        fi
+    fi
+
 }
 
 init() {
@@ -128,7 +137,7 @@ init() {
     unlimitFD
 
     # Locate the Java VM to execute
-    locateJava
+    locateJava "$1"
 }
 
 
@@ -151,7 +160,9 @@ install() {
 
 
 run() {
-    BOOTSTRAP_CONF="${NIFI_HOME}/conf/bootstrap.conf";
+    BOOTSTRAP_CONF_DIR="${NIFI_HOME}/conf"
+    BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
+    BOOTSTRAP_LIBS="${NIFI_HOME}/lib/bootstrap/*"
 
     run_as=$(grep run.as "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
@@ -168,6 +179,12 @@ run() {
 
         NIFI_HOME=$(cygpath --path --windows "${NIFI_HOME}")
         BOOTSTRAP_CONF=$(cygpath --path --windows "${BOOTSTRAP_CONF}")
+        BOOTSTRAP_CONF_DIR=$(cygpath --path --windows "${BOOTSTRAP_CONF_DIR}")
+        BOOTSTRAP_LIBS=$(cygpath --path --windows "${BOOTSTRAP_LIBS}")
+        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR};${BOOTSTRAP_LIBS}"
+        if [ -n "${TOOLS_JAR}" ]; then
+            BOOTSTRAP_CLASSPATH="${TOOLS_JAR};${BOOTSTRAP_CLASSPATH}"
+        fi
     else
         if [ -n "${run_as}" ]; then
             if id -u "${run_as}" >/dev/null 2>&1; then
@@ -177,6 +194,10 @@ run() {
                 exit 1
             fi
         fi;
+        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR}:${BOOTSTRAP_LIBS}"
+        if [ -n "${TOOLS_JAR}" ]; then
+            BOOTSTRAP_CLASSPATH="${TOOLS_JAR}:${BOOTSTRAP_CLASSPATH}"
+        fi
     fi
 
     echo
@@ -189,9 +210,9 @@ run() {
     # run 'start' in the background because the process will continue to run, monitoring NiFi.
     # all other commands will terminate quickly so want to just wait for them
     if [ "$1" = "start" ]; then
-        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${NIFI_HOME}"/conf/:"${NIFI_HOME}"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@ &)
+        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${BOOTSTRAP_CLASSPATH}" -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@ &)
     else
-        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${NIFI_HOME}"/conf/:"${NIFI_HOME}"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@)
+        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${BOOTSTRAP_CLASSPATH}" -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@)
     fi
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
@@ -202,7 +223,7 @@ run() {
 }
 
 main() {
-    init
+    init "$1"
     run "$@"
 }
 
@@ -211,14 +232,14 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|status|dump)
+    start|stop|run|status|dump|env)
         main "$@"
         ;;
     restart)
         init
-	run "stop"
-	run "start"
-	;;
+    run "stop"
+    run "start"
+    ;;
     *)
         echo "Usage nifi {start|stop|run|restart|status|dump|install}"
         ;;
