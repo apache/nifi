@@ -30,6 +30,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -48,6 +50,10 @@ import com.amazonaws.services.kinesisfirehose.model.Record;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "firehose", "kinesis", "put", "stream"})
 @CapabilityDescription("Sends the contents to a specified Amazon Kinesis Firehose")
+@WritesAttributes({
+    @WritesAttribute(attribute = "aws.kinesis.firehose.error.message", description = "Error message on posting message to AWS Kinesis Firehose"),
+    @WritesAttribute(attribute = "aws.kinesis.firehose.error.code", description = "Error code for the message when posting to AWS Kinesis Firehose"),
+    @WritesAttribute(attribute = "aws.kinesis.firehose.record.id", description = "Record id of the message posted to Kinesis Firehose")})
 public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
 
     /**
