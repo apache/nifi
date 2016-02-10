@@ -22,8 +22,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -37,6 +40,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResponseEntry;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 
 @SupportsBatching
@@ -44,6 +49,21 @@ import com.amazonaws.services.kinesisfirehose.model.Record;
 @Tags({"amazon", "aws", "firehose", "kinesis", "put", "stream"})
 @CapabilityDescription("Sends the contents to a specified Amazon Kinesis Firehose")
 public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
+
+    /**
+     * Kinesis put record response error message
+     */
+    public static final String AWS_KINESIS_FIREHOSE_ERROR_MESSAGE = "aws.kinesis.firehose.error.message";
+
+    /**
+     * Kinesis put record response error code
+     */
+    public static final String AWS_KINESIS_FIREHOSE_ERROR_CODE = "aws.kinesis.firehose.error.code";
+
+    /**
+     * Kinesis put record response record id
+     */
+    public static final String AWS_KINESIS_FIREHOSE_RECORD_ID = "aws.kinesis.firehose.record.id";
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, MAX_BUFFER_INTERVAL,
@@ -58,8 +78,8 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
-
         final boolean batchSizeSet = validationContext.getProperty(BATCH_SIZE).isSet();
+
         if ( batchSizeSet) {
            int batchSize = validationContext.getProperty(BATCH_SIZE).asInteger();
            if ( batchSize < 1 || batchSize > 500 ) {
@@ -83,13 +103,13 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
                 problems.add(new ValidationResult.Builder().input("Max Buffer Size").valid(false).explanation("Max Buffer Size must be between 1 and 128 (mb) but was " + maxBufferSize).build());
            }
         }
-
         return problems;
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+
         List<FlowFile> flowFiles = session.get(batchSize);
         if (flowFiles == null || flowFiles.size() == 0) {
             return;
@@ -112,10 +132,41 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
             PutRecordBatchRequest putRecordBatchRequest = new PutRecordBatchRequest();
             putRecordBatchRequest.setDeliveryStreamName(firehoseStreamName);
             putRecordBatchRequest.setRecords(records);
-            client.putRecordBatch(putRecordBatchRequest);
+            PutRecordBatchResult results = client.putRecordBatch(putRecordBatchRequest);
+
+            // Separate out the successful and failed flow files
+            List<PutRecordBatchResponseEntry> responseEntries = results.getRequestResponses();
+            List<FlowFile> failedFlowFiles = new ArrayList<>();
+            List<FlowFile> successfulFlowFiles = new ArrayList<>();
+            for (int i = 0; i < responseEntries.size(); i++ ) {
+                PutRecordBatchResponseEntry entry = responseEntries.get(i);
+                FlowFile flowFile = flowFiles.get(i);
+
+                Map<String,String> attributes = new HashMap<>();
+                attributes.put(AWS_KINESIS_FIREHOSE_RECORD_ID, entry.getRecordId());
+                flowFile = session.putAttribute(flowFile, AWS_KINESIS_FIREHOSE_RECORD_ID, entry.getRecordId());
+                if ( ! StringUtils.isBlank(entry.getErrorCode()) ) {
+                    attributes.put(AWS_KINESIS_FIREHOSE_ERROR_CODE, entry.getErrorCode());
+                    attributes.put(AWS_KINESIS_FIREHOSE_ERROR_MESSAGE, entry.getErrorMessage());
+                    flowFile = session.putAllAttributes(flowFile, attributes);
+                    failedFlowFiles.add(flowFile);
+                } else {
+                    flowFile = session.putAllAttributes(flowFile, attributes);
+                    successfulFlowFiles.add(flowFile);
+                }
+            }
+
+            if ( failedFlowFiles.size() > 0 ) {
+                session.transfer(failedFlowFiles, REL_FAILURE);
+                getLogger().error("Failed to publish to kinesis firehose {} records {}", new Object[]{firehoseStreamName, failedFlowFiles});
+            }
+
+            if ( successfulFlowFiles.size() > 0 ) {
+                session.transfer(successfulFlowFiles, REL_SUCCESS);
+                getLogger().info("Successfully published to kinesis firehose {} records {}", new Object[]{firehoseStreamName, successfulFlowFiles});
+            }
+
             records.clear();
-            session.transfer(flowFiles, REL_SUCCESS);
-            getLogger().info("Successfully published to kinesis firehose {}", new Object[]{firehoseStreamName});
         } catch (final Exception exception) {
             getLogger().error("Failed to publish to kinesis firehose {} with exception {}", new Object[]{flowFiles, exception});
             session.transfer(flowFiles, REL_FAILURE);
