@@ -182,7 +182,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
         final boolean proxyHostPortSet = validationContext.getProperty(PROXY_HOST_PORT).isSet();
-        if (proxyHostSet ^ proxyHostPortSet ) {
+        if ((proxyHostSet && !proxyHostPortSet) || (!proxyHostSet && proxyHostPortSet) ) {
             problems.add(new ValidationResult.Builder().input("Proxy Host Port").valid(false).explanation("Both proxy host and port must be set").build());
         }
 
