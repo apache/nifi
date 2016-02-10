@@ -28,8 +28,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * This
- *
+ * This test contains both unit and integration test (integration tests are ignored by default)
  */
 public class ITPutKinesisFirehoseTest {
 
