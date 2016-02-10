@@ -26,6 +26,9 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
 
+/**
+ * This class provides processor the base class for kinesis firehose
+ */
 public abstract class AbstractKinesisFirehoseProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonKinesisFirehoseClient> {
 
     public static final PropertyDescriptor KINESIS_FIREHOSE_DELIVERY_STREAM_NAME = new PropertyDescriptor.Builder()
@@ -68,6 +71,7 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractAWSCreden
     @Override
     protected AmazonKinesisFirehoseClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials provider");
+
         return new AmazonKinesisFirehoseClient(credentialsProvider, config);
     }
 
@@ -79,6 +83,7 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractAWSCreden
     @Override
     protected AmazonKinesisFirehoseClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials");
+
         return new AmazonKinesisFirehoseClient(credentials, config);
     }
 }
