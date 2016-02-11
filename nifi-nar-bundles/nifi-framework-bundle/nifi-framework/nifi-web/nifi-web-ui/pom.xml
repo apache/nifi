@@ -618,6 +618,8 @@
                                 js/jquery/**/*,
                                 js/nf/nf-namespace.js,
                                 js/nf/nf-namespace.js.gz,
+                                js/nf/nf-universal-capture.js,
+                                js/nf/nf-universal-capture.js.gz,
                                 js/nf/nf-status-history.js,
                                 js/nf/nf-status-history.js.gz,
                                 js/nf/canvas/nf-canvas-all.js,
