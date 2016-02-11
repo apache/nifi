@@ -19,18 +19,18 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-azure-bundle</artifactId>
-        <version>0.5.0-SNAPSHOT</version>
+        <version>0.5.0</version>
     </parent>
 
     <artifactId>nifi-azure-nar</artifactId>
-    <version>0.5.0-SNAPSHOT</version>
+    <version>0.5.0</version>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-azure-processors</artifactId>
-            <version>0.5.0-SNAPSHOT</version>
+            <version>0.5.0</version>
         </dependency>
     </dependencies>
 
