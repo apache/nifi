@@ -41,9 +41,17 @@ public final class Relationship implements Comparable<Relationship> {
      */
     private final int hashCode;
 
+    /**
+     * The flag which tells the controller to auto terminate this
+     * relationship, so that the processor can be run even if it does
+     * not have connections from this relationship
+     */
+    private final boolean isAutoTerminate;
+
     protected Relationship(final Builder builder) {
         this.name = builder.name == null ? null : builder.name.intern();
         this.description = builder.description;
+        this.isAutoTerminate = builder.autoTerminate;
         this.hashCode = 301 + ( (name == null) ? 0 :this.name.hashCode() ); // compute only once, since it gets called a bunch and will never change
     }
 
@@ -71,6 +79,7 @@ public final class Relationship implements Comparable<Relationship> {
 
         private String name = "";
         private String description = "";
+        private boolean autoTerminate = false;
 
         public Builder name(final String name) {
             if (null != name) {
@@ -86,6 +95,11 @@ public final class Relationship implements Comparable<Relationship> {
             return this;
         }
 
+        public Builder autoTerminateDefault(boolean autoTerminate) {
+            this.autoTerminate = autoTerminate;
+            return this;
+        }
+
         public Relationship build() {
             return new Relationship(this);
         }
@@ -97,6 +111,10 @@ public final class Relationship implements Comparable<Relationship> {
 
     public String getDescription() {
         return this.description;
+    }
+
+    public boolean isAutoTerminated() {
+        return this.isAutoTerminate;
     }
 
     @Override

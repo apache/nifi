@@ -304,6 +304,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public boolean isAutoTerminated(final Relationship relationship) {
+        if (relationship.isAutoTerminated() && getConnections(relationship).isEmpty()) {
+            return true;
+        }
         final Set<Relationship> terminatable = undefinedRelationshipsToTerminate.get();
         if (terminatable == null) {
             return false;
