@@ -194,11 +194,17 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
                     new Object[]{functionName, unrecoverableException, flowFile});
                 flowFile = populateExceptionAttributes(session, flowFile, unrecoverableException);
                 session.transfer(flowFile, REL_FAILURE);
-        } catch (final ServiceException | TooManyRequestsException exception) {
+        } catch (final TooManyRequestsException retryableServiceException) {
             getLogger().error("Failed to invoke lambda {} with exception {} for flow file {}, therefore penalizing flowfile",
-                new Object[]{functionName, exception, flowFile});
-            flowFile = populateExceptionAttributes(session, flowFile, exception);
+                new Object[]{functionName, retryableServiceException, flowFile});
+            flowFile = populateExceptionAttributes(session, flowFile, retryableServiceException);
             flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            context.yield();
+        } catch (final AmazonServiceException unrecoverableServiceException) {
+            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {} sending to fail",
+                new Object[]{functionName, unrecoverableServiceException, flowFile});
+            flowFile = populateExceptionAttributes(session, flowFile, unrecoverableServiceException);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         } catch (final Exception exception) {
