@@ -96,7 +96,7 @@ public class ITPutLambdaTest {
      * Comment out ignore for integration tests (requires creds files)
      */
     @Test
-//    @Ignore
+    @Ignore
     public void testIntegrationClientErrorBadMessageBody() throws Exception {
         runner = TestRunners.newTestRunner(PutLambda.class);
         runner.setProperty(PutLambda.CREDENTIALS_FILE, CREDENTIALS_FILE);
