@@ -117,7 +117,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
                     try {
                         component.onPropertyModified(descriptor, oldValue, value);
-                    } catch (final Throwable t) {
+                    } catch (final Exception e) {
                         // nothing really to do here...
                     }
                 }
@@ -161,7 +161,12 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                         }
                     }
 
-                    component.onPropertyModified(descriptor, value, null);
+                    try {
+                        component.onPropertyModified(descriptor, value, null);
+                    } catch (final Exception e) {
+                        // nothing really to do here...
+                    }
+
                     return true;
                 }
             }

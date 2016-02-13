@@ -24,9 +24,12 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  */
 public enum KeyDerivationFunction {
 
-    NIFI_LEGACY("NiFi legacy KDF", "MD5 @ 1000 iterations"),
-    OPENSSL_EVP_BYTES_TO_KEY("OpenSSL EVP_BytesToKey", "Single iteration MD5 compatible with PKCS#5 v1.5");
-    // TODO: Implement bcrypt, scrypt, and PBKDF2
+    NIFI_LEGACY("NiFi Legacy KDF", "MD5 @ 1000 iterations"),
+    OPENSSL_EVP_BYTES_TO_KEY("OpenSSL EVP_BytesToKey", "Single iteration MD5 compatible with PKCS#5 v1.5"),
+    BCRYPT("Bcrypt", "Bcrypt with configurable work factor. See Admin Guide"),
+    SCRYPT("Scrypt", "Scrypt with configurable cost parameters. See Admin Guide"),
+    PBKDF2("PBKDF2", "PBKDF2 with configurable hash function and iteration count. See Admin Guide"),
+    NONE("None", "The cipher is given a raw key conforming to the algorithm specifications");
 
     private final String name;
     private final String description;
@@ -42,6 +45,10 @@ public enum KeyDerivationFunction {
 
     public String getDescription() {
         return description;
+    }
+
+    public boolean isStrongKDF() {
+        return (name.equals(BCRYPT.name) || name.equals(SCRYPT.name) || name.equals(PBKDF2.name));
     }
 
     @Override

@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 
@@ -31,11 +34,13 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 
 public class StandardControllerServiceDAO extends ComponentDAO implements ControllerServiceDAO {
 
     private ControllerServiceProvider serviceProvider;
+    private ComponentStateDAO componentStateDAO;
 
     private ControllerServiceNode locateControllerService(final String controllerServiceId) {
         // get the controller service
@@ -255,8 +260,30 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         serviceProvider.removeControllerService(controllerService);
     }
 
+    @Override
+    public StateMap getState(String controllerServiceId, Scope scope) {
+        final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
+        return componentStateDAO.getState(controllerService, scope);
+    }
+
+    @Override
+    public void verifyClearState(String controllerServiceId) {
+        final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
+        controllerService.verifyCanClearState();
+    }
+
+    @Override
+    public void clearState(String controllerServiceId) {
+        final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
+        componentStateDAO.clearState(controllerService);
+    }
+
     /* setters */
     public void setServiceProvider(ControllerServiceProvider serviceProvider) {
         this.serviceProvider = serviceProvider;
+    }
+
+    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+        this.componentStateDAO = componentStateDAO;
     }
 }

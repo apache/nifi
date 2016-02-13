@@ -19,6 +19,7 @@ package org.apache.nifi.processor;
 import java.util.Collections;
 import java.util.Set;
 
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
@@ -47,6 +48,7 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
     private String identifier;
     private ProcessorLog logger;
     private volatile boolean scheduled = false;
+    private volatile boolean configurationRestored = false;
     private ControllerServiceLookup serviceLookup;
     private String description;
 
@@ -102,6 +104,22 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
     @OnUnscheduled
     public final void updateScheduledFalse() {
         scheduled = false;
+    }
+
+    @OnConfigurationRestored
+    public final void updateConfiguredRestoredTrue() {
+        configurationRestored = true;
+    }
+
+    /**
+     * Returns a boolean indicating whether or not the configuration of the Processor has already been restored.
+     * See the {@link OnConfigurationRestored} annotation for more information about what it means for the configuration
+     * to be restored.
+     *
+     * @return <code>true</code> if configuration has been restored, <code>false</code> otherwise.
+     */
+    protected boolean isConfigurationRestored() {
+        return configurationRestored;
     }
 
     @Override

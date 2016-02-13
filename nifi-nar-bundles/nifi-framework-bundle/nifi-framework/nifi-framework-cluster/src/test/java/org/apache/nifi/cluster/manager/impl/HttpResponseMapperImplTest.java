@@ -16,23 +16,26 @@
  */
 package org.apache.nifi.cluster.manager.impl;
 
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.io.ByteArrayInputStream;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.Set;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.node.Node.Status;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 /**
  */
@@ -119,7 +122,7 @@ public class HttpResponseMapperImplTest {
         when(clientResponse.getHeaders()).thenReturn(new MultivaluedMapImpl());
         when(clientResponse.getEntityInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
 
-        NodeIdentifier nodeIdentifier = new NodeIdentifier(nodeId, "localhost", 1, "localhost", 1);
+        NodeIdentifier nodeIdentifier = new NodeIdentifier(nodeId, "localhost", 1, "localhost", 1, "localhost", 1234, false);
         return new NodeResponse(nodeIdentifier, "GET", dummyUri, clientResponse, 1L, "111");
     }
 }

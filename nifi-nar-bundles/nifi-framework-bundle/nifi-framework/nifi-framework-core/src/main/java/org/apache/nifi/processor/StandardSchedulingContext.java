@@ -24,6 +24,7 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -35,11 +36,13 @@ public class StandardSchedulingContext implements SchedulingContext {
     private final ProcessContext processContext;
     private final ControllerServiceProvider serviceProvider;
     private final ProcessorNode processorNode;
+    private final StateManager stateManager;
 
-    public StandardSchedulingContext(final ProcessContext processContext, final ControllerServiceProvider serviceProvider, final ProcessorNode processorNode) {
+    public StandardSchedulingContext(final ProcessContext processContext, final ControllerServiceProvider serviceProvider, final ProcessorNode processorNode, final StateManager stateManager) {
         this.processContext = processContext;
         this.serviceProvider = serviceProvider;
         this.processorNode = processorNode;
+        this.stateManager = stateManager;
     }
 
     @Override
@@ -138,5 +141,10 @@ public class StandardSchedulingContext implements SchedulingContext {
 
         final List<Range> elRanges = Query.extractExpressionRanges(getProperty(property).getValue());
         return (elRanges != null && !elRanges.isEmpty());
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

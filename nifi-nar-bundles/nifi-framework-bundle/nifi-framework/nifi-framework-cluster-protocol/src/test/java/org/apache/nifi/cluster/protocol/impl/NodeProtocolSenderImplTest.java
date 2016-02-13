@@ -47,7 +47,6 @@ import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
 import org.apache.nifi.io.socket.multicast.DiscoverableServiceImpl;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -80,7 +79,7 @@ public class NodeProtocolSenderImplTest {
         mockServiceLocator = mock(ClusterServiceLocator.class);
         mockHandler = mock(ProtocolHandler.class);
 
-        nodeIdentifier = new NodeIdentifier("1", "localhost", 1234, "localhost", 5678);
+        nodeIdentifier = new NodeIdentifier("1", "localhost", 1234, "localhost", 5678, "localhost", 3821, false);
 
         ProtocolContext protocolContext = new JaxbProtocolContext(JaxbProtocolUtils.JAXB_CONTEXT);
 
@@ -110,7 +109,7 @@ public class NodeProtocolSenderImplTest {
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         ConnectionResponseMessage mockMessage = new ConnectionResponseMessage();
         mockMessage.setConnectionResponse(new ConnectionResponse(nodeIdentifier,
-                new StandardDataFlow("flow".getBytes("UTF-8"), new byte[0], new byte[0]), false, null, null, UUID.randomUUID().toString()));
+            new StandardDataFlow("flow".getBytes("UTF-8"), new byte[0], new byte[0]), false, null, null, UUID.randomUUID().toString()));
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(mockMessage);
 
         ConnectionRequestMessage request = new ConnectionRequestMessage();
@@ -178,7 +177,7 @@ public class NodeProtocolSenderImplTest {
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(null);
 
         HeartbeatMessage hb = new HeartbeatMessage();
-        hb.setHeartbeat(new Heartbeat(new NodeIdentifier("id", "localhost", 3, "localhost", 4), false, false, new byte[]{1, 2, 3}));
+        hb.setHeartbeat(new Heartbeat(new NodeIdentifier("id", "localhost", 3, "localhost", 4, "localhost", 3821, false), false, false, new byte[] {1, 2, 3}));
         sender.heartbeat(hb);
     }
 
@@ -190,7 +189,7 @@ public class NodeProtocolSenderImplTest {
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(null);
 
         ControllerStartupFailureMessage msg = new ControllerStartupFailureMessage();
-        msg.setNodeId(new NodeIdentifier("some-id", "some-addr", 1, "some-addr", 1));
+        msg.setNodeId(new NodeIdentifier("some-id", "some-addr", 1, "some-addr", 1, "localhost", 3821, false));
         msg.setExceptionMessage("some exception");
         sender.notifyControllerStartupFailure(msg);
     }

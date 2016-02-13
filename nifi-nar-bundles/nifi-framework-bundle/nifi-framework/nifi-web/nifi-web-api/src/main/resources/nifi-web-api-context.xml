@@ -31,7 +31,12 @@
     <bean id="reportingTaskProvider" class="org.apache.nifi.web.spring.ReportingTaskProviderFactoryBean" depends-on="clusterManager flowController">
         <property name="properties" ref="nifiProperties"/>
     </bean>
-    
+
+    <!-- component state -->
+    <bean id="stateManagerProvider" class="org.apache.nifi.web.spring.StateManagerProviderFactoryBean" depends-on="clusterManager flowController">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+
     <!-- optimistic locking manager -->
     <bean id="webOptimisticLockingManager" class="org.apache.nifi.web.spring.OptimisticLockingManagerFactoryBean" depends-on="clusterManagerOptimisticLockingManager">
         <property name="properties" ref="nifiProperties"/>
@@ -80,12 +85,18 @@
     </bean>
     <bean id="processorDAO" class="org.apache.nifi.web.dao.impl.StandardProcessorDAO">
         <property name="flowController" ref="flowController"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
     </bean>
     <bean id="controllerServiceDAO" class="org.apache.nifi.web.dao.impl.StandardControllerServiceDAO">
         <property name="serviceProvider" ref="controllerServiceProvider"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
     </bean>
     <bean id="reportingTaskDAO" class="org.apache.nifi.web.dao.impl.StandardReportingTaskDAO">
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
+    </bean>
+    <bean id="componentStateDAO" class="org.apache.nifi.web.dao.impl.StandardComponentStateDAO">
+        <property name="stateManagerProvider" ref="stateManagerProvider"/>
     </bean>
     <bean id="templateDAO" class="org.apache.nifi.web.dao.impl.StandardTemplateDAO">
         <property name="flowController" ref="flowController"/>
@@ -354,6 +365,11 @@
         <property name="processGroupDAO" ref="processGroupDAO"/>
     </bean>
     <bean id="reportingTaskAuditor" class="org.apache.nifi.audit.ReportingTaskAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="componentStateAuditor" class="org.apache.nifi.audit.ComponentStateAuditor">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="auditService" ref="auditService"/>
         <property name="processGroupDAO" ref="processGroupDAO"/>

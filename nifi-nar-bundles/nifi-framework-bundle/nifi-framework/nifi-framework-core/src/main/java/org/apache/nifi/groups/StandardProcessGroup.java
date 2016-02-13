@@ -37,6 +37,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -44,6 +45,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -73,6 +75,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private final ProcessScheduler scheduler;
     private final ControllerServiceProvider controllerServiceProvider;
+    private final FlowController flowController;
 
     private final Map<String, Port> inputPorts = new HashMap<>();
     private final Map<String, Port> outputPorts = new HashMap<>();
@@ -90,13 +93,16 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessGroup.class);
 
-    public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler, final NiFiProperties nifiProps, final StringEncryptor encryptor) {
+    public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler, final NiFiProperties nifiProps, final StringEncryptor encryptor,
+        final FlowController flowController) {
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
         this.parent = new AtomicReference<>();
         this.scheduler = scheduler;
         this.comments = new AtomicReference<>("");
         this.encryptor = encryptor;
+        this.flowController = flowController;
+
         name = new AtomicReference<>();
         position = new AtomicReference<>(new Position(0D, 0D));
     }
@@ -327,11 +333,15 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+    private StateManager getStateManager(final String componentId) {
+        return flowController.getStateManagerProvider().getStateManager(componentId);
+    }
+
     @SuppressWarnings("deprecation")
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor);
+                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()));
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, node.getProcessor(), processContext);
             }
         }
@@ -681,8 +691,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    @SuppressWarnings("deprecation")
     @Override
+    @SuppressWarnings("deprecation")
     public void removeProcessor(final ProcessorNode processor) {
         final String id = requireNonNull(processor).getIdentifier();
         writeLock.lock();
@@ -697,7 +707,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor);
+                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()));
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, org.apache.nifi.processor.annotation.OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of " + processor, e);
@@ -718,6 +728,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             processors.remove(id);
             LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
+
+            flowController.getStateManagerProvider().onComponentRemoved(processor.getIdentifier());
 
             // must copy to avoid a concurrent modification
             final Set<Connection> copy = new HashSet<>(processor.getConnections());

@@ -30,6 +30,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.nifi.cluster.flow.DataFlowDao;
 import org.apache.nifi.cluster.flow.PersistedFlowState;
 import org.apache.nifi.cluster.protocol.ClusterManagerProtocolSender;
@@ -46,8 +47,6 @@ import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketConfiguration;
-
-import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -148,7 +147,7 @@ public class DataFlowManagementServiceImplTest {
         byte[] flowBytes = flowStr.getBytes();
         listener.addHandler(new FlowRequestProtocolHandler(new StandardDataFlow(flowStr.getBytes("UTF-8"), new byte[0], new byte[0])));
 
-        NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort);
+        NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort, "localhost", 1234, false);
         service.setNodeIds(new HashSet<>(Arrays.asList(nodeId)));
         service.setPersistedFlowState(PersistedFlowState.STALE);
 
@@ -168,8 +167,8 @@ public class DataFlowManagementServiceImplTest {
         String flowStr = "<rootGroup />";
         listener.addHandler(new FlowRequestProtocolHandler(new StandardDataFlow(flowStr.getBytes("UTF-8"), new byte[0], new byte[0])));
 
-        NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort);
-        NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", apiDummyPort, "localhost", socketPort);
+        NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort, "localhost", 1234, false);
+        NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", apiDummyPort, "localhost", socketPort, "localhost", 1234, false);
         service.setNodeIds(new HashSet<>(Arrays.asList(nodeId1, nodeId2)));
         service.setPersistedFlowState(PersistedFlowState.STALE);
 
@@ -196,8 +195,8 @@ public class DataFlowManagementServiceImplTest {
         byte[] flowBytes = flowStr.getBytes();
         listener.addHandler(new FlowRequestProtocolHandler(new StandardDataFlow(flowStr.getBytes("UTF-8"), new byte[0], new byte[0])));
 
-        NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort + 1);
-        NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", apiDummyPort, "localhost", socketPort);
+        NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort + 1, "localhost", 1234, false);
+        NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", apiDummyPort, "localhost", socketPort, "localhost", 1234, false);
         service.setNodeIds(new HashSet<>(Arrays.asList(nodeId1, nodeId2)));
         service.setPersistedFlowState(PersistedFlowState.STALE);
 
@@ -217,8 +216,8 @@ public class DataFlowManagementServiceImplTest {
         byte[] flowBytes = flowStr.getBytes();
         listener.addHandler(new FlowRequestProtocolHandler(new StandardDataFlow(flowStr.getBytes("UTF-8"), new byte[0], new byte[0])));
 
-        NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort + 1);
-        NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", apiDummyPort, "localhost", socketPort);
+        NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort + 1, "localhost", 1234, false);
+        NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", apiDummyPort, "localhost", socketPort, "localhost", 1234, false);
 
         for (int i = 0; i < 1000; i++) {
             service.setNodeIds(new HashSet<>(Arrays.asList(nodeId1, nodeId2)));
@@ -239,8 +238,8 @@ public class DataFlowManagementServiceImplTest {
         String flowStr = "<rootGroup />";
         listener.addHandler(new FlowRequestProtocolHandler(new StandardDataFlow(flowStr.getBytes("UTF-8"), new byte[0], new byte[0])));
 
-        NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort + 1);
-        NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", apiDummyPort, "localhost", socketPort);
+        NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort + 1, "localhost", 1234, false);
+        NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", apiDummyPort, "localhost", socketPort, "localhost", 1234, false);
 
         service.setRetrievalDelay("5 sec");
         for (int i = 0; i < 1000; i++) {
@@ -263,9 +262,9 @@ public class DataFlowManagementServiceImplTest {
         listener.addHandler(new FlowRequestProtocolHandler(new StandardDataFlow(flowStr.getBytes("UTF-8"), new byte[0], new byte[0])));
         Set<NodeIdentifier> nodeIds = new HashSet<>();
         for (int i = 0; i < 1000; i++) {
-            nodeIds.add(new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort + 1));
+            nodeIds.add(new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort + 1, "localhost", 1234, false));
         }
-        nodeIds.add(new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort));
+        nodeIds.add(new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort, "localhost", 1234, false));
 
         long lastRetrievalTime = service.getLastRetrievalTime();
 
@@ -291,7 +290,7 @@ public class DataFlowManagementServiceImplTest {
         String flowStr = "<rootGroup />";
         byte[] flowBytes = flowStr.getBytes();
         listener.addHandler(new FlowRequestProtocolHandler(new StandardDataFlow(flowStr.getBytes("UTF-8"), new byte[0], new byte[0])));
-        NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort);
+        NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", apiDummyPort, "localhost", socketPort, "localhost", 1234, false);
 
         service.setNodeIds(new HashSet<>(Arrays.asList(nodeId)));
         service.setPersistedFlowState(PersistedFlowState.STALE);

@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.5.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -286,13 +286,9 @@ language governing permissions and limitations under the License. -->
 
     <properties>
         <!--Wrapper Properties -->
-        <nifi.wrapper.jvm.heap.initial.mb>256</nifi.wrapper.jvm.heap.initial.mb>
-        <nifi.wrapper.jvm.heap.max.mb>512</nifi.wrapper.jvm.heap.max.mb>
-        <nifi.initial.permgen.size.mb>128</nifi.initial.permgen.size.mb>
-        <nifi.max.permgen.size.mb>128</nifi.max.permgen.size.mb>
-        <nifi.wrapper.logfile.maxsize>10m</nifi.wrapper.logfile.maxsize>
-        <nifi.wrapper.logfile.maxfiles>10</nifi.wrapper.logfile.maxfiles>
-
+        <nifi.jvm.heap.mb>512</nifi.jvm.heap.mb>
+        <nifi.jvm.permgen.mb>128</nifi.jvm.permgen.mb>
+        <nifi.run.as></nifi.run.as>
         <!-- nifi.properties: core properties -->
         <nifi.version>${project.version}</nifi.version>
         <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
@@ -308,6 +304,12 @@ language governing permissions and limitations under the License. -->
         <nifi.templates.directory>./conf/templates</nifi.templates.directory>
         <nifi.database.directory>./database_repository</nifi.database.directory>
 
+        <nifi.state.management.configuration.file>./conf/state-management.xml</nifi.state.management.configuration.file>
+        <nifi.state.management.embedded.zookeeper.start>false</nifi.state.management.embedded.zookeeper.start>
+        <nifi.state.management.embedded.zookeeper.properties>./conf/zookeeper.properties</nifi.state.management.embedded.zookeeper.properties>
+        <nifi.state.management.provider.local>local-provider</nifi.state.management.provider.local>
+        <nifi.state.management.provider.cluster>zk-provider</nifi.state.management.provider.cluster>
+        
         <nifi.flowfile.repository.implementation>org.apache.nifi.controller.repository.WriteAheadFlowFileRepository</nifi.flowfile.repository.implementation>
         <nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
         <nifi.flowfile.repository.partitions>256</nifi.flowfile.repository.partitions>
@@ -438,6 +440,9 @@ language governing permissions and limitations under the License. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
+            <properties>
+                <nifi.run.as>nifi</nifi.run.as>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -488,8 +493,13 @@ language governing permissions and limitations under the License. -->
                             </defineStatements>
                             <defaultDirmode>750</defaultDirmode>
                             <defaultFilemode>640</defaultFilemode>
-                            <defaultUsername>root</defaultUsername>
-                            <defaultGroupname>root</defaultGroupname>
+                            <defaultUsername>nifi</defaultUsername>
+                            <defaultGroupname>nifi</defaultGroupname>
+                            <preinstallScriptlet>
+                                <script>
+                                    /usr/bin/getent group nifi >/dev/null || /usr/sbin/groupadd -r nifi; /usr/bin/getent passwd nifi >/dev/null || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin -c "NiFi System User" nifi
+                                </script>
+                            </preinstallScriptlet>
                         </configuration>
                         <executions>
                             <execution>
@@ -522,6 +532,9 @@ language governing permissions and limitations under the License. -->
                                             </sources>
                                         </mapping>
                                         <mapping>
+                                            <directory>/opt/nifi</directory>
+                                        </mapping>
+                                        <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/bin</directory>
                                             <filemode>750</filemode>
                                             <sources>
@@ -544,11 +557,23 @@ language governing permissions and limitations under the License. -->
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                             <dependency>
                                                 <excludes>
                                                     <exclude>org.apache.nifi:nifi-bootstrap</exclude>
                                                     <exclude>org.apache.nifi:nifi-resources</exclude>
                                                     <exclude>org.apache.nifi:nifi-docs</exclude>
+                                                    <exclude>commons-io:commons-io</exclude>
+                                                    <exclude>org.apache.commons:commons-lang3</exclude>
+                                                    <exclude>org.antlr:antlr-runtime</exclude>
+                                                    <exclude>javax.activation:activation</exclude>
+                                                    <exclude>javax.mail:mail</exclude>
+                                                    <exclude>org.apache.nifi:nifi-security-utils</exclude>
+                                                    <exclude>org.apache.nifi:nifi-utils</exclude>
+                                                    <exclude>org.apache.nifi:nifi-processor-utils</exclude>
+                                                    <exclude>org.apache.nifi:nifi-expression-language</exclude>
                                                 </excludes>
                                             </dependency>
                                         </mapping>

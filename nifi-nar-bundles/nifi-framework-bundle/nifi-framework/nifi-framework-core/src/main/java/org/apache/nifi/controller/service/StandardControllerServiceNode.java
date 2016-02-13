@@ -219,6 +219,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
+    public void verifyCanClearState() {
+        verifyCanUpdate();
+    }
+
+    @Override
     public String getComments() {
         readLock.lock();
         try {
