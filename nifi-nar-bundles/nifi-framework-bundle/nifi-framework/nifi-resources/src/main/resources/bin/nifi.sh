@@ -118,8 +118,12 @@ locateJava() {
             fi
         fi
     fi
-    [ -n "${JAVA_HOME}" ] && TOOLS_JAR=$(find "${JAVA_HOME}" -name "tools.jar")
+    [ "x${TOOLS_JAR}" =  "x" ] && [ -n "${JAVA_HOME}" ] && TOOLS_JAR=$(find "${JAVA_HOME}" -name "tools.jar")
     [ "x${TOOLS_JAR}" =  "x" ] && TOOLS_JAR=$(find "${JAVA_HOME}" -name "classes.jar")
+    if ["x${TOOLS_JAR}" =  "x" ]; then
+         warn "Could not locate tools.jar or classes.jar. Please set manually to avail all command features."
+    fi
+
 }
 
 init() {

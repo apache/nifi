@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.bootstrap;
 
-import com.sun.tools.attach.AttachNotSupportedException;
-import com.sun.tools.attach.VirtualMachine;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,6 +28,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -161,7 +159,7 @@ public class RunNiFi {
         return Arrays.copyOfRange(orig, 1, orig.length);
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException, AttachNotSupportedException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         if (args.length < 1 || args.length > 3) {
             printUsage();
             return;
@@ -554,19 +552,29 @@ public class RunNiFi {
         }
     }
 
-    public void env() throws AttachNotSupportedException, IOException{
+    public void env(){
         final Logger logger = cmdLogger;
         final Status status = getStatus(logger);
         if(status.getPid() == null){
             logger.info("Apache NiFi is not running");
             return;
         }
-        VirtualMachine vm= VirtualMachine.attach(status.getPid());
-        final Properties sysProps=vm.getSystemProperties();
+        try{
+        final Class<?> virtualMachineClass=Class.forName("com.sun.tools.attach.VirtualMachine");
+        Method attachMethod=virtualMachineClass.getMethod("attach", String.class);
+        Object virtualMachine=attachMethod.invoke(null, status.getPid());
+        Method getSystemPropertiesMethod=virtualMachine.getClass().getMethod("getSystemProperties");
+        final Properties sysProps=(Properties)getSystemPropertiesMethod.invoke(virtualMachine);
         for(Entry<Object, Object> syspropEntry: sysProps.entrySet()){
             logger.info(syspropEntry.getKey().toString() + " = " +syspropEntry.getValue().toString());
         }
-        vm.detach();
+        Method detachMethod=virtualMachineClass.getDeclaredMethod("detach");
+        detachMethod.invoke(virtualMachine);
+        }catch(ClassNotFoundException cnfe){
+            logger.error("Seems tools.jar(Linux / Windows JDK) or classes.jar(Mac OS) is not available in classpath", cnfe);
+        }catch(Throwable t){
+            throw new RuntimeException(t);
+        }
     }
 
     /**
