@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-camel-bundle</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>${nifi.version}</version>
     </parent>
     <artifactId>nifi-camel-processors</artifactId>
     <packaging>jar</packaging>
