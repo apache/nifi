@@ -610,7 +610,7 @@ public interface SiteToSiteClient extends Closeable {
                 trustManagerFactory = null;
             }
 
-            if (keyManagerFactory != null || trustManagerFactory != null) {
+            if (keyManagerFactory != null && trustManagerFactory != null) {
                 try {
                     // initialize the ssl context
                     final SSLContext sslContext = SSLContext.getInstance("TLS");
