@@ -105,7 +105,6 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
     @Override
     public void onTrigger(final ReportingContext context) {
         final ProcessGroupStatus controllerStatus = context.getEventAccess().getControllerStatus();
-        controllerStatus.clone();
 
         final boolean showDeltas = context.getProperty(SHOW_DELTAS).asBoolean();
 
