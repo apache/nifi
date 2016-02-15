@@ -41,12 +41,5 @@
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-expression-language</artifactId>
 		</dependency>
-		<dependency>
-          <groupId>com.sun</groupId>
-          <artifactId>tools</artifactId>
-          <version>1.7.0+</version>
-          <scope>system</scope>
-          <systemPath>${java.home}/../lib/tools.jar</systemPath>
-        </dependency>
 	</dependencies>
 </project>
