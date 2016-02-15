@@ -42,14 +42,11 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
-import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Delete", "Remove"})
-@CapabilityDescription("Deletes a document from DynamoDB based on hash and range key")
+@CapabilityDescription("Deletes a document from DynamoDB based on hash and range key. The key can be string or number")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
@@ -67,7 +64,7 @@ import com.amazonaws.services.dynamodbv2.model.WriteRequest;
     @ReadsAttribute(attribute = "dynamodb.item.hash.key.value", description = "Items hash key value" ),
     @ReadsAttribute(attribute = "dynamodb.item.range.key.value", description = "Items range key value" ),
     })
-public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
+public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
@@ -101,10 +98,11 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
             final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile);
 
-            if ( ! StringUtils.isBlank(rangeKeyName) && (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) ) {
-                getLogger().error("Range key name was not null, but range value was null" + flowFile);
-                flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key was blank");
-                session.transfer(flowFile, REL_FAILURE);
+            if ( ! isHashKeyValueConsistent(hashKeyName, hashKeyValue, session, flowFile)) {
+                continue;
+            }
+
+            if ( ! isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue, session, flowFile) ) {
                 continue;
             }
 
@@ -118,27 +116,19 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
             keysToFlowFileMap.put(new ItemKeys(hashKeyValue, rangeKeyValue), flowFile);
         }
 
+        if ( keysToFlowFileMap.isEmpty() ) {
+            return;
+        }
+
         final DynamoDB dynamoDB = getDynamoDB();
 
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
-            BatchWriteItemResult result = outcome.getBatchWriteItemResult();
+            handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
+					rangeKeyValueType, outcome);
 
-            // Handle unprocessed items
-            List<WriteRequest> unprocessedItems = result.getUnprocessedItems().get(table);
-            if ( unprocessedItems != null && unprocessedItems.size() > 0) {
-                for ( WriteRequest unprocessed : unprocessedItems) {
-                    Map<String,AttributeValue> item = unprocessed.getPutRequest().getItem();
-
-                    Object hashKeyValue = getValue(item, hashKeyName, hashKeyValueType);
-                    Object rangeKeyValue = getValue(item, rangeKeyName, rangeKeyValueType);
-
-                    sendUnhandledToFailure(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
-                }
-            }
-
-            // All non processed items are successful
+            // All non unprocessed items are successful
             for (FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successfully deleted item to dynamodb : " + table);
                 session.transfer(flowFile,REL_SUCCESS);

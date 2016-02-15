@@ -48,7 +48,7 @@ import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Get", "Fetch"})
-@CapabilityDescription("Retrieves a document from DynamoDB based on hash and range key")
+@CapabilityDescription("Retrieves a document from DynamoDB based on hash and range key.  The key can be string or number")
 @WritesAttributes({
     @WritesAttribute(attribute = "dynamodb.id", description = "The id")})
 public class GetDynamoDB extends AbstractDynamoDBProcessor {
@@ -83,10 +83,11 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
             final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile);
 
-            if ( ! StringUtils.isBlank(rangeKeyName) && (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) ) {
-                getLogger().error("Range key name was not null, but range value was null" + flowFile);
-                flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key was blank");
-                session.transfer(flowFile, REL_FAILURE);
+            if ( ! isHashKeyValueConsistent(hashKeyName, hashKeyValue, session, flowFile)) {
+                continue;
+            }
+
+            if ( ! isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue, session, flowFile) ) {
                 continue;
             }
 
@@ -98,6 +99,10 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             else {
                 tableKeysAndAttributes.addHashAndRangePrimaryKey(hashKeyName, hashKeyValue, rangeKeyName, rangeKeyValue);
             }
+        }
+
+        if (keysToFlowFileMap.isEmpty()) {
+            return;
         }
 
         final DynamoDB dynamoDB = getDynamoDB();

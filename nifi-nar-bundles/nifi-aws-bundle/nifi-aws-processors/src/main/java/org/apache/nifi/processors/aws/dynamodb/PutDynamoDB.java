@@ -44,18 +44,16 @@ import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
-import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Put", "Insert"})
-@CapabilityDescription("Inserts a document from DynamoDB based on hash and range key")
+@CapabilityDescription("Inserts a document from DynamoDB based on hash and range key."
+        + " Currently the keys supported are string and number and value can be json document.")
 @WritesAttributes({
     @WritesAttribute(attribute = "dynamodb.id", description = "The id")
 })
-public class PutDynamoDB extends AbstractDynamoDBProcessor {
+public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
@@ -91,10 +89,11 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
             final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile);
 
-            if ( ! StringUtils.isBlank(rangeKeyName) && (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) ) {
-                getLogger().error("Range key name was not null, but range value was null" + flowFile);
-                flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key was blank");
-                session.transfer(flowFile, REL_FAILURE);
+            if ( ! isHashKeyValueConsistent(hashKeyName, hashKeyValue, session, flowFile)) {
+                continue;
+            }
+
+            if ( ! isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue, session, flowFile) ) {
                 continue;
             }
 
@@ -120,25 +119,18 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
             keysToFlowFileMap.put(new ItemKeys(hashKeyValue, rangeKeyValue), flowFile);
         }
 
+        if ( keysToFlowFileMap.isEmpty() ) {
+            return;
+        }
+        
         final DynamoDB dynamoDB = getDynamoDB();
 
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
-            BatchWriteItemResult result = outcome.getBatchWriteItemResult();
-           
-            // Handle unprocessed items
-            List<WriteRequest> unprocessedItems = result.getUnprocessedItems().get(table);
-            if ( unprocessedItems != null && unprocessedItems.size() > 0 ) {
-                for ( WriteRequest request : unprocessedItems) {
-                    Map<String,AttributeValue> item = request.getPutRequest().getItem();
-                    Object hashKeyValue = getValue(item, hashKeyName, hashKeyValueType);
-                    Object rangeKeyValue = getValue(item, rangeKeyName, rangeKeyValueType);
+            handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
+					rangeKeyValueType, outcome);
 
-                    sendUnhandledToFailure(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
-                }
-            }
-            
             // Handle any remaining flowfiles
             for (FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successful posted items to dynamodb : " + table);
@@ -147,13 +139,13 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
 
         }
         catch(AmazonServiceException exception) {
-        	getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
-        	List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
+            getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
+            List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
         catch(AmazonClientException exception) {
-        	getLogger().error("Could not process flowFiles due to client exception : " + exception.getMessage());
-        	List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
+            getLogger().error("Could not process flowFiles due to client exception : " + exception.getMessage());
+            List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
         catch(Exception exception) {
