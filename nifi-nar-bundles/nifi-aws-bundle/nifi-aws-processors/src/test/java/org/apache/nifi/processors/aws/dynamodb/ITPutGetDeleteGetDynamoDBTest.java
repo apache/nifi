@@ -10,6 +10,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
+@Ignore
 public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
 
     @Test
