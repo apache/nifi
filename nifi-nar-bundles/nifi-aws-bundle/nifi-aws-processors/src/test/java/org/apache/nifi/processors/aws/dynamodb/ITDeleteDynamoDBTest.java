@@ -1,6 +1,7 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 

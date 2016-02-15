@@ -108,8 +108,7 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
 
             if ( rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) {
                 tableWriteItems.addHashOnlyPrimaryKeysToDelete(hashKeyName, hashKeyValue);
-            }
-            else {
+            } else {
                 tableWriteItems.addHashAndRangePrimaryKeyToDelete(hashKeyName,
                         hashKeyValue, rangeKeyName, rangeKeyValue);
             }
@@ -126,25 +125,22 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
             handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
-					rangeKeyValueType, outcome);
+               rangeKeyValueType, outcome);
 
             // All non unprocessed items are successful
             for (FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successfully deleted item to dynamodb : " + table);
                 session.transfer(flowFile,REL_SUCCESS);
             }
-        }
-        catch(AmazonServiceException exception) {
+        } catch(AmazonServiceException exception) {
             getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        }
-        catch(AmazonClientException exception) {
+        } catch(AmazonClientException exception) {
             getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        }
-        catch(Exception exception) {
+        } catch(Exception exception) {
             getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);

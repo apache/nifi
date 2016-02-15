@@ -1,6 +1,7 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
@@ -12,7 +13,7 @@ import org.junit.Test;
 public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
 
     @Test
-	public void testStringHashStringRangePutGetDeleteGetSuccess() {
+    public void testStringHashStringRangePutGetDeleteGetSuccess() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -25,9 +26,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
-        
+
         putRunner.run(1);
-        
+
         putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_SUCCESS, 1);
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
@@ -47,9 +48,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         getRunner.enqueue(new byte[] {});
-        
+
         getRunner.run(1);
-        
+
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
 
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
@@ -68,9 +69,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         deleteRunner.setProperty(DeleteDynamoDB.HASH_KEY_VALUE, "h1");
         deleteRunner.setProperty(DeleteDynamoDB.RANGE_KEY_VALUE, "r1");
         deleteRunner.enqueue(new byte[] {});
-        
+
         deleteRunner.run(1);
-        
+
         deleteRunner.assertAllFlowFilesTransferred(DeleteDynamoDB.REL_SUCCESS, 1);
 
         flowFiles = deleteRunner.getFlowFilesForRelationship(DeleteDynamoDB.REL_SUCCESS);
@@ -78,8 +79,8 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
             System.out.println(flowFile.getAttributes());
             assertEquals("", new String(flowFile.toByteArray()));
         }
-        
-	    // Final check after delete
+
+        // Final check after delete
         final TestRunner getRunnerAfterDelete = TestRunners.newTestRunner(GetDynamoDB.class);
 
         getRunnerAfterDelete.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -91,20 +92,20 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunnerAfterDelete.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         getRunnerAfterDelete.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         getRunnerAfterDelete.enqueue(new byte[] {});
-        
+
         getRunnerAfterDelete.run(1);
         getRunnerAfterDelete.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
         flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-        	String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
-        	assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
+            String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
+            assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
         }
-        
-	}
 
-	@Test
-	public void testStringHashStringRangePutDeleteWithHashOnlyFailure() {
+    }
+
+    @Test
+    public void testStringHashStringRangePutDeleteWithHashOnlyFailure() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -117,9 +118,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
-        
+
         putRunner.run(1);
-        
+
         putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_SUCCESS, 1);
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
@@ -139,9 +140,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         getRunner.enqueue(new byte[] {});
-        
+
         getRunner.run(1);
-        
+
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
 
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
@@ -158,21 +159,21 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         deleteRunner.setProperty(DeleteDynamoDB.HASH_KEY_NAME, "hashS");
         deleteRunner.setProperty(DeleteDynamoDB.HASH_KEY_VALUE, "h1");
         deleteRunner.enqueue(new byte[] {});
-        
+
         deleteRunner.run(1);
-        
+
         deleteRunner.assertAllFlowFilesTransferred(DeleteDynamoDB.REL_FAILURE, 1);
 
         flowFiles = deleteRunner.getFlowFilesForRelationship(DeleteDynamoDB.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-        	validateServiceExceptionAttribute(flowFile);
+            validateServiceExceptionAttribute(flowFile);
             assertEquals("", new String(flowFile.toByteArray()));
         }
-        
-	}
 
-	@Test
-	public void testStringHashStringRangePutGetWithHashOnlyKeyFailure() {
+    }
+
+    @Test
+    public void testStringHashStringRangePutGetWithHashOnlyKeyFailure() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -185,9 +186,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
-        
+
         putRunner.run(1);
-        
+
         putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_SUCCESS, 1);
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
@@ -205,22 +206,22 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         getRunner.enqueue(new byte[] {});
-        
+
         getRunner.run(1);
-        
+
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-        	validateServiceExceptionAttribute(flowFile);
+            validateServiceExceptionAttribute(flowFile);
             assertEquals("", new String(flowFile.toByteArray()));
         }
 
-        
-	}
 
-	@Test
-	public void testNumberHashOnlyPutGetDeleteGetSuccess() {
+    }
+
+    @Test
+    public void testNumberHashOnlyPutGetDeleteGetSuccess() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -232,9 +233,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"age\":40}";
         putRunner.enqueue(document.getBytes());
-        
+
         putRunner.run(1);
-        
+
         putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_SUCCESS, 1);
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
@@ -253,9 +254,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE_TYPE, AbstractWriteDynamoDBProcessor.ALLOWABLE_VALUE_NUMBER);
         getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         getRunner.enqueue(new byte[] {});
-        
+
         getRunner.run(1);
-        
+
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
 
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
@@ -273,9 +274,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         deleteRunner.setProperty(DeleteDynamoDB.HASH_KEY_VALUE, "40");
         deleteRunner.setProperty(AbstractWriteDynamoDBProcessor.HASH_KEY_VALUE_TYPE, AbstractWriteDynamoDBProcessor.ALLOWABLE_VALUE_NUMBER);
         deleteRunner.enqueue(new byte[] {});
-        
+
         deleteRunner.run(1);
-        
+
         deleteRunner.assertAllFlowFilesTransferred(DeleteDynamoDB.REL_SUCCESS, 1);
 
         flowFiles = deleteRunner.getFlowFilesForRelationship(DeleteDynamoDB.REL_SUCCESS);
@@ -283,8 +284,8 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
             System.out.println(flowFile.getAttributes());
             assertEquals("", new String(flowFile.toByteArray()));
         }
-        
-	    // Final check after delete
+
+        // Final check after delete
         final TestRunner getRunnerAfterDelete = TestRunners.newTestRunner(GetDynamoDB.class);
 
         getRunnerAfterDelete.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -295,20 +296,20 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunnerAfterDelete.setProperty(AbstractWriteDynamoDBProcessor.HASH_KEY_VALUE_TYPE, AbstractWriteDynamoDBProcessor.ALLOWABLE_VALUE_NUMBER);
         getRunnerAfterDelete.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         getRunnerAfterDelete.enqueue(new byte[] {});
-        
+
         getRunnerAfterDelete.run(1);
         getRunnerAfterDelete.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
         flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-        	String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
-        	assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
+            String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
+            assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
         }
-        
-	}
-	
-	@Test
-	public void testNumberHashNumberRangePutGetDeleteGetSuccess() {
+
+    }
+
+    @Test
+    public void testNumberHashNumberRangePutGetDeleteGetSuccess() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -323,9 +324,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"40\":\"50\"}";
         putRunner.enqueue(document.getBytes());
-        
+
         putRunner.run(1);
-        
+
         putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_SUCCESS, 1);
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
@@ -346,9 +347,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunner.setProperty(AbstractWriteDynamoDBProcessor.RANGE_KEY_VALUE_TYPE, AbstractWriteDynamoDBProcessor.ALLOWABLE_VALUE_NUMBER);
         getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         getRunner.enqueue(new byte[] {});
-        
+
         getRunner.run(1);
-        
+
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
 
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
@@ -368,9 +369,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         deleteRunner.setProperty(AbstractWriteDynamoDBProcessor.HASH_KEY_VALUE_TYPE, AbstractWriteDynamoDBProcessor.ALLOWABLE_VALUE_NUMBER);
         deleteRunner.setProperty(AbstractWriteDynamoDBProcessor.RANGE_KEY_VALUE_TYPE, AbstractWriteDynamoDBProcessor.ALLOWABLE_VALUE_NUMBER);
         deleteRunner.enqueue(new byte[] {});
-        
+
         deleteRunner.run(1);
-        
+
         deleteRunner.assertAllFlowFilesTransferred(DeleteDynamoDB.REL_SUCCESS, 1);
 
         flowFiles = deleteRunner.getFlowFilesForRelationship(DeleteDynamoDB.REL_SUCCESS);
@@ -378,8 +379,8 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
             System.out.println(flowFile.getAttributes());
             assertEquals("", new String(flowFile.toByteArray()));
         }
-        
-	    // Final check after delete
+
+        // Final check after delete
         final TestRunner getRunnerAfterDelete = TestRunners.newTestRunner(GetDynamoDB.class);
 
         getRunnerAfterDelete.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -393,15 +394,15 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunnerAfterDelete.setProperty(AbstractWriteDynamoDBProcessor.HASH_KEY_VALUE_TYPE, AbstractWriteDynamoDBProcessor.ALLOWABLE_VALUE_NUMBER);
         getRunnerAfterDelete.setProperty(AbstractWriteDynamoDBProcessor.RANGE_KEY_VALUE_TYPE, AbstractWriteDynamoDBProcessor.ALLOWABLE_VALUE_NUMBER);
         getRunnerAfterDelete.enqueue(new byte[] {});
-        
+
         getRunnerAfterDelete.run(1);
         getRunnerAfterDelete.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
         flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-        	String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
-        	assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
+            String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
+            assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
         }
-        
-	}
+
+    }
 }

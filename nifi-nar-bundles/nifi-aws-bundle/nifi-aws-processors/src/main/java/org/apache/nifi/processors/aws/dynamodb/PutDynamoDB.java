@@ -27,6 +27,8 @@ import java.util.Map;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -51,8 +53,22 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
 @CapabilityDescription("Inserts a document from DynamoDB based on hash and range key."
         + " Currently the keys supported are string and number and value can be json document.")
 @WritesAttributes({
-    @WritesAttribute(attribute = "dynamodb.id", description = "The id")
-})
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND, description = "Dynamo db key not found"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "Dynamo db exception message"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "Dynamo db error code"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "Dynamo db error message"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "Dynamo db error type"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "Dynamo db error service"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "Dynamo db error is retryable"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "Dynamo db error request id"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "Dynamo db status code")
+    })
+@ReadsAttributes({
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value" ),
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value" ),
+    })
 public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
@@ -104,14 +120,12 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
                 if ( rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) {
                     tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
                         .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(),charset)));
-                }
-                else {
+                } else {
                     tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
                         .withKeyComponent(rangeKeyName, rangeKeyValue)
                         .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(),charset)));
                 }
-            }
-            catch(IOException ioe) {
+            } catch(IOException ioe) {
                 getLogger().error("IOException while creating put item : " + ioe.getMessage());
                 flowFile = session.putAttribute(flowFile, "dynamodb.item.io.error", ioe.getMessage());
                 session.transfer(flowFile, REL_FAILURE);
@@ -122,38 +136,32 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
         if ( keysToFlowFileMap.isEmpty() ) {
             return;
         }
-        
+
         final DynamoDB dynamoDB = getDynamoDB();
 
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
             handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
-					rangeKeyValueType, outcome);
+                rangeKeyValueType, outcome);
 
             // Handle any remaining flowfiles
             for (FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successful posted items to dynamodb : " + table);
                 session.transfer(flowFile,REL_SUCCESS);
             }
-
-        }
-        catch(AmazonServiceException exception) {
+        } catch(AmazonServiceException exception) {
             getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        }
-        catch(AmazonClientException exception) {
+        } catch(AmazonClientException exception) {
             getLogger().error("Could not process flowFiles due to client exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        }
-        catch(Exception exception) {
+        } catch(Exception exception) {
             getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
-
     }
-
 }
