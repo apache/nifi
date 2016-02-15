@@ -61,8 +61,8 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "Dynamo db status code")
     })
 @ReadsAttributes({
-    @ReadsAttribute(attribute = "dynamodb.item.hash.key.value", description = "Items hash key value" ),
-    @ReadsAttribute(attribute = "dynamodb.item.range.key.value", description = "Items range key value" ),
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value" ),
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value" ),
     })
 public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
 
