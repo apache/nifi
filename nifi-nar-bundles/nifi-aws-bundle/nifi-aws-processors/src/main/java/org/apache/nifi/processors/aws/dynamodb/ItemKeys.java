@@ -9,28 +9,28 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  */
 public class ItemKeys {
 
-	protected Object hashKey = "";
-	protected Object rangeKey = "";
+    protected Object hashKey = "";
+    protected Object rangeKey = "";
 
-	public ItemKeys(Object hashKey, Object rangeKey) {
-		if ( hashKey != null )
-			this.hashKey = hashKey;
-		if ( rangeKey != null )
-			this.rangeKey = rangeKey;
-	}
+    public ItemKeys(Object hashKey, Object rangeKey) {
+        if ( hashKey != null )
+            this.hashKey = hashKey;
+        if ( rangeKey != null )
+            this.rangeKey = rangeKey;
+    }
 
-	@Override
-	public String toString() {
-		return ToStringBuilder.reflectionToString(this);
-	}
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
 
-	@Override
-	public int hashCode() {
-		return HashCodeBuilder.reflectionHashCode(this, false);
-	}
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this, false);
+    }
 
-	@Override
-	public boolean equals(Object other) {
-		return EqualsBuilder.reflectionEquals(this, other, false);
-	}
+    @Override
+    public boolean equals(Object other) {
+        return EqualsBuilder.reflectionEquals(this, other, false);
+    }
 }

@@ -124,7 +124,7 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
             BatchWriteItemResult result = outcome.getBatchWriteItemResult();
-            
+
             // Handle unprocessed items
             List<WriteRequest> unprocessedItems = result.getUnprocessedItems().get(table);
             if ( unprocessedItems != null && unprocessedItems.size() > 0) {
@@ -137,7 +137,7 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
                     sendUnhandledToFailure(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
                 }
             }
-            
+
             // All non processed items are successful
             for (FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successfully deleted item to dynamodb : " + table);
@@ -145,13 +145,13 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
             }
         }
         catch(AmazonServiceException exception) {
-        	getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
-        	List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
+            getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
+            List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
         catch(AmazonClientException exception) {
-        	getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
-        	List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
+            getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
+            List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
         catch(Exception exception) {
