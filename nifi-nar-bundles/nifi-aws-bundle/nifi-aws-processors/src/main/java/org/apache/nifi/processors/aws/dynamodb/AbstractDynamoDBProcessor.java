@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,20 +48,22 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
  */
 public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonDynamoDBClient> {
 
-	public static final AllowableValue ALLOWABLE_VALUE_STRING = new AllowableValue("string");
-	public static final AllowableValue ALLOWABLE_VALUE_NUMBER = new AllowableValue("number");
+    public static final AllowableValue ALLOWABLE_VALUE_STRING = new AllowableValue("string");
+    public static final AllowableValue ALLOWABLE_VALUE_NUMBER = new AllowableValue("number");
 
-	public static final String DYNAMODB_KEY_ERROR_UNPROCESSED = "dynamodb.key.error.unprocessed";
-	public static final String DYNAMODB_RANGE_KEY_VALUE_ERROR = "dynmodb.range.key.value.error";
-	public static final String DYNAMODB_KEY_ERROR_NOT_FOUND = "dynamodb.key.error.not.found";
-	public static final String DYNAMODB_ERROR_EXCEPTION_MESSAGE = "dynamodb.error.exception.message";
-	public static final String DYNAMODB_ERROR_CODE = "dynamodb.error.code";
-	public static final String DYNAMODB_ERROR_MESSAGE = "dynamodb.error.message";
-	public static final String DYNAMODB_ERROR_TYPE = "dynamodb.error.type";
-	public static final String DYNAMODB_ERROR_SERVICE = "dynamodb.error.service";
-	public static final String DYNAMODB_ERROR_RETRYABLE = "dynamodb.error.retryable";
-	public static final String DYNAMODB_ERROR_REQUEST_ID = "dynamodb.error.request.id";
-	public static final String DYNAMODB_ERROR_STATUS_CODE = "dynamodb.error.status.code";
+    public static final String DYNAMODB_KEY_ERROR_UNPROCESSED = "dynamodb.key.error.unprocessed";
+    public static final String DYNAMODB_RANGE_KEY_VALUE_ERROR = "dynmodb.range.key.value.error";
+    public static final String DYNAMODB_KEY_ERROR_NOT_FOUND = "dynamodb.key.error.not.found";
+    public static final String DYNAMODB_ERROR_EXCEPTION_MESSAGE = "dynamodb.error.exception.message";
+    public static final String DYNAMODB_ERROR_CODE = "dynamodb.error.code";
+    public static final String DYNAMODB_ERROR_MESSAGE = "dynamodb.error.message";
+    public static final String DYNAMODB_ERROR_TYPE = "dynamodb.error.type";
+    public static final String DYNAMODB_ERROR_SERVICE = "dynamodb.error.service";
+    public static final String DYNAMODB_ERROR_RETRYABLE = "dynamodb.error.retryable";
+    public static final String DYNAMODB_ERROR_REQUEST_ID = "dynamodb.error.request.id";
+    public static final String DYNAMODB_ERROR_STATUS_CODE = "dynamodb.error.status.code";
+
+	protected static final String DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE = "DynamoDB key not found : ";
 
     public static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
             .name("Table Name")
@@ -170,68 +173,87 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     }
 
     protected Object getValue(ProcessContext context, PropertyDescriptor type, PropertyDescriptor value, FlowFile flowFile) {
-    	if ( context.getProperty(type).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
-    		return context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue();
-    	}
-    	else {
-    		return context.getProperty(value).evaluateAttributeExpressions(flowFile).asLong();    		
-    	}
-	}
+        if ( context.getProperty(type).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
+            return context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue();
+        }
+        else {
+            return new BigDecimal(context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue());
+        }
+    }
 
-	protected DynamoDB getDynamoDB() {
+    protected DynamoDB getDynamoDB() {
         if (dynamoDB == null) {
             dynamoDB = new DynamoDB(getClient());
         }
         return dynamoDB;
     }
 
-	protected Object getValue(Map<String, AttributeValue> item, String keyName, String valueType) {
-		if ( ALLOWABLE_VALUE_STRING.getValue().equals(valueType)) {
-			AttributeValue val = item.get(keyName);
-			if ( val == null ) return val;
-			else return val.getS();
-		} else {
-			AttributeValue val = item.get(keyName);
-			if ( val == null ) return val;
-			else return val.getN();
-		}
-	}
+    protected Object getValue(Map<String, AttributeValue> item, String keyName, String valueType) {
+        if ( ALLOWABLE_VALUE_STRING.getValue().equals(valueType)) {
+            AttributeValue val = item.get(keyName);
+            if ( val == null ) return val;
+            else return val.getS();
+        } else {
+            AttributeValue val = item.get(keyName);
+            if ( val == null ) return val;
+            else return val.getN();
+        }
+    }
 
-	protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles, Exception exception) {
-		List<FlowFile> failedFlowFiles = new ArrayList<>();
-		for (FlowFile flowFile : flowFiles) {
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-			failedFlowFiles.add(flowFile);
-		}
-		return failedFlowFiles;
-	}
-
-    protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles,
-			AmazonClientException exception) {
-		List<FlowFile> failedFlowFiles = new ArrayList<>();
-		for (FlowFile flowFile : flowFiles) {
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
-			failedFlowFiles.add(flowFile);
-		}
-		return failedFlowFiles;
-	}
+    protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles, Exception exception) {
+        List<FlowFile> failedFlowFiles = new ArrayList<>();
+        for (FlowFile flowFile : flowFiles) {
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
+            failedFlowFiles.add(flowFile);
+        }
+        return failedFlowFiles;
+    }
 
     protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles,
-			AmazonServiceException exception) {
-		List<FlowFile> failedFlowFiles = new ArrayList<>();
-		for (FlowFile flowFile : flowFiles) {
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_CODE, exception.getErrorCode() );
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_MESSAGE, exception.getErrorMessage() );
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_TYPE, exception.getErrorType().name() );
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_SERVICE, exception.getServiceName() );
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_REQUEST_ID, exception.getRequestId() );
-			flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.getStatusCode()) );
-			failedFlowFiles.add(flowFile);
-		}
-		return failedFlowFiles;
+            AmazonClientException exception) {
+        List<FlowFile> failedFlowFiles = new ArrayList<>();
+        for (FlowFile flowFile : flowFiles) {
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
+            failedFlowFiles.add(flowFile);
+        }
+        return failedFlowFiles;
+    }
+
+    protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles,
+            AmazonServiceException exception) {
+        List<FlowFile> failedFlowFiles = new ArrayList<>();
+        for (FlowFile flowFile : flowFiles) {
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_CODE, exception.getErrorCode() );
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_MESSAGE, exception.getErrorMessage() );
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_TYPE, exception.getErrorType().name() );
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_SERVICE, exception.getServiceName() );
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_REQUEST_ID, exception.getRequestId() );
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.getStatusCode()) );
+            failedFlowFiles.add(flowFile);
+        }
+        return failedFlowFiles;
+    }
+
+    /**
+     * Send unhandled items to failure and remove the flow files from key to flow file map
+     * @param session used for sending the flow file
+     * @param keysToFlowFileMap - ItemKeys to flow file map
+     * @param hashKeyValue the items hash key value
+     * @param rangeKeyValue the items hash key value
+     */
+	protected void sendUnhandledToFailure(final ProcessSession session, Map<ItemKeys, FlowFile> keysToFlowFileMap, Object hashKeyValue, Object rangeKeyValue) {
+		ItemKeys itemKeys = new ItemKeys(hashKeyValue, rangeKeyValue);
+	
+		FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
+		flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString());
+		session.transfer(flowFile,REL_SUCCESS);
+
+		getLogger().error("Unhandled key " + itemKeys + " for flow file " + flowFile);
+
+		keysToFlowFileMap.remove(itemKeys);
 	}
-    
+
 }

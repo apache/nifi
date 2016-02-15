@@ -59,7 +59,8 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
-                HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, DOCUMENT_CHARSET, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
+                HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, DOCUMENT_CHARSET, BATCH_SIZE,
+                REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -74,32 +75,32 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
         }
 
         Map<ItemKeys,FlowFile> keysToFlowFileMap = new HashMap<>();
-        
+
         final String table = context.getProperty(TABLE).getValue();
-        
+
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).getValue();
         final String hashKeyValueType = context.getProperty(HASH_KEY_VALUE_TYPE).getValue();
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).getValue();
         final String rangeKeyValueType = context.getProperty(RANGE_KEY_VALUE_TYPE).getValue();
         final String jsonDocument = context.getProperty(JSON_DOCUMENT).getValue();
         final String charset = context.getProperty(DOCUMENT_CHARSET).getValue();
-        
+
         TableWriteItems tableWriteItems = new TableWriteItems(table);
-        
+
         for (FlowFile flowFile : flowFiles) {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
             final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile);
-        
-            if ( StringUtils.isBlank(rangeKeyName) && rangeKeyValue == null ) {
+
+            if ( ! StringUtils.isBlank(rangeKeyName) && (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) ) {
                 getLogger().error("Range key name was not null, but range value was null" + flowFile);
-                flowFile = session.putAttribute(flowFile, "dynamodb.range.key.value.error", "range key was blank");
+                flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key was blank");
                 session.transfer(flowFile, REL_FAILURE);
                 continue;
             }
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             session.exportTo(flowFile, baos);
-            
+
             try {
                 if ( rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) {
                     tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
@@ -120,39 +121,38 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
         }
 
         final DynamoDB dynamoDB = getDynamoDB();
-        
+
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
-        
+
             BatchWriteItemResult result = outcome.getBatchWriteItemResult();
+           
+            // Handle unprocessed items
             List<WriteRequest> unprocessedItems = result.getUnprocessedItems().get(table);
-            if ( unprocessedItems != null ) {
+            if ( unprocessedItems != null && unprocessedItems.size() > 0 ) {
                 for ( WriteRequest request : unprocessedItems) {
                     Map<String,AttributeValue> item = request.getPutRequest().getItem();
                     Object hashKeyValue = getValue(item, hashKeyName, hashKeyValueType);
                     Object rangeKeyValue = getValue(item, rangeKeyName, rangeKeyValueType);
 
-                    ItemKeys itemKeys = new ItemKeys(hashKeyValue, rangeKeyValue);
-
-                    FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
-                    flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString() );
-                    session.transfer(flowFile,REL_FAILURE);
-                    keysToFlowFileMap.remove(itemKeys);
+                    sendUnhandledToFailure(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
                 }
             }
+            
+            // Handle any remaining flowfiles
             for (FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successful posted items to dynamodb : " + table);
                 session.transfer(flowFile,REL_SUCCESS);
             }
-           
+
         }
         catch(AmazonServiceException exception) {
-        	getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
+        	getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
         	List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
         catch(AmazonClientException exception) {
-        	getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
+        	getLogger().error("Could not process flowFiles due to client exception : " + exception.getMessage());
         	List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
@@ -161,7 +161,7 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
-        
+
     }
-    
+
 }

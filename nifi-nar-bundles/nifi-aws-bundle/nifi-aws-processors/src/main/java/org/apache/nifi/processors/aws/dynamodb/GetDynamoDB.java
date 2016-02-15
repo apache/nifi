@@ -55,7 +55,8 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
-                HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
+                HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY,
+                CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -70,27 +71,27 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         }
 
         Map<ItemKeys,FlowFile> keysToFlowFileMap = new HashMap<>();
-        
+
         final String table = context.getProperty(TABLE).getValue();
         TableKeysAndAttributes tableKeysAndAttributes = new TableKeysAndAttributes(table);
-        
+
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).getValue();
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).getValue();
         final String jsonDocument = context.getProperty(JSON_DOCUMENT).getValue();
-        
+
         for (FlowFile flowFile : flowFiles) {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
             final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile);
-        
-            if ( StringUtils.isBlank(rangeKeyName) && rangeKeyValue == null ) {
-            	getLogger().error("Range key name was not null, but range value was null" + flowFile);
-            	flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key was blank");
-            	session.transfer(flowFile, REL_FAILURE);
-            	continue;
+
+            if ( ! StringUtils.isBlank(rangeKeyName) && (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) ) {
+                getLogger().error("Range key name was not null, but range value was null" + flowFile);
+                flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key was blank");
+                session.transfer(flowFile, REL_FAILURE);
+                continue;
             }
 
             keysToFlowFileMap.put(new ItemKeys(hashKeyValue, rangeKeyValue), flowFile);
-            
+
             if ( rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) {
                 tableKeysAndAttributes.addHashOnlyPrimaryKey(hashKeyName, hashKeyValue);
             }
@@ -100,40 +101,44 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         }
 
         final DynamoDB dynamoDB = getDynamoDB();
-        
+
         try {
             BatchGetItemOutcome result = dynamoDB.batchGetItem(tableKeysAndAttributes);
-        
+
+            // Handle processed items and get the json document
             List<Item> items = result.getTableItems().get(table);
             for (Item item : items) {
-                ByteArrayInputStream bais = new ByteArrayInputStream(item.getJSON(jsonDocument).getBytes());
                 ItemKeys itemKeys = new ItemKeys(item.get(hashKeyName), item.get(rangeKeyName));
                 FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
+
+                ByteArrayInputStream bais = new ByteArrayInputStream(item.getJSON(jsonDocument).getBytes());
                 flowFile = session.importFrom(bais, flowFile);
+
                 session.transfer(flowFile,REL_SUCCESS);
                 keysToFlowFileMap.remove(itemKeys);
             }
 
+            // Handle unprocessed keys
             Map<String, KeysAndAttributes> unprocessedKeys = result.getUnprocessedKeys();
-            KeysAndAttributes keysAndAttributes = unprocessedKeys.get(table);
-            List<Map<String, AttributeValue>> keys = keysAndAttributes.getKeys();
-            
-            for (Map<String,AttributeValue> unprocessedKey : keys) {
-                ItemKeys itemKeys = new ItemKeys(unprocessedKey.get(hashKeyName), unprocessedKey.get(rangeKeyName));
+            if ( unprocessedKeys != null && unprocessedKeys.size() > 0) {
+                KeysAndAttributes keysAndAttributes = unprocessedKeys.get(table);
+                List<Map<String, AttributeValue>> keys = keysAndAttributes.getKeys();
 
-                FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
-                flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString() );
-                session.transfer(flowFile,REL_FAILURE);
-                keysToFlowFileMap.remove(itemKeys);
+                for (Map<String,AttributeValue> unprocessedKey : keys) {
+                    Object hashKeyValue = unprocessedKey.get(hashKeyName);
+                    Object rangeKeyValue = unprocessedKey.get(rangeKeyName);
+                    sendUnhandledToFailure(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
+                }
             }
-        
+
+            // Handle any remaining items
             for (ItemKeys key : keysToFlowFileMap.keySet()) {
                 FlowFile flowFile = keysToFlowFileMap.get(key);
-                flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_NOT_FOUND, key.toString() );
+                flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_NOT_FOUND, DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE + key.toString() );
                 session.transfer(flowFile,REL_FAILURE);
                 keysToFlowFileMap.remove(key);
             }
-           
+
         }
         catch(AmazonServiceException exception) {
         	getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
@@ -150,7 +155,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         	List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
-        
+
     }
-    
+
 }

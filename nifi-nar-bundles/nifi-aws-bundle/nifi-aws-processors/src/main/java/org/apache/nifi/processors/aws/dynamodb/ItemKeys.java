@@ -9,12 +9,14 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  */
 public class ItemKeys {
 
-	protected Object hashKey;
-	protected Object rangeKey;
+	protected Object hashKey = "";
+	protected Object rangeKey = "";
 
 	public ItemKeys(Object hashKey, Object rangeKey) {
-		this.hashKey = hashKey;
-		this.rangeKey = rangeKey;
+		if ( hashKey != null )
+			this.hashKey = hashKey;
+		if ( rangeKey != null )
+			this.rangeKey = rangeKey;
 	}
 
 	@Override
