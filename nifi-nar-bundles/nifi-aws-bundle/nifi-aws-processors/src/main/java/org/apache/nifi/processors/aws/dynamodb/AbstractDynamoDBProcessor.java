@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -53,6 +54,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
 
     public static final String DYNAMODB_KEY_ERROR_UNPROCESSED = "dynamodb.key.error.unprocessed";
     public static final String DYNAMODB_RANGE_KEY_VALUE_ERROR = "dynmodb.range.key.value.error";
+    public static final String DYNAMODB_HASH_KEY_VALUE_ERROR = "dynmodb.hash.key.value.error";
     public static final String DYNAMODB_KEY_ERROR_NOT_FOUND = "dynamodb.key.error.not.found";
     public static final String DYNAMODB_ERROR_EXCEPTION_MESSAGE = "dynamodb.error.exception.message";
     public static final String DYNAMODB_ERROR_CODE = "dynamodb.error.code";
@@ -62,8 +64,10 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final String DYNAMODB_ERROR_RETRYABLE = "dynamodb.error.retryable";
     public static final String DYNAMODB_ERROR_REQUEST_ID = "dynamodb.error.request.id";
     public static final String DYNAMODB_ERROR_STATUS_CODE = "dynamodb.error.status.code";
+    public static final String DYNAMODB_ITEM_HASH_KEY_VALUE = "  dynamodb.item.hash.key.value";
+    public static final String DYNAMODB_ITEM_RANGE_KEY_VALUE = "  dynamodb.item.range.key.value";
 
-	protected static final String DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE = "DynamoDB key not found : ";
+    protected static final String DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE = "DynamoDB key not found : ";
 
     public static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
             .name("Table Name")
@@ -175,8 +179,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     protected Object getValue(ProcessContext context, PropertyDescriptor type, PropertyDescriptor value, FlowFile flowFile) {
         if ( context.getProperty(type).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
             return context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue();
-        }
-        else {
+        } else {
             return new BigDecimal(context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue());
         }
     }
@@ -244,16 +247,56 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
      * @param hashKeyValue the items hash key value
      * @param rangeKeyValue the items hash key value
      */
-	protected void sendUnhandledToFailure(final ProcessSession session, Map<ItemKeys, FlowFile> keysToFlowFileMap, Object hashKeyValue, Object rangeKeyValue) {
-		ItemKeys itemKeys = new ItemKeys(hashKeyValue, rangeKeyValue);
-	
-		FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
-		flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString());
-		session.transfer(flowFile,REL_SUCCESS);
+    protected void sendUnhandledToFailure(final ProcessSession session, Map<ItemKeys, FlowFile> keysToFlowFileMap, Object hashKeyValue, Object rangeKeyValue) {
+        ItemKeys itemKeys = new ItemKeys(hashKeyValue, rangeKeyValue);
 
-		getLogger().error("Unhandled key " + itemKeys + " for flow file " + flowFile);
+        FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
+        flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString());
+        session.transfer(flowFile,REL_SUCCESS);
 
-		keysToFlowFileMap.remove(itemKeys);
-	}
+        getLogger().error("Unhandled key " + itemKeys + " for flow file " + flowFile);
 
+        keysToFlowFileMap.remove(itemKeys);
+    }
+
+    protected boolean isRangeKeyValueConsistent(String rangeKeyName, Object rangeKeyValue, ProcessSession session,
+            FlowFile flowFile) {
+        boolean isRangeNameBlank = StringUtils.isBlank(rangeKeyName);
+        boolean isRangeValueNull = rangeKeyValue == null;
+        boolean isConsistent = true;
+        if ( ! isRangeNameBlank && (isRangeValueNull || StringUtils.isBlank(rangeKeyValue.toString()))) {
+            isConsistent = false;
+        }
+        if ( isRangeNameBlank &&  ( ! isRangeValueNull && ! StringUtils.isBlank(rangeKeyValue.toString()))) {
+            isConsistent = false;
+        }
+
+        if ( ! isConsistent ) {
+            getLogger().error("Range key name '" + rangeKeyName + "' was not consistent with range value "
+                + rangeKeyValue + "'" + flowFile);
+            flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key '" + rangeKeyName
+                 + "'/value '" + rangeKeyValue + "' inconsistency error");
+            session.transfer(flowFile, REL_FAILURE);
+        }
+
+        return isConsistent;
+
+    }
+
+    protected boolean isHashKeyValueConsistent(String hashKeyName, Object hashKeyValue, ProcessSession session,
+            FlowFile flowFile) {
+
+        boolean isConsistent = true;
+
+        if ( hashKeyValue == null || StringUtils.isBlank(hashKeyValue.toString())) {
+            getLogger().error("Hash key value '" + hashKeyValue + "' is required for flow file " + flowFile);
+                 flowFile = session.putAttribute(flowFile, DYNAMODB_HASH_KEY_VALUE_ERROR, "hash key " + hashKeyName
+                     + "/value '" + hashKeyValue + "' inconsistency error");
+            session.transfer(flowFile, REL_FAILURE);
+            isConsistent = false;
+        }
+
+        return isConsistent;
+
+    }
 }

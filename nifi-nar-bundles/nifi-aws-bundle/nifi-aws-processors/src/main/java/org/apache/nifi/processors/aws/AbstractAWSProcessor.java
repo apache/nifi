@@ -65,9 +65,9 @@ import com.amazonaws.regions.Regions;
 public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("FlowFiles are routed to success after being successfully copied to Amazon S3").build();
+            .description("FlowFiles are routed to success relationship").build();
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("FlowFiles are routed to failure if unable to be copied to Amazon S3").build();
+            .description("FlowFiles are routed to failure relationship").build();
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -258,8 +258,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnShutdown
     public void onShutdown() {
-    	if ( getClient() != null ) {
-    		getClient().shutdown();
-    	}
+        if ( getClient() != null ) {
+            getClient().shutdown();
+        }
     }
 }
