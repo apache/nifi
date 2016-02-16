@@ -50,8 +50,10 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Put", "Insert"})
-@CapabilityDescription("Inserts a document from DynamoDB based on hash and range key."
-        + " Currently the keys supported are string and number and value can be json document.")
+@CapabilityDescription("Inserts a document from DynamoDB based on hash and range key.  The table can have either hash and range or hash key alone."
+        + " Currently the keys supported are string and number and value can be json document. "
+        + "In case of hash and range keys both key are required for the operation."
+        + " The json document as attribute specified in the JSON_DOCUMENT attribute name is used specify the attribut in the dynamodb table")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
@@ -67,7 +69,7 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
     })
 @ReadsAttributes({
     @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value" ),
-    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value" ),
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value" )
     })
 public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
 

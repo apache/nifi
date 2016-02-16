@@ -50,7 +50,8 @@ import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Get", "Fetch"})
-@CapabilityDescription("Retrieves a document from DynamoDB based on hash and range key.  The key can be string or number")
+@CapabilityDescription("Retrieves a document from DynamoDB based on hash and range key.  The key can be string or number."
+        + "For any get request all the parimary keys are required (hash or hash and range based on the table keys)")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),

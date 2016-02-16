@@ -1,6 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -8,6 +24,7 @@ import java.util.ArrayList;
 import org.apache.nifi.flowfile.FlowFile;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.regions.Region;
@@ -22,6 +39,7 @@ import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 
+@Ignore
 public class ITAbstractDynamoDBTest {
 
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
@@ -32,7 +50,7 @@ public class ITAbstractDynamoDBTest {
     protected static String numberHashOnlyTableName = "NumberHashOnlyTable";
     protected final static String REGION = "us-west-2";
 
-//    @BeforeClass
+    @BeforeClass
     public static void beforeClass() throws Exception {
         FileInputStream fis = new FileInputStream(CREDENTIALS_FILE);
         final PropertiesCredentials credentials = new PropertiesCredentials(fis);
@@ -110,7 +128,7 @@ public class ITAbstractDynamoDBTest {
         assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE));
     }
 
-//    @AfterClass
+    @AfterClass
     public static void afterClass() {
         DeleteTableResult result = amazonDynamoDBClient.deleteTable(stringHashStringRangeTableName);
         result = amazonDynamoDBClient.deleteTable(numberHashNumberRangeTableName);

@@ -46,7 +46,8 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Delete", "Remove"})
-@CapabilityDescription("Deletes a document from DynamoDB based on hash and range key. The key can be string or number")
+@CapabilityDescription("Deletes a document from DynamoDB based on hash and range key. The key can be string or number."
+        + " The request requires all the primary keys for the operation (hash or hash and range key)")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
