@@ -49,7 +49,8 @@ import com.amazonaws.services.kinesisfirehose.model.Record;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "firehose", "kinesis", "put", "stream"})
-@CapabilityDescription("Sends the contents to a specified Amazon Kinesis Firehose")
+@CapabilityDescription("Sends the contents to a specified Amazon Kinesis Firehose. "
+    + "In order to send data to firehose, the firehose delivery stream name has to be specified.")
 @WritesAttributes({
     @WritesAttribute(attribute = "aws.kinesis.firehose.error.message", description = "Error message on posting message to AWS Kinesis Firehose"),
     @WritesAttribute(attribute = "aws.kinesis.firehose.error.code", description = "Error code for the message when posting to AWS Kinesis Firehose"),
