@@ -344,7 +344,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     getLogger().error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
                 }
             }
-            getLogger().error("Failed to write to HDFS due to {}", t);
+            getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             context.yield();
         }
