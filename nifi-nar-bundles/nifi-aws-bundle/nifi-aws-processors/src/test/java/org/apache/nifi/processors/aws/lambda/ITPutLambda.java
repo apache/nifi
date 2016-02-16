@@ -1,9 +1,3 @@
-package org.apache.nifi.processors.aws.lambda;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -20,9 +14,14 @@ import static org.junit.Assert.assertTrue;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.processors.aws.lambda;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
 
-import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -34,7 +33,7 @@ import org.junit.Test;
 /**
  * This test contains both unit and integration test (integration tests are ignored by default)
  */
-public class ITPutLambdaTest {
+public class ITPutLambda {
 
     private TestRunner runner;
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
@@ -85,7 +84,7 @@ public class ITPutLambdaTest {
 
         runner.assertAllFlowFilesTransferred(PutLambda.REL_SUCCESS, 1);
 
-        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutLambda.REL_SUCCESS);
         final MockFlowFile out = ffs.iterator().next();
         assertNull("Function error should be null " + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));
         assertNotNull("log should not be null", out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_LOG));
@@ -107,7 +106,7 @@ public class ITPutLambdaTest {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutLambda.REL_FAILURE, 1);
-        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_FAILURE);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutLambda.REL_FAILURE);
         final MockFlowFile out = ffs.iterator().next();
         assertNull("Function error should be null since there is exception"
             + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));
@@ -135,7 +134,7 @@ public class ITPutLambdaTest {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutLambda.REL_FAILURE, 1);
-        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_FAILURE);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutLambda.REL_FAILURE);
         final MockFlowFile out = ffs.iterator().next();
         assertNull("Function error should be null since there is exception"
             + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));

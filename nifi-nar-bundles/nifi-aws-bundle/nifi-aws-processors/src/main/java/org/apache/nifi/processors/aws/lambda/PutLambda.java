@@ -46,7 +46,6 @@ import com.amazonaws.services.lambda.model.InvokeResult;
 import com.amazonaws.services.lambda.model.LogType;
 import com.amazonaws.services.lambda.model.RequestTooLargeException;
 import com.amazonaws.services.lambda.model.ResourceNotFoundException;
-import com.amazonaws.services.lambda.model.ServiceException;
 import com.amazonaws.services.lambda.model.TooManyRequestsException;
 import com.amazonaws.services.lambda.model.UnsupportedMediaTypeException;
 import com.amazonaws.util.Base64;
