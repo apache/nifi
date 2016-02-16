@@ -191,7 +191,7 @@ public class TestMonitorActivity {
                         originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
     }
 
-    @Test
+    @Test(timeout=5000)
     public void testFirstRunNoMessages() throws InterruptedException, IOException {
         // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
         final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
