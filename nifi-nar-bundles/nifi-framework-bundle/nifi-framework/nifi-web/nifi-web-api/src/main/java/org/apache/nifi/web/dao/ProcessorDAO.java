@@ -17,6 +17,9 @@
 package org.apache.nifi.web.dao;
 
 import java.util.Set;
+
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 
@@ -88,4 +91,28 @@ public interface ProcessorDAO {
      */
     void deleteProcessor(String groupId, String processorId);
 
+    /**
+     * Gets the specified processor.
+     *
+     * @param groupId group id
+     * @param processorId processor id
+     * @return state map
+     */
+    StateMap getState(String groupId, String processorId, Scope scope);
+
+    /**
+     * Verifies the processor can clear state.
+     *
+     * @param groupId group id
+     * @param processorId processor id
+     */
+    void verifyClearState(String groupId, String processorId);
+
+    /**
+     * Clears the state of the specified processor.
+     *
+     * @param groupId group id
+     * @param processorId processor id
+     */
+    void clearState(String groupId, String processorId);
 }

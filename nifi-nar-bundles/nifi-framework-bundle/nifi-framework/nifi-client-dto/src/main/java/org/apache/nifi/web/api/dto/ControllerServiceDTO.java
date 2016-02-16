@@ -33,6 +33,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     private String comments;
     private String availability;
     private String state;
+    private Boolean persistsState;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
@@ -99,6 +100,20 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
 
     public void setAvailability(String availability) {
         this.availability = availability;
+    }
+
+    /**
+     * @return whether this controller service persists state
+     */
+    @ApiModelProperty(
+        value = "Whether the controller service persists state."
+    )
+    public Boolean getPersistsState() {
+        return persistsState;
+    }
+
+    public void setPersistsState(Boolean persistsState) {
+        this.persistsState = persistsState;
     }
 
     /**

@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
@@ -46,10 +47,12 @@ public class ConnectableProcessContext implements ProcessContext {
 
     private final Connectable connectable;
     private final StringEncryptor encryptor;
+    private final StateManager stateManager;
 
-    public ConnectableProcessContext(final Connectable connectable, final StringEncryptor encryptor) {
+    public ConnectableProcessContext(final Connectable connectable, final StringEncryptor encryptor, final StateManager stateManager) {
         this.connectable = connectable;
         this.encryptor = encryptor;
+        this.stateManager = stateManager;
     }
 
     @Override
@@ -234,5 +237,10 @@ public class ConnectableProcessContext implements ProcessContext {
     @Override
     public boolean isExpressionLanguagePresent(PropertyDescriptor property) {
         return false;
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

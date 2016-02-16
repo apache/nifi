@@ -22,6 +22,7 @@
 @import url(queue-listing.css);
 @import url(remote-process-group-configuration.css);
 @import url(controller-service.css);
+@import url(component-state.css);
 @import url(reporting-task.css);
 @import url(port-configuration.css);
 @import url(port-details.css);

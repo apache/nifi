@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 /**
@@ -86,4 +87,9 @@ public interface ReportingContext {
      * Controller Services
      */
     ControllerServiceLookup getControllerServiceLookup();
+
+    /**
+     * @return the StateManager that can be used to store and retrieve state for this component
+     */
+    StateManager getStateManager();
 }

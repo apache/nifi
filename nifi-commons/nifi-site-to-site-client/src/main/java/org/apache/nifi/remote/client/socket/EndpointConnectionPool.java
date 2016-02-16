@@ -182,6 +182,7 @@ public class EndpointConnectionPool {
             public Thread newThread(final Runnable r) {
                 final Thread thread = defaultFactory.newThread(r);
                 thread.setName("NiFi Site-to-Site Connection Pool Maintenance");
+                thread.setDaemon(true);
                 return thread;
             }
         });
@@ -761,7 +762,7 @@ public class EndpointConnectionPool {
                     final int index = n % destinations.size();
                     PeerStatus status = destinations.get(index);
                     if (status == null) {
-                        final PeerDescription description = new PeerDescription(nodeInfo.getHostname(), nodeInfo.getSiteToSitePort(), nodeInfo.isSiteToSiteSecure());
+                        final PeerDescription description = new PeerDescription(nodeInfo.getSiteToSiteHostname(), nodeInfo.getSiteToSitePort(), nodeInfo.isSiteToSiteSecure());
                         status = new PeerStatus(description, nodeInfo.getTotalFlowFiles());
                         destinations.set(index, status);
                         break;

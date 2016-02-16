@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.documentation.mock;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.logging.ComponentLog;
@@ -41,6 +42,11 @@ public class MockControllerServiceInitializationContext implements ControllerSer
     @Override
     public ComponentLog getLogger() {
         return new MockProcessorLogger();
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return null;
     }
 
 }

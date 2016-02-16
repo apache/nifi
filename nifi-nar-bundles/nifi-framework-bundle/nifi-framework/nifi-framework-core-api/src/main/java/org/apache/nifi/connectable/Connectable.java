@@ -270,5 +270,7 @@ public interface Connectable extends Triggerable {
 
     void verifyCanDisable() throws IllegalStateException;
 
+    void verifyCanClearState() throws IllegalStateException;
+
     SchedulingStrategy getSchedulingStrategy();
 }

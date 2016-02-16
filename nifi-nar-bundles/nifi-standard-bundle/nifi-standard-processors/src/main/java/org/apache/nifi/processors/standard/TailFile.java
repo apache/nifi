@@ -19,11 +19,9 @@ package org.apache.nifi.processors.standard;
 
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -48,6 +46,7 @@ import java.util.zip.Checksum;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -55,6 +54,8 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -79,7 +80,13 @@ import org.apache.nifi.util.LongHolder;
     + "was not running (provided that the data still exists upon restart of NiFi). It is generally advisable to set the Run Schedule to a few seconds, rather than running "
     + "with the default value of 0 secs, as this Processor will consume a lot of resources if scheduled very aggressively. At this time, this Processor does not support "
     + "ingesting files that have been compressed when 'rolled over'.")
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "Stores state about where in the Tailed File it left off so that on restart it does not have to duplicate data. "
+    + "State is stored either local or clustered depend on the <File Location> property.")
 public class TailFile extends AbstractProcessor {
+
+    static final AllowableValue LOCATION_LOCAL = new AllowableValue("Local", "Local", "File is located on a local disk drive. Each node in a cluster will tail a different file.");
+    static final AllowableValue LOCATION_REMOTE = new AllowableValue("Remote", "Remote", "File is located on a remote resource. This Processor will store state across the cluster so that "
+        + "it can be run on Primary Node Only and a new Primary Node can pick up where the last one left off.");
 
     static final AllowableValue START_BEGINNING_OF_TIME = new AllowableValue("Beginning of Time", "Beginning of Time",
         "Start with the oldest data that matches the Rolling Filename Pattern and then begin reading from the File to Tail");
@@ -104,12 +111,19 @@ public class TailFile extends AbstractProcessor {
         .expressionLanguageSupported(false)
         .required(false)
         .build();
+    static final PropertyDescriptor FILE_LOCATION = new PropertyDescriptor.Builder()
+        .name("File Location")
+        .description("Specifies where the file is located, so that state can be stored appropriately in order to ensure that all data is consumed without duplicating data upon restart of NiFi")
+        .required(true)
+        .allowableValues(LOCATION_LOCAL, LOCATION_REMOTE)
+        .defaultValue(LOCATION_LOCAL.getValue())
+        .build();
     static final PropertyDescriptor STATE_FILE = new PropertyDescriptor.Builder()
         .name("State File")
         .description("Specifies the file that should be used for storing state about what data has been ingested so that upon restart NiFi can resume from where it left off")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(false)
-        .required(true)
+        .required(false)
         .build();
     static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder()
         .name("Initial Start Position")
@@ -134,8 +148,9 @@ public class TailFile extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(FILENAME);
         properties.add(ROLLING_FILENAME_PATTERN);
-        properties.add(new PropertyDescriptor.Builder().fromPropertyDescriptor(STATE_FILE).defaultValue("./conf/state/" + getIdentifier()).build());
+        properties.add(STATE_FILE);
         properties.add(START_POSITION);
+        properties.add(FILE_LOCATION);
         return properties;
     }
 
@@ -146,18 +161,50 @@ public class TailFile extends AbstractProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (FILENAME.equals(descriptor)) {
+        if (isConfigurationRestored() && FILENAME.equals(descriptor)) {
             state = new TailFileState(newValue, null, null, 0L, 0L, null, ByteBuffer.allocate(65536));
             tailFileChanged = true;
         }
     }
 
+
     @OnScheduled
     public void recoverState(final ProcessContext context) throws IOException {
-        final String tailFilename = context.getProperty(FILENAME).getValue();
-        final String stateFilename = context.getProperty(STATE_FILE).getValue();
+        // Before the State Manager existed, we had to store state in a local file. Now, we want to use the State Manager
+        // instead. So we will need to recover the state that is stored in the file (if any), and then store that in our
+        // State Manager. But we do this only if nothing has ever been stored in the State Manager.
+        final Scope scope = getStateScope(context);
+        final StateMap stateMap = context.getStateManager().getState(scope);
+        if (stateMap.getVersion() == -1L) {
+            // State has never been stored in the State Manager. Try to recover state from a file, if one exists.
+            final Map<String, String> stateFromFile = recoverStateValuesFromFile(context);
+            if (!stateFromFile.isEmpty()) {
+                persistState(stateFromFile, context);
+                recoverState(context, stateFromFile);
+            }
 
+            return;
+        }
+
+        recoverState(context, stateMap.toMap());
+    }
+
+    /**
+     * Recovers values for the State that was stored in a local file.
+     *
+     * @param context the ProcessContext that indicates where the state is stored
+     * @return a Map that contains the keys defined in {@link TailFileState.StateKeys}
+     * @throws IOException if the state file exists but was unable to be read
+     */
+    private Map<String, String> recoverStateValuesFromFile(final ProcessContext context) throws IOException {
+        final String stateFilename = context.getProperty(STATE_FILE).getValue();
+        if (stateFilename == null) {
+            return Collections.emptyMap();
+        }
+
+        final Map<String, String> stateValues = new HashMap<>(4);
         final File stateFile = new File(stateFilename);
+
         try (final FileInputStream fis = new FileInputStream(stateFile);
             final DataInputStream dis = new DataInputStream(fis)) {
 
@@ -171,62 +218,109 @@ public class TailFile extends AbstractProcessor {
                 long position = dis.readLong();
                 final long timestamp = dis.readLong();
                 final boolean checksumPresent = dis.readBoolean();
+                final Long checksumValue;
 
-                FileChannel reader = null;
-                File tailFile = null;
-
-                if (checksumPresent && tailFilename.equals(filename)) {
-                    expectedRecoveryChecksum = dis.readLong();
-
-                    // We have an expected checksum and the currently configured filename is the same as the state file.
-                    // We need to check if the existing file is the same as the one referred to in the state file based on
-                    // the checksum.
-                    final Checksum checksum = new CRC32();
-                    final File existingTailFile = new File(filename);
-                    if (existingTailFile.length() >= position) {
-                        try (final InputStream tailFileIs = new FileInputStream(existingTailFile);
-                            final CheckedInputStream in = new CheckedInputStream(tailFileIs, checksum)) {
-                            StreamUtils.copy(in, new NullOutputStream(), state.getPosition());
-
-                            final long checksumResult = in.getChecksum().getValue();
-                            if (checksumResult == expectedRecoveryChecksum) {
-                                // Checksums match. This means that we want to resume reading from where we left off.
-                                // So we will populate the reader object so that it will be used in onTrigger. If the
-                                // checksums do not match, then we will leave the reader object null, so that the next
-                                // call to onTrigger will result in a new Reader being created and starting at the
-                                // beginning of the file.
-                                getLogger().debug("When recovering state, checksum of tailed file matches the stored checksum. Will resume where left off.");
-                                tailFile = existingTailFile;
-                                reader = FileChannel.open(tailFile.toPath(), StandardOpenOption.READ);
-                                getLogger().debug("Created FileChannel {} for {} in recoverState", new Object[] {reader, tailFile});
-
-                                reader.position(position);
-                            } else {
-                                // we don't seek the reader to the position, so our reader will start at beginning of file.
-                                getLogger().debug("When recovering state, checksum of tailed file does not match the stored checksum. Will begin tailing current file from beginning.");
-                            }
-                        }
-                    } else {
-                        // fewer bytes than our position, so we know we weren't already reading from this file. Keep reader at a position of 0.
-                        getLogger().debug("When recovering state, existing file to tail is only {} bytes but position flag is {}; "
-                            + "this indicates that the file has rotated. Will begin tailing current file from beginning.", new Object[] {existingTailFile.length(), position});
-                    }
-
-                    state = new TailFileState(tailFilename, tailFile, reader, position, timestamp, checksum, ByteBuffer.allocate(65536));
+                if (checksumPresent) {
+                    checksumValue = dis.readLong();
                 } else {
-                    // If filename changed or there is no checksum present, then we have no expected checksum to use for recovery.
-                    expectedRecoveryChecksum = null;
-
-                    // tailing a new file since the state file was written out. We will reset state.
-                    state = new TailFileState(tailFilename, null, null, 0L, 0L, null, ByteBuffer.allocate(65536));
+                    checksumValue = null;
                 }
 
-                getLogger().debug("Recovered state {}", new Object[] {state});
+                stateValues.put(TailFileState.StateKeys.FILENAME, filename);
+                stateValues.put(TailFileState.StateKeys.POSITION, String.valueOf(position));
+                stateValues.put(TailFileState.StateKeys.TIMESTAMP, String.valueOf(timestamp));
+                stateValues.put(TailFileState.StateKeys.CHECKSUM, checksumValue == null ? null : String.valueOf(checksumValue));
             } else {
                 // encoding Version == -1... no data in file. Just move on.
             }
         } catch (final FileNotFoundException fnfe) {
         }
+
+        return stateValues;
+    }
+
+
+    /**
+     * Updates member variables to reflect the "expected recovery checksum" and seek to the appropriate location in the
+     * tailed file, updating our checksum, so that we are ready to proceed with the {@link #onTrigger(ProcessContext, ProcessSession)} call.
+     *
+     * @param context the ProcessContext
+     * @param stateValues the values that were recovered from state that was previously stored. This Map should be populated with the keys defined
+     *            in {@link TailFileState.StateKeys}.
+     * @throws IOException if unable to seek to the appropriate location in the tailed file.
+     */
+    private void recoverState(final ProcessContext context, final Map<String, String> stateValues) throws IOException {
+        if (stateValues == null) {
+            return;
+        }
+
+        if (!stateValues.containsKey(TailFileState.StateKeys.FILENAME)) {
+            return;
+        }
+        if (!stateValues.containsKey(TailFileState.StateKeys.POSITION)) {
+            return;
+        }
+        if (!stateValues.containsKey(TailFileState.StateKeys.TIMESTAMP)) {
+            return;
+        }
+
+        final String currentFilename = context.getProperty(FILENAME).getValue();
+        final String checksumValue = stateValues.get(TailFileState.StateKeys.CHECKSUM);
+        final boolean checksumPresent = (checksumValue != null);
+        final String storedStateFilename = stateValues.get(TailFileState.StateKeys.FILENAME);
+        final long position = Long.parseLong(stateValues.get(TailFileState.StateKeys.POSITION));
+        final long timestamp = Long.parseLong(stateValues.get(TailFileState.StateKeys.TIMESTAMP));
+
+        FileChannel reader = null;
+        File tailFile = null;
+
+        if (checksumPresent && currentFilename.equals(storedStateFilename)) {
+            expectedRecoveryChecksum = Long.parseLong(checksumValue);
+
+            // We have an expected checksum and the currently configured filename is the same as the state file.
+            // We need to check if the existing file is the same as the one referred to in the state file based on
+            // the checksum.
+            final Checksum checksum = new CRC32();
+            final File existingTailFile = new File(storedStateFilename);
+            if (existingTailFile.length() >= position) {
+                try (final InputStream tailFileIs = new FileInputStream(existingTailFile);
+                    final CheckedInputStream in = new CheckedInputStream(tailFileIs, checksum)) {
+                    StreamUtils.copy(in, new NullOutputStream(), state.getPosition());
+
+                    final long checksumResult = in.getChecksum().getValue();
+                    if (checksumResult == expectedRecoveryChecksum) {
+                        // Checksums match. This means that we want to resume reading from where we left off.
+                        // So we will populate the reader object so that it will be used in onTrigger. If the
+                        // checksums do not match, then we will leave the reader object null, so that the next
+                        // call to onTrigger will result in a new Reader being created and starting at the
+                        // beginning of the file.
+                        getLogger().debug("When recovering state, checksum of tailed file matches the stored checksum. Will resume where left off.");
+                        tailFile = existingTailFile;
+                        reader = FileChannel.open(tailFile.toPath(), StandardOpenOption.READ);
+                        getLogger().debug("Created FileChannel {} for {} in recoverState", new Object[] {reader, tailFile});
+
+                        reader.position(position);
+                    } else {
+                        // we don't seek the reader to the position, so our reader will start at beginning of file.
+                        getLogger().debug("When recovering state, checksum of tailed file does not match the stored checksum. Will begin tailing current file from beginning.");
+                    }
+                }
+            } else {
+                // fewer bytes than our position, so we know we weren't already reading from this file. Keep reader at a position of 0.
+                getLogger().debug("When recovering state, existing file to tail is only {} bytes but position flag is {}; "
+                    + "this indicates that the file has rotated. Will begin tailing current file from beginning.", new Object[] {existingTailFile.length(), position});
+            }
+
+            state = new TailFileState(currentFilename, tailFile, reader, position, timestamp, checksum, ByteBuffer.allocate(65536));
+        } else {
+            // If filename changed or there is no checksum present, then we have no expected checksum to use for recovery.
+            expectedRecoveryChecksum = null;
+
+            // tailing a new file since the state file was written out. We will reset state.
+            state = new TailFileState(currentFilename, null, null, 0L, 0L, null, ByteBuffer.allocate(65536));
+        }
+
+        getLogger().debug("Recovered state {}", new Object[] {state});
     }
 
 
@@ -572,40 +666,27 @@ public class TailFile extends AbstractProcessor {
     }
 
 
+    private Scope getStateScope(final ProcessContext context) {
+        final String location = context.getProperty(FILE_LOCATION).getValue();
+        if (LOCATION_REMOTE.getValue().equalsIgnoreCase(location)) {
+            return Scope.CLUSTER;
+        }
+
+        return Scope.LOCAL;
+    }
 
     private void persistState(final TailFileState state, final ProcessContext context) {
-        final String stateFilename = context.getProperty(STATE_FILE).getValue();
+        persistState(state.toStateMap(), context);
+    }
+
+    private void persistState(final Map<String, String> state, final ProcessContext context) {
         try {
-            persistState(state, stateFilename);
+            context.getStateManager().setState(state, getStateScope(context));
         } catch (final IOException e) {
-            getLogger().warn("Failed to update state file {} due to {}; some data may be duplicated on restart of NiFi", new Object[] {stateFilename, e});
+            getLogger().warn("Failed to store state due to {}; some data may be duplicated on restart of NiFi", new Object[] {e});
         }
     }
 
-    private void persistState(final TailFileState state, final String stateFilename) throws IOException {
-        getLogger().debug("Persisting state {} to {}", new Object[] {state, stateFilename});
-
-        final File stateFile = new File(stateFilename);
-        File directory = stateFile.getParentFile();
-        if (directory != null && !directory.exists() && !directory.mkdirs()) {
-            getLogger().warn("Failed to persist state to {} because the parent directory does not exist and could not be created. This may result in data being duplicated upon restart of NiFi");
-            return;
-        }
-        try (final FileOutputStream fos = new FileOutputStream(stateFile);
-            final DataOutputStream dos = new DataOutputStream(fos)) {
-
-            dos.writeInt(0); // version
-            dos.writeUTF(state.getFilename());
-            dos.writeLong(state.getPosition());
-            dos.writeLong(state.getTimestamp());
-            if (state.getChecksum() == null) {
-                dos.writeBoolean(false);
-            } else {
-                dos.writeBoolean(true);
-                dos.writeLong(state.getChecksum().getValue());
-            }
-        }
-    }
 
     private FileChannel createReader(final File file, final long position) {
         final FileChannel reader;
@@ -729,7 +810,7 @@ public class TailFile extends AbstractProcessor {
 
                                 // must ensure that we do session.commit() before persisting state in order to avoid data loss.
                                 session.commit();
-                                persistState(state, context.getProperty(STATE_FILE).getValue());
+                                persistState(state, context);
                             }
                         } else {
                             getLogger().debug("Checksum for {} did not match expected checksum. Checksum for file was {} but expected {}. Will consume entire file",
@@ -801,6 +882,13 @@ public class TailFile extends AbstractProcessor {
         private final Checksum checksum;
         private final ByteBuffer buffer;
 
+        private static class StateKeys {
+            public static final String FILENAME = "filename";
+            public static final String POSITION = "position";
+            public static final String TIMESTAMP = "timestamp";
+            public static final String CHECKSUM = "checksum";
+        }
+
         public TailFileState(final String filename, final File file, final FileChannel reader, final long position, final long timestamp, final Checksum checksum, final ByteBuffer buffer) {
             this.filename = filename;
             this.file = file;
@@ -842,6 +930,15 @@ public class TailFile extends AbstractProcessor {
         @Override
         public String toString() {
             return "TailFileState[filename=" + filename + ", position=" + position + ", timestamp=" + timestamp + ", checksum=" + (checksum == null ? "null" : checksum.getValue()) + "]";
+        }
+
+        public Map<String, String> toStateMap() {
+            final Map<String, String> map = new HashMap<>(4);
+            map.put(StateKeys.FILENAME, filename);
+            map.put(StateKeys.POSITION, String.valueOf(position));
+            map.put(StateKeys.TIMESTAMP, String.valueOf(timestamp));
+            map.put(StateKeys.CHECKSUM, checksum == null ? null : String.valueOf(checksum.getValue()));
+            return map;
         }
     }
 }

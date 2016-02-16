@@ -20,6 +20,7 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
+import org.apache.nifi.stream.io.ByteArrayOutputStream
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Assume
@@ -29,6 +30,7 @@ import org.junit.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.crypto.Cipher
 import java.security.Security
 
 public class PasswordBasedEncryptorGroovyTest {
@@ -65,7 +67,7 @@ public class PasswordBasedEncryptorGroovyTest {
         logger.info("Plaintext: {}", PLAINTEXT)
         InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
 
-        String shortPassword = "shortPassword"
+        String shortPassword = "short"
 
         def encryptionMethodsAndKdfs = [
                 (KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY): EncryptionMethod.MD5_128AES,
@@ -160,5 +162,64 @@ public class PasswordBasedEncryptorGroovyTest {
         String recovered = new String(recoveredBytes, "UTF-8")
         logger.info("Recovered: {}", recovered)
         assert PLAINTEXT.equals(recovered)
+    }
+
+    @Test
+    public void testShouldDecryptNiFiLegacySaltedCipherTextWithVariableSaltLength() throws Exception {
+        // Arrange
+        final String PLAINTEXT = new File("${TEST_RESOURCES_PREFIX}/plain.txt").text
+        logger.info("Plaintext: {}", PLAINTEXT)
+
+        final String PASSWORD = "short"
+        logger.info("Password: ${PASSWORD}")
+
+        /* The old NiFi legacy KDF code checked the algorithm block size and used it for the salt length.
+         If the block size was not available, it defaulted to 8 bytes based on the default salt size. */
+
+        def pbeEncryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
+        def encryptionMethodsByBlockSize = pbeEncryptionMethods.groupBy {
+            Cipher cipher = Cipher.getInstance(it.algorithm, it.provider)
+            cipher.getBlockSize()
+        }
+
+        logger.info("Grouped algorithms by block size: ${encryptionMethodsByBlockSize.collectEntries { k, v -> [k, v*.algorithm] }}")
+
+        encryptionMethodsByBlockSize.each { int blockSize, List<EncryptionMethod> encryptionMethods ->
+            encryptionMethods.each { EncryptionMethod encryptionMethod ->
+                final int EXPECTED_SALT_SIZE = (blockSize > 0) ? blockSize : 8
+                logger.info("Testing ${encryptionMethod.algorithm} with expected salt size ${EXPECTED_SALT_SIZE}")
+
+                def legacySaltHex = "aa" * EXPECTED_SALT_SIZE
+                byte[] legacySalt = Hex.decodeHex(legacySaltHex as char[])
+                logger.info("Generated legacy salt ${legacySaltHex} (${legacySalt.length})")
+
+                // Act
+
+                // Encrypt using the raw legacy code
+                NiFiLegacyCipherProvider legacyCipherProvider = new NiFiLegacyCipherProvider()
+                Cipher legacyCipher = legacyCipherProvider.getCipher(encryptionMethod, PASSWORD, legacySalt, true)
+                byte[] cipherBytes = legacyCipher.doFinal(PLAINTEXT.bytes)
+                logger.info("Cipher bytes: ${Hex.encodeHexString(cipherBytes)}")
+
+                byte[] completeCipherStreamBytes = CipherUtility.concatBytes(legacySalt, cipherBytes)
+                logger.info("Complete cipher stream: ${Hex.encodeHexString(completeCipherStreamBytes)}")
+
+                InputStream cipherStream = new ByteArrayInputStream(completeCipherStreamBytes)
+                OutputStream resultStream = new ByteArrayOutputStream()
+
+                // Now parse and decrypt using PBE encryptor
+                PasswordBasedEncryptor decryptor = new PasswordBasedEncryptor(encryptionMethod, PASSWORD as char[], KeyDerivationFunction.NIFI_LEGACY)
+
+                StreamCallback decryptCallback = decryptor.decryptionCallback
+                decryptCallback.process(cipherStream, resultStream)
+
+                logger.info("Decrypted: ${Hex.encodeHexString(resultStream.toByteArray())}")
+                String recovered = new String(resultStream.toByteArray())
+                logger.info("Recovered: ${recovered}")
+
+                // Assert
+                assert recovered == PLAINTEXT
+            }
+        }
     }
 }

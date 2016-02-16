@@ -29,6 +29,7 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -43,11 +44,13 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final StringEncryptor encryptor;
+    private final StateManager stateManager;
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor) {
+    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor, final StateManager stateManager) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
+        this.stateManager = stateManager;
 
         preparedQueries = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
@@ -207,5 +210,10 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
         final List<Range> elRanges = Query.extractExpressionRanges(getProperty(property).getValue());
         return (elRanges != null && !elRanges.isEmpty());
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

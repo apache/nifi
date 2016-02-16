@@ -33,6 +33,7 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     private String state;
     private String availability;
     private String comments;
+    private Boolean persistsState;
 
     private String schedulingPeriod;
     private String schedulingStrategy;
@@ -103,6 +104,20 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
 
     public void setSchedulingPeriod(String schedulingPeriod) {
         this.schedulingPeriod = schedulingPeriod;
+    }
+
+    /**
+     * @return whether this reporting task persists state
+     */
+    @ApiModelProperty(
+        value = "Whether the reporting task persists state."
+    )
+    public Boolean getPersistsState() {
+        return persistsState;
+    }
+
+    public void setPersistsState(Boolean persistsState) {
+        this.persistsState = persistsState;
     }
 
     /**

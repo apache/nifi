@@ -89,7 +89,7 @@ public class EncryptContent extends AbstractProcessor {
             .description("Specifies the key derivation function to generate the key from the password (and salt)")
             .required(true)
             .allowableValues(buildKeyDerivationFunctionAllowableValues())
-            .defaultValue(KeyDerivationFunction.NIFI_LEGACY.name())
+            .defaultValue(KeyDerivationFunction.BCRYPT.name())
             .build();
     public static final PropertyDescriptor ENCRYPTION_ALGORITHM = new PropertyDescriptor.Builder()
             .name("Encryption Algorithm")

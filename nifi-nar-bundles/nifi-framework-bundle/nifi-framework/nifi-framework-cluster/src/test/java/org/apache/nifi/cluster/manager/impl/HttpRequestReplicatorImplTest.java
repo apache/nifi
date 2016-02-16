@@ -16,35 +16,39 @@
  */
 package org.apache.nifi.cluster.manager.impl;
 
-import javax.ws.rs.core.Response;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Iterator;
-import javax.ws.rs.core.StreamingOutput;
-import org.apache.nifi.cluster.manager.testutils.HttpResponse;
-import org.apache.nifi.cluster.manager.testutils.HttpServer;
-import com.sun.jersey.api.client.Client;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.ws.rs.core.Response.Status;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.apache.nifi.cluster.manager.testutils.HttpResponseAction;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.StreamingOutput;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.testutils.HttpResponse;
+import org.apache.nifi.cluster.manager.testutils.HttpResponseAction;
+import org.apache.nifi.cluster.manager.testutils.HttpServer;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.sun.jersey.api.client.Client;
 
 /**
  */
@@ -341,7 +345,7 @@ public class HttpRequestReplicatorImplTest {
     private Set<NodeIdentifier> createNodes(int num, String host, int apiPort) {
         Set<NodeIdentifier> result = new HashSet<>();
         for (int i = 0; i < num; i++) {
-            result.add(new NodeIdentifier(String.valueOf(i), host, apiPort, host, 1));
+            result.add(new NodeIdentifier(String.valueOf(i), host, apiPort, host, 1, "localhost", 1234, false));
         }
         return result;
     }

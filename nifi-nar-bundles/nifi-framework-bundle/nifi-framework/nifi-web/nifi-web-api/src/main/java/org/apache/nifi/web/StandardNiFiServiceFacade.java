@@ -39,6 +39,8 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -81,6 +83,7 @@ import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -790,6 +793,90 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public CounterDTO updateCounter(String counterId) {
         return dtoFactory.createCounterDto(controllerFacade.resetCounter(counterId));
+    }
+
+    @Override
+    public void verifyCanClearProcessorState(final String groupId, final String processorId) {
+        processorDAO.verifyClearState(groupId, processorId);
+    }
+
+    @Override
+    public ConfigurationSnapshot<Void> clearProcessorState(final Revision revision, final String groupId, final String processorId) {
+        return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
+            @Override
+            public ConfigurationResult<Void> execute() {
+                // clear the state for the specified component
+                processorDAO.clearState(groupId, processorId);
+
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
+            }
+        });
+    }
+
+    @Override
+    public void verifyCanClearControllerServiceState(final String controllerServiceId) {
+        controllerServiceDAO.verifyClearState(controllerServiceId);
+    }
+
+    @Override
+    public ConfigurationSnapshot<Void> clearControllerServiceState(final Revision revision, final String controllerServiceId) {
+        return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
+            @Override
+            public ConfigurationResult<Void> execute() {
+                // clear the state for the specified component
+                controllerServiceDAO.clearState(controllerServiceId);
+
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
+            }
+        });
+    }
+
+    @Override
+    public void verifyCanClearReportingTaskState(final String reportingTaskId) {
+        reportingTaskDAO.verifyClearState(reportingTaskId);
+    }
+
+    @Override
+    public ConfigurationSnapshot<Void> clearReportingTaskState(final Revision revision, final String reportingTaskId) {
+        return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
+            @Override
+            public ConfigurationResult<Void> execute() {
+                // clear the state for the specified component
+                reportingTaskDAO.clearState(reportingTaskId);
+
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
+            }
+        });
     }
 
     @Override
@@ -2097,6 +2184,36 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return controllerStatus;
+    }
+
+    @Override
+    public ComponentStateDTO getProcessorState(String groupId, String processorId) {
+        final StateMap clusterState = isClustered() ? processorDAO.getState(groupId, processorId, Scope.CLUSTER) : null;
+        final StateMap localState = processorDAO.getState(groupId, processorId, Scope.LOCAL);
+
+        // processor will be non null as it was already found when getting the state
+        final ProcessorNode processor = processorDAO.getProcessor(groupId, processorId);
+        return dtoFactory.createComponentStateDTO(processorId, processor.getProcessor().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public ComponentStateDTO getControllerServiceState(String controllerServiceId) {
+        final StateMap clusterState = isClustered() ? controllerServiceDAO.getState(controllerServiceId, Scope.CLUSTER) : null;
+        final StateMap localState = controllerServiceDAO.getState(controllerServiceId, Scope.LOCAL);
+
+        // controller service will be non null as it was already found when getting the state
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+        return dtoFactory.createComponentStateDTO(controllerServiceId, controllerService.getControllerServiceImplementation().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public ComponentStateDTO getReportingTaskState(String reportingTaskId) {
+        final StateMap clusterState = isClustered() ? reportingTaskDAO.getState(reportingTaskId, Scope.CLUSTER) : null;
+        final StateMap localState = reportingTaskDAO.getState(reportingTaskId, Scope.LOCAL);
+
+        // reporting task will be non null as it was already found when getting the state
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
+        return dtoFactory.createComponentStateDTO(reportingTaskId, reportingTask.getReportingTask().getClass(), localState, clusterState);
     }
 
     @Override

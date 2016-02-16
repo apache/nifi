@@ -303,7 +303,7 @@ public class CipherUtility {
             throw new IllegalArgumentException("Cannot evaluate an empty encryption method algorithm");
         }
 
-            return passwordLength <= getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod);
+        return passwordLength <= getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod);
     }
 
     public static int getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(EncryptionMethod encryptionMethod) {
@@ -316,5 +316,14 @@ public class CipherUtility {
         } else {
             return -1;
         }
+    }
+
+    public static byte[] concatBytes(byte[]... arrays) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        for (byte[] bytes : arrays) {
+            outputStream.write(bytes);
+        }
+
+        return outputStream.toByteArray();
     }
 }

@@ -64,4 +64,16 @@ public interface LogRepository {
      * Removes all LogObservers from this Repository
      */
     void removeAllObservers();
+
+    /**
+     * Sets the current logger for the component
+     *
+     * @param logger the logger to use
+     */
+    void setLogger(ComponentLog logger);
+
+    /**
+     * @return the current logger for the component
+     */
+    ComponentLog getLogger();
 }

@@ -129,10 +129,7 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
             throw new IllegalArgumentException("Encryption with an empty password is not supported");
         }
 
-        if (salt.length != DEFAULT_SALT_LENGTH && salt.length != 0) {
-            // This does not enforce ASCII encoding, just length
-            throw new IllegalArgumentException("Salt must be 8 bytes US-ASCII encoded or empty");
-        }
+        validateSalt(encryptionMethod, salt);
 
         String algorithm = encryptionMethod.getAlgorithm();
         String provider = encryptionMethod.getProvider();
@@ -146,6 +143,13 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
         Cipher cipher = Cipher.getInstance(algorithm, provider);
         cipher.init(encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, tempKey, parameterSpec);
         return cipher;
+    }
+
+    protected void validateSalt(EncryptionMethod encryptionMethod, byte[] salt) {
+        if (salt.length != DEFAULT_SALT_LENGTH && salt.length != 0) {
+            // This does not enforce ASCII encoding, just length
+            throw new IllegalArgumentException("Salt must be 8 bytes US-ASCII encoded or empty");
+        }
     }
 
     protected int getIterationCount() {

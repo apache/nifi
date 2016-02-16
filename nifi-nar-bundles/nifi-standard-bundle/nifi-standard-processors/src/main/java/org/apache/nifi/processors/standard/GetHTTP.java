@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -29,22 +28,16 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
@@ -72,15 +65,18 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnRemoved;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -96,16 +92,20 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.Tuple;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Fetches data from an HTTP or HTTPS URL and writes the data to the content of a FlowFile. Once the content has been fetched, the ETag and Last Modified "
-    + "dates are remembered (if the web server supports these concepts). This allows the Processor to fetch new data only if the remote data has changed. That is, once the "
-    + "content has been fetched from the given URL, it will not be fetched again until the content on the remote server changes.")
+    + "dates are remembered (if the web server supports these concepts). This allows the Processor to fetch new data only if the remote data has changed or until the state is cleared. That is, "
+    + "once the content has been fetched from the given URL, it will not be fetched again until the content on the remote server changes. Note that due to limitations on state "
+    + "management, stored \"last modified\" and etag fields never expire. If the URL in GetHttp uses Expression Language that is unbounded, there "
+    + "is the potential for Out of Memory Errors to occur.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
     @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
 })
+@Stateful(scopes = {Scope.LOCAL}, description = "Stores Last Modified Time and ETag headers returned by server so that the same data will not be fetched multiple times.")
 public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     static final int PERSISTENCE_INTERVAL_MSEC = 10000;
@@ -204,30 +204,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     public static final String LAST_MODIFIED_DATE_PATTERN_RFC1123 = "EEE, dd MMM yyyy HH:mm:ss zzz";
 
     // package access to enable unit testing
-    static final String UNINITIALIZED_LAST_MODIFIED_VALUE;
-
-    private static final String HTTP_CACHE_FILE_PREFIX = "conf/.httpCache-";
-
     static final String ETAG = "ETag";
-
     static final String LAST_MODIFIED = "LastModified";
 
-    static {
-        final SimpleDateFormat sdf = new SimpleDateFormat(LAST_MODIFIED_DATE_PATTERN_RFC1123, Locale.US);
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-        UNINITIALIZED_LAST_MODIFIED_VALUE = sdf.format(new Date(1L));
-    }
-    final AtomicReference<String> lastModifiedRef = new AtomicReference<>(UNINITIALIZED_LAST_MODIFIED_VALUE);
-    final AtomicReference<String> entityTagRef = new AtomicReference<>("");
-    // end
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
 
-    private volatile long timeToPersist = 0;
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private final ReadLock readLock = lock.readLock();
-    private final WriteLock writeLock = lock.writeLock();
+    private final AtomicBoolean clearState = new AtomicBoolean(false);
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -249,16 +233,6 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         this.properties = Collections.unmodifiableList(properties);
-
-        // load etag and lastModified from file
-        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
-        try (FileInputStream fis = new FileInputStream(httpCache)) {
-            final Properties props = new Properties();
-            props.load(fis);
-            entityTagRef.set(props.getProperty(ETAG));
-            lastModifiedRef.set(props.getProperty(LAST_MODIFIED));
-        } catch (final IOException swallow) {
-        }
     }
 
     @Override
@@ -273,28 +247,13 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        entityTagRef.set("");
-        lastModifiedRef.set(UNINITIALIZED_LAST_MODIFIED_VALUE);
+        clearState.set(true);
     }
 
-    @OnStopped
-    public void onStopped() {
-        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
-        try (FileOutputStream fos = new FileOutputStream(httpCache)) {
-            final Properties props = new Properties();
-            props.setProperty(ETAG, entityTagRef.get());
-            props.setProperty(LAST_MODIFIED, lastModifiedRef.get());
-            props.store(fos, "GetHTTP file modification values");
-        } catch (final IOException swallow) {
-        }
-
-    }
-
-    @OnRemoved
-    public void onRemoved() {
-        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
-        if (httpCache.exists()) {
-            httpCache.delete();
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) throws IOException {
+        if (clearState.getAndSet(false)) {
+            context.getStateManager().clear(Scope.LOCAL);
         }
     }
 
@@ -446,8 +405,22 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             final HttpGet get = new HttpGet(url);
             get.setConfig(requestConfigBuilder.build());
 
-            get.addHeader(HEADER_IF_MODIFIED_SINCE, lastModifiedRef.get());
-            get.addHeader(HEADER_IF_NONE_MATCH, entityTagRef.get());
+            final StateMap beforeStateMap;
+
+            try {
+                beforeStateMap = context.getStateManager().getState(Scope.LOCAL);
+                final String lastModified = beforeStateMap.get(LAST_MODIFIED+":" + url);
+                if (lastModified != null) {
+                    get.addHeader(HEADER_IF_MODIFIED_SINCE, parseStateValue(lastModified).getValue());
+                }
+
+                final String etag = beforeStateMap.get(ETAG+":" + url);
+                if (etag != null) {
+                    get.addHeader(HEADER_IF_NONE_MATCH, parseStateValue(etag).getValue());
+                }
+            } catch (final IOException ioe) {
+                throw new ProcessException(ioe);
+            }
 
             final String accept = context.getProperty(ACCEPT_CONTENT_TYPE).getValue();
             if (accept != null) {
@@ -494,42 +467,9 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
                 logger.info("Successfully received {} from {} at a rate of {}; transferred to success", new Object[]{flowFile, url, dataRate});
                 session.commit();
-                final Header lastModified = response.getFirstHeader(HEADER_LAST_MODIFIED);
-                if (lastModified != null) {
-                    lastModifiedRef.set(lastModified.getValue());
-                }
 
-                final Header etag = response.getFirstHeader(HEADER_ETAG);
-                if (etag != null) {
-                    entityTagRef.set(etag.getValue());
-                }
-                if ((etag != null || lastModified != null) && readLock.tryLock()) {
-                    try {
-                        if (timeToPersist < System.currentTimeMillis()) {
-                            readLock.unlock();
-                            writeLock.lock();
-                            try {
-                                if (timeToPersist < System.currentTimeMillis()) {
-                                    timeToPersist = System.currentTimeMillis() + PERSISTENCE_INTERVAL_MSEC;
-                                    final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
-                                    try (FileOutputStream fos = new FileOutputStream(httpCache)) {
-                                        final Properties props = new Properties();
-                                        props.setProperty(ETAG, entityTagRef.get());
-                                        props.setProperty(LAST_MODIFIED, lastModifiedRef.get());
-                                        props.store(fos, "GetHTTP file modification values");
-                                    } catch (final IOException e) {
-                                        getLogger().error("Failed to persist ETag and LastMod due to " + e, e);
-                                    }
-                                }
-                            } finally {
-                                readLock.lock();
-                                writeLock.unlock();
-                            }
-                        }
-                    } finally {
-                        readLock.unlock();
-                    }
-                }
+                updateStateMap(context,response,beforeStateMap,url);
+
             } catch (final IOException e) {
                 context.yield();
                 session.rollback();
@@ -544,5 +484,71 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         } finally {
             conMan.shutdown();
         }
+    }
+
+    private void updateStateMap(ProcessContext context, HttpResponse response, StateMap beforeStateMap, String url){
+        try {
+            Map<String,String> workingMap = new HashMap<>();
+            workingMap.putAll(beforeStateMap.toMap());
+            final StateManager stateManager = context.getStateManager();
+            StateMap oldValue = beforeStateMap;
+
+            long currentTime = System.currentTimeMillis();
+
+            final Header receivedLastModified = response.getFirstHeader(HEADER_LAST_MODIFIED);
+            if (receivedLastModified != null) {
+                workingMap.put(LAST_MODIFIED + ":" + url, currentTime+":"+receivedLastModified.getValue());
+            }
+
+            final Header receivedEtag = response.getFirstHeader(HEADER_ETAG);
+            if (receivedEtag != null) {
+                workingMap.put(ETAG + ":" + url, currentTime+":"+receivedEtag.getValue());
+            }
+
+            boolean replaceSucceeded = stateManager.replace(oldValue, workingMap, Scope.LOCAL);
+            boolean changed;
+
+            while(!replaceSucceeded){
+                oldValue = stateManager.getState(Scope.LOCAL);
+                workingMap.clear();
+                workingMap.putAll(oldValue.toMap());
+
+                changed = false;
+
+                if(receivedLastModified != null){
+                    Tuple<String,String> storedLastModifiedTuple = parseStateValue(workingMap.get(LAST_MODIFIED+":"+url));
+
+                    if(Long.parseLong(storedLastModifiedTuple.getKey()) < currentTime){
+                        workingMap.put(LAST_MODIFIED + ":" + url, currentTime+":"+receivedLastModified.getValue());
+                        changed = true;
+                    }
+                }
+
+                if(receivedEtag != null){
+                    Tuple<String,String> storedLastModifiedTuple = parseStateValue(workingMap.get(ETAG+":"+url));
+
+                    if(Long.parseLong(storedLastModifiedTuple.getKey()) < currentTime){
+                        workingMap.put(ETAG + ":" + url, currentTime+":"+receivedEtag.getValue());
+                        changed = true;
+                    }
+                }
+
+                if(changed) {
+                    replaceSucceeded = stateManager.replace(oldValue, workingMap, Scope.LOCAL);
+                } else {
+                    break;
+                }
+            }
+        } catch (final IOException ioe) {
+            throw new ProcessException(ioe);
+        }
+    }
+
+    protected static Tuple<String, String> parseStateValue(String mapValue){
+        int indexOfColon = mapValue.indexOf(":");
+
+        String timestamp = mapValue.substring(0,indexOfColon);
+        String value = mapValue.substring(indexOfColon+1);
+        return new Tuple<>(timestamp,value);
     }
 }

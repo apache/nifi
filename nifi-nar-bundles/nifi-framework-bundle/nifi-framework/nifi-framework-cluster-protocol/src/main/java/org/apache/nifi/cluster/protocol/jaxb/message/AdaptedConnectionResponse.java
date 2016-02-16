@@ -27,7 +27,7 @@ public class AdaptedConnectionResponse {
 
     private StandardDataFlow dataFlow;
     private NodeIdentifier nodeIdentifier;
-    private boolean blockedByFirewall;
+    private String rejectionReason;
     private boolean primary;
     private int tryLaterSeconds;
     private Integer managerRemoteInputPort;
@@ -63,12 +63,12 @@ public class AdaptedConnectionResponse {
         this.tryLaterSeconds = tryLaterSeconds;
     }
 
-    public boolean isBlockedByFirewall() {
-        return blockedByFirewall;
+    public String getRejectionReason() {
+        return rejectionReason;
     }
 
-    public void setBlockedByFirewall(boolean blockedByFirewall) {
-        this.blockedByFirewall = blockedByFirewall;
+    public void setRejectionReason(final String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 
     public boolean isPrimary() {

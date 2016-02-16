@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.cluster.firewall.impl;
 
-import java.io.File;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+
+import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
