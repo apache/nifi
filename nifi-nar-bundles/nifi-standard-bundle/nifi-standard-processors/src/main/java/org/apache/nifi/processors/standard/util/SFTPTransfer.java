@@ -61,7 +61,6 @@ public class SFTPTransfer implements FileTransfer {
         .name("Private Key Passphrase")
         .description("Password for the private key")
         .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .sensitive(true)
         .build();
     public static final PropertyDescriptor HOST_KEY_FILE = new PropertyDescriptor.Builder()
