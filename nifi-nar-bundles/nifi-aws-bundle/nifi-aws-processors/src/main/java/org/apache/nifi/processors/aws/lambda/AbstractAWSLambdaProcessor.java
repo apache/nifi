@@ -27,7 +27,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.lambda.AWSLambdaClient;
 
 /**
- * This class provides processor the base class for invoking aws lambda
+ * This class is the base class for invoking aws lambda function
  */
 public abstract class AbstractAWSLambdaProcessor extends AbstractAWSCredentialsProviderProcessor<AWSLambdaClient> {
 
