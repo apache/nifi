@@ -30,7 +30,7 @@ import org.junit.Test;
 /**
  * This test contains both unit and integration test (integration tests are ignored by default)
  */
-public class ITPutKinesisFirehoseTest {
+public class ITPutKinesisFirehose {
 
     private TestRunner runner;
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
