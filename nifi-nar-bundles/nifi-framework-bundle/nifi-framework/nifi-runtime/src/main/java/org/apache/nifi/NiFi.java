@@ -95,7 +95,7 @@ public class NiFi {
         // the working directory, we can be assured that it will attempt to extract the
         // war every time the application starts.
         File webWorkingDir = properties.getWebWorkingDirectory();
-        FileUtils.deleteFilesInDir(webWorkingDir, null, logger, true, true);
+        FileUtils.deleteFilesInDirectory(webWorkingDir, null, logger, true, true);
         FileUtils.deleteFile(webWorkingDir, logger, 3);
 
         detectTimingIssues();
