@@ -35,6 +35,17 @@
                 <artifactId>guava</artifactId>
                 <version>${hadoop.guava.version}</version>
             </dependency>
+            <!-- the top-level pom forces 4.4.1, but Hadoop 2.6 normally brings in 4.2.5 -->
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${hadoop.http.client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>${hadoop.http.client.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
