@@ -197,6 +197,35 @@ public class PutHDFSTest {
     }
 
     @Test
+    public void testPutFileWithBackupSuffix() throws IOException {
+        // Refer to comment in the BeforeClass method for an explanation
+        assumeTrue(isNotWindows());
+
+        TestRunner runner = TestRunners.newTestRunner(PutHDFS.class);
+        runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.BACKUP_SUFFIX_RESOLUTION);
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHDFS.BACKUP_SUFFIX, "2016-03-16T08-11-05");
+        for(int i=0;i<2;i++){
+            try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
+                Map<String, String> attributes = new HashMap<String, String>();
+                attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+                runner.enqueue(fis, attributes);
+                runner.run();
+            }
+        }
+
+        Configuration config = new Configuration();
+        FileSystem fs = FileSystem.get(config);
+
+        List<MockFlowFile> failedFlowFiles = runner
+                .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
+        assertTrue(failedFlowFiles.isEmpty());
+
+        assertTrue(fs.exists(new Path("target/test-classes/randombytes-1")));
+    }
+
+    @Test
     public void testPutFileWithException() throws IOException {
         // Refer to comment in the BeforeClass method for an explanation
         assumeTrue(isNotWindows());

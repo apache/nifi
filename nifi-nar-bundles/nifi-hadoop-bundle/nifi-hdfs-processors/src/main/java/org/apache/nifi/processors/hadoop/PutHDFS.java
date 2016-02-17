@@ -71,6 +71,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
     public static final String REPLACE_RESOLUTION = "replace";
     public static final String IGNORE_RESOLUTION = "ignore";
     public static final String FAIL_RESOLUTION = "fail";
+    public static final String BACKUP_SUFFIX_RESOLUTION = "backupWithSuffix";
 
     public static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
     public static final int BUFFER_SIZE_DEFAULT = 4096;
@@ -101,8 +102,16 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .description("Indicates what should happen when a file with the same name already exists in the output directory")
             .required(true)
             .defaultValue(FAIL_RESOLUTION)
-            .allowableValues(REPLACE_RESOLUTION, IGNORE_RESOLUTION, FAIL_RESOLUTION)
+            .allowableValues(REPLACE_RESOLUTION, IGNORE_RESOLUTION, FAIL_RESOLUTION, BACKUP_SUFFIX_RESOLUTION)
             .build();
+    public static final PropertyDescriptor BACKUP_SUFFIX = new PropertyDescriptor.Builder()
+        .name("Backup With Suffix")
+        .description("Which Suffix to use for Backup, when a file with the same name already exists in the output directory"
+            + " and Backup_Suffix conflict resolution strategy has been selected.")
+        .expressionLanguageSupported(true)
+        .defaultValue("${now:toDate(\"yyyy-MM-ddTHH-mm-ss.SSS'Z'\")}")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
     public static final PropertyDescriptor BLOCK_SIZE = new PropertyDescriptor.Builder()
             .name("Block Size")
@@ -162,6 +171,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         props.add(REMOTE_OWNER);
         props.add(REMOTE_GROUP);
         props.add(COMPRESSION_CODEC);
+        props.add(BACKUP_SUFFIX);
         localProperties = Collections.unmodifiableList(props);
     }
 
@@ -263,6 +273,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         getLogger().warn("penalizing {} and routing to failure because file with same name already exists",
                                 new Object[]{flowFile});
                         return;
+                    case BACKUP_SUFFIX_RESOLUTION:
+                        final String suffix=context.getProperty(BACKUP_SUFFIX).evaluateAttributeExpressions(flowFile).getValue();
+                        final Path dst=copyFile.suffix(suffix);
+                        if (hdfs.rename(copyFile, dst)) {
+                            getLogger().info("moved {} to {} in order to keep backup",
+                                    new Object[]{copyFile, dst});
+                        }
+                        break;
                     default:
                         break;
                 }
