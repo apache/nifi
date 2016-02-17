@@ -457,7 +457,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         final Set<String> identifiers = new HashSet<>();
         for (final Map.Entry<String, ControllerServiceNode> entry : controllerServices.entrySet()) {
-            Class<? extends ControllerService> c = entry.getValue().getProxiedControllerService().getClass();
             if (requireNonNull(serviceType).isAssignableFrom(entry.getValue().getProxiedControllerService().getClass())) {
                 identifiers.add(entry.getKey());
             }

@@ -23,7 +23,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
  * Base implementation of the {@link SchedulingAgent} which encapsulates the
  * updates to the {@link ScheduleState} based on invoked operation and then
  * delegates to the corresponding 'do' methods. For example; By invoking
- * {@link #schedule(Connectable, ScheduleState)} the the
+ * {@link #schedule(Connectable, ScheduleState)} the
  * {@link ScheduleState#setScheduled(boolean)} with value 'true' will be
  * invoked.
  *
