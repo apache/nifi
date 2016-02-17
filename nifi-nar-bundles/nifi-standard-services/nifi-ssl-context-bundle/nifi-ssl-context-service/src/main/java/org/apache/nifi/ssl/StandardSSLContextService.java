@@ -105,6 +105,15 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
+    public static final PropertyDescriptor CLIENT_AUTH_POLICY = new PropertyDescriptor.Builder()
+            .name("Client authentication policy")
+            .defaultValue(ClientAuth.NONE.toString())
+            .required(true)
+            .allowableValues(ClientAuth.values())
+            .description("The client authentication policy to use for this SSL context")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .build();
 
     private static final List<PropertyDescriptor> properties;
     private ConfigurationContext configContext;
@@ -118,6 +127,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         props.add(TRUSTSTORE_PASSWORD);
         props.add(TRUSTSTORE_TYPE);
         props.add(SSL_ALGORITHM);
+        props.add(CLIENT_AUTH_POLICY);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -289,6 +299,11 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         } catch (final Exception e) {
             throw new ProcessException(e);
         }
+    }
+
+    @Override
+    public SSLContext createSSLContext() throws ProcessException {
+        return createSSLContext(ClientAuth.valueOf(configContext.getProperty(CLIENT_AUTH_POLICY).getValue()));
     }
 
     @Override

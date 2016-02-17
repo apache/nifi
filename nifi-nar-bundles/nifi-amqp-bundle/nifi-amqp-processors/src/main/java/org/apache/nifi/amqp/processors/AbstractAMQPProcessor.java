@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.net.ssl.SSLContext;
+
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -28,6 +30,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -84,6 +87,12 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .allowableValues("0.9.1")
             .defaultValue("0.9.1")
             .build();
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
     static List<PropertyDescriptor> descriptors = new ArrayList<>();
 
@@ -98,6 +107,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         descriptors.add(USER);
         descriptors.add(PASSWORD);
         descriptors.add(AMQP_VERSION);
+        descriptors.add(SSL_CONTEXT_SERVICE);
     }
 
     protected volatile Connection amqpConnection;
@@ -190,6 +200,14 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         String vHost = context.getProperty(V_HOST).getValue();
         if (vHost != null) {
             cf.setVirtualHost(vHost);
+        }
+        // handles TLS/SSL aspects
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext();
+
+        // check if the ssl context is set and add it to the factory if so
+        if (sslContext != null) {
+            cf.useSslProtocol(sslContext);
         }
 
         try {
