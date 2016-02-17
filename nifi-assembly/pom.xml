@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.5.0-SNAPSHOT</version>
+        <version>0.6.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -283,7 +283,7 @@ language governing permissions and limitations under the License. -->
         <!--Wrapper Properties -->
         <nifi.jvm.heap.mb>512</nifi.jvm.heap.mb>
         <nifi.jvm.permgen.mb>128</nifi.jvm.permgen.mb>
-        <nifi.run.as></nifi.run.as>
+        <nifi.run.as />
         <!-- nifi.properties: core properties -->
         <nifi.version>${project.version}</nifi.version>
         <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
@@ -492,7 +492,7 @@ language governing permissions and limitations under the License. -->
                             <defaultGroupname>nifi</defaultGroupname>
                             <preinstallScriptlet>
                                 <script>
-                                    /usr/bin/getent group nifi >/dev/null || /usr/sbin/groupadd -r nifi; /usr/bin/getent passwd nifi >/dev/null || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin -c "NiFi System User" nifi
+                                    /usr/bin/getent group nifi &gt;/dev/null || /usr/sbin/groupadd -r nifi; /usr/bin/getent passwd nifi &gt;/dev/null || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin -c "NiFi System User" nifi
                                 </script>
                             </preinstallScriptlet>
                         </configuration>
