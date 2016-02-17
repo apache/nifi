@@ -102,7 +102,7 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     /**
      * Will start the {@link Processor} represented by this
-     * {@link ProcessorNode}. Starting processor typically means invoking it's
+     * {@link ProcessorNode}. Starting processor typically means invoking its
      * operation that is annotated with @OnScheduled and then executing a
      * callback provided by the {@link ProcessScheduler} to which typically
      * initiates
@@ -126,7 +126,7 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     /**
      * Will stop the {@link Processor} represented by this {@link ProcessorNode}.
-     * Stopping processor typically means invoking it's operation that is
+     * Stopping processor typically means invoking its operation that is
      * annotated with @OnUnschedule and then @OnStopped.
      *
      * @param scheduler

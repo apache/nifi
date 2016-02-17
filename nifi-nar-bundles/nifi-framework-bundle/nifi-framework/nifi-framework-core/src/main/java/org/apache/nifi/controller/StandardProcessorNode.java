@@ -1374,8 +1374,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             }
         });
 
-        long onScheduleTimeout = Long.parseLong(NiFiProperties.getInstance()
-                .getProperty(NiFiProperties.PROCESSOR_START_TIMEOUT, String.valueOf(Long.MAX_VALUE)));
+        String timeoutString = NiFiProperties.getInstance().getProperty(NiFiProperties.PROCESSOR_START_TIMEOUT);
+        long onScheduleTimeout = timeoutString == null ? Long.MAX_VALUE
+                : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
+
         try {
             executionResult.get(onScheduleTimeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
