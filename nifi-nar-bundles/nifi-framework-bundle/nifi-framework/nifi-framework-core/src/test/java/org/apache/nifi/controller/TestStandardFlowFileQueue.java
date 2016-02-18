@@ -46,8 +46,11 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
+import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -472,37 +475,30 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
-        public QueueSize getSwapSize(String swapLocation) throws IOException {
+        @SuppressWarnings("deprecation")
+        public SwapSummary getSwapSummary(String swapLocation) throws IOException {
             final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
             if (flowFiles == null) {
-                return new QueueSize(0, 0L);
+                return StandardSwapSummary.EMPTY_SUMMARY;
             }
 
             int count = 0;
             long size = 0L;
+            Long max = null;
+            final List<ResourceClaim> resourceClaims = new ArrayList<>();
             for (final FlowFileRecord flowFile : flowFiles) {
                 count++;
                 size += flowFile.getSize();
-            }
-
-            return new QueueSize(count, size);
-        }
-
-        @Override
-        public Long getMaxRecordId(String swapLocation) throws IOException {
-            final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
-            if (flowFiles == null) {
-                return null;
-            }
-
-            Long max = null;
-            for (final FlowFileRecord flowFile : flowFiles) {
                 if (max == null || flowFile.getId() > max) {
                     max = flowFile.getId();
                 }
+
+                if (flowFile.getContentClaim() != null) {
+                    resourceClaims.add(flowFile.getContentClaim().getResourceClaim());
+                }
             }
 
-            return max;
+            return new StandardSwapSummary(new QueueSize(count, size), max, resourceClaims);
         }
 
         @Override
@@ -588,6 +584,7 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public int compareTo(final FlowFile o) {
             return Long.compare(id, o.getId());
         }

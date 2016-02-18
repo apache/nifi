@@ -47,10 +47,12 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
+import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.stream.io.BufferedOutputStream;
@@ -237,8 +239,9 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         return swapLocations;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
-    public QueueSize getSwapSize(final String swapLocation) throws IOException {
+    public SwapSummary getSwapSummary(final String swapLocation) throws IOException {
         final File swapFile = new File(swapLocation);
 
         // read record from disk via the swap file
@@ -259,56 +262,36 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             final int numRecords = in.readInt();
             final long contentSize = in.readLong();
 
-            return new QueueSize(numRecords, contentSize);
-        }
-    }
-
-    @Override
-    public Long getMaxRecordId(final String swapLocation) throws IOException {
-        final File swapFile = new File(swapLocation);
-
-        // read record from disk via the swap file
-        try (final InputStream fis = new FileInputStream(swapFile);
-            final InputStream bufferedIn = new BufferedInputStream(fis);
-            final DataInputStream in = new DataInputStream(bufferedIn)) {
-
-            final int swapEncodingVersion = in.readInt();
-            if (swapEncodingVersion > SWAP_ENCODING_VERSION) {
-                final String errMsg = "Cannot swap FlowFiles in from " + swapFile + " because the encoding version is "
-                    + swapEncodingVersion + ", which is too new (expecting " + SWAP_ENCODING_VERSION + " or less)";
-
-                eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, errMsg);
-                throw new IOException(errMsg);
-            }
-
-            in.readUTF(); // ignore connection id
-            final int numRecords = in.readInt();
-            in.readLong(); // ignore content size
-
             if (numRecords == 0) {
-                return null;
+                return StandardSwapSummary.EMPTY_SUMMARY;
             }
 
+            Long maxRecordId = null;
             if (swapEncodingVersion > 7) {
-                final long maxRecordId = in.readLong();
-                return maxRecordId;
+                maxRecordId = in.readLong();
             }
 
             // Before swap encoding version 8, we did not write out the max record id, so we have to read all
             // swap files to determine the max record id
+            final List<ResourceClaim> resourceClaims = new ArrayList<>(numRecords);
             final List<FlowFileRecord> records = deserializeFlowFiles(in, numRecords, swapEncodingVersion, true, claimManager);
-            long maxId = 0L;
             for (final FlowFileRecord record : records) {
-                if (record.getId() > maxId) {
-                    maxId = record.getId();
+                if (maxRecordId == null || record.getId() > maxRecordId) {
+                    maxRecordId = record.getId();
+                }
+
+                final ContentClaim contentClaim = record.getContentClaim();
+                if (contentClaim != null) {
+                    resourceClaims.add(contentClaim.getResourceClaim());
                 }
             }
 
-            return maxId;
+            return new StandardSwapSummary(new QueueSize(numRecords, contentSize), maxRecordId, resourceClaims);
         }
     }
 
 
+    @SuppressWarnings("deprecation")
     public static int serializeFlowFiles(final List<FlowFileRecord> toSwap, final FlowFileQueue queue, final String swapLocation, final OutputStream destination) throws IOException {
         if (toSwap == null || toSwap.isEmpty()) {
             return 0;
@@ -636,5 +619,4 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
         }
     }
-
 }

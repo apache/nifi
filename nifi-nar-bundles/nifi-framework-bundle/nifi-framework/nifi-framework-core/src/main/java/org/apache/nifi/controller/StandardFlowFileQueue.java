@@ -49,9 +49,11 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordType;
+import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -787,10 +789,11 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     }
 
     @Override
-    public Long recoverSwappedFlowFiles() {
+    public SwapSummary recoverSwappedFlowFiles() {
         int swapFlowFileCount = 0;
         long swapByteCount = 0L;
         Long maxId = null;
+        List<ResourceClaim> resourceClaims = new ArrayList<>();
 
         writeLock.lock();
         try {
@@ -809,8 +812,9 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
             for (final String swapLocation : swapLocations) {
                 try {
-                    final QueueSize queueSize = swapManager.getSwapSize(swapLocation);
-                    final Long maxSwapRecordId = swapManager.getMaxRecordId(swapLocation);
+                    final SwapSummary summary = swapManager.getSwapSummary(swapLocation);
+                    final QueueSize queueSize = summary.getQueueSize();
+                    final Long maxSwapRecordId = summary.getMaxFlowFileId();
                     if (maxSwapRecordId != null) {
                         if (maxId == null || maxSwapRecordId > maxId) {
                             maxId = maxSwapRecordId;
@@ -819,6 +823,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
 
                     swapFlowFileCount += queueSize.getObjectCount();
                     swapByteCount += queueSize.getByteCount();
+                    resourceClaims.addAll(summary.getResourceClaims());
                 } catch (final IOException ioe) {
                     logger.error("Failed to recover FlowFiles from Swap File {}; the file appears to be corrupt", swapLocation, ioe.toString());
                     logger.error("", ioe);
@@ -835,7 +840,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             writeLock.unlock("Recover Swap Files");
         }
 
-        return maxId;
+        return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims);
     }
 
 
