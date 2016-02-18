@@ -23,6 +23,8 @@
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
     <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
         <canvas.filter>canvas.properties</canvas.filter>
         <history.filter>history.properties</history.filter>

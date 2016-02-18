@@ -22,6 +22,10 @@
     <artifactId>nifi-jetty-bundle</artifactId>
     <packaging>nar</packaging>
     <description>NiFi: Jetty Bundle</description>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
