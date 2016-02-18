@@ -31,14 +31,14 @@ public abstract class AbstractWriteDynamoDBProcessor extends AbstractDynamoDBPro
 
     /**
      * Helper method to handle unprocessed items
-     * @param session
-     * @param keysToFlowFileMap
-     * @param table
-     * @param hashKeyName
-     * @param hashKeyValueType
-     * @param rangeKeyName
-     * @param rangeKeyValueType
-     * @param outcome
+     * @param session process session
+     * @param keysToFlowFileMap map of flow db primary key to flow file
+     * @param table dynamodb table
+     * @param hashKeyName the hash key name
+     * @param hashKeyValueType the hash key value
+     * @param rangeKeyName the range key name
+     * @param rangeKeyValueType range key value
+     * @param outcome the write outcome
      */
     protected void handleUnprocessedItems(final ProcessSession session, Map<ItemKeys, FlowFile> keysToFlowFileMap, final String table, final String hashKeyName, final String hashKeyValueType,
             final String rangeKeyName, final String rangeKeyValueType, BatchWriteItemOutcome outcome) {
