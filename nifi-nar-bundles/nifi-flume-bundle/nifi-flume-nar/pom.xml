@@ -23,6 +23,10 @@
     <artifactId>nifi-flume-nar</artifactId>
     <version>0.6.0-SNAPSHOT</version>
     <packaging>nar</packaging>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

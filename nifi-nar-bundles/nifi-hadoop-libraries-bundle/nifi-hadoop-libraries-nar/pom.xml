@@ -17,6 +17,10 @@
     </parent>
     <artifactId>nifi-hadoop-libraries-nar</artifactId>
     <packaging>nar</packaging>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
