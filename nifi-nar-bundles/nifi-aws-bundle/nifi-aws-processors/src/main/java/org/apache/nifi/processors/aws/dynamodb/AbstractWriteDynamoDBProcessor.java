@@ -29,6 +29,17 @@ import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
 public abstract class AbstractWriteDynamoDBProcessor extends AbstractDynamoDBProcessor {
 
+    /**
+     * Helper method to handle unprocessed items
+     * @param session
+     * @param keysToFlowFileMap
+     * @param table
+     * @param hashKeyName
+     * @param hashKeyValueType
+     * @param rangeKeyName
+     * @param rangeKeyValueType
+     * @param outcome
+     */
     protected void handleUnprocessedItems(final ProcessSession session, Map<ItemKeys, FlowFile> keysToFlowFileMap, final String table, final String hashKeyName, final String hashKeyValueType,
             final String rangeKeyName, final String rangeKeyValueType, BatchWriteItemOutcome outcome) {
         BatchWriteItemResult result = outcome.getBatchWriteItemResult();
