@@ -232,14 +232,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
         final CompressionCodec codec = getCompressionCodec(context, configuration);
 
-        final String filename = codec != null
+        String filename = codec != null
                 ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
                 : flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
         Path tempDotCopyFile = null;
         try {
-            final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
-            final Path copyFile = new Path(configuredRootDirPath, filename);
+            Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
+            Path copyFile = new Path(configuredRootDirPath, filename);
 
             // Create destination directory if it does not exist
             try {
@@ -254,38 +254,54 @@ public class PutHDFS extends AbstractHadoopProcessor {
             }
 
             // If destination file already exists, resolve that based on processor configuration
-            if (hdfs.exists(copyFile)) {
-                switch (conflictResponse) {
-                    case REPLACE_RESOLUTION:
-                        if (hdfs.delete(copyFile, false)) {
-                            getLogger().info("deleted {} in order to replace with the contents of {}",
-                                    new Object[]{copyFile, flowFile});
-                        }
-                        break;
-                    case IGNORE_RESOLUTION:
-                        session.transfer(flowFile, REL_SUCCESS);
-                        getLogger().info("transferring {} to success because file with same name already exists",
-                                new Object[]{flowFile});
-                        return;
-                    case FAIL_RESOLUTION:
-                        flowFile = session.penalize(flowFile);
-                        session.transfer(flowFile, REL_FAILURE);
-                        getLogger().warn("penalizing {} and routing to failure because file with same name already exists",
-                                new Object[]{flowFile});
-                        return;
-                    case BACKUP_SUFFIX_RESOLUTION:
-                        final String suffix=context.getProperty(BACKUP_SUFFIX).evaluateAttributeExpressions(flowFile).getValue();
-                        final Path dst=copyFile.suffix(suffix);
-                        if (hdfs.rename(copyFile, dst)) {
-                            getLogger().info("moved {} to {} in order to keep backup",
-                                    new Object[]{copyFile, dst});
-                        }
-                        break;
-                    default:
-                        break;
+            boolean redoConflictCheck = false;
+            //If we require to re-do conflict check , do it no more that 10[just an assumed value] times.
+            for(int i=0;redoConflictCheck && i<10;i++){
+                if (hdfs.exists(copyFile)) {
+                    switch (conflictResponse) {
+                        case REPLACE_RESOLUTION:
+                            if (hdfs.delete(copyFile, false)) {
+                                getLogger().info("deleted {} in order to replace with the contents of {}",
+                                        new Object[]{copyFile, flowFile});
+                            }
+                            break;
+                        case IGNORE_RESOLUTION:
+                            session.transfer(flowFile, REL_SUCCESS);
+                            getLogger().info("transferring {} to success because file with same name already exists",
+                                    new Object[]{flowFile});
+                            return;
+                        case FAIL_RESOLUTION:
+                            flowFile = session.penalize(flowFile);
+                            session.transfer(flowFile, REL_FAILURE);
+                            getLogger().warn("penalizing {} and routing to failure because file with same name already exists",
+                                    new Object[]{flowFile});
+                            return;
+                        case BACKUP_SUFFIX_RESOLUTION:
+                            final String suffix=context.getProperty(BACKUP_SUFFIX).evaluateAttributeExpressions(flowFile).getValue();
+                            int extOffset=filename.lastIndexOf('.');
+                            //File Extension Should be intact, so manipulate filename
+                            filename=new StringBuilder(filename).insert(extOffset<0?filename.length():extOffset, suffix).toString();
+                            Path updatedCopyFilePath=new Path(configuredRootDirPath, filename);
+                            getLogger().info("Resolving conflict by renaming {} to {}{} in order to keep backup",
+                                        new Object[]{copyFile, updatedCopyFilePath});
+                            tempCopyFile = new Path(configuredRootDirPath, "." + filename);
+                            copyFile = updatedCopyFilePath;
+                            //Still Conflict may happen while writing with new filename. So we will re-do conflict check
+                            redoConflictCheck=true;
+                            break;
+                        default:
+                            break;
+                    }
+                }else{
+                    redoConflictCheck=false;
                 }
             }
+            //Check if we still require a conflict check, means conflict has not been resolved even with best effort.
+            if(redoConflictCheck){
+                throw new ProcessException("Conflict Could not be resolved");
+            }
 
+            final Path finalTempCopyFile=tempCopyFile;
             // Write FlowFile to temp file on HDFS
             final StopWatch stopWatch = new StopWatch(true);
             session.read(flowFile, new InputStreamCallback() {
@@ -295,11 +311,11 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     OutputStream fos = null;
                     Path createdFile = null;
                     try {
-                        fos = hdfs.create(tempCopyFile, true, bufferSize, replication, blockSize);
+                        fos = hdfs.create(finalTempCopyFile, true, bufferSize, replication, blockSize);
                         if (codec != null) {
                             fos = codec.createOutputStream(fos);
                         }
-                        createdFile = tempCopyFile;
+                        createdFile = finalTempCopyFile;
                         BufferedInputStream bis = new BufferedInputStream(in);
                         StreamUtils.copy(bis, fos);
                         bis = null;
