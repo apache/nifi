@@ -23,6 +23,10 @@
     <artifactId>nifi-image-viewer</artifactId>
     <description>NiFi image viewer</description>
     <packaging>war</packaging>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

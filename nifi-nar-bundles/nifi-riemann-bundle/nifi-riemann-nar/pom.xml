@@ -20,6 +20,10 @@
         <groupId>org.apache.nifi</groupId>
         <version>0.6.0-SNAPSHOT</version>
     </parent>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
 
     <artifactId>nifi-riemann-nar</artifactId>
     <packaging>nar</packaging>

@@ -22,6 +22,10 @@
     <artifactId>nifi-kafka-nar</artifactId>
     <packaging>nar</packaging>
     <description>NiFi NAR for interacting with Apache Kafka</description>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
