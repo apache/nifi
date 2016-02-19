@@ -81,6 +81,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
     private AuditService auditService;
 
     @Override
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public ControllerService getControllerService(String serviceIdentifier) {
         return controllerServiceLookup.getControllerService(serviceIdentifier);
     }
@@ -128,6 +129,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserDn() {
         String userIdentity = NiFiUser.ANONYMOUS_USER_IDENTITY;
 
@@ -140,6 +142,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserName() {
         String userName = NiFiUser.ANONYMOUS_USER_IDENTITY;
 
@@ -152,6 +155,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public ProcessorInfo getProcessor(final NiFiWebContextConfig config) throws ResourceNotFoundException, ClusterRequestException {
 
         final Revision revision = config.getRevision();

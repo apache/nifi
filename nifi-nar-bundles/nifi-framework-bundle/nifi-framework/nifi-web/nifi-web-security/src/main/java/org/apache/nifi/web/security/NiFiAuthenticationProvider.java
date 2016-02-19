@@ -18,7 +18,7 @@ package org.apache.nifi.web.security;
 
 import org.apache.nifi.web.security.token.NewAccountAuthorizationRequestToken;
 import org.apache.nifi.web.security.token.NewAccountAuthorizationToken;
-import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.apache.nifi.web.security.token.NiFiAuthorizationToken;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
@@ -32,15 +32,15 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  */
 public class NiFiAuthenticationProvider implements AuthenticationProvider {
 
-    private final AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService;
+    private final AuthenticationUserDetailsService<NiFiAuthorizationRequestToken> userDetailsService;
 
-    public NiFiAuthenticationProvider(final AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService) {
+    public NiFiAuthenticationProvider(final AuthenticationUserDetailsService<NiFiAuthorizationRequestToken> userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        final NiFiAuthortizationRequestToken request = (NiFiAuthortizationRequestToken) authentication;
+        final NiFiAuthorizationRequestToken request = (NiFiAuthorizationRequestToken) authentication;
 
         try {
             // defer to the nifi user details service to authorize the user
@@ -67,7 +67,7 @@ public class NiFiAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public boolean supports(Class<?> authentication) {
-        return NiFiAuthortizationRequestToken.class.isAssignableFrom(authentication);
+        return NiFiAuthorizationRequestToken.class.isAssignableFrom(authentication);
     }
 
 }

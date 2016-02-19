@@ -26,7 +26,7 @@ import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.UntrustedProxyException;
-import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.junit.Assert;
 import org.junit.Before;
@@ -104,8 +104,8 @@ public class NiFiAuthorizationServiceTest {
         authorizationService.setUserService(userService);
     }
 
-    private NiFiAuthortizationRequestToken createRequestAuthentication(final String... identities) {
-        return new NiFiAuthortizationRequestToken(Arrays.asList(identities));
+    private NiFiAuthorizationRequestToken createRequestAuthentication(final String... identities) {
+        return new NiFiAuthorizationRequestToken(Arrays.asList(identities));
     }
 
     /**

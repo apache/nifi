@@ -204,7 +204,7 @@ public class AccessTokenEndpointTest {
      * @throws Exception ex
      */
     @Test
-    public void testUnkownUser() throws Exception {
+    public void testUnknownUser() throws Exception {
         String url = BASE_URL + "/access/token";
 
         ClientResponse response = TOKEN_USER.testCreateToken(url, "not a real user", "not a real password");

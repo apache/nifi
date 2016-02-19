@@ -20,7 +20,20 @@
 nf.Storage = (function () {
 
     // Store items for two days before being eligible for removal.
-    var TWO_DAYS = nf.Common.MILLIS_PER_DAY * 2;
+    var MILLIS_PER_DAY = 86400000;
+    var TWO_DAYS = MILLIS_PER_DAY * 2;
+
+    var isUndefined = function (obj) {
+        return typeof obj === 'undefined';
+    };
+
+    var isNull = function (obj) {
+        return obj === null;
+    };
+
+    var isDefinedAndNotNull = function (obj) {
+        return !isUndefined(obj) && !isNull(obj);
+    };
 
     /**
      * Checks the expiration for the specified entry.
@@ -29,7 +42,7 @@ nf.Storage = (function () {
      * @returns {boolean}
      */
     var checkExpiration = function (entry) {
-        if (nf.Common.isDefinedAndNotNull(entry.expires)) {
+        if (isDefinedAndNotNull(entry.expires)) {
             // get the expiration
             var expires = new Date(entry.expires);
             var now = new Date();
@@ -52,7 +65,7 @@ nf.Storage = (function () {
             var entry = JSON.parse(localStorage.getItem(key));
 
             // ensure the entry and item are present
-            if (nf.Common.isDefinedAndNotNull(entry)) {
+            if (isDefinedAndNotNull(entry)) {
                 return entry;
             } else {
                 return null;
@@ -89,7 +102,7 @@ nf.Storage = (function () {
          */
         setItem: function (key, item, expires) {
             // calculate the expiration
-            expires = nf.Common.isDefinedAndNotNull(expires) ? expires : new Date().valueOf() + TWO_DAYS;
+            expires = isDefinedAndNotNull(expires) ? expires : new Date().valueOf() + TWO_DAYS;
 
             // create the entry
             var entry = {
@@ -132,7 +145,7 @@ nf.Storage = (function () {
             }
 
             // if the entry has the specified field return its value
-            if (nf.Common.isDefinedAndNotNull(entry['item'])) {
+            if (isDefinedAndNotNull(entry['item'])) {
                 return entry['item'];
             } else {
                 return null;
@@ -153,7 +166,7 @@ nf.Storage = (function () {
             }
 
             // if the entry has the specified field return its value
-            if (nf.Common.isDefinedAndNotNull(entry['expires'])) {
+            if (isDefinedAndNotNull(entry['expires'])) {
                 return entry['expires'];
             } else {
                 return null;

@@ -148,7 +148,7 @@ public class RuleResource {
             try {
                 criteria.reorder(requestEntity.getRuleOrder());
             } catch (final IllegalArgumentException iae) {
-                throw new WebApplicationException(badRequest(iae.getMessage()));
+                throw new WebApplicationException(iae, badRequest(iae.getMessage()));
             }
         }
 
@@ -157,7 +157,7 @@ public class RuleResource {
             try {
                 criteria.setFlowFilePolicy(FlowFilePolicy.valueOf(requestEntity.getFlowFilePolicy()));
             } catch (final IllegalArgumentException iae) {
-                throw new WebApplicationException(badRequest("The specified matching strategy is unknown: " + requestEntity.getFlowFilePolicy()));
+                throw new WebApplicationException(iae, badRequest("The specified matching strategy is unknown: " + requestEntity.getFlowFilePolicy()));
             }
         }
 
@@ -227,7 +227,7 @@ public class RuleResource {
             rule = factory.createRule(ruleDto);
             rule.setId(uuid);
         } catch (final IllegalArgumentException iae) {
-            throw new WebApplicationException(badRequest(iae.getMessage()));
+            throw new WebApplicationException(iae, badRequest(iae.getMessage()));
         }
 
         // add the rule
@@ -268,7 +268,7 @@ public class RuleResource {
             condition = factory.createCondition(requestEntity.getCondition());
             condition.setId(uuid);
         } catch (final IllegalArgumentException iae) {
-            throw new WebApplicationException(badRequest(iae.getMessage()));
+            throw new WebApplicationException(iae, badRequest(iae.getMessage()));
         }
 
         // build the response
@@ -302,7 +302,7 @@ public class RuleResource {
             action = factory.createAction(requestEntity.getAction());
             action.setId(uuid);
         } catch (final IllegalArgumentException iae) {
-            throw new WebApplicationException(badRequest(iae.getMessage()));
+            throw new WebApplicationException(iae, badRequest(iae.getMessage()));
         }
 
         // build the response
@@ -522,7 +522,7 @@ public class RuleResource {
             rule.setConditions(conditions);
             rule.setActions(actions);
         } catch (final IllegalArgumentException iae) {
-            throw new WebApplicationException(badRequest(iae.getMessage()));
+            throw new WebApplicationException(iae, badRequest(iae.getMessage()));
         }
 
         // add the new rule if application
@@ -598,11 +598,11 @@ public class RuleResource {
             // load the processor configuration
             processorDetails = configurationContext.getComponentDetails(requestContext);
         } catch (final InvalidRevisionException ire) {
-            throw new WebApplicationException(invalidRevision(ire.getMessage()));
+            throw new WebApplicationException(ire, invalidRevision(ire.getMessage()));
         } catch (final Exception e) {
             final String message = String.format("Unable to get UpdateAttribute[id=%s] criteria: %s", requestContext.getId(), e);
             logger.error(message, e);
-            throw new WebApplicationException(error(message));
+            throw new WebApplicationException(e, error(message));
         }
 
         Criteria criteria = null;
@@ -612,7 +612,7 @@ public class RuleResource {
             } catch (final IllegalArgumentException iae) {
                 final String message = String.format("Unable to deserialize existing rules for UpdateAttribute[id=%s]. Deserialization error: %s", requestContext.getId(), iae);
                 logger.error(message, iae);
-                throw new WebApplicationException(error(message));
+                throw new WebApplicationException(iae, error(message));
             }
         }
         // ensure the criteria isn't null
@@ -634,11 +634,11 @@ public class RuleResource {
             // save the annotation data
             configurationContext.setAnnotationData(requestContext, annotationData);
         } catch (final InvalidRevisionException ire) {
-            throw new WebApplicationException(invalidRevision(ire.getMessage()));
+            throw new WebApplicationException(ire, invalidRevision(ire.getMessage()));
         } catch (final Exception e) {
             final String message = String.format("Unable to save UpdateAttribute[id=%s] criteria: %s", requestContext.getId(), e);
             logger.error(message, e);
-            throw new WebApplicationException(error(message));
+            throw new WebApplicationException(e, error(message));
         }
     }
 

@@ -24,11 +24,11 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
  * An authentication token that is used as an authorization request. The request has already been authenticated and is now going to be authorized.
  * The request chain is specified during creation and is used authorize the user(s).
  */
-public class NiFiAuthortizationRequestToken extends AbstractAuthenticationToken {
+public class NiFiAuthorizationRequestToken extends AbstractAuthenticationToken {
 
     private final List<String> chain;
 
-    public NiFiAuthortizationRequestToken(final List<String> chain) {
+    public NiFiAuthorizationRequestToken(final List<String> chain) {
         super(null);
         this.chain = chain;
     }
