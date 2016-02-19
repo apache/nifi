@@ -125,7 +125,7 @@ nf.CanvasUtils = (function () {
                 }
             }
         },
-        
+
         /**
          * Calculates the point on the specified bounding box that is closest to the
          * specified point.

@@ -51,24 +51,6 @@ $(document).ready(function () {
         $('div.loading-container').removeClass('ajax-loading');
     });
     
-    // include jwt when possible
-    $.ajaxSetup({
-        'beforeSend': function(xhr) {
-            var hadToken = nf.Storage.hasItem('jwt');
-            
-            // get the token to include in all requests
-            var token = nf.Storage.getItem('jwt');
-            if (token !== null) {
-                xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-            } else {
-                // if the current user was logged in with a token and the token just expired, reload
-                if (hadToken === true) {
-                    return false;
-                }
-            }
-        }
-    });
-
     // initialize the tooltips
     $('img.setting-icon').qtip(nf.Common.config.tooltipConfig);
     
@@ -765,6 +747,29 @@ nf.Common = (function () {
             } else {
                 $('#' + domId).removeClass('pointer');
             }
+        },
+
+        /**
+         * Gets an access token from the specified url.
+         *
+         * @param accessTokenUrl    The access token
+         * @returns the access token as a deferred
+         */
+        getAccessToken: function (accessTokenUrl) {
+            return $.Deferred(function (deferred) {
+                if (nf.Storage.hasItem('jwt')) {
+                    $.ajax({
+                        type: 'POST',
+                        url: accessTokenUrl
+                    }).done(function (token) {
+                        deferred.resolve(token);
+                    }).fail(function () {
+                        deferred.reject();
+                    })
+                } else {
+                    deferred.resolve('');
+                }
+            }).promise();
         },
 
         /**

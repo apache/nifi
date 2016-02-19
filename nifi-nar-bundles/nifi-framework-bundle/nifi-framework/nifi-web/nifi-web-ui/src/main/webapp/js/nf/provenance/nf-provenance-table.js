@@ -37,7 +37,9 @@ nf.ProvenanceTable = (function () {
             provenance: '../nifi-api/controller/provenance',
             cluster: '../nifi-api/cluster',
             d3Script: 'js/d3/d3.min.js',
-            lineageScript: 'js/nf/provenance/nf-provenance-lineage.js'
+            lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
+            uiExtensionToken: '../nifi-api/access/ui-extension-token',
+            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -78,17 +80,35 @@ nf.ProvenanceTable = (function () {
         var eventId = $('#provenance-event-id').text();
 
         // build the url
-        var url = config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
-        // conditionally include the cluster node id
-        var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-        if (!nf.Common.isBlank(clusterNodeId)) {
-            window.open(url + '?' + $.param({
-                'clusterNodeId': clusterNodeId
-            }));
-        } else {
-            window.open(url);
-        }
+        // perform the request once we've received a token
+        nf.Common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+            var parameters = {};
+
+            // conditionally include the ui extension token
+            if (!nf.Common.isBlank(downloadToken)) {
+                parameters['access_token'] = downloadToken;
+            }
+
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#provenance-event-cluster-node-id').text();
+            if (!nf.Common.isBlank(clusterNodeId)) {
+                parameters['clusterNodeId'] = clusterNodeId;
+            }
+
+            // open the url
+            if ($.isEmptyObject(parameters)) {
+                window.open(dataUri);
+            } else {
+                window.open(dataUri + '?' + $.param(parameters));
+            }
+        }).fail(function () {
+            nf.Dialog.showOkDialog({
+                dialogContent: 'Unable to generate access token for downloading content.',
+                overlayBackground: false
+            });
+        });
     };
 
     /**
@@ -103,32 +123,80 @@ nf.ProvenanceTable = (function () {
         // build the uri to the data
         var dataUri = controllerUri + '/provenance/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
-        // conditionally include the cluster node id
-        var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-        if (!nf.Common.isBlank(clusterNodeId)) {
-            var parameters = {
-                'clusterNodeId': clusterNodeId
+        // generate tokens as necessary
+        var getAccessTokens = $.Deferred(function (deferred) {
+            if (nf.Storage.hasItem('jwt')) {
+                // generate a token for the ui extension and another for the callback
+                var uiExtensionToken = $.ajax({
+                    type: 'POST',
+                    url: config.urls.uiExtensionToken
+                });
+                var downloadToken = $.ajax({
+                    type: 'POST',
+                    url: config.urls.downloadToken
+                });
+
+                // wait for each token
+                $.when(uiExtensionToken, downloadToken).done(function (uiExtensionTokenResult, downloadTokenResult) {
+                    var uiExtensionToken = uiExtensionTokenResult[0];
+                    var downloadToken = downloadTokenResult[0];
+                    deferred.resolve(uiExtensionToken, downloadToken);
+                }).fail(function () {
+                    nf.Dialog.showOkDialog({
+                        dialogContent: 'Unable to generate access token for viewing content.',
+                        overlayBackground: false
+                    });
+                    deferred.reject();
+                });
+            } else {
+                deferred.resolve('', '');
+            }
+        }).promise();
+
+        // perform the request after we've received the tokens
+        getAccessTokens.done(function (uiExtensionToken, downloadToken) {
+            var dataUriParameters = {};
+
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#provenance-event-cluster-node-id').text();
+            if (!nf.Common.isBlank(clusterNodeId)) {
+                dataUriParameters['clusterNodeId'] = clusterNodeId;
+            }
+
+            // include the download token if applicable
+            if (!nf.Common.isBlank(downloadToken)) {
+                dataUriParameters['access_token'] = downloadToken;
+            }
+
+            // include parameters if necessary
+            if ($.isEmptyObject(dataUriParameters) === false) {
+                dataUri = dataUri + '?' + $.param(dataUriParameters);
+            }
+
+            // open the content viewer
+            var contentViewerUrl = $('#nifi-content-viewer-url').text();
+
+            // if there's already a query string don't add another ?... this assumes valid
+            // input meaning that if the url has already included a ? it also contains at
+            // least one query parameter
+            if (contentViewerUrl.indexOf('?') === -1) {
+                contentViewerUrl += '?';
+            } else {
+                contentViewerUrl += '&';
+            }
+
+            var contentViewerParameters = {
+                'ref': dataUri
             };
 
-            dataUri = dataUri + '?' + $.param(parameters);
-        }
+            // include the download token if applicable
+            if (!nf.Common.isBlank(uiExtensionToken)) {
+                contentViewerParameters['access_token'] = uiExtensionToken;
+            }
 
-        // open the content viewer
-        var contentViewerUrl = $('#nifi-content-viewer-url').text();
-
-        // if there's already a query string don't add another ?... this assumes valid
-        // input meaning that if the url has already included a ? it also contains at
-        // least one query parameter 
-        if (contentViewerUrl.indexOf('?') === -1) {
-            contentViewerUrl += '?';
-        } else {
-            contentViewerUrl += '&';
-        }
-
-        // open the content viewer
-        window.open(contentViewerUrl + $.param({
-            'ref': dataUri
-        }));
+            // open the content viewer
+            window.open(contentViewerUrl + $.param(contentViewerParameters));
+        });
     };
 
     /**

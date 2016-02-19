@@ -14,27 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.token;
+package org.apache.nifi.web.security.otp;
 
-import org.apache.nifi.web.security.user.NewAccountRequest;
+import org.springframework.security.core.AuthenticationException;
 
 /**
- * An authentication token that is used as an authorization request when submitting a new account.
+ * Thrown if a one time use token fails authentication.
  */
-public class NewAccountAuthorizationRequestToken extends NiFiAuthorizationRequestToken {
+public class OtpAuthenticationException extends AuthenticationException {
 
-    final NewAccountRequest newAccountRequest;
-
-    public NewAccountAuthorizationRequestToken(final NewAccountRequest newAccountRequest) {
-        super(newAccountRequest.getChain());
-        this.newAccountRequest = newAccountRequest;
+    public OtpAuthenticationException(String msg) {
+        super(msg);
     }
 
-    public String getJustification() {
-        return newAccountRequest.getJustification();
+    public OtpAuthenticationException(String msg, Throwable t) {
+        super(msg, t);
     }
 
-    public NewAccountRequest getNewAccountRequest() {
-        return newAccountRequest;
-    }
 }

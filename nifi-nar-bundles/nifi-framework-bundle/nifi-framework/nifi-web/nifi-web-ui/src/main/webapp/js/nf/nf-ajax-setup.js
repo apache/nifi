@@ -14,27 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.token;
-
-import org.apache.nifi.web.security.user.NewAccountRequest;
 
 /**
- * An authentication token that is used as an authorization request when submitting a new account.
+ * Performs ajax setup for use within NiFi.
  */
-public class NewAccountAuthorizationRequestToken extends NiFiAuthorizationRequestToken {
+$(document).ready(function () {
+    // include jwt when possible
+    $.ajaxSetup({
+        'beforeSend': function(xhr) {
+            var hadToken = nf.Storage.hasItem('jwt');
 
-    final NewAccountRequest newAccountRequest;
-
-    public NewAccountAuthorizationRequestToken(final NewAccountRequest newAccountRequest) {
-        super(newAccountRequest.getChain());
-        this.newAccountRequest = newAccountRequest;
-    }
-
-    public String getJustification() {
-        return newAccountRequest.getJustification();
-    }
-
-    public NewAccountRequest getNewAccountRequest() {
-        return newAccountRequest;
-    }
-}
+            // get the token to include in all requests
+            var token = nf.Storage.getItem('jwt');
+            if (token !== null) {
+                xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            } else {
+                // if the current user was logged in with a token and the token just expired, cancel the request
+                if (hadToken === true) {
+                    return false;
+                }
+            }
+        }
+    });
+});
