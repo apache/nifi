@@ -45,13 +45,16 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.IncompleteSwapFileException;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
+import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
@@ -130,33 +133,33 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
 
     @Override
-    public List<FlowFileRecord> swapIn(final String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
+    public SwapContents swapIn(final String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
         final File swapFile = new File(swapLocation);
-        final List<FlowFileRecord> swappedFlowFiles = peek(swapLocation, flowFileQueue);
-        flowFileRepository.swapFlowFilesIn(swapFile.getAbsolutePath(), swappedFlowFiles, flowFileQueue);
+        final SwapContents swapContents = peek(swapLocation, flowFileQueue);
+        flowFileRepository.swapFlowFilesIn(swapFile.getAbsolutePath(), swapContents.getFlowFiles(), flowFileQueue);
 
         if (!swapFile.delete()) {
             warn("Swapped in FlowFiles from file " + swapFile.getAbsolutePath() + " but failed to delete the file; this file should be cleaned up manually");
         }
 
-        return swappedFlowFiles;
+        return swapContents;
     }
 
     @Override
-    public List<FlowFileRecord> peek(final String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
+    public SwapContents peek(final String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
         final File swapFile = new File(swapLocation);
         if (!swapFile.exists()) {
             throw new FileNotFoundException("Failed to swap in FlowFiles from external storage location " + swapLocation + " into FlowFile Queue because the file could not be found");
         }
 
-        final List<FlowFileRecord> swappedFlowFiles;
+        final SwapContents swapContents;
         try (final InputStream fis = new FileInputStream(swapFile);
             final InputStream bis = new BufferedInputStream(fis);
             final DataInputStream in = new DataInputStream(bis)) {
-            swappedFlowFiles = deserializeFlowFiles(in, swapLocation, flowFileQueue, claimManager);
+            swapContents = deserializeFlowFiles(in, swapLocation, flowFileQueue, claimManager);
         }
 
-        return swappedFlowFiles;
+        return swapContents;
     }
 
 
@@ -240,7 +243,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public SwapSummary getSwapSummary(final String swapLocation) throws IOException {
         final File swapFile = new File(swapLocation);
 
@@ -258,35 +260,29 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                 throw new IOException(errMsg);
             }
 
-            in.readUTF(); // ignore Connection ID
-            final int numRecords = in.readInt();
-            final long contentSize = in.readLong();
+            final int numRecords;
+            final long contentSize;
+            Long maxRecordId = null;
+            try {
+                in.readUTF(); // ignore Connection ID
+                numRecords = in.readInt();
+                contentSize = in.readLong();
 
-            if (numRecords == 0) {
+                if (numRecords == 0) {
+                    return StandardSwapSummary.EMPTY_SUMMARY;
+                }
+
+                if (swapEncodingVersion > 7) {
+                    maxRecordId = in.readLong();
+                }
+            } catch (final EOFException eof) {
+                logger.warn("Found premature End-of-File when reading Swap File {}. EOF occurred before any FlowFiles were encountered", swapLocation);
                 return StandardSwapSummary.EMPTY_SUMMARY;
             }
 
-            Long maxRecordId = null;
-            if (swapEncodingVersion > 7) {
-                maxRecordId = in.readLong();
-            }
-
-            // Before swap encoding version 8, we did not write out the max record id, so we have to read all
-            // swap files to determine the max record id
-            final List<ResourceClaim> resourceClaims = new ArrayList<>(numRecords);
-            final List<FlowFileRecord> records = deserializeFlowFiles(in, numRecords, swapEncodingVersion, false, claimManager);
-            for (final FlowFileRecord record : records) {
-                if (maxRecordId == null || record.getId() > maxRecordId) {
-                    maxRecordId = record.getId();
-                }
-
-                final ContentClaim contentClaim = record.getContentClaim();
-                if (contentClaim != null) {
-                    resourceClaims.add(contentClaim.getResourceClaim());
-                }
-            }
-
-            return new StandardSwapSummary(new QueueSize(numRecords, contentSize), maxRecordId, resourceClaims);
+            final QueueSize queueSize = new QueueSize(numRecords, contentSize);
+            final SwapContents swapContents = deserializeFlowFiles(in, queueSize, maxRecordId, swapEncodingVersion, true, claimManager, swapLocation);
+            return swapContents.getSummary();
         }
     }
 
@@ -385,7 +381,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-    static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final String swapLocation, final FlowFileQueue queue, final ResourceClaimManager claimManager) throws IOException {
+    static SwapContents deserializeFlowFiles(final DataInputStream in, final String swapLocation, final FlowFileQueue queue, final ResourceClaimManager claimManager) throws IOException {
         final int swapEncodingVersion = in.readInt();
         if (swapEncodingVersion > SWAP_ENCODING_VERSION) {
             throw new IOException("Cannot swap FlowFiles in from SwapFile because the encoding version is "
@@ -398,115 +394,146 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                 " because those FlowFiles belong to Connection with ID " + connectionId + " and an attempt was made to swap them into a Connection with ID " + queue.getIdentifier());
         }
 
-        final int numRecords = in.readInt();
-        in.readLong(); // Content Size
-        if (swapEncodingVersion > 7) {
-            in.readLong(); // Max Record ID
+        int numRecords = 0;
+        long contentSize = 0L;
+        Long maxRecordId = null;
+        try {
+            numRecords = in.readInt();
+            contentSize = in.readLong(); // Content Size
+            if (swapEncodingVersion > 7) {
+                maxRecordId = in.readLong(); // Max Record ID
+            }
+        } catch (final EOFException eof) {
+            final QueueSize queueSize = new QueueSize(numRecords, contentSize);
+            final SwapSummary summary = new StandardSwapSummary(queueSize, maxRecordId, Collections.<ResourceClaim> emptyList());
+            final SwapContents partialContents = new StandardSwapContents(summary, Collections.<FlowFileRecord> emptyList());
+            throw new IncompleteSwapFileException(swapLocation, partialContents);
         }
 
-        return deserializeFlowFiles(in, numRecords, swapEncodingVersion, false, claimManager);
+        final QueueSize queueSize = new QueueSize(numRecords, contentSize);
+        return deserializeFlowFiles(in, queueSize, maxRecordId, swapEncodingVersion, false, claimManager, swapLocation);
     }
 
-    private static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final int numFlowFiles,
-        final int serializationVersion, final boolean incrementContentClaims, final ResourceClaimManager claimManager) throws IOException {
-        final List<FlowFileRecord> flowFiles = new ArrayList<>();
-        for (int i = 0; i < numFlowFiles; i++) {
-            // legacy encoding had an "action" because it used to be couple with FlowFile Repository code
-            if (serializationVersion < 3) {
-                final int action = in.read();
-                if (action != 1) {
-                    throw new IOException("Swap File is version " + serializationVersion + " but did not contain a 'UPDATE' record type");
+    private static SwapContents deserializeFlowFiles(final DataInputStream in, final QueueSize queueSize, final Long maxRecordId,
+        final int serializationVersion, final boolean incrementContentClaims, final ResourceClaimManager claimManager, final String location) throws IOException {
+        final List<FlowFileRecord> flowFiles = new ArrayList<>(queueSize.getObjectCount());
+        final List<ResourceClaim> resourceClaims = new ArrayList<>(queueSize.getObjectCount());
+        Long maxId = maxRecordId;
+
+        for (int i = 0; i < queueSize.getObjectCount(); i++) {
+            try {
+                // legacy encoding had an "action" because it used to be couple with FlowFile Repository code
+                if (serializationVersion < 3) {
+                    final int action = in.read();
+                    if (action != 1) {
+                        throw new IOException("Swap File is version " + serializationVersion + " but did not contain a 'UPDATE' record type");
+                    }
                 }
+
+                final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
+                final long recordId = in.readLong();
+                if (maxId == null || recordId > maxId) {
+                    maxId = recordId;
+                }
+
+                ffBuilder.id(recordId);
+                ffBuilder.entryDate(in.readLong());
+
+                if (serializationVersion > 1) {
+                    // Lineage information was added in version 2
+                    final int numLineageIdentifiers = in.readInt();
+                    final Set<String> lineageIdentifiers = new HashSet<>(numLineageIdentifiers);
+                    for (int lineageIdIdx = 0; lineageIdIdx < numLineageIdentifiers; lineageIdIdx++) {
+                        lineageIdentifiers.add(in.readUTF());
+                    }
+                    ffBuilder.lineageIdentifiers(lineageIdentifiers);
+                    ffBuilder.lineageStartDate(in.readLong());
+
+                    if (serializationVersion > 5) {
+                        ffBuilder.lastQueueDate(in.readLong());
+                    }
+                }
+
+                ffBuilder.size(in.readLong());
+
+                if (serializationVersion < 3) {
+                    readString(in); // connection Id
+                }
+
+                final boolean hasClaim = in.readBoolean();
+                ResourceClaim resourceClaim = null;
+                if (hasClaim) {
+                    final String claimId;
+                    if (serializationVersion < 5) {
+                        claimId = String.valueOf(in.readLong());
+                    } else {
+                        claimId = in.readUTF();
+                    }
+
+                    final String container = in.readUTF();
+                    final String section = in.readUTF();
+
+                    final long resourceOffset;
+                    final long resourceLength;
+                    if (serializationVersion < 6) {
+                        resourceOffset = 0L;
+                        resourceLength = -1L;
+                    } else {
+                        resourceOffset = in.readLong();
+                        resourceLength = in.readLong();
+                    }
+
+                    final long claimOffset = in.readLong();
+
+                    final boolean lossTolerant;
+                    if (serializationVersion >= 4) {
+                        lossTolerant = in.readBoolean();
+                    } else {
+                        lossTolerant = false;
+                    }
+
+                    resourceClaim = claimManager.newResourceClaim(container, section, claimId, lossTolerant);
+                    final StandardContentClaim claim = new StandardContentClaim(resourceClaim, resourceOffset);
+                    claim.setLength(resourceLength);
+
+                    if (incrementContentClaims) {
+                        claimManager.incrementClaimantCount(resourceClaim);
+                    }
+
+                    ffBuilder.contentClaim(claim);
+                    ffBuilder.contentClaimOffset(claimOffset);
+                }
+
+                boolean attributesChanged = true;
+                if (serializationVersion < 3) {
+                    attributesChanged = in.readBoolean();
+                }
+
+                if (attributesChanged) {
+                    final int numAttributes = in.readInt();
+                    for (int j = 0; j < numAttributes; j++) {
+                        final String key = readString(in);
+                        final String value = readString(in);
+
+                        ffBuilder.addAttribute(key, value);
+                    }
+                }
+
+                final FlowFileRecord record = ffBuilder.build();
+                if (resourceClaim != null) {
+                    resourceClaims.add(resourceClaim);
+                }
+
+                flowFiles.add(record);
+            } catch (final EOFException eof) {
+                final SwapSummary swapSummary = new StandardSwapSummary(queueSize, maxId, resourceClaims);
+                final SwapContents partialContents = new StandardSwapContents(swapSummary, flowFiles);
+                throw new IncompleteSwapFileException(location, partialContents);
             }
-
-            final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
-            ffBuilder.id(in.readLong());
-            ffBuilder.entryDate(in.readLong());
-
-            if (serializationVersion > 1) {
-                // Lineage information was added in version 2
-                final int numLineageIdentifiers = in.readInt();
-                final Set<String> lineageIdentifiers = new HashSet<>(numLineageIdentifiers);
-                for (int lineageIdIdx = 0; lineageIdIdx < numLineageIdentifiers; lineageIdIdx++) {
-                    lineageIdentifiers.add(in.readUTF());
-                }
-                ffBuilder.lineageIdentifiers(lineageIdentifiers);
-                ffBuilder.lineageStartDate(in.readLong());
-
-                if (serializationVersion > 5) {
-                    ffBuilder.lastQueueDate(in.readLong());
-                }
-            }
-
-            ffBuilder.size(in.readLong());
-
-            if (serializationVersion < 3) {
-                readString(in); // connection Id
-            }
-
-            final boolean hasClaim = in.readBoolean();
-            if (hasClaim) {
-                final String claimId;
-                if (serializationVersion < 5) {
-                    claimId = String.valueOf(in.readLong());
-                } else {
-                    claimId = in.readUTF();
-                }
-
-                final String container = in.readUTF();
-                final String section = in.readUTF();
-
-                final long resourceOffset;
-                final long resourceLength;
-                if (serializationVersion < 6) {
-                    resourceOffset = 0L;
-                    resourceLength = -1L;
-                } else {
-                    resourceOffset = in.readLong();
-                    resourceLength = in.readLong();
-                }
-
-                final long claimOffset = in.readLong();
-
-                final boolean lossTolerant;
-                if (serializationVersion >= 4) {
-                    lossTolerant = in.readBoolean();
-                } else {
-                    lossTolerant = false;
-                }
-
-                final ResourceClaim resourceClaim = claimManager.newResourceClaim(container, section, claimId, lossTolerant);
-                final StandardContentClaim claim = new StandardContentClaim(resourceClaim, resourceOffset);
-                claim.setLength(resourceLength);
-
-                if (incrementContentClaims) {
-                    claimManager.incrementClaimantCount(resourceClaim);
-                }
-
-                ffBuilder.contentClaim(claim);
-                ffBuilder.contentClaimOffset(claimOffset);
-            }
-
-            boolean attributesChanged = true;
-            if (serializationVersion < 3) {
-                attributesChanged = in.readBoolean();
-            }
-
-            if (attributesChanged) {
-                final int numAttributes = in.readInt();
-                for (int j = 0; j < numAttributes; j++) {
-                    final String key = readString(in);
-                    final String value = readString(in);
-
-                    ffBuilder.addAttribute(key, value);
-                }
-            }
-
-            final FlowFileRecord record = ffBuilder.build();
-            flowFiles.add(record);
         }
 
-        return flowFiles;
+        final SwapSummary swapSummary = new StandardSwapSummary(queueSize, maxId, resourceClaims);
+        return new StandardSwapContents(swapSummary, flowFiles);
     }
 
     private static String readString(final InputStream in) throws IOException {

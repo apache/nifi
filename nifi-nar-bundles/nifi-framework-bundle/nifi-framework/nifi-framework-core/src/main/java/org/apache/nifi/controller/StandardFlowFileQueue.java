@@ -47,8 +47,10 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.IncompleteSwapFileException;
 import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordType;
+import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -456,16 +458,15 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         // first.
         if (!swapLocations.isEmpty()) {
             final String swapLocation = swapLocations.remove(0);
+            boolean partialContents = false;
+            SwapContents swapContents = null;
             try {
-                final List<FlowFileRecord> swappedIn = swapManager.swapIn(swapLocation, this);
-                long swapSize = 0L;
-                for (final FlowFileRecord flowFile : swappedIn) {
-                    swapSize += flowFile.getSize();
-                }
-                incrementSwapQueueSize(-swappedIn.size(), -swapSize, -1);
-                incrementActiveQueueSize(swappedIn.size(), swapSize);
-                activeQueue.addAll(swappedIn);
-                return;
+                swapContents = swapManager.swapIn(swapLocation, this);
+            } catch (final IncompleteSwapFileException isfe) {
+                logger.error("Failed to swap in all FlowFiles from Swap File {}; Swap File ended prematurely. The records that were present will still be swapped in", swapLocation);
+                logger.error("", isfe);
+                swapContents = isfe.getPartialContents();
+                partialContents = true;
             } catch (final FileNotFoundException fnfe) {
                 logger.error("Failed to swap in FlowFiles from Swap File {} because the Swap File can no longer be found", swapLocation);
                 if (eventReporter != null) {
@@ -481,6 +482,28 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
                 }
                 return;
             }
+
+            final QueueSize swapSize = swapContents.getSummary().getQueueSize();
+            final long contentSize = swapSize.getByteCount();
+            final int flowFileCount = swapSize.getObjectCount();
+            incrementSwapQueueSize(-flowFileCount, -contentSize, -1);
+
+            if (partialContents) {
+                // if we have partial results, we need to calculate the content size of the flowfiles
+                // actually swapped back in.
+                long contentSizeSwappedIn = 0L;
+                for (final FlowFileRecord swappedIn : swapContents.getFlowFiles()) {
+                    contentSizeSwappedIn += swappedIn.getSize();
+                }
+
+                incrementActiveQueueSize(swapContents.getFlowFiles().size(), contentSizeSwappedIn);
+            } else {
+                // we swapped in the whole swap file. We can just use the info that we got from the summary.
+                incrementActiveQueueSize(flowFileCount, contentSize);
+            }
+
+            activeQueue.addAll(swapContents.getFlowFiles());
+            return;
         }
 
         // this is the most common condition (nothing is swapped out), so do the check first and avoid the expense
@@ -710,6 +733,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public int compare(final FlowFileRecord f1, final FlowFileRecord f2) {
             int returnVal = 0;
             final boolean f1Penalized = f1.isPenalized();
@@ -1111,23 +1135,36 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
                         while (swapLocationItr.hasNext()) {
                             final String swapLocation = swapLocationItr.next();
 
-                            List<FlowFileRecord> swappedIn = null;
+                            SwapContents swapContents = null;
                             try {
                                 if (dropRequest.getState() == DropFlowFileState.CANCELED) {
                                     logger.info("Cancel requested for DropFlowFileRequest {}", requestIdentifier);
                                     return;
                                 }
 
-                                swappedIn = swapManager.swapIn(swapLocation, StandardFlowFileQueue.this);
-                                droppedSize = drop(swappedIn, requestor);
+                                swapContents = swapManager.swapIn(swapLocation, StandardFlowFileQueue.this);
+                                droppedSize = drop(swapContents.getFlowFiles(), requestor);
+                            } catch (final IncompleteSwapFileException isfe) {
+                                swapContents = isfe.getPartialContents();
+                                final String warnMsg = "Failed to swap in FlowFiles from Swap File " + swapLocation + " because the file was corrupt. "
+                                    + "Some FlowFiles may not be dropped from the queue until NiFi is restarted.";
+
+                                logger.warn(warnMsg);
+                                if (eventReporter != null) {
+                                    eventReporter.reportEvent(Severity.WARNING, "Drop FlowFiles", warnMsg);
+                                }
                             } catch (final IOException ioe) {
                                 logger.error("Failed to swap in FlowFiles from Swap File {} in order to drop the FlowFiles for Connection {} due to {}",
                                     swapLocation, StandardFlowFileQueue.this.getIdentifier(), ioe.toString());
                                 logger.error("", ioe);
+                                if (eventReporter != null) {
+                                    eventReporter.reportEvent(Severity.ERROR, "Drop FlowFiles", "Failed to swap in FlowFiles from Swap File " + swapLocation
+                                        + ". The FlowFiles contained in this Swap File will not be dropped from the queue");
+                                }
 
                                 dropRequest.setState(DropFlowFileState.FAILURE, "Failed to swap in FlowFiles from Swap File " + swapLocation + " due to " + ioe.toString());
-                                if (swappedIn != null) {
-                                    activeQueue.addAll(swappedIn); // ensure that we don't lose the FlowFiles from our queue.
+                                if (swapContents != null) {
+                                    activeQueue.addAll(swapContents.getFlowFiles()); // ensure that we don't lose the FlowFiles from our queue.
                                 }
 
                                 return;

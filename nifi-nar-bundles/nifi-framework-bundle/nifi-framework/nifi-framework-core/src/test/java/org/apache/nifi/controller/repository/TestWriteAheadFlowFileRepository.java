@@ -46,6 +46,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.Before;
@@ -156,6 +157,7 @@ public class TestWriteAheadFlowFileRepository {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testRestartWithOneRecord() throws IOException {
         final Path path = Paths.get("target/test-repo");
         if (Files.exists(path)) {
@@ -269,23 +271,27 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public List<FlowFileRecord> peek(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
+        public SwapContents peek(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
             Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 return null;
             }
 
-            return Collections.unmodifiableList(swapMap.get(swapLocation));
+            final List<FlowFileRecord> flowFiles = swapMap.get(swapLocation);
+            final SwapSummary summary = getSwapSummary(swapLocation);
+            return new StandardSwapContents(summary, flowFiles);
         }
 
         @Override
-        public List<FlowFileRecord> swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
+        public SwapContents swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
             Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 return null;
             }
 
-            return swapMap.remove(swapLocation);
+            final List<FlowFileRecord> flowFiles = swapMap.remove(swapLocation);
+            final SwapSummary summary = getSwapSummary(swapLocation);
+            return new StandardSwapContents(summary, flowFiles);
         }
 
         @Override

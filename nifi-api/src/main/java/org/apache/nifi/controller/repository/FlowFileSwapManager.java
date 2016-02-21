@@ -51,17 +51,17 @@ public interface FlowFileSwapManager {
     String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue) throws IOException;
 
     /**
-     * Recovers the SwapFiles from the swap file that lives at the given location. This action
+     * Recovers the FlowFiles from the swap file that lives at the given location. This action
      * provides a view of the FlowFiles but does not actively swap them in, meaning that the swap file
      * at the given location remains in that location and the FlowFile Repository is not updated.
      *
      * @param swapLocation the location of the swap file
      * @param flowFileQueue the queue that the FlowFiles belong to
-     * @return the FlowFiles that live at the given swap location
+     * @return a SwapContents that includes the FlowFiles that live at the given swap location
      *
      * @throws IOException if unable to recover the FlowFiles from the given location
      */
-    List<FlowFileRecord> peek(String swapLocation, FlowFileQueue flowFileQueue) throws IOException;
+    SwapContents peek(String swapLocation, FlowFileQueue flowFileQueue) throws IncompleteSwapFileException, IOException;
 
     /**
      * Recovers the FlowFiles from the swap file that lives at the given location and belongs
@@ -71,12 +71,12 @@ public interface FlowFileSwapManager {
      * @param swapLocation the location of the swap file
      * @param flowFileQueue the queue to which the FlowFiles belong
      *
-     * @return the FlowFiles that are stored in the given location
+     * @return a SwapContents that includes FlowFiles that are stored in the given location
      *
      * @throws IOException if unable to recover the FlowFiles from the given location or update the
      *             FlowFileRepository
      */
-    List<FlowFileRecord> swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IOException;
+    SwapContents swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IncompleteSwapFileException, IOException;
 
     /**
      * Determines swap files that exist for the given FlowFileQueue
