@@ -258,8 +258,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
             // If kerberos is enabled, create the file system as the kerberos principal
             // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
-            FileSystem fs = null;
-            UserGroupInformation ugi = null;
+            FileSystem fs;
+            UserGroupInformation ugi;
             synchronized (RESOURCES_LOCK) {
                 if (config.get("hadoop.security.authentication").equalsIgnoreCase("kerberos")) {
                     String principal = context.getProperty(KERBEROS_PRINCIPAL).getValue();
@@ -271,7 +271,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 } else {
                     config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
                     config.set("hadoop.security.authentication", "simple");
-                    fs = getFileSystem(config);
+                    UserGroupInformation.setConfiguration(config);
+                    ugi = UserGroupInformation.getLoginUser();
+                    fs = getFileSystemAsUser(config, ugi);
                 }
             }
             config.set(disableCacheName, "true");
