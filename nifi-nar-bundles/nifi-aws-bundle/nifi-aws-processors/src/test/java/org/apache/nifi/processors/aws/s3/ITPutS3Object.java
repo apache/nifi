@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -91,6 +92,31 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.run(3);
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 3);
+    }
+
+    @Test
+    public void testSimplePutEncrypted() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        runner.setProperty(PutS3Object.SERVER_SIDE_ENCRYPTION, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+
+        Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
+
+        for (int i = 0; i < 3; i++) {
+            final Map<String, String> attrs = new HashMap<>();
+            attrs.put("filename", String.valueOf(i) + ".txt");
+            runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        }
+        runner.run(3);
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 3);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        for (MockFlowFile flowFile : ffs) {
+            flowFile.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        }
     }
 
     @Test
@@ -227,7 +253,7 @@ public class ITPutS3Object extends AbstractS3IT {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 24, pd.size());
+        assertEquals("size should be eq", 25, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -246,6 +272,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertTrue(pd.contains(PutS3Object.STORAGE_CLASS));
         assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
         assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
+        assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
     }
 
     @Test
