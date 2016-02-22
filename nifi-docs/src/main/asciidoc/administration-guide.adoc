@@ -677,27 +677,30 @@ in the cluster. This allows one node to pick up where another node left off, or 
 When a component decides to store or retrieve state, it does so by providing a "Scope" - either Node-local or Cluster-wide. The
 mechanism that is used to store and retrieve this state is then determined based on this Scope, as well as the configured State
 Providers. The _nifi.properties_ file contains three different properties that are relevant to configuring these State Providers.
-The first is the `nifi.state.management.configuration.file` property specifies an external XML file that is used for configuring
-the local and cluster-wide State Providers. This XML file may contain configurations for multiple providers, so the
-`nifi.state.management.provider.local` property provides the identifier of the local State Provider configured in this XML file.
-Similarly, the `nifi.state.management.provider.cluster` property provides the identifier of the cluster-wide State Provider
-configured in this XML file.
 
-This XML file consists of a top-level `state-management` element, which has one or more `local-provider` and zero or more
-`cluster-provider` elements. Each of these elements then contains an `id` element that is used to specify the identifier that can
-be referenced in the _nifi.properties_ file, as well as a `class` element that specifies the fully-qualified class name to use
-in order to instantiate the State Provider. Finally, each of these elements may have zero or more `property` elements. Each
-`property` element has an attribute, `name` that is the name of the property that the State Provider supports. The textual content
-of the `property` element is the value of the property.
+|====
+|*Property*|*Description*
+|nifi.state.management.configuration.file|The first is the property that specifies an external XML file that is used for configuring the local and/or cluster-wide State Providers. This XML file may contain configurations for multiple providers
+|nifi.state.management.provider.local|The property that provides the identifier of the local State Provider configured in this XML file
+|nifi.state.management.provider.cluster|Similarly, the property provides the identifier of the cluster-wide State Provider configured in this XML file.
+|====
 
-Once these State Providers have been configured in the _state-management.xml_ file (or whatever file is configured), those Providers
-may be referenced by their identifiers. By default, the Local State Provider is configured to be a `WriteAheadLocalStateProvider` that
-persists the data to the _$NIFI_HOME/state_ directory. The default Cluster State Provider is configured to be a `ZooKeeperStateProvider`.
-The default ZooKeeper-based provider must have its `Connect String` property populated before it can be used. It is also advisable,
-if multiple NiFi instances will use the same ZooKeeper instance, that the value of the `Root Node` property be changed. For instance,
-one might set the value to `/nifi/<team name>/production`. A `Connect String` takes the form of comma separated <host>:<port> tuples,
-such as my-zk-server1:2181,my-zk-server2:2181,my-zk-server3:2181. In the event a port is not specified for any of the hosts, the ZooKeeper
-default of 2181 is assumed.
+This XML file consists of a top-level `state-management` element, which has one or more `local-provider` and zero or more `cluster-provider`
+elements. Each of these elements then contains an `id` element that is used to specify the identifier that can be referenced in the
+_nifi.properties_ file, as well as a `class` element that specifies the fully-qualified class name to use in order to instantiate the State
+Provider. Finally, each of these elements may have zero or more `property` elements. Each `property` element has an attribute, `name` that is the name
+of the `property` that the State Provider supports. The textual content of the property element is the value of the property.
+
+Once these State Providers have been configured in the _state-management.xml_ file (or whatever file is configured), those Providers may be
+referenced by their identifiers.
+
+By default, the Local State Provider is configured to be a `WriteAheadLocalStateProvider` that persists the data to the
+_$NIFI_HOME/state/local_ directory. The default Cluster State Provider is configured to be a `ZooKeeperStateProvider`. The default
+ZooKeeper-based provider must have its `Connect String` property populated before it can be used. It is also advisable, if multiple NiFi instances
+will use the same ZooKeeper instance, that the value of the `Root Node` property be changed. For instance, one might set the value to
+`/nifi/<team name>/production`. A `Connect String` takes the form of comma separated <host>:<port> tuples, such as
+my-zk-server1:2181,my-zk-server2:2181,my-zk-server3:2181. In the event a port is not specified for any of the hosts, the ZooKeeper default of
+2181 is assumed.
 
 When adding data to ZooKeeper, there are two options for Access Control: `Open` and `CreatorOnly`. If the `Access Control` property is
 set to `Open`, then anyone is allowed to log into ZooKeeper and have full permissions to see, change, delete, or administer the data.
@@ -729,11 +732,18 @@ behave as a cluster. However, there are many environments in which NiFi is deplo
 In order to avoid the burden of forcing administrators to also maintain a separate ZooKeeper instance, NiFi provides the option of starting an
 embedded ZooKeeper server.
 
+|====
+|*Property*|*Description*
+|nifi.state.management.embedded.zookeeper.start|Specifies whether or not this instance of NiFi should run an embedded ZooKeeper server
+|nifi.state.management.embedded.zookeeper.properties|Properties file that provides the ZooKeeper properties to use if <nifi.state.management.embedded.zookeeper.start> is set to true
+|====
+
 This can be accomplished by setting the `nifi.state.management.embedded.zookeeper.start` property in _nifi.properties_ to `true` on those nodes
 that should run the embedded ZooKeeper server. Generally, it is advisable to run ZooKeeper on either 3 or 5 nodes. Running on fewer than 3 nodes
 provides less durability in the face of failure. Running on more than 5 nodes generally produces more network traffic than is necessary. Additionally,
 running ZooKeeper on 4 nodes provides no more benefit than running on 3 nodes, ZooKeeper requires a majority of nodes be active in order to function.
-However, it is up to the administrator to determine the number of nodes most appropriate to the particular deployment of NiFi.
+However, it is up to the administrator to determine the number of nodes most appropriate to the particular deployment of NiFi. Though, it is not
+recommended to run ZooKeeper server on the NCM.
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
 in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
@@ -744,9 +754,9 @@ ports, the firewall may need to be configured to open these ports for incoming t
 listen on for client connections must be opened in the firewall. The default value for this is _2181_ but can be configured via the _clientPort_ property
 in the _zookeeper.properties_ file.
 
-When using an embedded ZooKeeper, the _conf/zookeeper.properties_ file has a property named `dataDir`. By default, this value is set to `./state/zookeeper`.
+When using an embedded ZooKeeper, the ./__conf/zookeeper.properties__ file has a property named `dataDir`. By default, this value is set to `./state/zookeeper`.
 If more than one NiFi node is running an embedded ZooKeeper, it is important to tell the server which one it is. This is accomplished by creating a file named
-_myid_ and placing it in ZooKeeper's data directory. The contents of this file should be the index of the server as specific by the `server.<number>`. So for
+_myid_ and placing it in ZooKeeper’s data directory. The contents of this file should be the index of the server as specific by the `server.<number>`. So for
 one of the ZooKeeper servers, we will accomplish this by performing the following commands:
 
 [source]
@@ -792,7 +802,6 @@ providing support for SSL connections in version 3.5.0.
 
 [[securing_zookeeper]]
 === Securing ZooKeeper
-
 When NiFi communicates with ZooKeeper, all communications, by default, are non-secure, and anyone who logs into ZooKeeper is able to view and manipulate all
 of the NiFi state that is stored in ZooKeeper. To prevent this, we can use Kerberos to manage the authentication. At this time, ZooKeeper does not provide
 support for encryption via SSL. Support for SSL in ZooKeeper is being actively developed and is expected to be available in the 3.5.x release version.
@@ -800,9 +809,98 @@ support for encryption via SSL. Support for SSL in ZooKeeper is being actively d
 In order to secure the communications, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
 NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
 
+If Kerberos is not already setup in your environment, you can find information on installing and setting up a Kerberos Server at
+https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[_https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html_]
+. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
+
+Note, the following procedures for kerberizing an Embedded Zookeeper server in your NiFI Node and kerberizing a zookeeper NiFI client will require that
+Kerberos client libraries be installed. This is accomplished in Fedora-based Linux distributions via:
+
+[source]
+yum install krb5-workstation
+
+Once this is complete, the /etc/krb5.conf will need to be configured appropriately for your organization’s Kerberos environment.
+
+
+
+[[zk_kerberos_server]]
+==== Kerberizing Embedded ZooKeeper Server
+The krb5.conf file on the systems with the embedded zookeeper servers should be identical to the one on the system where the krb5kdc service is running.
+When using the embedded ZooKeeper server, we may choose to secure the server by using Kerberos. All nodes configured to launch an embedded ZooKeeper and
+using Kerberos should follow these steps. When using the embedded ZooKeeper server, we may choose to secure the server by using Kerberos. All nodes
+configured to launch an embedded ZooKeeper and using Kerberos should follow these steps.
+
+In order to use Kerberos, we first need to generate a Kerberos Principal for our ZooKeeper servers. The following command is run on the server where the
+krb5kdc service is running. This is accomplished via the kadmin tool:
+
+[source]
+kadmin: addprinc "zookeeper/myHost.example.com@EXAMPLE.COM"
+
+Here, we are creating a Principal with the primary `zookeeper/myHost.example.com`, using the realm `EXAMPLE.COM`. We need to use a Principal whose
+name is `<service name>/<instance name>`. In this case, the service is `zookeeper` and the instance name is `myHost.example.com` (the fully qualified name of our host).
+
+Next, we will need to create a KeyTab for this Principal, this command is run on the server with the NiFi instance with an embedded zookeeper server:
+
+[source]
+kadmin: xst -k zookeeper-server.keytab zookeeper/myHost.example.com@EXAMPLE.COM
+
+This will create a file in the current directory named `zookeeper-server.keytab`. We can now copy that file into the `$NIFI_HOME/conf/` directory. We should ensure
+that only the user that will be running NiFi is allowed to read this file.
+
+We will need to repeat the above steps for each of the instances of NiFi that will be running the embedded ZooKeeper server, being sure to replace _myHost.example.com_ with
+__myHost2.example.com__, or whatever fully qualified hostname the ZooKeeper server will be run on.
+
+Now that we have our KeyTab for each of the servers that will be running NiFi, we will need to configure NiFi’s embedded ZooKeeper server to use this configuration.
+ZooKeeper uses the Java Authentication and Authorization Service (JAAS), so we need to create a JAAS-compatible file In the `$NIFI_HOME/conf/` directory, create a file
+named `zookeeper-jaas.conf` (this file will already exist if the Client has already been configured to authenticate via Kerberos. That’s okay, just add to the file).
+We will add to this file, the following snippet:
+
+[source]
+Server {
+  com.sun.security.auth.module.Krb5LoginModule required
+  useKeyTab=true
+  keyTab="./conf/zookeeper-server.keytab"
+  storeKey=true
+  useTicketCache=false
+  principal="zookeeper/myHost.example.com@EXAMPLE.COM";
+};
+
+Be sure to replace the value of _principal_ above with the appropriate Principal, including the fully qualified domain name of the server.
+
+Next, we need to tell NiFi to use this as our JAAS configuration. This is done by setting a JVM System Property, so we will edit the `conf/bootstrap.conf` file.
+If the Client has already been configured to use Kerberos, this is not necessary, as it was done above. Otherwise, we will add the following line to our _bootstrap.conf_ file:
+
+[source]
+java.arg.15=-Djava.security.auth.login.config=./conf/zookeeper-jaas.conf
+
+Note: this additional line in the file doesn’t have to be number 15, it just has to be added to the bootstrap.conf file, use whatever number is appropriate for your configuration.
+
+We will want to initialize our Kerberos ticket by running the following command:
+
+[source]
+kinit –kt zookeeper-server.keytab "zookeeper/myHost.example.com@EXAMPLE.COM"
+
+Again, be sure to replace the Principal with the appropriate value, including your realm and your fully qualified hostname.
+
+Finally, we need to tell the Kerberos server to use the SASL Authentication Provider. To do this, we edit the `$NIFI_HOME/conf/zookeeper.properties` file and add the following
+lines:
+
+[source]
+authProvider.1=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+jaasLoginRenew=3600000
+requireClientAuthScheme=sasl
+
+The last line is optional but specifies that clients MUST use Kerberos to communicate with our ZooKeeper instance.
+
+Now, we can start NiFi, and the embedded ZooKeeper server will use Kerberos as the authentication mechanism.
+
+
 
 [[zk_kerberos_client]]
 ==== Kerberizing NiFi's ZooKeeper Client
+Note: The NiFi nodes running the embedded zookeeper server will also need to follow the below procedure since they will also be acting as a client at
+the same time.
+
 The preferred mechanism for authenticating users with ZooKeeper is to use Kerberos. In order to use Kerberos to authenticate, we must configure a few
 system properties, so that the ZooKeeper client knows who the user is and where the KeyTab file is. All nodes configured to store cluster-wide state
 using `ZooKeeperStateProvider` and using Kerberos should follow these steps.
@@ -820,6 +918,8 @@ After we have created our Principal, we will need to create a KeyTab for the Pri
 
 [source]
 kadmin: xst -k nifi.keytab nifi@EXAMPLE.COM
+
+This keytab file can be copied to the other NiFi nodes with embedded zookeeper servers.
 
 This will create a file in the current directory named `nifi.keytab`. We can now copy that file into the _$NIFI_HOME/conf/_ directory. We should ensure
 that only the user that will be running NiFi is allowed to read this file.
@@ -847,89 +947,9 @@ java.arg.15=-Djava.security.auth.login.config=./conf/zookeeper-jaas.conf
 We can initialize our Kerberos ticket by running the following command:
 
 [source]
-kinit nifi
-
-Note, the above `kinit` command requires that Kerberos client libraries be installed. This is accomplished in Fedora-based Linux distributions via:
-
-[source]
-yum install krb5-workstation krb5-libs krb5-auth-dialog
-
-Once this is complete, the /etc/krb5.conf will need to be configured appropriately for your organization's Kerberos envrionment.
+kinit -kt nifi.keytab nifi@EXAMPLE.COM
 
 Now, when we start NiFi, it will use Kerberos to authentication as the `nifi` user when communicating with ZooKeeper.
-
-
-
-[[zk_kerberos_server]]
-==== Kerberizing Embedded ZooKeeper Server
-When using the embedded ZooKeeper server, we may choose to secure the server by using Kerberos. All nodes configured to launch an embedded ZooKeeper
-and using Kerberos should follow these steps.
-
-If Kerberos is not already setup in your environment, you can find information on installing and setting up a Kerberos Server at
-link:https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html]
-. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
-
-In order to use Kerberos, we first need to generate a Kerberos Principal for our ZooKeeper server. This is accomplished via the `kadmin` tool:
-
-[source]
-kadmin: addprinc "zookeeper/myHost.example.com@EXAMPLE.COM"
-
-Here, we are creating a Principal with the primary `zookeeper/myHost.example.com`, using the realm `EXAMPLE.COM`. We need to use a Principal whose
-name is `<service name>/<instance name>`. In this case, the service is `zookeeper` and the instance name is `myHost.example.com` (the fully qualified name of our host).
-
-Next, we will need to create a KeyTab for this Principal:
-
-[source]
-kadmin: xst -k zookeeper-server.keytab zookeeper/myHost.example.com@EXAMPLE.COM
-
-This will create a file in the current directory named `zookeeper-server.keytab`. We can now copy that file into the `$NIFI_HOME/conf/` directory. We should ensure
-that only the user that will be running NiFi is allowed to read this file.
-
-We will need to repeat the above steps for each of the instances of NiFi that will be running the embedded ZooKeeper server, being sure to replace _myHost.example.com_ with
-_myHost2.example.com_, or whatever fully qualified hostname the ZooKeeper server will be run on.
-
-Now that we have our KeyTab for each of the servers that will be running NiFi, we will need to configure NiFi's embedded ZooKeeper server to use this configuration.
-ZooKeeper uses the Java Authentication and Authorization Service (JAAS), so we need to create a JAAS-compatible file In the `$NIFI_HOME/conf/` directory, create a file
-named `zookeeper-jaas.conf` (this file will already exist if the Client has already been configured to authenticate via Kerberos. That's okay, just add to the file).
-We will add to this file, the following snippet:
-
-[source]
-Server {
-  com.sun.security.auth.module.Krb5LoginModule required
-  useKeyTab=true
-  keyTab="./conf/zookeeper-server.keytab"
-  storeKey=true
-  useTicketCache=false
-  principal="zookeeper/myHost.example.com@EXAMPLE.COM";
-};
-
-Be sure to replace the value of _principal_ above with the appropriate Principal, including the fully qualified domain name of the server.
-
-Next, we need to tell NiFi to use this as our JAAS configuration. This is done by setting a JVM System Property, so we will edit the `conf/bootstrap.conf` file.
-If the Client has already been configured to use Kerberos, this is not necessary, as it was done above. Otherwise, we will add the following line to our _bootstrap.conf_ file:
-
-[source]
-java.arg.15=-Djava.security.auth.login.config=./conf/zookeeper-jaas.conf
-
-We will want to initialize our Kerberos ticket by running the following command:
-
-[source]
-kinit "zookeeper/myHost.example.com@EXAMPLE.COM"
-
-Again, be sure to replace the Principal with the appropriate value, including your realm and your fully qualified hostname.
-
-Finally, we need to tell the Kerberos server to use the SASL Authentication Provider. To do this, we edit the `$NIFI_HOME/conf/zookeeper.properties` file and add the following
-lines:
-
-[source]
-authProvider.1=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
-jaasLoginRenew=3600000
-requireClientAuthScheme=sasl
-
-The last line is optional but specifies that clients MUST use Kerberos to communicate with our ZooKeeper instance.
-
-Now, we can start NiFi, and the embedded ZooKeeper server will use Kerberos as the authentication mechanism.
-
 
 
 
