@@ -742,8 +742,8 @@ This can be accomplished by setting the `nifi.state.management.embedded.zookeepe
 that should run the embedded ZooKeeper server. Generally, it is advisable to run ZooKeeper on either 3 or 5 nodes. Running on fewer than 3 nodes
 provides less durability in the face of failure. Running on more than 5 nodes generally produces more network traffic than is necessary. Additionally,
 running ZooKeeper on 4 nodes provides no more benefit than running on 3 nodes, ZooKeeper requires a majority of nodes be active in order to function.
-However, it is up to the administrator to determine the number of nodes most appropriate to the particular deployment of NiFi. Though, it is not
-recommended to run ZooKeeper server on the NCM.
+However, it is up to the administrator to determine the number of nodes most appropriate to the particular deployment of NiFi. An embedded ZooKeeper
+server cannot be run on the NCM.
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
 in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
