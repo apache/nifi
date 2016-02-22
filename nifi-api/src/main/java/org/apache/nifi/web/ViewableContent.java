@@ -59,7 +59,13 @@ public interface ViewableContent {
     String getFileName();
 
     /**
-     * @return mime type of the content
+     * @return mime type of the content, value is lowercase and stripped of all parameters if there were any
      */
     String getContentType();
+
+    /**
+     * @return unchanged mime type of the content
+     */
+    String getRawContentType();
+
 }

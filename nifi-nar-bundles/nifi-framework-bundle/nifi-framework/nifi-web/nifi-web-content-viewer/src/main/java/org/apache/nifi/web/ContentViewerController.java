@@ -150,6 +150,7 @@ public class ContentViewerController extends HttpServlet {
         // buffer the content to support reseting in case we need to detect the content type or char encoding
         try (final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());) {
             final String mimeType;
+            final String normalizedMimeType;
 
             // when standalone and we don't know the type is null as we were able to directly access the content bypassing the rest endpoint,
             // when clustered and we don't know the type set to octet stream since the content was retrieved from the node's rest endpoint
@@ -170,6 +171,10 @@ public class ContentViewerController extends HttpServlet {
             } else {
                 mimeType = downloadableContent.getType();
             }
+
+            // Extract only mime type and subtype from content type (anything after the first ; are parameters)
+            // Lowercase so subsequent code does not need to implement case insensitivity
+            normalizedMimeType = mimeType.split(";",2)[0].toLowerCase();
 
             // add attributes needed for the header
             request.setAttribute("filename", downloadableContent.getFilename());
@@ -202,7 +207,7 @@ public class ContentViewerController extends HttpServlet {
                 request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
             } else {
                 // lookup a viewer for the content
-                final String contentViewerUri = servletContext.getInitParameter(mimeType);
+                final String contentViewerUri = servletContext.getInitParameter(normalizedMimeType);
 
                 // handle no viewer for content type
                 if (contentViewerUri == null) {
@@ -244,6 +249,11 @@ public class ContentViewerController extends HttpServlet {
 
                         @Override
                         public String getContentType() {
+                            return normalizedMimeType;
+                        }
+
+                        @Override
+                        public String getRawContentType() {
                             return mimeType;
                         }
                     });
