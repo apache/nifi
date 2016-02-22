@@ -239,8 +239,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         return swapLocations;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
+    @SuppressWarnings("deprecation")
     public SwapSummary getSwapSummary(final String swapLocation) throws IOException {
         final File swapFile = new File(swapLocation);
 
@@ -274,7 +274,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             // Before swap encoding version 8, we did not write out the max record id, so we have to read all
             // swap files to determine the max record id
             final List<ResourceClaim> resourceClaims = new ArrayList<>(numRecords);
-            final List<FlowFileRecord> records = deserializeFlowFiles(in, numRecords, swapEncodingVersion, true, claimManager);
+            final List<FlowFileRecord> records = deserializeFlowFiles(in, numRecords, swapEncodingVersion, false, claimManager);
             for (final FlowFileRecord record : records) {
                 if (maxRecordId == null || record.getId() > maxRecordId) {
                     maxRecordId = record.getId();
