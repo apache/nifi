@@ -293,12 +293,15 @@ public class ContentViewerController extends HttpServlet {
 
         final URI refUri = URI.create(ref);
         final String query = refUri.getQuery();
-        final String[] queryParameters = query.split("&");
 
         String rawClusterNodeId = null;
-        for (int i = 0; i < queryParameters.length; i++) {
-            if (queryParameters[0].startsWith("clusterNodeId=")) {
-                rawClusterNodeId = StringUtils.substringAfterLast(queryParameters[0], "clusterNodeId=");
+        if (query != null) {
+            final String[] queryParameters = query.split("&");
+
+            for (int i = 0; i < queryParameters.length; i++) {
+                if (queryParameters[0].startsWith("clusterNodeId=")) {
+                    rawClusterNodeId = StringUtils.substringAfterLast(queryParameters[0], "clusterNodeId=");
+                }
             }
         }
         final String clusterNodeId = rawClusterNodeId;
