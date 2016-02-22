@@ -146,7 +146,7 @@ public class ITDeleteS3Object extends AbstractS3IT {
     public void testGetPropertyDescriptors() throws Exception {
         DeleteS3Object processor = new DeleteS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 17, pd.size());
+        assertEquals("size should be eq", 19, pd.size());
         assertTrue(pd.contains(processor.ACCESS_KEY));
         assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(processor.BUCKET));
