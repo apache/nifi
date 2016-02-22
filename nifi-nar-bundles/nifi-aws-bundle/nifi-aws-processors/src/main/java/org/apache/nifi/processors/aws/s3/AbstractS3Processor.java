@@ -134,7 +134,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      */
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client with awd credentials");
+        getLogger().info("Creating client with AWS credentials");
 
         final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
 
