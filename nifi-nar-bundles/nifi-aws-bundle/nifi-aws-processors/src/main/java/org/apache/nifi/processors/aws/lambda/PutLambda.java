@@ -52,7 +52,9 @@ import com.amazonaws.util.Base64;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "lambda", "put"})
-@CapabilityDescription("Sends the contents to a specified Amazon Lamba Function")
+@CapabilityDescription("Sends the contents to a specified Amazon Lamba Function. "
+    + "The AWS credentials used for authentication must have permissions execute the Lambda function (lambda:InvokeFunction)." 
+    + "The FlowFile content must be JSON.")
 @WritesAttributes({
     @WritesAttribute(attribute = "aws.lambda.result.function.error", description = "Function error message in result on posting message to AWS Lambda"),
     @WritesAttribute(attribute = "aws.lambda.result.status.code", description = "Status code in the result for the message when posting to AWS Lambda"),
