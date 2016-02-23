@@ -1163,10 +1163,20 @@ public class TestQuery {
         attributes.put("line", "Name, Age, Title");
 
         // Test "simple" case - comma separated with no quoted or escaped text
+        verifyEquals("${line:getDelimitedField(1)}", attributes, "Name");
+        verifyEquals("${line:getDelimitedField(1, ',')}", attributes, "Name");
+        verifyEquals("${line:getDelimitedField(1, ',', '\"')}", attributes, "Name");
+        verifyEquals("${line:getDelimitedField(1, ',', '\"', '\\\\')}", attributes, "Name");
+
         verifyEquals("${line:getDelimitedField(2)}", attributes, " Age");
         verifyEquals("${line:getDelimitedField(2, ',')}", attributes, " Age");
         verifyEquals("${line:getDelimitedField(2, ',', '\"')}", attributes, " Age");
         verifyEquals("${line:getDelimitedField(2, ',', '\"', '\\\\')}", attributes, " Age");
+
+        verifyEquals("${line:getDelimitedField(3)}", attributes, " Title");
+        verifyEquals("${line:getDelimitedField(3, ',')}", attributes, " Title");
+        verifyEquals("${line:getDelimitedField(3, ',', '\"')}", attributes, " Title");
+        verifyEquals("${line:getDelimitedField(3, ',', '\"', '\\\\')}", attributes, " Title");
 
         // test with a space in column
         attributes.put("line", "First Name, Age, Title");

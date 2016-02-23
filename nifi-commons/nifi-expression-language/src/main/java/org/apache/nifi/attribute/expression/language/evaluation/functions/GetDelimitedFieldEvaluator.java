@@ -157,7 +157,7 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
             lastCharIsEscape = (c == escapeChar) && !lastCharIsEscape;
         }
 
-        if (curFieldIndex == desiredFieldIndex - 1) {
+        if (curFieldIndex == desiredFieldIndex) {
             // we have run out of characters and we are on the desired field. Return the characters from this field.
             return new StringQueryResult(fieldBuilder.toString());
         }
