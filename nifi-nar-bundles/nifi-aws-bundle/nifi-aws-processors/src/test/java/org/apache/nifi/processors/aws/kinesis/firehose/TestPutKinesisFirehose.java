@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.util.List;
 
-import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -26,11 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-/**
- * This test contains both unit and integration test (integration tests are ignored by default)
- */
-public class ITPutKinesisFirehose {
-
+public class TestPutKinesisFirehose {
     private TestRunner runner;
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
@@ -48,41 +45,37 @@ public class ITPutKinesisFirehose {
         runner = null;
     }
 
-    /**
-     * Comment out ignore for integration tests (requires creds files)
-     */
     @Test
-    public void testIntegrationSuccess() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
-        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "firehose-s3-test");
+    public void testCustomValidateBatchSize1Valid() {
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
         runner.assertValid();
-
-        runner.enqueue("test".getBytes());
-        runner.run(1);
-
-        runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 1);
-
-        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
-        final MockFlowFile out = ffs.iterator().next();
-
-        out.assertContentEquals("test".getBytes());
     }
 
-    /**
-     * Comment out ignore for integration tests (requires creds files)
-     */
     @Test
-    public void testIntegrationFailedBadStreamName() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
-        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "bad-firehose-s3-test");
+    public void testCustomValidateBatchSize500Valid() {
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "500");
         runner.assertValid();
+    }
+    @Test
+    public void testCustomValidateBatchSize501InValid() {
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "501");
+        runner.assertNotValid();
+    }
 
-        runner.enqueue("test".getBytes());
+    @Test
+    public void testWithSizeGreaterThan1MB() {
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
+        runner.assertValid();
+        byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE + 1)];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = 'a';
+        }
+        runner.enqueue(bytes);
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
 
+        assertNotNull(flowFiles.get(0).getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
     }
 }

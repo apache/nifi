@@ -39,30 +39,12 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractAWSCreden
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor MAX_BUFFER_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Max Buffer Interval")
-            .description("Buffering interval for messages (between 60 and 900 seconds).")
-            .defaultValue("60")
-            .required(false)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .sensitive(false)
-            .build();
-
-    public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
-            .name("Max Buffer Size (MB)")
-            .description("Buffering size for messages (between 1MB and 128MB).")
-            .defaultValue("128")
-            .required(false)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .sensitive(false)
-            .build();
-
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
             .description("Batch size for messages (1-500).")
             .defaultValue("250")
             .required(false)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.createLongValidator(1, 500, true))
             .sensitive(false)
             .build();
     /**
