@@ -100,6 +100,16 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
                     AttributeExpression.ResultType.STRING, true))
             .build();
 
+    public static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
+            .name("Index Operation")
+            .description("The type of the operation used to index (index, update, upsert)")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
+                    AttributeExpression.ResultType.STRING, true))
+            .defaultValue("index")
+            .build();
+
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
             .description("The preferred number of FlowFiles to put to the database in a single transaction")
@@ -134,6 +144,7 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
         descriptors.add(TYPE);
         descriptors.add(CHARSET);
         descriptors.add(BATCH_SIZE);
+        descriptors.add(INDEX_OP);
 
         return Collections.unmodifiableList(descriptors);
     }
@@ -166,6 +177,7 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
             for (FlowFile file : flowFiles) {
                 final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();
                 final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(file).getValue();
+                final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(file).getValue();
 
                 final String id = file.getAttribute(id_attribute);
                 if (id == null) {
@@ -178,8 +190,20 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
                         public void process(final InputStream in) throws IOException {
                             String json = IOUtils.toString(in, charset)
                                     .replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ');
-                            bulk.add(esClient.get().prepareIndex(index, docType, id)
-                                    .setSource(json.getBytes(charset)));
+
+                            if (indexOp.equalsIgnoreCase("index")) {
+                                bulk.add(esClient.get().prepareIndex(index, docType, id)
+                                        .setSource(json.getBytes(charset)));
+                            } else if (indexOp.equalsIgnoreCase("upsert")) {
+                                bulk.add(esClient.get().prepareUpdate(index, docType, id)
+                                        .setDoc(json.getBytes(charset))
+                                        .setDocAsUpsert(true));
+                            } else if (indexOp.equalsIgnoreCase("update")) {
+                                bulk.add(esClient.get().prepareUpdate(index, docType, id)
+                                        .setDoc(json.getBytes(charset)));
+                            } else {
+                                throw new IOException("Index operation: " + indexOp + " not supported.");
+                            }
                         }
                     });
                 }
