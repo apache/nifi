@@ -56,8 +56,6 @@ public class HeartbeatPayload {
     private long totalFlowFileCount;
     private long totalFlowFileBytes;
     private SystemDiagnostics systemDiagnostics;
-    private Integer siteToSitePort;
-    private boolean siteToSiteSecure;
     private long systemStartTime;
 
     @XmlJavaTypeAdapter(CounterAdapter.class)
@@ -107,22 +105,6 @@ public class HeartbeatPayload {
 
     public void setSystemDiagnostics(final SystemDiagnostics systemDiagnostics) {
         this.systemDiagnostics = systemDiagnostics;
-    }
-
-    public boolean isSiteToSiteSecure() {
-        return siteToSiteSecure;
-    }
-
-    public void setSiteToSiteSecure(final boolean secure) {
-        this.siteToSiteSecure = secure;
-    }
-
-    public Integer getSiteToSitePort() {
-        return siteToSitePort;
-    }
-
-    public void setSiteToSitePort(final Integer port) {
-        this.siteToSitePort = port;
     }
 
     public long getSystemStartTime() {

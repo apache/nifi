@@ -19,6 +19,8 @@ package org.apache.nifi.components;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
+
 public interface ConfigurableComponent {
 
     /**
@@ -49,11 +51,19 @@ public interface ConfigurableComponent {
      * necessary lazily evaluate it. Any throwable that escapes this method will
      * simply be ignored.
      *
+     * When NiFi is restarted, this method will be called for each 'dynamic' property that is
+     * added, as well as for each property that is not set to the default value. I.e., if the
+     * Properties are modified from the default values. If it is undesirable for your use case
+     * to react to properties being modified in this situation, you can add the {@link OnConfigurationRestored}
+     * annotation to a method - this will allow the Processor to know when configuration has
+     * been restored, so that it can determine whether or not to perform some action in the
+     * onPropertyModified method.
+     *
      * @param descriptor the descriptor for the property being modified
      * @param oldValue the value that was previously set, or null if no value
-     * was previously set for this property
+     *            was previously set for this property
      * @param newValue the new property value or if null indicates the property
-     * was removed
+     *            was removed
      */
     void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue);
 

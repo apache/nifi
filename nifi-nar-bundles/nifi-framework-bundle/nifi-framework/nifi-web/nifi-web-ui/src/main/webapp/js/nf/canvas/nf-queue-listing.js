@@ -22,8 +22,15 @@
  */
 nf.QueueListing = (function () {
 
-    var DEFAULT_SORT_COL = 'QUEUE_POSITION';
-    var DEFAULT_SORT_ASC = true;
+    /**
+     * Configuration object used to hold a number of configuration items.
+     */
+    var config = {
+        urls: {
+            uiExtensionToken: '../nifi-api/access/ui-extension-token',
+            downloadToken: '../nifi-api/access/download-token'
+        }
+    };
 
     /**
      * Initializes the listing request status dialog.
@@ -60,15 +67,33 @@ nf.QueueListing = (function () {
     var downloadContent = function () {
         var dataUri = $('#flowfile-uri').text() + '/content';
 
-        // conditionally include the cluster node id
-        var clusterNodeId = $('#flowfile-cluster-node-id').text();
-        if (!nf.Common.isBlank(clusterNodeId)) {
-            window.open(dataUri + '?' + $.param({
-                    'clusterNodeId': clusterNodeId
-                }));
-        } else {
-            window.open(dataUri);
-        }
+        // perform the request once we've received a token
+        nf.Common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+            var parameters = {};
+
+            // conditionally include the ui extension token
+            if (!nf.Common.isBlank(downloadToken)) {
+                parameters['access_token'] = downloadToken;
+            }
+
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#flowfile-cluster-node-id').text();
+            if (!nf.Common.isBlank(clusterNodeId)) {
+                parameters['clusterNodeId'] = clusterNodeId;
+            }
+
+            // open the url
+            if ($.isEmptyObject(parameters)) {
+                window.open(dataUri);
+            } else {
+                window.open(dataUri + '?' + $.param(parameters));
+            }
+        }).fail(function () {
+            nf.Dialog.showOkDialog({
+                dialogContent: 'Unable to generate access token for downloading content.',
+                overlayBackground: false
+            });
+        });
     };
 
     /**
@@ -77,32 +102,80 @@ nf.QueueListing = (function () {
     var viewContent = function () {
         var dataUri = $('#flowfile-uri').text() + '/content';
 
-        // conditionally include the cluster node id
-        var clusterNodeId = $('#flowfile-cluster-node-id').text();;
-        if (!nf.Common.isBlank(clusterNodeId)) {
-            var parameters = {
-                'clusterNodeId': clusterNodeId
+        // generate tokens as necessary
+        var getAccessTokens = $.Deferred(function (deferred) {
+            if (nf.Storage.hasItem('jwt')) {
+                // generate a token for the ui extension and another for the callback
+                var uiExtensionToken = $.ajax({
+                    type: 'POST',
+                    url: config.urls.uiExtensionToken
+                });
+                var downloadToken = $.ajax({
+                    type: 'POST',
+                    url: config.urls.downloadToken
+                });
+
+                // wait for each token
+                $.when(uiExtensionToken, downloadToken).done(function (uiExtensionTokenResult, downloadTokenResult) {
+                    var uiExtensionToken = uiExtensionTokenResult[0];
+                    var downloadToken = downloadTokenResult[0];
+                    deferred.resolve(uiExtensionToken, downloadToken);
+                }).fail(function () {
+                    nf.Dialog.showOkDialog({
+                        dialogContent: 'Unable to generate access token for viewing content.',
+                        overlayBackground: false
+                    });
+                    deferred.reject();
+                });
+            } else {
+                deferred.resolve('', '');
+            }
+        }).promise();
+
+        // perform the request after we've received the tokens
+        getAccessTokens.done(function (uiExtensionToken, downloadToken) {
+            var dataUriParameters = {};
+
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#flowfile-cluster-node-id').text();
+            if (!nf.Common.isBlank(clusterNodeId)) {
+                dataUriParameters['clusterNodeId'] = clusterNodeId;
+            }
+
+            // include the download token if applicable
+            if (!nf.Common.isBlank(downloadToken)) {
+                dataUriParameters['access_token'] = downloadToken;
+            }
+
+            // include parameters if necessary
+            if ($.isEmptyObject(dataUriParameters) === false) {
+                dataUri = dataUri + '?' + $.param(dataUriParameters);
+            }
+
+            // open the content viewer
+            var contentViewerUrl = $('#nifi-content-viewer-url').text();
+
+            // if there's already a query string don't add another ?... this assumes valid
+            // input meaning that if the url has already included a ? it also contains at
+            // least one query parameter
+            if (contentViewerUrl.indexOf('?') === -1) {
+                contentViewerUrl += '?';
+            } else {
+                contentViewerUrl += '&';
+            }
+
+            var contentViewerParameters = {
+                'ref': dataUri
             };
 
-            dataUri = dataUri + '?' + $.param(parameters);
-        }
+            // include the download token if applicable
+            if (!nf.Common.isBlank(uiExtensionToken)) {
+                contentViewerParameters['access_token'] = uiExtensionToken;
+            }
 
-        // open the content viewer
-        var contentViewerUrl = $('#nifi-content-viewer-url').text();
-
-        // if there's already a query string don't add another ?... this assumes valid
-        // input meaning that if the url has already included a ? it also contains at
-        // least one query parameter
-        if (contentViewerUrl.indexOf('?') === -1) {
-            contentViewerUrl += '?';
-        } else {
-            contentViewerUrl += '&';
-        }
-
-        // open the content viewer
-        window.open(contentViewerUrl + $.param({
-                'ref': dataUri
-            }));
+            // open the content viewer
+            window.open(contentViewerUrl + $.param(contentViewerParameters));
+        });
     };
 
     /**
@@ -158,10 +231,8 @@ nf.QueueListing = (function () {
      * Performs a listing on the specified connection.
      *
      * @param connection the connection
-     * @param sortCol the sort column
-     * @param sortAsc if sort is asc
      */
-    var performListing = function (connection, sortCol, sortAsc) {
+    var performListing = function (connection) {
         var MAX_DELAY = 4;
         var cancelled = false;
         var listingRequest = null;
@@ -231,6 +302,26 @@ nf.QueueListing = (function () {
                         $('#total-flowfiles-count').text(nf.Common.formatInteger(listingRequest.queueSize.objectCount));
                         $('#total-flowfiles-size').text(nf.Common.formatDataSize(listingRequest.queueSize.byteCount));
 
+                        // update the last updated time
+                        $('#queue-listing-last-refreshed').text(listingRequest.lastUpdated);
+
+                        // show a message for the queue listing if necessary
+                        var queueListingTable = $('#queue-listing-table');
+                        var queueListingMessage = $('#queue-listing-message');
+                        if (listingRequest.sourceRunning === true || listingRequest.destinationRunning === true) {
+                            if (listingRequest.souceRunning === true && listingRequest.destinationRunning === true) {
+                                queueListingMessage.text('The source and destination of this queue are currently running. This listing may no longer be accurate.').show();
+                            } else if (listingRequest.sourceRunning === true) {
+                                queueListingMessage.text('The source of this queue is currently running. This listing may no longer be accurate.').show();
+                            } else if (listingRequest.destinationRunning === true) {
+                                queueListingMessage.text('The destination of this queue is currently running. This listing may no longer be accurate.').show();
+                            }
+                            queueListingTable.css('bottom', '35px');
+                        } else {
+                            queueListingMessage.text('').hide();
+                            queueListingTable.css('bottom', '20px');
+                        }
+
                         // get the grid to load the data
                         var queueListingGrid = $('#queue-listing-table').data('gridInstance');
                         var queueListingData = queueListingGrid.getData();
@@ -290,10 +381,6 @@ nf.QueueListing = (function () {
             $.ajax({
                 type: 'POST',
                 url: connection.component.uri + '/listing-requests',
-                data: {
-                    sortColumn: sortCol,
-                    sortOrder: sortAsc ? 'asc' : 'desc'
-                },
                 dataType: 'json'
             }).done(function(response) {
                 // initialize the progress bar value
@@ -332,9 +419,15 @@ nf.QueueListing = (function () {
             }
         };
 
+        var params = {};
+        if (nf.Common.isDefinedAndNotNull(flowFileSummary.clusterNodeId)) {
+            params['clusterNodeId'] = flowFileSummary.clusterNodeId;
+        }
+
         $.ajax({
             type: 'GET',
             url: flowFileSummary.uri,
+            data: params,
             dataType: 'json'
         }).done(function(response) {
             var flowFile = response.flowFile;
@@ -352,12 +445,12 @@ nf.QueueListing = (function () {
             $('#flowfile-penalized').text(flowFile.penalized === true ? 'Yes' : 'No');
 
             // conditionally show the cluster node identifier
-            if (nf.Common.isDefinedAndNotNull(flowFile.clusterNodeId)) {
+            if (nf.Common.isDefinedAndNotNull(flowFileSummary.clusterNodeId)) {
                 // save the cluster node id
-                $('#flowfile-cluster-node-id').text(flowFile.clusterNodeId);
+                $('#flowfile-cluster-node-id').text(flowFileSummary.clusterNodeId);
 
                 // render the cluster node address
-                formatFlowFileDetail('Node Address', flowFile.clusterNodeAddress);
+                formatFlowFileDetail('Node Address', flowFileSummary.clusterNodeAddress);
             }
 
             if (nf.Common.isDefinedAndNotNull(flowFile.contentClaimContainer)) {
@@ -423,6 +516,12 @@ nf.QueueListing = (function () {
                 resetTableSize();
             });
 
+            // define mouse over event for the refresh button
+            nf.Common.addHoverEffect('#queue-listing-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+                var connection = $('#queue-listing-table').data('connection');
+                performListing(connection);
+            });
+
             // define a custom formatter for showing more processor details
             var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
                 return '<img src="images/iconDetails.png" title="View Details" class="pointer show-flowfile-details" style="margin-top: 5px; float: left;"/>';
@@ -436,7 +535,7 @@ nf.QueueListing = (function () {
             // function for formatting durations
             var durationFormatter = function (row, cell, value, columnDef, dataContext) {
                 return nf.Common.formatDuration(value);
-            }
+            };
 
             // function for formatting penalization
             var penalizedFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -447,23 +546,33 @@ nf.QueueListing = (function () {
                 }
 
                 return markup;
-            }
+            };
 
             // initialize the queue listing table
             var queueListingColumns = [
                 {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-                {id: 'QUEUE_POSITION', name: 'Position', field: 'position', sortable: true, resizable: false, width: 75, maxWidth: 75},
-                {id: 'FLOWFILE_UUID', name: 'UUID', field: 'uuid', sortable: true, resizable: true},
-                {id: 'FILENAME', name: 'Filename', field: 'filename', sortable: true, resizable: true},
-                {id: 'FLOWFILE_SIZE', name: 'File Size', field: 'size', sortable: true, resizable: true, defaultSortAsc: false, formatter: dataSizeFormatter},
-                {id: 'QUEUED_DURATION', name: 'Queued Duration', field: 'queuedDuration', sortable: true, resizable: true, formatter: durationFormatter},
-                {id: 'FLOWFILE_AGE', name: 'Lineage Duration', field: 'lineageDuration', sortable: true, resizable: true, formatter: durationFormatter},
-                {id: 'PENALIZATION', name: 'Penalized', field: 'penalized', sortable: true, resizable: false, width: 100, maxWidth: 100, formatter: penalizedFormatter}
+                {id: 'position', name: 'Position', field: 'position', sortable: false, resizable: false, width: 75, maxWidth: 75},
+                {id: 'uuid', name: 'UUID', field: 'uuid', sortable: false, resizable: true},
+                {id: 'filename', name: 'Filename', field: 'filename', sortable: false, resizable: true},
+                {id: 'size', name: 'File Size', field: 'size', sortable: false, resizable: true, defaultSortAsc: false, formatter: dataSizeFormatter},
+                {id: 'queuedDuration', name: 'Queued Duration', field: 'queuedDuration', sortable: false, resizable: true, formatter: durationFormatter},
+                {id: 'lineageDuration', name: 'Lineage Duration', field: 'lineageDuration', sortable: false, resizable: true, formatter: durationFormatter},
+                {id: 'penalized', name: 'Penalized', field: 'penalized', sortable: false, resizable: false, width: 100, maxWidth: 100, formatter: penalizedFormatter}
             ];
 
             // conditionally show the cluster node identifier
             if (nf.Canvas.isClustered()) {
                 queueListingColumns.push({id: 'clusterNodeAddress', name: 'Node', field: 'clusterNodeAddress', sortable: false, resizable: true});
+            }
+
+            // add an actions column when the user can access provenance
+            if (nf.Common.canAccessProvenance()) {
+                // function for formatting actions
+                var actionsFormatter = function () {
+                    return '<div title="Provenance" class="pointer provenance-icon view-provenance"></div>';
+                };
+
+                queueListingColumns.push({id: 'actions', name: '&nbsp;', resizable: false, formatter: actionsFormatter, sortable: false, width: 50, maxWidth: 50});
             }
 
             var queueListingOptions = {
@@ -484,10 +593,6 @@ nf.QueueListing = (function () {
             var queueListingGrid = new Slick.Grid('#queue-listing-table', queueListingData, queueListingColumns, queueListingOptions);
             queueListingGrid.setSelectionModel(new Slick.RowSelectionModel());
             queueListingGrid.registerPlugin(new Slick.AutoTooltips());
-            queueListingGrid.onSort.subscribe(function (e, args) {
-                var connection = $('#queue-listing-table').data('connection');
-                performListing(connection, args.sortCol.id, args.sortAsc);
-            });
 
             // configure a click listener
             queueListingGrid.onClick.subscribe(function (e, args) {
@@ -500,6 +605,16 @@ nf.QueueListing = (function () {
                 if (queueListingGrid.getColumns()[args.cell].id === 'moreDetails') {
                     if (target.hasClass('show-flowfile-details')) {
                         showFlowFileDetails(item);
+                    }
+                } else if (queueListingGrid.getColumns()[args.cell].id === 'actions') {
+                    if (target.hasClass('view-provenance')) {
+                        // close the settings dialog
+                        $('#shell-close-button').click();
+
+                        // open the provenance page with the specified component
+                        nf.Shell.showPage('provenance?' + $.param({
+                            flowFileUuid: item.uuid
+                        }));
                     }
                 }
             });
@@ -530,11 +645,8 @@ nf.QueueListing = (function () {
          * @param   {object}    The connection
          */
         listQueue: function (connection) {
-            var queueListingGrid = $('#queue-listing-table').data('gridInstance');
-            queueListingGrid.setSortColumn(DEFAULT_SORT_COL, DEFAULT_SORT_ASC);
-
             // perform the initial listing
-            performListing(connection, DEFAULT_SORT_COL, DEFAULT_SORT_ASC).done(function () {
+            performListing(connection).done(function () {
                 // update the connection name
                 var connectionName = nf.CanvasUtils.formatConnectionName(connection.component);
                 if (connectionName === '') {
@@ -547,6 +659,7 @@ nf.QueueListing = (function () {
                     $('#queue-listing-table').removeData('connection');
 
                     // clear the table
+                    var queueListingGrid = $('#queue-listing-table').data('gridInstance');
                     var queueListingData = queueListingGrid.getData();
 
                     // clear the flowfiles

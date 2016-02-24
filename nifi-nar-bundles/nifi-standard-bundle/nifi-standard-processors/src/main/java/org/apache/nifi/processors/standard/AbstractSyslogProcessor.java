@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -32,7 +31,7 @@ public abstract class AbstractSyslogProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor PROTOCOL = new PropertyDescriptor
             .Builder().name("Protocol")
-            .description("The protocol for Syslog communication, either TCP or UDP.")
+            .description("The protocol for Syslog communication.")
             .required(true)
             .allowableValues(TCP_VALUE, UDP_VALUE)
             .defaultValue(UDP_VALUE.getValue())
@@ -45,39 +44,11 @@ public abstract class AbstractSyslogProcessor extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
-            .description("Specifies which character set of the Syslog messages")
+            .description("Specifies the character set of the Syslog messages")
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
-
-    /**
-     * FlowFile Attributes for each Syslog message.
-     */
-    public enum SyslogAttributes implements FlowFileAttributeKey {
-        PRIORITY("syslog.priority"),
-        SEVERITY("syslog.severity"),
-        FACILITY("syslog.facility"),
-        VERSION("syslog.version"),
-        TIMESTAMP("syslog.timestamp"),
-        HOSTNAME("syslog.hostname"),
-        SENDER("syslog.sender"),
-        BODY("syslog.body"),
-        VALID("syslog.valid"),
-        PROTOCOL("syslog.protocol"),
-        PORT("syslog.port");
-
-        private String key;
-
-        SyslogAttributes(String key) {
-            this.key = key;
-        }
-
-        @Override
-        public String key() {
-            return key;
-        }
-    }
 
 }

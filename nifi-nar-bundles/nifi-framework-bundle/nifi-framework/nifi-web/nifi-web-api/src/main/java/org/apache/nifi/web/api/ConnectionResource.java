@@ -29,8 +29,6 @@ import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.queue.SortColumn;
-import org.apache.nifi.controller.queue.SortDirection;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ConfigurationSnapshot;
@@ -1173,6 +1171,11 @@ public class ConnectionResource extends ApplicationResource {
             )
             @PathParam("connection-id") String id) {
 
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
         // defer to the new endpoint that references /drop-requests in the URI
         return createDropRequest(httpServletRequest, clientId, id);
     }
@@ -1186,7 +1189,7 @@ public class ConnectionResource extends ApplicationResource {
      * @return A listRequestEntity
      */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{connection-id}/listing-requests")
     @PreAuthorize("hasRole('ROLE_DFM')")
@@ -1213,47 +1216,16 @@ public class ConnectionResource extends ApplicationResource {
                 value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                 required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") String id,
-            @ApiParam(
-                value = "The sort column.",
-                required = false,
-                defaultValue = "QUEUE_POSITION",
-                allowableValues = "QUEUE_POSITION, FLOWFILE_UUID, FILENAME, FLOWFILE_SIZE, QUEUED_DURATION, FLOWFILE_AGE, PENALIZATION"
-            )
-            @FormParam("sortColumn") String sortColumn,
-            @ApiParam(
-                value = "The sort direction.",
-                required = false,
-                defaultValue = "asc",
-                allowableValues = "asc, desc"
-            )
-            @FormParam("sortOrder") @DefaultValue("asc") String sortOrder) {
-
-        // parse the sort column
-        final SortColumn column;
-        if (sortColumn == null) {
-            column = SortColumn.QUEUE_POSITION;
-        } else {
-            try {
-                column = SortColumn.valueOf(sortColumn);
-            } catch (final IllegalArgumentException iae) {
-                throw new IllegalArgumentException(String.format("Sort Column: Value must be one of [%s]", StringUtils.join(SortColumn.values(), ", ")));
-            }
-        }
-
-        // normalize the sort order
-        if (!sortOrder.equalsIgnoreCase("asc") && !sortOrder.equalsIgnoreCase("desc")) {
-            throw new IllegalArgumentException("The sort order must be 'asc' or 'desc'.");
-        }
+            @PathParam("connection-id") String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1261,13 +1233,6 @@ public class ConnectionResource extends ApplicationResource {
         if (expects != null) {
             serviceFacade.verifyListQueue(groupId, id);
             return generateContinueResponse().build();
-        }
-
-        final SortDirection direction;
-        if (sortOrder.equalsIgnoreCase("asc")) {
-            direction = SortDirection.ASCENDING;
-        } else {
-            direction = SortDirection.DESCENDING;
         }
 
         // ensure the id is the same across the cluster
@@ -1280,7 +1245,7 @@ public class ConnectionResource extends ApplicationResource {
         }
 
         // submit the listing request
-        final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(groupId, id, listingRequestId, column, direction);
+        final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(groupId, id, listingRequestId);
         populateRemainingFlowFileListingContent(id, listingRequest);
 
         // create the revision
@@ -1452,7 +1417,7 @@ public class ConnectionResource extends ApplicationResource {
      * @return A dropRequestEntity
      */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{connection-id}/drop-requests")
     @PreAuthorize("hasRole('ROLE_DFM')")
@@ -1479,7 +1444,7 @@ public class ConnectionResource extends ApplicationResource {
             value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
             required = false
         )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
         @ApiParam(
             value = "The connection id.",
             required = true
@@ -1488,7 +1453,7 @@ public class ConnectionResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)

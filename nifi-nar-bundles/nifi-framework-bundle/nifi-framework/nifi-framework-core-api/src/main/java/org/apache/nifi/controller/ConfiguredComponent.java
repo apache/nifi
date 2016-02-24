@@ -34,6 +34,12 @@ public interface ConfiguredComponent {
 
     public void setAnnotationData(String data);
 
+    /**
+     * Sets the property with the given name to the given value
+     *
+     * @param name the name of the property to update
+     * @param value the value to update the property to
+     */
     public void setProperty(String name, String value);
 
     /**

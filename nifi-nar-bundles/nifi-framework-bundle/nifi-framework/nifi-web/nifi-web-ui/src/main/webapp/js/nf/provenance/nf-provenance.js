@@ -180,7 +180,7 @@ nf.Provenance = (function () {
             $.when(loadControllerConfig(), loadAuthorities(), detectedCluster()).done(function () {
                 // create the provenance table
                 nf.ProvenanceTable.init(isClustered).done(function () {
-                    var search;
+                    var search = {};
                     
                     // look for a processor id in the query search
                     var initialComponentId = $('#intial-component-query').text();
@@ -189,9 +189,21 @@ nf.Provenance = (function () {
                         $('input.searchable-component-id').val(initialComponentId);
                         
                         // build the search criteria
-                        search = {
+                        search = $.extend(search, {
                             'search[ProcessorID]': initialComponentId
-                        };
+                        });
+                    }
+
+                    // look for a flowfile uuid in the query search
+                    var initialFlowFileUuid = $('#intial-flowfile-query').text();
+                    if ($.trim(initialFlowFileUuid) !== '') {
+                        // populate initial search component
+                        $('input.searchable-flowfile-uuid').val(initialFlowFileUuid);
+
+                        // build the search criteria
+                        search = $.extend(search, {
+                            'search[FlowFileUUID]': initialFlowFileUuid
+                        });
                     }
 
                     // load the provenance table

@@ -45,6 +45,12 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 public class TestFileSystemRepository {
 
@@ -61,7 +67,6 @@ public class TestFileSystemRepository {
         if (rootFile.exists()) {
             DiskUtils.deleteRecursively(rootFile);
         }
-
         repository = new FileSystemRepository();
         repository.initialize(new StandardResourceClaimManager());
         repository.purge();
@@ -70,6 +75,34 @@ public class TestFileSystemRepository {
     @After
     public void shutdown() throws IOException {
         repository.shutdown();
+    }
+
+    @Test
+    public void testMinimalArchiveCleanupIntervalHonoredAndLogged() throws Exception {
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> testAppender = new ListAppender<>();
+        testAppender.setName("Test");
+        testAppender.start();
+        root.addAppender(testAppender);
+        NiFiProperties.getInstance().setProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 millis");
+        repository = new FileSystemRepository();
+        repository.initialize(new StandardResourceClaimManager());
+        repository.purge();
+
+
+        boolean messageFound = false;
+        String message = "The value of nifi.content.repository.archive.cleanup.frequency property "
+                + "is set to '1 millis' which is below the allowed minimum of 1 second (1000 milliseconds). "
+                + "Minimum value of 1 sec will be used as scheduling interval for archive cleanup task.";
+        for (ILoggingEvent event : testAppender.list) {
+            String actualMessage = event.getFormattedMessage();
+            if (actualMessage.equals(message)) {
+                assertEquals(event.getLevel(), Level.WARN);
+                messageFound = true;
+                break;
+            }
+        }
+        assertTrue(messageFound);
     }
 
     @Test

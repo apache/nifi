@@ -17,6 +17,9 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -33,18 +36,32 @@ public class CaptureServlet extends HttpServlet {
     private static final long serialVersionUID = 8402271018449653919L;
 
     private volatile byte[] lastPost;
+    private volatile Map<String, String> lastPostHeaders;
 
     public byte[] getLastPost() {
         return lastPost;
     }
 
+    public Map<String, String> getLastPostHeaders() {
+        return lastPostHeaders;
+    }
+
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try{
+
+        // Capture all the headers for reference.  Intentionally choosing to not special handling for headers with multiple values for clarity
+        final Enumeration<String> headerNames = request.getHeaderNames();
+        lastPostHeaders = new HashMap<>();
+        while (headerNames.hasMoreElements()) {
+            final String nextHeader = headerNames.nextElement();
+            lastPostHeaders.put(nextHeader, request.getHeader(nextHeader));
+        }
+
+        try {
             StreamUtils.copy(request.getInputStream(), baos);
             this.lastPost = baos.toByteArray();
-        } finally{
+        } finally {
             FileUtils.closeQuietly(baos);
         }
         response.setStatus(Status.OK.getStatusCode());
@@ -54,6 +71,9 @@ public class CaptureServlet extends HttpServlet {
     protected void doHead(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         response.setHeader("Accept", "application/flowfile-v3,application/flowfile-v2");
         response.setHeader("x-nifi-transfer-protocol-version", "1");
-        response.setHeader("Accept-Encoding", "gzip");
+        // Unless an acceptGzip parameter is explicitly set to false, respond that this server accepts gzip
+        if (!Boolean.toString(false).equalsIgnoreCase(request.getParameter("acceptGzip"))) {
+            response.setHeader("Accept-Encoding", "gzip");
+        }
     }
 }

@@ -16,25 +16,8 @@
  */
 package org.apache.nifi.web;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import javax.ws.rs.WebApplicationException;
-
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -53,18 +36,25 @@ import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
-import org.apache.nifi.controller.queue.SortColumn;
-import org.apache.nifi.controller.queue.SortDirection;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceReference;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -82,9 +72,7 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.web.api.dto.FlowFileDTO;
-import org.apache.nifi.web.api.dto.ListingRequestDTO;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.user.AccountStatus;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.user.NiFiUserGroup;
@@ -94,16 +82,23 @@ import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
+import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
+import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
+import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.NodeSystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -111,10 +106,11 @@ import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
@@ -131,6 +127,7 @@ import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ClusterConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ClusterPortStatusDTO;
+import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ClusterProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ClusterRemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ClusterStatusDTO;
@@ -138,6 +135,7 @@ import org.apache.nifi.web.api.dto.status.ClusterStatusHistoryDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodePortStatusDTO;
+import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeRemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeStatusDTO;
@@ -145,39 +143,40 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ConnectionDAO;
+import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.apache.nifi.web.dao.LabelDAO;
 import org.apache.nifi.web.dao.PortDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
+import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.dao.TemplateDAO;
-import org.apache.nifi.web.util.SnippetUtils;
-
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceReference;
-import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.reporting.ComponentType;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
-import org.apache.nifi.web.api.dto.DropRequestDTO;
-import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
-import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusDTO;
-import org.apache.nifi.web.dao.ControllerServiceDAO;
-import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.security.user.NewAccountRequest;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
+import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
+
+import javax.ws.rs.WebApplicationException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -797,6 +796,90 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCanClearProcessorState(final String groupId, final String processorId) {
+        processorDAO.verifyClearState(groupId, processorId);
+    }
+
+    @Override
+    public ConfigurationSnapshot<Void> clearProcessorState(final Revision revision, final String groupId, final String processorId) {
+        return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
+            @Override
+            public ConfigurationResult<Void> execute() {
+                // clear the state for the specified component
+                processorDAO.clearState(groupId, processorId);
+
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
+            }
+        });
+    }
+
+    @Override
+    public void verifyCanClearControllerServiceState(final String controllerServiceId) {
+        controllerServiceDAO.verifyClearState(controllerServiceId);
+    }
+
+    @Override
+    public ConfigurationSnapshot<Void> clearControllerServiceState(final Revision revision, final String controllerServiceId) {
+        return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
+            @Override
+            public ConfigurationResult<Void> execute() {
+                // clear the state for the specified component
+                controllerServiceDAO.clearState(controllerServiceId);
+
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
+            }
+        });
+    }
+
+    @Override
+    public void verifyCanClearReportingTaskState(final String reportingTaskId) {
+        reportingTaskDAO.verifyClearState(reportingTaskId);
+    }
+
+    @Override
+    public ConfigurationSnapshot<Void> clearReportingTaskState(final Revision revision, final String reportingTaskId) {
+        return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
+            @Override
+            public ConfigurationResult<Void> execute() {
+                // clear the state for the specified component
+                reportingTaskDAO.clearState(reportingTaskId);
+
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
+            }
+        });
+    }
+
+    @Override
     public ConfigurationSnapshot<Void> deleteConnection(final Revision revision, final String groupId, final String connectionId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
@@ -828,7 +911,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ListingRequestDTO deleteFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
-        return dtoFactory.createListingRequestDTO(connectionDAO.deleteFlowFileListingRequest(groupId, connectionId, listingRequestId));
+        final ListingRequestDTO listRequest = dtoFactory.createListingRequestDTO(connectionDAO.deleteFlowFileListingRequest(groupId, connectionId, listingRequestId));
+
+        // include whether the source and destination are running
+        final Connection connection = connectionDAO.getConnection(groupId, connectionId);
+        if (connection.getSource() != null) {
+            listRequest.setSourceRunning(connection.getSource().isRunning());
+        }
+        if (connection.getDestination() != null) {
+            listRequest.setDestinationRunning(connection.getDestination().isRunning());
+        }
+
+        return listRequest;
     }
 
     @Override
@@ -1088,8 +1182,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ListingRequestDTO createFlowFileListingRequest(String groupId, String connectionId, String listingRequestId, SortColumn column, SortDirection direction) {
-        return dtoFactory.createListingRequestDTO(connectionDAO.createFlowFileListingRequest(groupId, connectionId, listingRequestId, column, direction));
+    public ListingRequestDTO createFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
+        final ListingRequestDTO listRequest = dtoFactory.createListingRequestDTO(connectionDAO.createFlowFileListingRequest(groupId, connectionId, listingRequestId));
+
+        // include whether the source and destination are running
+        final Connection connection = connectionDAO.getConnection(groupId, connectionId);
+        if (connection.getSource() != null) {
+            listRequest.setSourceRunning(connection.getSource().isRunning());
+        }
+        if (connection.getDestination() != null) {
+            listRequest.setDestinationRunning(connection.getDestination().isRunning());
+        }
+
+        return listRequest;
     }
 
     @Override
@@ -2082,6 +2187,36 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ComponentStateDTO getProcessorState(String groupId, String processorId) {
+        final StateMap clusterState = isClustered() ? processorDAO.getState(groupId, processorId, Scope.CLUSTER) : null;
+        final StateMap localState = processorDAO.getState(groupId, processorId, Scope.LOCAL);
+
+        // processor will be non null as it was already found when getting the state
+        final ProcessorNode processor = processorDAO.getProcessor(groupId, processorId);
+        return dtoFactory.createComponentStateDTO(processorId, processor.getProcessor().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public ComponentStateDTO getControllerServiceState(String controllerServiceId) {
+        final StateMap clusterState = isClustered() ? controllerServiceDAO.getState(controllerServiceId, Scope.CLUSTER) : null;
+        final StateMap localState = controllerServiceDAO.getState(controllerServiceId, Scope.LOCAL);
+
+        // controller service will be non null as it was already found when getting the state
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+        return dtoFactory.createComponentStateDTO(controllerServiceId, controllerService.getControllerServiceImplementation().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public ComponentStateDTO getReportingTaskState(String reportingTaskId) {
+        final StateMap clusterState = isClustered() ? reportingTaskDAO.getState(reportingTaskId, Scope.CLUSTER) : null;
+        final StateMap localState = reportingTaskDAO.getState(reportingTaskId, Scope.LOCAL);
+
+        // reporting task will be non null as it was already found when getting the state
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
+        return dtoFactory.createComponentStateDTO(reportingTaskId, reportingTask.getReportingTask().getClass(), localState, clusterState);
+    }
+
+    @Override
     public CountersDTO getCounters() {
         if (properties.isClusterManager()) {
             final Map<String, CounterDTO> mergedCountersMap = new HashMap<>();
@@ -2153,7 +2288,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ListingRequestDTO getFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
-        return dtoFactory.createListingRequestDTO(connectionDAO.getFlowFileListingRequest(groupId, connectionId, listingRequestId));
+        final ListingRequestDTO listRequest = dtoFactory.createListingRequestDTO(connectionDAO.getFlowFileListingRequest(groupId, connectionId, listingRequestId));
+
+        // include whether the source and destination are running
+        final Connection connection = connectionDAO.getConnection(groupId, connectionId);
+        if (connection.getSource() != null) {
+            listRequest.setSourceRunning(connection.getSource().isRunning());
+        }
+        if (connection.getDestination() != null) {
+            listRequest.setDestinationRunning(connection.getDestination().isRunning());
+        }
+
+        return listRequest;
     }
 
     @Override

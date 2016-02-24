@@ -26,48 +26,59 @@ nf.LabelConfiguration = (function () {
          * Initializes the label details dialog.
          */
         init: function () {
-            var apply = function () {
-                var revision = nf.Client.getRevision();
-
-                // get the new values
-                var labelValue = $('#label-value').val();
-                var fontSize = $('#label-font-size').combo('getSelectedOption');
-
-                // save the new label value
-                $.ajax({
-                    type: 'PUT',
-                    url: labelUri,
-                    data: {
-                        'version': revision.version,
-                        'clientId': revision.clientId,
-                        'label': labelValue,
-                        'style[font-size]': fontSize.value
-                    },
-                    dataType: 'json'
-                }).done(function (response) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-
-                    // get the label out of the response
-                    nf.Label.set(response.label);
-                }).fail(nf.Common.handleAjaxError);
-
-
-                // reset and hide the dialog
-                labelUri = '';
-                $('#label-configuration').hide();
-            };
-
-            var cancel = function () {
-                labelUri = '';
-                $('#label-configuration').hide();
-            };
-
             // make the new property dialog draggable
-            $('#label-configuration').draggable({
+            $('#label-configuration').modal({
+                overlayBackground: true,
+                buttons: [{
+                    buttonText: 'Apply',
+                    handler: {
+                        click: function () {
+                            var revision = nf.Client.getRevision();
+
+                            // get the new values
+                            var labelValue = $('#label-value').val();
+                            var fontSize = $('#label-font-size').combo('getSelectedOption');
+
+                            // save the new label value
+                            $.ajax({
+                                type: 'PUT',
+                                url: labelUri,
+                                data: {
+                                    'version': revision.version,
+                                    'clientId': revision.clientId,
+                                    'label': labelValue,
+                                    'style[font-size]': fontSize.value
+                                },
+                                dataType: 'json'
+                            }).done(function (response) {
+                                // update the revision
+                                nf.Client.setRevision(response.revision);
+
+                                // get the label out of the response
+                                nf.Label.set(response.label);
+                            }).fail(nf.Common.handleAjaxError);
+
+                            // reset and hide the dialog
+                            this.modal('hide');
+                        }
+                    }
+                }, {
+                    buttonText: 'Cancel',
+                    handler: {
+                        click: function () {
+                            this.modal('hide');
+                        }
+                    }
+                }],
+                handler: {
+                    close: function () {
+                        labelUri = '';
+                    }
+                }
+            }).draggable({
                 containment: 'parent',
                 cancel: 'textarea, .button, .combo'
-            }).on('click', '#label-configuration-apply', apply).on('click', '#label-configuration-cancel', cancel);
+            });
 
             // create the available sizes
             var sizes = [];
@@ -128,7 +139,7 @@ nf.LabelConfiguration = (function () {
                 });
 
                 // show the detail dialog
-                $('#label-configuration').center().show();
+                $('#label-configuration').modal('show');
             }
         }
     };

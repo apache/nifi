@@ -49,8 +49,8 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         return highThroughputSession;
     }
 
-    private class HighThroughputSession implements ProcessSession {
 
+    private class HighThroughputSession implements ProcessSession {
         private final StandardProcessSession session;
 
         public HighThroughputSession(final StandardProcessSession session) {
@@ -241,7 +241,5 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         public ProvenanceReporter getProvenanceReporter() {
             return session.getProvenanceReporter();
         }
-
     }
-
 }

@@ -20,7 +20,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -35,7 +34,9 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  *  Useless test, Derby is so much different from MySQL
@@ -46,7 +47,8 @@ import org.junit.Test;
 @Ignore
 public class TestJdbcTypesDerby {
 
-    final static String DB_LOCATION = "target/db";
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @BeforeClass
     public static void setup() {
@@ -59,9 +61,9 @@ public class TestJdbcTypesDerby {
             + "  password varchar(255) DEFAULT NULL, "
             + "  activation_code varchar(255) DEFAULT NULL, "
             + "  forgotten_password_code varchar(255) DEFAULT NULL, "
-            + "  forgotten_password_time datetime DEFAULT NULL, "
-            + "  created datetime NOT NULL, "
-            + "  active tinyint NOT NULL DEFAULT 0, "
+            + "  forgotten_password_time DATE DEFAULT NULL, "
+            + "  created DATE NOT NULL, "
+            + "  active CHAR NOT NULL DEFAULT 'N', "
             + "  home_module_id int DEFAULT NULL, "
             + "   PRIMARY KEY (id) ) " ;
 
@@ -70,10 +72,9 @@ public class TestJdbcTypesDerby {
     @Test
     public void testSQLTypesMapping() throws ClassNotFoundException, SQLException, IOException {
        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
+        folder.delete();
 
-        final Connection con = createConnection();
+        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
         final Statement st = con.createStatement();
 
         try {
@@ -103,8 +104,8 @@ public class TestJdbcTypesDerby {
 
         final InputStream instream = new ByteArrayInputStream(serializedBytes);
 
-        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
-        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader)) {
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 // Reuse record object by passing it to next(). This saves us from
@@ -123,11 +124,10 @@ public class TestJdbcTypesDerby {
         assertNotNull(clazz);
     }
 
-    private Connection createConnection() throws ClassNotFoundException, SQLException {
+    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
 
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-        return con;
+        return DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
     }
 
 }

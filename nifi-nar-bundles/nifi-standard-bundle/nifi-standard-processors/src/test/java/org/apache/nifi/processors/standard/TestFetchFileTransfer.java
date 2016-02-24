@@ -31,10 +31,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.PermissionDeniedException;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -58,6 +60,30 @@ public class TestFetchFileTransfer {
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
         assertFalse(proc.closed);
         runner.getFlowFilesForRelationship(FetchFileTransfer.REL_SUCCESS).get(0).assertContentEquals("world");
+    }
+
+    @Test
+    public void testFilenameContainsPath() {
+        final String filenameWithPath = "./here/is/my/path/hello.txt";
+
+        final TestableFetchFileTransfer proc = new TestableFetchFileTransfer();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(FetchFileTransfer.HOSTNAME, "localhost");
+        runner.setProperty(FetchFileTransfer.UNDEFAULTED_PORT, "11");
+        runner.setProperty(FetchFileTransfer.REMOTE_FILENAME, "${filename}");
+
+        proc.addContent(filenameWithPath, "world".getBytes());
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", filenameWithPath);
+        runner.enqueue(new byte[0], attrs);
+
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
+        assertFalse(proc.closed);
+        MockFlowFile transferredFlowFile = runner.getFlowFilesForRelationship(FetchFileTransfer.REL_SUCCESS).get(0);
+        transferredFlowFile.assertContentEquals("world");
+        transferredFlowFile.assertAttributeExists(CoreAttributes.PATH.key());
+        transferredFlowFile.assertAttributeEquals(CoreAttributes.PATH.key(), "./here/is/my/path");
     }
 
     @Test

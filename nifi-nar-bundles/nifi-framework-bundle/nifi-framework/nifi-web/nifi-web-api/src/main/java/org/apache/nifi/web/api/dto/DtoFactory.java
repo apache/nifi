@@ -16,27 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-
-import javax.ws.rs.WebApplicationException;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
@@ -52,6 +32,7 @@ import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.authorization.Authority;
@@ -62,25 +43,35 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.queue.DropFlowFileState;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileSummary;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceReference;
+import org.apache.nifi.controller.state.SortedStateUtils;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -106,10 +97,12 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.user.NiFiUserGroup;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
@@ -134,16 +127,28 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusDTO;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.controller.ConfiguredComponent;
-import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.queue.DropFlowFileState;
-import org.apache.nifi.controller.queue.DropFlowFileStatus;
-import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceReference;
-import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.web.FlowModification;
+
+import javax.ws.rs.WebApplicationException;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 public final class DtoFactory {
 
@@ -271,6 +276,73 @@ public final class DtoFactory {
     }
 
     /**
+     * Creates a ComponentStateDTO for the given component and state's.
+     *
+     * @param componentId component id
+     * @param localState local state
+     * @param clusterState cluster state
+     * @return dto
+     */
+    public ComponentStateDTO createComponentStateDTO(final String componentId, final Class<?> componentClass, final StateMap localState, final StateMap clusterState) {
+        final ComponentStateDTO dto = new ComponentStateDTO();
+        dto.setComponentId(componentId);
+        dto.setStateDescription(getStateDescription(componentClass));
+        dto.setLocalState(createStateMapDTO(Scope.LOCAL, localState));
+        dto.setClusterState(createStateMapDTO(Scope.CLUSTER, clusterState));
+        return dto;
+    }
+
+    /**
+     * Gets the description of the state this component persists.
+     *
+     * @param componentClass the component class
+     * @return state description
+     */
+    private String getStateDescription(final Class<?> componentClass) {
+        final Stateful capabilityDesc = componentClass.getAnnotation(Stateful.class);
+        if (capabilityDesc != null) {
+            return capabilityDesc.description();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Creates a StateMapDTO for the given scope and state map.
+     *
+     * @param scope the scope
+     * @param stateMap the state map
+     * @return dto
+     */
+    public StateMapDTO createStateMapDTO(final Scope scope, final StateMap stateMap) {
+        if (stateMap == null) {
+            return null;
+        }
+
+        final StateMapDTO dto = new StateMapDTO();
+        dto.setScope(scope.toString());
+
+        final TreeMap<String, String> sortedState = new TreeMap(SortedStateUtils.getKeyComparator());
+        final Map<String, String> state = stateMap.toMap();
+        sortedState.putAll(state);
+
+        int count = 0;
+        final List<StateEntryDTO> stateEntries = new ArrayList<>();
+        final Set<Map.Entry<String, String>> entrySet = sortedState.entrySet();
+        for (final Iterator<Entry<String, String>> iter = entrySet.iterator(); iter.hasNext() && count++ < SortedStateUtils.MAX_COMPONENT_STATE_ENTRIES;) {
+            final Map.Entry<String, String> entry = iter.next();
+            final StateEntryDTO entryDTO = new StateEntryDTO();
+            entryDTO.setKey(entry.getKey());
+            entryDTO.setValue(entry.getValue());
+            stateEntries.add(entryDTO);
+        }
+        dto.setTotalEntryCount(state.size());
+        dto.setState(stateEntries);
+
+        return dto;
+    }
+
+    /**
      * Creates CounterDTOs for each Counter specified.
      *
      * @param counterDtos dtos
@@ -378,10 +450,6 @@ public final class DtoFactory {
         dto.setFailureReason(listingRequest.getFailureReason());
         dto.setFinished(isListingRequestComplete(listingRequest.getState()));
         dto.setMaxResults(listingRequest.getMaxResults());
-        dto.setSortColumn(listingRequest.getSortColumn().name());
-        dto.setSortDirection(listingRequest.getSortDirection().name());
-        dto.setTotalStepCount(listingRequest.getTotalStepCount());
-        dto.setCompletedStepCount(listingRequest.getCompletedStepCount());
         dto.setPercentCompleted(listingRequest.getCompletionPercentage());
 
         dto.setQueueSize(createQueueSizeDTO(listingRequest.getQueueSize()));
@@ -1025,6 +1093,7 @@ public final class DtoFactory {
         dto.setActiveThreadCount(reportingTaskNode.getActiveThreadCount());
         dto.setAnnotationData(reportingTaskNode.getAnnotationData());
         dto.setComments(reportingTaskNode.getComments());
+        dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
 
         final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
@@ -1092,6 +1161,7 @@ public final class DtoFactory {
         dto.setState(controllerServiceNode.getState().name());
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
+        dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
 
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
@@ -1569,6 +1639,7 @@ public final class DtoFactory {
         dto.setStyle(node.getStyle());
         dto.setParentGroupId(node.getProcessGroup().getIdentifier());
         dto.setInputRequirement(node.getInputRequirement().name());
+        dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
 
         dto.setType(node.getProcessor().getClass().getCanonicalName());
         dto.setName(node.getName());

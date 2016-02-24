@@ -18,7 +18,9 @@
  */
 package org.apache.nifi.processors.solr;
 
+import org.apache.http.client.HttpClient;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -28,12 +30,15 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.common.params.ModifiableSolrParams;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A base class for processors that interact with Apache Solr.
@@ -71,11 +76,70 @@ public abstract class SolrProcessor extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .build();
 
+    public static final PropertyDescriptor SOLR_SOCKET_TIMEOUT = new PropertyDescriptor
+            .Builder().name("Solr Socket Timeout")
+            .description("The amount of time to wait for data on a socket connection to Solr. A value of 0 indicates an infinite timeout.")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("10 seconds")
+            .build();
+
+    public static final PropertyDescriptor SOLR_CONNECTION_TIMEOUT = new PropertyDescriptor
+            .Builder().name("Solr Connection Timeout")
+            .description("The amount of time to wait when establishing a connection to Solr. A value of 0 indicates an infinite timeout.")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("10 seconds")
+            .build();
+
+    public static final PropertyDescriptor SOLR_MAX_CONNECTIONS = new PropertyDescriptor
+            .Builder().name("Solr Maximum Connections")
+            .description("The maximum number of total connections allowed from the Solr client to Solr.")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("10")
+            .build();
+
+    public static final PropertyDescriptor SOLR_MAX_CONNECTIONS_PER_HOST = new PropertyDescriptor
+            .Builder().name("Solr Maximum Connections Per Host")
+            .description("The maximum number of connections allowed from the Solr client to a single Solr host.")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("5")
+            .build();
+
+    public static final PropertyDescriptor ZK_CLIENT_TIMEOUT = new PropertyDescriptor
+            .Builder().name("ZooKeeper Client Timeout")
+            .description("The amount of time to wait for data on a connection to ZooKeeper, only used with a Solr Type of Cloud.")
+            .required(false)
+            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
+            .defaultValue("10 seconds")
+            .build();
+
+    public static final PropertyDescriptor ZK_CONNECTION_TIMEOUT = new PropertyDescriptor
+            .Builder().name("ZooKeeper Connection Timeout")
+            .description("The amount of time to wait when establishing a connection to ZooKeeper, only used with a Solr Type of Cloud.")
+            .required(false)
+            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
+            .defaultValue("10 seconds")
+            .build();
+
     private volatile SolrClient solrClient;
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
         this.solrClient = createSolrClient(context);
+    }
+
+    @OnStopped
+    public final void closeClient() {
+        if (solrClient != null) {
+            try {
+                solrClient.close();
+            } catch (IOException e) {
+                getLogger().debug("Error closing SolrClient", e);
+            }
+        }
     }
 
     /**
@@ -86,13 +150,31 @@ public abstract class SolrProcessor extends AbstractProcessor {
      * @return an HttpSolrClient or CloudSolrClient
      */
     protected SolrClient createSolrClient(final ProcessContext context) {
+        final String solrLocation = context.getProperty(SOLR_LOCATION).getValue();
+        final Integer socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final Integer connectionTimeout = context.getProperty(SOLR_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final Integer maxConnections = context.getProperty(SOLR_MAX_CONNECTIONS).asInteger();
+        final Integer maxConnectionsPerHost = context.getProperty(SOLR_MAX_CONNECTIONS_PER_HOST).asInteger();
+
+        final ModifiableSolrParams params = new ModifiableSolrParams();
+        params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
+        params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, connectionTimeout);
+        params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, maxConnections);
+        params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
+
+        final HttpClient httpClient = HttpClientUtil.createClient(params);
+
         if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-            return new HttpSolrClient(context.getProperty(SOLR_LOCATION).getValue());
+            return new HttpSolrClient(solrLocation, httpClient);
         } else {
-            CloudSolrClient cloudSolrClient = new CloudSolrClient(
-                    context.getProperty(SOLR_LOCATION).getValue());
-            cloudSolrClient.setDefaultCollection(
-                    context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue());
+            final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue();
+            final Integer zkClientTimeout = context.getProperty(ZK_CLIENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+            final Integer zkConnectionTimeout = context.getProperty(ZK_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+
+            CloudSolrClient cloudSolrClient = new CloudSolrClient(solrLocation, httpClient);
+            cloudSolrClient.setDefaultCollection(collection);
+            cloudSolrClient.setZkClientTimeout(zkClientTimeout);
+            cloudSolrClient.setZkConnectTimeout(zkConnectionTimeout);
             return cloudSolrClient;
         }
     }

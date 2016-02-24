@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global Slick */
+/* global Slick, nf */
 
 $(document).ready(function () {
     ua.editable = $('#attribute-updater-editable').text() === 'true';
@@ -1545,7 +1545,7 @@ var ua = {
         var offset = cellNode.offset();
 
         // create the wrapper
-        var wrapper = $('<div class="update-attribute-detail"></div>').css({
+        var wrapper = $('<div class="property-detail"></div>').css({
             'z-index': 100000,
             'position': 'absolute',
             'background': 'white',
@@ -1557,6 +1557,8 @@ var ua = {
             'top': offset.top - 5,
             'left': offset.left - 5
         }).appendTo(container);
+
+        var editor = null;
 
         // the attribute column does not get the nfel editor
         if (columnDefinition.id === 'attribute') {
@@ -1575,7 +1577,14 @@ var ua = {
                 'overflow-y': 'auto',
                 'resize': 'both',
                 'margin-bottom': '28px'
-            }).text(value).appendTo(wrapper);
+            }).text(value).on('keydown', function (evt) {
+                if (evt.which === $.ui.keyCode.ESCAPE) {
+                    cleanUp();
+
+                    evt.stopImmediatePropagation();
+                    evt.preventDefault();
+                }
+            }).appendTo(wrapper);
         } else {
             var languageId = 'nfel';
             var editorClass = languageId + '-editor';
@@ -1587,21 +1596,35 @@ var ua = {
             });
 
             // create the editor
-            $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
+            editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
                 languageId: languageId,
                 width: (cellNode.width() - 5) + 'px',
                 content: value,
                 minWidth: 175,
                 minHeight: 100,
                 readOnly: true,
-                resizable: true
+                resizable: true,
+                escape: function () {
+                    cleanUp();
+                }
             });
         }
 
+        var cleanUp = function () {
+            // clean up the editor
+            if (editor !== null) {
+                editor.nfeditor('destroy');
+            }
+
+            // clean up the rest
+            wrapper.hide().remove();
+        };
+
         // add an ok button that will remove the entire pop up
         var ok = $('<div class="button button-normal">Ok</div>').on('click', function () {
-            wrapper.hide().remove();
+            cleaUp();
         });
+
         $('<div></div>').css({
             'position': 'absolute',
             'bottom': '0',
@@ -1615,7 +1638,7 @@ var ua = {
      * Removes all currently open process property detail dialogs.
      */
     removeAllDetailDialogs: function () {
-        $('body').children('div.update-attribute-detail').hide().remove();
+        nf.UniversalCapture.removeAllPropertyDetailDialogs();
     },
     
     /**
@@ -1677,6 +1700,7 @@ var ua = {
             if (e.which === $.ui.keyCode.ENTER && e.ctrlKey) {
                 scope.save();
             } else if (e.which === $.ui.keyCode.ESCAPE) {
+                e.stopImmediatePropagation();
                 e.preventDefault();
                 scope.cancel();
             } else if (e.which === $.ui.keyCode.TAB && e.shiftKey) {

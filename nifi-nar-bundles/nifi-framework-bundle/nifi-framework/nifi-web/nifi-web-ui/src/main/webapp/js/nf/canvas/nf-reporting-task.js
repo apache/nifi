@@ -311,7 +311,7 @@ nf.ReportingTask = (function () {
                     }],
                 select: function () {
                     // remove all property detail dialogs
-                    nf.Common.removeAllPropertyDetailDialogs();
+                    nf.UniversalCapture.removeAllPropertyDetailDialogs();
                     
                     // update the property table size in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
@@ -356,7 +356,7 @@ nf.ReportingTask = (function () {
             $('#reporting-task-properties').propertytable({
                 readOnly: false,
                 dialogContainer: '#new-reporting-task-property-container',
-                deferredDescriptor: getReportingTaskPropertyDescriptor,
+                descriptorDeferred: getReportingTaskPropertyDescriptor,
                 goToServiceDeferred: goToServiceFromProperty
             });
         },
@@ -377,7 +377,7 @@ nf.ReportingTask = (function () {
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
                     readOnly: false,
                     dialogContainer: '#new-reporting-task-property-container',
-                    deferredDescriptor: getReportingTaskPropertyDescriptor,
+                    descriptorDeferred: getReportingTaskPropertyDescriptor,
                     goToServiceDeferred: goToServiceFromProperty
                 });
                 

@@ -30,14 +30,32 @@ high throughput, and priority-based queuing. NiFi provides fine-grained data pro
 cloned, modified, sent, and ultimately dropped upon reaching its configured end-state.
 
 See the Admin Guide for information about system requirements, installation, and configuration. Once NiFi is installed,
-use a supported web browser to view the User Interface. Supported web browsers include:
+use a supported web browser to view the User Interface (UI).
 
-* Internet Explorer 9+ (see note below)
-* Mozilla FireFox 24+
-* Google Chrome 36+
-* Safari 8
 
-Note that there is a known issue in Internet Explorer (IE) 10 and 11 that can cause problems when moving items on the NiFi canvas. If you encounter this problem, we suggest using a browser other than IE. This known issue is described here: https://connect.microsoft.com/IE/Feedback/Details/1050422.
+Browser Support
+---------------
+[options="header"]
+|======================
+|Browser  |Version
+|Chrome   |Current and Current - 1
+|FireFox  |Current and Current - 1
+|Edge     |Current
+|Safari   |Current and Current - 1
+|======================
+
+Current and Current - 1 indicates that the UI is supported in the current stable release of that browser and the preceding one. For instance, if
+the current stable release is 45.X then the officially supported versions will be 45.X and 44.X.
+
+Current indicates that the UI is supported in the current stable release of that browser.
+
+The supported browser versions are driven by the capabilities the UI employs and the dependencies it uses. UI features will be developed and tested
+against the supported browsers. Any problem using a supported browser should be reported to Apache NiFi.
+
+=== Unsupported Browsers
+
+While the UI may run successfully in unsupported browsers, it is not actively tested against them. Additionally, the UI is designed as a desktop
+experience and is not currently supported in mobile browsers.
 
 
 [template="glossary", id="terminology"]
@@ -693,6 +711,14 @@ The following options are available:
 - *Empty queue*: This option allows the DFM to clear the queue of FlowFiles that may be waiting to be processed. This option can be especially useful during testing, when the DFM is not concerned about deleting data from the queue. When this option is selected, users must confirm that they want to delete the data in the queue.
 - *Delete*: This option allows the DFM to delete a connection between two components. Note that the components on both sides of the connection must be stopped and the connection must be empty before it can be deleted.
 
+==== Bending Connections
+
+To add a bend point (or elbow) to an existing connection, simply double-click on the connection in the spot where you want the bend point to be. Then, you can use the mouse to grab
+the bend point and drag it so that the connection is bent in the desired way. You can add as many bend points as you want. You can also use the mouse to drag and move the label on the connection to any existing
+bend point. To remove a bend point, simply double-click it again.
+
+image:nifi-connection-bend-points.png["Connection Bend Points", width=500]
+
 
 === Processor Validation
 
@@ -714,8 +740,8 @@ image::valid-processor.png["Valid Processor"]
 === Site-to-Site
 
 When sending data from one instance of NiFi to another, there are many different protocols that can be used. The preferred
-protocol, though, is the NiFi Site-to-Site Protocol. Site-to-Site makes it easy to transfer data from one NiFi instance to
-another easily, efficiently, and securely.
+protocol, though, is the NiFi Site-to-Site Protocol. Site-to-Site makes it easy to securely and efficiently transfer data to/from nodes in
+one NiFi instance or data producing application to nodes in another NiFi instance or other consuming application.
 
 Using Site-to-Site provides the following benefits:
 
@@ -1252,19 +1278,23 @@ image:iconNotSecure.png["Not Secure"]
 
 
 
-[[Queue_Listing]]
-=== Listing FlowFiles in a Queue
+[[Queue_Interaction]]
+=== Queue Interaction
 
 The FlowFiles enqueued in a Connection can be viewed when necessary. The Queue listing is opened via a menu item in
-a Connection's context menu. This option is only available when the source and destination of the Connection have
-been stopped and all active threads have completed. The listing will return the top 100 FlowFiles according to
-the currently sorted column.
+a Connection's context menu. The listing will return the top 100 FlowFiles in the active queue according to the
+configured priority. The listing can be performed even if the source and destination are actively running.
 
 Additionally, details for a Flowfile in the listing can be viewed by clicking on the Details icon (
 image:iconDetails.png["Details"]
 ) in the left most column. From here, the FlowFile details and attributes are available as well buttons for
 downloading or viewing the content. Viewing the content is only available if the nifi.content.viewer.url has been configured.
+If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will
+no longer be in the active queue.
 
+The FlowFiles enqueued in a Connection can also be deleted when necessary. The removal of the FlowFiles is initiated
+via a menu item in the Connection's context menu. This action can also be performed if the source and destination
+are actively running.
 
 
 [[Summary_Page]]
@@ -1342,7 +1372,8 @@ past five minutes, it is often useful to have a view of historical statistics as
 by right-clicking on a component and choosing the ``Stats'' menu option or by clicking on the Stats History in the Summary page (see <<Summary_Page>>
 for more information).
 
-The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours.
+The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours. For specific
+configuration information reference the Component Status Repository of the Administration guide.
 When the Stats dialog is opened, it provides a graph of historical statistics:
 
 image::stats-history.png["Stats History"]

@@ -17,6 +17,9 @@
 package org.apache.nifi.web.dao;
 
 import java.util.Set;
+
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ScheduledState;
 
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -102,4 +105,26 @@ public interface ControllerServiceDAO {
      * @param controllerServiceId The controller service id
      */
     void deleteControllerService(String controllerServiceId);
+
+    /**
+     * Gets the specified controller service.
+     *
+     * @param controllerServiceId controller service id
+     * @return state map
+     */
+    StateMap getState(String controllerServiceId, Scope scope);
+
+    /**
+     * Verifies the controller service can clear state.
+     *
+     * @param controllerServiceId controller service id
+     */
+    void verifyClearState(String controllerServiceId);
+
+    /**
+     * Clears the state of the specified controller service.
+     *
+     * @param controllerServiceId controller service id
+     */
+    void clearState(String controllerServiceId);
 }

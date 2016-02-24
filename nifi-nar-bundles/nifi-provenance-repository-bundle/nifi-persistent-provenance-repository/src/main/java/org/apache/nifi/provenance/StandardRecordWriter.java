@@ -51,6 +51,7 @@ public class StandardRecordWriter implements RecordWriter {
     private ByteCountingOutputStream byteCountingOut;
     private long lastBlockOffset = 0L;
     private int recordCount = 0;
+    private volatile boolean closed = false;
 
     private final Lock lock = new ReentrantLock();
 
@@ -295,6 +296,8 @@ public class StandardRecordWriter implements RecordWriter {
 
     @Override
     public synchronized void close() throws IOException {
+        closed = true;
+
         logger.trace("Closing Record Writer for {}", file.getName());
 
         lock();
@@ -330,7 +333,11 @@ public class StandardRecordWriter implements RecordWriter {
         } finally {
             unlock();
         }
+    }
 
+    @Override
+    public boolean isClosed() {
+        return closed;
     }
 
     @Override

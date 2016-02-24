@@ -19,9 +19,13 @@ package org.apache.nifi.processors.aws.sqs;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.processors.aws.AbstractAWSProcessor;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.sns.PutSNS;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -49,4 +53,34 @@ public class TestPutSQS {
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
     }
 
+    @Test
+    public void testSimplePutUsingCredentailsProviderService() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
+
+        runner.setProperty(PutSQS.TIMEOUT, "30 secs");
+        String queueUrl = "Add queue url here";
+        runner.setProperty(PutSQS.QUEUE_URL, queueUrl);
+        runner.setValidateExpressionUsage(false);
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+
+        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
+        runner.enableControllerService(serviceImpl);
+
+        runner.assertValid(serviceImpl);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "1.txt");
+        runner.enqueue(Paths.get("src/test/resources/hello.txt"), attrs);
+                runner.setProperty(PutSQS.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+        runner.run(1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSQS.REL_SUCCESS);
+        for (final MockFlowFile mff : flowFiles) {
+            System.out.println(mff.getAttributes());
+            System.out.println(new String(mff.toByteArray()));
+        }
+
+    }
 }

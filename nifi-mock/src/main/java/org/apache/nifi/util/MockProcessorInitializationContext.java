@@ -21,13 +21,12 @@ import java.util.UUID;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
 public class MockProcessorInitializationContext implements ProcessorInitializationContext, ControllerServiceLookup {
 
-    private final ProcessorLog logger;
+    private final MockProcessorLog logger;
     private final String processorId;
     private final MockProcessContext context;
 
@@ -43,7 +42,7 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
-    public ProcessorLog getLogger() {
+    public MockProcessorLog getLogger() {
         return logger;
     }
 

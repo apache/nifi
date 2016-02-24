@@ -335,7 +335,7 @@ nf.SummaryTable = (function () {
 
         // define the column model for the processor summary table
         var processorsColumnModel = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreProcessorDetails, sortable: true, width: 50, maxWidth: 50},
+            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreProcessorDetails, sortable: true, width: 50, maxWidth: 50, toolTip: 'Sorts based on presence of bulletins'},
             nameColumn,
             {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true},
             runStatusColumn,
@@ -820,7 +820,7 @@ nf.SummaryTable = (function () {
             return markup;
         };
         
-        var moreDetailsColumn = {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreDetails, sortable: true, width: 50, maxWidth: 50};
+        var moreDetailsColumn = {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreDetails, sortable: true, width: 50, maxWidth: 50, toolTip: 'Sorts based on presence of bulletins'};
         var transferredColumn = {id: 'transferred', field: 'transferred', name: '<span class="transferred-title">Transferred</span>&nbsp;/&nbsp;<span class="transferred-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>', toolTip: 'Count / data size transferred to and from connections in the last 5 min', resizable: true, defaultSortAsc: false, sortable: true};
         var sentColumn = {id: 'sent', field: 'sent', name: '<span class="sent-title">Sent</span>&nbsp;/&nbsp;<span class="sent-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>', toolTip: 'Count / data size in the last 5 min', sortable: true, defaultSortAsc: false, resizable: true};
         var receivedColumn = {id: 'received', field: 'received', name: '<span class="received-title">Received</span>&nbsp;/&nbsp;<span class="received-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>', toolTip: 'Count / data size in the last 5 min', sortable: true, defaultSortAsc: false, resizable: true};
@@ -1544,7 +1544,7 @@ nf.SummaryTable = (function () {
 
         // define the column model for the summary table
         var remoteProcessGroupsColumnModel = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreDetails, sortable: true, width: 50, maxWidth: 50},
+            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreDetails, sortable: true, width: 50, maxWidth: 50, toolTip: 'Sorts based on presence of bulletins'},
             nameColumn,
             targetUriColumn,
             transmissionStatusColumn,

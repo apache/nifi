@@ -92,4 +92,9 @@ public interface RecordWriter extends Closeable {
      * @return the TOC Writer that is being used to write the Table of Contents for this journal
      */
     TocWriter getTocWriter();
+
+    /**
+     * @return <code>true</code> if this Writer has been closed via the {@link #close()} method, <code>false</code> otherwise
+     */
+    boolean isClosed();
 }

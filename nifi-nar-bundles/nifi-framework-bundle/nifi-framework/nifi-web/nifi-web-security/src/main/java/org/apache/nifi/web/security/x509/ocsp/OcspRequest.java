@@ -66,4 +66,13 @@ public class OcspRequest {
         return true;
     }
 
+    @Override
+    public String toString() {
+        return new StringBuilder("NiFi OCSP Request: ")
+                .append("Subject DN: ").append(subjectCertificate != null ? subjectCertificate.getSubjectDN().getName() : "<null>")
+                .append(" issued by ")
+                .append("Issuer DN: ").append(issuerCertificate != null ? issuerCertificate.getSubjectDN().getName() : "<null>").toString();
+
+    }
+
 }

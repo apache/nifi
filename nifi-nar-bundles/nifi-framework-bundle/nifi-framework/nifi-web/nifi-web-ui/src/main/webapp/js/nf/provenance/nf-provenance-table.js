@@ -37,7 +37,9 @@ nf.ProvenanceTable = (function () {
             provenance: '../nifi-api/controller/provenance',
             cluster: '../nifi-api/cluster',
             d3Script: 'js/d3/d3.min.js',
-            lineageScript: 'js/nf/provenance/nf-provenance-lineage.js'
+            lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
+            uiExtensionToken: '../nifi-api/access/ui-extension-token',
+            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -78,17 +80,35 @@ nf.ProvenanceTable = (function () {
         var eventId = $('#provenance-event-id').text();
 
         // build the url
-        var url = config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
-        // conditionally include the cluster node id
-        var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-        if (!nf.Common.isBlank(clusterNodeId)) {
-            window.open(url + '?' + $.param({
-                'clusterNodeId': clusterNodeId
-            }));
-        } else {
-            window.open(url);
-        }
+        // perform the request once we've received a token
+        nf.Common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+            var parameters = {};
+
+            // conditionally include the ui extension token
+            if (!nf.Common.isBlank(downloadToken)) {
+                parameters['access_token'] = downloadToken;
+            }
+
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#provenance-event-cluster-node-id').text();
+            if (!nf.Common.isBlank(clusterNodeId)) {
+                parameters['clusterNodeId'] = clusterNodeId;
+            }
+
+            // open the url
+            if ($.isEmptyObject(parameters)) {
+                window.open(dataUri);
+            } else {
+                window.open(dataUri + '?' + $.param(parameters));
+            }
+        }).fail(function () {
+            nf.Dialog.showOkDialog({
+                dialogContent: 'Unable to generate access token for downloading content.',
+                overlayBackground: false
+            });
+        });
     };
 
     /**
@@ -103,32 +123,80 @@ nf.ProvenanceTable = (function () {
         // build the uri to the data
         var dataUri = controllerUri + '/provenance/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
-        // conditionally include the cluster node id
-        var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-        if (!nf.Common.isBlank(clusterNodeId)) {
-            var parameters = {
-                'clusterNodeId': clusterNodeId
+        // generate tokens as necessary
+        var getAccessTokens = $.Deferred(function (deferred) {
+            if (nf.Storage.hasItem('jwt')) {
+                // generate a token for the ui extension and another for the callback
+                var uiExtensionToken = $.ajax({
+                    type: 'POST',
+                    url: config.urls.uiExtensionToken
+                });
+                var downloadToken = $.ajax({
+                    type: 'POST',
+                    url: config.urls.downloadToken
+                });
+
+                // wait for each token
+                $.when(uiExtensionToken, downloadToken).done(function (uiExtensionTokenResult, downloadTokenResult) {
+                    var uiExtensionToken = uiExtensionTokenResult[0];
+                    var downloadToken = downloadTokenResult[0];
+                    deferred.resolve(uiExtensionToken, downloadToken);
+                }).fail(function () {
+                    nf.Dialog.showOkDialog({
+                        dialogContent: 'Unable to generate access token for viewing content.',
+                        overlayBackground: false
+                    });
+                    deferred.reject();
+                });
+            } else {
+                deferred.resolve('', '');
+            }
+        }).promise();
+
+        // perform the request after we've received the tokens
+        getAccessTokens.done(function (uiExtensionToken, downloadToken) {
+            var dataUriParameters = {};
+
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#provenance-event-cluster-node-id').text();
+            if (!nf.Common.isBlank(clusterNodeId)) {
+                dataUriParameters['clusterNodeId'] = clusterNodeId;
+            }
+
+            // include the download token if applicable
+            if (!nf.Common.isBlank(downloadToken)) {
+                dataUriParameters['access_token'] = downloadToken;
+            }
+
+            // include parameters if necessary
+            if ($.isEmptyObject(dataUriParameters) === false) {
+                dataUri = dataUri + '?' + $.param(dataUriParameters);
+            }
+
+            // open the content viewer
+            var contentViewerUrl = $('#nifi-content-viewer-url').text();
+
+            // if there's already a query string don't add another ?... this assumes valid
+            // input meaning that if the url has already included a ? it also contains at
+            // least one query parameter
+            if (contentViewerUrl.indexOf('?') === -1) {
+                contentViewerUrl += '?';
+            } else {
+                contentViewerUrl += '&';
+            }
+
+            var contentViewerParameters = {
+                'ref': dataUri
             };
 
-            dataUri = dataUri + '?' + $.param(parameters);
-        }
+            // include the download token if applicable
+            if (!nf.Common.isBlank(uiExtensionToken)) {
+                contentViewerParameters['access_token'] = uiExtensionToken;
+            }
 
-        // open the content viewer
-        var contentViewerUrl = $('#nifi-content-viewer-url').text();
-
-        // if there's already a query string don't add another ?... this assumes valid
-        // input meaning that if the url has already included a ? it also contains at
-        // least one query parameter 
-        if (contentViewerUrl.indexOf('?') === -1) {
-            contentViewerUrl += '?';
-        } else {
-            contentViewerUrl += '&';
-        }
-
-        // open the content viewer
-        window.open(contentViewerUrl + $.param({
-            'ref': dataUri
-        }));
+            // open the content viewer
+            window.open(contentViewerUrl + $.param(contentViewerParameters));
+        });
     };
 
     /**
@@ -431,9 +499,11 @@ nf.ProvenanceTable = (function () {
         $('<div class="searchable-field-value"><input type="text" class="searchable-field-input"/></div>').appendTo(searchableField);
         $('<div class="clear"></div>').appendTo(searchableField);
 
-        // make the component id accessible for populating
+        // make the searchable accessible for populating
         if (field.id === 'ProcessorID') {
             searchableField.find('input').addClass('searchable-component-id');
+        } else if (field.id === 'FlowFileUUID') {
+            searchableField.find('input').addClass('searchable-flowfile-uuid');
         }
 
         // ensure the no searchable fields message is hidden
@@ -997,7 +1067,7 @@ nf.ProvenanceTable = (function () {
          * query. If not query is specified or it is empty, the most recent entries will
          * be returned.
          * 
-         * @param {type} query
+         * @param {object} query
          */
         loadProvenanceTable: function (query) {
             var provenanceProgress = $('#provenance-percent-complete');
@@ -1269,95 +1339,59 @@ nf.ProvenanceTable = (function () {
             };
 
             // content
-            if (event.contentEqual === true) {
-                $('#output-content-details').hide();
+            $('#input-content-header').text('Input Claim');
+            formatContentValue($('#input-content-container'), event.inputContentClaimContainer);
+            formatContentValue($('#input-content-section'), event.inputContentClaimSection);
+            formatContentValue($('#input-content-identifier'), event.inputContentClaimIdentifier);
+            formatContentValue($('#input-content-offset'), event.inputContentClaimOffset);
+            formatContentValue($('#input-content-bytes'), event.inputContentClaimFileSizeBytes);
 
-                $('#input-content-header').text('Claim');
-                formatContentValue($('#input-content-container'), event.inputContentClaimContainer);
-                formatContentValue($('#input-content-section'), event.inputContentClaimSection);
-                formatContentValue($('#input-content-identifier'), event.inputContentClaimIdentifier);
-                formatContentValue($('#input-content-offset'), event.inputContentClaimOffset);
-                formatContentValue($('#input-content-bytes'), event.inputContentClaimFileSizeBytes);
+            // input content file size
+            var inputContentSize = $('#input-content-size');
+            formatContentValue(inputContentSize, event.inputContentClaimFileSize);
+            if (nf.Common.isDefinedAndNotNull(event.inputContentClaimFileSize)) {
+                // over the default tooltip with the actual byte count
+                inputContentSize.attr('title', nf.Common.formatInteger(event.inputContentClaimFileSizeBytes) + ' bytes');
+            }
 
-                // input content file size
-                var inputContentSize = $('#input-content-size');
-                formatContentValue(inputContentSize, event.inputContentClaimFileSize);
-                if (nf.Common.isDefinedAndNotNull(event.inputContentClaimFileSize)) {
-                    // over the default tooltip with the actual byte count
-                    inputContentSize.attr('title', nf.Common.formatInteger(event.inputContentClaimFileSizeBytes) + ' bytes');
-                }
+            formatContentValue($('#output-content-container'), event.outputContentClaimContainer);
+            formatContentValue($('#output-content-section'), event.outputContentClaimSection);
+            formatContentValue($('#output-content-identifier'), event.outputContentClaimIdentifier);
+            formatContentValue($('#output-content-offset'), event.outputContentClaimOffset);
+            formatContentValue($('#output-content-bytes'), event.outputContentClaimFileSizeBytes);
 
-                $('#output-content-download').hide();
+            // output content file size
+            var outputContentSize = $('#output-content-size');
+            formatContentValue(outputContentSize, event.outputContentClaimFileSize);
+            if (nf.Common.isDefinedAndNotNull(event.outputContentClaimFileSize)) {
+                // over the default tooltip with the actual byte count
+                outputContentSize.attr('title', nf.Common.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
+            }
 
-                if (event.inputContentAvailable === true) {
-                    $('#input-content-download').show();
+            if (event.inputContentAvailable === true) {
+                $('#input-content-download').show();
 
-                    if (isContentViewConfigured()) {
-                        $('#input-content-view').show();
-                    } else {
-                        $('#input-content-view').hide();
-                    }
+                if (nf.Common.isContentViewConfigured()) {
+                    $('#input-content-view').show();
                 } else {
-                    $('#input-content-download').hide();
                     $('#input-content-view').hide();
                 }
             } else {
-                $('#output-content-details').show();
+                $('#input-content-download').hide();
+                $('#input-content-view').hide();
+            }
 
-                $('#input-content-header').text('Input Claim');
-                formatContentValue($('#input-content-container'), event.inputContentClaimContainer);
-                formatContentValue($('#input-content-section'), event.inputContentClaimSection);
-                formatContentValue($('#input-content-identifier'), event.inputContentClaimIdentifier);
-                formatContentValue($('#input-content-offset'), event.inputContentClaimOffset);
-                formatContentValue($('#input-content-bytes'), event.inputContentClaimFileSizeBytes);
+            if (event.outputContentAvailable === true) {
+                $('#output-content-download').show();
 
-                // input content file size
-                var inputContentSize = $('#input-content-size');
-                formatContentValue(inputContentSize, event.inputContentClaimFileSize);
-                if (nf.Common.isDefinedAndNotNull(event.inputContentClaimFileSize)) {
-                    // over the default tooltip with the actual byte count
-                    inputContentSize.attr('title', nf.Common.formatInteger(event.inputContentClaimFileSizeBytes) + ' bytes');
-                }
-
-                formatContentValue($('#output-content-container'), event.outputContentClaimContainer);
-                formatContentValue($('#output-content-section'), event.outputContentClaimSection);
-                formatContentValue($('#output-content-identifier'), event.outputContentClaimIdentifier);
-                formatContentValue($('#output-content-offset'), event.outputContentClaimOffset);
-                formatContentValue($('#output-content-bytes'), event.outputContentClaimFileSizeBytes);
-
-                // output content file size
-                var outputContentSize = $('#output-content-size');
-                formatContentValue(outputContentSize, event.outputContentClaimFileSize);
-                if (nf.Common.isDefinedAndNotNull(event.outputContentClaimFileSize)) {
-                    // over the default tooltip with the actual byte count
-                    outputContentSize.attr('title', nf.Common.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
-                }
-
-                if (event.inputContentAvailable === true) {
-                    $('#input-content-download').show();
-
-                    if (isContentViewConfigured()) {
-                        $('#input-content-view').show();
-                    } else {
-                        $('#input-content-view').hide();
-                    }
+                if (nf.Common.isContentViewConfigured()) {
+                    $('#output-content-view').show();
                 } else {
-                    $('#input-content-download').hide();
-                    $('#input-content-view').hide();
-                }
-
-                if (event.outputContentAvailable === true) {
-                    $('#output-content-download').show();
-
-                    if (isContentViewConfigured()) {
-                        $('#output-content-view').show();
-                    } else {
-                        $('#output-content-view').hide();
-                    }
-                } else {
-                    $('#output-content-download').hide();
                     $('#output-content-view').hide();
                 }
+            } else {
+                $('#output-content-download').hide();
+                $('#output-content-view').hide();
             }
 
             if (nf.Common.isDFM()) {

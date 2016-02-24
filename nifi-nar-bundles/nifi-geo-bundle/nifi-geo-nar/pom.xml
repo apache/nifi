@@ -18,11 +18,15 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-geo-bundle</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.6.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-geo-nar</artifactId>
     <packaging>nar</packaging>
     <description>NiFi Geo Enrichment NAR</description>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
 
     <dependencies>
         <dependency>

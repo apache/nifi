@@ -27,6 +27,7 @@ import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageC
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
@@ -35,9 +36,11 @@ public class MockValidationContext implements ValidationContext, ControllerServi
 
     private final MockProcessContext context;
     private final Map<String, Boolean> expressionLanguageSupported;
+    private final StateManager stateManager;
 
-    public MockValidationContext(final MockProcessContext processContext) {
+    public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager) {
         this.context = processContext;
+        this.stateManager = stateManager;
 
         final Map<PropertyDescriptor, String> properties = processContext.getProperties();
         expressionLanguageSupported = new HashMap<>(properties.size());
@@ -63,8 +66,8 @@ public class MockValidationContext implements ValidationContext, ControllerServi
 
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
-        final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context);
-        return new MockValidationContext(serviceProcessContext);
+        final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager);
+        return new MockValidationContext(serviceProcessContext, stateManager);
     }
 
     @Override
@@ -118,6 +121,7 @@ public class MockValidationContext implements ValidationContext, ControllerServi
         return context.isControllerServiceEnabling(serviceIdentifier);
     }
 
+    @Override
     public boolean isExpressionLanguagePresent(final String value) {
         if (value == null) {
             return false;

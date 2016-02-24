@@ -25,24 +25,17 @@ public class ListFlowFileRequest implements ListFlowFileStatus {
     private final String requestId;
     private final int maxResults;
     private final QueueSize queueSize;
-    private final SortColumn sortColumn;
-    private final SortDirection sortDirection;
     private final long submissionTime = System.currentTimeMillis();
     private final List<FlowFileSummary> flowFileSummaries = new ArrayList<>();
 
     private ListFlowFileState state = ListFlowFileState.WAITING_FOR_LOCK;
     private String failureReason;
-    private int numSteps;
-    private int completedStepCount;
     private long lastUpdated = System.currentTimeMillis();
 
-    public ListFlowFileRequest(final String requestId, final SortColumn sortColumn, final SortDirection sortDirection, final int maxResults, final QueueSize queueSize, final int numSteps) {
+    public ListFlowFileRequest(final String requestId, final int maxResults, final QueueSize queueSize) {
         this.requestId = requestId;
-        this.sortColumn = sortColumn;
-        this.sortDirection = sortDirection;
         this.maxResults = maxResults;
         this.queueSize = queueSize;
-        this.numSteps = numSteps;
     }
 
     @Override
@@ -58,16 +51,6 @@ public class ListFlowFileRequest implements ListFlowFileStatus {
     @Override
     public synchronized long getLastUpdated() {
         return lastUpdated;
-    }
-
-    @Override
-    public SortColumn getSortColumn() {
-        return sortColumn;
-    }
-
-    @Override
-    public SortDirection getSortDirection() {
-        return sortDirection;
     }
 
     @Override
@@ -118,25 +101,11 @@ public class ListFlowFileRequest implements ListFlowFileStatus {
 
     @Override
     public synchronized int getCompletionPercentage() {
-        return (int) (100F * completedStepCount / numSteps);
-    }
-
-    public synchronized void setCompletedStepCount(final int completedStepCount) {
-        this.completedStepCount = completedStepCount;
+        return state == ListFlowFileState.COMPLETE ? 100 : 0;
     }
 
     @Override
     public int getMaxResults() {
         return maxResults;
-    }
-
-    @Override
-    public int getTotalStepCount() {
-        return numSteps;
-    }
-
-    @Override
-    public int getCompletedStepCount() {
-        return completedStepCount;
     }
 }

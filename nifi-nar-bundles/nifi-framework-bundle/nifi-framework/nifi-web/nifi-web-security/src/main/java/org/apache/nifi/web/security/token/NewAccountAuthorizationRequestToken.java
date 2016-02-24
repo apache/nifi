@@ -21,7 +21,7 @@ import org.apache.nifi.web.security.user.NewAccountRequest;
 /**
  * An authentication token that is used as an authorization request when submitting a new account.
  */
-public class NewAccountAuthorizationRequestToken extends NiFiAuthortizationRequestToken {
+public class NewAccountAuthorizationRequestToken extends NiFiAuthorizationRequestToken {
 
     final NewAccountRequest newAccountRequest;
 

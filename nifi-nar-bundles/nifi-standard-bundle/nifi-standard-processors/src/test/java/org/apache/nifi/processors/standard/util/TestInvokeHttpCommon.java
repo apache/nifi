@@ -114,6 +114,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+attributes)
@@ -166,6 +167,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+attributes)
@@ -204,6 +206,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+attributes)
@@ -226,6 +229,48 @@ public abstract class TestInvokeHttpCommon {
     }
 
     @Test
+    public void testOutputResponseSetMimeTypeToResponseContentType() throws Exception {
+        addHandler(new GetOrHeadHandler());
+
+        String statusUrl = "/status/200";
+        runner.setProperty(InvokeHTTP.PROP_URL, url + statusUrl);
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "GET");
+        runner.setProperty(InvokeHTTP.PROP_OUTPUT_RESPONSE_REGARDLESS,"true");
+        runner.setProperty(InvokeHTTP.PROP_PUT_OUTPUT_IN_ATTRIBUTE,"outputBody");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY,0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        // expected in request status.code and status.message
+        // original flow file (+attributes)
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
+        bundle.assertContentEquals("Hello".getBytes("UTF-8"));
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle.assertAttributeEquals("outputBody", statusUrl);
+        bundle.assertAttributeEquals("Foo", "Bar");
+
+        // expected in response
+        // status code, status message, all headers from server response --> ff attributes
+        // server response message body into payload of ff
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle1.assertContentEquals(statusUrl.getBytes("UTF-8"));
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals("Foo", "Bar");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("mime.type", "text/plain; charset=ISO-8859-1");
+    }
+
+    @Test
     public void testOutputResponseRegardlessWithOutputInAttributeLarge() throws Exception {
         addHandler(new GetLargeHandler());
 
@@ -244,6 +289,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+attributes)
@@ -284,6 +330,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+attributes)
@@ -321,6 +368,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+all attributes from response)
@@ -360,6 +408,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code, status.message and body of response in attribute
         // original flow file (+attributes)
@@ -387,6 +436,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in response
         // status code, status message, all headers from server response --> ff attributes
@@ -414,6 +464,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         runner.setProperty(InvokeHTTP.PROP_METHOD,"OPTION");
 
@@ -424,6 +475,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
     }
 
     @Test
@@ -442,6 +494,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request
         // status code, status message, no ff content
@@ -475,6 +528,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+attributes)
@@ -531,6 +585,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in request status.code and status.message
         // original flow file (+attributes)
@@ -566,6 +621,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         //expected in request status.code and status.message
         //original flow file (+attributes)
@@ -605,6 +661,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         //expected in request status.code and status.message
         //original flow file (+attributes)
@@ -645,6 +702,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(1);
 
         // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RETRY).get(0);
@@ -673,7 +731,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        // getMyFlowFiles();
+        runner.assertPenalizeCount(0);
         // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
@@ -700,7 +758,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        // getMyFlowFiles();
+        runner.assertPenalizeCount(0);
         // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
@@ -727,7 +785,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        // getMyFlowFiles();
+        runner.assertPenalizeCount(0);
         // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
@@ -739,6 +797,34 @@ public abstract class TestInvokeHttpCommon {
         Assert.assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
+    }
+
+    @Test
+    public void test400WithPenalizeNoRetry() throws Exception {
+        addHandler(new GetOrHeadHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/400");
+        runner.setProperty(InvokeHTTP.PROP_PENALIZE_NO_RETRY, "true");
+
+        createFlowFiles(runner);
+
+        runner.run();
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(1);
+        // expected in response
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_NO_RETRY).get(0);
+        final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
+
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "400");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "Bad Request");
+        bundle.assertAttributeEquals(InvokeHTTP.RESPONSE_BODY, "/status/400");
+        final String expected = "Hello";
+        Assert.assertEquals(expected, actual);
+        bundle.assertAttributeEquals("Foo", "Bar");
     }
 
     @Test
@@ -756,6 +842,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         // expected in response
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_NO_RETRY).get(0);
@@ -785,6 +872,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
         bundle.assertContentEquals("Hello".getBytes("UTF-8"));
@@ -805,7 +893,7 @@ public abstract class TestInvokeHttpCommon {
 
     @Test
     public void testPost() throws Exception {
-        addHandler(new PostHandler());
+        addHandler(new MutativeMethodHandler(MutativeMethod.POST));
 
         runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
@@ -818,6 +906,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
         bundle.assertContentEquals("Hello".getBytes("UTF-8"));
@@ -838,8 +927,112 @@ public abstract class TestInvokeHttpCommon {
     }
 
     @Test
+    public void testPostWithMimeType() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.POST, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+
+        final Map<String, String> attrs = new HashMap<>();
+
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostWithEmptyELExpression() throws Exception {
+        addHandler(new MutativeMethodHandler(MutativeMethod.POST, InvokeHTTP.DEFAULT_CONTENT_TYPE));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostWithContentTypeProperty() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.POST, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPutWithMimeType() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.PUT, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PUT");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+
+        final Map<String, String> attrs = new HashMap<>();
+
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPutWithEmptyELExpression() throws Exception {
+        addHandler(new MutativeMethodHandler(MutativeMethod.PUT, InvokeHTTP.DEFAULT_CONTENT_TYPE));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PUT");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPutWithContentTypeProperty() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.PUT, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PUT");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
     public void testPut() throws Exception {
-        addHandler(new PutHandler());
+        addHandler(new MutativeMethodHandler(MutativeMethod.PUT));
 
         runner.setProperty(InvokeHTTP.PROP_METHOD, "PUT");
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
@@ -852,6 +1045,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
         bundle.assertContentEquals("Hello".getBytes("UTF-8"));
@@ -886,6 +1080,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
         bundle.assertContentEquals("Hello".getBytes("UTF-8"));
@@ -918,6 +1113,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
         bundle.assertContentEquals("Hello".getBytes("UTF-8"));
@@ -949,6 +1145,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         //expected in request status.code and status.message
         //original flow file (+attributes)
@@ -985,6 +1182,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 1);
+        runner.assertPenalizeCount(1);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_FAILURE).get(0);
 
@@ -1010,6 +1208,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 1);
+        runner.assertPenalizeCount(1);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_FAILURE).get(0);
 
@@ -1034,6 +1233,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 1);
+        runner.assertPenalizeCount(1);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_FAILURE).get(0);
 
@@ -1059,6 +1259,7 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
 
         //expected in request status.code and status.message
         //original flow file (+attributes)
@@ -1083,6 +1284,49 @@ public abstract class TestInvokeHttpCommon {
         final String expected1 = "/status/200";
         Assert.assertEquals(expected1, actual1);
     }
+
+    @Test
+    public void testChunkedRequest() throws Exception {
+        MutativeMethodHandler mutativeMethodHandler = new MutativeMethodHandler(MutativeMethod.POST);
+        mutativeMethodHandler.setHeaderToTrack("Transfer-encoding");
+        addHandler(mutativeMethodHandler);
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
+        runner.setProperty(InvokeHTTP.PROP_METHOD,"POST");
+        runner.setProperty(InvokeHTTP.PROP_USE_CHUNKED_ENCODING,"true");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+
+        //expected in request status.code and status.message
+        //original flow file (+attributes)
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
+        final String expected = "Hello";
+        Assert.assertEquals(expected, actual);
+        bundle.assertAttributeEquals("Foo", "Bar");
+
+        //expected in response
+        //status code, status message, all headers from server response --> ff attributes
+        //server response message body into payload of ff
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals("Foo", "Bar");
+
+        String header = mutativeMethodHandler.getTrackedHeaderValue();
+        Assert.assertEquals("chunked",header);
+    }
+
 
     public static void createFlowFiles(final TestRunner testRunner) throws UnsupportedEncodingException {
         final Map<String, String> attributes = new HashMap<>();
@@ -1109,18 +1353,41 @@ public abstract class TestInvokeHttpCommon {
         }
     }
 
-    public static class PostHandler extends AbstractHandler {
+    private enum MutativeMethod { POST, PUT }
+
+
+    public static class MutativeMethodHandler extends AbstractHandler {
+        private final MutativeMethod method;
+        private final String expectedContentType;
+        private String headerToTrack;
+        private String trackedHeaderValue;
+
+        public MutativeMethodHandler(final MutativeMethod method) {
+            this(method, "application/plain-text");
+        }
+
+        public MutativeMethodHandler(final MutativeMethod method, final String expectedContentType) {
+            this.method = method;
+            this.expectedContentType = expectedContentType;
+        }
+        private void setHeaderToTrack(String headerToTrack){
+            this.headerToTrack = headerToTrack;
+        }
+
+        public String getTrackedHeaderValue(){
+            return trackedHeaderValue;
+        }
 
         @Override
-        public void handle(String target, Request baseRequest,
-                           HttpServletRequest request, HttpServletResponse response)
-                throws IOException, ServletException {
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
+            throws IOException, ServletException {
 
             baseRequest.setHandled(true);
 
-            if("POST".equals(request.getMethod())) {
-                assertEquals("application/plain-text",request.getHeader("Content-Type"));
+            if(method.name().equals(request.getMethod())) {
+                assertEquals(this.expectedContentType,request.getHeader("Content-Type"));
                 final String body = request.getReader().readLine();
+                this.trackedHeaderValue = baseRequest.getHttpFields().get(headerToTrack);
                 assertEquals("Hello", body);
             } else {
                 response.setStatus(404);
@@ -1129,28 +1396,7 @@ public abstract class TestInvokeHttpCommon {
             }
 
         }
-    }
 
-    public static class PutHandler extends AbstractHandler {
-
-        @Override
-        public void handle(String target, Request baseRequest,
-                           HttpServletRequest request, HttpServletResponse response)
-                throws IOException, ServletException {
-
-            baseRequest.setHandled(true);
-
-            if("PUT".equalsIgnoreCase(request.getMethod())) {
-                assertEquals("application/plain-text",request.getHeader("Content-Type"));
-                final String body = request.getReader().readLine();
-                assertEquals("Hello", body);
-            } else {
-                response.setStatus(404);
-                response.setContentType("text/plain");
-                response.setContentLength(0);
-            }
-
-        }
     }
 
     public static class GetOrHeadHandler extends AbstractHandler {

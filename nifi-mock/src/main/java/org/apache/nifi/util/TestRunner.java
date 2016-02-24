@@ -35,6 +35,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 
 public interface TestRunner {
 
@@ -290,6 +291,14 @@ public interface TestRunner {
     void assertTransferCount(String relationship, int count);
 
     /**
+     * Assert that the number of FlowFiles that were penalized is equal to the given count
+     *
+     * @param count
+     *            number of expected penalized
+     */
+    void assertPenalizeCount(int count);
+
+    /**
      * Assert that there are no FlowFiles left on the input queue.
      */
     void assertQueueEmpty();
@@ -435,6 +444,13 @@ public interface TestRunner {
      * @return flowfiles transfered to given relationship
      */
     List<MockFlowFile> getFlowFilesForRelationship(Relationship relationship);
+
+    /**
+     * Returns a List of FlowFiles in the order in which they were transferred that were penalized
+     *
+     * @return flowfiles that were penalized
+     */
+    List<MockFlowFile> getPenalizedFlowFiles();
 
     /**
      * @return the {@link ProvenanceReporter} that will be used by the
@@ -824,4 +840,29 @@ public interface TestRunner {
      * Clears the Provenance Events that have been emitted by the Processor
      */
     void clearProvenanceEvents();
+
+    /**
+     * Returns the {@link MockProcessorLog} that is used by the Processor under test.
+     * @return the logger
+     */
+    public MockProcessorLog getLogger();
+
+    /**
+     * Returns the {@link MockProcessorLog} that is used by the specified controller service.
+     *
+     * @param identifier a controller service identifier
+     * @return the logger
+     */
+    public MockProcessorLog getControllerServiceLogger(final String identifier);
+
+    /**
+     * @return the State Manager that is used to stored and retrieve state
+     */
+    MockStateManager getStateManager();
+
+    /**
+     * @param service the controller service of interest
+     * @return the State Manager that is used to store and retrieve state for the given controller service
+     */
+    MockStateManager getStateManager(ControllerService service);
 }

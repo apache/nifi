@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
@@ -41,6 +41,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -131,8 +132,8 @@ public class TestListHDFS {
 
 
     @Test
-    public void testNoListUntilUpdateFromRemoteOnPrimaryNodeChange() {
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+    public void testNoListUntilUpdateFromRemoteOnPrimaryNodeChange() throws IOException {
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 1999L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         runner.run();
 
@@ -145,7 +146,7 @@ public class TestListHDFS {
         runner.clearTransferState();
 
         // add new file to pull
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile2.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 1999L, 0L, create777(), "owner", "group", new Path("/test/testFile2.txt")));
 
         // trigger primary node change
         proc.onPrimaryNodeChange(PrimaryNodeState.ELECTED_PRIMARY_NODE);
@@ -153,29 +154,45 @@ public class TestListHDFS {
         // cause calls to service to fail
         service.failOnCalls = true;
 
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
+        runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, true);
 
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
-
-        final String key = proc.getKey("/test");
-
-        // wait just to a bit to ensure that the timestamp changes when we update the service
-        final Object curVal = service.values.get(key);
+        // Should fail to perform @OnScheduled methods.
         try {
-            Thread.sleep(10L);
-        } catch (final InterruptedException ie) {
+            runner.run();
+            Assert.fail("Processor ran successfully");
+        } catch (final AssertionError e) {
         }
 
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
+
+        // Should fail to perform @OnScheduled methods.
+        try {
+            runner.run();
+            Assert.fail("Processor ran successfully");
+        } catch (final AssertionError e) {
+        }
+
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
+
         service.failOnCalls = false;
+        runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, false);
+
         runner.run();
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
 
-        // ensure state saved both locally & remotely
-        assertTrue(proc.localStateSaved);
-        assertNotNull(service.values.get(key));
-        assertNotSame(curVal, service.values.get(key));
+        // ensure state saved
+        runner.getStateManager().assertStateSet(Scope.CLUSTER);
+        final Map<String, String> newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
+        assertEquals(3, newState.size());
+
+        final String path0 = newState.get("path.0");
+        final String path1 = newState.get("path.1");
+        assertTrue(path0.equals("/test/testFile.txt") || path0.equals("/test/testFile2.txt"));
+        assertTrue(path1.equals("/test/testFile.txt") || path1.equals("/test/testFile2.txt"));
+        assertNotSame(path0, path1);
+
+        final Long timestamp = Long.parseLong(newState.get("timestamp"));
+        assertEquals(1999L, timestamp.longValue());
     }
 
 
@@ -186,7 +203,6 @@ public class TestListHDFS {
 
     private class ListHDFSWithMockedFileSystem extends ListHDFS {
         private final MockFileSystem fileSystem = new MockFileSystem();
-        private boolean localStateSaved = false;
 
         @Override
         protected FileSystem getFileSystem() {
@@ -201,12 +217,6 @@ public class TestListHDFS {
         @Override
         protected FileSystem getFileSystem(final Configuration config) throws IOException {
             return fileSystem;
-        }
-
-        @Override
-        protected void persistLocalState(final String directory, final String serializedState) throws IOException {
-            super.persistLocalState(directory, serializedState);
-            localStateSaved = true;
         }
     }
 

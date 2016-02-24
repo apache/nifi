@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.spring;
 
 import java.io.File;
+
 import org.apache.nifi.cluster.firewall.impl.FileBasedClusterNodeFirewall;
 import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.factory.FactoryBean;

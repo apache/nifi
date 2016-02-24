@@ -203,11 +203,8 @@
                         $('#faded-background').show();
                     }
 
-                    // show the centered dialog - performing these operation in the
-                    // opposite order one might expect. for some reason, the call to
-                    // center is causeing the graph to flicker in firefox (3.6). displaying
-                    // the dialog container before centering seems to address the issue.
-                    dialog.show().center();
+                    // center and show the dialog
+                    dialog.center().show();
                 }
             });
         },

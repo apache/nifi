@@ -44,16 +44,6 @@ public interface ListFlowFileStatus {
     long getLastUpdated();
 
     /**
-     * @return the column on which the listing is sorted
-     */
-    SortColumn getSortColumn();
-
-    /**
-     * @return the direction in which the FlowFiles are sorted
-     */
-    SortDirection getSortDirection();
-
-    /**
      * @return the current state of the operation
      */
     ListFlowFileState getState();
@@ -77,14 +67,4 @@ public interface ListFlowFileStatus {
      * @return the percentage (an integer between 0 and 100, inclusive) of how close the request is to being completed
      */
     int getCompletionPercentage();
-
-    /**
-     * @return the total number of steps that are required in order to finish the listing
-     */
-    int getTotalStepCount();
-
-    /**
-     * @return the total number of steps that have already been completed. The value returned will be >= 0 and <= the result of calling {@link #getTotalStepCount()}.
-     */
-    int getCompletedStepCount();
 }

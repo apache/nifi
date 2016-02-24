@@ -139,6 +139,12 @@ public class GetSolr extends SolrProcessor {
         descriptors.add(SORT_CLAUSE);
         descriptors.add(DATE_FIELD);
         descriptors.add(BATCH_SIZE);
+        descriptors.add(SOLR_SOCKET_TIMEOUT);
+        descriptors.add(SOLR_CONNECTION_TIMEOUT);
+        descriptors.add(SOLR_MAX_CONNECTIONS);
+        descriptors.add(SOLR_MAX_CONNECTIONS_PER_HOST);
+        descriptors.add(ZK_CLIENT_TIMEOUT);
+        descriptors.add(ZK_CONNECTION_TIMEOUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();

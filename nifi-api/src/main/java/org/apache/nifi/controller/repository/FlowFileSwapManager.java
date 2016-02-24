@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.queue.QueueSize;
 
 /**
  * Defines a mechanism by which FlowFiles can be move into external storage or
@@ -90,20 +89,14 @@ public interface FlowFileSwapManager {
     List<String> recoverSwapLocations(FlowFileQueue flowFileQueue) throws IOException;
 
     /**
-     * Determines how many FlowFiles and the size of the FlowFiles that are swapped out at the given location
+     * Parses the contents of the swap file at the given location and provides a SwapSummary that provides
+     * pertinent information about the information stored within the swap file
      *
      * @param swapLocation the location of the swap file
-     * @return the QueueSize representing the number of FlowFiles and total size of the FlowFiles that are swapped out
+     * @return a SwapSummary that provides information about what is contained within the swap file
+     * @throws IOException if unable to read or parse the swap file
      */
-    QueueSize getSwapSize(String swapLocation) throws IOException;
-
-    /**
-     * Returns the maximum record id of the FlowFiles stored at the given swap location
-     *
-     * @param swapLocation the swap location to read id's from
-     * @return the max record id of any FlowFile in the swap location, or null if no record ID's can be found
-     */
-    Long getMaxRecordId(String swapLocation) throws IOException;
+    SwapSummary getSwapSummary(String swapLocation) throws IOException;
 
     /**
      * Purge all known Swap Files without updating FlowFileRepository or Provenance Repository

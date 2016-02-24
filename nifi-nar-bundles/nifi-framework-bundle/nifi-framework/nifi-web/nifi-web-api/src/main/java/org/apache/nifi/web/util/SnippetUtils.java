@@ -534,6 +534,11 @@ public final class SnippetUtils {
                 final ConnectableDTO source = connectableMap.get(cp.getSource().getGroupId() + "-" + cp.getSource().getId());
                 final ConnectableDTO destination = connectableMap.get(cp.getDestination().getGroupId() + "-" + cp.getDestination().getId());
 
+                // ensure all referenced components are present
+                if (source == null || destination == null) {
+                    throw new IllegalArgumentException("The flow snippet contains a Connection that references a component that is not included.");
+                }
+
                 cp.setId(generateId(connectionDTO.getId()));
                 cp.setSource(source);
                 cp.setDestination(destination);

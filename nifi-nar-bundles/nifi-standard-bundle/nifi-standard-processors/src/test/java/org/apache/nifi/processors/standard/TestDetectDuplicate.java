@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.SerializationException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -34,17 +30,14 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockProcessorLog;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TestDetectDuplicate {
-
-    private static Logger LOGGER;
 
     static {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -52,7 +45,6 @@ public class TestDetectDuplicate {
         System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DetectDuplicate", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDetectDuplicate", "debug");
-        LOGGER = LoggerFactory.getLogger(TestDetectDuplicate.class);
     }
 
     @Test
@@ -73,7 +65,6 @@ public class TestDetectDuplicate {
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
-        client.exists = true;
         runner.enqueue(new byte[]{}, props);
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_DUPLICATE, 1);
@@ -101,7 +92,6 @@ public class TestDetectDuplicate {
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
-        client.exists = true;
         Thread.sleep(3000);
         runner.enqueue(new byte[]{}, props);
         runner.run();
@@ -114,10 +104,76 @@ public class TestDetectDuplicate {
 
         final DistributedMapCacheClientImpl client = new DistributedMapCacheClientImpl();
         final ComponentLog logger = new MockProcessorLog("client", client);
-        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger);
+        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger, new MockStateManager(client));
         client.initialize(clientInitContext);
 
         return client;
+    }
+
+    @Test
+    public void testDuplicateNoCache() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
+        final DistributedMapCacheClientImpl client = createClient();
+        final Map<String, String> clientProperties = new HashMap<>();
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        runner.addControllerService("client", client, clientProperties);
+        runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
+        runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
+        runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "48 hours");
+        runner.setProperty(DetectDuplicate.CACHE_IDENTIFIER, "false");
+        final Map<String, String> props = new HashMap<>();
+        props.put("hash.value", "1000");
+        runner.enqueue(new byte[]{}, props);
+        runner.enableControllerService(client);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.clearTransferState();
+
+        runner.setProperty(DetectDuplicate.CACHE_IDENTIFIER, "true");
+        runner.enqueue(new byte[]{}, props);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.assertTransferCount(DetectDuplicate.REL_DUPLICATE, 0);
+        runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
+        runner.clearTransferState();
+
+        runner.enqueue(new byte[]{}, props);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_DUPLICATE, 1);
+        runner.assertTransferCount(DetectDuplicate.REL_NON_DUPLICATE, 0);
+        runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testDuplicateNoCacheWithAgeOff() throws InitializationException, InterruptedException {
+
+        final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
+        final DistributedMapCacheClientImpl client = createClient();
+        final Map<String, String> clientProperties = new HashMap<>();
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        runner.addControllerService("client", client, clientProperties);
+        runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
+        runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
+        runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "2 secs");
+        runner.enableControllerService(client);
+
+        final Map<String, String> props = new HashMap<>();
+        props.put("hash.value", "1000");
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+
+        runner.clearTransferState();
+        Thread.sleep(3000);
+
+        runner.setProperty(DetectDuplicate.CACHE_IDENTIFIER, "false");
+        runner.enqueue(new byte[]{}, props);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.assertTransferCount(DetectDuplicate.REL_DUPLICATE, 0);
+        runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
     }
 
     static final class DistributedMapCacheClientImpl extends AbstractControllerService implements DistributedMapCacheClient {
@@ -150,16 +206,19 @@ public class TestDetectDuplicate {
             }
 
             cacheValue = value;
+            exists = true;
             return true;
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
                 final Deserializer<V> valueDeserializer) throws IOException {
             if (exists) {
                 return (V) cacheValue;
             }
             cacheValue = value;
+            exists = true;
             return null;
         }
 
@@ -170,7 +229,11 @@ public class TestDetectDuplicate {
 
         @Override
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
-            return null;
+            if (exists) {
+                return (V) cacheValue;
+            } else {
+                return null;
+            }
         }
 
         @Override
@@ -181,35 +244,8 @@ public class TestDetectDuplicate {
 
         @Override
         public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-        }
-    }
-
-    private static class StringSerializer implements Serializer<String> {
-
-        @Override
-        public void serialize(final String value, final OutputStream output) throws SerializationException, IOException {
-            output.write(value.getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
-    private static void deleteRecursively(final File dataFile) throws IOException {
-        if (dataFile == null || !dataFile.exists()) {
-            return;
-        }
-
-        final File[] children = dataFile.listFiles();
-        for (final File child : children) {
-            if (child.isDirectory()) {
-                deleteRecursively(child);
-            } else {
-                for (int i = 0; i < 100 && child.exists(); i++) {
-                    child.delete();
-                }
-
-                if (child.exists()) {
-                    throw new IOException("Could not delete " + dataFile.getAbsolutePath());
-                }
-            }
+            cacheValue = value;
+            exists = true;
         }
     }
 }

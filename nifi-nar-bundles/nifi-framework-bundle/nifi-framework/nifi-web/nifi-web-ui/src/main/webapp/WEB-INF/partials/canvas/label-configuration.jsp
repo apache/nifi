@@ -15,8 +15,8 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="label-configuration" class="dialog">
-    <div>
+<div id="label-configuration">
+    <div id="label-configuration-contents">
         <div class="setting" style="margin-top: 5px;">
             <div class="setting-name">Label Value</div>
             <div class="setting-field">
@@ -29,10 +29,5 @@
                 <div id="label-font-size"></div>
             </div>
         </div>
-    </div>
-    <div id="label-configuration-button-container">
-        <div id="label-configuration-apply" class="button button-normal">Apply</div>
-        <div id="label-configuration-cancel" class="button button-normal">Cancel</div>
-        <div class="clear"></div>
     </div>
 </div>

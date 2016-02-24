@@ -37,6 +37,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     private Boolean supportsParallelProcessing;
     private Boolean supportsEventDriven;
     private Boolean supportsBatching;
+    private Boolean persistsState;
     private String inputRequirement;
 
     private ProcessorConfigDTO config;
@@ -120,6 +121,20 @@ public class ProcessorDTO extends NiFiComponentDTO {
 
     public void setSupportsParallelProcessing(Boolean supportsParallelProcessing) {
         this.supportsParallelProcessing = supportsParallelProcessing;
+    }
+
+    /**
+     * @return whether this processor persists state
+     */
+    @ApiModelProperty(
+        value = "Whether the processor persists state."
+    )
+    public Boolean getPersistsState() {
+        return persistsState;
+    }
+
+    public void setPersistsState(Boolean persistsState) {
+        this.persistsState = persistsState;
     }
 
     /**

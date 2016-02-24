@@ -274,7 +274,15 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         attributes.put(protocolName + ".remote.host", host);
         attributes.put(protocolName + ".remote.port", String.valueOf(port));
         attributes.put(protocolName + ".remote.filename", filename);
-        attributes.put(CoreAttributes.FILENAME.key(), filename);
+
+        if (filename.contains("/")) {
+            final String path = StringUtils.substringBeforeLast(filename, "/");
+            final String filenameOnly = StringUtils.substringAfterLast(filename, "/");
+            attributes.put(CoreAttributes.PATH.key(), path);
+            attributes.put(CoreAttributes.FILENAME.key(), filenameOnly);
+        } else {
+            attributes.put(CoreAttributes.FILENAME.key(), filename);
+        }
         flowFile = session.putAllAttributes(flowFile, attributes);
 
         // emit provenance event and transfer FlowFile

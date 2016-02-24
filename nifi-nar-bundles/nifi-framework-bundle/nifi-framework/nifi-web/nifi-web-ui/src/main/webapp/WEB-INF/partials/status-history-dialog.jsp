@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="status-history-dialog" class="dialog">
+<div id="status-history-dialog">
     <div id="status-history-details"></div>
     <div id="status-history-container">
         <div id="status-history-refresh-container">
@@ -30,8 +30,4 @@
         <div id="status-history-chart-control-container"></div>
     </div>
     <div class="clear"></div>
-    <div class="dialog-buttons">
-        <div id="status-history-close" class="button button-normal">Close</div>
-        <div class="clear"></div>
-    </div>
 </div>

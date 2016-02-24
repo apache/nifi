@@ -16,28 +16,79 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage.RecipientType;
+
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import static org.junit.Assert.assertEquals;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestPutEmail {
 
+    /**
+     * Extension to PutEmail that stubs out the calls to
+     * Transport.sendMessage().
+     *
+     * <p>
+     * All sent messages are records in a list available via the
+     * {@link #getMessages()} method.</p>
+     * <p> Calling
+     * {@link #setException(MessagingException)} will cause the supplied exception to be
+     * thrown when sendMessage is invoked.
+     * </p>
+     */
+    private static final class PutEmailExtension extends PutEmail {
+        private MessagingException e;
+        private ArrayList<Message> messages = new ArrayList<>();
+
+        @Override
+        protected void send(Message msg) throws MessagingException {
+            messages.add(msg);
+            if (this.e != null) {
+                throw e;
+            }
+        }
+
+        void setException(final MessagingException e) {
+            this.e = e;
+        }
+
+        List<Message> getMessages() {
+            return messages;
+        }
+    }
+
+    PutEmailExtension processor;
+    TestRunner runner;
+
+    @Before
+    public void setup() {
+        processor = new PutEmailExtension();
+        runner = TestRunners.newTestRunner(processor);
+    }
+
     @Test
-    public void testHostNotFound() {
-        // verifies that files are routed to failure when the SMTP host doesn't exist
-        final TestRunner runner = TestRunners.newTestRunner(new PutEmail());
+    public void testExceptionWhenSending() {
+        // verifies that files are routed to failure when Transport.send() throws a MessagingException
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "host-doesnt-exist123");
         runner.setProperty(PutEmail.FROM, "test@apache.org");
         runner.setProperty(PutEmail.TO, "test@apache.org");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
 
+        processor.setException(new MessagingException("Forced failure from send()"));
+
         final Map<String, String> attributes = new HashMap<>();
         runner.enqueue("Some Text".getBytes(), attributes);
 
@@ -45,38 +96,112 @@ public class TestPutEmail {
 
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
+        assertEquals("Expected an attempt to send a single message", 1, processor.getMessages().size());
     }
 
     @Test
-    public void testEmailPropertyFormatters() {
-        // verifies that files are routed to failure when the SMTP host doesn't exist
-        final TestRunner runner = TestRunners.newTestRunner(new PutEmail());
-        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+    public void testOutgoingMessage() throws Exception {
+        // verifies that are set on the outgoing Message correctly
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
-        runner.setProperty(PutEmail.SMTP_SOCKET_FACTORY, "${dynamicSocketFactory}");
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
         runner.setProperty(PutEmail.FROM, "test@apache.org");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
         runner.setProperty(PutEmail.TO, "recipient@apache.org");
 
-        ProcessSession session = runner.getProcessSessionFactory().createSession();
-        FlowFile ff = session.create();
-        ff = session.putAttribute(ff, "dynamicSocketFactory", "testingSocketFactory");
-        ProcessContext context = runner.getProcessContext();
+        runner.enqueue("Some Text".getBytes());
 
-        String xmailer = context.getProperty(PutEmail.HEADER_XMAILER).evaluateAttributeExpressions(ff).getValue();
-        assertEquals("X-Mailer Header", "TestingNiFi", xmailer);
+        runner.run();
 
-        String socketFactory = context.getProperty(PutEmail.SMTP_SOCKET_FACTORY).evaluateAttributeExpressions(ff).getValue();
-        assertEquals("Socket Factory", "testingSocketFactory", socketFactory);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
-        final Map<String, String> attributes = new HashMap<>();
+        // Verify that the Message was populated correctly
+        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        Message message = processor.getMessages().get(0);
+        assertEquals("test@apache.org", message.getFrom()[0].toString());
+        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("Message Body", message.getContent());
+        assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
+        assertNull(message.getRecipients(RecipientType.BCC));
+        assertNull(message.getRecipients(RecipientType.CC));
+    }
+
+    @Test
+    public void testOutgoingMessageWithOptionalProperties() throws Exception {
+        // verifies that optional attributes are set on the outgoing Message correctly
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "${from}");
+        runner.setProperty(PutEmail.MESSAGE, "${message}");
+        runner.setProperty(PutEmail.TO, "${to}");
+        runner.setProperty(PutEmail.BCC, "${bcc}");
+        runner.setProperty(PutEmail.CC, "${cc}");
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("from", "test@apache.org <NiFi>");
+        attributes.put("message", "the message body");
+        attributes.put("to", "to@apache.org");
+        attributes.put("bcc", "bcc@apache.org");
+        attributes.put("cc", "cc@apache.org");
         runner.enqueue("Some Text".getBytes(), attributes);
 
         runner.run();
 
         runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
+
+        // Verify that the Message was populated correctly
+        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        Message message = processor.getMessages().get(0);
+        assertEquals("\"test@apache.org\" <NiFi>", message.getFrom()[0].toString());
+        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("the message body", message.getContent());
+        assertEquals(1, message.getRecipients(RecipientType.TO).length);
+        assertEquals("to@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
+        assertEquals(1, message.getRecipients(RecipientType.BCC).length);
+        assertEquals("bcc@apache.org", message.getRecipients(RecipientType.BCC)[0].toString());
+        assertEquals(1, message.getRecipients(RecipientType.CC).length);
+        assertEquals("cc@apache.org",message.getRecipients(RecipientType.CC)[0].toString());
+    }
+
+    @Test
+    public void testInvalidAddress() throws Exception {
+        // verifies that unparsable addresses lead to the flow file being routed to failure
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org <invalid");
+        runner.setProperty(PutEmail.MESSAGE, "Message Body");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+
+        runner.enqueue("Some Text".getBytes());
+
+        runner.run();
+
+        runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
+
+        assertEquals("Expected no messages to be sent", 0, processor.getMessages().size());
+    }
+    @Test
+    public void testEmptyFrom() throws Exception {
+        // verifies that if the FROM property evaluates to an empty string at
+        // runtime the flow file is transferred to failure.
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "${MISSING_PROPERTY}");
+        runner.setProperty(PutEmail.MESSAGE, "Message Body");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+
+        runner.enqueue("Some Text".getBytes());
+
+        runner.run();
+
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
+
+        assertEquals("Expected no messages to be sent", 0, processor.getMessages().size());
+        final LogMessage logMessage = runner.getLogger().getErrorMessages().get(0);
+        assertTrue(((String)logMessage.getArgs()[2]).contains("Required property 'From' evaluates to an empty string"));
     }
 
 }

@@ -18,23 +18,23 @@ package org.apache.nifi.remote.cluster;
 
 public class NodeInformation {
 
-    private final String hostname;
+    private final String siteToSiteHostname;
     private final Integer siteToSitePort;
     private final int apiPort;
     private final boolean isSiteToSiteSecure;
     private final int totalFlowFiles;
 
-    public NodeInformation(final String hostname, final Integer siteToSitePort, final int apiPort,
+    public NodeInformation(final String siteToSiteHostname, final Integer siteToSitePort, final int apiPort,
             final boolean isSiteToSiteSecure, final int totalFlowFiles) {
-        this.hostname = hostname;
+        this.siteToSiteHostname = siteToSiteHostname;
         this.siteToSitePort = siteToSitePort;
         this.apiPort = apiPort;
         this.isSiteToSiteSecure = isSiteToSiteSecure;
         this.totalFlowFiles = totalFlowFiles;
     }
 
-    public String getHostname() {
-        return hostname;
+    public String getSiteToSiteHostname() {
+        return siteToSiteHostname;
     }
 
     public int getAPIPort() {
@@ -66,7 +66,7 @@ public class NodeInformation {
         }
 
         final NodeInformation other = (NodeInformation) obj;
-        if (!hostname.equals(other.hostname)) {
+        if (!siteToSiteHostname.equals(other.siteToSiteHostname)) {
             return false;
         }
         if (siteToSitePort == null && other.siteToSitePort != null) {
@@ -88,11 +88,11 @@ public class NodeInformation {
 
     @Override
     public int hashCode() {
-        return 83832 + hostname.hashCode() + (siteToSitePort == null ? 8 : siteToSitePort.hashCode()) + apiPort + (isSiteToSiteSecure ? 3829 : 0);
+        return 83832 + siteToSiteHostname.hashCode() + (siteToSitePort == null ? 8 : siteToSitePort.hashCode()) + apiPort + (isSiteToSiteSecure ? 3829 : 0);
     }
 
     @Override
     public String toString() {
-        return "Node[" + hostname + ":" + apiPort + "]";
+        return "Node[" + siteToSiteHostname + ":" + apiPort + "]";
     }
 }

@@ -21,9 +21,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -103,21 +103,19 @@ public class TestExecuteStreamCommand {
     public void testExecuteIngestAndUpdate() throws IOException {
         File exJar = new File("src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar");
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
-        File dummy100MBytes = new File("target/100MB.txt");
-        FileInputStream fis = new FileInputStream(dummy);
-        FileOutputStream fos = new FileOutputStream(dummy100MBytes);
-        byte[] bytes = new byte[1024];
-        assertEquals(1000, fis.read(bytes));
-        fis.close();
-        for (int i = 0; i < 100000; i++) {
-            fos.write(bytes, 0, 1000);
+        File dummy10MBytes = new File("target/10MB.txt");
+        try (FileOutputStream fos = new FileOutputStream(dummy10MBytes)) {
+            byte[] bytes = Files.readAllBytes(dummy.toPath());
+            assertEquals(1000, bytes.length);
+            for (int i = 0; i < 10000; i++) {
+                fos.write(bytes, 0, 1000);
+            }
         }
-        fos.close();
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
-        controller.enqueue(dummy100MBytes.toPath());
+        controller.enqueue(dummy10MBytes.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
         controller.run(1);
@@ -323,21 +321,18 @@ public class TestExecuteStreamCommand {
     public void testExecuteIngestAndUpdatePutToAttribute() throws IOException {
         File exJar = new File("src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar");
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
-        File dummy100MBytes = new File("target/100MB.txt");
-        FileInputStream fis = new FileInputStream(dummy);
-        FileOutputStream fos = new FileOutputStream(dummy100MBytes);
-        byte[] bytes = new byte[1024];
-        assertEquals(1000, fis.read(bytes));
-        fis.close();
-        for (int i = 0; i < 100000; i++) {
-            fos.write(bytes, 0, 1000);
+        File dummy10MBytes = new File("target/10MB.txt");
+        byte[] bytes = Files.readAllBytes(dummy.toPath());
+        try (FileOutputStream fos = new FileOutputStream(dummy10MBytes)) {
+            for (int i = 0; i < 10000; i++) {
+                fos.write(bytes, 0, 1000);
+            }
         }
-        fos.close();
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
-        controller.enqueue(dummy100MBytes.toPath());
+        controller.enqueue(dummy10MBytes.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
         controller.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "outputDest");
@@ -353,27 +348,24 @@ public class TestExecuteStreamCommand {
     @Test
     public void testLargePutToAttribute() throws IOException {
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
-        File dummy100MBytes = new File("target/100MB.txt");
-        FileInputStream fis = new FileInputStream(dummy);
-        FileOutputStream fos = new FileOutputStream(dummy100MBytes);
-        byte[] bytes = new byte[1024];
-        assertEquals(1000, fis.read(bytes));
-        fis.close();
-        for (int i = 0; i < 100000; i++) {
-            fos.write(bytes, 0, 1000);
+        File dummy10MBytes = new File("target/10MB.txt");
+        byte[] bytes = Files.readAllBytes(dummy.toPath());
+        try (FileOutputStream fos = new FileOutputStream(dummy10MBytes)) {
+            for (int i = 0; i < 10000; i++) {
+                fos.write(bytes, 0, 1000);
+            }
         }
-        fos.close();
 
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
         controller.enqueue("".getBytes());
         if(isWindows()) {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
-            controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "/c;type " + dummy100MBytes.getAbsolutePath());
+            controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "/c;type " + dummy10MBytes.getAbsolutePath());
             controller.setProperty(ExecuteStreamCommand.ARG_DELIMITER, ";");
         } else{
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cat");
-            controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, dummy100MBytes.getAbsolutePath());
+            controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, dummy10MBytes.getAbsolutePath());
         }
         controller.setProperty(ExecuteStreamCommand.IGNORE_STDIN, "true");
         controller.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "executeStreamCommand.output");

@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.cluster.manager;
 
-import org.apache.nifi.cluster.manager.exception.UriConstructionException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.nifi.cluster.manager.exception.UriConstructionException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**

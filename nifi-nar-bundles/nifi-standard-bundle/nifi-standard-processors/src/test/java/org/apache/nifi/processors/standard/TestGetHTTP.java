@@ -16,31 +16,24 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessContext;
-import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.servlet.ServletHandler;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -55,23 +48,6 @@ public class TestGetHTTP {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.GetHTTP", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestGetHTTP", "debug");
-        File confDir = new File("conf");
-        if (!confDir.exists()) {
-            confDir.mkdir();
-        }
-    }
-
-    @AfterClass
-    public static void after() {
-        File confDir = new File("conf");
-        assertTrue(confDir.exists());
-        File[] files = confDir.listFiles();
-        if (files.length > 0) {
-            for (File file : files) {
-                assertTrue("Failed to delete " + file.getName(), file.delete());
-            }
-        }
-        assertTrue(confDir.delete());
     }
 
     @Test
@@ -97,26 +73,26 @@ public class TestGetHTTP {
             controller.setProperty(GetHTTP.FILENAME, "testFile");
             controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
 
-            GetHTTP getHTTPProcessor = (GetHTTP) controller.getProcessor();
-            assertEquals("", getHTTPProcessor.entityTagRef.get());
-            assertEquals("Thu, 01 Jan 1970 00:00:00 GMT", getHTTPProcessor.lastModifiedRef.get());
+            controller.getStateManager().assertStateNotSet(GetHTTP.ETAG, Scope.LOCAL);
+            controller.getStateManager().assertStateNotSet(GetHTTP.LAST_MODIFIED, Scope.LOCAL);
             controller.run(2);
 
             // verify the lastModified and entityTag are updated
-            assertFalse("".equals(getHTTPProcessor.entityTagRef.get()));
-            assertFalse("Thu, 01 Jan 1970 00:00:00 GMT".equals(getHTTPProcessor.lastModifiedRef.get()));
+            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG+":"+destination, "", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
+
             // ran twice, but got one...which is good
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
 
             // verify remote.source flowfile attribute
             controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0).assertAttributeEquals("gethttp.remote.source", "localhost");
-
             controller.clearTransferState();
 
             // turn off checking for etag and lastModified
             RESTServiceContentModified.IGNORE_ETAG = true;
             RESTServiceContentModified.IGNORE_LAST_MODIFIED = true;
             controller.run(2);
+
             // ran twice, got two...which is good
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 2);
             controller.clearTransferState();
@@ -139,110 +115,95 @@ public class TestGetHTTP {
             RESTServiceContentModified.IGNORE_ETAG = false;
             RESTServiceContentModified.ETAG = 1;
             controller.run(2);
+
             // ran twice, got 1...but should have new cached etag
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
-            assertEquals("1", getHTTPProcessor.entityTagRef.get());
+            String eTagStateValue = controller.getStateManager().getState(Scope.LOCAL).get(GetHTTP.ETAG+":"+destination);
+            assertEquals("1",GetHTTP.parseStateValue(eTagStateValue).getValue());
             controller.clearTransferState();
 
             // turn off checking for Etag, turn on checking for lastModified, but change value
             RESTServiceContentModified.IGNORE_LAST_MODIFIED = false;
             RESTServiceContentModified.IGNORE_ETAG = true;
             RESTServiceContentModified.modificationDate = System.currentTimeMillis() / 1000 * 1000 + 5000;
-            String lastMod = getHTTPProcessor.lastModifiedRef.get();
+            String lastMod = controller.getStateManager().getState(Scope.LOCAL).get(GetHTTP.LAST_MODIFIED+":"+destination);
             controller.run(2);
+
             // ran twice, got 1...but should have new cached etag
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
-            assertFalse(lastMod.equals(getHTTPProcessor.lastModifiedRef.get()));
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination, lastMod, Scope.LOCAL);
             controller.clearTransferState();
 
-            // shutdown web service
         } finally {
+            // shutdown web service
             server.shutdownServer();
         }
     }
 
+
     @Test
-    public void testPersistEtagLastMod() throws Exception {
-        // delete the config file
-        File confDir = new File("conf");
-        File[] files = confDir.listFiles();
-        for (File file : files) {
-            assertTrue("Failed to delete " + file.getName(), file.delete());
-        }
+    public final void testContentModifiedTwoServers() throws Exception {
+        // set up web services
+        ServletHandler handler1 = new ServletHandler();
+        handler1.addServletWithMapping(RESTServiceContentModified.class, "/*");
 
-        // set up web service
-        ServletHandler handler = new ServletHandler();
-        handler.addServletWithMapping(RESTServiceContentModified.class, "/*");
+        ServletHandler handler2 = new ServletHandler();
+        handler2.addServletWithMapping(RESTServiceContentModified.class, "/*");
 
-        // create the service
-        TestServer server = new TestServer();
-        server.addHandler(handler);
+        // create the services
+        TestServer server1 = new TestServer();
+        server1.addHandler(handler1);
+
+        TestServer server2 = new TestServer();
+        server2.addHandler(handler2);
 
         try {
-            server.startServer();
+            server1.startServer();
+            server2.startServer();
 
-            // get the server url
-            String destination = server.getUrl();
+            // this is the base urls with the random ports
+            String destination1 = server1.getUrl();
+            String destination2 = server2.getUrl();
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(GetHTTP.class);
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
+            controller.setProperty(GetHTTP.URL, destination1);
             controller.setProperty(GetHTTP.FILENAME, "testFile");
-            controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
 
-            GetHTTP getHTTPProcessor = (GetHTTP) controller.getProcessor();
-
-            assertEquals("", getHTTPProcessor.entityTagRef.get());
-            assertEquals("Thu, 01 Jan 1970 00:00:00 GMT", getHTTPProcessor.lastModifiedRef.get());
+            controller.getStateManager().assertStateNotSet(GetHTTP.ETAG+":"+destination1, Scope.LOCAL);
+            controller.getStateManager().assertStateNotSet(GetHTTP.LAST_MODIFIED+":"+destination1, Scope.LOCAL);
             controller.run(2);
 
             // verify the lastModified and entityTag are updated
-            String etag = getHTTPProcessor.entityTagRef.get();
-            assertFalse("".equals(etag));
-            String lastMod = getHTTPProcessor.lastModifiedRef.get();
-            assertFalse("Thu, 01 Jan 1970 00:00:00 GMT".equals(lastMod));
+            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG+":"+destination1, "", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination1, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
+
             // ran twice, but got one...which is good
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
+
             controller.clearTransferState();
 
-            files = confDir.listFiles();
-            assertEquals(1, files.length);
-            File file = files[0];
-            assertTrue(file.exists());
-            Properties props = new Properties();
-            FileInputStream fis = new FileInputStream(file);
-            props.load(fis);
-            fis.close();
-            assertEquals(etag, props.getProperty(GetHTTP.ETAG));
-            assertEquals(lastMod, props.getProperty(GetHTTP.LAST_MODIFIED));
+            controller.setProperty(GetHTTP.URL, destination2);
+            controller.getStateManager().assertStateNotSet(GetHTTP.ETAG+":"+destination2, Scope.LOCAL);
+            controller.getStateManager().assertStateNotSet(GetHTTP.LAST_MODIFIED+":"+destination2, Scope.LOCAL);
 
-            ProcessorInitializationContext pic = new MockProcessorInitializationContext(controller.getProcessor(), (MockProcessContext) controller.getProcessContext());
-            // init causes read from file
-            getHTTPProcessor.init(pic);
-            assertEquals(etag, getHTTPProcessor.entityTagRef.get());
-            assertEquals(lastMod, getHTTPProcessor.lastModifiedRef.get());
             controller.run(2);
-            // ran twice, got none...which is good
-            controller.assertTransferCount(GetHTTP.REL_SUCCESS, 0);
-            controller.clearTransferState();
-            files = confDir.listFiles();
-            assertEquals(1, files.length);
-            file = files[0];
-            assertTrue(file.exists());
-            props = new Properties();
-            fis = new FileInputStream(file);
-            props.load(fis);
-            fis.close();
-            assertEquals(etag, props.getProperty(GetHTTP.ETAG));
-            assertEquals(lastMod, props.getProperty(GetHTTP.LAST_MODIFIED));
 
-            getHTTPProcessor.onRemoved();
-            assertFalse(file.exists());
+            // ran twice, but got one...which is good
+            controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
 
-            // shutdown web service
+            // verify the lastModified's and entityTags are updated
+            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG+":"+destination1, "", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination1, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.ETAG+":"+destination2, "", Scope.LOCAL);
+            controller.getStateManager().assertStateNotEquals(GetHTTP.LAST_MODIFIED+":"+destination2, "Thu, 01 Jan 1970 00:00:00 GMT", Scope.LOCAL);
+
         } finally {
-            server.shutdownServer();
+            // shutdown web services
+            server1.shutdownServer();
+            server2.shutdownServer();
         }
     }
 

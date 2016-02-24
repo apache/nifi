@@ -71,7 +71,7 @@ public class GetMongo extends AbstractMongoProcessor {
 
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
         .name("Query")
-        .description("The selection criteria; must be a valid BSON document; if omitted the entire collection will be queried")
+        .description("The selection criteria; must be a valid MongoDB Extended JSON format; if omitted the entire collection will be queried")
         .required(false)
         .addValidator(DOCUMENT_VALIDATOR)
         .build();

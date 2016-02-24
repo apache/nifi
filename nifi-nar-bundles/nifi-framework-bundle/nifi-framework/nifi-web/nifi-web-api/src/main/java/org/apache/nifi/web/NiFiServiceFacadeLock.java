@@ -44,6 +44,17 @@ public class NiFiServiceFacadeLock {
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* clear*(..))")
+    public Object clearLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        writeLock.lock();
+        try {
+            return proceedingJoinPoint.proceed();
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* delete*(..))")
     public Object deleteLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         writeLock.lock();

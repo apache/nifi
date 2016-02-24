@@ -59,7 +59,6 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -282,8 +281,8 @@ public class SnippetResource extends ApplicationResource {
     @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-            value = "Gets a reporting task property descriptor",
-            response = PropertyDescriptorEntity.class,
+            value = "Creates a snippet",
+            response = SnippetEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),

@@ -241,7 +241,7 @@ public class PutJMS extends AbstractProcessor {
                 }
 
                 successfulFlowFiles.add(flowFile);
-                session.getProvenanceReporter().send(flowFile, "jms://" + context.getProperty(URL).getValue());
+                session.getProvenanceReporter().send(flowFile, context.getProperty(URL).getValue());
             }
 
             try {

@@ -298,6 +298,16 @@
             return this.each(function () {
                 selectOption($(this), option.text, option.value);
             });
+        },
+
+        /**
+         * Destroy's the combo.
+         */
+        destroy: function () {
+            $(this).empty().unbind().removeData();
+
+            // remove the options if open
+            $('div.combo-glass-pane').click();
         }
     };
 

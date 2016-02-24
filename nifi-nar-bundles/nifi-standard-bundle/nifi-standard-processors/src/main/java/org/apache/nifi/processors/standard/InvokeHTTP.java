@@ -120,6 +120,8 @@ public final class InvokeHTTP extends AbstractProcessor {
     public final static String TRANSACTION_ID = "invokehttp.tx.id";
     public final static String REMOTE_DN = "invokehttp.remote.dn";
 
+    public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
+
     // Set of flowfile attributes which we generally always ignore during
     // processing, including when converting http headers, copying attributes, etc.
     // This set includes our strings defined above as well as some standard flowfile
@@ -212,6 +214,16 @@ public final class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
+        .name("Content-Type")
+        .description("The Content-Type to specify for when content is being transmitted through a PUT or POST. "
+            + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
+        .required(true)
+        .expressionLanguageSupported(true)
+        .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
     // Per RFC 7235, 2617, and 2616.
     // basic-credentials = base64-user-pass
     // base64-user-pass = userid ":" password
@@ -298,6 +310,23 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor PROP_USE_CHUNKED_ENCODING = new PropertyDescriptor.Builder()
+            .name("Use Chunked Encoding")
+            .description("When POST'ing or PUT'ing content set this property to true in order to not pass the 'Content-length' header and instead send 'Transfer-Encoding' with "
+                    + "a value of 'chunked'. This will enable the data transfer mechanism which was introduced in HTTP 1.1 to pass data of unknown lengths in chunks.")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
+    public static final PropertyDescriptor PROP_PENALIZE_NO_RETRY = new PropertyDescriptor.Builder()
+            .name("Penalize on \"No Retry\"")
+            .description("Enabling this property will penalize FlowFiles that are routed to the \"No Retry\" relationship.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             PROP_METHOD,
             PROP_URL,
@@ -316,7 +345,10 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_DIGEST_AUTH,
             PROP_OUTPUT_RESPONSE_REGARDLESS,
             PROP_TRUSTED_HOSTNAME,
-            PROP_ADD_HEADERS_TO_REQUEST));
+            PROP_ADD_HEADERS_TO_REQUEST,
+            PROP_CONTENT_TYPE,
+            PROP_USE_CHUNKED_ENCODING,
+            PROP_PENALIZE_NO_RETRY));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -363,8 +395,6 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
-    public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -387,6 +417,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     }
 
     private volatile Pattern regexAttributesToSend = null;
+    private volatile boolean useChunked = false;
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
@@ -484,6 +515,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             okHttpClient.setAuthenticator(new CachingAuthenticatorDecorator(authenticator, authCache));
         }
 
+        useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
+
         okHttpClientAtomicReference.set(okHttpClient);
     }
 
@@ -545,7 +578,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 throw new IllegalStateException("Status code unknown, connection hasn't been attempted.");
             }
 
-            // Create a map of the status attributes that are always written to the request and reponse FlowFiles
+            // Create a map of the status attributes that are always written to the request and response FlowFiles
             Map<String, String> statusAttributes = new HashMap<>();
             statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
             statusAttributes.put(STATUS_MESSAGE, statusMessage);
@@ -591,7 +624,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                         responseFlowFile = session.create();
                     }
 
-                    // write the status attributes
+                    // write attributes to response flowfile
                     responseFlowFile = session.putAllAttributes(responseFlowFile, statusAttributes);
 
                     // write the response headers as attributes
@@ -601,6 +634,10 @@ public final class InvokeHTTP extends AbstractProcessor {
                     // transfer the message body to the payload
                     // can potentially be null in edge cases
                     if (bodyExists) {
+                        // write content type attribute to response flowfile if it is available
+                        if (responseBody.contentType() != null) {
+                             responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
+                        }
                         if (teeInputStream != null) {
                             responseFlowFile = session.importFrom(teeInputStream, responseFlowFile);
                         } else {
@@ -701,11 +738,11 @@ public final class InvokeHTTP extends AbstractProcessor {
                 requestBuilder = requestBuilder.get();
                 break;
             case "POST":
-                RequestBody requestBody = getRequestBodyToSend(session, requestFlowFile);
+                RequestBody requestBody = getRequestBodyToSend(session, context, requestFlowFile);
                 requestBuilder = requestBuilder.post(requestBody);
                 break;
             case "PUT":
-                requestBody = getRequestBodyToSend(session, requestFlowFile);
+                requestBody = getRequestBodyToSend(session, context, requestFlowFile);
                 requestBuilder = requestBuilder.put(requestBody);
                 break;
             case "HEAD":
@@ -723,18 +760,23 @@ public final class InvokeHTTP extends AbstractProcessor {
         return requestBuilder.build();
     }
 
-    private RequestBody getRequestBodyToSend(final ProcessSession session, final FlowFile requestFlowFile) {
+    private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context, final FlowFile requestFlowFile) {
         return new RequestBody() {
             @Override
             public MediaType contentType() {
-                final String attributeValue = requestFlowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
-                String contentType = attributeValue == null ? DEFAULT_CONTENT_TYPE : attributeValue;
+                String contentType = context.getProperty(PROP_CONTENT_TYPE).evaluateAttributeExpressions(requestFlowFile).getValue();
+                contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
                 return MediaType.parse(contentType);
             }
 
             @Override
             public void writeTo(BufferedSink sink) throws IOException {
                 session.exportTo(requestFlowFile, sink.outputStream());
+            }
+
+            @Override
+            public long contentLength(){
+                return useChunked ? -1 : requestFlowFile.getSize();
             }
         };
     }
@@ -811,6 +853,9 @@ public final class InvokeHTTP extends AbstractProcessor {
             // 1xx, 3xx, 4xx -> NO RETRY
         } else {
             if (request != null) {
+                if (context.getProperty(PROP_PENALIZE_NO_RETRY).asBoolean()) {
+                    request = session.penalize(request);
+                }
                 session.transfer(request, REL_NO_RETRY);
             }
         }

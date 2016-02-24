@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.cluster.manager;
 
-import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.UriConstructionException;
-import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
-import org.apache.nifi.cluster.manager.exception.NoResponseFromNodesException;
-import org.apache.nifi.cluster.manager.exception.SafeModeMutableRequestException;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
+import org.apache.nifi.cluster.manager.exception.NoResponseFromNodesException;
+import org.apache.nifi.cluster.manager.exception.SafeModeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.UriConstructionException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
  * Extends the ClusterManager interface to define how requests issued to the cluster manager are federated to the nodes. Specifically, the HTTP protocol is used for communicating requests to the

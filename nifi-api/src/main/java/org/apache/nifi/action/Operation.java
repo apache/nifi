@@ -33,5 +33,6 @@ public enum Operation {
     Enable,
     Disable,
     Batch,
-    Purge;
+    Purge,
+    ClearState;
 }

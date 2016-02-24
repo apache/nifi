@@ -20,8 +20,6 @@
     display: none;
     z-index: 1301;
     padding: 10px;
-    border: 3px solid #365C6A;
-    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
     cursor: move;
 }
 
@@ -86,6 +84,7 @@
     float: left;
     margin-left: 2px;
     margin-bottom: 35px;
+    margin-top: -50px;
 }
 
 #status-history-chart-container {
@@ -111,6 +110,7 @@
     padding-top: 8px;
     padding: 3px;
     overflow: auto;
+    margin-top: -50px;
 }
 
 div.status-history-detail {

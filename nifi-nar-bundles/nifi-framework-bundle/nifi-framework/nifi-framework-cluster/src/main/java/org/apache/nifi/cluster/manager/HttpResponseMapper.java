@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.manager;
 import java.net.URI;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.nifi.cluster.node.Node.Status;
 
 /**

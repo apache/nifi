@@ -109,16 +109,12 @@
                             'Esc': function (cm) {
                                 if (isFunction(options.escape)) {
                                     options.escape();
-                                    return;
                                 }
-                                return CodeMirror.Pass;
                             },
                             'Enter': function (cm) {
                                 if (isFunction(options.enter)) {
                                     options.enter();
-                                    return;
                                 }
-                                return CodeMirror.Pass;
                             }
                         }
                     });
@@ -159,6 +155,15 @@
                     // handle keydown to signify the content has changed
                     editor.on('change', function (cm, event) {
                         codeMirror.addClass('modified');
+                    });
+
+                    // handle keyHandled to stop event propagation/default as necessary
+                    editor.on('keyHandled', function (cm, name, evt) {
+                        if (name === 'Esc') {
+                            // stop propagation of the escape event
+                            evt.stopImmediatePropagation();
+                            evt.preventDefault();
+                        }
                     });
 
                     // handle sensitive values differently

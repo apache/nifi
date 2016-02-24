@@ -16,25 +16,23 @@
  */
 package org.apache.nifi.web;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.Set;
 import org.apache.nifi.controller.ScheduledState;
-
-import org.apache.nifi.controller.queue.SortColumn;
-import org.apache.nifi.controller.queue.SortDirection;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
@@ -45,9 +43,6 @@ import org.apache.nifi.web.api.dto.NodeSystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
-import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -61,8 +56,8 @@ import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
@@ -77,6 +72,10 @@ import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+
+import java.util.Collection;
+import java.util.Date;
+import java.util.Set;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -585,11 +584,9 @@ public interface NiFiServiceFacade {
      * @param groupId group
      * @param connectionId The ID of the connection
      * @param listingRequestId The ID of the listing request
-     * @param column sort column
-     * @param direction sort direction
      * @return The ListingRequest
      */
-    ListingRequestDTO createFlowFileListingRequest(String groupId, String connectionId, String listingRequestId, SortColumn column, SortDirection direction);
+    ListingRequestDTO createFlowFileListingRequest(String groupId, String connectionId, String listingRequestId);
 
     /**
      * Gets a new flow file listing request.
@@ -998,6 +995,85 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     ConfigurationSnapshot<Void> deleteFunnel(Revision revision, String groupId, String funnelId);
+
+    // ----------------------------------------
+    // Component state methods
+    // ----------------------------------------
+
+    /**
+     * Gets the state for the specified processor.
+     *
+     * @param groupId group
+     * @param processorId the processor id
+     * @return  the component state
+     */
+    ComponentStateDTO getProcessorState(String groupId, String processorId);
+
+    /**
+     * Verifies the processor state could be cleared.
+     *
+     * @param groupId group
+     * @param processorId the processor id
+     */
+    void verifyCanClearProcessorState(String groupId, String processorId);
+
+    /**
+     * Clears the state for the specified processor.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param groupId group
+     * @param processorId the processor id
+     * @return snapshot
+     */
+    ConfigurationSnapshot<Void> clearProcessorState(Revision revision, String groupId, String processorId);
+
+    /**
+     * Gets the state for the specified controller service.
+     *
+     * @param controllerServiceId the controller service id
+     * @return  the component state
+     */
+    ComponentStateDTO getControllerServiceState(String controllerServiceId);
+
+    /**
+     * Verifies the controller service state could be cleared.
+     *
+     * @param controllerServiceId the controller service id
+     */
+    void verifyCanClearControllerServiceState(String controllerServiceId);
+
+    /**
+     * Clears the state for the specified controller service.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param controllerServiceId the controller service id
+     * @return snapshot
+     */
+    ConfigurationSnapshot<Void> clearControllerServiceState(Revision revision, String controllerServiceId);
+
+    /**
+     * Gets the state for the specified reporting task.
+     *
+     * @param reportingTaskId the reporting task id
+     * @return  the component state
+     */
+    ComponentStateDTO getReportingTaskState(String reportingTaskId);
+
+    /**
+     * Verifies the reporting task state could be cleared.
+     *
+     * @param reportingTaskId the reporting task id
+     */
+    void verifyCanClearReportingTaskState(String reportingTaskId);
+
+    /**
+     * Clears the state for the specified reporting task.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param reportingTaskId the reporting task id
+     * @return snapshot
+     */
+    ConfigurationSnapshot<Void> clearReportingTaskState(Revision revision, String reportingTaskId);
 
     // ----------------------------------------
     // Label methods

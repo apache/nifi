@@ -17,23 +17,40 @@
 
 package org.apache.nifi.controller;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.queue.FlowFileSummary;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.controller.queue.SortDirection;
-import org.apache.nifi.controller.queue.SortColumn;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
+import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -48,23 +65,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class TestStandardFlowFileQueue {
     private TestSwapManager swapManager = null;
@@ -105,7 +105,7 @@ public class TestStandardFlowFileQueue {
             }
         }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
 
-        queue = new StandardFlowFileQueue("id", connection, flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000);
+        queue = new StandardFlowFileQueue("id", connection, flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000, null);
         TestFlowFile.idGenerator.set(0L);
     }
 
@@ -378,7 +378,7 @@ public class TestStandardFlowFileQueue {
         queue.poll(exp);
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 120000)
     public void testDropSwappedFlowFiles() {
         for (int i = 1; i <= 210000; i++) {
             queue.put(new TestFlowFile());
@@ -417,72 +417,8 @@ public class TestStandardFlowFileQueue {
         assertEquals(9999, status.getFlowFileSummaries().size());
         assertEquals(100, status.getCompletionPercentage());
         assertNull(status.getFailureReason());
-        assertEquals(2, status.getTotalStepCount());
-        assertEquals(2, status.getCompletedStepCount());
     }
 
-    @Test(timeout = 5000)
-    public void testListFlowFilesActiveQueueAndSwapQueue() throws InterruptedException {
-        for (int i = 0; i < 11000; i++) {
-            queue.put(new TestFlowFile());
-        }
-
-        final ListFlowFileStatus status = queue.listFlowFiles(UUID.randomUUID().toString(), 11000);
-        assertNotNull(status);
-        assertEquals(11000, status.getQueueSize().getObjectCount());
-
-        while (status.getState() != ListFlowFileState.COMPLETE) {
-            Thread.sleep(100);
-        }
-
-        assertEquals(11000, status.getFlowFileSummaries().size());
-        assertEquals(100, status.getCompletionPercentage());
-        assertNull(status.getFailureReason());
-        assertEquals(2, status.getTotalStepCount());
-        assertEquals(2, status.getCompletedStepCount());
-    }
-
-    @Test(timeout = 5000)
-    public void testListFlowFilesActiveQueueAndSwapFile() throws InterruptedException {
-        for (int i = 0; i < 20000; i++) {
-            queue.put(new TestFlowFile());
-        }
-
-        final ListFlowFileStatus status = queue.listFlowFiles(UUID.randomUUID().toString(), 20000);
-        assertNotNull(status);
-        assertEquals(20000, status.getQueueSize().getObjectCount());
-
-        while (status.getState() != ListFlowFileState.COMPLETE) {
-            Thread.sleep(100);
-        }
-
-        assertEquals(20000, status.getFlowFileSummaries().size());
-        assertEquals(100, status.getCompletionPercentage());
-        assertNull(status.getFailureReason());
-        assertEquals(3, status.getTotalStepCount());
-        assertEquals(3, status.getCompletedStepCount());
-    }
-
-    @Test(timeout = 5000)
-    public void testListFlowFilesActiveQueueAndSwapFilesAndSwapQueue() throws InterruptedException {
-        for (int i = 0; i < 30050; i++) {
-            queue.put(new TestFlowFile());
-        }
-
-        final ListFlowFileStatus status = queue.listFlowFiles(UUID.randomUUID().toString(), 30050);
-        assertNotNull(status);
-        assertEquals(30050, status.getQueueSize().getObjectCount());
-
-        while (status.getState() != ListFlowFileState.COMPLETE) {
-            Thread.sleep(100);
-        }
-
-        assertEquals(30050, status.getFlowFileSummaries().size());
-        assertEquals(100, status.getCompletionPercentage());
-        assertNull(status.getFailureReason());
-        assertEquals(4, status.getTotalStepCount());
-        assertEquals(4, status.getCompletedStepCount());
-    }
 
     @Test(timeout = 5000)
     public void testListFlowFilesResultsLimited() throws InterruptedException {
@@ -501,62 +437,6 @@ public class TestStandardFlowFileQueue {
         assertEquals(100, status.getFlowFileSummaries().size());
         assertEquals(100, status.getCompletionPercentage());
         assertNull(status.getFailureReason());
-        assertEquals(4, status.getTotalStepCount());
-        assertEquals(4, status.getCompletedStepCount());
-    }
-
-    @Test
-    public void testListFlowFilesSortedAscending() throws InterruptedException {
-        for (int i = 0; i < 30050; i++) {
-            queue.put(new TestFlowFile(i));
-        }
-
-        final ListFlowFileStatus status = queue.listFlowFiles(UUID.randomUUID().toString(), 100, SortColumn.FLOWFILE_SIZE, SortDirection.ASCENDING);
-        assertNotNull(status);
-        assertEquals(30050, status.getQueueSize().getObjectCount());
-
-        while (status.getState() != ListFlowFileState.COMPLETE) {
-            Thread.sleep(100);
-        }
-
-        assertEquals(100, status.getFlowFileSummaries().size());
-        assertEquals(100, status.getCompletionPercentage());
-
-        assertNull(status.getFailureReason());
-        assertEquals(4, status.getTotalStepCount());
-        assertEquals(4, status.getCompletedStepCount());
-
-        int counter = 0;
-        for (final FlowFileSummary summary : status.getFlowFileSummaries()) {
-            assertEquals(counter++, summary.getSize());
-        }
-    }
-
-    @Test
-    public void testListFlowFilesSortedDescending() throws InterruptedException {
-        for (int i = 0; i < 30050; i++) {
-            queue.put(new TestFlowFile(i));
-        }
-
-        final ListFlowFileStatus status = queue.listFlowFiles(UUID.randomUUID().toString(), 100, SortColumn.FLOWFILE_SIZE, SortDirection.DESCENDING);
-        assertNotNull(status);
-        assertEquals(30050, status.getQueueSize().getObjectCount());
-
-        while (status.getState() != ListFlowFileState.COMPLETE) {
-            Thread.sleep(100);
-        }
-
-        assertEquals(100, status.getFlowFileSummaries().size());
-        assertEquals(100, status.getCompletionPercentage());
-
-        assertNull(status.getFailureReason());
-        assertEquals(4, status.getTotalStepCount());
-        assertEquals(4, status.getCompletedStepCount());
-
-        int counter = 0;
-        for (final FlowFileSummary summary : status.getFlowFileSummaries()) {
-            assertEquals((30050 - 1 - counter++), summary.getSize());
-        }
     }
 
 
@@ -595,37 +475,30 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
-        public QueueSize getSwapSize(String swapLocation) throws IOException {
+        @SuppressWarnings("deprecation")
+        public SwapSummary getSwapSummary(String swapLocation) throws IOException {
             final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
             if (flowFiles == null) {
-                return new QueueSize(0, 0L);
+                return StandardSwapSummary.EMPTY_SUMMARY;
             }
 
             int count = 0;
             long size = 0L;
+            Long max = null;
+            final List<ResourceClaim> resourceClaims = new ArrayList<>();
             for (final FlowFileRecord flowFile : flowFiles) {
                 count++;
                 size += flowFile.getSize();
-            }
-
-            return new QueueSize(count, size);
-        }
-
-        @Override
-        public Long getMaxRecordId(String swapLocation) throws IOException {
-            final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
-            if (flowFiles == null) {
-                return null;
-            }
-
-            Long max = null;
-            for (final FlowFileRecord flowFile : flowFiles) {
                 if (max == null || flowFile.getId() > max) {
                     max = flowFile.getId();
                 }
+
+                if (flowFile.getContentClaim() != null) {
+                    resourceClaims.add(flowFile.getContentClaim().getResourceClaim());
+                }
             }
 
-            return max;
+            return new StandardSwapSummary(new QueueSize(count, size), max, resourceClaims);
         }
 
         @Override
@@ -656,10 +529,14 @@ public class TestStandardFlowFileQueue {
             this.size = size;
 
             if (!attributes.containsKey(CoreAttributes.UUID.key())) {
-                attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
+                attributes.put(CoreAttributes.UUID.key(), createFakeUUID());
             }
         }
 
+        private  String createFakeUUID(){
+            final String s=Long.toHexString(id);
+            return new StringBuffer("00000000-0000-0000-0000000000000000".substring(0,(35-s.length()))+s).insert(23, '-').toString();
+        }
 
         @Override
         public long getId() {
@@ -707,6 +584,7 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public int compareTo(final FlowFile o) {
             return Long.compare(id, o.getId());
         }
