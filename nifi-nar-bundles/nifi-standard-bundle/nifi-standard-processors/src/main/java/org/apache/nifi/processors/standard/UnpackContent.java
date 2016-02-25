@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -57,6 +58,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -78,7 +80,7 @@ import org.apache.nifi.util.ObjectHolder;
         + "the attribute is set to application/zip, the ZIP Packaging Format will be used. If the attribute is set to application/flowfile-v3 or "
         + "application/flowfile-v2 or application/flowfile-v1, the appropriate FlowFile Packaging Format will be used. If this attribute is missing, "
         + "the FlowFile will be routed to 'failure'. Otherwise, if the attribute's value is not one of those mentioned above, the FlowFile will be "
-        + "routed to 'success' without being unpacked")
+        + "routed to 'success' without being unpacked. Use the File Filter property only extract files matching a specific regular expression.")
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "If the FlowFile is successfully unpacked, its MIME Type is no longer known, so the mime.type "
             + "attribute is set to application/octet-stream."),
@@ -115,6 +117,14 @@ public class UnpackContent extends AbstractProcessor {
             .defaultValue(AUTO_DETECT_FORMAT)
             .build();
 
+    public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
+            .name("File Filter")
+            .description("Only files whose names match the given regular expression will be extracted (tar/zip only)")
+            .required(true)
+            .defaultValue("[^\\.].*")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Unpacked FlowFiles are sent to this relationship")
@@ -141,6 +151,7 @@ public class UnpackContent extends AbstractProcessor {
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PACKAGING_FORMAT);
+        properties.add(FILE_FILTER);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -202,11 +213,11 @@ public class UnpackContent extends AbstractProcessor {
         final boolean addFragmentAttrs;
         switch (packagingFormat) {
             case TAR_FORMAT:
-                unpacker = new TarUnpacker();
+                unpacker = new TarUnpacker(Pattern.compile(context.getProperty(FILE_FILTER).getValue()));
                 addFragmentAttrs = true;
                 break;
             case ZIP_FORMAT:
-                unpacker = new ZipUnpacker();
+                unpacker = new ZipUnpacker(Pattern.compile(context.getProperty(FILE_FILTER).getValue()));
                 addFragmentAttrs = true;
                 break;
             case FLOWFILE_STREAM_FORMAT_V2:
@@ -248,12 +259,26 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
-    private static interface Unpacker {
+    private static abstract class Unpacker {
+        private Pattern fileFilter = null;
 
-        void unpack(ProcessSession session, FlowFile source, List<FlowFile> unpacked);
+        public Unpacker() {};
+
+        public Unpacker(Pattern fileFilter) {
+            this.fileFilter = fileFilter;
+        }
+
+        abstract void unpack(ProcessSession session, FlowFile source, List<FlowFile> unpacked);
+
+        protected boolean fileMatches(ArchiveEntry entry) {
+            return fileFilter == null || fileFilter.matcher(entry.getName()).find();
+        }
     }
 
-    private static class TarUnpacker implements Unpacker {
+    private static class TarUnpacker extends Unpacker {
+        public TarUnpacker(Pattern fileFilter) {
+            super(fileFilter);
+        }
 
         @Override
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
@@ -265,7 +290,7 @@ public class UnpackContent extends AbstractProcessor {
                     try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(in))) {
                         TarArchiveEntry tarEntry;
                         while ((tarEntry = tarIn.getNextTarEntry()) != null) {
-                            if (tarEntry.isDirectory()) {
+                            if (tarEntry.isDirectory() || !fileMatches(tarEntry)) {
                                 continue;
                             }
                             final File file = new File(tarEntry.getName());
@@ -304,7 +329,10 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
-    private static class ZipUnpacker implements Unpacker {
+    private static class ZipUnpacker extends Unpacker {
+        public ZipUnpacker(Pattern fileFilter) {
+            super(fileFilter);
+        }
 
         @Override
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
@@ -316,7 +344,7 @@ public class UnpackContent extends AbstractProcessor {
                     try (final ZipArchiveInputStream zipIn = new ZipArchiveInputStream(new BufferedInputStream(in))) {
                         ArchiveEntry zipEntry;
                         while ((zipEntry = zipIn.getNextEntry()) != null) {
-                            if (zipEntry.isDirectory()) {
+                            if (zipEntry.isDirectory() || !fileMatches(zipEntry)) {
                                 continue;
                             }
                             final File file = new File(zipEntry.getName());
@@ -352,7 +380,7 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
-    private static class FlowFileStreamUnpacker implements Unpacker {
+    private static class FlowFileStreamUnpacker extends Unpacker {
 
         private final FlowFileUnpackager unpackager;
 
