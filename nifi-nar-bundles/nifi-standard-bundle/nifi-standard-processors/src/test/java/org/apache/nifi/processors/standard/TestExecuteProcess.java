@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -41,25 +42,40 @@ public class TestExecuteProcess {
 
         final List<String> zeroArgs = ArgumentUtils.splitArgs("  ", ' ');
         assertNotNull(zeroArgs);
-        assertTrue(zeroArgs.isEmpty());
+        assertEquals(3, zeroArgs.size());
+        String[] expectedArray = {"","",""};
+        assertArrayEquals(expectedArray, zeroArgs.toArray(new String[0]));
 
-        final List<String> singleArg = ArgumentUtils.splitArgs("    hello   ", ' ');
+        final List<String> singleArg = ArgumentUtils.splitArgs("    hello   ", ';');
         assertEquals(1, singleArg.size());
-        assertEquals("hello", singleArg.get(0));
+        assertEquals("    hello   ", singleArg.get(0));
 
-        final List<String> twoArg = ArgumentUtils.splitArgs("   hello    good-bye   ", ' ');
+        final List<String> twoArg = ArgumentUtils.splitArgs("   hello ;   good-bye   ", ';');
         assertEquals(2, twoArg.size());
-        assertEquals("hello", twoArg.get(0));
-        assertEquals("good-bye", twoArg.get(1));
+        assertEquals("   hello ", twoArg.get(0));
+        assertEquals("   good-bye   ", twoArg.get(1));
 
-        final List<String> singleQuotedArg = ArgumentUtils.splitArgs("  \"hello\" ", ' ');
-        assertEquals(1, singleQuotedArg.size());
-        assertEquals("hello", singleQuotedArg.get(0));
+        final List<String> oneUnnecessarilyQuotedArg = ArgumentUtils.splitArgs("  \"hello\" ", ';');
+        assertEquals(1, oneUnnecessarilyQuotedArg.size());
+        assertEquals("  hello ", oneUnnecessarilyQuotedArg.get(0));
 
-        final List<String> twoQuotedArg = ArgumentUtils.splitArgs("   hello \"good   bye\"", ' ');
+        final List<String> twoQuotedArg = ArgumentUtils.splitArgs("\"   hello\" \"good   bye\"", ' ');
         assertEquals(2, twoQuotedArg.size());
-        assertEquals("hello", twoQuotedArg.get(0));
+        assertEquals("   hello", twoQuotedArg.get(0));
         assertEquals("good   bye", twoQuotedArg.get(1));
+
+        final List<String> twoArgOneQuotedPerDelimiterArg = ArgumentUtils.splitArgs("one;two;three\";\"and\";\"half\"", ';');
+        assertEquals(3, twoArgOneQuotedPerDelimiterArg.size());
+        assertEquals("one", twoArgOneQuotedPerDelimiterArg.get(0));
+        assertEquals("two", twoArgOneQuotedPerDelimiterArg.get(1));
+        assertEquals("three;and;half", twoArgOneQuotedPerDelimiterArg.get(2));
+
+        final List<String> twoArgOneWholeQuotedArgOneEmptyArg = ArgumentUtils.splitArgs("one;two;\"three;and;half\";", ';');
+        assertEquals(4, twoArgOneWholeQuotedArgOneEmptyArg.size());
+        assertEquals("one", twoArgOneWholeQuotedArgOneEmptyArg.get(0));
+        assertEquals("two", twoArgOneWholeQuotedArgOneEmptyArg.get(1));
+        assertEquals("three;and;half", twoArgOneWholeQuotedArgOneEmptyArg.get(2));
+        assertEquals("", twoArgOneWholeQuotedArgOneEmptyArg.get(3));
     }
 
     @Ignore   // won't run under Windows
