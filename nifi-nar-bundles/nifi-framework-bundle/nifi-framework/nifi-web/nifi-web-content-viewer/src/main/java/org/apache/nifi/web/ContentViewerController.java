@@ -154,7 +154,7 @@ public class ContentViewerController extends HttpServlet {
 
             // when standalone and we don't know the type is null as we were able to directly access the content bypassing the rest endpoint,
             // when clustered and we don't know the type set to octet stream since the content was retrieved from the node's rest endpoint
-            if (downloadableContent.getType() == null || downloadableContent.getType().equals(MediaType.OCTET_STREAM.toString())) {
+            if (downloadableContent.getType() == null || StringUtils.startsWithIgnoreCase(downloadableContent.getType(), MediaType.OCTET_STREAM.toString())) {
                 // attempt to detect the content stream if we don't know what it is ()
                 final DefaultDetector detector = new DefaultDetector();
 
