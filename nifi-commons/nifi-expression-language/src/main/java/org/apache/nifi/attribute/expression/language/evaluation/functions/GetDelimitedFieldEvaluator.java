@@ -99,7 +99,7 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
         if (escapeString == null || escapeString.isEmpty()) {
             throw new AttributeExpressionLanguageException("Cannot evaluate getDelimitedField function because the escape character "
                 + "(which character is used to escape the quote character or delimiter) was not specified");
-        } else if (quoteString.length() > 1) {
+        } else if (escapeString.length() > 1) {
             throw new AttributeExpressionLanguageException("Cannot evaluate getDelimitedField function because the escape character "
                 + "(which character is used to escape the quote character or delimiter) evaluated to \"" + escapeString + "\", but only a single character is allowed.");
         }

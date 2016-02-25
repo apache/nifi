@@ -117,8 +117,7 @@ public class StandardGangliaReporter extends AbstractReportingTask {
                     return 0L;
                 }
 
-                final Long value = status.getBytesReceived();
-                return (value == null) ? 0L : value;
+                return status.getBytesReceived();
             }
         });
 
@@ -130,8 +129,7 @@ public class StandardGangliaReporter extends AbstractReportingTask {
                     return 0;
                 }
 
-                final Integer value = status.getFlowFilesSent();
-                return (value == null) ? 0 : value;
+                return status.getFlowFilesSent();
             }
         });
 
@@ -142,9 +140,7 @@ public class StandardGangliaReporter extends AbstractReportingTask {
                 if (status == null) {
                     return 0L;
                 }
-
-                final Long value = status.getBytesSent();
-                return (value == null) ? 0L : value;
+                return status.getBytesSent();
             }
         });
 

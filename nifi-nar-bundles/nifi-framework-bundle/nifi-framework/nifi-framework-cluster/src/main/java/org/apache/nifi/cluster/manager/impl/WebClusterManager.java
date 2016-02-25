@@ -3015,8 +3015,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         final List<FlowFileSummaryDTO> summaryDTOs = new ArrayList<>(flowFileSummaries);
         listingRequest.setFlowFileSummaries(summaryDTOs);
-
-        final int percentCompleted = numStepsCompleted / numStepsTotal;
+        // depends on invariant if numStepsTotal is 0, so is numStepsCompleted, all steps being completed
+        // would be 1
+        final int percentCompleted = (numStepsTotal == 0) ? 1 : numStepsCompleted / numStepsTotal;
         listingRequest.setPercentCompleted(percentCompleted);
         listingRequest.setFinished(finished);
 
