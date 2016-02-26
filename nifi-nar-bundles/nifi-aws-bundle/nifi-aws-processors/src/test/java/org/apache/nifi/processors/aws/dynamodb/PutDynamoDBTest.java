@@ -127,6 +127,7 @@ public class PutDynamoDBTest  {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         putRunner.enqueue(new byte[] {});
 
         putRunner.run(1);
@@ -150,6 +151,7 @@ public class PutDynamoDBTest  {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
         putRunner.enqueue(new byte[] {});
 
         putRunner.run(1);

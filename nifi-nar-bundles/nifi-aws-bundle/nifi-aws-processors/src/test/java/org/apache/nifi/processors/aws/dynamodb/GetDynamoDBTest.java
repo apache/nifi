@@ -39,6 +39,7 @@ public class GetDynamoDBTest {
         getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -62,6 +63,7 @@ public class GetDynamoDBTest {
         getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -85,6 +87,7 @@ public class GetDynamoDBTest {
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -108,6 +111,7 @@ public class GetDynamoDBTest {
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
