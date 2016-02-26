@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import org.apache.nifi.flowfile.FlowFile;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 
 import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.regions.Region;
@@ -39,7 +38,6 @@ import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 
-@Ignore
 public class ITAbstractDynamoDBTest {
 
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";

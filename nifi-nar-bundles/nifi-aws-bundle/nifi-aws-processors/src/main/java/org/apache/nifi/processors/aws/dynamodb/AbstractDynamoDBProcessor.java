@@ -252,7 +252,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
 
         FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
         flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString());
-        session.transfer(flowFile,REL_SUCCESS);
+        session.transfer(flowFile,REL_FAILURE);
 
         getLogger().error("Unhandled key " + itemKeys + " for flow file " + flowFile);
 

@@ -17,17 +17,18 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import static org.junit.Assert.assertNotNull;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.CREDENTIALS_FILE;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 
 import java.util.List;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore
-public class ITGetDynamoDBTest extends ITAbstractDynamoDBTest {
+public class GetDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeGetOnlyHashFailure() {
@@ -46,7 +47,7 @@ public class ITGetDynamoDBTest extends ITAbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            validateServiceExceptionAttribute(flowFile);
+            ITAbstractDynamoDBTest.validateServiceExceptionAttribute(flowFile);
         }
 
     }

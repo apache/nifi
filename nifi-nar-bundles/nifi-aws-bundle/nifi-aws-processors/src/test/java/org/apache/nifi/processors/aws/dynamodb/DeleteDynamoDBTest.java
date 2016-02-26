@@ -17,17 +17,54 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import static org.junit.Assert.assertNotNull;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.CREDENTIALS_FILE;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
+import com.amazonaws.services.dynamodbv2.model.DeleteRequest;
+import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
+import org.junit.Before;
 import org.junit.Test;
+public class DeleteDynamoDBTest {
 
-@Ignore
-public class ITDeleteDynamoDBTest extends ITAbstractDynamoDBTest {
+    protected DeleteDynamoDB deleteDynamoDB;
+    protected BatchWriteItemResult result = new BatchWriteItemResult();
+    BatchWriteItemOutcome outcome;
+
+    @Before
+    public void setUp() {
+        outcome = new BatchWriteItemOutcome(result);
+        result.setUnprocessedItems(new HashMap<String, List<WriteRequest>>());
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
+                return outcome;
+            }
+        };
+
+        deleteDynamoDB = new DeleteDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+
+    }
 
     @Test
     public void testStringHashStringRangeDeleteOnlyHashFailure() {
@@ -46,8 +83,56 @@ public class ITDeleteDynamoDBTest extends ITAbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            validateServiceExceptionAttribute(flowFile);
+            ITAbstractDynamoDBTest.validateServiceExceptionAttribute(flowFile);
         }
+
+    }
+
+    @Test
+    public void testStringHashStringRangeDeleteSuccessfulWithMock() {
+        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
+
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        deleteRunner.enqueue(new byte[] {});
+
+        deleteRunner.run(1);
+
+        deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
+
+    }
+
+    @Test
+    public void testStringHashStringRangeDeleteSuccessfulWithMockOneUnprocessed() {
+        Map<String, List<WriteRequest>> unprocessed =
+                new HashMap<String, List<WriteRequest>>();
+        DeleteRequest delete = new DeleteRequest();
+        delete.addKeyEntry("hashS", new AttributeValue("h1"));
+        delete.addKeyEntry("rangeS", new AttributeValue("r1"));
+        WriteRequest write = new WriteRequest(delete);
+        List<WriteRequest> writes = new ArrayList<>();
+        writes.add(write);
+        unprocessed.put(stringHashStringRangeTableName, writes);
+        result.setUnprocessedItems(unprocessed);
+        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
+
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        deleteRunner.enqueue(new byte[] {});
+
+        deleteRunner.run(1);
+
+        deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
     }
 
@@ -121,7 +206,7 @@ public class ITDeleteDynamoDBTest extends ITAbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeDeleteNonExistentHashSuccess() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
+        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
 
         deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
@@ -140,7 +225,7 @@ public class ITDeleteDynamoDBTest extends ITAbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeDeleteNonExistentRangeSuccess() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
+        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
 
         deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);

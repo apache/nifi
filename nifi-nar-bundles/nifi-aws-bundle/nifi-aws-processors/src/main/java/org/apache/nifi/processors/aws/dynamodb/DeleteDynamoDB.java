@@ -127,7 +127,7 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
-            handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
+            handleUnprocessedDeleteItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
                rangeKeyValueType, outcome);
 
             // All non unprocessed items are successful

@@ -146,7 +146,7 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
-            handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
+            handleUnprocessedPutItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
                 rangeKeyValueType, outcome);
 
             // Handle any remaining flowfiles

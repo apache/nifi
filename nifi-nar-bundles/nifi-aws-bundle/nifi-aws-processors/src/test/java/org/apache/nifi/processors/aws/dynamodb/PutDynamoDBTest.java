@@ -16,18 +16,57 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.CREDENTIALS_FILE;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
+import org.junit.Before;
 import org.junit.Test;
 
-@Ignore
-public class ITPutDynamoDBTest extends ITAbstractDynamoDBTest {
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
+import com.amazonaws.services.dynamodbv2.model.PutRequest;
+import com.amazonaws.services.dynamodbv2.model.WriteRequest;
+
+public class PutDynamoDBTest  {
+
+    protected PutDynamoDB putDynamoDB;
+    protected BatchWriteItemResult result = new BatchWriteItemResult();
+    BatchWriteItemOutcome outcome;
+
+    @Before
+    public void setUp() {
+        outcome = new BatchWriteItemOutcome(result);
+        result.setUnprocessedItems(new HashMap<String, List<WriteRequest>>());
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
+                return outcome;
+            }
+        };
+
+        putDynamoDB = new PutDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+
+    }
 
     @Test
     public void testStringHashStringRangePutOnlyHashFailure() {
@@ -48,7 +87,7 @@ public class ITPutDynamoDBTest extends ITAbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            validateServiceExceptionAttribute(flowFile);
+            ITAbstractDynamoDBTest.validateServiceExceptionAttribute(flowFile);
         }
 
     }
@@ -122,4 +161,62 @@ public class ITPutDynamoDBTest extends ITAbstractDynamoDBTest {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
     }
+
+    @Test
+    public void testStringHashStringRangePutSuccessfulWithMock() {
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+
+        putRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        String document = "{\"name\":\"john\"}";
+        putRunner.enqueue(document.getBytes());
+
+        putRunner.run(1);
+
+        putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_SUCCESS, 1);
+
+        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
+        for (MockFlowFile flowFile : flowFiles) {
+            System.out.println(flowFile.getAttributes());
+            assertEquals(document, new String(flowFile.toByteArray()));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangePutSuccessfulWithMockOneUnprocessed() {
+        Map<String, List<WriteRequest>> unprocessed =
+                new HashMap<String, List<WriteRequest>>();
+        PutRequest put = new PutRequest();
+        put.addItemEntry("hashS", new AttributeValue("h1"));
+        put.addItemEntry("rangeS", new AttributeValue("r1"));
+        WriteRequest write = new WriteRequest(put);
+        List<WriteRequest> writes = new ArrayList<>();
+        writes.add(write);
+        unprocessed.put(stringHashStringRangeTableName, writes);
+        result.setUnprocessedItems(unprocessed);
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+
+        putRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j2");
+        putRunner.enqueue("{\"hello\":\"world\"}".getBytes());
+
+        putRunner.run(1);
+
+        putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+
+    }
+
 }
