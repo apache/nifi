@@ -126,7 +126,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
 
     public static final PropertyDescriptor JSON_DOCUMENT = new PropertyDescriptor.Builder()
             .name("Json Document attribute")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The Json document to be retrieved from the dynamodb item")
             .build();
