@@ -42,13 +42,13 @@ public class TestUnpackContent {
     public void testTar() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.AUTO_DETECT_FORMAT);
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         unpackRunner.enqueue(dataPath.resolve("data.tar"));
         Map<String, String> attributes = new HashMap<>(1);
         Map<String, String> attributes2 = new HashMap<>(1);
-        attributes.put("mime.type", "application/x-tar");
-        attributes2.put("mime.type", "application/tar");
+        attributes.put("mime.type", UnpackContent.PackageFormat.TAR_FORMAT.getMimeType());
+        attributes2.put("mime.type", UnpackContent.PackageFormat.X_TAR_FORMAT.getMimeType());
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes2);
         unpackRunner.run();
@@ -77,9 +77,9 @@ public class TestUnpackContent {
     public void testTarWithFilter() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
         unpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.AUTO_DETECT_FORMAT);
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         unpackRunner.enqueue(dataPath.resolve("data.tar"));
         Map<String, String> attributes = new HashMap<>(1);
@@ -123,8 +123,8 @@ public class TestUnpackContent {
     public void testZip() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.AUTO_DETECT_FORMAT);
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
@@ -156,8 +156,8 @@ public class TestUnpackContent {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
         unpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.AUTO_DETECT_FORMAT);
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
@@ -197,7 +197,7 @@ public class TestUnpackContent {
     @Test
     public void testFlowFileStreamV3() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.FLOWFILE_STREAM_FORMAT_V3);
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3.toString());
         runner.enqueue(dataPath.resolve("data.flowfilev3"));
 
         runner.run();
@@ -220,7 +220,7 @@ public class TestUnpackContent {
     @Test
     public void testFlowFileStreamV2() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.FLOWFILE_STREAM_FORMAT_V2);
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString());
         runner.enqueue(dataPath.resolve("data.flowfilev2"));
 
         runner.run();
@@ -243,7 +243,7 @@ public class TestUnpackContent {
     @Test
     public void testTarThenMerge() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
 
         unpackRunner.enqueue(dataPath.resolve("data.tar"));
         unpackRunner.run();
@@ -277,7 +277,7 @@ public class TestUnpackContent {
     @Test
     public void testZipThenMerge() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
 
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
         unpackRunner.run();
@@ -311,7 +311,7 @@ public class TestUnpackContent {
     @Test
     public void testZipHandlesBadData() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
 
         unpackRunner.enqueue(dataPath.resolve("data.tar"));
         unpackRunner.run();
@@ -324,7 +324,7 @@ public class TestUnpackContent {
     @Test
     public void testTarHandlesBadData() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
 
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
         unpackRunner.run();
