@@ -89,6 +89,53 @@ public class TestProcessorLifecycle {
         FileUtils.deleteDirectory(new File("./target/content_repository"));
     }
 
+    @Test
+    public void validateEnableOperation() throws Exception {
+        FlowController fc = this.buildFlowControllerForTest();
+        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
+        this.setControllerRootGroup(fc, testGroup);
+        final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(),
+                UUID.randomUUID().toString());
+
+        assertEquals(ScheduledState.STOPPED, testProcNode.getScheduledState());
+        assertEquals(ScheduledState.STOPPED, testProcNode.getLogicalScheduledState());
+        // validates idempotency
+        for (int i = 0; i < 2; i++) {
+            testProcNode.enable();
+        }
+        assertEquals(ScheduledState.STOPPED, testProcNode.getScheduledState());
+        assertEquals(ScheduledState.STOPPED, testProcNode.getLogicalScheduledState());
+        testProcNode.disable();
+        assertEquals(ScheduledState.DISABLED, testProcNode.getScheduledState());
+        assertEquals(ScheduledState.DISABLED, testProcNode.getLogicalScheduledState());
+        fc.shutdown(true);
+    }
+
+
+    @Test
+    public void validateDisableOperation() throws Exception {
+        FlowController fc = this.buildFlowControllerForTest();
+        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
+        this.setControllerRootGroup(fc, testGroup);
+        final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(),
+                UUID.randomUUID().toString());
+        testProcNode.setProperty("P", "hello");
+        assertEquals(ScheduledState.STOPPED, testProcNode.getScheduledState());
+        assertEquals(ScheduledState.STOPPED, testProcNode.getLogicalScheduledState());
+        // validates idempotency
+        for (int i = 0; i < 2; i++) {
+            testProcNode.disable();
+        }
+        assertEquals(ScheduledState.DISABLED, testProcNode.getScheduledState());
+        assertEquals(ScheduledState.DISABLED, testProcNode.getLogicalScheduledState());
+
+        ProcessScheduler ps = fc.getProcessScheduler();
+        ps.startProcessor(testProcNode);
+        assertEquals(ScheduledState.DISABLED, testProcNode.getLogicalScheduledState());
+
+        fc.shutdown(true);
+    }
+
     /**
      * Will validate the idempotent nature of processor start operation which
      * can be called multiple times without any side-effects.
@@ -276,10 +323,12 @@ public class TestProcessorLifecycle {
         ps.startProcessor(testProcNode);
         Thread.sleep(1000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getLogicalScheduledState() == ScheduledState.RUNNING);
 
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getLogicalScheduledState() == ScheduledState.STOPPED);
         Thread.sleep(1000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
 
@@ -360,7 +409,7 @@ public class TestProcessorLifecycle {
      */
     @Test
     public void validateProcessorCanBeStoppedWhenOnScheduledBlocksIndefinitelyInterruptable() throws Exception {
-        NiFiProperties.getInstance().setProperty(NiFiProperties.PROCESSOR_START_TIMEOUT, "5000");
+        NiFiProperties.getInstance().setProperty(NiFiProperties.PROCESSOR_START_TIMEOUT, "5 sec");
         FlowController fc = this.buildFlowControllerForTest();
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
@@ -390,7 +439,7 @@ public class TestProcessorLifecycle {
      */
     @Test
     public void validateProcessorCanBeStoppedWhenOnScheduledBlocksIndefinitelyUninterruptable() throws Exception {
-        NiFiProperties.getInstance().setProperty(NiFiProperties.PROCESSOR_START_TIMEOUT, "5000");
+        NiFiProperties.getInstance().setProperty(NiFiProperties.PROCESSOR_START_TIMEOUT, "5 sec");
         FlowController fc = this.buildFlowControllerForTest();
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
@@ -406,9 +455,14 @@ public class TestProcessorLifecycle {
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
         Thread.sleep(1000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        ps.disableProcessor(testProcNode); // no effect
+        Thread.sleep(100);
+        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getLogicalScheduledState() == ScheduledState.RUNNING);
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getLogicalScheduledState() == ScheduledState.STOPPED);
         Thread.sleep(4000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         fc.shutdown(true);
@@ -434,6 +488,9 @@ public class TestProcessorLifecycle {
 
         ps.startProcessor(testProcNode);
         Thread.sleep(1000);
+        assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
+        ps.disableProcessor(testProcNode);
+        Thread.sleep(100);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
         ps.stopProcessor(testProcNode);
         Thread.sleep(500);

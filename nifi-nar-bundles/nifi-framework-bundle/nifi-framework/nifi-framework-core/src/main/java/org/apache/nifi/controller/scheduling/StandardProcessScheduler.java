@@ -473,16 +473,12 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public synchronized void enableProcessor(final ProcessorNode procNode) {
-        if (procNode.getScheduledState() != ScheduledState.DISABLED) {
-            throw new IllegalStateException("Processor cannot be enabled because it is not disabled");
-        }
+        procNode.enable();
     }
 
     @Override
     public synchronized void disableProcessor(final ProcessorNode procNode) {
-        if (procNode.getScheduledState() != ScheduledState.STOPPED) {
-            throw new IllegalStateException("Processor cannot be disabled because its state is set to " + procNode.getScheduledState());
-        }
+        procNode.disable();
     }
 
     public synchronized void enableReportingTask(final ReportingTaskNode taskNode) {

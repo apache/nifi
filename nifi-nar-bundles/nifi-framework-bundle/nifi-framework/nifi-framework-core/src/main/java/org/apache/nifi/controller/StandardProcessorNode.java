@@ -106,7 +106,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final AtomicReference<List<Connection>> incomingConnectionsRef;
     private final AtomicBoolean isolated;
     private final AtomicBoolean lossTolerant;
-    private final AtomicReference<ScheduledState> scheduledState;
     private final AtomicReference<String> comments;
     private final AtomicReference<Position> position;
     private final AtomicReference<String> annotationData;
@@ -145,7 +144,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         destinations = new HashMap<>();
         connections = new HashMap<>();
         incomingConnectionsRef = new AtomicReference<List<Connection>>(new ArrayList<Connection>());
-        scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
         lossTolerant = new AtomicBoolean(false);
         final Set<Relationship> emptySetOfRelationships = new HashSet<>();
         undefinedRelationshipsToTerminate = new AtomicReference<>(emptySetOfRelationships);
@@ -211,11 +209,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
         this.comments.set(comments);
-    }
-
-    @Override
-    public ScheduledState getScheduledState() {
-        return this.scheduledState.get();
     }
 
     @Override
@@ -1276,7 +1269,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             };
             taskScheduler.execute(startProcRunnable);
         } else {
-            LOG.warn("Can not start Processor since it's already in the process of being started");
+            LOG.warn("Can not start Processor since it's already in the process of being started or it is DISABLED");
         }
     }
 
