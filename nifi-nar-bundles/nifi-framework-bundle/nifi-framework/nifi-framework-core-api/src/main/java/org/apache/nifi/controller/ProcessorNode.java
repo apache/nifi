@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.connectable.Connectable;
@@ -31,12 +32,19 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class ProcessorNode extends AbstractConfiguredComponent implements Connectable {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProcessorNode.class);
+
+    protected final AtomicReference<ScheduledState> scheduledState;
 
     public ProcessorNode(final Processor processor, final String id,
         final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
         super(processor, id, validationContextFactory, serviceProvider);
+        this.scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
     }
 
     public abstract boolean isIsolated();
@@ -101,6 +109,31 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
     public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
 
     /**
+     *
+     */
+    @Override
+    public ScheduledState getScheduledState() {
+        return this.scheduledState.get();
+    }
+
+    /**
+     * Returns the logical state of this processor. Logical state ignores
+     * transition states such as STOPPING and STARTING rounding it up to the
+     * next logical state of STOPPED and RUNNING respectively.
+     *
+     * @return the logical state of this processor [DISABLED, STOPPED, RUNNING]
+     */
+    public ScheduledState getLogicalScheduledState() {
+        ScheduledState sc = this.scheduledState.get();
+        if (sc == ScheduledState.STARTING) {
+            return ScheduledState.RUNNING;
+        } else if (sc == ScheduledState.STOPPING) {
+            return ScheduledState.STOPPED;
+        }
+        return sc;
+    }
+
+    /**
      * Will start the {@link Processor} represented by this
      * {@link ProcessorNode}. Starting processor typically means invoking its
      * operation that is annotated with @OnScheduled and then executing a
@@ -145,4 +178,26 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
      */
     public abstract <T extends ProcessContext & ControllerServiceLookup> void stop(ScheduledExecutorService scheduler,
             T processContext, Callable<Boolean> activeThreadMonitorCallback);
+
+    /**
+     * Will set the state of the processor to STOPPED which essentially implies
+     * that this processor can be started. This is idempotent operation and will
+     * result in the WARN message if processor can not be enabled.
+     */
+    public void enable() {
+        if (!this.scheduledState.compareAndSet(ScheduledState.DISABLED, ScheduledState.STOPPED)) {
+            logger.warn("Processor cannot be enabled because it is not disabled");
+        }
+    }
+
+    /**
+     * Will set the state of the processor to DISABLED which essentially implies
+     * that this processor can NOT be started. This is idempotent operation and
+     * will result in the WARN message if processor can not be enabled.
+     */
+    public void disable() {
+        if (!this.scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED)) {
+            logger.warn("Processor cannot be disabled because its state is set to " + this.scheduledState);
+        }
+    }
 }
