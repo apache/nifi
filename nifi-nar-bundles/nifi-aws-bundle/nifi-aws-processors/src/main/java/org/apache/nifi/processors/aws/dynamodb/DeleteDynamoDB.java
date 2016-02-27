@@ -132,7 +132,7 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
 
             // All non unprocessed items are successful
             for (FlowFile flowFile : keysToFlowFileMap.values()) {
-                getLogger().debug("Successfully deleted item to dynamodb : " + table);
+                getLogger().debug("Successfully deleted item from dynamodb : " + table);
                 session.transfer(flowFile,REL_SUCCESS);
             }
         } catch(AmazonServiceException exception) {
