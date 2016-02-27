@@ -355,4 +355,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     public StateManager getStateManager() {
         return stateManager;
     }
+
+    @Override
+    public String getName() {
+        return "";
+    }
 }

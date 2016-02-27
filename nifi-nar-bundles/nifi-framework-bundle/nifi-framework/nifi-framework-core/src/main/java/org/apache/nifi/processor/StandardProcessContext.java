@@ -216,4 +216,9 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     public StateManager getStateManager() {
         return stateManager;
     }
+
+    @Override
+    public String getName() {
+        return procNode.getName();
+    }
 }

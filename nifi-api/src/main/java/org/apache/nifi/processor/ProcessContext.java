@@ -160,4 +160,9 @@ public interface ProcessContext {
      * @return the StateManager that can be used to store and retrieve state for this component
      */
     StateManager getStateManager();
+
+    /**
+     * @return the configured name of this processor
+     */
+    String getName();
 }
