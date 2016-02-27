@@ -1141,7 +1141,16 @@ only consider if `nifi.security.user.login.identity.provider` configured with a 
 |nifi.templates.directory*|This is the location of the directory where flow templates are saved. The default value is ./conf/templates.l
 |nifi.ui.banner.text|This is banner text that may be configured to display at the top of the User Interface. It is blank by default.
 |nifi.ui.autorefresh.interval|The interval at which the User Interface auto-refreshes. The default value is 30 sec.
-|nifi.nar.library.directory|The location of the nar library. The default value is ./lib and probably should be left as is.
+|nifi.nar.library.directory|The location of the nar library. The default value is ./lib and probably should be left as is. +
+ +
+*NOTE*: Additional library directories can be specified by using the *_nifi.nar.library.directory._* prefix with unique suffixes and separate paths as values. +
+ +
+For example, to provide two additional library locations, a user could also specify additional properties with keys of: +
+ +
+nifi.nar.library.directory.lib1=/nars/lib1 +
+nifi.nar.library.directory.lib2=/nars/lib2 +
+ +
+Providing three total locations, including  _nifi.nar.library.directory_.
 |nifi.nar.working.directory|The location of the nar working directory. The default value is ./work/nar and probably should be left as is.
 |nifi.documentation.working.directory|The documentation working directory. The default value is ./work/docs/components and probably should be left as is.
 |====
