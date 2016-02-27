@@ -67,6 +67,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final String DYNAMODB_ERROR_STATUS_CODE = "dynamodb.error.status.code";
     public static final String DYNAMODB_ITEM_HASH_KEY_VALUE = "  dynamodb.item.hash.key.value";
     public static final String DYNAMODB_ITEM_RANGE_KEY_VALUE = "  dynamodb.item.range.key.value";
+    public static final String DYNAMODB_ITEM_IO_ERROR = "dynamodb.item.io.error";
 
     protected static final String DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE = "DynamoDB key not found : ";
 

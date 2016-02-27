@@ -67,7 +67,8 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "Dynamo db error service"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "Dynamo db error is retryable"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "Dynamo db error request id"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "Dynamo db status code")
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "Dynamo db error status code"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_IO_ERROR, description = "IO exception message on creating item")
     })
 @ReadsAttributes({
     @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value" ),
@@ -75,7 +76,7 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
     })
 public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
+	public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
                 HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, DOCUMENT_CHARSET, BATCH_SIZE,
                 REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
@@ -131,7 +132,7 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
                 }
             } catch(IOException ioe) {
                 getLogger().error("IOException while creating put item : " + ioe.getMessage());
-                flowFile = session.putAttribute(flowFile, "dynamodb.item.io.error", ioe.getMessage());
+                flowFile = session.putAttribute(flowFile, DYNAMODB_ITEM_IO_ERROR, ioe.getMessage());
                 session.transfer(flowFile, REL_FAILURE);
             }
             keysToFlowFileMap.put(new ItemKeys(hashKeyValue, rangeKeyValue), flowFile);
