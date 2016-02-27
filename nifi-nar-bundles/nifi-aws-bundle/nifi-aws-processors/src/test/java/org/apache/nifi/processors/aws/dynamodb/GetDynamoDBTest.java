@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import static org.junit.Assert.assertNotNull;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.CREDENTIALS_FILE;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 
@@ -34,7 +33,8 @@ public class GetDynamoDBTest {
     public void testStringHashStringRangeGetOnlyHashFailure() {
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
 
-        getRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -57,7 +57,8 @@ public class GetDynamoDBTest {
     public void testStringHashStringRangeGetNoHashValueFailure() {
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
 
-        getRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
@@ -81,7 +82,8 @@ public class GetDynamoDBTest {
     public void testStringHashStringRangeGetOnlyHashWithRangeValueNoRangeNameFailure() {
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
 
-        getRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -105,7 +107,8 @@ public class GetDynamoDBTest {
     public void testStringHashStringRangeGetOnlyHashWithRangeNameNoRangeValueFailure() {
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
 
-        getRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");

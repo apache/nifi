@@ -18,7 +18,6 @@ package org.apache.nifi.processors.aws.dynamodb;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.CREDENTIALS_FILE;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 
@@ -72,7 +71,8 @@ public class PutDynamoDBTest  {
     public void testStringHashStringRangePutOnlyHashFailure() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -96,7 +96,8 @@ public class PutDynamoDBTest  {
     public void testStringHashStringRangePutNoHashValueFailure() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
@@ -121,7 +122,8 @@ public class PutDynamoDBTest  {
     public void testStringHashStringRangePutOnlyHashWithRangeValueNoRangeNameFailure() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -145,7 +147,8 @@ public class PutDynamoDBTest  {
     public void testStringHashStringRangePutOnlyHashWithRangeNameNoRangeValueFailure() {
         final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -168,7 +171,8 @@ public class PutDynamoDBTest  {
     public void testStringHashStringRangePutSuccessfulWithMock() {
         final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -205,7 +209,8 @@ public class PutDynamoDBTest  {
         result.setUnprocessedItems(unprocessed);
         final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");

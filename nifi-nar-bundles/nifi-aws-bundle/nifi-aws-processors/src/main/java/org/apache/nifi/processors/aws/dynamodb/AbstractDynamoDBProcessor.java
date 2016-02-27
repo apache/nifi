@@ -19,6 +19,7 @@ package org.apache.nifi.processors.aws.dynamodb;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -184,10 +185,9 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         }
     }
 
-    protected DynamoDB getDynamoDB() {
-        if (dynamoDB == null) {
-            dynamoDB = new DynamoDB(getClient());
-        }
+    protected synchronized DynamoDB getDynamoDB() {
+        if ( dynamoDB == null )
+            dynamoDB = new DynamoDB(client);
         return dynamoDB;
     }
 
@@ -212,29 +212,35 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         return failedFlowFiles;
     }
 
-    protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles,
+    protected List<FlowFile> processClientException(final ProcessSession session, List<FlowFile> flowFiles,
             AmazonClientException exception) {
         List<FlowFile> failedFlowFiles = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
+            Map<String,String> attributes = new HashMap<>();
+            attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
+            attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
+            flowFile = session.putAllAttributes(flowFile, attributes);
             failedFlowFiles.add(flowFile);
         }
         return failedFlowFiles;
     }
 
-    protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles,
+    protected List<FlowFile> processServiceException(final ProcessSession session, List<FlowFile> flowFiles,
             AmazonServiceException exception) {
         List<FlowFile> failedFlowFiles = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_CODE, exception.getErrorCode() );
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_MESSAGE, exception.getErrorMessage() );
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_TYPE, exception.getErrorType().name() );
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_SERVICE, exception.getServiceName() );
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_REQUEST_ID, exception.getRequestId() );
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.getStatusCode()) );
+            Map<String,String> attributes = new HashMap<>();
+            attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
+            attributes.put(DYNAMODB_ERROR_CODE, exception.getErrorCode() );
+            attributes.put(DYNAMODB_ERROR_MESSAGE, exception.getErrorMessage() );
+            attributes.put(DYNAMODB_ERROR_TYPE, exception.getErrorType().name() );
+            attributes.put(DYNAMODB_ERROR_SERVICE, exception.getServiceName() );
+            attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
+            attributes.put(DYNAMODB_ERROR_REQUEST_ID, exception.getRequestId() );
+            attributes.put(DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.getStatusCode()) );
+            attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
+            attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
+            flowFile = session.putAllAttributes(flowFile, attributes);
             failedFlowFiles.add(flowFile);
         }
         return failedFlowFiles;

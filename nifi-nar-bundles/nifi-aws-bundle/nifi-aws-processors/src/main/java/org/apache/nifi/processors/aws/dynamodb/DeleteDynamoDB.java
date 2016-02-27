@@ -136,12 +136,12 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
                 session.transfer(flowFile,REL_SUCCESS);
             }
         } catch(AmazonServiceException exception) {
-            getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
-            List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
+            getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
+            List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch(AmazonClientException exception) {
-            getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
-            List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
+            getLogger().error("Could not process flowFiles due to client exception : " + exception.getMessage());
+            List<FlowFile> failedFlowFiles = processClientException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch(Exception exception) {
             getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());

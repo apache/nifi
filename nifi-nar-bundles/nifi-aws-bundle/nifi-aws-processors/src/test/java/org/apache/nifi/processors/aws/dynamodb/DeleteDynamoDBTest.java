@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import static org.junit.Assert.assertNotNull;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.CREDENTIALS_FILE;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 
@@ -70,7 +69,8 @@ public class DeleteDynamoDBTest {
     public void testStringHashStringRangeDeleteOnlyHashFailure() {
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -92,7 +92,8 @@ public class DeleteDynamoDBTest {
     public void testStringHashStringRangeDeleteSuccessfulWithMock() {
         final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -121,7 +122,8 @@ public class DeleteDynamoDBTest {
         result.setUnprocessedItems(unprocessed);
         final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -140,7 +142,8 @@ public class DeleteDynamoDBTest {
     public void testStringHashStringRangeDeleteNoHashValueFailure() {
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
@@ -163,7 +166,8 @@ public class DeleteDynamoDBTest {
     public void testStringHashStringRangeDeleteOnlyHashWithRangeValueNoRangeNameFailure() {
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -186,7 +190,8 @@ public class DeleteDynamoDBTest {
     public void testStringHashStringRangeDeleteOnlyHashWithRangeNameNoRangeValueFailure() {
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -208,7 +213,8 @@ public class DeleteDynamoDBTest {
     public void testStringHashStringRangeDeleteNonExistentHashSuccess() {
         final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
@@ -227,7 +233,8 @@ public class DeleteDynamoDBTest {
     public void testStringHashStringRangeDeleteNonExistentRangeSuccess() {
         final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
