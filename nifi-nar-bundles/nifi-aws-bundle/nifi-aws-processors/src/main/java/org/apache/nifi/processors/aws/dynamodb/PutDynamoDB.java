@@ -76,7 +76,7 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
     })
 public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
 
-	public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
+   public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
                 HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, DOCUMENT_CHARSET, BATCH_SIZE,
                 REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
