@@ -689,17 +689,43 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         }
 
         public void close() {
-            final DataOutputStream out = dataOut;
+            // Note that here we are closing fileOut and NOT dataOut.
+            // This is very much intentional, not an oversight. This is done because of
+            // the way that the OutputStreams are structured. dataOut wraps a BufferedOutputStream,
+            // which then wraps the FileOutputStream. If we close 'dataOut', then this will call
+            // the flush() method of BufferedOutputStream. Under normal conditions, this is fine.
+            // However, there is a very important corner case to consider:
+            //
+            //      If we are writing to the DataOutputStream in the update() method and that
+            //      call to write() then results in the BufferedOutputStream calling flushBuffer() -
+            //      or if we finish the call to update() and call flush() ourselves - it is possible
+            //      that the internal buffer of the BufferedOutputStream can get partially written to
+            //      to the FileOutputStream and then an IOException occurs. If this occurs, we have
+            //      written a partial record to disk. This still is okay, as we have logic to handle
+            //      the condition where we have a partial record and then an unexpected End-of-File.
+            //      But if we then call close() on 'dataOut', this will call the flush() method of the
+            //      underlying BufferedOutputStream. As a result, we will end up again writing the internal
+            //      buffer of the BufferedOutputStream to the underlying file. At this point, we are left
+            //      not with an unexpected/premature End-of-File but instead a bunch of seemingly random
+            //      bytes that happened to be residing in that internal buffer, and this will result in
+            //      a corrupt and unrecoverable Write-Ahead Log.
+            //
+            // Additionally, we are okay not ever calling close on the wrapping BufferedOutputStream and
+            // DataOutputStream because they don't actually hold any resources that need to be reclaimed,
+            // and after each update to the Write-Ahead Log, we call flush() ourselves to ensure that we don't
+            // leave arbitrary data in the BufferedOutputStream that hasn't been flushed to the underlying
+            // FileOutputStream.
+            final OutputStream out = fileOut;
             if (out != null) {
                 try {
                     out.close();
                 } catch (final Exception e) {
-
                 }
             }
 
             this.closed = true;
             this.dataOut = null;
+            this.fileOut = null;
         }
 
         public void blackList() {
@@ -721,32 +747,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         public void rollover() throws IOException {
             lock.lock();
             try {
-                // Note that here we are closing fileOut and NOT dataOut.
-                // This is very much intentional, not an oversight. This is done because of
-                // the way that the OutputStreams are structured. dataOut wraps a BufferedOutputStream,
-                // which then wraps the FileOutputStream. If we close 'dataOut', then this will call
-                // the flush() method of BufferedOutputStream. Under normal conditions, this is fine.
-                // However, there is a very important corner case to consider:
-                //
-                //      If we are writing to the DataOutputStream in the update() method and that
-                //      call to write() then results in the BufferedOutputStream calling flushBuffer() -
-                //      or if we finish the call to update() and call flush() ourselves - it is possible
-                //      that the internal buffer of the BufferedOutputStream can get partially written to
-                //      to the FileOutputStream and then an IOException occurs. If this occurs, we have
-                //      written a partial record to disk. This still is okay, as we have logic to handle
-                //      the condition where we have a partial record and then an unexpected End-of-File.
-                //      But if we then call close() on 'dataOut', this will call the flush() method of the
-                //      underlying BufferedOutputStream. As a result, we will end up again writing the internal
-                //      buffer of the BufferedOutputStream to the underlying file. At this point, we are left
-                //      not with an unexpected/premature End-of-File but instead a bunch of seemingly random
-                //      bytes that happened to be residing in that internal buffer, and this will result in
-                //      a corrupt and unrecoverable Write-Ahead Log.
-                //
-                // Additionally, we are okay not ever calling close on the wrapping BufferedOutputStream and
-                // DataOutputStream because they don't actually hold any resources that need to be reclaimed,
-                // and after each update to the Write-Ahead Log, we call flush() ourselves to ensure that we don't
-                // leave arbitrary data in the BufferedOutputStream that hasn't been flushed to the underlying
-                // FileOutputStream.
+                // Note that here we are closing fileOut and NOT dataOut. See the note in the close()
+                // method to understand the logic behind this.
                 final OutputStream out = fileOut;
                 if (out != null) {
                     try {
