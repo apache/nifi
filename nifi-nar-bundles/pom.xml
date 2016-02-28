@@ -65,6 +65,7 @@
         <module>nifi-mqtt-bundle</module>
         <module>nifi-evtx-bundle</module>
         <module>nifi-slack-bundle</module>
+        <module>nifi-snmp-bundle</module>
     </modules>
 
     <dependencyManagement>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>SetSNMP</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>
+    This processor sends SNMP set requests to a SNMP agent in order to update information associated to a given OID. This processor supports 
+    SNMPv1, SNMPv2c and SNMPv3. The component is based on <a href="http://www.snmp4j.org/">SNMP4J</a>.
+</p>
+<p>
+    The processor constructs SNMP Set requests by extracting information from FlowFile attributes. The processor is looking for attributes
+    prefixed with <i>snmp$</i>. If such an attribute is found, the attribute name is splitted using the $ character. The second element must
+    respect the OID format to be considered as a valid OID. If there is a third element, it must represents the SMI Syntax integer value of
+    the type of data associated to the given OID to allow a correct conversion. If there is no third element, the value is considered as a String
+    and the value will be sent as an OctetString object.
+</p>
+<h2>Configuration Details</h2>
+<p>
+    At the time of writing this document it only defines the essential configuration properties which are suitable for most cases. 
+    Other properties will be defined later as this component progresses.
+    Configuring SetSNMP:
+</p>
+<ul>
+    <li><b>Host</b> - [REQUIRED] the name of the host where the SNMP agent is running. (default is localhost)</li>
+    <li><b>Port</b> - [REQUIRED] the port number on which the SNMP agent is listening. (default is 161)</li>
+    <li><b>Version</b> - [REQUIRED] the SNMP version to use (SNMPv1 [default], or SNMPv2c, or SNMPv3)</li>
+    <li><b>Community</b> - [REQUIRED if SNMPv1 or SNMPv2c] the SNMP community to use. (default is public)</li>
+    <li><b>Security Level</b> - [REQUIRED if SNMPv3] the security level to use. (default is authPriv)</li>
+    <li><b>Security Name</b> - [REQUIRED if SNMPv3] the security name (user name) to use.</li>
+    <li><b>Authentication Protocol</b> - [REQUIRED if SNMPv3 and authNoPriv or authPriv] the authentication protocol to use.</li>
+    <li><b>Authentication Password</b> - [REQUIRED if SNMPv3 and authNoPriv or authPriv] the authentication password to use.</li>
+    <li><b>Private Protocol</b> - [REQUIRED if SNMPv3 and authPriv] the private protocol to use.</li>
+    <li><b>Private Password</b> - [REQUIRED if SNMPv3 and authPriv] the private password to use.</li>
+    <li><b>Retries</b> - [REQUIRED] Sets the number of retries to be performed before a request is timed out. (default is 0)</li>
+    <li><b>Timeout</b> - [REQUIRED] Sets  timeout in milliseconds before a confirmed request is resent or timed out. (default is 5000)</li>
+</ul>
+
+</body>
+</html>
