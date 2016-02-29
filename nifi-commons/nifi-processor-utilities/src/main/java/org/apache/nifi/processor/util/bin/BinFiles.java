@@ -230,6 +230,14 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             }
             session.rollback();
             return 1;
+        } catch (final Exception e) {
+            logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {binCopy.size(), e});
+
+            for (final FlowFileSessionWrapper wrapper : binCopy) {
+                wrapper.getSession().rollback();
+            }
+            session.rollback();
+            return 1;
         }
 
         // we first commit the bundle's session before the originals' sessions because if we are restarted or crash
