@@ -85,6 +85,15 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             .defaultValue("1 MB")
             .required(true)
             .build();
+    public static final PropertyDescriptor MAX_MESSAGE_QUEUE_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Size of Message Queue")
+            .description("The maximum size of the internal queue used to buffer messages being transferred from the underlying channel to the processor. " +
+                    "Setting this value higher allows more messages to be buffered in memory during surges of incoming messages, but increases the total " +
+                    "memory used by the processor.")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("10000")
+            .required(true)
+            .build();
 
     // Putting these properties here so sub-classes don't have to redefine them, but they are
     // not added to the properties by default since not all processors may need them
@@ -119,7 +128,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             .description("Messages received successfully will be sent out this relationship.")
             .build();
 
-    public static final int POLL_TIMEOUT_MS = 100;
+    public static final int POLL_TIMEOUT_MS = 20;
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
@@ -127,7 +136,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     protected volatile int port;
     protected volatile Charset charset;
     protected volatile ChannelDispatcher dispatcher;
-    protected volatile BlockingQueue<E> events = new LinkedBlockingQueue<>(10);
+    protected volatile BlockingQueue<E> events;
     protected volatile BlockingQueue<E> errorEvents = new LinkedBlockingQueue<>();
 
     @Override
@@ -135,6 +144,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(PORT);
         descriptors.add(RECV_BUFFER_SIZE);
+        descriptors.add(MAX_MESSAGE_QUEUE_SIZE);
         descriptors.add(MAX_SOCKET_BUFFER_SIZE);
         descriptors.add(CHARSET);
         descriptors.addAll(getAdditionalProperties());
@@ -178,6 +188,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     public void onScheduled(final ProcessContext context) throws IOException {
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
         port = context.getProperty(PORT).asInteger();
+        events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
 
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
 
@@ -230,7 +241,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
      *
      * @return an event from one of the queues, or null if none are available
      */
-    protected E getMessage(final boolean longPoll, final boolean pollErrorQueue) {
+    protected E getMessage(final boolean longPoll, final boolean pollErrorQueue, final ProcessSession session) {
         E event = null;
         if (pollErrorQueue) {
             event = errorEvents.poll();
@@ -247,6 +258,10 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
                 Thread.currentThread().interrupt();
                 return null;
             }
+        }
+
+        if (event != null) {
+            session.adjustCounter("Messages Received", 1L, false);
         }
 
         return event;
@@ -270,7 +285,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
 
         final Map<String,FlowFileEventBatch> batches = new HashMap<>();
         for (int i=0; i < totalBatchSize; i++) {
-            final E event = getMessage(true, true);
+            final E event = getMessage(true, true, session);
             if (event == null) {
                 break;
             }
@@ -311,8 +326,6 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
                 errorEvents.offer(event);
                 break;
             }
-
-            session.adjustCounter("Messages Received", 1L, false);
         }
 
         return batches;

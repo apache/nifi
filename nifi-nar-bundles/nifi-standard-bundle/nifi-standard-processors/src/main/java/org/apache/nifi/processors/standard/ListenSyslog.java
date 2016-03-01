@@ -98,6 +98,15 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso({PutSyslog.class, ParseSyslog.class})
 public class ListenSyslog extends AbstractSyslogProcessor {
 
+    public static final PropertyDescriptor MAX_MESSAGE_QUEUE_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Size of Message Queue")
+            .description("The maximum size of the internal queue used to buffer messages being transferred from the underlying channel to the processor. " +
+                    "Setting this value higher allows more messages to be buffered in memory during surges of incoming messages, but increases the total " +
+                    "memory used by the processor.")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("10000")
+            .required(true)
+            .build();
     public static final PropertyDescriptor RECV_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Receive Buffer Size")
             .description("The size of each buffer used to receive Syslog messages. Adjust this value appropriately based on the expected size of the " +
@@ -171,7 +180,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     private volatile ChannelDispatcher channelDispatcher;
     private volatile SyslogParser parser;
     private volatile BlockingQueue<ByteBuffer> bufferPool;
-    private volatile BlockingQueue<RawSyslogEvent> syslogEvents = new LinkedBlockingQueue<>(10);
+    private volatile BlockingQueue<RawSyslogEvent> syslogEvents;
     private volatile BlockingQueue<RawSyslogEvent> errorEvents = new LinkedBlockingQueue<>();
     private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
 
@@ -182,6 +191,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         descriptors.add(PORT);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(RECV_BUFFER_SIZE);
+        descriptors.add(MAX_MESSAGE_QUEUE_SIZE);
         descriptors.add(MAX_SOCKET_BUFFER_SIZE);
         descriptors.add(MAX_CONNECTIONS);
         descriptors.add(MAX_BATCH_SIZE);
@@ -245,6 +255,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final int port = context.getProperty(PORT).asInteger();
         final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
         final String protocol = context.getProperty(PROTOCOL).getValue();
         final String charSet = context.getProperty(CHARSET).getValue();
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
@@ -263,6 +274,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         }
 
         parser = new SyslogParser(Charset.forName(charSet));
+        syslogEvents = new LinkedBlockingQueue<>(maxMessageQueueSize);
 
         // create either a UDP or TCP reader and call open() to bind to the given port
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -313,7 +325,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         }
     }
 
-    protected RawSyslogEvent getMessage(final boolean longPoll, final boolean pollErrorQueue) {
+    protected RawSyslogEvent getMessage(final boolean longPoll, final boolean pollErrorQueue, final ProcessSession session) {
         RawSyslogEvent rawSyslogEvent = null;
         if (pollErrorQueue) {
             rawSyslogEvent = errorEvents.poll();
@@ -322,7 +334,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         if (rawSyslogEvent == null) {
             try {
                 if (longPoll) {
-                    rawSyslogEvent = syslogEvents.poll(100, TimeUnit.MILLISECONDS);
+                    rawSyslogEvent = syslogEvents.poll(20, TimeUnit.MILLISECONDS);
                 } else {
                     rawSyslogEvent = syslogEvents.poll();
                 }
@@ -330,6 +342,10 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 Thread.currentThread().interrupt();
                 return null;
             }
+        }
+
+        if (rawSyslogEvent != null) {
+            session.adjustCounter("Messages Received", 1L, false);
         }
 
         return rawSyslogEvent;
@@ -342,11 +358,12 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // poll the queue with a small timeout to avoid unnecessarily yielding below
-        RawSyslogEvent rawSyslogEvent = getMessage(true, true);
+        RawSyslogEvent rawSyslogEvent = getMessage(true, true, session);
 
-        // if nothing in the queue then yield and return
+        // if nothing in the queue just return, we don't want to yield here because yielding could adversely
+        // impact performance, and we already have a long poll in getMessage so there will be some built in
+        // throttling even when no data is available
         if (rawSyslogEvent == null) {
-            context.yield();
             return;
         }
 
@@ -372,7 +389,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
             // If this is our first iteration, we have already polled our queues. Otherwise, poll on each iteration.
             if (i > 0) {
-                rawSyslogEvent = getMessage(false, false);
+                rawSyslogEvent = getMessage(true, false, session);
 
                 if (rawSyslogEvent == null) {
                     break;
@@ -461,7 +478,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 break;
             }
 
-            session.adjustCounter("Messages Received", 1L, false);
             flowFilePerSender.put(sender, flowFile);
         }
 
@@ -483,6 +499,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
             getLogger().debug("Transferring {} to success", new Object[] {flowFile});
             session.transfer(flowFile, REL_SUCCESS);
+            session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
+
             final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
             final String transitUri = new StringBuilder().append(protocol.toLowerCase()).append("://").append(senderHost).append(":").append(port).toString();
             session.getProvenanceReporter().receive(flowFile, transitUri);

@@ -133,9 +133,10 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
         final Map<String,FlowFileEventBatch> batches = getBatches(session, maxBatchSize, messageDemarcatorBytes);
 
-        // if the size is 0 then there was nothing to process so yield and return
+        // if the size is 0 then there was nothing to process so return
+        // we don't need to yield here because inside getBatches() we are polling a queue with a wait
+        // and yielding here could have a negative impact on performance
         if (batches.size() == 0) {
-            context.yield();
             return;
         }
 
@@ -170,6 +171,7 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
 
             getLogger().debug("Transferring {} to success", new Object[] {flowFile});
             session.transfer(flowFile, REL_SUCCESS);
+            session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
 
             // create a provenance receive event
             final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;

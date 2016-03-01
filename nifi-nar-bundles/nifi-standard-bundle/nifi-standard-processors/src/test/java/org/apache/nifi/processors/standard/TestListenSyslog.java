@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -602,11 +603,11 @@ public class TestListenSyslog {
         }
 
         @Override
-        protected RawSyslogEvent getMessage(final boolean longPoll, final boolean pollErrorQueue) {
+        protected RawSyslogEvent getMessage(final boolean longPoll, final boolean pollErrorQueue, final ProcessSession session) {
             if (eventItr.hasNext()) {
                 return eventItr.next();
             }
-            return super.getMessage(longPoll, pollErrorQueue);
+            return super.getMessage(longPoll, pollErrorQueue, session);
         }
     }
 }
