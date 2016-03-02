@@ -58,6 +58,7 @@
 	    <module>nifi-splunk-bundle</module>
         <module>nifi-jms-bundle</module>
         <module>nifi-cassandra-bundle</module>
+        <module>nifi-spring-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
