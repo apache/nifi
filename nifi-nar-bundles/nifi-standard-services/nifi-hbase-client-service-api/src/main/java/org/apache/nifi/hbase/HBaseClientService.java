@@ -40,6 +40,18 @@ public interface HBaseClientService extends ControllerService {
             .addValidator(new ConfigFilesValidator())
             .build();
 
+    PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("Kerberos Principal")
+            .description("Principal of user writing to hbase")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    PropertyDescriptor KERBEROS_KEYTAB = new PropertyDescriptor.Builder()
+            .name("Kerberos Keytab")
+            .description("Path to keytab file")
+            .addValidator(new ConfigFilesValidator())
+            .build();
+
     PropertyDescriptor ZOOKEEPER_QUORUM = new PropertyDescriptor.Builder()
             .name("ZooKeeper Quorum")
             .description("Comma-separated list of ZooKeeper hosts for HBase. Required if Hadoop Configuration Files are not provided.")
