@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.ParseFilter;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -60,6 +61,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Tags({ "hbase", "client"})
 @CapabilityDescription("Implementation of HBaseClientService for HBase 1.1.2. This service can be configured by providing " +
         "a comma-separated list of configuration files, or by specifying values for the other properties. If configuration files " +
@@ -69,7 +73,7 @@ import java.util.Map;
 @DynamicProperty(name="The name of an HBase configuration property.", value="The value of the given HBase configuration property.",
         description="These properties will be set on the HBase configuration after loading any provided configuration files.")
 public class HBase_1_1_2_ClientService extends AbstractControllerService implements HBaseClientService {
-
+    private static final Logger LOG = LoggerFactory.getLogger(HBase_1_1_2_ClientService.class);
     static final String HBASE_CONF_ZK_QUORUM = "hbase.zookeeper.quorum";
     static final String HBASE_CONF_ZK_PORT = "hbase.zookeeper.property.clientPort";
     static final String HBASE_CONF_ZNODE_PARENT = "zookeeper.znode.parent";
@@ -82,6 +86,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONF_FILES);
+        props.add(KERBEROS_PRINCIPAL);
+        props.add(KERBEROS_KEYTAB);
         props.add(ZOOKEEPER_QUORUM);
         props.add(ZOOKEEPER_CLIENT_PORT);
         props.add(ZOOKEEPER_ZNODE_PARENT);
@@ -111,6 +117,10 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         boolean zkPortProvided = validationContext.getProperty(ZOOKEEPER_CLIENT_PORT).isSet();
         boolean znodeParentProvided = validationContext.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet();
         boolean retriesProvided = validationContext.getProperty(HBASE_CLIENT_RETRIES).isSet();
+        boolean kerbprincProvided = validationContext.getProperty
+          (KERBEROS_PRINCIPAL).isSet();
+        boolean kerbkeytabProvided = validationContext.getProperty
+          (KERBEROS_KEYTAB).isSet();
 
         final List<ValidationResult> problems = new ArrayList<>();
 
@@ -121,6 +131,15 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                     .explanation("ZooKeeper Quorum, ZooKeeper Client Port, ZooKeeper ZNode Parent, and HBase Client Retries are required " +
                             "when Hadoop Configuration Files are not provided.")
                     .build());
+        }
+
+        if (UserGroupInformation.isSecurityEnabled() && ((!kerbprincProvided)
+          || (!kerbkeytabProvided))) {
+            problems.add(new ValidationResult.Builder().valid(false)
+              .subject(this.getClass().getSimpleName()).explanation("Kerberos" +
+                " principal and keytab must be provided when using a secure " +
+                "hbase")
+              .build());
         }
 
         return problems;
@@ -171,6 +190,15 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             }
         }
 
+        UserGroupInformation.setConfiguration(hbaseConfig);
+
+        if (UserGroupInformation.isSecurityEnabled()) {
+            LOG.info("SECURITY IS ENABLED");
+            UserGroupInformation.loginUserFromKeytab(context.getProperty
+              (KERBEROS_PRINCIPAL).getValue(), context.getProperty
+              (KERBEROS_KEYTAB).getValue());
+        } else { LOG.info("SIMPLE AUTHENTICATION");
+          }
         return ConnectionFactory.createConnection(hbaseConfig);
     }
 
