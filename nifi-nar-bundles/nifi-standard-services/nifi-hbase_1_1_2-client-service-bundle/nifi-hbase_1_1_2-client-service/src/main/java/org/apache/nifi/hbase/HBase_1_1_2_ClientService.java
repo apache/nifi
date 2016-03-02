@@ -117,10 +117,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         boolean zkPortProvided = validationContext.getProperty(ZOOKEEPER_CLIENT_PORT).isSet();
         boolean znodeParentProvided = validationContext.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet();
         boolean retriesProvided = validationContext.getProperty(HBASE_CLIENT_RETRIES).isSet();
-        boolean kerbprincProvided = validationContext.getProperty
-          (KERBEROS_PRINCIPAL).isSet();
-        boolean kerbkeytabProvided = validationContext.getProperty
-          (KERBEROS_KEYTAB).isSet();
+        boolean kerbprincProvided = validationContext.getProperty(KERBEROS_PRINCIPAL).isSet();
+        boolean kerbkeytabProvided = validationContext.getProperty(KERBEROS_KEYTAB).isSet();
 
         final List<ValidationResult> problems = new ArrayList<>();
 
@@ -194,10 +192,10 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
         if (UserGroupInformation.isSecurityEnabled()) {
             LOG.info("SECURITY IS ENABLED");
-            UserGroupInformation.loginUserFromKeytab(context.getProperty
-              (KERBEROS_PRINCIPAL).getValue(), context.getProperty
-              (KERBEROS_KEYTAB).getValue());
-        } else { LOG.info("SIMPLE AUTHENTICATION");
+            UserGroupInformation.loginUserFromKeytab(context.getProperty(KERBEROS_PRINCIPAL).getValue(),
+              context.getProperty(KERBEROS_KEYTAB).getValue());
+        } else {
+            LOG.info("SIMPLE AUTHENTICATION");
           }
         return ConnectionFactory.createConnection(hbaseConfig);
     }
