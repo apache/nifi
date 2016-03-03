@@ -70,7 +70,7 @@ nf.Summary = (function () {
     var initializeSummaryPage = function () {
         // define mouse over event for the refresh buttons
         nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
-            nf.SummaryTable.loadProcessorSummaryTable();
+            nf.SummaryTable.loadSummaryTable();
         });
 
         // return a deferred for page initialization
@@ -133,7 +133,7 @@ nf.Summary = (function () {
             // intialize the summary table
             initializeSummaryTable().done(function () {
                 // load the table
-                nf.SummaryTable.loadProcessorSummaryTable().done(function () {
+                nf.SummaryTable.loadSummaryTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeSummaryPage().done(function () {
                         // configure the initial grid height

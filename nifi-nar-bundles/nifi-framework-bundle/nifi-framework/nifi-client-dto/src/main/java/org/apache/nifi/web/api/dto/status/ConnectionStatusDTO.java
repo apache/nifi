@@ -14,38 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
-/**
- * DTO for serializing the status of a connection.
- */
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
 @XmlType(name = "connectionStatus")
-public class ConnectionStatusDTO {
-
+public class ConnectionStatusDTO implements Cloneable {
     private String id;
     private String groupId;
     private String name;
-    private String input;
-    private String queuedCount;
-    private String queuedSize;
-    private String queued;
-    private String output;
+    private Date statsLastRefreshed;
 
     private String sourceId;
     private String sourceName;
     private String destinationId;
     private String destinationName;
 
-    /* getters / setters */
-    /**
-     * @return The connection id
-     */
-    @ApiModelProperty(
-            value = "The id of the connection."
-    )
+    private ConnectionStatusSnapshotDTO aggregateSnapshot;
+    private List<NodeConnectionStatusSnapshotDTO> nodeSnapshots;
+
+    @ApiModelProperty("The ID of the connection")
     public String getId() {
         return id;
     }
@@ -54,26 +51,16 @@ public class ConnectionStatusDTO {
         this.id = id;
     }
 
-    /**
-     * @return the ID of the Process Group to which this connection belongs.
-     */
-    @ApiModelProperty(
-            value = "The id of the process group the connection belongs to."
-    )
+    @ApiModelProperty("The ID of the Process Group that the connection belongs to")
     public String getGroupId() {
         return groupId;
     }
 
-    public void setGroupId(final String groupId) {
+    public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
 
-    /**
-     * @return name of this connection
-     */
-    @ApiModelProperty(
-            value = "The name of the connection."
-    )
+    @ApiModelProperty("The name of the connection")
     public String getName() {
         return name;
     }
@@ -82,54 +69,7 @@ public class ConnectionStatusDTO {
         this.name = name;
     }
 
-    /**
-     * @return total count of flow files that are queued
-     */
-    @ApiModelProperty(
-            value = "The number of flowfiles that are queued."
-    )
-    public String getQueuedCount() {
-        return queuedCount;
-    }
-
-    public void setQueuedCount(String queuedCount) {
-        this.queuedCount = queuedCount;
-    }
-
-    /**
-     * @return total size of flow files that are queued
-     */
-    @ApiModelProperty(
-            value = "The total size of flowfiles that are queued formatted."
-    )
-    public String getQueuedSize() {
-        return queuedSize;
-    }
-
-    public void setQueuedSize(String queuedSize) {
-        this.queuedSize = queuedSize;
-    }
-
-    /**
-     * @return The total count and size of queued flow files
-     */
-    @ApiModelProperty(
-            value = "The total count and size of queued flowfiles formatted."
-    )
-    public String getQueued() {
-        return queued;
-    }
-
-    public void setQueued(String queued) {
-        this.queued = queued;
-    }
-
-    /**
-     * @return id of the source of this connection
-     */
-    @ApiModelProperty(
-            value = "The id of the source of the connection."
-    )
+    @ApiModelProperty("The ID of the source component")
     public String getSourceId() {
         return sourceId;
     }
@@ -138,12 +78,7 @@ public class ConnectionStatusDTO {
         this.sourceId = sourceId;
     }
 
-    /**
-     * @return name of the source of this connection
-     */
-    @ApiModelProperty(
-            value = "The name of the source of the connection."
-    )
+    @ApiModelProperty("The name of the source component")
     public String getSourceName() {
         return sourceName;
     }
@@ -152,12 +87,7 @@ public class ConnectionStatusDTO {
         this.sourceName = sourceName;
     }
 
-    /**
-     * @return id of the destination of this connection
-     */
-    @ApiModelProperty(
-            value = "The id of the destination of the connection."
-    )
+    @ApiModelProperty("The ID of the destination component")
     public String getDestinationId() {
         return destinationId;
     }
@@ -166,12 +96,7 @@ public class ConnectionStatusDTO {
         this.destinationId = destinationId;
     }
 
-    /**
-     * @return name of the destination of this connection
-     */
-    @ApiModelProperty(
-            value = "The name of the destination of the connection."
-    )
+    @ApiModelProperty("The name of the destination component")
     public String getDestinationName() {
         return destinationName;
     }
@@ -180,32 +105,53 @@ public class ConnectionStatusDTO {
         this.destinationName = destinationName;
     }
 
-    /**
-     * @return input for this connection
-     */
-    @ApiModelProperty(
-            value = "The input count/size for the connection in the last 5 minutes."
-    )
-    public String getInput() {
-        return input;
+    @ApiModelProperty("The status snapshot that represents the aggregate stats of the cluster")
+    public ConnectionStatusSnapshotDTO getAggregateSnapshot() {
+        return aggregateSnapshot;
     }
 
-    public void setInput(String input) {
-        this.input = input;
+    public void setAggregateSnapshot(ConnectionStatusSnapshotDTO aggregateSnapshot) {
+        this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    /**
-     * @return output for this connection
-     */
-    @ApiModelProperty(
-            value = "The output count/sie for the connection in the last 5 minutes."
-    )
-    public String getOutput() {
-        return output;
+    @ApiModelProperty("A list of status snapshots for each node")
+    public List<NodeConnectionStatusSnapshotDTO> getNodeSnapshots() {
+        return nodeSnapshots;
     }
 
-    public void setOutput(String output) {
-        this.output = output;
+    public void setNodeSnapshots(List<NodeConnectionStatusSnapshotDTO> nodeSnapshots) {
+        this.nodeSnapshots = nodeSnapshots;
     }
 
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty("The timestamp of when the stats were last refreshed")
+    public Date getStatsLastRefreshed() {
+        return statsLastRefreshed;
+    }
+
+    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+        this.statsLastRefreshed = statsLastRefreshed;
+    }
+
+    @Override
+    public ConnectionStatusDTO clone() {
+        final ConnectionStatusDTO other = new ConnectionStatusDTO();
+        other.setDestinationId(getDestinationId());
+        other.setDestinationName(getDestinationName());
+        other.setGroupId(getGroupId());
+        other.setId(getId());
+        other.setName(getName());
+        other.setSourceId(getSourceId());
+        other.setSourceName(getSourceName());
+        other.setAggregateSnapshot(getAggregateSnapshot().clone());
+
+        final List<NodeConnectionStatusSnapshotDTO> nodeStatuses = getNodeSnapshots();
+        final List<NodeConnectionStatusSnapshotDTO> nodeStatusClones = new ArrayList<>(nodeStatuses.size());
+        for (final NodeConnectionStatusSnapshotDTO nodeStatus : nodeStatuses) {
+            nodeStatusClones.add(nodeStatus.clone());
+        }
+        other.setNodeSnapshots(nodeStatusClones);
+
+        return other;
+    }
 }

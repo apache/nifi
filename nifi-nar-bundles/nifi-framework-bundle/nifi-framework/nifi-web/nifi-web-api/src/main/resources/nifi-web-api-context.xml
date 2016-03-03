@@ -163,6 +163,8 @@
     </bean>
     <bean id="bulletinBoardResource" class="org.apache.nifi.web.api.BulletinBoardResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterManager" ref="clusterManager"/>
     </bean>
     <bean id="templateResource" class="org.apache.nifi.web.api.TemplateResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -252,6 +254,8 @@
     </bean>
     <bean id="systemDiagnosticsResource" class="org.apache.nifi.web.api.SystemDiagnosticsResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterManager" ref="clusterManager"/>
     </bean>
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
         <property name="properties" ref="nifiProperties"/>

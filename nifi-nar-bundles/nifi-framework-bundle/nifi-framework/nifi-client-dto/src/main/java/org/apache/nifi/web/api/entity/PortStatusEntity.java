@@ -14,9 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller;
+package org.apache.nifi.web.api.entity;
 
-public interface Heartbeater {
+import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 
-    void heartbeat();
+import javax.xml.bind.annotation.XmlRootElement;
+
+/**
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a PortStatusDTO.
+ */
+@XmlRootElement(name = "portStatusEntity")
+public class PortStatusEntity extends Entity {
+
+    private PortStatusDTO portStatus;
+
+    /**
+     * The PortStatusDTO that is being serialized.
+     *
+     * @return The PortStatusDTO object
+     */
+    public PortStatusDTO getPortStatus() {
+        return portStatus;
+    }
+
+    public void setPortStatus(PortStatusDTO portStatus) {
+        this.portStatus = portStatus;
+    }
+
 }

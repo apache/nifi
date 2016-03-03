@@ -28,6 +28,7 @@
                 <div id="cluster-connection-details">
                     <div id="cluster-connection-name"></div>
                     <div id="cluster-connection-id"></div>
+                    <div id="cluster-connection-group-id" class="hidden"></div>
                 </div>
             </div>
         </div>

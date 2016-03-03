@@ -16,28 +16,29 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
+
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.status.ClusterProcessorStatusDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ClusterProcessorStatusDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessorStatusDTO.
  */
-@XmlRootElement(name = "clusterProcessorStatusEntity")
-public class ClusterProcessorStatusEntity extends Entity {
+@XmlRootElement(name = "processorStatusEntity")
+public class ProcessorStatusEntity extends Entity {
 
-    private ClusterProcessorStatusDTO clusterProcessorStatus;
+    private ProcessorStatusDTO processorStatus;
 
     /**
-     * The ClusterProcessorStatusDTO that is being serialized.
+     * The ProcessorStatusDTO that is being serialized.
      *
-     * @return The ClusterProcessorStatusDTO object
+     * @return The ProcessorStatusDTO object
      */
-    public ClusterProcessorStatusDTO getClusterProcessorStatus() {
-        return clusterProcessorStatus;
+    public ProcessorStatusDTO getProcessorStatus() {
+        return processorStatus;
     }
 
-    public void setClusterProcessorStatus(ClusterProcessorStatusDTO clusterProcessorStatus) {
-        this.clusterProcessorStatus = clusterProcessorStatus;
+    public void setProcessorStatus(ProcessorStatusDTO processorStatus) {
+        this.processorStatus = processorStatus;
     }
 
 }

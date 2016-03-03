@@ -33,8 +33,6 @@ import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.reporting.BulletinRepository;
 
@@ -168,15 +166,4 @@ public interface ClusterManager extends NodeInformant {
      * @return the bulletin repository
      */
     BulletinRepository getBulletinRepository();
-
-    /**
-     * @param groupId groupId
-     * @return a {@link ProcessGroupStatus} that represents the status of all nodes with the given {@link Status}es for the given ProcessGroup id, or null if no nodes exist with the given statuses
-     */
-    ProcessGroupStatus getProcessGroupStatus(String groupId);
-
-    /**
-     * @return a merged representation of the System Diagnostics for all nodes in the cluster
-     */
-    SystemDiagnostics getSystemDiagnostics();
 }

@@ -19,7 +19,6 @@ package org.apache.nifi.controller.scheduling;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -36,10 +35,9 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.controller.Heartbeater;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -79,7 +77,7 @@ public class TestStandardProcessScheduler {
     public void setup() throws InitializationException {
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
         this.refreshNiFiProperties();
-        scheduler = new StandardProcessScheduler(Mockito.mock(Heartbeater.class), Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider);
+        scheduler = new StandardProcessScheduler(Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
 
         reportingTask = new TestReportingTask();
@@ -507,6 +505,6 @@ public class TestStandardProcessScheduler {
     }
 
     private ProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(mock(Heartbeater.class), null, null, stateMgrProvider);
+        return new StandardProcessScheduler(null, null, stateMgrProvider);
     }
 }

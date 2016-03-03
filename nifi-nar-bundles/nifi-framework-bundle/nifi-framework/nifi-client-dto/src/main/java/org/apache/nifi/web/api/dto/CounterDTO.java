@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlType;
  * Counter value for a specific component in a specific context. A counter is a value that a component can adjust during processing.
  */
 @XmlType(name = "counter")
-public class CounterDTO {
+public class CounterDTO implements Cloneable {
 
     private String id;
     private String context;
@@ -98,4 +98,12 @@ public class CounterDTO {
         this.valueCount = valueCount;
     }
 
+    @Override
+    public CounterDTO clone() {
+        try {
+            return (CounterDTO) super.clone();
+        } catch (final CloneNotSupportedException cnse) {
+            throw new AssertionError(cnse);
+        }
+    }
 }
