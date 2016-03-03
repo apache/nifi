@@ -20,7 +20,6 @@ import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
-import org.apache.nifi.cluster.protocol.message.NodeBulletinsMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 
 /**
@@ -50,15 +49,6 @@ public interface NodeProtocolSender {
      * @throws ProtocolException if communication failed
      */
     void heartbeat(HeartbeatMessage msg) throws ProtocolException, UnknownServiceAddressException;
-
-    /**
-     * Sends a bulletins message to the cluster manager.
-     *
-     * @param msg a message
-     * @throws ProtocolException pe
-     * @throws UnknownServiceAddressException ex
-     */
-    void sendBulletins(NodeBulletinsMessage msg) throws ProtocolException, UnknownServiceAddressException;
 
     /**
      * Sends a failure notification if the controller was unable start.

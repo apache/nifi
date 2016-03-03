@@ -14,51 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Collection;
-import java.util.Date;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
-/**
- * All the counters in this NiFi instance at a given time.
- */
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
 @XmlType(name = "counters")
 public class CountersDTO {
+    private CountersSnapshotDTO aggregateSnapshot;
+    private List<NodeCountersSnapshotDTO> nodeSnapshots;
 
-    private Date generated;
-    private Collection<CounterDTO> counters;
-
-    /**
-     * @return the collection of counters
-     */
-    @ApiModelProperty(
-            value = "All counters in the NiFi."
-    )
-    public Collection<CounterDTO> getCounters() {
-        return counters;
+    @ApiModelProperty("A Counters snapshot that represents the aggregate values of all nodes in the cluster. If the NiFi instance is "
+        + "a standalone instance, rather than a cluster, this represents the stats of the single instance.")
+    public CountersSnapshotDTO getAggregateSnapshot() {
+        return aggregateSnapshot;
     }
 
-    public void setCounters(Collection<CounterDTO> counters) {
-        this.counters = counters;
+    public void setAggregateSnapshot(CountersSnapshotDTO aggregateSnapshot) {
+        this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    /**
-     * @return the date/time that this report was generated
-     */
-    @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp when the report was generated."
-    )
-    public Date getGenerated() {
-        return generated;
+    @ApiModelProperty("A Counters snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+        + "a cluster, this may be null.")
+    public List<NodeCountersSnapshotDTO> getNodeSnapshots() {
+        return nodeSnapshots;
     }
 
-    public void setGenerated(Date generated) {
-        this.generated = generated;
+    public void setNodeSnapshots(List<NodeCountersSnapshotDTO> nodeSnapshots) {
+        this.nodeSnapshots = nodeSnapshots;
     }
 }

@@ -722,26 +722,14 @@ nf.Actions = (function () {
         showStats: function (selection) {
             if (selection.size() === 1) {
                 var selectionData = selection.datum();
-                if (nf.Canvas.isClustered()) {
-                    if (nf.CanvasUtils.isProcessor(selection)) {
-                        nf.StatusHistory.showClusterProcessorChart(nf.Canvas.getGroupId(), selectionData.component.id);
-                    } else if (nf.CanvasUtils.isProcessGroup(selection)) {
-                        nf.StatusHistory.showClusterProcessGroupChart(nf.Canvas.getGroupId(), selectionData.component.id);
-                    } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
-                        nf.StatusHistory.showClusterRemoteProcessGroupChart(nf.Canvas.getGroupId(), selectionData.component.id);
-                    } else if (nf.CanvasUtils.isConnection(selection)) {
-                        nf.StatusHistory.showClusterConnectionChart(nf.Canvas.getGroupId(), selectionData.component.id);
-                    }
-                } else {
-                    if (nf.CanvasUtils.isProcessor(selection)) {
-                        nf.StatusHistory.showStandaloneProcessorChart(nf.Canvas.getGroupId(), selectionData.component.id);
-                    } else if (nf.CanvasUtils.isProcessGroup(selection)) {
-                        nf.StatusHistory.showStandaloneProcessGroupChart(nf.Canvas.getGroupId(), selectionData.component.id);
-                    } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
-                        nf.StatusHistory.showStandaloneRemoteProcessGroupChart(nf.Canvas.getGroupId(), selectionData.component.id);
-                    } else if (nf.CanvasUtils.isConnection(selection)) {
-                        nf.StatusHistory.showStandaloneConnectionChart(nf.Canvas.getGroupId(), selectionData.component.id);
-                    }
+                if (nf.CanvasUtils.isProcessor(selection)) {
+                    nf.StatusHistory.showProcessorChart(nf.Canvas.getGroupId(), selectionData.component.id);
+                } else if (nf.CanvasUtils.isProcessGroup(selection)) {
+                    nf.StatusHistory.showProcessGroupChart(nf.Canvas.getGroupId(), selectionData.component.id);
+                } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
+                    nf.StatusHistory.showRemoteProcessGroupChart(nf.Canvas.getGroupId(), selectionData.component.id);
+                } else if (nf.CanvasUtils.isConnection(selection)) {
+                    nf.StatusHistory.showConnectionChart(nf.Canvas.getGroupId(), selectionData.component.id);
                 }
             }
         },

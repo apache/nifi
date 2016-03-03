@@ -68,11 +68,10 @@ nf.ClusterSearch = (function () {
                                         var node = searchResults[0];
 
                                         // update the urls to point to this specific node of the cluster
-                                        nf.SummaryTable.url = '../nifi-api/cluster/nodes/' + encodeURIComponent(node.id) + '/status';
-                                        nf.SummaryTable.systemDiagnosticsUrl = '../nifi-api/cluster/nodes/' + encodeURIComponent(node.id) + '/system-diagnostics';
+                                        nf.SummaryTable.setClusterNodeId(node.id);
 
                                         // load the summary for the selected node
-                                        nf.SummaryTable.loadProcessorSummaryTable();
+                                        nf.SummaryTable.loadSummaryTable();
 
                                         // update the header
                                         $('#summary-header-text').text(node.address + ' Summary');
@@ -168,9 +167,8 @@ nf.ClusterSearch = (function () {
             // handle the view cluster click event
             $('#view-cluster-link').click(function () {
                 // reset the urls and refresh the table
-                nf.SummaryTable.url = config.urls.status;
-                nf.SummaryTable.systemDiagnosticsUrl = config.urls.systemDiagnostics;
-                nf.SummaryTable.loadProcessorSummaryTable();
+                nf.SummaryTable.setClusterNodeId(null);
+                nf.SummaryTable.loadSummaryTable();
 
                 // update the header
                 $('#summary-header-text').text('NiFi Summary');
