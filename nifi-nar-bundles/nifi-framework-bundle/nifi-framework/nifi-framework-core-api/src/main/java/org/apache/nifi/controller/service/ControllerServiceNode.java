@@ -21,7 +21,6 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.Heartbeater;
 
 public interface ControllerServiceNode extends ConfiguredComponent {
 
@@ -64,10 +63,8 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      *            initiate service enabling task as well as its re-tries
      * @param administrativeYieldMillis
      *            the amount of milliseconds to wait for administrative yield
-     * @param heartbeater
-     *            the instance of {@link Heartbeater}
      */
-    void enable(ScheduledExecutorService scheduler, long administrativeYieldMillis, Heartbeater heartbeater);
+    void enable(ScheduledExecutorService scheduler, long administrativeYieldMillis);
 
     /**
      * Will disable this service. Disabling of the service typically means
@@ -76,10 +73,8 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      * @param scheduler
      *            implementation of {@link ScheduledExecutorService} used to
      *            initiate service disabling task
-     * @param heartbeater
-     *            the instance of {@link Heartbeater}
      */
-    void disable(ScheduledExecutorService scheduler, Heartbeater heartbeater);
+    void disable(ScheduledExecutorService scheduler);
 
     /**
      * @return the ControllerServiceReference that describes which components are referencing this Controller Service
@@ -139,12 +134,12 @@ public interface ControllerServiceNode extends ConfiguredComponent {
     /**
      * Returns 'true' if this service is active. The service is considered to be
      * active if and only if it's
-     * {@link #enable(ScheduledExecutorService, long, Heartbeater)} operation
+     * {@link #enable(ScheduledExecutorService, long)} operation
      * has been invoked and the service has been transitioned to ENABLING state.
      * The service will also remain 'active' after its been transitioned to
      * ENABLED state. <br>
      * The service will be de-activated upon invocation of
-     * {@link #disable(ScheduledExecutorService, Heartbeater)}.
+     * {@link #disable(ScheduledExecutorService)}.
      */
     boolean isActive();
 }

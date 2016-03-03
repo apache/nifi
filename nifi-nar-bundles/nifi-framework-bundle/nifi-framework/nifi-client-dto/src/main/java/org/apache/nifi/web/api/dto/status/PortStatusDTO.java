@@ -14,32 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.Date;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
-/**
- * The status for a port in this NiFi.
- */
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
 @XmlType(name = "portStatus")
-public class PortStatusDTO extends StatusDTO {
-
+public class PortStatusDTO {
     private String id;
     private String groupId;
     private String name;
-    private Integer activeThreadCount;
-    private String input;
-    private String output;
     private Boolean transmitting;
     private String runStatus;
+    private Date statsLastRefreshed;
 
-    /**
-     * @return whether this port has incoming or outgoing connections to a remote NiFi
-     */
-    @ApiModelProperty(
-            value = "Whether the port has incoming or outgoing connections to a remote NiFi."
-    )
+    private PortStatusSnapshotDTO aggregateSnapshot;
+    private List<NodePortStatusSnapshotDTO> nodeSnapshots;
+
+    @ApiModelProperty("Whether the port has incoming or outgoing connections to a remote NiFi.")
     public Boolean isTransmitting() {
         return transmitting;
     }
@@ -48,26 +47,8 @@ public class PortStatusDTO extends StatusDTO {
         this.transmitting = transmitting;
     }
 
-    /**
-     * @return the active thread count for this port
-     */
-    @ApiModelProperty(
-            value = "The active thread count for the port."
-    )
-    public Integer getActiveThreadCount() {
-        return activeThreadCount;
-    }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
-        this.activeThreadCount = activeThreadCount;
-    }
-
-    /**
-     * @return id of this port
-     */
-    @ApiModelProperty(
-            value = "The id of the port."
-    )
+    @ApiModelProperty("The id of the port.")
     public String getId() {
         return id;
     }
@@ -76,12 +57,8 @@ public class PortStatusDTO extends StatusDTO {
         this.id = id;
     }
 
-    /**
-     * @return id of the group this port resides in
-     */
-    @ApiModelProperty(
-            value = "The id of the parent process group of the port."
-    )
+
+    @ApiModelProperty("The id of the parent process group of the port.")
     public String getGroupId() {
         return groupId;
     }
@@ -90,12 +67,8 @@ public class PortStatusDTO extends StatusDTO {
         this.groupId = groupId;
     }
 
-    /**
-     * @return name of this port
-     */
-    @ApiModelProperty(
-            value = "The name of the port."
-    )
+
+    @ApiModelProperty("The name of the port.")
     public String getName() {
         return name;
     }
@@ -104,12 +77,8 @@ public class PortStatusDTO extends StatusDTO {
         this.name = name;
     }
 
-    /**
-     * @return run status of this port
-     */
-    @ApiModelProperty(
-            value = "The run status of the port."
-    )
+
+    @ApiModelProperty("The run status of the port.")
     public String getRunStatus() {
         return runStatus;
     }
@@ -118,32 +87,40 @@ public class PortStatusDTO extends StatusDTO {
         this.runStatus = runStatus;
     }
 
+    @ApiModelProperty("A status snapshot that represents the aggregate stats of all nodes in the cluster. If the NiFi instance is "
+        + "a standalone instance, rather than a cluster, this represents the stats of the single instance.")
+    public PortStatusSnapshotDTO getAggregateSnapshot() {
+        return aggregateSnapshot;
+    }
+
+    public void setAggregateSnapshot(PortStatusSnapshotDTO aggregateSnapshot) {
+        this.aggregateSnapshot = aggregateSnapshot;
+    }
+
+    @ApiModelProperty("A status snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+        + "a cluster, this may be null.")
+    public List<NodePortStatusSnapshotDTO> getNodeSnapshots() {
+        return nodeSnapshots;
+    }
+
+    public void setNodeSnapshots(List<NodePortStatusSnapshotDTO> nodeSnapshots) {
+        this.nodeSnapshots = nodeSnapshots;
+    }
+
     /**
-     * @return The total count and size of flow files that have been accepted in the last five minutes
+     * When the status for this process group was calculated.
+     *
+     * @return The the status was calculated
      */
+    @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "The count/size of flowfiles that have been accepted in the last 5 minutes."
+        value = "The time the status for the process group was last refreshed."
     )
-    public String getInput() {
-        return input;
+    public Date getStatsLastRefreshed() {
+        return statsLastRefreshed;
     }
 
-    public void setInput(String input) {
-        this.input = input;
+    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+        this.statsLastRefreshed = statsLastRefreshed;
     }
-
-    /**
-     * @return The total count and size of flow files that have been processed in the last five minutes
-     */
-    @ApiModelProperty(
-            value = "The count/size of flowfiles that have been processed in the last 5 minutes."
-    )
-    public String getOutput() {
-        return output;
-    }
-
-    public void setOutput(String output) {
-        this.output = output;
-    }
-
 }

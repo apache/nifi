@@ -14,32 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.dto.status;
+package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.List;
-import javax.xml.bind.annotation.XmlType;
-import org.apache.nifi.web.api.dto.BulletinDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * The status of a component in this NiFi.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ConnectionStatusDTO.
  */
-@XmlType(name = "status")
-public abstract class StatusDTO {
+@XmlRootElement(name = "connectionStatusEntity")
+public class ConnectionStatusEntity extends Entity {
 
-    private List<BulletinDTO> bulletins;
+    private ConnectionStatusDTO connectionStatus;
 
     /**
-     * @return Bulletins for this component
+     * The ConnectionStatusDTO that is being serialized.
+     *
+     * @return The ConnectionStatusDTO object
      */
-    @ApiModelProperty(
-            value = "The current bulletins for the component."
-    )
-    public List<BulletinDTO> getBulletins() {
-        return bulletins;
+    public ConnectionStatusDTO getConnectionStatus() {
+        return connectionStatus;
     }
 
-    public void setBulletins(List<BulletinDTO> bulletins) {
-        this.bulletins = bulletins;
+    public void setConnectionStatus(ConnectionStatusDTO connectionStatus) {
+        this.connectionStatus = connectionStatus;
     }
+
 }

@@ -28,6 +28,7 @@
                 <div id="cluster-output-port-details">
                     <div id="cluster-output-port-name"></div>
                     <div id="cluster-output-port-id"></div>
+                    <div id="cluster-output-port-group-id" class="hidden"></div>
                 </div>
             </div>
         </div>
