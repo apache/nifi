@@ -333,6 +333,10 @@ public class StandardValidators {
 
     public static final Validator FILE_EXISTS_VALIDATOR = new FileExistsValidator(true);
 
+    private static final String PRINCIPAL_CHAR_CLASS = "[A-Za-z0-9\\\\\\/\\.@]";
+
+    public static final Validator KERB_PRINC_VALIDATOR = createRegexMatchingValidator(Pattern.compile(PRINCIPAL_CHAR_CLASS + "+" +
+      "@" + PRINCIPAL_CHAR_CLASS + "+"));
     //
     //
     // FACTORY METHODS FOR VALIDATORS
