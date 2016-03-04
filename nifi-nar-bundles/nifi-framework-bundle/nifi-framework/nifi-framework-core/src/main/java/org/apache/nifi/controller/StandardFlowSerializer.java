@@ -311,7 +311,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(element, "yieldPeriod", processor.getYieldPeriod());
         addTextElement(element, "bulletinLevel", processor.getBulletinLevel().toString());
         addTextElement(element, "lossTolerant", String.valueOf(processor.isLossTolerant()));
-        addTextElement(element, "scheduledState", processor.getLogicalScheduledState().name());
+        addTextElement(element, "scheduledState", processor.getScheduledState().name());
         addTextElement(element, "schedulingStrategy", processor.getSchedulingStrategy().name());
         addTextElement(element, "runDurationNanos", processor.getRunDuration(TimeUnit.NANOSECONDS));
 
