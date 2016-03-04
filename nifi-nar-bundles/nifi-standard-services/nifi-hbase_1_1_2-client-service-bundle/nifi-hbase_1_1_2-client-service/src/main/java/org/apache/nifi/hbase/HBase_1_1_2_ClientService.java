@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.hbase;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -63,6 +64,8 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.security.auth.login.LoginException;
 
 @Tags({ "hbase", "client"})
 @CapabilityDescription("Implementation of HBaseClientService for HBase 1.1.2. This service can be configured by providing " +
@@ -187,15 +190,17 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 hbaseConfig.set(descriptor.getName(), entry.getValue());
             }
         }
-
         UserGroupInformation.setConfiguration(hbaseConfig);
 
         if (UserGroupInformation.isSecurityEnabled()) {
-            LOG.info("SECURITY IS ENABLED");
-            UserGroupInformation.loginUserFromKeytab(context.getProperty(KERBEROS_PRINCIPAL).getValue(),
-              context.getProperty(KERBEROS_KEYTAB).getValue());
+            try{
+                UserGroupInformation.loginUserFromKeytab(context.getProperty(KERBEROS_PRINCIPAL).getValue(),
+                  context.getProperty(KERBEROS_KEYTAB).getValue());
+                LOG.info("HBase Security Enabled, Logging in as User {}");
+            } catch (Exception e) {
+            }
         } else {
-            LOG.info("SIMPLE AUTHENTICATION");
+            LOG.info("Simple Authentication");
           }
         return ConnectionFactory.createConnection(hbaseConfig);
     }
@@ -213,6 +218,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void put(final String tableName, final Collection<PutFlowFile> puts) throws IOException {
+        UserGroupInformation.getBestUGI(null,null).checkTGTAndReloginFromKeytab();
         try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
             // Create one Put per row....
             final Map<String, Put> rowPuts = new HashMap<>();
@@ -237,6 +243,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void put(final String tableName, final String rowId, final Collection<PutColumn> columns) throws IOException {
+        UserGroupInformation.getBestUGI(null,null).checkTGTAndReloginFromKeytab();
         try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
             Put put = new Put(rowId.getBytes(StandardCharsets.UTF_8));
             for (final PutColumn column : columns) {
@@ -258,7 +265,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             ParseFilter parseFilter = new ParseFilter();
             filter = parseFilter.parseFilterString(filterExpression);
         }
-
+        UserGroupInformation.getBestUGI(null,null).checkTGTAndReloginFromKeytab();
         try (final Table table = connection.getTable(TableName.valueOf(tableName));
              final ResultScanner scanner = getResults(table, columns, filter, minTime)) {
 
