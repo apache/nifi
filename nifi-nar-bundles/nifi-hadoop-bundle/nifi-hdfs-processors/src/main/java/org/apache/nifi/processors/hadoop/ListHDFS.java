@@ -42,8 +42,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
-import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -123,7 +121,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     private volatile Long lastListingTime = null;
     private volatile Set<Path> latestPathsListed = new HashSet<>();
-    private volatile boolean electedPrimaryNode = false;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -158,12 +155,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
         return getIdentifier() + ".lastListingTime." + directory;
     }
 
-    @OnPrimaryNodeStateChange
-    public void onPrimaryNodeChange(final PrimaryNodeState newState) {
-        if ( newState == PrimaryNodeState.ELECTED_PRIMARY_NODE ) {
-            electedPrimaryNode = true;
-        }
-    }
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
@@ -214,44 +205,27 @@ public class ListHDFS extends AbstractHadoopProcessor {
     }
 
 
-    private Long getMinTimestamp(final String directory, final HDFSListing remoteListing) throws IOException {
-        // No cluster-wide state has been recovered. Just use whatever values we already have.
-        if (remoteListing == null) {
-            return lastListingTime;
-        }
-
-        // If our local timestamp is already later than the remote listing's timestamp, use our local info.
-        Long minTimestamp = lastListingTime;
-        if (minTimestamp != null && minTimestamp > remoteListing.getLatestTimestamp().getTime()) {
-            return minTimestamp;
-        }
-
-        // Use the remote listing's information.
-        if (minTimestamp == null || electedPrimaryNode) {
-            this.latestPathsListed = remoteListing.toPaths();
-            this.lastListingTime = remoteListing.getLatestTimestamp().getTime();
-        }
-
-        return minTimestamp;
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final String directory = context.getProperty(DIRECTORY).getValue();
-
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
-        final Long minTimestamp;
+        Long minTimestamp = null;
         try {
             final HDFSListing stateListing;
             final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
             if (stateMap.getVersion() == -1L) {
                 stateListing = null;
+                latestPathsListed = new HashSet<>();
+                lastListingTime = null;
             } else {
                 final Map<String, String> stateValues = stateMap.toMap();
                 stateListing = HDFSListing.fromMap(stateValues);
+
+                if (stateListing != null) {
+                    latestPathsListed = stateListing.toPaths();
+                    lastListingTime = minTimestamp = stateListing.getLatestTimestamp().getTime();
+                }
             }
 
-            minTimestamp = getMinTimestamp(directory, stateListing);
         } catch (final IOException ioe) {
             getLogger().error("Failed to retrieve timestamp of last listing from Distributed Cache Service. Will not perform listing until this is accomplished.");
             context.yield();
@@ -260,6 +234,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         // Pull in any file that is newer than the timestamp that we have.
         final FileSystem hdfs = getFileSystem();
+        final String directory = context.getProperty(DIRECTORY).getValue();
         final boolean recursive = context.getProperty(RECURSE_SUBDIRS).asBoolean();
         final Path rootPath = new Path(directory);
 
@@ -339,6 +314,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     private Set<FileStatus> getStatuses(final Path path, final boolean recursive, final FileSystem hdfs) throws IOException {
         final Set<FileStatus> statusSet = new HashSet<>();
 
+        getLogger().debug("Fetching listing for {}", new Object[] {path});
         final FileStatus[] statuses = hdfs.listStatus(path);
 
         for ( final FileStatus status : statuses ) {
