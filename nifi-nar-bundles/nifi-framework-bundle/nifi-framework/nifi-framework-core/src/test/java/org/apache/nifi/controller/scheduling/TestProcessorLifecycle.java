@@ -98,16 +98,16 @@ public class TestProcessorLifecycle {
                 UUID.randomUUID().toString());
 
         assertEquals(ScheduledState.STOPPED, testProcNode.getScheduledState());
-        assertEquals(ScheduledState.STOPPED, testProcNode.getLogicalScheduledState());
+        assertEquals(ScheduledState.STOPPED, testProcNode.getPhysicalScheduledState());
         // validates idempotency
         for (int i = 0; i < 2; i++) {
             testProcNode.enable();
         }
         assertEquals(ScheduledState.STOPPED, testProcNode.getScheduledState());
-        assertEquals(ScheduledState.STOPPED, testProcNode.getLogicalScheduledState());
+        assertEquals(ScheduledState.STOPPED, testProcNode.getPhysicalScheduledState());
         testProcNode.disable();
         assertEquals(ScheduledState.DISABLED, testProcNode.getScheduledState());
-        assertEquals(ScheduledState.DISABLED, testProcNode.getLogicalScheduledState());
+        assertEquals(ScheduledState.DISABLED, testProcNode.getPhysicalScheduledState());
         fc.shutdown(true);
     }
 
@@ -121,17 +121,17 @@ public class TestProcessorLifecycle {
                 UUID.randomUUID().toString());
         testProcNode.setProperty("P", "hello");
         assertEquals(ScheduledState.STOPPED, testProcNode.getScheduledState());
-        assertEquals(ScheduledState.STOPPED, testProcNode.getLogicalScheduledState());
+        assertEquals(ScheduledState.STOPPED, testProcNode.getPhysicalScheduledState());
         // validates idempotency
         for (int i = 0; i < 2; i++) {
             testProcNode.disable();
         }
         assertEquals(ScheduledState.DISABLED, testProcNode.getScheduledState());
-        assertEquals(ScheduledState.DISABLED, testProcNode.getLogicalScheduledState());
+        assertEquals(ScheduledState.DISABLED, testProcNode.getPhysicalScheduledState());
 
         ProcessScheduler ps = fc.getProcessScheduler();
         ps.startProcessor(testProcNode);
-        assertEquals(ScheduledState.DISABLED, testProcNode.getLogicalScheduledState());
+        assertEquals(ScheduledState.DISABLED, testProcNode.getPhysicalScheduledState());
 
         fc.shutdown(true);
     }
@@ -322,13 +322,13 @@ public class TestProcessorLifecycle {
 
         ps.startProcessor(testProcNode);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
-        assertTrue(testProcNode.getLogicalScheduledState() == ScheduledState.RUNNING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
 
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPING);
-        assertTrue(testProcNode.getLogicalScheduledState() == ScheduledState.STOPPED);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         Thread.sleep(1000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
 
@@ -359,9 +359,9 @@ public class TestProcessorLifecycle {
 
         ps.startProcessor(testProcNode);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         Thread.sleep(100);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
         ps.stopProcessor(testProcNode);
@@ -392,12 +392,12 @@ public class TestProcessorLifecycle {
 
         ps.startProcessor(testProcNode);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPING);
         Thread.sleep(500);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         fc.shutdown(true);
@@ -422,12 +422,12 @@ public class TestProcessorLifecycle {
 
         ps.startProcessor(testProcNode);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPING);
         Thread.sleep(4000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         fc.shutdown(true);
@@ -452,17 +452,17 @@ public class TestProcessorLifecycle {
 
         ps.startProcessor(testProcNode);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         Thread.sleep(1000);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         ps.disableProcessor(testProcNode); // no effect
         Thread.sleep(100);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STARTING);
-        assertTrue(testProcNode.getLogicalScheduledState() == ScheduledState.RUNNING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
+        assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPING);
-        assertTrue(testProcNode.getLogicalScheduledState() == ScheduledState.STOPPED);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         Thread.sleep(4000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         fc.shutdown(true);

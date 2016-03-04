@@ -1644,7 +1644,7 @@ public final class DtoFactory {
 
         dto.setType(node.getProcessor().getClass().getCanonicalName());
         dto.setName(node.getName());
-        dto.setState(node.getLogicalScheduledState().toString());
+        dto.setState(node.getScheduledState().toString());
 
         // build the relationship dtos
         final List<RelationshipDTO> relationships = new ArrayList<>();

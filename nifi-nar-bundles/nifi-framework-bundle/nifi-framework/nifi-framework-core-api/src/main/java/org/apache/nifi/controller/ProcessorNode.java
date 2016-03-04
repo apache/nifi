@@ -113,17 +113,6 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
      */
     @Override
     public ScheduledState getScheduledState() {
-        return this.scheduledState.get();
-    }
-
-    /**
-     * Returns the logical state of this processor. Logical state ignores
-     * transition states such as STOPPING and STARTING rounding it up to the
-     * next logical state of STOPPED and RUNNING respectively.
-     *
-     * @return the logical state of this processor [DISABLED, STOPPED, RUNNING]
-     */
-    public ScheduledState getLogicalScheduledState() {
         ScheduledState sc = this.scheduledState.get();
         if (sc == ScheduledState.STARTING) {
             return ScheduledState.RUNNING;
@@ -131,6 +120,17 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
             return ScheduledState.STOPPED;
         }
         return sc;
+    }
+
+    /**
+     * Returns the physical state of this processor which includes transition
+     * states such as STOPPING and STARTING.
+     *
+     * @return the physical state of this processor [DISABLED, STOPPED, RUNNING,
+     *         STARTIING, STOPIING]
+     */
+    public ScheduledState getPhysicalScheduledState() {
+        return this.scheduledState.get();
     }
 
     /**
