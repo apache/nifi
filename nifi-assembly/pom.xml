@@ -277,6 +277,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-amqp-nar</artifactId>
             <type>nar</type>
         </dependency>
+         <dependency>
+  <groupId>org.apache.nifi</groupId>
+  <artifactId>nifi-camel-nar</artifactId>
+  <type>nar</type>
+</dependency>
     </dependencies>
 
     <properties>
@@ -350,7 +355,7 @@ language governing permissions and limitations under the License. -->
         <nifi.provenance.repository.query.threads>2</nifi.provenance.repository.query.threads>
         <nifi.provenance.repository.index.threads>1</nifi.provenance.repository.index.threads>
         <nifi.provenance.repository.compress.on.rollover>true</nifi.provenance.repository.compress.on.rollover>
-        <nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID, Filename, ProcessorID, Relationship</nifi.provenance.repository.indexed.fields> 
+        <nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID, Filename, ProcessorID, Relationship</nifi.provenance.repository.indexed.fields>
         <nifi.provenance.repository.indexed.attributes />
         <nifi.provenance.repository.index.shard.size>500 MB</nifi.provenance.repository.index.shard.size>
         <nifi.provenance.repository.always.sync>false</nifi.provenance.repository.always.sync>
