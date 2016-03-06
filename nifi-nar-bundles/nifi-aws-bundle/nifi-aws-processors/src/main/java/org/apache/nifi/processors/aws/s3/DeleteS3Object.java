@@ -40,7 +40,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 
 @SupportsBatching
-@SeeAlso({PutS3Object.class, FetchS3Object.class})
+@SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Delete"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Deletes FlowFiles on an Amazon S3 Bucket. " +
