@@ -19,9 +19,13 @@ package org.apache.nifi.processors.aws.dynamodb;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
@@ -29,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
@@ -49,6 +54,9 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
  * @see GetDynamoDB
  */
 public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonDynamoDBClient> {
+
+    public static final Relationship REL_UNPROCESSED = new Relationship.Builder().name("unprocessed")
+            .description("FlowFiles are routed to unprocessed relationship").build();
 
     public static final AllowableValue ALLOWABLE_VALUE_STRING = new AllowableValue("string");
     public static final AllowableValue ALLOWABLE_VALUE_NUMBER = new AllowableValue("number");
@@ -152,6 +160,14 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
 
     protected DynamoDB dynamoDB;
 
+    public static final Set<Relationship> dynamoDBrelationships = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_UNPROCESSED)));
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return dynamoDBrelationships;
+    }
+
     /**
      * Create client using credentials provider. This is the preferred way for creating clients
      */
@@ -183,6 +199,14 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             return context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue();
         } else {
             return new BigDecimal(context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue());
+        }
+    }
+
+    protected Object getAttributeValue(ProcessContext context, PropertyDescriptor propertyType, AttributeValue value) {
+        if ( context.getProperty(propertyType).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
+            return value.getS();
+        } else {
+            return new BigDecimal(value.getN());
         }
     }
 
@@ -254,14 +278,14 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
      * @param hashKeyValue the items hash key value
      * @param rangeKeyValue the items hash key value
      */
-    protected void sendUnhandledToFailure(final ProcessSession session, Map<ItemKeys, FlowFile> keysToFlowFileMap, Object hashKeyValue, Object rangeKeyValue) {
+    protected void sendUnprocessedToUnprocessedRelationship(final ProcessSession session, Map<ItemKeys, FlowFile> keysToFlowFileMap, Object hashKeyValue, Object rangeKeyValue) {
         ItemKeys itemKeys = new ItemKeys(hashKeyValue, rangeKeyValue);
 
         FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
         flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString());
-        session.transfer(flowFile,REL_FAILURE);
+        session.transfer(flowFile,REL_UNPROCESSED);
 
-        getLogger().error("Unhandled key " + itemKeys + " for flow file " + flowFile);
+        getLogger().error("Unprocessed key " + itemKeys + " for flow file " + flowFile);
 
         keysToFlowFileMap.remove(itemKeys);
     }

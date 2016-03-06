@@ -114,9 +114,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunnerAfterDelete.enqueue(new byte[] {});
 
         getRunnerAfterDelete.run(1);
-        getRunnerAfterDelete.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        getRunnerAfterDelete.assertAllFlowFilesTransferred(GetDynamoDB.REL_NOT_FOUND, 1);
 
-        flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(GetDynamoDB.REL_NOT_FOUND);
         for (MockFlowFile flowFile : flowFiles) {
             String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
             assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
@@ -318,9 +318,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunnerAfterDelete.enqueue(new byte[] {});
 
         getRunnerAfterDelete.run(1);
-        getRunnerAfterDelete.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        getRunnerAfterDelete.assertAllFlowFilesTransferred(GetDynamoDB.REL_NOT_FOUND, 1);
 
-        flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(GetDynamoDB.REL_NOT_FOUND);
         for (MockFlowFile flowFile : flowFiles) {
             String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
             assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
@@ -416,9 +416,9 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         getRunnerAfterDelete.enqueue(new byte[] {});
 
         getRunnerAfterDelete.run(1);
-        getRunnerAfterDelete.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        getRunnerAfterDelete.assertAllFlowFilesTransferred(GetDynamoDB.REL_NOT_FOUND, 1);
 
-        flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(GetDynamoDB.REL_NOT_FOUND);
         for (MockFlowFile flowFile : flowFiles) {
             String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
             assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));

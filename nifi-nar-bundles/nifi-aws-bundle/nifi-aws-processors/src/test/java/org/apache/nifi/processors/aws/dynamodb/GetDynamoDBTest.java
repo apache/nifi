@@ -20,14 +20,139 @@ import static org.junit.Assert.assertNotNull;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
 import org.junit.Test;
 
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.dynamodbv2.document.BatchGetItemOutcome;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.TableKeysAndAttributes;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.BatchGetItemResult;
+import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
+
 public class GetDynamoDBTest {
+    protected GetDynamoDB getDynamoDB;
+    protected BatchGetItemOutcome outcome;
+    protected BatchGetItemResult result = new BatchGetItemResult();
+
+    @Before
+    public void setUp() {
+        outcome = new BatchGetItemOutcome(result);
+        KeysAndAttributes kaa = new KeysAndAttributes();
+        Map<String,AttributeValue> map = new HashMap<>();
+        map.put("hashS", new AttributeValue("h1"));
+        map.put("rangeS", new AttributeValue("r1"));
+        kaa.withKeys(map);
+        Map<String,KeysAndAttributes> unprocessed = new HashMap<>();
+        unprocessed.put(stringHashStringRangeTableName, kaa);
+
+        result.withUnprocessedKeys(unprocessed);
+
+        Map<String,List<Map<String,AttributeValue>>> responses = new HashMap<>();
+        List<Map<String,AttributeValue>> items = new ArrayList<>();
+        responses.put("StringHashStringRangeTable", items);
+        result.withResponses(responses);
+
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+
+            @Override
+            public BatchGetItemOutcome batchGetItem(TableKeysAndAttributes... tableKeysAndAttributes) {
+                return outcome;
+            }
+
+        };
+
+        getDynamoDB = new GetDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+
+    }
+
+    @Test
+    public void testStringHashStringRangeGetUnprocessed() {
+        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
+
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        getRunner.enqueue(new byte[] {});
+
+        getRunner.run(1);
+
+        getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_UNPROCESSED, 1);
+
+        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangeGetNotFound() {
+        result.clearResponsesEntries();
+        result.clearUnprocessedKeysEntries();
+
+        final BatchGetItemOutcome notFoundOutcome = new BatchGetItemOutcome(result);
+        Map<String,List<Map<String,AttributeValue>>> responses = new HashMap<>();
+        List<Map<String,AttributeValue>> items = new ArrayList<>();
+        responses.put(stringHashStringRangeTableName, items);
+        result.withResponses(responses);
+
+        final DynamoDB notFoundMockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchGetItemOutcome batchGetItem(TableKeysAndAttributes... tableKeysAndAttributes) {
+                return notFoundOutcome;
+            }
+        };
+
+        final GetDynamoDB getDynamoDB = new GetDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return notFoundMockDynamoDB;
+            }
+        };
+        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
+
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        getRunner.enqueue(new byte[] {});
+
+        getRunner.run(1);
+
+        getRunner.assertAllFlowFilesTransferred(GetDynamoDB.REL_NOT_FOUND, 1);
+
+        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND));
+        }
+
+    }
 
     @Test
     public void testStringHashStringRangeGetOnlyHashFailure() {

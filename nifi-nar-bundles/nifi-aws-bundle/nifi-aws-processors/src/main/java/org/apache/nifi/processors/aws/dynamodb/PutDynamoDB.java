@@ -47,6 +47,8 @@ import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
 @SupportsBatching
 @SeeAlso({DeleteDynamoDB.class, GetDynamoDB.class})
@@ -147,7 +149,7 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
-            handleUnprocessedPutItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
+            handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
                 rangeKeyValueType, outcome);
 
             // Handle any remaining flowfiles
@@ -169,4 +171,12 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected Map<String, AttributeValue> getRequestItem(WriteRequest writeRequest) {
+        return writeRequest.getPutRequest().getItem();
+    }
+
 }

@@ -134,7 +134,7 @@ public class DeleteDynamoDBTest {
 
         deleteRunner.run(1);
 
-        deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_UNPROCESSED, 1);
 
     }
 

@@ -20,8 +20,10 @@ import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -38,6 +40,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -78,6 +81,17 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                 HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY,
                 CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
 
+    public static final Relationship REL_NOT_FOUND = new Relationship.Builder().name("Not Found")
+            .description("FlowFiles are routed to not found relationship if key not found in the table").build();
+
+    public static final Set<Relationship> getDynamoDBrelationships = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_UNPROCESSED, REL_NOT_FOUND)));
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return getDynamoDBrelationships;
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -97,7 +111,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
 
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).getValue();
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).getValue();
-        final String jsonDocument = context.getProperty(JSON_DOCUMENT).getValue();
+       final String jsonDocument = context.getProperty(JSON_DOCUMENT).getValue();
 
         for (FlowFile flowFile : flowFiles) {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
@@ -149,9 +163,9 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                 List<Map<String, AttributeValue>> keys = keysAndAttributes.getKeys();
 
                 for (Map<String,AttributeValue> unprocessedKey : keys) {
-                    Object hashKeyValue = unprocessedKey.get(hashKeyName);
-                    Object rangeKeyValue = unprocessedKey.get(rangeKeyName);
-                    sendUnhandledToFailure(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
+                    Object hashKeyValue = getAttributeValue(context, HASH_KEY_VALUE_TYPE, unprocessedKey.get(hashKeyName));
+                    Object rangeKeyValue = getAttributeValue(context, RANGE_KEY_VALUE_TYPE, unprocessedKey.get(rangeKeyName));
+                    sendUnprocessedToUnprocessedRelationship(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
                 }
             }
 
@@ -159,7 +173,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             for (ItemKeys key : keysToFlowFileMap.keySet()) {
                 FlowFile flowFile = keysToFlowFileMap.get(key);
                 flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_NOT_FOUND, DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE + key.toString() );
-                session.transfer(flowFile,REL_FAILURE);
+                session.transfer(flowFile,REL_NOT_FOUND);
                 keysToFlowFileMap.remove(key);
             }
 

@@ -222,7 +222,7 @@ public class PutDynamoDBTest  {
 
         putRunner.run(1);
 
-        putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_UNPROCESSED, 1);
 
     }
 

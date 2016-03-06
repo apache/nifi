@@ -43,6 +43,8 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
 @SupportsBatching
 @SeeAlso({GetDynamoDB.class, PutDynamoDB.class})
@@ -127,7 +129,7 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
 
-            handleUnprocessedDeleteItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
+            handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
                rangeKeyValueType, outcome);
 
             // All non unprocessed items are successful
@@ -148,5 +150,12 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected Map<String, AttributeValue> getRequestItem(WriteRequest writeRequest) {
+        return writeRequest.getDeleteRequest().getKey();
     }
 }
