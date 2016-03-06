@@ -47,6 +47,7 @@ import static org.junit.Assert.fail;
  * @see ITDeleteS3Object
  * @see ITFetchS3Object
  * @see ITPutS3Object
+ * @see ITListS3
  */
 public abstract class AbstractS3IT {
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
