@@ -124,6 +124,25 @@ public class TestJdbcCommon {
     }
 
     @Test
+    public void testCreateSchemaNoTableName() throws ClassNotFoundException, SQLException {
+
+        final ResultSet resultSet = mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(1);
+        when(resultSetMetaData.getTableName(1)).thenReturn("");
+        when(resultSetMetaData.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(resultSetMetaData.getColumnName(1)).thenReturn("ID");
+
+        final Schema schema = JdbcCommon.createSchema(resultSet);
+        assertNotNull(schema);
+
+        // records name, should be result set first column table name
+        assertEquals("NiFi_ExecuteSQL_Record", schema.getName());
+
+    }
+
+    @Test
     public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
         // remove previous test database, if any
         folder.delete();
