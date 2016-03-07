@@ -129,17 +129,20 @@ public class SSLSocketChannelHandler<E extends Event<SocketChannel>> extends Soc
         // go through the buffer looking for the end of each message
         for (int i = 0; i < bytesRead; i++) {
             final byte currByte = buffer[i];
-            currBytes.write(currByte);
 
             // check if at end of a message
             if (currByte == getDelimiter()) {
-                final SSLSocketChannelResponder response = new SSLSocketChannelResponder(socketChannel, sslSocketChannel);
-                final Map<String,String> metadata = EventFactoryUtil.createMapWithSender(sender.toString());
+                if (currBytes.size() > 0) {
+                    final SSLSocketChannelResponder response = new SSLSocketChannelResponder(socketChannel, sslSocketChannel);
+                    final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender.toString());
 
-                // queue the raw event blocking until space is available, reset the temporary buffer
-                final E event = eventFactory.create(currBytes.toByteArray(), metadata, response);
-                events.put(event);
-                currBytes.reset();
+                    // queue the raw event blocking until space is available, reset the temporary buffer
+                    final E event = eventFactory.create(currBytes.toByteArray(), metadata, response);
+                    events.put(event);
+                    currBytes.reset();
+                }
+            } else {
+                currBytes.write(currByte);
             }
         }
     }

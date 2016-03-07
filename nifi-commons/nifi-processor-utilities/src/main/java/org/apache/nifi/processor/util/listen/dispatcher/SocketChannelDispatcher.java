@@ -22,6 +22,7 @@ import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
+import org.apache.nifi.security.util.SslContextFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -56,6 +57,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
     private final ProcessorLog logger;
     private final int maxConnections;
     private final SSLContext sslContext;
+    private final SslContextFactory.ClientAuth clientAuth;
     private final Charset charset;
 
     private ExecutorService executor;
@@ -63,7 +65,6 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
     private Selector selector;
     private final BlockingQueue<SelectionKey> keyQueue;
     private final AtomicInteger currentConnections = new AtomicInteger(0);
-
 
     public SocketChannelDispatcher(final EventFactory<E> eventFactory,
                                    final ChannelHandlerFactory<E, AsyncChannelDispatcher> handlerFactory,
@@ -73,6 +74,18 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                                    final int maxConnections,
                                    final SSLContext sslContext,
                                    final Charset charset) {
+        this(eventFactory, handlerFactory, bufferPool, events, logger, maxConnections, sslContext, SslContextFactory.ClientAuth.REQUIRED, charset);
+    }
+
+    public SocketChannelDispatcher(final EventFactory<E> eventFactory,
+                                   final ChannelHandlerFactory<E, AsyncChannelDispatcher> handlerFactory,
+                                   final BlockingQueue<ByteBuffer> bufferPool,
+                                   final BlockingQueue<E> events,
+                                   final ProcessorLog logger,
+                                   final int maxConnections,
+                                   final SSLContext sslContext,
+                                   final SslContextFactory.ClientAuth clientAuth,
+                                   final Charset charset) {
         this.eventFactory = eventFactory;
         this.handlerFactory = handlerFactory;
         this.bufferPool = bufferPool;
@@ -81,6 +94,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
         this.maxConnections = maxConnections;
         this.keyQueue = new LinkedBlockingQueue<>(maxConnections);
         this.sslContext = sslContext;
+        this.clientAuth = clientAuth;
         this.charset = charset;
 
         if (bufferPool == null || bufferPool.size() == 0 || bufferPool.size() != maxConnections) {
@@ -152,7 +166,22 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                             SSLSocketChannel sslSocketChannel = null;
                             if (sslContext != null) {
                                 final SSLEngine sslEngine = sslContext.createSSLEngine();
-                                sslSocketChannel = new SSLSocketChannel(sslEngine, socketChannel, false);
+                                sslEngine.setUseClientMode(false);
+
+                                switch (clientAuth) {
+                                    case REQUIRED:
+                                        sslEngine.setNeedClientAuth(true);
+                                        break;
+                                    case WANT:
+                                        sslEngine.setWantClientAuth(true);
+                                        break;
+                                    case NONE:
+                                        sslEngine.setNeedClientAuth(false);
+                                        sslEngine.setWantClientAuth(false);
+                                        break;
+                                }
+
+                                sslSocketChannel = new SSLSocketChannel(sslEngine, socketChannel);
                             }
 
                             // Attach the buffer and SSLSocketChannel to the key

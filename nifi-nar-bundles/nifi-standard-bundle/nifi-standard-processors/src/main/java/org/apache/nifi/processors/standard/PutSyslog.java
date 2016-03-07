@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,19 +34,17 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.put.sender.ChannelSender;
+import org.apache.nifi.processor.util.put.sender.DatagramChannelSender;
+import org.apache.nifi.processor.util.put.sender.SSLSocketChannelSender;
+import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
 import org.apache.nifi.processors.standard.syslog.SyslogParser;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -81,12 +78,13 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .defaultValue("localhost")
             .required(true)
             .build();
-    public static final PropertyDescriptor SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
-            .name("Send Buffer Size")
-            .description("The size of each buffer used to send a Syslog message. Adjust this value appropriately based on the expected size of the " +
-                    "Syslog messages being produced. Messages larger than this buffer size will still be sent, but will not make use of the buffer pool.")
+    public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Size of Socket Send Buffer")
+            .description("The maximum size of the socket send buffer that should be used. This is a suggestion to the Operating System " +
+                    "to indicate how big the socket buffer should be. If this value is set too low, the buffer may fill up before " +
+                    "the data can be read, and incoming data will be dropped.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .defaultValue("2048 B")
+            .defaultValue("1 MB")
             .required(true)
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor
@@ -164,8 +162,6 @@ public class PutSyslog extends AbstractSyslogProcessor {
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
-
-    private volatile BlockingQueue<ByteBuffer> bufferPool;
     private volatile BlockingQueue<ChannelSender> senderPool;
 
     @Override
@@ -174,9 +170,10 @@ public class PutSyslog extends AbstractSyslogProcessor {
         descriptors.add(HOSTNAME);
         descriptors.add(PROTOCOL);
         descriptors.add(PORT);
+        descriptors.add(MAX_SOCKET_SEND_BUFFER_SIZE);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(IDLE_EXPIRATION);
-        descriptors.add(SEND_BUFFER_SIZE);
+        descriptors.add(TIMEOUT);
         descriptors.add(BATCH_SIZE);
         descriptors.add(CHARSET);
         descriptors.add(MSG_PRIORITY);
@@ -221,40 +218,40 @@ public class PutSyslog extends AbstractSyslogProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final int bufferSize = context.getProperty(SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        this.bufferPool = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
-        for (int i=0; i < context.getMaxConcurrentTasks(); i++) {
-            this.bufferPool.offer(ByteBuffer.allocate(bufferSize));
-        }
-
         // initialize the queue of senders, one per task, senders will get created on the fly in onTrigger
         this.senderPool = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
     }
 
-    protected ChannelSender createSender(final ProcessContext context, final BlockingQueue<ByteBuffer> bufferPool) throws IOException {
+    protected ChannelSender createSender(final ProcessContext context) throws IOException {
         final int port = context.getProperty(PORT).asInteger();
         final String host = context.getProperty(HOSTNAME).getValue();
         final String protocol = context.getProperty(PROTOCOL).getValue();
-        final String charSet = context.getProperty(CHARSET).getValue();
+        final int maxSendBuffer = context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final int timeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        return createSender(sslContextService, protocol, host, port, Charset.forName(charSet), bufferPool);
+        return createSender(sslContextService, protocol, host, port, maxSendBuffer, timeout);
     }
 
     // visible for testing to override and provide a mock sender if desired
-    protected ChannelSender createSender(final SSLContextService sslContextService, final String protocol, final String host, final int port,
-                                         final Charset charset, final BlockingQueue<ByteBuffer> bufferPool)
+    protected ChannelSender createSender(final SSLContextService sslContextService, final String protocol, final String host,
+                                         final int port, final int maxSendBufferSize, final int timeout)
             throws IOException {
+
+        ChannelSender sender;
         if (protocol.equals(UDP_VALUE.getValue())) {
-            return new DatagramChannelSender(host, port, bufferPool, charset);
+            sender = new DatagramChannelSender(host, port, maxSendBufferSize, getLogger());
         } else {
             // if an SSLContextService is provided then we make a secure sender
             if (sslContextService != null) {
                 final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
-                return new SSLSocketChannelSender(sslContext, host, port, bufferPool, charset);
+                sender = new SSLSocketChannelSender(host, port, maxSendBufferSize, sslContext, getLogger());
             } else {
-                return new SocketChannelSender(host, port, bufferPool, charset);
+                sender = new SocketChannelSender(host, port, maxSendBufferSize, getLogger());
             }
         }
+        sender.setTimeout(timeout);
+        sender.open();
+        return sender;
     }
 
     @OnStopped
@@ -275,7 +272,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         // if a connection hasn't been used with in the threshold then it gets closed
         ChannelSender sender;
         while ((sender = senderPool.poll()) != null) {
-            if (currentTime > (sender.lastUsed + idleThreshold)) {
+            if (currentTime > (sender.getLastUsed() + idleThreshold)) {
                 getLogger().debug("Closing idle connection...");
                 sender.close();
             } else {
@@ -309,7 +306,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         if (sender == null) {
             try {
                 getLogger().debug("No available connections, creating a new one...");
-                sender = createSender(context, bufferPool);
+                sender = createSender(context);
             } catch (IOException e) {
                 for (final FlowFile flowFile : flowFiles) {
                     getLogger().error("No available connections, and unable to create a new one, transferring {} to failure",
@@ -325,6 +322,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         final String host = context.getProperty(HOSTNAME).getValue();
         final String transitUri = new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
         final ObjectHolder<IOException> exceptionHolder = new ObjectHolder<>(null);
+        final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
 
         try {
             for (FlowFile flowFile : flowFiles) {
@@ -352,7 +350,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
                             messageBuilder.append('\n');
                         }
 
-                        sender.send(messageBuilder.toString());
+                        sender.send(messageBuilder.toString(), charSet);
                         timer.stop();
 
                         final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
@@ -396,157 +394,4 @@ public class PutSyslog extends AbstractSyslogProcessor {
         return false;
     }
 
-    /**
-     * Base class for sending messages over a channel.
-     */
-    protected static abstract class ChannelSender {
-
-        final int port;
-        final String host;
-        final BlockingQueue<ByteBuffer> bufferPool;
-        final Charset charset;
-        volatile long lastUsed;
-
-        ChannelSender(final String host, final int port, final BlockingQueue<ByteBuffer> bufferPool, final Charset charset) throws IOException {
-            this.port = port;
-            this.host = host;
-            this.bufferPool = bufferPool;
-            this.charset = charset;
-        }
-
-        public void send(final String message) throws IOException {
-            final byte[] bytes = message.getBytes(charset);
-
-            boolean shouldReturn = true;
-            ByteBuffer buffer = bufferPool.poll();
-            if (buffer == null) {
-                buffer = ByteBuffer.allocate(bytes.length);
-                shouldReturn = false;
-            } else if (buffer.limit() < bytes.length) {
-                // we need a large buffer so return the one we got and create a new bigger one
-                bufferPool.offer(buffer);
-                buffer = ByteBuffer.allocate(bytes.length);
-                shouldReturn = false;
-            }
-
-            try {
-                buffer.clear();
-                buffer.put(bytes);
-                buffer.flip();
-                write(buffer);
-                lastUsed = System.currentTimeMillis();
-            } finally {
-                if (shouldReturn) {
-                    bufferPool.offer(buffer);
-                }
-            }
-        }
-
-        // write the given buffer to the underlying channel
-        abstract void write(ByteBuffer buffer) throws IOException;
-
-        // returns true if the underlying channel is connected
-        abstract boolean isConnected();
-
-        // close the underlying channel
-        abstract void close();
-    }
-
-    /**
-     * Sends messages over a DatagramChannel.
-     */
-    private static class DatagramChannelSender extends ChannelSender {
-
-        final DatagramChannel channel;
-
-        DatagramChannelSender(final String host, final int port, final BlockingQueue<ByteBuffer> bufferPool, final Charset charset) throws IOException {
-            super(host, port, bufferPool, charset);
-            this.channel = DatagramChannel.open();
-            this.channel.connect(new InetSocketAddress(InetAddress.getByName(host), port));
-        }
-
-        @Override
-        public void write(ByteBuffer buffer) throws IOException {
-            while (buffer.hasRemaining()) {
-                channel.write(buffer);
-            }
-        }
-
-        @Override
-        boolean isConnected() {
-            return channel != null && channel.isConnected();
-        }
-
-        @Override
-        public void close() {
-            IOUtils.closeQuietly(channel);
-        }
-    }
-
-    /**
-     * Sends messages over a SocketChannel.
-     */
-    private static class SocketChannelSender extends ChannelSender {
-
-        final SocketChannel channel;
-
-        SocketChannelSender(final String host, final int port, final BlockingQueue<ByteBuffer> bufferPool, final Charset charset) throws IOException {
-            super(host, port, bufferPool, charset);
-            this.channel = SocketChannel.open();
-            this.channel.connect(new InetSocketAddress(InetAddress.getByName(host), port));
-        }
-
-        @Override
-        public void write(ByteBuffer buffer) throws IOException {
-            while (buffer.hasRemaining()) {
-                channel.write(buffer);
-            }
-        }
-
-        @Override
-        boolean isConnected() {
-            return channel != null && channel.isConnected();
-        }
-
-        @Override
-        public void close() {
-            IOUtils.closeQuietly(channel);
-        }
-    }
-
-    /**
-     * Sends messages over an SSLSocketChannel.
-     */
-    private static class SSLSocketChannelSender extends ChannelSender {
-
-        final SSLSocketChannel channel;
-
-        SSLSocketChannelSender(final SSLContext sslContext, final String host, final int port, final BlockingQueue<ByteBuffer> bufferPool, final Charset charset) throws IOException {
-            super(host, port, bufferPool, charset);
-            this.channel = new SSLSocketChannel(sslContext, host, port, true);
-            this.channel.connect();
-        }
-
-        @Override
-        public void send(final String message) throws IOException {
-            final byte[] bytes = message.getBytes(charset);
-            channel.write(bytes);
-            lastUsed = System.currentTimeMillis();
-        }
-
-        @Override
-        public void write(ByteBuffer buffer) throws IOException {
-            // nothing to do here since we are overriding send() above
-        }
-
-        @Override
-        boolean isConnected() {
-            return channel != null && !channel.isClosed();
-        }
-
-        @Override
-        public void close() {
-            IOUtils.closeQuietly(channel);
-        }
-    }
 }

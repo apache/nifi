@@ -220,6 +220,10 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         return errorEvents.size();
     }
 
+    public int getQueueSize() {
+        return events == null ? 0 : events.size();
+    }
+
     @OnUnscheduled
     public void onUnscheduled() {
         if (dispatcher != null) {

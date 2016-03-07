@@ -54,6 +54,7 @@
         <module>nifi-scripting-bundle</module>
         <module>nifi-elasticsearch-bundle</module>
         <module>nifi-amqp-bundle</module>
+	<module>nifi-splunk-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>

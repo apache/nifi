@@ -275,6 +275,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-amqp-nar</artifactId>
+	        <type>nar</type>
+	    </dependency>
+	    <dependency>
+	        <groupId>org.apache.nifi</groupId>
+	        <artifactId>nifi-splunk-nar</artifactId>
             <type>nar</type>
         </dependency>
     </dependencies>
