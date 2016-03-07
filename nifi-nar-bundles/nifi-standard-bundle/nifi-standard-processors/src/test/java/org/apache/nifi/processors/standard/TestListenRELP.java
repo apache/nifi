@@ -194,11 +194,24 @@ public class TestListenRELP {
             // send the frames to the port the processors is listening on
             sendFrames(frames, socket);
 
-            // call onTrigger until we processed all the frames, or a certain amount of time passes
-            long responseTimeout = 10000;
-            long startTime = System.currentTimeMillis();
-            while (proc.responses.size() < expectedTransferred
-                    && (System.currentTimeMillis() - startTime < responseTimeout)) {
+            long responseTimeout = 30000;
+
+            // this first loop waits until the internal queue of the processor has the expected
+            // number of messages ready before proceeding, we want to guarantee they are all there
+            // before onTrigger gets a chance to run
+            long startTimeQueueSizeCheck = System.currentTimeMillis();
+            while (proc.getQueueSize() < expectedResponses
+                    && (System.currentTimeMillis() - startTimeQueueSizeCheck < responseTimeout)) {
+                Thread.sleep(100);
+            }
+
+            // want to fail here if the queue size isn't what we expect
+            Assert.assertEquals(expectedResponses, proc.getQueueSize());
+
+            // call onTrigger until we got a respond for all the frames, or a certain amount of time passes
+            long startTimeProcessing = System.currentTimeMillis();
+            while (proc.responses.size() < expectedResponses
+                    && (System.currentTimeMillis() - startTimeProcessing < responseTimeout)) {
                 proc.onTrigger(context, processSessionFactory);
                 Thread.sleep(100);
             }
@@ -221,7 +234,6 @@ public class TestListenRELP {
         for (final RELPFrame frame : frames) {
             byte[] encodedFrame = encoder.encode(frame);
             socket.getOutputStream().write(encodedFrame);
-            Thread.sleep(1);
         }
         socket.getOutputStream().flush();
     }

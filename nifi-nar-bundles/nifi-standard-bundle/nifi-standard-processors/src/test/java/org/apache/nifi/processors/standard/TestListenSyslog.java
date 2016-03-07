@@ -62,7 +62,8 @@ public class TestListenSyslog {
     static final String HOST = "localhost.home";
     static final String BODY = "some message";
 
-    static final String VALID_MESSAGE = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY + "\n";
+    static final String VALID_MESSAGE = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY ;
+    static final String VALID_MESSAGE_TCP = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY + "\n";
     static final String INVALID_MESSAGE = "this is not valid\n";
 
     @Test
@@ -135,7 +136,7 @@ public class TestListenSyslog {
         Assert.assertTrue(port > 0);
 
         // write some TCP messages to the port in the background
-        final Thread sender = new Thread(new SingleConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE));
+        final Thread sender = new Thread(new SingleConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE_TCP));
         sender.setDaemon(true);
         sender.start();
 
@@ -185,7 +186,7 @@ public class TestListenSyslog {
         Assert.assertTrue(port > 0);
 
         // send 3 messages as 1
-        final String multipleMessages = VALID_MESSAGE + "\n" + VALID_MESSAGE + "\n" + VALID_MESSAGE;
+        final String multipleMessages = VALID_MESSAGE_TCP + "\n" + VALID_MESSAGE_TCP + "\n" + VALID_MESSAGE_TCP + "\n";
         final Thread sender = new Thread(new SingleConnectionSocketSender(port, 1, 10, multipleMessages));
         sender.setDaemon(true);
         sender.start();
@@ -237,7 +238,7 @@ public class TestListenSyslog {
         Assert.assertTrue(port > 0);
 
         // write some TCP messages to the port in the background
-        final Thread sender = new Thread(new MultiConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE));
+        final Thread sender = new Thread(new MultiConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE_TCP));
         sender.setDaemon(true);
         sender.start();
 
@@ -292,7 +293,7 @@ public class TestListenSyslog {
         Assert.assertTrue(port > 0);
 
         // write some UDP messages to the port in the background
-        final Thread sender = new Thread(new DatagramSender(port, numMessages, 10, VALID_MESSAGE.replaceAll("\\n", "")));
+        final Thread sender = new Thread(new DatagramSender(port, numMessages, 10, VALID_MESSAGE));
         sender.setDaemon(true);
         sender.start();
         sender.join();
@@ -432,7 +433,7 @@ public class TestListenSyslog {
 
 
     private void checkFlowFile(final MockFlowFile flowFile, final int port, final String protocol) {
-        flowFile.assertContentEquals(VALID_MESSAGE);
+        flowFile.assertContentEquals(VALID_MESSAGE.replace("\n", ""));
         Assert.assertEquals(PRI, flowFile.getAttribute(SyslogAttributes.PRIORITY.key()));
         Assert.assertEquals(SEV, flowFile.getAttribute(SyslogAttributes.SEVERITY.key()));
         Assert.assertEquals(FAC, flowFile.getAttribute(SyslogAttributes.FACILITY.key()));

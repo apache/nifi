@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.ssl.SSLContextService;
@@ -27,14 +28,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class TestPutSyslog {
 
@@ -327,8 +325,9 @@ public class TestPutSyslog {
         }
 
         @Override
-        protected ChannelSender createSender(SSLContextService sslContextService, String protocol, String host, int port,
-                                             Charset charset, BlockingQueue<ByteBuffer> bufferPool) throws IOException {
+        protected ChannelSender createSender(SSLContextService sslContextService, String protocol, String host,
+                                             int port, int maxSendBuffer, int timeout)
+                throws IOException {
             return mockSender;
         }
     }
@@ -346,8 +345,9 @@ public class TestPutSyslog {
         }
 
         @Override
-        protected ChannelSender createSender(SSLContextService sslContextService, String protocol, String host, int port,
-                                             Charset charset, BlockingQueue<ByteBuffer> bufferPool) throws IOException {
+        protected ChannelSender createSender(SSLContextService sslContextService, String protocol, String host,
+                                             int port, int maxSendBuffer, int timeout)
+                throws IOException {
             if (numSendersCreated >= numSendersAllowed) {
                 throw new IOException("too many senders");
             }
@@ -357,61 +357,70 @@ public class TestPutSyslog {
     }
 
     // Mock sender that saves any messages passed to send()
-    static class MockCollectingSender extends PutSyslog.ChannelSender {
+    static class MockCollectingSender extends ChannelSender {
 
         List<String> messages = new ArrayList<>();
 
         public MockCollectingSender() throws IOException {
-            super("myhost", 0, new LinkedBlockingQueue<ByteBuffer>(1), Charset.forName("UTF-8"));
-            this.bufferPool.offer(ByteBuffer.allocate(1024));
+            super("myhost", 0, 0, null);
         }
 
         @Override
-        public void send(String message) throws IOException {
+        public void open() throws IOException {
+
+        }
+
+        @Override
+        public void send(String message, Charset charset) throws IOException {
             messages.add(message);
-            super.send(message);
+            super.send(message, charset);
         }
 
         @Override
-        void write(ByteBuffer buffer) throws IOException {
+        protected void write(byte[] buffer) throws IOException {
 
         }
 
         @Override
-        boolean isConnected() {
+        public boolean isConnected() {
             return true;
         }
 
         @Override
-        void close() {
+        public void close() {
 
         }
     }
 
     // Mock sender that throws IOException on calls to write() or send()
-    static class MockErrorSender extends PutSyslog.ChannelSender {
+    static class MockErrorSender extends ChannelSender {
 
         public MockErrorSender() throws IOException {
-            super(null, 0, null, null);
+            super(null, 0, 0, null);
         }
 
         @Override
-        public void send(String message) throws IOException {
+        public void open() throws IOException {
+
+        }
+
+        @Override
+        public void send(String message, Charset charset) throws IOException {
             throw new IOException("error");
         }
 
         @Override
-        void write(ByteBuffer buffer) throws IOException {
+        protected void write(byte[] data) throws IOException {
             throw new IOException("error");
         }
 
         @Override
-        boolean isConnected() {
+       public boolean isConnected() {
             return false;
         }
 
         @Override
-        void close() {
+        public void close() {
 
         }
     }
