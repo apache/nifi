@@ -137,10 +137,8 @@ public class StandardSocketChannelHandler<E extends Event<SocketChannel>> extend
                 if (currBytes.size() > 0) {
                     final SocketChannelResponder response = new SocketChannelResponder(socketChannel);
                     final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender.toString());
-
-                    // queue the raw event blocking until space is available, reset the buffer
                     final E event = eventFactory.create(currBytes.toByteArray(), metadata, response);
-                    events.put(event);
+                    events.offer(event);
                     currBytes.reset();
 
                     // Mark this as the start of the next message

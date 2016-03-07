@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.processors.standard.relp.handler;
 
+import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
+import org.apache.nifi.processor.util.listen.event.EventQueue;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processor.util.listen.response.ChannelResponse;
 import org.apache.nifi.processors.standard.relp.event.RELPMetadata;
@@ -45,21 +47,24 @@ public class RELPFrameHandler<E extends Event<SocketChannel>> {
 
     private final Charset charset;
     private final EventFactory<E> eventFactory;
-    private final BlockingQueue<E> events;
+    private final EventQueue<E> events;
     private final SelectionKey key;
     private final AsyncChannelDispatcher dispatcher;
+    private final ProcessorLog logger;
     private final RELPEncoder encoder;
 
     public RELPFrameHandler(final SelectionKey selectionKey,
                             final Charset charset,
                             final EventFactory<E> eventFactory,
                             final BlockingQueue<E> events,
-                            final AsyncChannelDispatcher dispatcher) {
+                            final AsyncChannelDispatcher dispatcher,
+                            final ProcessorLog logger) {
         this.key = selectionKey;
         this.charset = charset;
         this.eventFactory = eventFactory;
-        this.events = events;
         this.dispatcher = dispatcher;
+        this.logger = logger;
+        this.events = new EventQueue<>(events, logger);
         this.encoder = new RELPEncoder(charset);
     }
 
@@ -82,9 +87,8 @@ public class RELPFrameHandler<E extends Event<SocketChannel>> {
             metadata.put(RELPMetadata.TXNR_KEY, String.valueOf(frame.getTxnr()));
             metadata.put(RELPMetadata.COMMAND_KEY, frame.getCommand());
 
-            // queue the raw event blocking until space is available, reset the buffer
             final E event = eventFactory.create(frame.getData(), metadata, responder);
-            events.put(event);
+            events.offer(event);
         }
     }
 
