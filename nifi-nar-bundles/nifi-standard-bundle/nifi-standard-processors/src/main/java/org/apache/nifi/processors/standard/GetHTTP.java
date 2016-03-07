@@ -439,7 +439,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     }
                     final String statusExplanation = response.getStatusLine().getReasonPhrase();
 
-                    if (statusCode >= 300) {
+                    if ((statusCode >= 300) || (statusCode == 204)) {
                         logger.error("received status code {}:{} from {}", new Object[]{statusCode, statusExplanation, url});
                         // doing a commit in case there were flow files in the input queue
                         session.commit();

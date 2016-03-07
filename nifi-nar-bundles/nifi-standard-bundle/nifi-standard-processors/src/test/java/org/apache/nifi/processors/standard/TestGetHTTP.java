@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
@@ -274,6 +276,52 @@ public class TestGetHTTP {
             assertTrue(fileName.matches("test_\\d\\d\\d\\d/\\d\\d/\\d\\d_\\d\\d:\\d\\d:\\d\\d"));
             // shutdown web service
         } finally {
+            server.shutdownServer();
+        }
+    }
+
+    /**
+     * Test for HTTP errors
+     * @throws Exception exception
+     */
+    @Test
+    public final void testHttpErrors() throws Exception {
+        // set up web service
+        ServletHandler handler = new ServletHandler();
+        handler.addServletWithMapping(HttpErrorServlet.class, "/*");
+        HttpErrorServlet servlet = (HttpErrorServlet) handler.getServlets()[0].getServlet();
+
+        // create the service
+        TestServer server = new TestServer();
+        server.addHandler(handler);
+
+        try {
+            server.startServer();
+            String destination = server.getUrl();
+
+            this.controller = TestRunners.newTestRunner(GetHTTP.class);
+            this.controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
+            this.controller.setProperty(GetHTTP.URL, destination+"/test_${literal(1)}.pdf");
+            this.controller.setProperty(GetHTTP.FILENAME, "test_${now():format('yyyy/MM/dd_HH:mm:ss')}");
+            this.controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+            this.controller.setProperty(GetHTTP.USER_AGENT, "testUserAgent");
+
+            // 204 - NO CONTENT
+            servlet.setErrorToReturn(HttpServletResponse.SC_NO_CONTENT);
+            this.controller.run();
+            this.controller.assertTransferCount(GetHTTP.REL_SUCCESS, 0);
+
+            // 404 - NOT FOUND
+            servlet.setErrorToReturn(HttpServletResponse.SC_NOT_FOUND);
+            this.controller.run();
+            this.controller.assertTransferCount(GetHTTP.REL_SUCCESS, 0);
+
+            // 500 - INTERNAL SERVER ERROR
+            servlet.setErrorToReturn(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            this.controller.run();
+            this.controller.assertTransferCount(GetHTTP.REL_SUCCESS, 0);
+        } finally {
+            // shutdown web service
             server.shutdownServer();
         }
     }
