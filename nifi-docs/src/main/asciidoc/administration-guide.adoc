@@ -1367,7 +1367,7 @@ nifi.provenance.repository.directory.provenance2=/repos/provenance2 +
 Providing three total locations, including  _nifi.provenance.repository.directory.default_.
 |nifi.provenance.repository.max.storage.time|The maximum amount of time to keep data provenance information. The default value is 24 hours.
 |nifi.provenance.repository.max.storage.size|The maximum amount of data provenance information to store at a time. The default is 1 GB.
-|nifi.provenance.repository.rollover.time|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is 5 mins.
+|nifi.provenance.repository.rollover.time|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is 30 secs.
 |nifi.provenance.repository.rollover.size|The amount of information to roll over at a time. The default value is 100 MB.
 |nifi.provenance.repository.query.threads|The number of threads to use for Provenance Repository queries. The default value is 2.
 |nifi.provenance.repository.index.threads|The number of threads to use for indexing Provenance events so that they are searchable. The default value is 1.
