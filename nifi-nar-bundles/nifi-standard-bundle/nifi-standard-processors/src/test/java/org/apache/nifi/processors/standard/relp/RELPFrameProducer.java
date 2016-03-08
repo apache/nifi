@@ -86,6 +86,8 @@ public class RELPFrameProducer {
                     }
                 }
 
+                Thread.sleep(5000);
+
                 // send the close frame
                 out.write(encoder.encode(CLOSE_FRAME));
 

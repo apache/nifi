@@ -51,6 +51,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -140,6 +141,8 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
             return;
         }
 
+        final List<RELPEvent> allEvents = new ArrayList<>(maxBatchSize);
+
         for (Map.Entry<String,FlowFileEventBatch> entry : batches.entrySet()) {
             FlowFile flowFile = entry.getValue().getFlowFile();
             final List<RELPEvent> events = entry.getValue().getEvents();
@@ -179,13 +182,16 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
                     .append(port).toString();
             session.getProvenanceReporter().receive(flowFile, transitUri);
 
-            // commit the session to guarantee the data has been delivered
-            session.commit();
+            allEvents.addAll(events);
+        }
 
-            // respond to each event to acknowledge successful receipt
-            for (final RELPEvent event : events) {
-                respond(event, RELPResponse.ok(event.getTxnr()));
-            }
+        // commit the session to guarantee the data has been delivered
+        // we can't commit inside the above loop because we need all flow files to be transferred first
+        session.commit();
+
+        // respond to each event to acknowledge successful receipt
+        for (final RELPEvent event : allEvents) {
+            respond(event, RELPResponse.ok(event.getTxnr()));
         }
     }
 
