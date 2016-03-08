@@ -204,9 +204,11 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
 
     protected Object getAttributeValue(ProcessContext context, PropertyDescriptor propertyType, AttributeValue value) {
         if ( context.getProperty(propertyType).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
-            return value.getS();
+            if ( value == null ) return null;
+            else return value.getS();
         } else {
-            return new BigDecimal(value.getN());
+            if ( value == null ) return null;
+            else return new BigDecimal(value.getN());
         }
     }
 

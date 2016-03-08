@@ -43,6 +43,7 @@ public class GetDynamoDBTest {
     protected GetDynamoDB getDynamoDB;
     protected BatchGetItemOutcome outcome;
     protected BatchGetItemResult result = new BatchGetItemResult();
+    private HashMap unprocessed;
 
     @Before
     public void setUp() {
@@ -52,7 +53,7 @@ public class GetDynamoDBTest {
         map.put("hashS", new AttributeValue("h1"));
         map.put("rangeS", new AttributeValue("r1"));
         kaa.withKeys(map);
-        Map<String,KeysAndAttributes> unprocessed = new HashMap<>();
+        unprocessed = new HashMap<>();
         unprocessed.put(stringHashStringRangeTableName, kaa);
 
         result.withUnprocessedKeys(unprocessed);
@@ -249,6 +250,37 @@ public class GetDynamoDBTest {
         List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
+        }
+    }
+
+    // Incorporated test from James W
+    @Test
+    public void testStringHashStringNoRangeGetUnprocessed() {
+        unprocessed.clear();
+        KeysAndAttributes kaa = new KeysAndAttributes();
+        Map<String,AttributeValue> map = new HashMap<>();
+        map.put("hashS", new AttributeValue("h1"));
+        kaa.withKeys(map);
+        unprocessed.put(stringHashStringRangeTableName, kaa);
+
+        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
+
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        getRunner.enqueue(new byte[] {});
+
+        getRunner.run(1);
+
+        getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_UNPROCESSED, 1);
+
+        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED));
         }
     }
 }
