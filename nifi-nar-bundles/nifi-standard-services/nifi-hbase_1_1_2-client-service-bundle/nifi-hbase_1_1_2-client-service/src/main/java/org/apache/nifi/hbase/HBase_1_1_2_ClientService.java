@@ -85,6 +85,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     private volatile Connection connection;
     private List<PropertyDescriptor> properties;
 
+    protected boolean isSecurityEnabled = UserGroupInformation.isSecurityEnabled();
+
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -134,8 +136,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                     .build());
         }
 
-        if (UserGroupInformation.isSecurityEnabled() && ((!kerbprincProvided)
-          || (!kerbkeytabProvided))) {
+        if (isSecurityEnabled && (!kerbprincProvided || !kerbkeytabProvided)) {
             problems.add(new ValidationResult.Builder().valid(false)
               .subject(this.getClass().getSimpleName()).explanation("Kerberos" +
                 " principal and keytab must be provided when using a secure " +
@@ -342,5 +343,4 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
         return table.getScanner(scan);
     }
-
 }
