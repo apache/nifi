@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
@@ -25,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
@@ -246,6 +249,120 @@ public class DeleteDynamoDBTest {
         deleteRunner.run(1);
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
+
+    }
+
+    @Test
+    public void testStringHashStringRangeDeleteThrowsServiceException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
+                throw new AmazonServiceException("serviceException");
+            }
+        };
+
+        deleteDynamoDB = new DeleteDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
+
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+
+        deleteRunner.enqueue(new byte[] {});
+
+        deleteRunner.run(1);
+
+        deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("serviceException (Service: null; Status Code: 0; Error Code: null; Request ID: null)", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangeDeleteThrowsClientException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
+                throw new AmazonClientException("clientException");
+            }
+        };
+
+        deleteDynamoDB = new DeleteDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
+
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+
+        deleteRunner.enqueue(new byte[] {});
+
+        deleteRunner.run(1);
+
+        deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("clientException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangeDeleteThrowsRuntimeException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
+                throw new RuntimeException("runtimeException");
+            }
+        };
+
+        deleteDynamoDB = new DeleteDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
+
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+
+        deleteRunner.enqueue(new byte[] {});
+
+        deleteRunner.run(1);
+
+        deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("runtimeException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        }
 
     }
 }

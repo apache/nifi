@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
@@ -31,6 +32,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.document.BatchGetItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
@@ -103,6 +106,129 @@ public class GetDynamoDBTest {
         List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
         for (MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangeGetThrowsServiceException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+
+            @Override
+            public BatchGetItemOutcome batchGetItem(TableKeysAndAttributes... tableKeysAndAttributes) {
+                throw new AmazonServiceException("serviceException");
+            }
+
+        };
+
+        final GetDynamoDB getDynamoDB = new GetDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+
+        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
+
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        getRunner.enqueue(new byte[] {});
+
+        getRunner.run(1);
+
+        getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("serviceException (Service: null; Status Code: 0; Error Code: null; Request ID: null)", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangeGetThrowsRuntimeException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+
+            @Override
+            public BatchGetItemOutcome batchGetItem(TableKeysAndAttributes... tableKeysAndAttributes) {
+                throw new RuntimeException("runtimeException");
+            }
+
+        };
+
+        final GetDynamoDB getDynamoDB = new GetDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+
+        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
+
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        getRunner.enqueue(new byte[] {});
+
+        getRunner.run(1);
+
+        getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("runtimeException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangeGetThrowsClientException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+
+            @Override
+            public BatchGetItemOutcome batchGetItem(TableKeysAndAttributes... tableKeysAndAttributes) {
+                throw new AmazonClientException("clientException");
+            }
+
+        };
+
+        final GetDynamoDB getDynamoDB = new GetDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+
+        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
+
+        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        getRunner.enqueue(new byte[] {});
+
+        getRunner.run(1);
+
+        getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("clientException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
     }

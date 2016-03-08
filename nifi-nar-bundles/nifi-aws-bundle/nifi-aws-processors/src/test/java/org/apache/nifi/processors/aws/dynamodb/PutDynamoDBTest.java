@@ -32,6 +32,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
@@ -191,6 +193,123 @@ public class PutDynamoDBTest  {
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangePutThrowsServiceException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
+                throw new AmazonServiceException("serviceException");
+            }
+        };
+
+        putDynamoDB = new PutDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        String document = "{\"name\":\"john\"}";
+        putRunner.enqueue(document.getBytes());
+
+        putRunner.run(1);
+
+        putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("serviceException (Service: null; Status Code: 0; Error Code: null; Request ID: null)", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangePutThrowsClientException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
+                throw new AmazonClientException("clientException");
+            }
+        };
+
+        putDynamoDB = new PutDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        String document = "{\"name\":\"john\"}";
+        putRunner.enqueue(document.getBytes());
+
+        putRunner.run(1);
+
+        putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("clientException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        }
+
+    }
+
+    @Test
+    public void testStringHashStringRangePutThrowsRuntimeException() {
+        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
+            @Override
+            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
+                throw new RuntimeException("runtimeException");
+            }
+        };
+
+        putDynamoDB = new PutDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDB;
+            }
+        };
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        String document = "{\"name\":\"john\"}";
+        putRunner.enqueue(document.getBytes());
+
+        putRunner.run(1);
+
+        putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFiles) {
+            assertEquals("runtimeException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
     }
