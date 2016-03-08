@@ -75,7 +75,7 @@ public class TestStandardControllerServiceProvider {
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
     }
 
-    private ProcessScheduler createScheduler() {
+    private StandardProcessScheduler createScheduler() {
         final Heartbeater heartbeater = Mockito.mock(Heartbeater.class);
         return new StandardProcessScheduler(heartbeater, null, null, stateManagerProvider);
     }
@@ -331,7 +331,7 @@ public class TestStandardControllerServiceProvider {
         assertTrue(ordered.get(1) == serviceNode3);
     }
 
-    private ProcessorNode createProcessor(final ProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
+    private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
         final ProcessorNode procNode = new StandardProcessorNode(new DummyProcessor(), UUID.randomUUID().toString(),
                 new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider);
 
@@ -344,7 +344,7 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void testEnableReferencingComponents() {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, stateManagerProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceA.class.getName(), "1", false);
 
