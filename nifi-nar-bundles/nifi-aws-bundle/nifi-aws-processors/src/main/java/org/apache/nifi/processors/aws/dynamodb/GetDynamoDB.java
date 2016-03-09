@@ -56,7 +56,8 @@ import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Get", "Fetch"})
 @CapabilityDescription("Retrieves a document from DynamoDB based on hash and range key.  The key can be string or number."
-        + "For any get request all the parimary keys are required (hash or hash and range based on the table keys)")
+        + "For any get request all the primary keys are required (hash or hash and range based on the table keys)."
+        + "A Json Document ('Map') attribute of the DynamoDB item is read into the content of the FlowFile.")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
@@ -81,7 +82,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                 HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY,
                 CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
 
-    public static final Relationship REL_NOT_FOUND = new Relationship.Builder().name("Not Found")
+    public static final Relationship REL_NOT_FOUND = new Relationship.Builder().name("not found")
             .description("FlowFiles are routed to not found relationship if key not found in the table").build();
 
     public static final Set<Relationship> getDynamoDBrelationships = Collections.unmodifiableSet(
@@ -111,7 +112,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
 
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).getValue();
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).getValue();
-       final String jsonDocument = context.getProperty(JSON_DOCUMENT).getValue();
+        final String jsonDocument = context.getProperty(JSON_DOCUMENT).getValue();
 
         for (FlowFile flowFile : flowFiles) {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);

@@ -56,7 +56,9 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonDynamoDBClient> {
 
     public static final Relationship REL_UNPROCESSED = new Relationship.Builder().name("unprocessed")
-            .description("FlowFiles are routed to unprocessed relationship").build();
+            .description("FlowFiles are routed to unprocessed relationship when DynamoDB is not able to process "
+               + "all the items in the request. Typical reasons are insufficient table throughput capacity and exceeding the maximum bytes per request. "
+               + "Unprocessed FlowFiles can be retried with a new request.").build();
 
     public static final AllowableValue ALLOWABLE_VALUE_STRING = new AllowableValue("string");
     public static final AllowableValue ALLOWABLE_VALUE_NUMBER = new AllowableValue("number");

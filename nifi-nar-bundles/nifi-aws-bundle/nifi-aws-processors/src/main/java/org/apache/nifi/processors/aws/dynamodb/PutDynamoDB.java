@@ -54,10 +54,10 @@ import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 @SeeAlso({DeleteDynamoDB.class, GetDynamoDB.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Put", "Insert"})
-@CapabilityDescription("Inserts a document from DynamoDB based on hash and range key.  The table can have either hash and range or hash key alone."
+@CapabilityDescription("Puts a document from DynamoDB based on hash and range key.  The table can have either hash and range or hash key alone."
         + " Currently the keys supported are string and number and value can be json document. "
         + "In case of hash and range keys both key are required for the operation."
-        + " The json document as attribute specified in the JSON_DOCUMENT attribute name is used specify the attribut in the dynamodb table")
+        + " The FlowFile content must be JSON. FlowFile content is mapped to the specified Json Document attribute in the DynamoDB item.")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
