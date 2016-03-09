@@ -149,8 +149,10 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                 ItemKeys itemKeys = new ItemKeys(item.get(hashKeyName), item.get(rangeKeyName));
                 FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
 
-                ByteArrayInputStream bais = new ByteArrayInputStream(item.getJSON(jsonDocument).getBytes());
-                flowFile = session.importFrom(bais, flowFile);
+                if ( item.get(jsonDocument) != null ) {
+                    ByteArrayInputStream bais = new ByteArrayInputStream(item.getJSON(jsonDocument).getBytes());
+                    flowFile = session.importFrom(bais, flowFile);
+                }
 
                 session.transfer(flowFile,REL_SUCCESS);
                 keysToFlowFileMap.remove(itemKeys);
