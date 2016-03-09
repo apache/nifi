@@ -192,7 +192,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             }
         }
         UserGroupInformation.setConfiguration(hbaseConfig);
-
+        isSecurityEnabled = UserGroupInformation.isSecurityEnabled();
         if (UserGroupInformation.isSecurityEnabled()) {
             try{
                 UserGroupInformation.loginUserFromKeytab(context.getProperty(KERBEROS_PRINCIPAL).getValue(),
