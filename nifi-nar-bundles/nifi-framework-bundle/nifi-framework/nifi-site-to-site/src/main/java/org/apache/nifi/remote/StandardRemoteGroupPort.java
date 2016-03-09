@@ -128,13 +128,14 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         final long penalizationMillis = FormatUtils.getTimeDuration(remoteGroup.getYieldDuration(), TimeUnit.MILLISECONDS);
 
         final SiteToSiteClient client = new SiteToSiteClient.Builder()
-        .url(remoteGroup.getTargetUri().toString())
-        .portIdentifier(getIdentifier())
-        .sslContext(sslContext)
-        .eventReporter(remoteGroup.getEventReporter())
-        .peerPersistenceFile(getPeerPersistenceFile(getIdentifier()))
-        .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
-        .build();
+            .url(remoteGroup.getTargetUri().toString())
+            .portIdentifier(getIdentifier())
+            .sslContext(sslContext)
+            .eventReporter(remoteGroup.getEventReporter())
+            .peerPersistenceFile(getPeerPersistenceFile(getIdentifier()))
+            .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
+            .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+            .build();
         clientRef.set(client);
     }
 
