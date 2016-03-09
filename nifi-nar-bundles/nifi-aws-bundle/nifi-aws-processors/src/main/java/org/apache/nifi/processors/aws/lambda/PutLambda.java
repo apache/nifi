@@ -21,7 +21,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
@@ -225,14 +227,16 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
      */
     private FlowFile populateExceptionAttributes(final ProcessSession session, FlowFile flowFile,
             final AmazonServiceException exception) {
-        flowFile = session.putAttribute(flowFile, AWS_LAMBDA_EXCEPTION_MESSAGE, exception.getErrorMessage());
-        flowFile = session.putAttribute(flowFile, AWS_LAMBDA_EXCEPTION_ERROR_CODE, exception.getErrorCode());
-        flowFile = session.putAttribute(flowFile, AWS_LAMBDA_EXCEPTION_REQUEST_ID, exception.getRequestId());
-        flowFile = session.putAttribute(flowFile, AWS_LAMBDA_EXCEPTION_STATUS_CODE, Integer.toString(exception.getStatusCode()));
+        Map<String,String> attributes = new HashMap<>();
+        attributes.put(AWS_LAMBDA_EXCEPTION_MESSAGE, exception.getErrorMessage());
+        attributes.put(AWS_LAMBDA_EXCEPTION_ERROR_CODE, exception.getErrorCode());
+        attributes.put(AWS_LAMBDA_EXCEPTION_REQUEST_ID, exception.getRequestId());
+        attributes.put(AWS_LAMBDA_EXCEPTION_STATUS_CODE, Integer.toString(exception.getStatusCode()));
         if ( exception.getCause() != null )
-            flowFile = session.putAttribute(flowFile, AWS_LAMBDA_EXCEPTION_CAUSE, exception.getCause().getMessage());
-        flowFile = session.putAttribute(flowFile, AWS_LAMBDA_EXCEPTION_ERROR_TYPE, exception.getErrorType().toString());
-        flowFile = session.putAttribute(flowFile, AWS_LAMBDA_EXCEPTION_MESSAGE, exception.getErrorMessage());
+            attributes.put(AWS_LAMBDA_EXCEPTION_CAUSE, exception.getCause().getMessage());
+        attributes.put(AWS_LAMBDA_EXCEPTION_ERROR_TYPE, exception.getErrorType().toString());
+        attributes.put(AWS_LAMBDA_EXCEPTION_MESSAGE, exception.getErrorMessage());
+        flowFile = session.putAllAttributes(flowFile, attributes);
         return flowFile;
     }
 
