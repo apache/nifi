@@ -243,4 +243,9 @@ public class ConnectableProcessContext implements ProcessContext {
     public StateManager getStateManager() {
         return stateManager;
     }
+
+    @Override
+    public String getName() {
+        return connectable.getName();
+    }
 }

@@ -147,4 +147,9 @@ public class StandardSchedulingContext implements SchedulingContext {
     public StateManager getStateManager() {
         return stateManager;
     }
+
+    @Override
+    public String getName() {
+        return processorNode.getName();
+    }
 }
