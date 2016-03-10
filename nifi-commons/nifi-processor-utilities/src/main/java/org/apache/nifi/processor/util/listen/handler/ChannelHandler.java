@@ -20,6 +20,7 @@ import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
+import org.apache.nifi.processor.util.listen.event.EventQueue;
 
 import java.nio.channels.SelectionKey;
 import java.nio.charset.Charset;
@@ -34,7 +35,7 @@ public abstract class ChannelHandler<E extends Event, D extends ChannelDispatche
     protected final D dispatcher;
     protected final Charset charset;
     protected final EventFactory<E> eventFactory;
-    protected final BlockingQueue<E> events;
+    protected final EventQueue<E> events;
     protected final ProcessorLog logger;
 
 
@@ -48,8 +49,8 @@ public abstract class ChannelHandler<E extends Event, D extends ChannelDispatche
         this.dispatcher = dispatcher;
         this.charset = charset;
         this.eventFactory = eventFactory;
-        this.events = events;
         this.logger = logger;
+        this.events = new EventQueue<E>(events, logger);
     }
 
 }
