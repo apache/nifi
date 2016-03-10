@@ -50,7 +50,7 @@ public class RELPSSLSocketChannelHandler<E extends Event<SocketChannel>> extends
                                        final ProcessorLog logger) {
         super(key, dispatcher, charset, eventFactory, events, logger);
         this.decoder = new RELPDecoder(charset);
-        this.frameHandler = new RELPFrameHandler<>(key, charset, eventFactory, events, dispatcher);
+        this.frameHandler = new RELPFrameHandler<>(key, charset, eventFactory, events, dispatcher, logger);
     }
 
     @Override

@@ -16,30 +16,31 @@
  */
 package org.apache.nifi.processor.util.listen;
 
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -54,6 +55,8 @@ import java.util.concurrent.TimeUnit;
  * @param <E> the type of events being produced
  */
 public abstract class AbstractListenEventProcessor<E extends Event> extends AbstractProcessor {
+
+
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor
             .Builder().name("Port")
@@ -105,23 +108,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             .defaultValue("2")
             .required(true)
             .build();
-    public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Max Batch Size")
-            .description(
-                    "The maximum number of messages to add to a single FlowFile. If multiple messages are available, they will be concatenated along with "
-                            + "the <Message Delimiter> up to this configured maximum number of messages")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
-            .defaultValue("1")
-            .required(true)
-            .build();
-    public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
-            .name("Message Delimiter")
-            .description("Specifies the delimiter to place between messages when multiple messages are bundled together (see <Max Batch Size> property).")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("\\n")
-            .required(true)
-            .build();
+
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -130,8 +117,8 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
 
     public static final int POLL_TIMEOUT_MS = 20;
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> descriptors;
+    protected Set<Relationship> relationships;
+    protected List<PropertyDescriptor> descriptors;
 
     protected volatile int port;
     protected volatile Charset charset;
@@ -142,6 +129,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(NETWORK_INTF_NAME);
         descriptors.add(PORT);
         descriptors.add(RECV_BUFFER_SIZE);
         descriptors.add(MAX_MESSAGE_QUEUE_SIZE);
@@ -190,11 +178,18 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         port = context.getProperty(PORT).asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
 
+        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+
+        InetAddress nicIPAddress = null;
+        if (!StringUtils.isEmpty(nicIPAddressStr)) {
+            NetworkInterface netIF = NetworkInterface.getByName(nicIPAddressStr);
+            nicIPAddress = netIF.getInetAddresses().nextElement();
+        }
 
         // create the dispatcher and call open() to bind to the given port
         dispatcher = createDispatcher(context, events);
-        dispatcher.open(port, maxChannelBufferSize);
+        dispatcher.open(nicIPAddress, port, maxChannelBufferSize);
 
         // start a thread to run the dispatcher
         final Thread readerThread = new Thread(dispatcher);
@@ -229,6 +224,21 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         if (dispatcher != null) {
             dispatcher.close();
         }
+    }
+
+    /**
+     * Creates a pool of ByteBuffers with the given size.
+     *
+     * @param poolSize the number of buffers to initialize the pool with
+     * @param bufferSize the size of each buffer
+     * @return a blocking queue with size equal to poolSize and each buffer equal to bufferSize
+     */
+    protected BlockingQueue<ByteBuffer> createBufferPool(final int poolSize, final int bufferSize) {
+        final LinkedBlockingQueue<ByteBuffer> bufferPool = new LinkedBlockingQueue<>(poolSize);
+        for (int i = 0; i < poolSize; i++) {
+            bufferPool.offer(ByteBuffer.allocate(bufferSize));
+        }
+        return bufferPool;
     }
 
     /**
@@ -269,106 +279,6 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         }
 
         return event;
-    }
-
-    /**
-     * Batches together up to the batchSize events. Events are grouped together based on a batch key which
-     * by default is the sender of the event, but can be override by sub-classes.
-     *
-     * This method will return when batchSize has been reached, or when no more events are available on the queue.
-     *
-     * @param session the current session
-     * @param totalBatchSize the total number of events to process
-     * @param messageDemarcatorBytes the demarcator to put between messages when writing to a FlowFile
-     *
-     * @return a Map from the batch key to the FlowFile and events for that batch, the size of events in all
-     *              the batches will be <= batchSize
-     */
-    protected Map<String,FlowFileEventBatch> getBatches(final ProcessSession session, final int totalBatchSize,
-                                                        final byte[] messageDemarcatorBytes) {
-
-        final Map<String,FlowFileEventBatch> batches = new HashMap<>();
-        for (int i=0; i < totalBatchSize; i++) {
-            final E event = getMessage(true, true, session);
-            if (event == null) {
-                break;
-            }
-
-            final String batchKey = getBatchKey(event);
-            FlowFileEventBatch batch = batches.get(batchKey);
-
-            // if we don't have a batch for this key then create a new one
-            if (batch == null) {
-                batch = new FlowFileEventBatch(session.create(), new ArrayList<E>());
-                batches.put(batchKey, batch);
-            }
-
-            // add the current event to the batch
-            batch.getEvents().add(event);
-
-            // append the event's data to the FlowFile, write the demarcator first if not on the first event
-            final boolean writeDemarcator = (i > 0);
-            try {
-                final byte[] rawMessage = event.getData();
-                FlowFile appendedFlowFile = session.append(batch.getFlowFile(), new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        if (writeDemarcator) {
-                            out.write(messageDemarcatorBytes);
-                        }
-
-                        out.write(rawMessage);
-                    }
-                });
-
-                // update the FlowFile reference in the batch object
-                batch.setFlowFile(appendedFlowFile);
-
-            } catch (final Exception e) {
-                getLogger().error("Failed to write contents of the message to FlowFile due to {}; will re-queue message and try again",
-                        new Object[] {e.getMessage()}, e);
-                errorEvents.offer(event);
-                break;
-            }
-        }
-
-        return batches;
-    }
-
-    /**
-     * @param event an event that was pulled off the queue
-     *
-     * @return a key to use for batching events together, by default this uses the sender of the
-     *              event, but sub-classes should override this to batch by something else
-     */
-    protected String getBatchKey(final E event) {
-        return event.getSender();
-    }
-
-    /**
-     * Wrapper to hold a FlowFile and the events that have been appended to it.
-     */
-    protected final class FlowFileEventBatch {
-
-        private FlowFile flowFile;
-        private List<E> events;
-
-        public FlowFileEventBatch(final FlowFile flowFile, final List<E> events) {
-            this.flowFile = flowFile;
-            this.events = events;
-        }
-
-        public FlowFile getFlowFile() {
-            return flowFile;
-        }
-
-        public List<E> getEvents() {
-            return events;
-        }
-
-        public void setFlowFile(FlowFile flowFile) {
-            this.flowFile = flowFile;
-        }
     }
 
 }
