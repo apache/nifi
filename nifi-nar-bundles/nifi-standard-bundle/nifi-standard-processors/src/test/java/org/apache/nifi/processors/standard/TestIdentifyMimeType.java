@@ -58,6 +58,7 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
         expectedMimeTypes.put("1.mdb", "application/x-msaccess");
         expectedMimeTypes.put("1.txt", "text/plain");
+        expectedMimeTypes.put("1.csv", "text/csv");
         expectedMimeTypes.put("1.txt.bz2", "application/x-bzip2");
         expectedMimeTypes.put("1.txt.gz", "application/gzip");
         expectedMimeTypes.put("1.zip", "application/zip");
@@ -76,6 +77,7 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("1.7z", ".7z");
         expectedExtensions.put("1.mdb", ".mdb");
         expectedExtensions.put("1.txt", ".txt");
+        expectedExtensions.put("1.csv", ".csv");
         expectedExtensions.put("1.txt.bz2", ".bz2");
         expectedExtensions.put("1.txt.gz", ".gz");
         expectedExtensions.put("1.zip", ".zip");
