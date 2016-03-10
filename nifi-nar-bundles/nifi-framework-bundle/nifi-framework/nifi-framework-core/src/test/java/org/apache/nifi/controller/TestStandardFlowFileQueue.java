@@ -442,14 +442,13 @@ public class TestStandardFlowFileQueue {
         assertNull(flowFile);
     }
 
-
     @Test(timeout = 120000)
     public void testDropSwappedFlowFiles() {
-        for (int i = 1; i <= 210000; i++) {
+        for (int i = 1; i <= 30000; i++) {
             queue.put(new TestFlowFile());
         }
 
-        assertEquals(20, swapManager.swappedOut.size());
+        assertEquals(2, swapManager.swappedOut.size());
         final DropFlowFileStatus status = queue.dropFlowFiles("1", "Unit Test");
         while (status.getState() != DropFlowFileState.COMPLETE) {
             try {
@@ -461,7 +460,7 @@ public class TestStandardFlowFileQueue {
         assertEquals(0, queue.size().getObjectCount());
         assertEquals(0, queue.size().getByteCount());
         assertEquals(0, swapManager.swappedOut.size());
-        assertEquals(20, swapManager.swapInCalledCount);
+        assertEquals(2, swapManager.swapInCalledCount);
     }
 
 
@@ -519,10 +518,6 @@ public class TestStandardFlowFileQueue {
 
         public void enableIncompleteSwapFileException(final int flowFilesToInclude) {
             incompleteSwapFileRecordsToInclude = flowFilesToInclude;
-        }
-
-        public void disableIncompleteSwapFileException() {
-            this.incompleteSwapFileRecordsToInclude = -1;
         }
 
         @Override
