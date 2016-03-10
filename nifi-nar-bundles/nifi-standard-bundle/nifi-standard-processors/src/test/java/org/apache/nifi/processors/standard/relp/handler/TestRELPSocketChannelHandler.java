@@ -127,7 +127,7 @@ public class TestRELPSocketChannelHandler {
         final ByteBuffer buffer = ByteBuffer.allocate(1024);
         try {
             // starts the dispatcher listening on port 0 so it selects a random port
-            dispatcher.open(0, 4096);
+            dispatcher.open(null, 0, 4096);
 
             // starts a thread to run the dispatcher which will accept/read connections
             Thread dispatcherThread = new Thread(dispatcher);

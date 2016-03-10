@@ -135,10 +135,8 @@ public class SSLSocketChannelHandler<E extends Event<SocketChannel>> extends Soc
                 if (currBytes.size() > 0) {
                     final SSLSocketChannelResponder response = new SSLSocketChannelResponder(socketChannel, sslSocketChannel);
                     final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender.toString());
-
-                    // queue the raw event blocking until space is available, reset the temporary buffer
                     final E event = eventFactory.create(currBytes.toByteArray(), metadata, response);
-                    events.put(event);
+                    events.offer(event);
                     currBytes.reset();
                 }
             } else {
