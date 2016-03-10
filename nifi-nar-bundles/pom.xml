@@ -64,6 +64,7 @@
 	    <module>nifi-site-to-site-reporting-bundle</module>
         <module>nifi-mqtt-bundle</module>
         <module>nifi-evtx-bundle</module>
+        <module>nifi-slack-bundle</module>
     </modules>
 
     <dependencyManagement>
