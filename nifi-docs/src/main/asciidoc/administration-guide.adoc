@@ -1153,7 +1153,7 @@ nifi.nar.library.directory.lib2=/nars/lib2 +
 Providing three total locations, including  _nifi.nar.library.directory_.
 |nifi.nar.working.directory|The location of the nar working directory. The default value is ./work/nar and probably should be left as is.
 |nifi.documentation.working.directory|The documentation working directory. The default value is ./work/docs/components and probably should be left as is.
-|nifi.processor.scheduling.timeout|Time (milliseconds) to wait for a Processor's life-cycle operation (@OnScheduled and @OnUnscheduled) to finish before other life-cycle operation (e.g., stop) could be invoked. Default is infinite. 
+|nifi.processor.scheduling.timeout|Time to wait for a Processor's life-cycle operation (@OnScheduled and @OnUnscheduled) to finish before other life-cycle operation (e.g., stop) could be invoked. Default is infinite. 
 |====
 
 
