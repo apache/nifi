@@ -21,7 +21,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.BatchingSessionFactory;
@@ -39,7 +38,6 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.Connectables;
-import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +83,6 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public Boolean call() {
         // make sure processor is not yielded
         if (isYielded(procNode)) {
@@ -190,15 +187,6 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
                 }
 
                 final long processingNanos = System.nanoTime() - startNanos;
-
-                // if the processor is no longer scheduled to run and this is the last thread,
-                // invoke the OnStopped methods
-                if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
-                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, procNode.getProcessor(), processContext);
-                        flowController.heartbeat();
-                    }
-                }
 
                 try {
                     final StandardFlowFileEvent procEvent = new StandardFlowFileEvent(procNode.getIdentifier());
