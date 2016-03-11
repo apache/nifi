@@ -104,6 +104,7 @@ public class FileUtils {
      * @param filter if null then no filter is used
      * @param logger to notify
      */
+    @Deprecated
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger) {
         FileUtils.deleteFilesInDir(directory, filter, logger, false);
     }
@@ -118,6 +119,7 @@ public class FileUtils {
      * @param logger to notify
      * @param recurse true if should recurse
      */
+    @Deprecated
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse) {
         FileUtils.deleteFilesInDir(directory, filter, logger, recurse, false);
     }
@@ -134,10 +136,15 @@ public class FileUtils {
      * @param deleteEmptyDirectories default is false; if true will delete
      * directories found that are empty
      */
+    @Deprecated
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse, final boolean deleteEmptyDirectories) {
         // ensure the specified directory is actually a directory and that it exists
         if (null != directory && directory.isDirectory()) {
             final File ingestFiles[] = directory.listFiles();
+            if (ingestFiles == null) {
+                // null if abstract pathname does not denote a directory, or if an I/O error occurs
+                logger.error("Unable to list directory content in: " + directory.getAbsolutePath());
+            }
             for (File ingestFile : ingestFiles) {
                 boolean process = (filter == null) ? true : filter.accept(directory, ingestFile.getName());
                 if (ingestFile.isFile() && process) {
@@ -145,6 +152,43 @@ public class FileUtils {
                 }
                 if (ingestFile.isDirectory() && recurse) {
                     FileUtils.deleteFilesInDir(ingestFile, filter, logger, recurse, deleteEmptyDirectories);
+                    if (deleteEmptyDirectories && ingestFile.list().length == 0) {
+                        FileUtils.deleteFile(ingestFile, logger, 3);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Deletes all files (not directories) in the given directory (recursive)
+     * that match the given filename filter. If any file cannot be deleted then
+     * this is printed at warn to the given logger.
+     *
+     * @param directory to delete contents of
+     * @param filter if null then no filter is used
+     * @param logger to notify
+     * @param recurse will look for contents of sub directories.
+     * @param deleteEmptyDirectories default is false; if true will delete
+     * directories found that are empty
+     * @throws IOException if abstract pathname does not denote a directory,
+     * or if an I/O error occurs
+     */
+    public static void deleteFilesInDirectory(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse, final boolean deleteEmptyDirectories) throws IOException {
+        // ensure the specified directory is actually a directory and that it exists
+        if (null != directory && directory.isDirectory()) {
+            final File ingestFiles[] = directory.listFiles();
+            if (ingestFiles == null) {
+                // null if abstract pathname does not denote a directory, or if an I/O error occurs
+                throw new IOException("Unable to list directory content in: " + directory.getAbsolutePath());
+            }
+            for (File ingestFile : ingestFiles) {
+                boolean process = (filter == null) ? true : filter.accept(directory, ingestFile.getName());
+                if (ingestFile.isFile() && process) {
+                    FileUtils.deleteFile(ingestFile, logger, 3);
+                }
+                if (ingestFile.isDirectory() && recurse) {
+                    FileUtils.deleteFilesInDirectory(ingestFile, filter, logger, recurse, deleteEmptyDirectories);
                     if (deleteEmptyDirectories && ingestFile.list().length == 0) {
                         FileUtils.deleteFile(ingestFile, logger, 3);
                     }
@@ -167,8 +211,9 @@ public class FileUtils {
     }
 
     public static void deleteFile(final File file, final boolean recurse) throws IOException {
-        if (file.isDirectory() && recurse) {
-            FileUtils.deleteFiles(Arrays.asList(file.listFiles()), recurse);
+        final File[] list = file.listFiles();
+        if (file.isDirectory() && recurse && list != null) {
+            FileUtils.deleteFiles(Arrays.asList(list), recurse);
         }
         //now delete the file itself regardless of whether it is plain file or a directory
         if (!FileUtils.deleteFile(file, null, 5)) {
