@@ -1247,14 +1247,19 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             @SuppressWarnings("deprecation")
                             @Override
                             public Void call() throws Exception {
-                                ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, processor, schedulingContext);
-                                return null;
+                                try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                                    ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, processor, schedulingContext);
+                                    return null;
+                                }
                             }
                         });
                         if (scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
                             schedulingAgentCallback.run(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
                         } else { // can only happen if stopProcessor was called before service was transitioned to RUNNING state
-                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+                            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+                            }
+
                             scheduledState.set(ScheduledState.STOPPED);
                         }
                     } catch (final Exception e) {
@@ -1312,8 +1317,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             invokeTaskAsCancelableFuture(scheduler, new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
-                    return null;
+                    try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+                        return null;
+                    }
                 }
             });
             // will continue to monitor active threads, invoking OnStopped once
@@ -1323,7 +1330,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 public void run() {
                     try {
                         if (activeThreadMonitorCallback.call()) {
-                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+                            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+                            }
+
                             scheduledState.set(ScheduledState.STOPPED);
                         } else {
                             scheduler.schedule(this, 100, TimeUnit.MILLISECONDS);
