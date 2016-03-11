@@ -51,6 +51,7 @@ public class TestInferAvroSchema {
         runner.setProperty(InferAvroSchema.GET_CSV_HEADER_DEFINITION_FROM_INPUT, "true");
         runner.setProperty(InferAvroSchema.SCHEMA_DESTINATION, InferAvroSchema.DESTINATION_CONTENT);
         runner.setProperty(InferAvroSchema.HEADER_LINE_SKIP_COUNT, "0");
+        runner.setProperty(InferAvroSchema.DELIMITER, ",");
         runner.setProperty(InferAvroSchema.ESCAPE_STRING, "\\");
         runner.setProperty(InferAvroSchema.QUOTE_STRING, "'");
         runner.setProperty(InferAvroSchema.RECORD_NAME, "com.jeremydyer.contact");
