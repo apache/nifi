@@ -110,7 +110,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             .name("Hash Key Value Type")
             .required(true)
             .description("The hash key value type of the item")
-            .defaultValue("string")
+            .defaultValue(ALLOWABLE_VALUE_STRING.getValue())
             .allowableValues(ALLOWABLE_VALUE_STRING, ALLOWABLE_VALUE_NUMBER)
             .build();
 
@@ -118,7 +118,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             .name("Range Key Value Type")
             .required(true)
             .description("The range key value type of the item")
-            .defaultValue("string")
+            .defaultValue(ALLOWABLE_VALUE_STRING.getValue())
             .allowableValues(ALLOWABLE_VALUE_STRING, ALLOWABLE_VALUE_NUMBER)
             .build();
 
@@ -160,7 +160,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             .defaultValue(Charset.defaultCharset().name())
             .build();
 
-    protected DynamoDB dynamoDB;
+    protected volatile DynamoDB dynamoDB;
 
     public static final Set<Relationship> dynamoDBrelationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_UNPROCESSED)));
@@ -175,7 +175,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
      */
     @Override
     protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
-        getLogger().info("Creating client with credentials provider");
+        getLogger().debug("Creating client with credentials provider");
 
         final AmazonDynamoDBClient client = new AmazonDynamoDBClient(credentialsProvider, config);
 
@@ -189,7 +189,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
      */
     @Override
     protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client with awd credentials");
+        getLogger().debug("Creating client with aws credentials");
 
         final AmazonDynamoDBClient client = new AmazonDynamoDBClient(credentials, config);
 
