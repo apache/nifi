@@ -29,13 +29,13 @@ import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
+import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.key.Key;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
-import org.apache.nifi.admin.service.UserService;
-import org.apache.nifi.key.Key;
 
 /**
  *
@@ -70,8 +70,6 @@ public class JwtService {
 
             // TODO: Validate issuer against active registry?
             if (StringUtils.isEmpty(jws.getBody().getIssuer())) {
-                // TODO: Remove after testing
-//                logger.info("Decoded JWT payload: " + jws.toString());
                 throw new JwtException("No issuer available in token");
             }
             return jws.getBody().getSubject();

@@ -191,6 +191,9 @@ explicity enabled.
 
 NiFi does not perform user authentication over HTTP. Using HTTP all users will be granted all roles.
 
+Lightweight Directory Access Protocol (LDAP)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Below is an example and description of configuring a Login Identity Provider that integrates with a Directory Server to authenticate users.
 
 ----
@@ -254,6 +257,37 @@ nifi.security.user.login.identity.provider=ldap-provider
 |`Authentication Expiration` | The duration of how long the user authentication is valid for. If the user never logs out, they will be required to log back in following this duration.
 |==================================================================================================================================================
 
+[[kerberos_login_identity_provider]]
+Kerberos
+~~~~~~~~
+
+Below is an example and description of configuring a Login Identity Provider that integrates with a Kerberos Key Distribution Center (KDC) to authenticate users.
+
+----
+<provider>
+    <identifier>kerberos-provider</identifier>
+    <class>org.apache.nifi.kerberos.KerberosProvider</class>
+    <property name="Default Realm">NIFI.APACHE.ORG</property>
+    <property name="Kerberos Config File">/etc/krb5.conf</property>
+    <property name="Authentication Expiration">12 hours</property>
+</provider>
+----
+
+With this configuration, username/password authentication can be enabled by referencing this provider in _nifi.properties_.
+
+----
+nifi.security.user.login.identity.provider=kerberos-provider
+----
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`Default Realm` | Default realm to provide when user enters incomplete user principal (i.e. NIFI.APACHE.ORG).
+|`Kerberos Config File` | Absolute path to Kerberos client configuration file.
+|`Authentication Expiration`| The duration of how long the user authentication is valid for. If the user never logs out, they will be required to log back in following this duration.
+|==================================================================================================================================================
+
+See also <<kerberos_service>> to allow single sign-on access via client Kerberos tickets.
 
 Controlling Levels of Access
 ----------------------------
@@ -298,11 +332,21 @@ in place of "user dn - read only and admin":
 </users>
 ----
 
-Here is an example entry using the name John Smith:
+Here is an LDAP example entry using the name John Smith:
 
 ----
 <users>
     <user dn="cn=John Smith,ou=people,dc=example,dc=com">
+        <role name="ROLE_ADMIN"/>
+    </user>
+</users>
+----
+
+Here is a Kerberos example entry using the name John Smith and realm `NIFI.APACHE.ORG`:
+
+----
+<users>
+    <user dn="johnsmith@NIFI.APACHE.ORG">
         <role name="ROLE_ADMIN"/>
     </user>
 </users>
@@ -1108,6 +1152,58 @@ A complete example of configuring the Email service would look like the followin
      </service>
 ....
 
+[[kerberos_service]]
+Kerberos Service
+----------------
+NiFi can be configured to use Kerberos SPNEGO (or "Kerberos Service") for authentication. In this scenario, users will hit the REST endpoint `/access/kerberos` and the server will respond with a `401` status code and the challenge response header `WWW-Authenticate: Negotiate`. This communicates to the browser to use the GSS-API and load the user's Kerberos ticket and provide it as a Base64-encoded header value in the subsequent request. It will be of the form `Authorization: Negotiate YII...`. NiFi will attempt to validate this ticket with the KDC. If it is successful, the user's _principal_ will be returned as the identity, and the flow will follow login/credential authentication, in that a JWT will be issued in the response to prevent the unnecessary overhead of Kerberos authentication on every subsequent request. If the ticket cannot be validated, it will return with the appropriate error response code. The user will then be able to provide their Kerberos credentials to the login form if the `KerberosLoginIdentityProvider` has been configured. See <<kerberos_login_identity_provider>> login identity provider for more details.
+
+NiFi will only respond to Kerberos SPNEGO negotiation over an HTTPS connection, as unsecured requests are never authenticated.
+
+The following properties must be set in _nifi.properties_ to enable Kerberos service authentication.
+
+|====
+|*Property*|*Required*|*Description*
+|Service Principal|true|The service principal used by NiFi to communicate with the KDC
+|Keytab Location|true|The file path to the keytab containing the service principal
+|====
+
+See <<kerberos_properties>> for complete documentation.
+
+[[kerberos_service_notes]]
+Notes
+~~~~~
+
+* Kerberos is case-sensitive in many places and the error messages (or lack thereof) may not be sufficiently explanatory. Check the case sensitivity of the service principal in your configuration files. Convention is `HTTP/fully.qualified.domain@REALM`.
+* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others whitelist the trusted domains. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation] for common browsers.
+* Some browsers (legacy IE) do not support recent encryption algorithms such as AES, and are restricted to legacy algorithms (DES). This should be noted when generating keytabs.
+* The KDC must be configured and a service principal defined for NiFi and a keytab exported. Comprehensive instructions for Kerberos server configuration and administration are beyond the scope of this document (see link:http://web.mit.edu/kerberos/krb5-current/doc/admin/index.html[MIT Kerberos Admin Guide]), but an example is below:
+
+
+Adding a service principal for a server at `nifi.nifi.apache.org` and exporting the keytab from the KDC:
+
+....
+root@kdc:/etc/krb5kdc# kadmin.local
+Authenticating as principal admin/admin@NIFI.APACHE.ORG with password.
+kadmin.local:  listprincs
+K/M@NIFI.APACHE.ORG
+admin/admin@NIFI.APACHE.ORG
+...
+kadmin.local:  addprinc -randkey HTTP/nifi.nifi.apache.org
+WARNING: no policy specified for HTTP/nifi.nifi.apache.org@NIFI.APACHE.ORG; defaulting to no policy
+Principal "HTTP/nifi.nifi.apache.org@NIFI.APACHE.ORG" created.
+kadmin.local:  ktadd -k /http-nifi.keytab HTTP/nifi.nifi.apache.org
+Entry for principal HTTP/nifi.nifi.apache.org with kvno 2, encryption type des3-cbc-sha1 added to keytab WRFILE:/http-nifi.keytab.
+Entry for principal HTTP/nifi.nifi.apache.org with kvno 2, encryption type des-cbc-crc added to keytab WRFILE:/http-nifi.keytab.
+kadmin.local:  listprincs
+HTTP/nifi.nifi.apache.org@NIFI.APACHE.ORG
+K/M@NIFI.APACHE.ORG
+admin/admin@NIFI.APACHE.ORG
+...
+kadmin.local: q
+root@kdc:~# ll /http*
+-rw------- 1 root root 162 Mar 14 21:43 /http-nifi.keytab
+root@kdc:~#
+....
 
 [[system_properties]]
 System Properties
@@ -1429,13 +1525,21 @@ Only configure these properties for the cluster manager.
 |nifi.cluster.manager.safemode.duration|Upon restart of an already existing cluster, this is the amount of time that the cluster manager waits for the primary node to connect before giving up and selecting another node to be the primary node. The default value is 0 sec, which means to wait forever. If the administrator does not care which node is the primary node, this value can be changed to some amount of time other than 0 sec.
 |====
 
-*Kerberos* +
+[[kerberos_properties]]
+*Kerberos Properties* +
 
 |====
 |*Property*|*Description*
 |nifi.kerberos.krb5.file*|The location of the krb5 file, if used. It is blank by default. Note that this property is not used to authenticate NiFi users.
     Rather, it is made available for extension points, such as Hadoop-based Processors, to use. At this time, only a single krb5 file is allowed to
     be specified per NiFi instance, so this property is configured here rather than in individual Processors.
+    Example: `/etc/krb5.conf`
+|nifi.kerberos.service.principal*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
+   Example: `HTTP/nifi.example.com` or `HTTP/nifi.example.com@EXAMPLE.COM`
+|nifi.kerberos.keytab.location*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
+  Example: `/etc/http-nifi.keytab`
+|nifi.kerberos.authentication.expiration*|The expiration duration of a successful Kerberos user authentication, if used. It is 12 hours by default.
+  Example: `12 hours`
 |====
 
 
