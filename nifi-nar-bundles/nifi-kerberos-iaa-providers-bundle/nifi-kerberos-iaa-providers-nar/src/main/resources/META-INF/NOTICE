@@ -1,0 +1,37 @@
+nifi-kerberos-iaa-providers-nar
+Copyright 2014-2016 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Spring Framework
+    The following NOTICE information applies:
+      Spring Framework 4.1.6.RELEASE
+      Copyright (c) 2002-2015 Pivotal, Inc.
+
+  (ASLv2) Spring Security
+    The following NOTICE information applies:
+          Spring Framework 4.0.3.RELEASE
+          Copyright (c) 2002-2015 Pivotal, Inc.
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+      This product includes software from the Spring Framework,
+      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+*****************
+Public Domain
+*****************
+
+The following binary components are provided to the 'Public Domain'.  See project link for details.
+
+    (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)
