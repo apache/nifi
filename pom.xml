@@ -1321,11 +1321,15 @@ language governing permissions and limitations under the License. -->
                     <!-- Only run for tests -->
                     <execution>
                         <id>groovy-tests</id>
-                        <phase>test</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <compilerId>groovy-eclipse-compiler</compilerId>
+                        </configuration>
                     </execution>
                 </executions>
                 <configuration>
-                    <compilerId>groovy-eclipse-compiler</compilerId>
                     <source>1.7</source>
                     <target>1.7</target>
                 </configuration>
