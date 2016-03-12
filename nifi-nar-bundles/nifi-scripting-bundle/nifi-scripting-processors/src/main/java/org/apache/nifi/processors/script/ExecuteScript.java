@@ -133,7 +133,9 @@ public class ExecuteScript extends AbstractScriptProcessor {
 
         try {
             if (scriptToRun == null && scriptPath != null) {
-                scriptToRun = IOUtils.toString(new FileInputStream(scriptPath));
+                try (final FileInputStream scriptStream = new FileInputStream(scriptPath)) {
+                    scriptToRun = IOUtils.toString(scriptStream);
+                }
             }
         } catch (IOException ioe) {
             throw new ProcessException(ioe);

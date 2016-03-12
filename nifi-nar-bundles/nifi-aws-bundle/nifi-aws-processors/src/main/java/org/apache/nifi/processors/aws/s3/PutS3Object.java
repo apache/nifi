@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -179,7 +180,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
         Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
             FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, SSL_CONTEXT_SERVICE,
-            ENDPOINT_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE));
+            ENDPOINT_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE, PROXY_HOST, PROXY_HOST_PORT));
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
@@ -695,8 +696,19 @@ public class PutS3Object extends AbstractS3Processor {
                 ageoffLocalState(ageCutoff);
                 lastS3AgeOff.set(System.currentTimeMillis());
             } catch(AmazonClientException e) {
-                getLogger().error("Error checking S3 Multipart Upload list for {}: {}",
-                        new Object[]{bucket, e.getMessage()});
+                if (e instanceof AmazonS3Exception
+                        && ((AmazonS3Exception)e).getStatusCode() == 403
+                        && ((AmazonS3Exception) e).getErrorCode().equals("AccessDenied")) {
+                    getLogger().warn("AccessDenied checking S3 Multipart Upload list for {}: {} " +
+                            "** The configured user does not have the s3:ListBucketMultipartUploads permission " +
+                            "for this bucket, S3 ageoff cannot occur without this permission.  Next ageoff check " +
+                            "time is being advanced by interval to prevent checking on every upload **",
+                            new Object[]{bucket, e.getMessage()});
+                    lastS3AgeOff.set(System.currentTimeMillis());
+                } else {
+                    getLogger().error("Error checking S3 Multipart Upload list for {}: {}",
+                            new Object[]{bucket, e.getMessage()});
+                }
             } finally {
                 s3BucketLock.unlock();
             }

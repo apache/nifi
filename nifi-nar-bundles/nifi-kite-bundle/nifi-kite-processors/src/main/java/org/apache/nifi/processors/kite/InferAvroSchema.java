@@ -20,6 +20,7 @@ package org.apache.nifi.processors.kite;
 
 import org.apache.avro.Schema;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
@@ -28,6 +29,9 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -41,7 +45,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.kitesdk.data.spi.JsonUtil;
 import org.kitesdk.data.spi.filesystem.CSVProperties;
 import org.kitesdk.data.spi.filesystem.CSVUtil;
-
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -81,7 +84,22 @@ import java.util.concurrent.atomic.AtomicReference;
 public class InferAvroSchema
         extends AbstractKiteProcessor {
 
-    public static final String CSV_DELIMITER = ",";
+    private static final Validator CHAR_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            // Allows special, escaped characters as input, which is then unescaped and converted to a single character.
+            // Examples for special characters: \t (or \u0009), \f.
+            input = unescapeString(input);
+
+            return new ValidationResult.Builder()
+                .subject(subject)
+                .input(input)
+                .explanation("Only non-null single characters are supported")
+                .valid(input.length() == 1 && input.charAt(0) != 0)
+                .build();
+        }
+    };
+
     public static final String USE_MIME_TYPE = "use mime.type value";
     public static final String JSON_CONTENT = "json";
     public static final String CSV_CONTENT = "csv";
@@ -152,6 +170,13 @@ public class InferAvroSchema
             .defaultValue("0")
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor DELIMITER = new PropertyDescriptor.Builder()
+            .name("CSV delimiter")
+            .description("Delimiter character for CSV records")
+            .addValidator(CHAR_VALIDATOR)
+            .defaultValue(",")
             .build();
 
     public static final PropertyDescriptor ESCAPE_STRING = new PropertyDescriptor.Builder()
@@ -234,6 +259,7 @@ public class InferAvroSchema
         properties.add(CSV_HEADER_DEFINITION);
         properties.add(GET_CSV_HEADER_DEFINITION_FROM_INPUT);
         properties.add(HEADER_LINE_SKIP_COUNT);
+        properties.add(DELIMITER);
         properties.add(ESCAPE_STRING);
         properties.add(QUOTE_STRING);
         properties.add(PRETTY_AVRO_OUTPUT);
@@ -366,7 +392,7 @@ public class InferAvroSchema
 
         //Prepares the CSVProperties for kite
         final CSVProperties props = new CSVProperties.Builder()
-                .delimiter(CSV_DELIMITER)
+                .delimiter(context.getProperty(DELIMITER).getValue())
                 .escape(context.getProperty(ESCAPE_STRING).evaluateAttributeExpressions().getValue())
                 .quote(context.getProperty(QUOTE_STRING).evaluateAttributeExpressions().getValue())
                 .header(header.get())
@@ -456,5 +482,12 @@ public class InferAvroSchema
         }
 
         return avroSchema;
+    }
+
+    private static String unescapeString(String input) {
+        if (input.length() > 1) {
+            input = StringEscapeUtils.unescapeJava(input);
+        }
+        return input;
     }
 }

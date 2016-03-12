@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +82,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
     private void authenticate(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain) throws IOException, ServletException {
         String dnChain = null;
         try {
-            final NiFiAuthortizationRequestToken authenticated = attemptAuthentication(request);
+            final NiFiAuthorizationRequestToken authenticated = attemptAuthentication(request);
             if (authenticated != null) {
                 dnChain = ProxiedEntitiesUtils.formatProxyDn(StringUtils.join(authenticated.getChain(), "><"));
 
@@ -125,7 +125,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
      * @return The NiFiAutorizationRequestToken used to later authorized the client
      * @throws InvalidAuthenticationException If the request contained an authentication attempt, but could not authenticate
      */
-    public abstract NiFiAuthortizationRequestToken attemptAuthentication(HttpServletRequest request);
+    public abstract NiFiAuthorizationRequestToken attemptAuthentication(HttpServletRequest request);
 
     protected void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
         if (log.isDebugEnabled()) {

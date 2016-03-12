@@ -49,7 +49,10 @@
     <bean id="jwtService" class="org.apache.nifi.web.security.jwt.JwtService">
         <constructor-arg ref="userService"/>
     </bean>
-    
+
+    <!-- otp service -->
+    <bean id="otpService" class="org.apache.nifi.web.security.otp.OtpService"/>
+
     <!-- login identity provider -->
     <bean id="loginIdentityProvider" class="org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean">
         <property name="properties" ref="nifiProperties"/>

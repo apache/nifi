@@ -24,7 +24,9 @@ import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
-import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
+import org.apache.nifi.web.security.otp.OtpAuthenticationFilter;
+import org.apache.nifi.web.security.otp.OtpService;
+import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.web.security.x509.X509IdentityProvider;
@@ -54,12 +56,14 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private UserService userService;
     private AuthenticationUserDetailsService userDetailsService;
     private JwtService jwtService;
+    private OtpService otpService;
     private X509CertificateExtractor certificateExtractor;
     private X509IdentityProvider certificateIdentityProvider;
     private LoginIdentityProvider loginIdentityProvider;
 
     private NodeAuthorizedUserFilter nodeAuthorizedUserFilter;
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private OtpAuthenticationFilter otpAuthenticationFilter;
     private X509AuthenticationFilter x509AuthenticationFilter;
     private NiFiAnonymousUserFilter anonymousAuthenticationFilter;
 
@@ -69,9 +73,12 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     @Override
     public void configure(WebSecurity webSecurity) throws Exception {
+        // ignore the access endpoints for obtaining the access config, the access token
+        // granting, and access status for a given user (note: we are not ignoring the
+        // the /access/download-token and /access/ui-extension-token endpoints
         webSecurity
                 .ignoring()
-                    .antMatchers("/access/**");
+                    .antMatchers("/access", "/access/config", "/access/token");
     }
 
     @Override
@@ -95,6 +102,9 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
         // jwt
         http.addFilterAfter(jwtFilterBean(), AnonymousAuthenticationFilter.class);
+
+        // otp
+        http.addFilterAfter(otpFilterBean(), AnonymousAuthenticationFilter.class);
     }
 
     @Bean
@@ -135,6 +145,20 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         return jwtAuthenticationFilter;
     }
 
+    public OtpAuthenticationFilter otpFilterBean() throws Exception {
+        if (otpAuthenticationFilter == null) {
+            otpAuthenticationFilter = new OtpAuthenticationFilter();
+            otpAuthenticationFilter.setProperties(properties);
+            otpAuthenticationFilter.setAuthenticationManager(authenticationManager());
+
+            // only consider the tokens when configured for login
+            if (loginIdentityProvider != null) {
+                otpAuthenticationFilter.setOtpService(otpService);
+            }
+        }
+        return otpAuthenticationFilter;
+    }
+
     @Bean
     public X509AuthenticationFilter x509FilterBean() throws Exception {
         if (x509AuthenticationFilter == null) {
@@ -157,7 +181,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     }
 
     @Autowired
-    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService) {
+    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthorizationRequestToken> userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
 
@@ -174,6 +198,11 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Autowired
     public void setJwtService(JwtService jwtService) {
         this.jwtService = jwtService;
+    }
+
+    @Autowired
+    public void setOtpService(OtpService otpService) {
+        this.otpService = otpService;
     }
 
     @Autowired

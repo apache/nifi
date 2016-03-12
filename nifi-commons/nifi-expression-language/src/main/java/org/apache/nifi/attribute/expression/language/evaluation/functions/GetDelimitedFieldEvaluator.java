@@ -99,7 +99,7 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
         if (escapeString == null || escapeString.isEmpty()) {
             throw new AttributeExpressionLanguageException("Cannot evaluate getDelimitedField function because the escape character "
                 + "(which character is used to escape the quote character or delimiter) was not specified");
-        } else if (quoteString.length() > 1) {
+        } else if (escapeString.length() > 1) {
             throw new AttributeExpressionLanguageException("Cannot evaluate getDelimitedField function because the escape character "
                 + "(which character is used to escape the quote character or delimiter) evaluated to \"" + escapeString + "\", but only a single character is allowed.");
         }
@@ -157,7 +157,7 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
             lastCharIsEscape = (c == escapeChar) && !lastCharIsEscape;
         }
 
-        if (curFieldIndex == desiredFieldIndex - 1) {
+        if (curFieldIndex == desiredFieldIndex) {
             // we have run out of characters and we are on the desired field. Return the characters from this field.
             return new StringQueryResult(fieldBuilder.toString());
         }

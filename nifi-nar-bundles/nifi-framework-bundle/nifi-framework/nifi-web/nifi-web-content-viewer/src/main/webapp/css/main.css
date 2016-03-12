@@ -19,6 +19,14 @@
     padding: 0;
 }
 
+#content-viewer-message-dialog {
+    z-index: 1302;
+    display: none;
+    height: 225px;
+    width: 375px;
+    font-size: 62.5%
+}
+
 #view-as-label {
     position: absolute;
     top: 72px;

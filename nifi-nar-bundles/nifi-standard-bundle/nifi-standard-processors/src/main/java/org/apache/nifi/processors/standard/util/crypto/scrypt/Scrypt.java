@@ -285,6 +285,8 @@ public class Scrypt {
             // Do not enforce this check here. According to the scrypt spec, the salt can be empty. However, in the user-facing ScryptCipherProvider, enforce an arbitrary check to avoid empty salts
             logger.warn("An empty salt was used for scrypt key derivation");
 //            throw new IllegalArgumentException("Salt cannot be empty");
+            // as the Exception is not being thrown, prevent NPE if salt is null by setting it to empty array
+            if( salt == null ) salt = new byte[]{};
         }
 
         if (saltLength < 8 || saltLength > 32) {

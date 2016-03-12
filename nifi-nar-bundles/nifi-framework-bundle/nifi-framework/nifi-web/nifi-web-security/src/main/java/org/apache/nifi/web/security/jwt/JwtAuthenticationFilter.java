@@ -20,7 +20,7 @@ import io.jsonwebtoken.JwtException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.token.NewAccountAuthorizationRequestToken;
-import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
     private JwtService jwtService;
 
     @Override
-    public NiFiAuthortizationRequestToken attemptAuthentication(final HttpServletRequest request) {
+    public NiFiAuthorizationRequestToken attemptAuthentication(final HttpServletRequest request) {
         // only suppport jwt login when running securely
         if (!request.isSecure()) {
             return null;
@@ -68,7 +68,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
                 if (isNewAccountRequest(request)) {
                     return new NewAccountAuthorizationRequestToken(new NewAccountRequest(Arrays.asList(jwtPrincipal), getJustification(request)));
                 } else {
-                    return new NiFiAuthortizationRequestToken(Arrays.asList(jwtPrincipal));
+                    return new NiFiAuthorizationRequestToken(Arrays.asList(jwtPrincipal));
                 }
             } catch (JwtException e) {
                 throw new InvalidAuthenticationException(e.getMessage(), e);

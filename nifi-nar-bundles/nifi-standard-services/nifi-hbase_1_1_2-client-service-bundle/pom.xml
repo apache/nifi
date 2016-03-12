@@ -19,18 +19,32 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>0.5.0-SNAPSHOT</version>
+        <version>0.6.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-hbase_1_1_2-client-service-bundle</artifactId>
-    <version>0.5.0-SNAPSHOT</version>
+    <version>0.6.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
         <module>nifi-hbase_1_1_2-client-service</module>
         <module>nifi-hbase_1_1_2-client-service-nar</module>
     </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/fake.keytab</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencyManagement>
         <dependencies>

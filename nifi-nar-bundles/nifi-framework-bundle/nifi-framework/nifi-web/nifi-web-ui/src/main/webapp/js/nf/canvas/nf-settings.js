@@ -767,7 +767,17 @@ nf.Settings = (function () {
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-controller-service')) {
                     nf.ControllerService.showDetails(controllerService);
-                }
+                } else if (target.hasClass('controller-service-usage')) {
+                     // close the settings dialog
+                     $('#shell-close-button').click();
+
+                     // open the documentation for this controller service
+                     nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
+                         select: nf.Common.substringAfterLast(controllerService.type, '.')
+                     })).done(function() {
+                         nf.Settings.showSettings();
+                     });
+                 }
             }
         });
 
@@ -1413,7 +1423,17 @@ nf.Settings = (function () {
             } else if (reportingTasksGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-reporting-task')) {
                     nf.ReportingTask.showDetails(reportingTask);
-                }
+                } else if (target.hasClass('reporting-task-usage')) {
+                     // close the settings dialog
+                     $('#shell-close-button').click();
+
+                     // open the documentation for this reporting task
+                     nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
+                         select: nf.Common.substringAfterLast(reportingTask.type, '.')
+                     })).done(function() {
+                         nf.Settings.showSettings();
+                     });
+                 }
             }
         });
 

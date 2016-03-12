@@ -24,6 +24,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import io.jsonwebtoken.JwtException;
+import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -60,8 +61,11 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtService;
+import org.apache.nifi.web.security.otp.OtpService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.apache.nifi.web.security.token.NiFiAuthortizationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
+import org.apache.nifi.web.security.token.OtpAuthenticationToken;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.web.security.x509.X509IdentityProvider;
 import org.slf4j.Logger;
@@ -92,8 +96,9 @@ public class AccessResource extends ApplicationResource {
     private X509CertificateExtractor certificateExtractor;
     private X509IdentityProvider certificateIdentityProvider;
     private JwtService jwtService;
+    private OtpService otpService;
 
-    private AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService;
+    private AuthenticationUserDetailsService<NiFiAuthorizationRequestToken> userDetailsService;
 
     /**
      * Retrieves the access configuration for this NiFi.
@@ -285,7 +290,107 @@ public class AccessResource extends ApplicationResource {
      * @throws AuthenticationException if the proxy chain is not authorized
      */
     private UserDetails checkAuthorization(final List<String> proxyChain) throws AuthenticationException {
-        return userDetailsService.loadUserDetails(new NiFiAuthortizationRequestToken(proxyChain));
+        return userDetailsService.loadUserDetails(new NiFiAuthorizationRequestToken(proxyChain));
+    }
+
+    /**
+     * Creates a single use access token for downloading FlowFile content.
+     *
+     * @param httpServletRequest    the servlet request
+     * @return  A token (string)
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/download-token")
+    @ApiOperation(
+        value = "Creates a single use access token for downloading FlowFile content.",
+        notes = "The token returned is a base64 encoded string. It is valid for a single request up to five minutes from being issued. " +
+            "It is used as a query parameter name 'access_token'.",
+        response = String.class
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "Unable to create the download token because NiFi is not in the appropriate state. " +
+                "(i.e. may not have any tokens to grant or be configured to support username/password login)"),
+            @ApiResponse(code = 500, message = "Unable to create download token because an unexpected error occurred.")
+        }
+    )
+    public Response createDownloadToken(@Context HttpServletRequest httpServletRequest) {
+        // only support access tokens when communicating over HTTPS
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("Download tokens are only issued over HTTPS.");
+        }
+
+        // if not configuration for login, don't consider credentials
+        if (loginIdentityProvider == null) {
+            throw new IllegalStateException("Download tokens not supported by this NiFi.");
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user == null) {
+            throw new AccessDeniedException("Unable to determine user details.");
+        }
+
+        final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken(user.getIdentity());
+
+        // generate otp for response
+        final String token = otpService.generateDownloadToken(authenticationToken);
+
+        // build the response
+        final URI uri = URI.create(generateResourceUri("access", "download-token"));
+        return generateCreatedResponse(uri, token).build();
+    }
+
+    /**
+     * Creates a single use access token for accessing a NiFi UI extension.
+     *
+     * @param httpServletRequest    the servlet request
+     * @return  A token (string)
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/ui-extension-token")
+    @ApiOperation(
+        value = "Creates a single use access token for accessing a NiFi UI extension.",
+        notes = "The token returned is a base64 encoded string. It is valid for a single request up to five minutes from being issued. " +
+            "It is used as a query parameter name 'access_token'.",
+        response = String.class
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "Unable to create the download token because NiFi is not in the appropriate state. " +
+                "(i.e. may not have any tokens to grant or be configured to support username/password login)"),
+            @ApiResponse(code = 500, message = "Unable to create download token because an unexpected error occurred.")
+        }
+    )
+    public Response createUiExtensionToken(@Context HttpServletRequest httpServletRequest) {
+        // only support access tokens when communicating over HTTPS
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("UI extension access tokens are only issued over HTTPS.");
+        }
+
+        // if not configuration for login, don't consider credentials
+        if (loginIdentityProvider == null) {
+            throw new IllegalStateException("UI extension access tokens not supported by this NiFi.");
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user == null) {
+            throw new AccessDeniedException("Unable to determine user details.");
+        }
+
+        final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken(user.getIdentity());
+
+        // generate otp for response
+        final String token = otpService.generateUiExtensionToken(authenticationToken);
+
+        // build the response
+        final URI uri = URI.create(generateResourceUri("access", "ui-extension-token"));
+        return generateCreatedResponse(uri, token).build();
     }
 
     /**
@@ -302,6 +407,9 @@ public class AccessResource extends ApplicationResource {
     @Path("/token")
     @ApiOperation(
             value = "Creates a token for accessing the REST API via username/password",
+            notes = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
+                "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
+                "in the format 'Authorization: Bearer <token>'.",
             response = String.class
     )
     @ApiResponses(
@@ -399,7 +507,7 @@ public class AccessResource extends ApplicationResource {
     private void authorizeProxyIfNecessary(final List<String> proxyChain) throws AuthenticationException {
         if (proxyChain.size() > 1) {
             try {
-                userDetailsService.loadUserDetails(new NiFiAuthortizationRequestToken(proxyChain));
+                userDetailsService.loadUserDetails(new NiFiAuthorizationRequestToken(proxyChain));
             } catch (final UsernameNotFoundException unfe) {
                 // if a username not found exception was thrown, the proxies were authorized and now
                 // we can issue a new token to the end user which they will use to identify themselves
@@ -427,6 +535,10 @@ public class AccessResource extends ApplicationResource {
         this.jwtService = jwtService;
     }
 
+    public void setOtpService(OtpService otpService) {
+        this.otpService = otpService;
+    }
+
     public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
         this.certificateExtractor = certificateExtractor;
     }
@@ -435,7 +547,7 @@ public class AccessResource extends ApplicationResource {
         this.certificateIdentityProvider = certificateIdentityProvider;
     }
 
-    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthortizationRequestToken> userDetailsService) {
+    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthorizationRequestToken> userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
 

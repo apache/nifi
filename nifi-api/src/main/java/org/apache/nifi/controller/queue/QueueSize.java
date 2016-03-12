@@ -22,9 +22,9 @@ import java.text.NumberFormat;
  *
  */
 public class QueueSize {
-
     private final int objectCount;
     private final long totalSizeBytes;
+    private final int hashCode;
 
     public QueueSize(final int numberObjects, final long totalSizeBytes) {
         if (numberObjects < 0 || totalSizeBytes < 0) {
@@ -32,6 +32,7 @@ public class QueueSize {
         }
         objectCount = numberObjects;
         this.totalSizeBytes = totalSizeBytes;
+        hashCode = (int) (41 + 47 * objectCount + 51 * totalSizeBytes);
     }
 
     /**
@@ -65,5 +66,28 @@ public class QueueSize {
     @Override
     public String toString() {
         return "QueueSize[FlowFiles=" + objectCount + ", ContentSize=" + NumberFormat.getNumberInstance().format(totalSizeBytes) + " Bytes]";
+    }
+
+    @Override
+    public int hashCode() {
+        return hashCode;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
+
+        if (obj == null) {
+            return false;
+        }
+
+        if (!(obj instanceof QueueSize)) {
+            return false;
+        }
+
+        final QueueSize other = (QueueSize) obj;
+        return getObjectCount() == other.getObjectCount() && getByteCount() == other.getByteCount();
     }
 }

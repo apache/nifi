@@ -73,6 +73,7 @@ import org.apache.nifi.controller.repository.StandardCounterRepository;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
+import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -591,9 +592,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             } else {
                 for (final Connection connection : connections) {
                     final FlowFileQueue queue = connection.getFlowFileQueue();
-                    final Long maxFlowFileId = queue.recoverSwappedFlowFiles();
-                    if (maxFlowFileId != null && maxFlowFileId > maxIdFromSwapFiles) {
-                        maxIdFromSwapFiles = maxFlowFileId;
+                    final SwapSummary swapSummary = queue.recoverSwappedFlowFiles();
+                    if (swapSummary != null) {
+                        final Long maxFlowFileId = swapSummary.getMaxFlowFileId();
+                        if (maxFlowFileId != null && maxFlowFileId > maxIdFromSwapFiles) {
+                            maxIdFromSwapFiles = maxFlowFileId;
+                        }
+
+                        for (final ResourceClaim resourceClaim : swapSummary.getResourceClaims()) {
+                            resourceClaimManager.incrementClaimantCount(resourceClaim);
+                        }
                     }
                 }
             }

@@ -18,11 +18,13 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>0.5.0-SNAPSHOT</version>
+        <version>0.6.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
     <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
         <canvas.filter>canvas.properties</canvas.filter>
         <history.filter>history.properties</history.filter>
@@ -278,6 +280,7 @@
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-shell.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-toolbox.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
@@ -334,6 +337,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/history/nf-history.js</include>
                                                 <include>${staging.dir}/js/nf/history/nf-history-table.js</include>
                                                 <include>${staging.dir}/js/nf/history/nf-history-model.js</include>
@@ -348,6 +352,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance-table.js</include>
                                             </includes>
@@ -361,6 +366,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/nf-processor-details.js</include>
                                                 <include>${staging.dir}/js/nf/nf-connection-details.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-summary.js</include>
@@ -377,6 +383,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/counters/nf-counters.js</include>
                                                 <include>${staging.dir}/js/nf/counters/nf-counters-table.js</include>
                                             </includes>
@@ -390,6 +397,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/templates/nf-templates.js</include>
                                                 <include>${staging.dir}/js/nf/templates/nf-templates-table.js</include>
                                             </includes>
@@ -403,6 +411,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/cluster/nf-cluster.js</include>
                                                 <include>${staging.dir}/js/nf/cluster/nf-cluster-table.js</include>
                                             </includes>
@@ -416,6 +425,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/users/nf-users.js</include>
                                                 <include>${staging.dir}/js/nf/users/nf-users-table.js</include>
                                             </includes>
@@ -429,6 +439,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/bulletin-board/nf-bulletin-board.js</include>
                                             </includes>
                                         </aggregation>
@@ -441,6 +452,7 @@
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/login/nf-login.js</include>
                                             </includes>
                                         </aggregation>
@@ -620,6 +632,10 @@
                                 js/nf/nf-namespace.js.gz,
                                 js/nf/nf-universal-capture.js,
                                 js/nf/nf-universal-capture.js.gz,
+                                js/nf/nf-storage.js,
+                                js/nf/nf-storage.js.gz,
+                                js/nf/nf-ajax-setup.js,
+                                js/nf/nf-ajax-setup.js.gz,
                                 js/nf/nf-status-history.js,
                                 js/nf/nf-status-history.js.gz,
                                 js/nf/canvas/nf-canvas-all.js,

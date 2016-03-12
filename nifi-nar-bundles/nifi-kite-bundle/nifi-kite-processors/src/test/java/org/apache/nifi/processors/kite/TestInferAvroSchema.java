@@ -173,4 +173,47 @@ public class TestInferAvroSchema {
         runner.assertTransferCount(InferAvroSchema.REL_ORIGINAL, 0);
         runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 0);
     }
+
+    @Test
+    public void inferAvroSchemaFromHeaderDefinitionOfCSVTabDelimitedFile() throws Exception {
+
+        runner.setProperty(InferAvroSchema.DELIMITER, "\\t");
+        runner.assertValid();
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue(new File("src/test/resources/Shapes_Header_TabDelimited.csv").toPath(), attributes);
+
+        runner.run();
+        runner.assertTransferCount(InferAvroSchema.REL_UNSUPPORTED_CONTENT, 0);
+        runner.assertTransferCount(InferAvroSchema.REL_FAILURE, 0);
+        runner.assertTransferCount(InferAvroSchema.REL_ORIGINAL, 1);
+        runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(new File("src/test/resources/Shapes_header.csv.avro").toPath());
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+    }
+
+    @Test
+    public void inferAvroSchemaFromHeaderDefinitionOfCSVTabDelimitedFileNegativeTest() throws Exception {
+
+        // Inproper InferAvroSchema.DELIMITER > original goes to InferAvroSchema.REL_FAILURE
+        runner.setProperty(InferAvroSchema.DELIMITER, ";");
+        runner.assertValid();
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue(new File("src/test/resources/Shapes_Header_TabDelimited.csv").toPath(), attributes);
+
+        runner.run();
+        runner.assertTransferCount(InferAvroSchema.REL_UNSUPPORTED_CONTENT, 0);
+        runner.assertTransferCount(InferAvroSchema.REL_FAILURE, 1);
+        runner.assertTransferCount(InferAvroSchema.REL_ORIGINAL, 0);
+        runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 0);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(InferAvroSchema.REL_FAILURE).get(0);
+        flowFile.assertContentEquals(new File("src/test/resources/Shapes_Header_TabDelimited.csv").toPath());
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/csv");
+    }
 }

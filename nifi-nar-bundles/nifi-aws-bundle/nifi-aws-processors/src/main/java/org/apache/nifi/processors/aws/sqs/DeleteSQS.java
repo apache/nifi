@@ -54,7 +54,7 @@ public class DeleteSQS extends AbstractSQSProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, QUEUE_URL, TIMEOUT));
+            Arrays.asList(ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, QUEUE_URL, TIMEOUT, PROXY_HOST, PROXY_HOST_PORT));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -211,6 +211,12 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     @Override
     public void setProcessGroup(final ProcessGroup group) {
         this.processGroup.set(group);
+        for (final RemoteGroupPort port : getInputPorts()) {
+            port.setProcessGroup(group);
+        }
+        for (final RemoteGroupPort port : getOutputPorts()) {
+            port.setProcessGroup(group);
+        }
     }
 
     public void setTargetId(final String targetId) {

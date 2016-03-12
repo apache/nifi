@@ -539,8 +539,13 @@ public abstract class AbstractPort implements Port {
     public void verifyCanStart() {
         readLock.lock();
         try {
-            if (scheduledState.get() != ScheduledState.STOPPED) {
-                throw new IllegalStateException(this + " is not stopped");
+            switch (scheduledState.get()) {
+                case DISABLED:
+                    throw new IllegalStateException(this + " cannot be started because it is disabled");
+                case RUNNING:
+                    throw new IllegalStateException(this + " cannot be started because it is already running");
+                case STOPPED:
+                    break;
             }
             verifyNoActiveThreads();
 

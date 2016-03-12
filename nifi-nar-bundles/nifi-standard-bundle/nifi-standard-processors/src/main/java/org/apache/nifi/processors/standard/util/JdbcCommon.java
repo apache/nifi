@@ -130,7 +130,7 @@ public class JdbcCommon {
         String tableName = "NiFi_ExecuteSQL_Record";
         if(nrOfColumns > 0) {
             String tableNameFromMeta = meta.getTableName(1);
-            if (!StringUtils.isBlank(tableName)) {
+            if (!StringUtils.isBlank(tableNameFromMeta)) {
                 tableName = tableNameFromMeta;
             }
         }

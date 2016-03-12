@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.ProcessContext;
@@ -74,6 +75,13 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         super.intializeRegionAndEndpoint(context);
 
      }
+
+    @OnShutdown
+    public void onShutDown() {
+        if ( this.client != null ) {
+           this.client.shutdown();
+        }
+    }
 
     /**
      * Get credentials provider using the {@link AWSCredentialsProviderService}

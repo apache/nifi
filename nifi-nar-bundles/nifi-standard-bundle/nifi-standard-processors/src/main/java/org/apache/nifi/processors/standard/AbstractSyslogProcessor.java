@@ -49,6 +49,14 @@ public abstract class AbstractSyslogProcessor extends AbstractProcessor {
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
+    public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Timeout")
+            .description("The timeout for connecting to and communicating with the syslog server. Does not apply to UDP")
+            .required(false)
+            .defaultValue("10 seconds")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
 
 
 }

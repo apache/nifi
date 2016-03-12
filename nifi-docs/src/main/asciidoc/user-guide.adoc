@@ -740,8 +740,8 @@ image::valid-processor.png["Valid Processor"]
 === Site-to-Site
 
 When sending data from one instance of NiFi to another, there are many different protocols that can be used. The preferred
-protocol, though, is the NiFi Site-to-Site Protocol. Site-to-Site makes it easy to transfer data from one NiFi instance to
-another easily, efficiently, and securely.
+protocol, though, is the NiFi Site-to-Site Protocol. Site-to-Site makes it easy to securely and efficiently transfer data to/from nodes in
+one NiFi instance or data producing application to nodes in another NiFi instance or other consuming application.
 
 Using Site-to-Site provides the following benefits:
 

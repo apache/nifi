@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -61,7 +62,8 @@ public class TestListenSyslog {
     static final String HOST = "localhost.home";
     static final String BODY = "some message";
 
-    static final String VALID_MESSAGE = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY + "\n";
+    static final String VALID_MESSAGE = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY ;
+    static final String VALID_MESSAGE_TCP = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY + "\n";
     static final String INVALID_MESSAGE = "this is not valid\n";
 
     @Test
@@ -93,7 +95,7 @@ public class TestListenSyslog {
             while (numTransfered < numMessages && System.currentTimeMillis() < timeout) {
                 Thread.sleep(10);
                 proc.onTrigger(context, processSessionFactory);
-                numTransfered = runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size();
+                numTransfered = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
             }
             Assert.assertEquals("Did not process all the datagrams", numMessages, numTransfered);
 
@@ -134,7 +136,7 @@ public class TestListenSyslog {
         Assert.assertTrue(port > 0);
 
         // write some TCP messages to the port in the background
-        final Thread sender = new Thread(new SingleConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE));
+        final Thread sender = new Thread(new SingleConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE_TCP));
         sender.setDaemon(true);
         sender.start();
 
@@ -184,7 +186,7 @@ public class TestListenSyslog {
         Assert.assertTrue(port > 0);
 
         // send 3 messages as 1
-        final String multipleMessages = VALID_MESSAGE + "\n" + VALID_MESSAGE + "\n" + VALID_MESSAGE;
+        final String multipleMessages = VALID_MESSAGE_TCP + "\n" + VALID_MESSAGE_TCP + "\n" + VALID_MESSAGE_TCP + "\n";
         final Thread sender = new Thread(new SingleConnectionSocketSender(port, 1, 10, multipleMessages));
         sender.setDaemon(true);
         sender.start();
@@ -236,7 +238,7 @@ public class TestListenSyslog {
         Assert.assertTrue(port > 0);
 
         // write some TCP messages to the port in the background
-        final Thread sender = new Thread(new MultiConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE));
+        final Thread sender = new Thread(new MultiConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE_TCP));
         sender.setDaemon(true);
         sender.start();
 
@@ -291,7 +293,7 @@ public class TestListenSyslog {
         Assert.assertTrue(port > 0);
 
         // write some UDP messages to the port in the background
-        final Thread sender = new Thread(new DatagramSender(port, numMessages, 10, VALID_MESSAGE.replaceAll("\\n", "")));
+        final Thread sender = new Thread(new DatagramSender(port, numMessages, 10, VALID_MESSAGE));
         sender.setDaemon(true);
         sender.start();
         sender.join();
@@ -431,7 +433,7 @@ public class TestListenSyslog {
 
 
     private void checkFlowFile(final MockFlowFile flowFile, final int port, final String protocol) {
-        flowFile.assertContentEquals(VALID_MESSAGE);
+        flowFile.assertContentEquals(VALID_MESSAGE.replace("\n", ""));
         Assert.assertEquals(PRI, flowFile.getAttribute(SyslogAttributes.PRIORITY.key()));
         Assert.assertEquals(SEV, flowFile.getAttribute(SyslogAttributes.SEVERITY.key()));
         Assert.assertEquals(FAC, flowFile.getAttribute(SyslogAttributes.FACILITY.key()));
@@ -602,11 +604,11 @@ public class TestListenSyslog {
         }
 
         @Override
-        protected RawSyslogEvent getMessage(final boolean longPoll, final boolean pollErrorQueue) {
+        protected RawSyslogEvent getMessage(final boolean longPoll, final boolean pollErrorQueue, final ProcessSession session) {
             if (eventItr.hasNext()) {
                 return eventItr.next();
             }
-            return super.getMessage(longPoll, pollErrorQueue);
+            return super.getMessage(longPoll, pollErrorQueue, session);
         }
     }
 }

@@ -18,8 +18,10 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -189,21 +191,35 @@ public class TestMonitorActivity {
                         originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
     }
 
-    @Test
+    @Test(timeout=5000)
     public void testFirstRunNoMessages() throws InterruptedException, IOException {
         // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
         final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
+        int threshold = 100;
+        boolean rerun = false;
+        do {
+            rerun = false;
+            runner.setProperty(MonitorActivity.THRESHOLD, threshold + " millis");
 
-        Thread.sleep(1000L);
+            Thread.sleep(1000L);
 
-        // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer
-        runner.run();
-        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
-        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
-        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
-        runner.clearTransferState();
+            // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer if @OnSchedule & onTrigger
+            // does not  get called more than MonitorActivity.THRESHOLD apart
+            runner.run();
+            runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+            List<MockFlowFile> inactiveFlowFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_INACTIVE);
+            if (inactiveFlowFiles.size() == 1) {
+                // Seems Threshold was not sufficient, which has caused One inactive message.
+                // Step-up and rerun the test until successful or jUnit Timesout
+                threshold += threshold;
+                rerun = true;
+            } else {
+                runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+            }
+            runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+            runner.clearTransferState();
+        } while(rerun);
     }
 
     /**

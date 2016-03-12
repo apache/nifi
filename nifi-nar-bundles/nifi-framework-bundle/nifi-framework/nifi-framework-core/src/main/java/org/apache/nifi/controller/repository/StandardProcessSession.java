@@ -180,6 +180,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     public void checkpoint() {
+        resetWriteClaims(false);
+
         if (!recursionSet.isEmpty()) {
             throw new IllegalStateException();
         }
@@ -287,7 +289,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         try {
             final long commitStartNanos = System.nanoTime();
 
-            resetWriteClaims(false);
             resetReadClaim();
 
             final long updateProvenanceStart = System.nanoTime();

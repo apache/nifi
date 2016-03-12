@@ -732,14 +732,6 @@ The following binary components are provided under the Apache Software License v
             Apache Software Foundation that were originally developed at iClick, Inc.,
             software copyright (c) 1999.
 
-    (ASLv2) Google Guice
-      The following NOTICE information applies:
-        Google Guice - Core Library
-        Copyright 2006-2011 Google, Inc.
-
-        Google Guice - Extensions - Servlet
-        Copyright 2006-2011 Google, Inc.
-
     (ASLv2) Metadata-Extractor
       The following NOTICE information applies:
         Metadata-Extractor
@@ -855,7 +847,6 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.0) JavaServlet(TM) Specification (javax.servlet:servlet-api:jar:2.5 - no url available)
     (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
-    (CDDL 1.0) JavaServer Pages(TM) API (javax.servlet.jsp:jsp-api:jar:2.1 - http://jsp.java.net)
     (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
 
 ************************

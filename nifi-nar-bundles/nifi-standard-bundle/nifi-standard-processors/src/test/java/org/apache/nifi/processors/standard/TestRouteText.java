@@ -670,6 +670,30 @@ public class TestRouteText {
     }
 
     @Test
+    public void testSatisfiesExpression() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new RouteText());
+        runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.SATISFIES_EXPRESSION);
+        runner.setProperty("empty", "${incomplete expression");
+        runner.assertNotValid();
+
+        runner.setProperty("empty", "${line:isEmpty()}");
+        runner.setProperty("third-line", "${lineNo:equals(3)}");
+        runner.setProperty("second-field-you", "${line:getDelimitedField(2):trim():equals('you')}");
+        runner.enqueue("hello\n\ngood-bye, you\n    \t\t\n");
+        runner.run();
+
+        runner.assertTransferCount("empty", 1);
+        runner.assertTransferCount("third-line", 1);
+        runner.assertTransferCount("second-field-you", 1);
+        runner.assertTransferCount("unmatched", 1);
+        runner.assertTransferCount("original", 1);
+
+        runner.getFlowFilesForRelationship("empty").get(0).assertContentEquals("\n    \t\t\n");
+        runner.getFlowFilesForRelationship("third-line").get(0).assertContentEquals("good-bye, you\n");
+        runner.getFlowFilesForRelationship("second-field-you").get(0).assertContentEquals("good-bye, you\n");
+    }
+
+    @Test
     public void testJson() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
