@@ -221,8 +221,17 @@ public final class InvokeHTTP extends AbstractProcessor {
         .required(true)
         .expressionLanguageSupported(true)
         .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
         .build();
+
+    public static final PropertyDescriptor PROP_SEND_BODY = new PropertyDescriptor.Builder()
+            .name("send-message-body")
+            .displayName("Send Message Body")
+            .description("If true, sends the HTTP message body on POST/PUT requests (default).  If false, suppresses the message body and content-type header for these requests.")
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .required(false)
+            .build();
 
     // Per RFC 7235, 2617, and 2616.
     // basic-credentials = base64-user-pass
@@ -347,6 +356,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_TRUSTED_HOSTNAME,
             PROP_ADD_HEADERS_TO_REQUEST,
             PROP_CONTENT_TYPE,
+            PROP_SEND_BODY,
             PROP_USE_CHUNKED_ENCODING,
             PROP_PENALIZE_NO_RETRY));
 
@@ -761,24 +771,28 @@ public final class InvokeHTTP extends AbstractProcessor {
     }
 
     private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context, final FlowFile requestFlowFile) {
-        return new RequestBody() {
-            @Override
-            public MediaType contentType() {
-                String contentType = context.getProperty(PROP_CONTENT_TYPE).evaluateAttributeExpressions(requestFlowFile).getValue();
-                contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
-                return MediaType.parse(contentType);
-            }
+        if(context.getProperty(PROP_SEND_BODY).asBoolean()) {
+            return new RequestBody() {
+                @Override
+                public MediaType contentType() {
+                    String contentType = context.getProperty(PROP_CONTENT_TYPE).evaluateAttributeExpressions(requestFlowFile).getValue();
+                    contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
+                    return MediaType.parse(contentType);
+                }
 
-            @Override
-            public void writeTo(BufferedSink sink) throws IOException {
-                session.exportTo(requestFlowFile, sink.outputStream());
-            }
+                @Override
+                public void writeTo(BufferedSink sink) throws IOException {
+                    session.exportTo(requestFlowFile, sink.outputStream());
+                }
 
-            @Override
-            public long contentLength(){
-                return useChunked ? -1 : requestFlowFile.getSize();
-            }
-        };
+                @Override
+                public long contentLength(){
+                    return useChunked ? -1 : requestFlowFile.getSize();
+                }
+            };
+        } else {
+            return RequestBody.create(null, new byte[0]);
+        }
     }
 
     private Request.Builder setHeaderProperties(final ProcessContext context, Request.Builder requestBuilder, final FlowFile requestFlowFile) {
