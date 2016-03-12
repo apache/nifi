@@ -979,6 +979,26 @@ public abstract class TestInvokeHttpCommon {
     }
 
     @Test
+    public void testPostWithEmptyBodySet() throws Exception {
+        final String suppliedMimeType = "";
+        addHandler(new MutativeMethodHandler(MutativeMethod.POST, suppliedMimeType));
+
+        runner.setNonLoopConnection(false);
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, "false");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
     public void testPutWithMimeType() throws Exception {
         final String suppliedMimeType = "text/plain";
         addHandler(new MutativeMethodHandler(MutativeMethod.PUT, suppliedMimeType));
@@ -1385,10 +1405,20 @@ public abstract class TestInvokeHttpCommon {
             baseRequest.setHandled(true);
 
             if(method.name().equals(request.getMethod())) {
-                assertEquals(this.expectedContentType,request.getHeader("Content-Type"));
+                if(this.expectedContentType.isEmpty()) {
+                    Assert.assertNull(request.getHeader("Content-Type"));
+                } else {
+                    assertEquals(this.expectedContentType,request.getHeader("Content-Type"));
+                }
+
                 final String body = request.getReader().readLine();
                 this.trackedHeaderValue = baseRequest.getHttpFields().get(headerToTrack);
-                assertEquals("Hello", body);
+
+                if(this.expectedContentType.isEmpty()) {
+                    Assert.assertNull(body);
+                } else {
+                    assertEquals("Hello", body);
+                }
             } else {
                 response.setStatus(404);
                 response.setContentType("text/plain");
