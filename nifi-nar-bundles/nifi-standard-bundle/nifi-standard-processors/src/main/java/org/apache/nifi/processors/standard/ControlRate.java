@@ -62,9 +62,9 @@ import org.apache.nifi.util.timebuffer.TimestampedLong;
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"rate control", "throttle", "rate", "throughput"})
-@CapabilityDescription("Controls the rate at which data is transferred to follow-on processors." +
-        " If you configure a very small Time Duration, then the accuracy of the throttle gets worse." +
-        " You can improve this accuracy by decreasing the Yield Duration, at the expense of more Tasks given to the processor.")
+@CapabilityDescription("Controls the rate at which data is transferred to follow-on processors."
+        + " If you configure a very small Time Duration, then the accuracy of the throttle gets worse."
+        + " You can improve this accuracy by decreasing the Yield Duration, at the expense of more Tasks given to the processor.")
 public class ControlRate extends AbstractProcessor {
 
     public static final String DATA_RATE = "data rate";
@@ -78,52 +78,52 @@ public class ControlRate extends AbstractProcessor {
             "Rate is controlled by accumulating the value of a specified attribute that is transferred per time duration");
 
     public static final PropertyDescriptor RATE_CONTROL_CRITERIA = new PropertyDescriptor.Builder()
-        .name("Rate Control Criteria")
-        .description("Indicates the criteria that is used to control the throughput rate. Changing this value resets the rate counters.")
-        .required(true)
-        .allowableValues(DATA_RATE_VALUE, FLOWFILE_RATE_VALUE, ATTRIBUTE_RATE_VALUE)
-        .defaultValue(DATA_RATE)
-        .build();
+            .name("Rate Control Criteria")
+            .description("Indicates the criteria that is used to control the throughput rate. Changing this value resets the rate counters.")
+            .required(true)
+            .allowableValues(DATA_RATE_VALUE, FLOWFILE_RATE_VALUE, ATTRIBUTE_RATE_VALUE)
+            .defaultValue(DATA_RATE)
+            .build();
     public static final PropertyDescriptor MAX_RATE = new PropertyDescriptor.Builder()
-        .name("Maximum Rate")
-        .description("The maximum rate at which data should pass through this processor. The format of this property is expected to be a "
-            + "positive integer, or a Data Size (such as '1 MB') if Rate Control Criteria is set to 'data rate'.")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR) // validated in customValidate b/c dependent on Rate Control Criteria
-        .build();
+            .name("Maximum Rate")
+            .description("The maximum rate at which data should pass through this processor. The format of this property is expected to be a "
+                    + "positive integer, or a Data Size (such as '1 MB') if Rate Control Criteria is set to 'data rate'.")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR) // validated in customValidate b/c dependent on Rate Control Criteria
+            .build();
     public static final PropertyDescriptor RATE_CONTROL_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
-        .name("Rate Controlled Attribute")
-        .description("The name of an attribute whose values build toward the rate limit if Rate Control Criteria is set to 'attribute value'. "
-            + "The value of the attribute referenced by this property must be a positive long, or the FlowFile will be routed to failure. "
-            + "This value is ignored if Rate Control Criteria is not set to 'attribute value'. Changing this value resets the rate counters.")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .build();
+            .name("Rate Controlled Attribute")
+            .description("The name of an attribute whose values build toward the rate limit if Rate Control Criteria is set to 'attribute value'. "
+                    + "The value of the attribute referenced by this property must be a positive long, or the FlowFile will be routed to failure. "
+                    + "This value is ignored if Rate Control Criteria is not set to 'attribute value'. Changing this value resets the rate counters.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
     public static final PropertyDescriptor TIME_PERIOD = new PropertyDescriptor.Builder()
-        .name("Time Duration")
-        .description("The amount of time to which the Maximum Rate pertains. Changing this value resets the rate counters.")
-        .required(true)
-        .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
-        .defaultValue("1 min")
-        .build();
+            .name("Time Duration")
+            .description("The amount of time to which the Maximum Rate pertains. Changing this value resets the rate counters.")
+            .required(true)
+            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
+            .defaultValue("1 min")
+            .build();
     public static final PropertyDescriptor GROUPING_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
-        .name("Grouping Attribute")
-        .description("By default, a single \"throttle\" is used for all FlowFiles. If this value is specified, a separate throttle is used for "
-            + "each value specified by the attribute with this name. Changing this value resets the rate counters.")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .build();
+            .name("Grouping Attribute")
+            .description("By default, a single \"throttle\" is used for all FlowFiles. If this value is specified, a separate throttle is used for "
+                    + "each value specified by the attribute with this name. Changing this value resets the rate counters.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("FlowFiles are transferred to this relationship under normal conditions")
-        .build();
+            .name("success")
+            .description("FlowFiles are transferred to this relationship under normal conditions")
+            .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-        .name("failure")
-        .description("FlowFiles will be routed to this relationship if they are missing a necessary Rate Controlled Attribute or the attribute is not in the expected format")
-        .build();
+            .name("failure")
+            .description("FlowFiles will be routed to this relationship if they are missing a necessary Rate Controlled Attribute or the attribute is not in the expected format")
+            .build();
 
     private static final Pattern POSITIVE_LONG_PATTERN = Pattern.compile("0*[1-9][0-9]*");
     private static final String DEFAULT_GROUP_ATTRIBUTE = ControlRate.class.getName() + "###____DEFAULT_GROUP_ATTRIBUTE___###";
@@ -179,9 +179,9 @@ public class ControlRate extends AbstractProcessor {
                 final String rateAttr = context.getProperty(RATE_CONTROL_ATTRIBUTE_NAME).getValue();
                 if (rateAttr == null) {
                     validationResults.add(new ValidationResult.Builder()
-                        .subject(RATE_CONTROL_ATTRIBUTE_NAME.getName())
-                        .explanation("<Rate Controlled Attribute> property must be set if using <Rate Control Criteria> of 'attribute value'")
-                        .build());
+                            .subject(RATE_CONTROL_ATTRIBUTE_NAME.getName())
+                            .explanation("<Rate Controlled Attribute> property must be set if using <Rate Control Criteria> of 'attribute value'")
+                            .build());
                 }
                 break;
             case FLOWFILE_RATE:
@@ -203,9 +203,9 @@ public class ControlRate extends AbstractProcessor {
         super.onPropertyModified(descriptor, oldValue, newValue);
 
         if (descriptor.equals(RATE_CONTROL_CRITERIA)
-            || descriptor.equals(RATE_CONTROL_ATTRIBUTE_NAME)
-            || descriptor.equals(GROUPING_ATTRIBUTE_NAME)
-            || descriptor.equals(TIME_PERIOD)) {
+                || descriptor.equals(RATE_CONTROL_ATTRIBUTE_NAME)
+                || descriptor.equals(GROUPING_ATTRIBUTE_NAME)
+                || descriptor.equals(TIME_PERIOD)) {
             // if the criteria that is being used to determine limits/throttles is changed, we must clear our throttle map.
             throttleMap.clear();
         } else if (descriptor.equals(MAX_RATE)) {
@@ -234,7 +234,7 @@ public class ControlRate extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         List<FlowFile> flowFiles = session.get(new ThrottleFilter());
-        if (flowFiles.size() == 0) {
+        if (flowFiles.isEmpty()) {
             context.yield();
             return;
         }
@@ -263,22 +263,22 @@ public class ControlRate extends AbstractProcessor {
 
         final ProcessorLog logger = getLogger();
         for (FlowFile flowFile : flowFiles) {
-            try {
-                // call this to capture potential error
-                getFlowFileAccrual(flowFile);
-            } catch (AssertionError e) {
-                logger.error("Routing {} to 'failure'", new Object[] { flowFile, e });
+            // call this to capture potential error
+            final long accrualAmount = getFlowFileAccrual(flowFile);
+            if (accrualAmount < 0) {
+                logger.error("Routing {} to 'failure' due to missing or invalid attribute", new Object[]{flowFile});
                 session.transfer(flowFile, REL_FAILURE);
-                return;
+            } else {
+                logger.info("transferring {} to 'success'", new Object[]{flowFile});
+                session.transfer(flowFile, REL_SUCCESS);
             }
-
-            logger.info("transferring {} to 'success'", new Object[] { flowFile });
-            session.transfer(flowFile, REL_SUCCESS);
         }
     }
 
     /*
      * Determine the amount this FlowFile will incur against the maximum allowed rate.
+     * If the value returned is negative then the flowfile given is missing the required attribute
+     * or the attribute has an invalid value for accrual.
      */
     private long getFlowFileAccrual(FlowFile flowFile) {
         long rateValue;
@@ -292,12 +292,11 @@ public class ControlRate extends AbstractProcessor {
             case ATTRIBUTE_RATE:
                 final String attributeValue = flowFile.getAttribute(rateControlAttribute);
                 if (attributeValue == null) {
-                    throw new AssertionError("FlowFile is missing required attribute " + rateControlAttribute);
+                    return -1l;
                 }
 
                 if (!POSITIVE_LONG_PATTERN.matcher(attributeValue).matches()) {
-                    throw new AssertionError(String.format("FlowFile attribute [%1$s] has a value of [%2$s], which is not a positive long",
-                            rateControlAttribute, attributeValue));
+                    return -1l;
                 }
                 rateValue = Long.parseLong(attributeValue);
                 break;
@@ -343,7 +342,7 @@ public class ControlRate extends AbstractProcessor {
             final TimestampedLong sum = timedBuffer.getAggregateValue(timePeriodMillis);
             if (sum != null && sum.getValue() >= maxRateValue) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("current sum for throttle is {} at time {}, so not allowing rate of {} through", new Object[] {sum.getValue(), sum.getTimestamp(), value});
+                    logger.debug("current sum for throttle is {} at time {}, so not allowing rate of {} through", new Object[]{sum.getValue(), sum.getTimestamp(), value});
                 }
                 return false;
             }
@@ -351,7 +350,7 @@ public class ControlRate extends AbstractProcessor {
             // Implement the Throttle penalization based on how much extra 'amountOver' was allowed through
             if (penalizationPeriod > 0) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Starting Throttle penalization, expiring {} milliseconds from now", new Object[] {penalizationPeriod});
+                    logger.debug("Starting Throttle penalization, expiring {} milliseconds from now", new Object[]{penalizationPeriod});
                 }
                 penalizationExpired = now + penalizationPeriod;
                 penalizationPeriod = 0;
@@ -360,7 +359,7 @@ public class ControlRate extends AbstractProcessor {
 
             if (logger.isDebugEnabled()) {
                 logger.debug("current sum for throttle is {} at time {}, so allowing rate of {} through",
-                    new Object[] {sum == null ? 0 : sum.getValue(), sum == null ? 0 : sum.getTimestamp(), value});
+                        new Object[]{sum == null ? 0 : sum.getValue(), sum == null ? 0 : sum.getTimestamp(), value});
             }
 
             final long transferred = timedBuffer.add(new TimestampedLong(value)).getValue();
@@ -371,7 +370,7 @@ public class ControlRate extends AbstractProcessor {
                 this.penalizationPeriod = (long) (timePeriodMillis * pct);
 
                 if (logger.isDebugEnabled()) {
-                    logger.debug("allowing rate of {} through but penalizing Throttle for {} milliseconds", new Object[] {value, penalizationPeriod});
+                    logger.debug("allowing rate of {} through but penalizing Throttle for {} milliseconds", new Object[]{value, penalizationPeriod});
                 }
             }
 
@@ -381,13 +380,12 @@ public class ControlRate extends AbstractProcessor {
     }
 
     private class ThrottleFilter implements FlowFileFilter {
+
         @Override
         public FlowFileFilterResult filter(FlowFile flowFile) {
-            long accrual = 1;
-            try {
-                accrual = getFlowFileAccrual(flowFile);
-            } catch (AssertionError e) {
-                // this FlowFile contains an error, so let the processor deal with it
+            long accrual = getFlowFileAccrual(flowFile);
+            if(accrual < 0){
+                // this FlowFile is invalid for this configuration so let the processor deal with it
                 return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
             }
 
