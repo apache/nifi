@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +43,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ProcessorLog;
@@ -56,6 +61,9 @@ import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.apache.nifi.util.IntegerHolder;
+import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.ObjectHolder;
 
 @EventDriven
@@ -63,10 +71,12 @@ import org.apache.nifi.util.ObjectHolder;
 @SupportsBatching
 @Tags({"split", "text"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Splits a text file into multiple smaller text files on line boundaries or fragment size.  " +
-        "Each output file will contain configured number of lines or bytes.  NOTE: if a single line is encountered " +
-        "that exceeds the fragment size, that line will be output in a single file that will exceed the configured " +
-        "fragment size maximum.")
+//@CapabilityDescription("Splits a text file into multiple smaller text files on line boundaries, each having up to a configured number of lines")
+@CapabilityDescription("Splits a text file into multiple smaller text files on line boundaries or fragment size. " +
+        "Each output file will contain configured number of lines or bytes. If both Line Split Count and Maximum Fragment Size " +
+        "are specified, the split occurs at whichever limit is reached first. If a single line exceeds the Maximum Fragment Size, " +
+        "that line will be output in a single split file which exceeds the configured maximum size limit. " +
+        "NOTE: 'Remove Trailing Newlines' Property is deprecated; it may be removed in future releases.")
 @WritesAttributes({
     @WritesAttribute(attribute = "text.line.count", description = "The number of lines of text from the original FlowFile that were copied to this FlowFile"),
     @WritesAttribute(attribute = "fragment.size", description = "The number of bytes from the original FlowFile that were copied to this FlowFile, " +
@@ -88,15 +98,16 @@ public class SplitText extends AbstractProcessor {
 
     public static final PropertyDescriptor LINE_SPLIT_COUNT = new PropertyDescriptor.Builder()
             .name("Line Split Count")
-            .description("The number of lines that will be added to each split file, excluding header lines")
+            .description("The number of lines that will be added to each split file, excluding header lines. " +
+                    "A value of zero requires Maximum Fragment Size to be set, and line count will not be considered in determining splits.")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
     public static final PropertyDescriptor FRAGMENT_MAX_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum Fragment Size")
-            .description("The maximum size of each split file, including header lines.  NOTE: in the case where a " +
-                    "single line exceeds this property (including headers), that line will be output in a split of " +
-                    "its own that will exceed this maximum fragment size setting.")
+            .description("The maximum size of each split file, including header lines. NOTE: in the case where a " +
+                    "single line exceeds this property (including headers, if applicable), that line will be output " +
+                    "in a split of its own which exceeds this Maximum Fragment Size setting.")
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
@@ -108,18 +119,19 @@ public class SplitText extends AbstractProcessor {
             .defaultValue("0")
             .build();
     public static final PropertyDescriptor HEADER_MARKER = new PropertyDescriptor.Builder()
-            .name("Header Line Marker Character")
+            .name("Header Line Marker Characters")
             .description("The first character(s) on the line of the datafile which signifies a header line. This value is ignored when Header Line Count is non-zero.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor REMOVE_TRAILING_NEWLINES = new PropertyDescriptor.Builder()
             .name("Remove Trailing Newlines")
-            .description("Whether to remove newlines at the end of each split file. This should be false if you intend to merge the split files later")
+            .description("Whether to remove newlines at the end of each split file. This should be false if you intend to merge the split files later. " +
+                    "\nDEPRECATED: This Property no longer has any effect and may be removed in future releases.")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
-            .defaultValue("true")
+            .defaultValue("false")
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
@@ -156,6 +168,28 @@ public class SplitText extends AbstractProcessor {
     }
 
     @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        ArrayList<ValidationResult> results = new ArrayList<>();
+
+        results.add(new ValidationResult.Builder()
+            .subject("Remove Trailing Newlines")
+            .valid(!validationContext.getProperty(REMOVE_TRAILING_NEWLINES).asBoolean())
+            .explanation("Property is deprecated; value must be set to false. Future releases may remove this Property.")
+            .build());
+
+        final boolean invalidState = (validationContext.getProperty(LINE_SPLIT_COUNT).asInteger() == 0 &&
+                validationContext.getProperty(FRAGMENT_MAX_SIZE).asDataSize(DataUnit.B) == null);
+
+        results.add(new ValidationResult.Builder()
+            .subject("Maximum Fragment Size")
+            .valid(!invalidState)
+            .explanation("Maximum Fragment Size must be specified when Line Split Count is 0")
+            .build()
+        );
+        return results;
+    }
+
+    @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
@@ -165,99 +199,112 @@ public class SplitText extends AbstractProcessor {
         return properties;
     }
 
-    private int readLine(final InputStream in, final OutputStream out,
-                          final boolean includeLineDelimiter) throws IOException {
-        int lastByte = -1;
-        int bytesRead = 0;
+    private int readLines(final InputStream in, final int maxNumLines, final long maxByteCount, final OutputStream out) throws IOException {
+        int numLines = 0;
+        long totalBytes = 0L;
+        for (int i = 0; i < maxNumLines; i++) {
+            final long bytes = countBytesToSplitPoint(in, out, totalBytes, maxByteCount);
+            totalBytes += bytes;
+            if (bytes <= 0) {
+                return numLines;
+            }
+            numLines++;
+            if (totalBytes >= maxByteCount && numLines > maxNumLines) {
+                break;
+            }
+        }
+        return numLines;
+    }
 
+    private long countBytesToSplitPoint(final InputStream in, final OutputStream out, final long bytesReadSoFar, final long maxSize) throws IOException {
+        long bytesRead = 0L;
+        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        in.mark(Integer.MAX_VALUE);
         while (true) {
             final int nextByte = in.read();
 
-            // if we hit end of stream or new line we're done
+            // if we hit end of stream we're done
             if (nextByte == -1) {
-                if (lastByte == '\r') {
-                    return includeLineDelimiter ? bytesRead : bytesRead - 1;
-                } else {
-                    return bytesRead;
+                if (out != null) {
+                    buffer.writeTo(out);
                 }
+                buffer.close();
+                return bytesRead;
             }
 
-            // if there's an OutputStream to copy the data to, copy it, if appropriate.
-            // "if appropriate" means that it's not a line delimiter or that we
-            // want to copy line delimiters
+            // buffer the output
             bytesRead++;
-            if (out != null && (includeLineDelimiter || (nextByte != '\n' && nextByte != '\r'))) {
-                out.write(nextByte);
+            buffer.write(nextByte);
+
+            // check the size limit
+            if (bytesRead > (maxSize-bytesReadSoFar) && bytesReadSoFar > 0) {
+                in.reset();
+                buffer.close();
+                return -1;
             }
 
             // if we have a new line, then we're done
             if (nextByte == '\n') {
-                if (includeLineDelimiter) {
-                    return bytesRead;
+                if (out != null) {
+                    buffer.writeTo(out);
+                }
+                buffer.close();
+                return bytesRead;
+            }
+
+            // Determine if \n follows \r; for both cases, end of line has been reached
+            if (nextByte == '\r') {
+                buffer.writeTo(out);
+                buffer.close();
+                in.mark(1);
+                final int lookAheadByte = in.read();
+                if (lookAheadByte == '\n') {
+                    out.write(lookAheadByte);
+                    return bytesRead + 1;
                 } else {
-                    return (lastByte == '\r') ? bytesRead - 2 : bytesRead - 1;
+                    in.reset();
+                    return bytesRead;
                 }
             }
-
-            // we didn't get a new line but if last byte was carriage return
-            // we've reached a new-line.
-            // so we roll back the last byte that we read and return
-            if (lastByte == '\r') {
-                in.reset();
-                bytesRead--;    // we reset the stream by 1 byte so decrement the number of bytes read by 1
-                return includeLineDelimiter ? bytesRead : bytesRead - 1;
-            }
-
-            // keep track of what the last byte was that we read so that we can
-            // detect \r followed by some other
-            // character.
-            lastByte = nextByte;
         }
     }
 
-    private SplitInfo readHeader(final int numHeaderLines,
-                                 final String headerMarker, final InputStream in,
-                                 final OutputStream out, final boolean keepAllNewLines)
-                                throws IOException {
+    private SplitInfo countBytesToSplitPoint(final InputStream in, final int maxLines, long maxSize) throws IOException {
         SplitInfo info = new SplitInfo();
-        boolean isHeaderLine = true;
 
-        // Read numHeaderLines from file, if specificed; a non-zero value takes precedence
-        // over headerMarker character string
-        if (numHeaderLines > 0) {
-            for (int i = 0; i < numHeaderLines; i++) {
-                int bytesRead = readLine(in, out, keepAllNewLines);
-                if (bytesRead == 0) {
-                    break;
-                }
-                info.lengthBytes += bytesRead;
-                info.lengthLines++;
+        while (info.lengthLines < maxLines) {
+            final long bytesTillNext = countBytesToSplitPoint(in, null, info.lengthBytes, maxSize);
+            if (bytesTillNext <= 0L) {
+                break;
             }
-        // Else, keep reading all lines that begin with headerMarker character string
-        } else if (headerMarker != null) {
-            while (true) {
-                in.mark(0);
-                // search for headerMarker
-                for (int i = 0; i < headerMarker.length(); i++) {
-                    final int nextByte = in.read();
-                    if (nextByte != headerMarker.charAt(i)) {
-                        in.reset();
-                        isHeaderLine = false;
-                        break;
-                    }
-                }
-                if (isHeaderLine) {
-                    // Reset stream so readLine includes the headerMarker character string
-                    in.reset();
-                    info.lengthBytes += readLine(in, out, keepAllNewLines);
-                    info.lengthLines++;
-                } else {
-                    break;
-                }
-            }
+
+            info.lengthLines++;
+            info.lengthBytes += bytesTillNext;
         }
 
         return info;
+    }
+
+    private int countHeaderLines(final ByteCountingInputStream in,
+            final String headerMarker) throws IOException {
+        int headerInfo = 0;
+
+        final BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        in.mark(Integer.MAX_VALUE);
+        String line = br.readLine();
+        while (line != null) {
+            // if line is not a header line, reset stream and return header counts
+            if (!line.startsWith(headerMarker) || line == null) {
+                in.reset();
+                return headerInfo;
+            } else {
+                headerInfo++;
+            }
+            line = br.readLine();
+        }
+        in.reset();
+        return headerInfo;
     }
 
     @Override
@@ -269,113 +316,123 @@ public class SplitText extends AbstractProcessor {
 
         final ProcessorLog logger = getLogger();
         final int headerCount = context.getProperty(HEADER_LINE_COUNT).asInteger();
-        final int splitCount = context.getProperty(LINE_SPLIT_COUNT).asInteger();
-        final double maxFragmentSize;
-        if (context.getProperty(FRAGMENT_MAX_SIZE).isSet()) {
-            maxFragmentSize = context.getProperty(FRAGMENT_MAX_SIZE).asDataSize(DataUnit.B);
-        } else {
-            maxFragmentSize = Integer.MAX_VALUE;
-        }
+        final int maxLineCount = (context.getProperty(LINE_SPLIT_COUNT).asInteger() == 0) ?
+                Integer.MAX_VALUE : context.getProperty(LINE_SPLIT_COUNT).asInteger();
+        final long maxFragmentSize = context.getProperty(FRAGMENT_MAX_SIZE).isSet() ?
+                context.getProperty(FRAGMENT_MAX_SIZE).asDataSize(DataUnit.B).longValue() : Long.MAX_VALUE;
         final String headerMarker = context.getProperty(HEADER_MARKER).getValue();
-        final boolean removeTrailingNewlines = context.getProperty(REMOVE_TRAILING_NEWLINES).asBoolean();
+
         final ObjectHolder<String> errorMessage = new ObjectHolder<>(null);
+        final ArrayList<SplitInfo> splitInfos = new ArrayList<>();
+
         final long startNanos = System.nanoTime();
         final List<FlowFile> splits = new ArrayList<>();
-
         session.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream rawIn) throws IOException {
                 try (final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn);
                         final ByteCountingInputStream in = new ByteCountingInputStream(bufferedIn)) {
 
-                    // Identify header, if any
+                    // if we have header lines, copy them into a ByteArrayOutputStream
                     final ByteArrayOutputStream headerStream = new ByteArrayOutputStream();
-                    final SplitInfo headerInfo = readHeader(headerCount, headerMarker, in, headerStream, true);
-                    if (headerInfo.lengthLines < headerCount) {
-                        errorMessage.set("Header Line Count is set to " + headerCount + " but file had only "
-                                + headerInfo.lengthLines + " lines");
+                    // Determine the number of lines of header, priority given to HEADER_LINE_COUNT property
+                    int headerInfoLineCount = 0;
+                    if (headerCount > 0) {
+                        headerInfoLineCount = headerCount;
+                    } else {
+                        if (headerMarker != null) {
+                            headerInfoLineCount = countHeaderLines(in, headerMarker);
+                        }
+                    }
+                    final int headerLinesCopied = readLines(in, headerInfoLineCount, Long.MAX_VALUE, headerStream);
+
+                    if (headerLinesCopied < headerInfoLineCount) {
+                        errorMessage.set("Header Line Count is set to " + headerInfoLineCount + " but file had only " + headerLinesCopied + " lines");
                         return;
                     }
 
                     while (true) {
-                        FlowFile splitFile = session.create(flowFile);
-                        final SplitInfo flowFileInfo = new SplitInfo();
-
-                        // if we have header lines, write them out
-                        // and then start copying lines
-                        try {
-                            splitFile = session.write(splitFile, new OutputStreamCallback() {
-                                @Override
-                                public void process(final OutputStream rawOut) throws IOException {
-                                    try (final BufferedOutputStream out = new BufferedOutputStream(rawOut)) {
-                                        long lineCount = 0;
-                                        long byteCount = 0;
-                                        // Process header
-                                        if (headerInfo.lengthLines > 0) {
-                                            flowFileInfo.lengthBytes = headerInfo.lengthBytes;
-                                            byteCount = headerInfo.lengthBytes;
-                                            headerStream.writeTo(out);
-                                        }
-
-                                        // Process body
-                                        while (true) {
-                                            final ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
-                                            in.mark(1);
-                                            final int lengthBytes = readLine(in, dataStream, !removeTrailingNewlines || (lineCount != splitCount - 1));
-                                            if (lengthBytes == 0) {
-                                                break;
-                                            }
-                                            lineCount++;
-                                            byteCount += lengthBytes;
-                                            // If within limits or first line exceeds limit, write the output
-                                            if (lineCount <= splitCount && (byteCount <= maxFragmentSize || lineCount == 1)) {
-                                                dataStream.writeTo(out);
-                                                flowFileInfo.lengthLines++;
-                                                flowFileInfo.lengthBytes += lengthBytes;
-                                            } else {
-                                                in.reset();
-                                                break;
-                                            }
+                        if (headerInfoLineCount > 0) {
+                            // if we have header lines, create a new FlowFile, copy the header lines to that file,
+                            // and then start copying lines
+                            final IntegerHolder linesCopied = new IntegerHolder(0);
+                            final LongHolder bytesCopied = new LongHolder(0L);
+                            FlowFile splitFile = session.create(flowFile);
+                            try {
+                                splitFile = session.write(splitFile, new OutputStreamCallback() {
+                                    @Override
+                                    public void process(final OutputStream rawOut) throws IOException {
+                                        try (final BufferedOutputStream out = new BufferedOutputStream(rawOut);
+                                                final ByteCountingOutputStream countingOut = new ByteCountingOutputStream(out)) {
+                                            headerStream.writeTo(countingOut);
+                                            //readLines has an offset of countingOut.getBytesWritten() to allow for header bytes written already
+                                            linesCopied.set(readLines(in, maxLineCount, maxFragmentSize - countingOut.getBytesWritten(), countingOut));
+                                            bytesCopied.set(countingOut.getBytesWritten());
                                         }
                                     }
+                                });
+                                splitFile = session.putAttribute(splitFile, SPLIT_LINE_COUNT, String.valueOf(linesCopied.get()));
+                                splitFile = session.putAttribute(splitFile, FRAGMENT_SIZE, String.valueOf(bytesCopied.get()));
+                                logger.debug("Created Split File {} with {} lines, {} bytes", new Object[]{splitFile, linesCopied.get(), bytesCopied.get()});
+                            } finally {
+                                if (linesCopied.get() > 0) {
+                                    splits.add(splitFile);
+                                } else {
+                                    // if the number of content lines is a multiple of the SPLIT_LINE_COUNT,
+                                    // the last flow file will contain just a header; don't forward that one
+                                    session.remove(splitFile);
                                 }
-                            });
-                            splitFile = session.putAttribute(splitFile, SPLIT_LINE_COUNT, String.valueOf(flowFileInfo.lengthLines));
-                            splitFile = session.putAttribute(splitFile, FRAGMENT_SIZE, String.valueOf(flowFileInfo.lengthBytes));
-                            logger.debug("Created Split File {} with {} lines ({} bytes)", new Object[]{splitFile, flowFileInfo.lengthLines, flowFileInfo.lengthBytes});
-                        } finally {
-                            if (flowFileInfo.lengthLines > 0) {
-                                splits.add(splitFile);
+                            }
+
+                            // Check for EOF
+                            in.mark(1);
+                            if (in.read() == -1) {
+                                break;
+                            }
+                            in.reset();
+
+                        } else {
+                            // We have no header lines, so we can simply demarcate the original File via the
+                            // ProcessSession#clone method.
+                            long beforeReadingLines = in.getBytesConsumed();
+                            final SplitInfo info = countBytesToSplitPoint(in, maxLineCount, maxFragmentSize);
+                            if (info.lengthBytes == 0) {
+                                // stream is out of data
+                                break;
                             } else {
-                                session.remove(splitFile);
+                                info.offsetBytes = beforeReadingLines;
+                                splitInfos.add(info);
+                                final long procNanos = System.nanoTime() - startNanos;
+                                final long procMillis = TimeUnit.MILLISECONDS.convert(procNanos, TimeUnit.NANOSECONDS);
+                                logger.debug("Detected start of Split File in {} at byte offset {} with a length of {} bytes; "
+                                        + "total splits = {}; total processing time = {} ms",
+                                        new Object[]{flowFile, beforeReadingLines, info.lengthBytes, splitInfos.size(), procMillis});
                             }
                         }
-
-                        // Check for EOF
-                        in.mark(0);
-                        if (in.read() == -1) {
-                            break;
-                        }
-                        in.reset();
                     }
                 }
             }
         });
-        finishFragmentAttributes(session, flowFile, splits);
 
         if (errorMessage.get() != null) {
             logger.error("Unable to split {} due to {}; routing to failure", new Object[]{flowFile, errorMessage.get()});
             session.transfer(flowFile, REL_FAILURE);
-            if (!splits.isEmpty()) {
+            if (splits != null && !splits.isEmpty()) {
                 session.remove(splits);
             }
             return;
         }
 
-        final long procNanos = System.nanoTime() - startNanos;
-        final long procMillis = TimeUnit.MILLISECONDS.convert(procNanos, TimeUnit.NANOSECONDS);
-        logger.debug("Completed splitting input FlowFile {} ({} bytes) info {} split FlowFiles); total processing time = {} ms",
-                new Object[]{flowFile, flowFile.getSize(), splits.size(), procMillis});
+        if (!splitInfos.isEmpty()) {
+            // Create the splits
+            for (final SplitInfo info : splitInfos) {
+                FlowFile split = session.clone(flowFile, info.offsetBytes, info.lengthBytes);
+                split = session.putAttribute(split, SPLIT_LINE_COUNT, String.valueOf(info.lengthLines));
+                split = session.putAttribute(split, FRAGMENT_SIZE, String.valueOf(info.lengthBytes));
+                splits.add(split);
+            }
+        }
+        finishFragmentAttributes(session, flowFile, splits);
 
         if (splits.size() > 10) {
             logger.info("Split {} into {} files", new Object[]{flowFile, splits.size()});
@@ -407,11 +464,13 @@ public class SplitText extends AbstractProcessor {
 
     private static class SplitInfo {
 
+        public long offsetBytes;
         public long lengthBytes;
         public long lengthLines;
 
         public SplitInfo() {
             super();
+            this.offsetBytes = 0L;
             this.lengthBytes = 0L;
             this.lengthLines = 0L;
         }
@@ -419,8 +478,10 @@ public class SplitText extends AbstractProcessor {
         @SuppressWarnings("unused")
         public SplitInfo(long offsetBytes, long lengthBytes, long lengthLines) {
             super();
+            this.offsetBytes = offsetBytes;
             this.lengthBytes = lengthBytes;
             this.lengthLines = lengthLines;
         }
     }
+
 }
