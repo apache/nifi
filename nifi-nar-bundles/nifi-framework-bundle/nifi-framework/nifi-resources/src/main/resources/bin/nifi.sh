@@ -118,6 +118,12 @@ locateJava() {
             fi
         fi
     fi
+    [ "x${TOOLS_JAR}" =  "x" ] && [ -n "${JAVA_HOME}" ] && TOOLS_JAR=$(find "${JAVA_HOME}" -name "tools.jar")
+    [ "x${TOOLS_JAR}" =  "x" ] && TOOLS_JAR=$(find "${JAVA_HOME}" -name "classes.jar")
+    if ["x${TOOLS_JAR}" =  "x" ]; then
+         warn "Could not locate tools.jar or classes.jar. Please set manually to avail all command features."
+    fi
+
 }
 
 init() {
@@ -189,9 +195,9 @@ run() {
     # run 'start' in the background because the process will continue to run, monitoring NiFi.
     # all other commands will terminate quickly so want to just wait for them
     if [ "$1" = "start" ]; then
-        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${NIFI_HOME}"/conf/:"${NIFI_HOME}"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@ &)
+        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${TOOLS_JAR}":"${NIFI_HOME}"/conf/:"${NIFI_HOME}"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@ &)
     else
-        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${NIFI_HOME}"/conf/:"${NIFI_HOME}"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@)
+        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${TOOLS_JAR}":"${NIFI_HOME}"/conf/:"${NIFI_HOME}"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@)
     fi
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
@@ -211,7 +217,7 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|status|dump)
+    start|stop|run|status|dump|env)
         main "$@"
         ;;
     restart)

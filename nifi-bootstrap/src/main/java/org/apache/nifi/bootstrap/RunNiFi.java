@@ -28,6 +28,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -41,6 +42,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -186,6 +188,7 @@ public class RunNiFi {
             case "status":
             case "dump":
             case "restart":
+            case "env":
                 break;
             default:
                 printUsage();
@@ -214,6 +217,9 @@ public class RunNiFi {
                 break;
             case "dump":
                 runNiFi.dump(dumpFile);
+                break;
+            case "env":
+                runNiFi.env();
                 break;
         }
     }
@@ -543,6 +549,31 @@ public class RunNiFi {
             logger.info("Apache NiFi is not responding to Ping requests. The process may have died or may be hung");
         } else {
             logger.info("Apache NiFi is not running");
+        }
+    }
+
+    public void env(){
+        final Logger logger = cmdLogger;
+        final Status status = getStatus(logger);
+        if(status.getPid() == null){
+            logger.info("Apache NiFi is not running");
+            return;
+        }
+        try{
+        final Class<?> virtualMachineClass=Class.forName("com.sun.tools.attach.VirtualMachine");
+        Method attachMethod=virtualMachineClass.getMethod("attach", String.class);
+        Object virtualMachine=attachMethod.invoke(null, status.getPid());
+        Method getSystemPropertiesMethod=virtualMachine.getClass().getMethod("getSystemProperties");
+        final Properties sysProps=(Properties)getSystemPropertiesMethod.invoke(virtualMachine);
+        for(Entry<Object, Object> syspropEntry: sysProps.entrySet()){
+            logger.info(syspropEntry.getKey().toString() + " = " +syspropEntry.getValue().toString());
+        }
+        Method detachMethod=virtualMachineClass.getDeclaredMethod("detach");
+        detachMethod.invoke(virtualMachine);
+        }catch(ClassNotFoundException cnfe){
+            logger.error("Seems tools.jar(Linux / Windows JDK) or classes.jar(Mac OS) is not available in classpath", cnfe);
+        }catch(Throwable t){
+            throw new RuntimeException(t);
         }
     }
 
