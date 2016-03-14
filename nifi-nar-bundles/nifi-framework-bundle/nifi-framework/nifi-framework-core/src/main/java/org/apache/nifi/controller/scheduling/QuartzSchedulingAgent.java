@@ -49,16 +49,15 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
 
     private final FlowController flowController;
     private final ProcessContextFactory contextFactory;
-    private final FlowEngine flowEngine;
     private final StringEncryptor encryptor;
 
     private volatile String adminYieldDuration = "1 sec";
     private final Map<Object, List<AtomicBoolean>> canceledTriggers = new HashMap<>();
 
     public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final ProcessContextFactory contextFactory, final StringEncryptor enryptor) {
+        super(flowEngine);
         this.flowController = flowController;
         this.contextFactory = contextFactory;
-        this.flowEngine = flowEngine;
         this.encryptor = enryptor;
     }
 

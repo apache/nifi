@@ -18,6 +18,7 @@ package org.apache.nifi.controller.scheduling;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.engine.FlowEngine;
 
 /**
  * Base implementation of the {@link SchedulingAgent} which encapsulates the
@@ -32,6 +33,12 @@ import org.apache.nifi.controller.ReportingTaskNode;
  * @see QuartzSchedulingAgent
  */
 abstract class AbstractSchedulingAgent implements SchedulingAgent {
+
+    protected final FlowEngine flowEngine;
+
+    protected AbstractSchedulingAgent(FlowEngine flowEngine) {
+        this.flowEngine = flowEngine;
+    }
 
     @Override
     public void schedule(Connectable connectable, ScheduleState scheduleState) {

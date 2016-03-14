@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -42,6 +42,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.SchedulingAgentCallback;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -79,7 +80,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ConcurrentMap<SchedulingStrategy, SchedulingAgent> strategyAgentMap = new ConcurrentHashMap<>();
     // thread pool for starting/stopping components
 
-    private final ScheduledExecutorService componentLifeCycleThreadPool = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
+    private final ScheduledExecutorService componentLifeCycleThreadPool = new FlowEngine(8, "StandardProcessScheduler", true);
+    private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(8, "StandardProcessScheduler", true);
 
     private final StringEncryptor encryptor;
 
@@ -160,6 +162,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         frameworkTaskExecutor.shutdown();
         componentLifeCycleThreadPool.shutdown();
+        componentMonitoringThreadPool.shutdown();
     }
 
     @Override
@@ -295,14 +298,27 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
                 this.encryptor, getStateManager(procNode.getIdentifier()));
         final ScheduleState scheduleState = getScheduleState(requireNonNull(procNode));
-        Runnable schedulingAgentCallback = new Runnable() {
+
+        SchedulingAgentCallback callback = new SchedulingAgentCallback() {
             @Override
-            public void run() {
+            public void trigger() {
                 getSchedulingAgent(procNode).schedule(procNode, scheduleState);
                 heartbeater.heartbeat();
             }
+
+            @Override
+            public Future<?> invokeMonitoringTask(Callable<?> task) {
+                scheduleState.incrementActiveThreadCount();
+                return componentMonitoringThreadPool.submit(task);
+            }
+
+            @Override
+            public void postMonitor() {
+                scheduleState.decrementActiveThreadCount();
+            }
         };
-        procNode.start(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, processContext, schedulingAgentCallback);
+
+        procNode.start(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, processContext, callback);
     }
 
     /**
@@ -317,6 +333,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
                 this.encryptor, getStateManager(procNode.getIdentifier()));
         final ScheduleState state = getScheduleState(procNode);
+
         procNode.stop(this.componentLifeCycleThreadPool, processContext, new Callable<Boolean>() {
             @Override
             public Boolean call() {
