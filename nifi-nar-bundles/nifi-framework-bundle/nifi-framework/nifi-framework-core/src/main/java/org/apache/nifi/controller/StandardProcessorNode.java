@@ -1231,41 +1231,41 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public <T extends ProcessContext & ControllerServiceLookup> void start(final ScheduledExecutorService taskScheduler,
-            final long administrativeYieldMillis, final T processContext, final Runnable schedulingAgentCallback) {
+            final long administrativeYieldMillis, final T processContext, final SchedulingAgentCallback schedulingAgentCallback) {
         if (!this.isValid()) {
             throw new IllegalStateException( "Processor " + this.getName() + " is not in a valid state due to " + this.getValidationErrors());
         }
-
+        final ProcessorLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
         if (this.scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.STARTING)) { // will ensure that the Processor represented by this node can only be started once
             final Runnable startProcRunnable = new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        final SchedulingContext schedulingContext = new StandardSchedulingContext(processContext, getControllerServiceProvider(),
-                                StandardProcessorNode.this, processContext.getStateManager());
-                        invokeTaskAsCancelableFuture(taskScheduler, new Callable<Void>() {
-                            @SuppressWarnings("deprecation")
+                        invokeTaskAsCancelableFuture(schedulingAgentCallback, new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
                                 try (final NarCloseable nc = NarCloseable.withNarLoader()) {
-                                    ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, processor, schedulingContext);
+                                    SchedulingContext schedulingContext = new StandardSchedulingContext(processContext,
+                                            getControllerServiceProvider(), StandardProcessorNode.this,
+                                            processContext.getStateManager());
+                                    ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class,
+                                            org.apache.nifi.processor.annotation.OnScheduled.class, processor,
+                                            schedulingContext);
                                     return null;
                                 }
                             }
                         });
+
                         if (scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
-                            schedulingAgentCallback.run(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
+                            schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
                         } else { // can only happen if stopProcessor was called before service was transitioned to RUNNING state
                             try (final NarCloseable nc = NarCloseable.withNarLoader()) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                             }
-
                             scheduledState.set(ScheduledState.STOPPED);
                         }
                     } catch (final Exception e) {
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                        final ProcessorLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
-
                         procLog.error( "{} failed to invoke @OnScheduled method due to {}; processor will not be scheduled to run for {}",
                                 new Object[] { StandardProcessorNode.this.getProcessor(), cause, administrativeYieldMillis + " milliseconds" }, cause);
                         LOG.error("Failed to invoke @OnScheduled method due to {}", cause.toString(), cause);
@@ -1281,7 +1281,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             };
             taskScheduler.execute(startProcRunnable);
         } else {
-            LOG.warn("Can not start Processor since it's already in the process of being started or it is DISABLED");
+            String procName = this.processor.getClass().getSimpleName();
+            LOG.warn("Can not start '" + procName
+                    + "' since it's already in the process of being started or it is DISABLED - "
+                    + scheduledState.get());
+            procLog.warn("Can not start '" + procName
+                    + "' since it's already in the process of being started or it is DISABLED - "
+                    + scheduledState.get());
         }
     }
 
@@ -1313,27 +1319,23 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public <T extends ProcessContext & ControllerServiceLookup> void stop(final ScheduledExecutorService scheduler,
             final T processContext, final Callable<Boolean> activeThreadMonitorCallback) {
+        LOG.info("Stopping processor: " + this.processor.getClass());
         if (this.scheduledState.compareAndSet(ScheduledState.RUNNING, ScheduledState.STOPPING)) { // will ensure that the Processor represented by this node can only be stopped once
-            invokeTaskAsCancelableFuture(scheduler, new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    try (final NarCloseable nc = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
-                        return null;
-                    }
-                }
-            });
             // will continue to monitor active threads, invoking OnStopped once
             // there are none
             scheduler.execute(new Runnable() {
+                boolean unscheduled = false;
                 @Override
                 public void run() {
+                    if (!this.unscheduled){
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+                        this.unscheduled = true;
+                    }
                     try {
                         if (activeThreadMonitorCallback.call()) {
                             try (final NarCloseable nc = NarCloseable.withNarLoader()) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
                             }
-
                             scheduledState.set(ScheduledState.STOPPED);
                         } else {
                             scheduler.schedule(this, 100, TimeUnit.MILLISECONDS);
@@ -1382,31 +1384,32 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * be logged (WARN) informing a user so further actions could be taken.
      * </p>
      */
-    private void invokeTaskAsCancelableFuture(ScheduledExecutorService taskScheduler, Callable<Void> task) {
-        Future<Void> executionResult = taskScheduler.submit(task);
-
+    private <T> void invokeTaskAsCancelableFuture(SchedulingAgentCallback callback, Callable<T> task) {
         String timeoutString = NiFiProperties.getInstance().getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
-        long onScheduleTimeout = timeoutString == null ? Long.MAX_VALUE
+        long onScheduleTimeout = timeoutString == null ? 60000
                 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
-
+        Future<?> taskFuture = callback.invokeMonitoringTask(task);
         try {
-            executionResult.get(onScheduleTimeout, TimeUnit.MILLISECONDS);
+            taskFuture.get(onScheduleTimeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             LOG.warn("Thread was interrupted while waiting for processor '" + this.processor.getClass().getSimpleName()
-                    + "' lifecycle operation (OnScheduled or OnUnscheduled) to finish.");
+                    + "' lifecycle OnScheduled operation to finish.");
             Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while executing one of processor's OnScheduled tasks.", e);
         } catch (TimeoutException e) {
-            executionResult.cancel(true);
-            LOG.warn("Timed out while waiting for lifecycle operation (OnScheduled or OnUnscheduled) of '"
+            taskFuture.cancel(true);
+            LOG.warn("Timed out while waiting for OnScheduled of '"
                     + this.processor.getClass().getSimpleName()
                     + "' processor to finish. An attempt is made to cancel the task via Thread.interrupt(). However it does not "
-                    + "guarantee that the task will be canceled since the code inside current lifecycle operation (OnScheduled or OnUnscheduled) may "
+                    + "guarantee that the task will be canceled since the code inside current OnScheduled operation may "
                     + "have been written to ignore interrupts which may result in runaway thread which could lead to more issues "
                     + "eventually requiring NiFi to be restarted. This is usually a bug in the target Processor '"
                     + this.processor + "' that needs to be documented, reported and eventually fixed.");
+            throw new RuntimeException("Timed out while executing one of processor's OnScheduled task.", e);
         } catch (ExecutionException e){
-            throw new RuntimeException(
-                    "Failed while executing one of processor's lifecycle tasks (OnScheduled or OnUnscheduled).", e);
+            throw new RuntimeException("Failed while executing one of processor's OnScheduled task.", e);
+        } finally {
+            callback.postMonitor();
         }
     }
 }
