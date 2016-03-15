@@ -121,7 +121,7 @@ locateJava() {
     # if command is env, attempt to add more to the classpath
     if [ "$1" = "env" ]; then
         [ "x${TOOLS_JAR}" =  "x" ] && [ -n "${JAVA_HOME}" ] && TOOLS_JAR=$(find -H "${JAVA_HOME}" -name "tools.jar")
-        [ "x${TOOLS_JAR}" =  "x" ] && TOOLS_JAR=$(find -H "${JAVA_HOME}" -name "classes.jar")
+        [ "x${TOOLS_JAR}" =  "x" ] && [ -n "${JAVA_HOME}" ] && TOOLS_JAR=$(find -H "${JAVA_HOME}" -name "classes.jar")
         if [ "x${TOOLS_JAR}" =  "x" ]; then
              warn "Could not locate tools.jar or classes.jar. Please set manually to avail all command features."
         fi
@@ -183,6 +183,7 @@ run() {
         BOOTSTRAP_LIBS=$(cygpath --path --windows "${BOOTSTRAP_LIBS}")
         BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR};${BOOTSTRAP_LIBS}"
         if [ -n "${TOOLS_JAR}" ]; then
+            TOOLS_JAR=$(cygpath --path --windows "${TOOLS_JAR}")
             BOOTSTRAP_CLASSPATH="${TOOLS_JAR};${BOOTSTRAP_CLASSPATH}"
         fi
     else
