@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.bootstrap;
 
+import sun.management.VMManagement;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,7 +28,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -1131,6 +1135,22 @@ public class RunNiFi {
         this.loggingFutures = futures;
     }
 
+    private Long getPidViaRuntimeMXBean(final Logger logger) {
+        try {
+            final RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+            final Field jvmField = runtimeMXBean.getClass().getDeclaredField("jvm");
+            jvmField.setAccessible(true);
+            final VMManagement vmManagement = (VMManagement)jvmField.get(runtimeMXBean);
+            final Method getProcessIdMethod = vmManagement.getClass().getDeclaredMethod("getProcessId");
+            final getProcessIdMethod.setAccessible(true);
+            Integer processId = (Integer)getProcessIdMethod.invoke(vmManagement);
+            return processId.longValue();
+        } catch (final NullPointerException | NoSuchMethodException | InvocationTargetException | IllegalAccessException | NoSuchFieldException nsfe) {
+            logger.debug("Could not find PID for child process due to {}", nsfe);
+            return null;
+        }
+    }
+
     private Long getPid(final Process process, final Logger logger) {
         try {
             final Class<?> procClass = process.getClass();
@@ -1143,10 +1163,10 @@ public class RunNiFi {
             if (pidObject instanceof Number) {
                 return ((Number) pidObject).longValue();
             }
-            return null;
+            return getPidViaRuntimeMXBean(logger);
         } catch (final IllegalAccessException | NoSuchFieldException nsfe) {
             logger.debug("Could not find PID for child process due to {}", nsfe);
-            return null;
+            return getPidViaRuntimeMXBean(logger);
         }
     }
 
