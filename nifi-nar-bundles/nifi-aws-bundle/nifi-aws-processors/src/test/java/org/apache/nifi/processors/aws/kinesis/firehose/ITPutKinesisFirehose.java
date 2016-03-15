@@ -109,10 +109,10 @@ public class ITPutKinesisFirehose {
     }
 
     @Test
-    public void testTwoMessageWithMaxBufferSize1MBRunOnceTwoMessageSent() {
+    public void testTwoMessageBatch5WithMaxBufferSize1MBRunOnceTwoMessageSent() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "5");
         runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "2");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
@@ -133,10 +133,10 @@ public class ITPutKinesisFirehose {
     }
 
     @Test
-    public void testThreeMessageWithMaxBufferSize1MBTRunOnceTwoMessageSent() {
+    public void testThreeMessageWithBatch10MaxBufferSize1MBTRunOnceTwoMessageSent() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
         runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
@@ -157,10 +157,10 @@ public class ITPutKinesisFirehose {
     }
 
     @Test
-    public void testThreeMessageWithMaxBufferSize1MBRunTwiceThreeMessageSent() {
+    public void testThreeMessageWithBatch2MaxBufferSize1MBRunTwiceThreeMessageSent() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "2");
         runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
@@ -182,10 +182,10 @@ public class ITPutKinesisFirehose {
     }
 
     @Test
-    public void testThreeMessageWithMaxBufferSize1MBRunOnceTwoMessageSent() {
+    public void testThreeMessageWithBatch5MaxBufferSize1MBRunOnceTwoMessageSent() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "5");
         runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
@@ -195,6 +195,60 @@ public class ITPutKinesisFirehose {
         }
         runner.enqueue(bytes);
         runner.enqueue(bytes.clone());
+        runner.enqueue(bytes.clone());
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 2);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
+        assertEquals(2,flowFiles.size());
+        for (MockFlowFile flowFile : flowFiles) {
+            flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
+        }
+    }
+
+    @Test
+    public void test5MessageWithBatch10MaxBufferSize10MBRunOnce5MessageSent() {
+        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
+        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
+        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
+        runner.assertValid();
+        byte [] bytes = new byte[10];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = 'a';
+        }
+        runner.enqueue(bytes);
+        runner.enqueue(bytes.clone());
+        runner.enqueue(bytes.clone());
+        runner.enqueue(bytes);
+        runner.enqueue(bytes.clone());
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 5);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
+        assertEquals(5,flowFiles.size());
+        for (MockFlowFile flowFile : flowFiles) {
+            flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
+        }
+    }
+
+    @Test
+    public void test5MessageWithBatch2MaxBufferSize10MBRunOnce2MessageSent() {
+        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
+        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "2");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
+        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
+        runner.assertValid();
+        byte [] bytes = new byte[10];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = 'a';
+        }
+        runner.enqueue(bytes);
+        runner.enqueue(bytes.clone());
+        runner.enqueue(bytes.clone());
+        runner.enqueue(bytes);
         runner.enqueue(bytes.clone());
         runner.run(1, true, true);
 

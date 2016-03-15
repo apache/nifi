@@ -97,7 +97,7 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
         // Get max batch size messages with size limit defined by maxBufferSizeBytes
         List<FlowFile> flowFiles = new ArrayList<FlowFile>(batchSize);
         flowFiles.add(flowFileCandidate);
-        for (int i = 0; (i < batchSize) && (currentBufferSizeBytes <= maxBufferSizeBytes); i++) {
+        for (int i = 1; (i < batchSize) && (currentBufferSizeBytes <= maxBufferSizeBytes); i++) {
             flowFileCandidate = session.get();
             if ( flowFileCandidate == null )
                 break;
