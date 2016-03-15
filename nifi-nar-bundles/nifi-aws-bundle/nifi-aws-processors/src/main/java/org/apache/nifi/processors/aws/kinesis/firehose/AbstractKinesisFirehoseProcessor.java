@@ -47,6 +47,16 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractAWSCreden
             .addValidator(StandardValidators.createLongValidator(1, 500, true))
             .sensitive(false)
             .build();
+
+    public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
+            .name("Max message buffer size (MB)")
+            .description("Max message buffer size (1-50) MB")
+            .defaultValue("1")
+            .required(false)
+            .addValidator(StandardValidators.createLongValidator(1, 50, true))
+            .sensitive(false)
+            .build();
+
     /**
      * Create client using aws credentials provider. This is the preferred way for creating clients
      */

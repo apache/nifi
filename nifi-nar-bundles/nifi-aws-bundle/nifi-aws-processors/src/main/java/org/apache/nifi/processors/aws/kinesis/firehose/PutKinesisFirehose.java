@@ -70,13 +70,13 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
     public static final String AWS_KINESIS_FIREHOSE_RECORD_ID = "aws.kinesis.firehose.record.id";
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
+            Arrays.asList(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, BATCH_SIZE, MAX_MESSAGE_BUFFER_SIZE_MB, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
                   PROXY_HOST,PROXY_HOST_PORT));
 
     /**
      * Max buffer size 1000kb
      */
-    public static final int MAX_MESSAGE_SIZE = 1000 * 1000;
+    public static final int MAX_MESSAGE_SIZE = 1000 * 1024;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -85,11 +85,24 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-
-        List<FlowFile> flowFiles = session.get(batchSize);
-        if ( flowFiles.size() == 0 ) {
+        FlowFile flowFileCandidate = session.get();
+        if ( flowFileCandidate == null )
             return;
+
+        long currentBufferSizeBytes = flowFileCandidate.getSize();
+
+        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final int maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asInteger() * 1024 * 1000;
+
+        // Get max batch size messages with size limit defined by maxBufferSizeBytes
+        List<FlowFile> flowFiles = new ArrayList<FlowFile>(batchSize);
+        flowFiles.add(flowFileCandidate);
+        for (int i = 0; (i < batchSize) && (currentBufferSizeBytes <= maxBufferSizeBytes); i++) {
+            flowFileCandidate = session.get();
+            if ( flowFileCandidate == null )
+                break;
+            currentBufferSizeBytes += flowFileCandidate.getSize();
+            flowFiles.add(flowFileCandidate);
         }
 
         final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).getValue();
