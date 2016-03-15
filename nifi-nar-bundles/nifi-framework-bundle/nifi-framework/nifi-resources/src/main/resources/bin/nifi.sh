@@ -183,6 +183,7 @@ run() {
         BOOTSTRAP_LIBS=$(cygpath --path --windows "${BOOTSTRAP_LIBS}")
         BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR};${BOOTSTRAP_LIBS}"
         if [ -n "${TOOLS_JAR}" ]; then
+            TOOLS_JAR=$(cygpath --path --windows "${TOOLS_JAR}")
             BOOTSTRAP_CLASSPATH="${TOOLS_JAR};${BOOTSTRAP_CLASSPATH}"
         fi
     else
