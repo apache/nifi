@@ -70,9 +70,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.processor.SimpleProcessLogger;
-import org.apache.nifi.processor.StandardSchedulingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -1245,12 +1243,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             @Override
                             public Void call() throws Exception {
                                 try (final NarCloseable nc = NarCloseable.withNarLoader()) {
-                                    SchedulingContext schedulingContext = new StandardSchedulingContext(processContext,
-                                            getControllerServiceProvider(), StandardProcessorNode.this,
-                                            processContext.getStateManager());
                                     ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class,
-                                            org.apache.nifi.processor.annotation.OnScheduled.class, processor,
-                                            schedulingContext);
+                                            org.apache.nifi.processor.annotation.OnScheduled.class, processor, processContext);
                                     return null;
                                 }
                             }
