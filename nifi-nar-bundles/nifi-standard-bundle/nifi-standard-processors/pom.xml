@@ -284,6 +284,17 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestSplitText/4.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/5.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/6.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/blankLines_noHeader_out1.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/blankLines_noHeader_out2.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/blankLines_noHeader_out3.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/blankLines_noHeader_out4.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/blankLines_out1.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/blankLines_out2.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/blankLines_out3.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/blankLines.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/carriage-return.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/header.txt</exclude>
+                        <exclude>src/test/resources/TestSplitText/longLines.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/original.txt</exclude>
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>
