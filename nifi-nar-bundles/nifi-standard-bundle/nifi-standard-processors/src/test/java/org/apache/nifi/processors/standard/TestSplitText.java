@@ -37,6 +37,7 @@ public class TestSplitText {
     final Path dataPath = Paths.get("src/test/resources/TestSplitText");
     final Path file = dataPath.resolve(originalFilename);
     final Path crFile = dataPath.resolve("carriage-return.txt");
+    final Path crFile2 = dataPath.resolve("carriage-return2.txt");
     final Path blankLinesFile = dataPath.resolve("blankLines.txt");
     final Path longLineFile = dataPath.resolve("longLines.txt");
     final Path headerOnlyFile = dataPath.resolve("header.txt");
@@ -61,11 +62,40 @@ public class TestSplitText {
     }
 
     @Test
+    public void testLargeSplitCount() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "1");
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
+
+        runner.enqueue(file);
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_SPLITS, 12);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+    }
+
+    @Test
     public void testFlowFileIsOnlyHeader() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
         runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "50 B");
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+
+        runner.enqueue(headerOnlyFile);
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_SPLITS, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testFlowFileIsOnlyHeaderWithHeaderMarker() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "50 B");
+        runner.setProperty(SplitText.HEADER_MARKER, "Header");
 
         runner.enqueue(headerOnlyFile);
         runner.run();
@@ -482,6 +512,29 @@ public class TestSplitText {
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), originalFilename);
         assertEquals(Files.size(dataPath.resolve(originalFilename)), flowFile.getSize());
         flowFile.assertContentEquals(file);
+    }
+
+    @Test
+    public void testCarriageReturnOneNewline() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.HEADER_MARKER, "#");
+
+        runner.enqueue(crFile2);
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_SPLITS, 2);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+
+        final String expected0 = "#Header line 1\r#Header line 2\rData line 1\rData line 2\r";
+        final String expected1 = "#Header line 1\r#Header line 2\rData line 3\r\nData line 4\r\n";
+
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splits.get(0).assertContentEquals(expected0);
+        splits.get(0).assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(1));
+        splits.get(1).assertContentEquals(expected1);
+        splits.get(1).assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(2));
     }
 
 }
