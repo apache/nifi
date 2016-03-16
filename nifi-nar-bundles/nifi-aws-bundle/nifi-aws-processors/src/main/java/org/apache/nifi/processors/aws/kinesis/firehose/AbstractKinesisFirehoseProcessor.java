@@ -49,11 +49,11 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractAWSCreden
             .build();
 
     public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
-            .name("Max message buffer size (MB)")
-            .description("Max message buffer size (1-50) MB")
-            .defaultValue("1")
+            .name("Max message buffer size")
+            .description("Max message buffer")
+            .defaultValue("1 MB")
             .required(false)
-            .addValidator(StandardValidators.createLongValidator(1, 50, true))
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .sensitive(false)
             .build();
 

@@ -35,6 +35,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
@@ -74,7 +75,7 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
                   PROXY_HOST,PROXY_HOST_PORT));
 
     /**
-     * Max buffer size 1000kb
+     * Max buffer size 1 MB
      */
     public static final int MAX_MESSAGE_SIZE = 1000 * 1024;
 
@@ -87,7 +88,7 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        final int maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asInteger() * 1024 * 1000;
+        final long maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asDataSize(DataUnit.B).longValue();
         final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).getValue();
 
         List<FlowFile> flowFiles = new ArrayList<FlowFile>(batchSize);

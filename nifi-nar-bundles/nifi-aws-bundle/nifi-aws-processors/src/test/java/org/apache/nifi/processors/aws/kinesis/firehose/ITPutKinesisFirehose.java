@@ -93,7 +93,7 @@ public class ITPutKinesisFirehose {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "2");
-        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE)];
@@ -113,7 +113,7 @@ public class ITPutKinesisFirehose {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "5");
-        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "2");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "2 MB");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE)];
@@ -137,7 +137,7 @@ public class ITPutKinesisFirehose {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
-        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE)];
@@ -161,7 +161,7 @@ public class ITPutKinesisFirehose {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "2");
-        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE)];
@@ -186,7 +186,7 @@ public class ITPutKinesisFirehose {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "5");
-        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE)];
@@ -211,7 +211,7 @@ public class ITPutKinesisFirehose {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
-        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
         byte [] bytes = new byte[10];
@@ -238,7 +238,7 @@ public class ITPutKinesisFirehose {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "2");
-        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
         byte [] bytes = new byte[10];
