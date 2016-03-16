@@ -67,7 +67,11 @@ import org.apache.nifi.stream.io.StreamUtils;
         + "the name of the property maps to the Attribute Name into which the result will be placed.  "
         + "The first capture group, if any found, will be placed into that attribute name."
         + "But all capture groups, including the matching string sequence itself will also be "
-        + "provided at that attribute name with an index value provided."
+        + "provided at that attribute name with an index value provided, with the exception of a capturing group "
+        + "that is optional and does not match - for example, given the attribute name \"regex\" and expression "
+        + "\"abc(def)?(g)\" we would add an attribute \"regex.1\" with a value of \"def\" if the \"def\" matched. If "
+        + "the \"def\" did not match, no attribute named \"regex.1\" would be added but an attribute named \"regex.2\" "
+        + "with a value of \"g\" will be added regardless."
         + "The value of the property must be a valid Regular Expressions with one or more capturing groups.  "
         + "If the Regular Expression matches more than once, only the first match will be used.  "
         + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
@@ -322,12 +326,14 @@ public class ExtractText extends AbstractProcessor {
                 for (int i = startGroupIdx; i <= matcher.groupCount(); i++) {
                     final String key = new StringBuilder(baseKey).append(".").append(i).toString();
                     String value = matcher.group(i);
-                    if (value.length() > maxCaptureGroupLength) {
-                        value = value.substring(0, maxCaptureGroupLength);
-                    }
-                    regexResults.put(key, value);
-                    if (i == 1) {
-                        regexResults.put(baseKey, value);
+                    if (value != null) {
+                        if (value.length() > maxCaptureGroupLength) {
+                            value = value.substring(0, maxCaptureGroupLength);
+                        }
+                        regexResults.put(key, value);
+                        if (i == 1) {
+                            regexResults.put(baseKey, value);
+                        }
                     }
                 }
             }
