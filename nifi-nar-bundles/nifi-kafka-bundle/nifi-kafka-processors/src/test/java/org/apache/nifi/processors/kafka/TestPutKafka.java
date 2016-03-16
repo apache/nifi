@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.producer.BufferExhaustedException;
 import org.apache.kafka.clients.producer.Callback;
@@ -475,16 +474,5 @@ public class TestPutKafka {
         @Override
         public void close() {
         }
-
-        @Override
-        public void close(long arg0, TimeUnit arg1) {
-            // ignore, not used in test
-        }
-
-        @Override
-        public void flush() {
-            // ignore, not used in test
-        }
     }
-
 }
