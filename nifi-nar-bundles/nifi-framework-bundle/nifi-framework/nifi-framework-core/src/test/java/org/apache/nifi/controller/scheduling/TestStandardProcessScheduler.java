@@ -416,7 +416,7 @@ public class TestStandardProcessScheduler {
         LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(3000);
         scheduler.enableControllerService(serviceNode);
-        Thread.sleep(500);
+        Thread.sleep(2000);
         assertTrue(serviceNode.isActive());
         assertEquals(1, ts.enableInvocationCount());
 
@@ -427,7 +427,7 @@ public class TestStandardProcessScheduler {
         assertEquals(0, ts.disableInvocationCount());
         // wait a bit. . . Enabling will finish and @OnDisabled will be invoked
         // automatically
-        Thread.sleep(3000);
+        Thread.sleep(4000);
         assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
         assertEquals(1, ts.disableInvocationCount());
     }
