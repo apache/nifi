@@ -85,27 +85,31 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        FlowFile flowFileCandidate = session.get();
-        if ( flowFileCandidate == null )
-            return;
-
-        long currentBufferSizeBytes = flowFileCandidate.getSize();
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final int maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asInteger() * 1024 * 1000;
+        final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).getValue();
 
-        // Get max batch size messages with size limit defined by maxBufferSizeBytes
         List<FlowFile> flowFiles = new ArrayList<FlowFile>(batchSize);
-        flowFiles.add(flowFileCandidate);
-        for (int i = 1; (i < batchSize) && (currentBufferSizeBytes <= maxBufferSizeBytes); i++) {
-            flowFileCandidate = session.get();
+
+        long currentBufferSizeBytes = 0;
+
+        for (int i = 0; (i < batchSize) && (currentBufferSizeBytes <= maxBufferSizeBytes); i++) {
+
+            FlowFile flowFileCandidate = session.get();
             if ( flowFileCandidate == null )
                 break;
+
+            if (flowFileCandidate.getSize() > MAX_MESSAGE_SIZE) {
+                flowFileCandidate = handleFlowFileTooBig(session, flowFileCandidate, firehoseStreamName);
+                continue;
+            }
+
             currentBufferSizeBytes += flowFileCandidate.getSize();
+
             flowFiles.add(flowFileCandidate);
         }
 
-        final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).getValue();
         final AmazonKinesisFirehoseClient client = getClient();
 
         try {
@@ -117,16 +121,6 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
             // Prepare batch of records
             for (int i = 0; i < flowFiles.size(); i++) {
                 FlowFile flowFile = flowFiles.get(i);
-
-                // If flow file too large send it to failure
-                if (flowFile.getSize() > MAX_MESSAGE_SIZE) {
-                    flowFile = session.putAttribute(flowFile, AWS_KINESIS_FIREHOSE_ERROR_MESSAGE,
-                        "record too big " + flowFile.getSize() + " max allowed " + MAX_MESSAGE_SIZE );
-                    session.transfer(flowFile, REL_FAILURE);
-                    getLogger().error("Failed to publish to kinesis firehose {} records {} because the size was greater than {} bytes",
-                        new Object[]{firehoseStreamName, flowFile, MAX_MESSAGE_SIZE});
-                    continue;
-                }
 
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 session.exportTo(flowFile, baos);
@@ -175,6 +169,16 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }
+    }
+
+    protected FlowFile handleFlowFileTooBig(final ProcessSession session, FlowFile flowFileCandidate,
+            final String firehoseStreamName) {
+        flowFileCandidate = session.putAttribute(flowFileCandidate, AWS_KINESIS_FIREHOSE_ERROR_MESSAGE,
+            "record too big " + flowFileCandidate.getSize() + " max allowed " + MAX_MESSAGE_SIZE );
+        session.transfer(flowFileCandidate, REL_FAILURE);
+        getLogger().error("Failed to publish to kinesis firehose {} records {} because the size was greater than {} bytes",
+            new Object[]{firehoseStreamName, flowFileCandidate, MAX_MESSAGE_SIZE});
+        return flowFileCandidate;
     }
 
 }
