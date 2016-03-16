@@ -90,7 +90,7 @@ public class ITPutKinesisFirehose {
     }
 
     @Test
-    public void testOneMessageWithMaxBufferSizeGreaterThan1MB() {
+    public void testOneMessageWithMaxBufferSizeGreaterThan1MBOneSuccess() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "2");
@@ -208,7 +208,7 @@ public class ITPutKinesisFirehose {
     }
 
     @Test
-    public void testThreeMessageHello2MBThereWithBatch10MaxBufferSize1MBRunOnceTwoMessageSent() {
+    public void testThreeMessageHello2MBThereWithBatch10MaxBufferSize1MBRunOnceTwoMessageSuccessOneFailed() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
@@ -238,7 +238,7 @@ public class ITPutKinesisFirehose {
     }
 
     @Test
-    public void testTwoMessageHello2MBWithBatch10MaxBufferSize1MBRunOnceTwoMessageSent() throws Exception {
+    public void testTwoMessageHello2MBWithBatch10MaxBufferSize1MBRunOnceOneSuccessOneFailed() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
