@@ -47,6 +47,20 @@ public class TestSplitText {
     }
 
     @Test
+    public void testWithoutFlowFile() {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "50 B");
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_SPLITS, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 0);
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+    }
+
+    @Test
     public void testFlowFileIsOnlyHeader() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
@@ -456,7 +470,7 @@ public class TestSplitText {
         final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
         mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
         mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
-        mergeRunner.enqueue(splits.toArray(new MockFlowFile[0]));
+        mergeRunner.enqueue(splits.toArray(new MockFlowFile[splits.size()]));
         mergeRunner.run();
 
         mergeRunner.assertTransferCount(MergeContent.REL_MERGED, 1);

@@ -208,7 +208,7 @@ public class SplitText extends AbstractProcessor {
                 return numLines;
             }
             numLines++;
-            if (totalBytes >= maxByteCount && numLines > maxNumLines) {
+            if (totalBytes >= maxByteCount) {
                 break;
             }
         }
@@ -217,7 +217,12 @@ public class SplitText extends AbstractProcessor {
 
     private long countBytesToSplitPoint(final InputStream in, final OutputStream out, final long bytesReadSoFar, final long maxSize) throws IOException {
         long bytesRead = 0L;
-        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        final ByteArrayOutputStream buffer;
+        if (out != null) {
+            buffer = new ByteArrayOutputStream();
+        } else {
+            buffer = null;
+        }
 
         in.mark(Integer.MAX_VALUE);
         while (true) {
@@ -225,41 +230,49 @@ public class SplitText extends AbstractProcessor {
 
             // if we hit end of stream we're done
             if (nextByte == -1) {
-                if (out != null) {
+                if (buffer != null) {
                     buffer.writeTo(out);
+                    buffer.close();
                 }
-                buffer.close();
                 return bytesRead;
             }
 
             // buffer the output
             bytesRead++;
-            buffer.write(nextByte);
+            if (buffer != null) {
+                buffer.write(nextByte);
+            }
 
             // check the size limit
             if (bytesRead > (maxSize-bytesReadSoFar) && bytesReadSoFar > 0) {
                 in.reset();
-                buffer.close();
+                if (buffer != null) {
+                    buffer.close();
+                }
                 return -1;
             }
 
             // if we have a new line, then we're done
             if (nextByte == '\n') {
-                if (out != null) {
+                if (buffer != null) {
                     buffer.writeTo(out);
+                    buffer.close();
                 }
-                buffer.close();
                 return bytesRead;
             }
 
             // Determine if \n follows \r; for both cases, end of line has been reached
             if (nextByte == '\r') {
-                buffer.writeTo(out);
-                buffer.close();
+                if (buffer != null) {
+                    buffer.writeTo(out);
+                    buffer.close();
+                }
                 in.mark(1);
                 final int lookAheadByte = in.read();
                 if (lookAheadByte == '\n') {
-                    out.write(lookAheadByte);
+                    if (out != null) {
+                        out.write(lookAheadByte);
+                    }
                     return bytesRead + 1;
                 } else {
                     in.reset();
@@ -468,18 +481,9 @@ public class SplitText extends AbstractProcessor {
         public long lengthLines;
 
         public SplitInfo() {
-            super();
             this.offsetBytes = 0L;
             this.lengthBytes = 0L;
             this.lengthLines = 0L;
-        }
-
-        @SuppressWarnings("unused")
-        public SplitInfo(long offsetBytes, long lengthBytes, long lengthLines) {
-            super();
-            this.offsetBytes = offsetBytes;
-            this.lengthBytes = lengthBytes;
-            this.lengthLines = lengthLines;
         }
     }
 
