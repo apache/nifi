@@ -22,6 +22,10 @@
     <artifactId>nifi-jms-cf-service-nar</artifactId>
     <packaging>nar</packaging>
     <description>NiFi NAR for interacting with JMS-based messaging systems</description>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
     <dependencies>
     	<dependency>
             <groupId>org.apache.nifi</groupId>
