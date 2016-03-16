@@ -96,7 +96,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("Proxy Host")
-            .description("Proxy host name or IP")
+            .description("Proxy host name or ip")
             .expressionLanguageSupported(true)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
