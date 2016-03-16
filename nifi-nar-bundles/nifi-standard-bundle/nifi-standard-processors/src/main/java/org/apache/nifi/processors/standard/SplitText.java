@@ -71,7 +71,6 @@ import org.apache.nifi.util.ObjectHolder;
 @SupportsBatching
 @Tags({"split", "text"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-//@CapabilityDescription("Splits a text file into multiple smaller text files on line boundaries, each having up to a configured number of lines")
 @CapabilityDescription("Splits a text file into multiple smaller text files on line boundaries or fragment size. " +
         "Each output file will contain configured number of lines or bytes. If both Line Split Count and Maximum Fragment Size " +
         "are specified, the split occurs at whichever limit is reached first. If a single line exceeds the Maximum Fragment Size, " +
@@ -169,7 +168,7 @@ public class SplitText extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        ArrayList<ValidationResult> results = new ArrayList<>();
+        List<ValidationResult> results = new ArrayList<>();
 
         results.add(new ValidationResult.Builder()
             .subject("Remove Trailing Newlines")
@@ -178,7 +177,7 @@ public class SplitText extends AbstractProcessor {
             .build());
 
         final boolean invalidState = (validationContext.getProperty(LINE_SPLIT_COUNT).asInteger() == 0
-                && validationContext.getProperty(FRAGMENT_MAX_SIZE).asDataSize(DataUnit.B) == null);
+                && !validationContext.getProperty(FRAGMENT_MAX_SIZE).isSet());
 
         results.add(new ValidationResult.Builder()
             .subject("Maximum Fragment Size")
@@ -295,7 +294,7 @@ public class SplitText extends AbstractProcessor {
         String line = br.readLine();
         while (line != null) {
             // if line is not a header line, reset stream and return header counts
-            if (!line.startsWith(headerMarker) || line == null) {
+            if (!line.startsWith(headerMarker)) {
                 in.reset();
                 return headerInfo;
             } else {
@@ -417,7 +416,7 @@ public class SplitText extends AbstractProcessor {
         if (errorMessage.get() != null) {
             logger.error("Unable to split {} due to {}; routing to failure", new Object[]{flowFile, errorMessage.get()});
             session.transfer(flowFile, REL_FAILURE);
-            if (splits != null && !splits.isEmpty()) {
+            if (!splits.isEmpty()) {
                 session.remove(splits);
             }
             return;
