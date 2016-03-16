@@ -36,11 +36,7 @@ public class NiFiLog implements Logger {
 
     @Override
     public void warn(Marker marker, String string, Throwable thrwbl) {
-        if (logger.isDebugEnabled()) {
-            logger.warn(marker, string, thrwbl);
-        } else {
-            logger.warn(marker, string);
-        }
+        logger.warn(marker, string, thrwbl);
     }
 
     @Override
@@ -65,11 +61,7 @@ public class NiFiLog implements Logger {
 
     @Override
     public void warn(String string, Throwable thrwbl) {
-        if (logger.isDebugEnabled()) {
-            logger.warn(string, thrwbl);
-        } else {
-            logger.warn(string);
-        }
+        logger.warn(string, thrwbl);
     }
 
     @Override
@@ -194,11 +186,7 @@ public class NiFiLog implements Logger {
 
     @Override
     public void info(Marker marker, String string, Throwable thrwbl) {
-        if (logger.isDebugEnabled()) {
-            logger.info(marker, string, thrwbl);
-        } else {
-            logger.info(marker, string);
-        }
+        logger.info(marker, string, thrwbl);
     }
 
     @Override
@@ -223,11 +211,7 @@ public class NiFiLog implements Logger {
 
     @Override
     public void info(String string, Throwable thrwbl) {
-        if (logger.isDebugEnabled()) {
-            logger.info(string, thrwbl);
-        } else {
-            logger.info(string);
-        }
+        logger.info(string, thrwbl);
     }
 
     @Override
@@ -257,11 +241,7 @@ public class NiFiLog implements Logger {
 
     @Override
     public void error(Marker marker, String string, Throwable thrwbl) {
-        if (logger.isDebugEnabled()) {
-            logger.error(marker, string, thrwbl);
-        } else {
-            logger.error(marker, string);
-        }
+        logger.error(marker, string, thrwbl);
     }
 
     @Override
@@ -286,11 +266,7 @@ public class NiFiLog implements Logger {
 
     @Override
     public void error(String string, Throwable thrwbl) {
-        if (logger.isDebugEnabled()) {
-            logger.error(string, thrwbl);
-        } else {
-            logger.error(string);
-        }
+        logger.error(string, thrwbl);
     }
 
     @Override
