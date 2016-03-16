@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 
@@ -146,6 +147,31 @@ public class ITPutKinesisFirehose {
         }
         runner.enqueue(bytes);
         runner.enqueue(bytes.clone());
+        runner.enqueue(bytes.clone());
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 2);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
+        assertEquals(2,flowFiles.size());
+        for (MockFlowFile flowFile : flowFiles) {
+            flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
+        }
+    }
+
+    @Test
+    public void testTwoMessageWithBatch10MaxBufferSize1MBTRunOnceTwoMessageSent() {
+        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
+        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
+        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
+        runner.assertValid();
+        byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE)];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = 'a';
+        }
+        runner.enqueue(bytes);
+        runner.enqueue(bytes.clone());
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 2);
@@ -179,6 +205,120 @@ public class ITPutKinesisFirehose {
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
+    }
+
+    @Test
+    public void testThreeMessageHello2MBThereWithBatch10MaxBufferSize1MBRunOnceTwoMessageSent() {
+        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
+        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
+        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
+        runner.assertValid();
+        byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE * 2)];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = 'a';
+        }
+        runner.enqueue("hello".getBytes());
+        runner.enqueue(bytes);
+        runner.enqueue("there".getBytes());
+        runner.run(1, true, true);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
+        assertEquals(2,flowFiles.size());
+        for (MockFlowFile flowFile : flowFiles) {
+            flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
+        }
+
+        List<MockFlowFile> flowFilesFailed = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
+        assertEquals(1,flowFilesFailed.size());
+        for (MockFlowFile flowFileFailed : flowFilesFailed) {
+            assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
+        }
+    }
+
+    @Test
+    public void testTwoMessageHello2MBWithBatch10MaxBufferSize1MBRunOnceTwoMessageSent() throws Exception {
+        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
+        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
+        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
+        runner.assertValid();
+        byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE * 2)];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = 'a';
+        }
+        runner.enqueue("hello".getBytes());
+        runner.enqueue(bytes);
+        runner.run(1, true, true);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
+        assertEquals(1,flowFiles.size());
+        for (MockFlowFile flowFile : flowFiles) {
+            flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
+            flowFile.assertContentEquals("hello".getBytes());
+        }
+
+        List<MockFlowFile> flowFilesFailed = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
+        assertEquals(1,flowFilesFailed.size());
+        for (MockFlowFile flowFileFailed : flowFilesFailed) {
+            assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
+        }
+    }
+
+    @Test
+    public void testTwoMessage2MBHelloWorldWithBatch10MaxBufferSize1MBRunOnceTwoMessageSent() throws Exception {
+        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
+        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
+        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
+        runner.assertValid();
+        byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE * 2)];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = 'a';
+        }
+        runner.enqueue(bytes);
+        runner.enqueue("HelloWorld".getBytes());
+        runner.run(1, true, true);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
+        assertEquals(1,flowFiles.size());
+        for (MockFlowFile flowFile : flowFiles) {
+            flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
+            flowFile.assertContentEquals("HelloWorld".getBytes());
+        }
+
+        List<MockFlowFile> flowFilesFailed = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
+        assertEquals(1,flowFilesFailed.size());
+        for (MockFlowFile flowFileFailed : flowFilesFailed) {
+            assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
+        }
+    }
+
+    @Test
+    public void testTwoMessageHelloWorldWithBatch10MaxBufferSize1MBRunOnceTwoMessageSent() throws Exception {
+        runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
+        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "10");
+        runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
+        runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
+        runner.assertValid();
+        runner.enqueue("Hello".getBytes());
+        runner.enqueue("World".getBytes());
+        runner.run(1, true, true);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
+        assertEquals(2,flowFiles.size());
+        for (MockFlowFile flowFile : flowFiles) {
+            flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
+        }
+        flowFiles.get(0).assertContentEquals("Hello".getBytes());
+        flowFiles.get(1).assertContentEquals("World".getBytes());
+
+        List<MockFlowFile> flowFilesFailed = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
+        assertEquals(0,flowFilesFailed.size());
     }
 
     @Test
