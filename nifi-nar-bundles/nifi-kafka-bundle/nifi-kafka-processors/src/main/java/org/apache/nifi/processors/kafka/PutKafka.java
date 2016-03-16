@@ -30,10 +30,16 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
@@ -255,6 +261,9 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
 
     private volatile Producer<byte[], byte[]> producer;
 
+    private volatile ExecutorService executor;
+    private volatile long deadlockTimeout;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final PropertyDescriptor clientName = new PropertyDescriptor.Builder()
@@ -316,10 +325,26 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
         for (final FlowFileMessageBatch batch : activeBatches) {
             batch.cancelOrComplete();
         }
+        if (this.executor != null) {
+            this.executor.shutdown();
+            try {
+                if (!this.executor.awaitTermination(30000, TimeUnit.MILLISECONDS)) {
+                    this.executor.shutdownNow();
+                    getLogger().warn("Executor did not stop in 30 sec. Terminated.");
+                }
+                this.executor = null;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     @OnScheduled
     public void createProducer(final ProcessContext context) {
+        this.deadlockTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS) * 2;
+        if (this.executor == null || this.executor.isShutdown()) {
+            this.executor = Executors.newCachedThreadPool();
+        }
         producer = new KafkaProducer<byte[], byte[]>(createConfig(context), new ByteArraySerializer(), new ByteArraySerializer());
     }
 
@@ -421,6 +446,7 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
                 .build();
     }
 
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         FlowFileMessageBatch batch;
@@ -430,10 +456,32 @@ public class PutKafka extends AbstractSessionFactoryProcessor {
 
         final ProcessSession session = sessionFactory.createSession();
         final FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
+        if (flowFile != null){
+            Future<Void> consumptionFuture = this.executor.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    doOnTrigger(context, session, flowFile);
+                    return null;
+                }
+            });
+            try {
+                consumptionFuture.get(this.deadlockTimeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                consumptionFuture.cancel(true);
+                Thread.currentThread().interrupt();
+                getLogger().warn("Interrupted while sending messages", e);
+            } catch (ExecutionException e) {
+                throw new IllegalStateException(e);
+            } catch (TimeoutException e) {
+                consumptionFuture.cancel(true);
+                getLogger().warn("Timed out after " + this.deadlockTimeout + " milliseconds while sending messages", e);
+            }
+        } else {
+            context.yield();
         }
+    }
 
+    private void doOnTrigger(final ProcessContext context, ProcessSession session, final FlowFile flowFile) throws ProcessException {
         final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final byte[] keyBytes = key == null ? null : key.getBytes(StandardCharsets.UTF_8);

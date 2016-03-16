@@ -25,7 +25,6 @@ import org.I0Itec.zkclient.serialize.ZkSerializer;
 import kafka.admin.AdminUtils;
 import kafka.api.TopicMetadata;
 import kafka.utils.ZKStringSerializer;
-import kafka.utils.ZkUtils;
 import scala.collection.JavaConversions;
 
 /**
@@ -52,7 +51,7 @@ class KafkaUtils {
             }
         });
         scala.collection.Set<TopicMetadata> topicMetadatas = AdminUtils
-                .fetchTopicMetadataFromZk(JavaConversions.asScalaSet(Collections.singleton(topicName)), ZkUtils.apply(zkClient, false));
+                .fetchTopicMetadataFromZk(JavaConversions.asScalaSet(Collections.singleton(topicName)), zkClient);
         return topicMetadatas.size();
     }
 }
