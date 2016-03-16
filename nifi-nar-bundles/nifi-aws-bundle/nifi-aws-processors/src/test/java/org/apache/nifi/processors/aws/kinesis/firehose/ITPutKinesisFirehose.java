@@ -92,7 +92,7 @@ public class ITPutKinesisFirehose {
     public void testOneMessageWithMaxBufferSizeGreaterThan1MB() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
+        runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "2");
         runner.setProperty(PutKinesisFirehose.MAX_MESSAGE_BUFFER_SIZE_MB, "1");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
         runner.assertValid();
