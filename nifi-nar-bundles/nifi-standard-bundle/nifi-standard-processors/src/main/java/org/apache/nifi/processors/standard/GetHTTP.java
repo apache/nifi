@@ -398,9 +398,6 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 clientBuilder.setProxy(new HttpHost(host, port));
             }
 
-            // create the http client
-            final CloseableHttpClient client = clientBuilder.build();
-
             // create request
             final HttpGet get = new HttpGet(url);
             get.setConfig(requestConfigBuilder.build());
@@ -426,60 +423,65 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             if (accept != null) {
                 get.addHeader(HEADER_ACCEPT, accept);
             }
-
-            try {
-                final StopWatch stopWatch = new StopWatch(true);
-                final HttpResponse response = client.execute(get);
-                final int statusCode = response.getStatusLine().getStatusCode();
-                if (statusCode == NOT_MODIFIED) {
-                    logger.info("content not retrieved because server returned HTTP Status Code {}: Not Modified", new Object[]{NOT_MODIFIED});
-                    context.yield();
-                    // doing a commit in case there were flow files in the input queue
-                    session.commit();
-                    return;
-                }
-                final String statusExplanation = response.getStatusLine().getReasonPhrase();
-
-                if (statusCode >= 300) {
-                    logger.error("received status code {}:{} from {}", new Object[]{statusCode, statusExplanation, url});
-                    // doing a commit in case there were flow files in the input queue
-                    session.commit();
-                    return;
-                }
-
-                FlowFile flowFile = session.create();
-                flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
-                flowFile = session.putAttribute(flowFile, this.getClass().getSimpleName().toLowerCase() + ".remote.source", source);
-                flowFile = session.importFrom(response.getEntity().getContent(), flowFile);
-
-                final Header contentTypeHeader = response.getFirstHeader("Content-Type");
-                if (contentTypeHeader != null) {
-                    final String contentType = contentTypeHeader.getValue();
-                    if (!contentType.trim().isEmpty()) {
-                        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), contentType.trim());
+            // create the http client
+            try ( final CloseableHttpClient client = clientBuilder.build() ) {
+                // NOTE: including this inner try in order to swallow exceptions on close
+                try {
+                    final StopWatch stopWatch = new StopWatch(true);
+                    final HttpResponse response = client.execute(get);
+                    final int statusCode = response.getStatusLine().getStatusCode();
+                    if (statusCode == NOT_MODIFIED) {
+                        logger.info("content not retrieved because server returned HTTP Status Code {}: Not Modified", new Object[]{NOT_MODIFIED});
+                        context.yield();
+                        // doing a commit in case there were flow files in the input queue
+                        session.commit();
+                        return;
                     }
+                    final String statusExplanation = response.getStatusLine().getReasonPhrase();
+
+                    if (statusCode >= 300) {
+                        logger.error("received status code {}:{} from {}", new Object[]{statusCode, statusExplanation, url});
+                        // doing a commit in case there were flow files in the input queue
+                        session.commit();
+                        return;
+                    }
+
+                    FlowFile flowFile = session.create();
+                    flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
+                    flowFile = session.putAttribute(flowFile, this.getClass().getSimpleName().toLowerCase() + ".remote.source", source);
+                    flowFile = session.importFrom(response.getEntity().getContent(), flowFile);
+
+                    final Header contentTypeHeader = response.getFirstHeader("Content-Type");
+                    if (contentTypeHeader != null) {
+                        final String contentType = contentTypeHeader.getValue();
+                        if (!contentType.trim().isEmpty()) {
+                            flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), contentType.trim());
+                        }
+                    }
+
+                    final long flowFileSize = flowFile.getSize();
+                    stopWatch.stop();
+                    final String dataRate = stopWatch.calculateDataRate(flowFileSize);
+                    session.getProvenanceReporter().receive(flowFile, url, stopWatch.getDuration(TimeUnit.MILLISECONDS));
+                    session.transfer(flowFile, REL_SUCCESS);
+                    logger.info("Successfully received {} from {} at a rate of {}; transferred to success", new Object[]{flowFile, url, dataRate});
+                    session.commit();
+
+                    updateStateMap(context,response,beforeStateMap,url);
+
+                } catch (final IOException e) {
+                    context.yield();
+                    session.rollback();
+                    logger.error("Failed to retrieve file from {} due to {}; rolling back session", new Object[]{url, e.getMessage()}, e);
+                    throw new ProcessException(e);
+                } catch (final Throwable t) {
+                    context.yield();
+                    session.rollback();
+                    logger.error("Failed to process due to {}; rolling back session", new Object[]{t.getMessage()}, t);
+                    throw t;
                 }
-
-                final long flowFileSize = flowFile.getSize();
-                stopWatch.stop();
-                final String dataRate = stopWatch.calculateDataRate(flowFileSize);
-                session.getProvenanceReporter().receive(flowFile, url, stopWatch.getDuration(TimeUnit.MILLISECONDS));
-                session.transfer(flowFile, REL_SUCCESS);
-                logger.info("Successfully received {} from {} at a rate of {}; transferred to success", new Object[]{flowFile, url, dataRate});
-                session.commit();
-
-                updateStateMap(context,response,beforeStateMap,url);
-
             } catch (final IOException e) {
-                context.yield();
-                session.rollback();
-                logger.error("Failed to retrieve file from {} due to {}; rolling back session", new Object[]{url, e.getMessage()}, e);
-                throw new ProcessException(e);
-            } catch (final Throwable t) {
-                context.yield();
-                session.rollback();
-                logger.error("Failed to process due to {}; rolling back session", new Object[]{t.getMessage()}, t);
-                throw t;
+                logger.debug("Error closing client due to {}, continuing.", new Object[]{e.getMessage()});
             }
         } finally {
             conMan.shutdown();

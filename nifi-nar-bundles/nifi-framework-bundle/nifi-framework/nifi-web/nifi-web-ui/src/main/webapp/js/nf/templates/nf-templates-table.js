@@ -28,7 +28,8 @@ nf.TemplatesTable = (function () {
             filterList: 'templates-filter-list'
         },
         urls: {
-            templates: '../nifi-api/controller/templates'
+            templates: '../nifi-api/controller/templates',
+            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -150,6 +151,34 @@ nf.TemplatesTable = (function () {
         return item[args.property].search(filterExp) >= 0;
     };
 
+    /**
+     * Downloads the specified template.
+     *
+     * @param {object} template     The template
+     */
+    var downloadTemplate = function (template) {
+        nf.Common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+            var parameters = {};
+
+            // conditionally include the download token
+            if (!nf.Common.isBlank(downloadToken)) {
+                parameters['access_token'] = downloadToken;
+            }
+
+            // open the url
+            if ($.isEmptyObject(parameters)) {
+                window.open(config.urls.templates + '/' + encodeURIComponent(template.id));
+            } else {
+                window.open(config.urls.templates + '/' + encodeURIComponent(template.id) + '?' + $.param(parameters));
+            }
+        }).fail(function () {
+            nf.Dialog.showOkDialog({
+                dialogContent: 'Unable to generate access token for downloading content.',
+                overlayBackground: false
+            });
+        });
+    };
+
     return {
         /**
          * Initializes the templates list.
@@ -262,7 +291,7 @@ nf.TemplatesTable = (function () {
                 // determine the desired action
                 if (templatesGrid.getColumns()[args.cell].id === 'actions') {
                     if (target.hasClass('export-template')) {
-                        window.open(config.urls.templates + '/' + encodeURIComponent(item.id));
+                        downloadTemplate(item);
                     } else if (target.hasClass('prompt-to-delete-template')) {
                         promptToDeleteTemplate(item);
                     }

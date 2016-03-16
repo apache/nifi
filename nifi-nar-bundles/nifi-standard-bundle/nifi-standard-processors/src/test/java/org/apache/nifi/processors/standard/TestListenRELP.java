@@ -18,8 +18,11 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
+import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processors.standard.relp.event.RELPEvent;
 import org.apache.nifi.processors.standard.relp.frame.RELPEncoder;
 import org.apache.nifi.processors.standard.relp.frame.RELPFrame;
@@ -35,13 +38,16 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 public class TestListenRELP {
 
@@ -78,7 +84,7 @@ public class TestListenRELP {
         encoder = new RELPEncoder(StandardCharsets.UTF_8);
         proc = new ResponseCapturingListenRELP();
         runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenSyslog.PORT, "0");
+        runner.setProperty(ListenRELP.PORT, "0");
     }
 
     @Test
@@ -169,6 +175,38 @@ public class TestListenRELP {
         run(frames, 5, 5, sslContextService);
     }
 
+    @Test
+    public void testNoEventsAvailable() throws IOException, InterruptedException {
+        MockListenRELP mockListenRELP = new MockListenRELP(new ArrayList<RELPEvent>());
+        runner = TestRunners.newTestRunner(mockListenRELP);
+        runner.setProperty(ListenRELP.PORT, "1");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ListenRELP.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testBatchingWithDifferentSenders() throws IOException, InterruptedException {
+        final String sender1 = "sender1";
+        final String sender2 = "sender2";
+        final ChannelResponder<SocketChannel> responder = Mockito.mock(ChannelResponder.class);
+
+        final List<RELPEvent> mockEvents = new ArrayList<>();
+        mockEvents.add(new RELPEvent(sender1, SYSLOG_FRAME.getData(), responder, SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPEvent(sender1, SYSLOG_FRAME.getData(), responder, SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPEvent(sender2, SYSLOG_FRAME.getData(), responder, SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPEvent(sender2, SYSLOG_FRAME.getData(), responder, SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+
+        MockListenRELP mockListenRELP = new MockListenRELP(mockEvents);
+        runner = TestRunners.newTestRunner(mockListenRELP);
+        runner.setProperty(ListenRELP.PORT, "1");
+        runner.setProperty(ListenRELP.MAX_BATCH_SIZE, "10");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ListenRELP.REL_SUCCESS, 2);
+    }
+
+
     protected void run(final List<RELPFrame> frames, final int expectedTransferred, final int expectedResponses, final SSLContextService sslContextService)
             throws IOException, InterruptedException {
 
@@ -194,11 +232,24 @@ public class TestListenRELP {
             // send the frames to the port the processors is listening on
             sendFrames(frames, socket);
 
-            // call onTrigger until we processed all the frames, or a certain amount of time passes
-            long responseTimeout = 10000;
-            long startTime = System.currentTimeMillis();
-            while (proc.responses.size() < expectedTransferred
-                    && (System.currentTimeMillis() - startTime < responseTimeout)) {
+            long responseTimeout = 30000;
+
+            // this first loop waits until the internal queue of the processor has the expected
+            // number of messages ready before proceeding, we want to guarantee they are all there
+            // before onTrigger gets a chance to run
+            long startTimeQueueSizeCheck = System.currentTimeMillis();
+            while (proc.getQueueSize() < expectedResponses
+                    && (System.currentTimeMillis() - startTimeQueueSizeCheck < responseTimeout)) {
+                Thread.sleep(100);
+            }
+
+            // want to fail here if the queue size isn't what we expect
+            Assert.assertEquals(expectedResponses, proc.getQueueSize());
+
+            // call onTrigger until we got a respond for all the frames, or a certain amount of time passes
+            long startTimeProcessing = System.currentTimeMillis();
+            while (proc.responses.size() < expectedResponses
+                    && (System.currentTimeMillis() - startTimeProcessing < responseTimeout)) {
                 proc.onTrigger(context, processSessionFactory);
                 Thread.sleep(100);
             }
@@ -221,7 +272,6 @@ public class TestListenRELP {
         for (final RELPFrame frame : frames) {
             byte[] encodedFrame = encoder.encode(frame);
             socket.getOutputStream().write(encodedFrame);
-            Thread.sleep(1);
         }
         socket.getOutputStream().flush();
     }
@@ -236,6 +286,29 @@ public class TestListenRELP {
             this.responses.add(relpResponse);
             super.respond(event, relpResponse);
         }
+    }
+
+    // Extend ListenRELP to mock the ChannelDispatcher and allow us to return staged events
+    private static class MockListenRELP extends ListenRELP {
+
+        private List<RELPEvent> mockEvents;
+
+        public MockListenRELP(List<RELPEvent> mockEvents) {
+            this.mockEvents = mockEvents;
+        }
+
+        @OnScheduled
+        @Override
+        public void onScheduled(ProcessContext context) throws IOException {
+            super.onScheduled(context);
+            events.addAll(mockEvents);
+        }
+
+        @Override
+        protected ChannelDispatcher createDispatcher(ProcessContext context, BlockingQueue<RELPEvent> events) throws IOException {
+            return Mockito.mock(ChannelDispatcher.class);
+        }
+
     }
 
 }

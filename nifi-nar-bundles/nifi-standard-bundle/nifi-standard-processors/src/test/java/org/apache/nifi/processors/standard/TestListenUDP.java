@@ -16,34 +16,40 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
+import org.apache.nifi.processor.util.listen.event.StandardEvent;
+import org.apache.nifi.processor.util.listen.response.ChannelResponder;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-@Ignore
 public class TestListenUDP {
 
+    private int port = 0;
+    private ListenUDP proc;
     private TestRunner runner;
-    private static Logger LOGGER;
-    private DatagramSocket socket;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -52,7 +58,6 @@ public class TestListenUDP {
         System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ListenUDP", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestListenUDP", "debug");
-        LOGGER = LoggerFactory.getLogger(TestListenUDP.class);
     }
 
     @AfterClass
@@ -62,152 +67,267 @@ public class TestListenUDP {
 
     @Before
     public void setUp() throws Exception {
-        runner = TestRunners.newTestRunner(ListenUDP.class);
-        socket = new DatagramSocket(20001);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        socket.close();
+        proc = new ListenUDP();
+        runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(ListenUDP.PORT, String.valueOf(port));
     }
 
     @Test
-    public void testWithStopProcessor() throws IOException, InterruptedException {
-        LOGGER.info("Running testWithStopProcessor....");
-        runner.setProperty(ListenUDP.PORT, "20000");
-        runner.setProperty(ListenUDP.FLOW_FILE_SIZE_TRIGGER, "1 MB");
-        runner.setProperty(ListenUDP.FLOW_FILES_PER_SESSION, "50");
-        runner.setProperty(ListenUDP.CHANNEL_READER_PERIOD, "1 ms");
-        runner.setProperty(ListenUDP.SENDING_HOST, "localhost");
-        runner.setProperty(ListenUDP.SENDING_HOST_PORT, "20001");
-        runner.setProperty(ListenUDP.RECV_TIMEOUT, "1 sec");
-        Thread udpSender = new Thread(new DatagramSender(socket, false));
+    public void testCustomValidation() {
+        runner.assertNotValid();
+        runner.setProperty(ListenUDP.PORT, "1");
+        runner.assertValid();
 
-        ProcessContext context = runner.getProcessContext();
-        ListenUDP processor = (ListenUDP) runner.getProcessor();
-        ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        processor.initializeChannelListenerAndConsumerProcessing(context);
-        udpSender.start();
-        boolean transferred = false;
-        long timeOut = System.currentTimeMillis() + 30000;
-        while (!transferred && System.currentTimeMillis() < timeOut) {
-            Thread.sleep(200);
-            processor.onTrigger(context, processSessionFactory);
-            transferred = runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size() > 0;
-        }
-        assertTrue("Didn't process the datagrams", transferred);
-        Thread.sleep(7000);
-        processor.stopping();
-        processor.stopped();
-        socket.close();
-        assertTrue(runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size() >= 60);
+        runner.setProperty(ListenUDP.SENDING_HOST, "localhost");
+        runner.assertNotValid();
+
+        runner.setProperty(ListenUDP.SENDING_HOST_PORT, "1234");
+        runner.assertValid();
+
+        runner.setProperty(ListenUDP.SENDING_HOST, "");
+        runner.assertNotValid();
     }
 
     @Test
-    public void testWithSlowRate() throws IOException, InterruptedException {
-        LOGGER.info("Running testWithSlowRate....");
-        runner.setProperty(ListenUDP.PORT, "20000");
-        runner.setProperty(ListenUDP.FLOW_FILE_SIZE_TRIGGER, "1 B");
-        runner.setProperty(ListenUDP.FLOW_FILES_PER_SESSION, "1");
-        runner.setProperty(ListenUDP.CHANNEL_READER_PERIOD, "50 ms");
-        runner.setProperty(ListenUDP.MAX_BUFFER_SIZE, "2 MB");
-        runner.setProperty(ListenUDP.SENDING_HOST, "localhost");
-        runner.setProperty(ListenUDP.SENDING_HOST_PORT, "20001");
-        runner.setProperty(ListenUDP.RECV_TIMEOUT, "5 sec");
-        final DatagramSender sender = new DatagramSender(socket, false);
-        sender.throttle = 5000;
-        sender.numpackets = 10;
-        Thread udpSender = new Thread(sender);
+    public void testDefaultBehavior() throws IOException, InterruptedException {
+        final List<String> messages = getMessages(15);
+        final int expectedQueued = messages.size();
+        final int expectedTransferred = messages.size();
 
-        ProcessContext context = runner.getProcessContext();
-        ListenUDP processor = (ListenUDP) runner.getProcessor();
-        ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        processor.initializeChannelListenerAndConsumerProcessing(context);
-        udpSender.start();
-        boolean transferred = false;
-        long timeOut = System.currentTimeMillis() + 60000;
-        while (!transferred && System.currentTimeMillis() < timeOut) {
-            Thread.sleep(1000);
-            processor.onTrigger(context, processSessionFactory);
-            transferred = runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size() > 0;
-        }
-        assertTrue("Didn't process the datagrams", transferred);
-        Thread.sleep(7000);
-        processor.stopping();
-        processor.stopped();
-        socket.close();
-        assertTrue(runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size() >= 2);
+        // default behavior should produce a FlowFile per message sent
+
+        run(new DatagramSocket(), messages, expectedQueued, expectedTransferred);
+        runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, messages.size());
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
+        verifyFlowFiles(mockFlowFiles);
+        verifyProvenance(expectedTransferred);
     }
 
     @Test
-    public void testWithCloseSenderAndNoStopping() throws Exception {
-        LOGGER.info("Running testWithCloseSenderAndNoStopping....");
-        runner.setProperty(ListenUDP.PORT, "20000");
-        runner.setProperty(ListenUDP.FLOW_FILE_SIZE_TRIGGER, "1 MB");
-        runner.setProperty(ListenUDP.FLOW_FILES_PER_SESSION, "50");
-        runner.setProperty(ListenUDP.CHANNEL_READER_PERIOD, "1 ms");
-        runner.setProperty(ListenUDP.SENDING_HOST, "localhost");
-        runner.setProperty(ListenUDP.SENDING_HOST_PORT, "20001");
-        runner.setProperty(ListenUDP.RECV_TIMEOUT, "1 sec");
-        Thread udpSender = new Thread(new DatagramSender(socket, false));
+    public void testSendingMoreThanQueueSize() throws IOException, InterruptedException {
+        final int maxQueueSize = 3;
+        runner.setProperty(ListenUDP.MAX_MESSAGE_QUEUE_SIZE, String.valueOf(maxQueueSize));
 
-        ProcessContext context = runner.getProcessContext();
-        ListenUDP processor = (ListenUDP) runner.getProcessor();
-        ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        processor.initializeChannelListenerAndConsumerProcessing(context);
-        udpSender.start();
-        int numTransfered = 0;
-        long timeout = System.currentTimeMillis() + 22000;
-        while (numTransfered <= 80 && System.currentTimeMillis() < timeout) {
-            Thread.sleep(200);
-            processor.onTrigger(context, processSessionFactory);
-            numTransfered = runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size();
-        }
-        assertFalse("Did not process all the datagrams", numTransfered < 80);
-        processor.stopping();
-        processor.stopped();
-        socket.close();
+        final List<String> messages = getMessages(20);
+        final int expectedQueued = maxQueueSize;
+        final int expectedTransferred = maxQueueSize;
+
+        run(new DatagramSocket(), messages, expectedQueued, expectedTransferred);
+        runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, maxQueueSize);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
+        verifyFlowFiles(mockFlowFiles);
+        verifyProvenance(expectedTransferred);
     }
 
-    private static final class DatagramSender implements Runnable {
+    @Test
+    public void testBatchingSingleSender() throws IOException, InterruptedException {
+        final String delimiter = "NN";
+        runner.setProperty(ListenUDP.MESSAGE_DELIMITER, delimiter);
+        runner.setProperty(ListenUDP.MAX_BATCH_SIZE, "3");
 
-        private final DatagramSocket socket;
-        private final boolean closeSocket;
-        long throttle = 0;
-        int numpackets = 819200;
+        final List<String> messages = getMessages(5);
+        final int expectedQueued = messages.size();
+        final int expectedTransferred = 2;
 
-        private DatagramSender(DatagramSocket socket, boolean closeSocket) {
-            this.socket = socket;
-            this.closeSocket = closeSocket;
+        run(new DatagramSocket(), messages, expectedQueued, expectedTransferred);
+        runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, expectedTransferred);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
+
+        MockFlowFile mockFlowFile1 = mockFlowFiles.get(0);
+        mockFlowFile1.assertContentEquals("This is message 1" + delimiter + "This is message 2" + delimiter + "This is message 3");
+
+        MockFlowFile mockFlowFile2 = mockFlowFiles.get(1);
+        mockFlowFile2.assertContentEquals("This is message 4" + delimiter + "This is message 5");
+
+        verifyProvenance(expectedTransferred);
+    }
+
+    @Test
+    public void testBatchingWithDifferentSenders() throws IOException, InterruptedException {
+        final String sender1 = "sender1";
+        final String sender2 = "sender2";
+        final ChannelResponder responder = Mockito.mock(ChannelResponder.class);
+        final byte[] message = "test message".getBytes(StandardCharsets.UTF_8);
+
+        final List<StandardEvent> mockEvents = new ArrayList<>();
+        mockEvents.add(new StandardEvent(sender1, message, responder));
+        mockEvents.add(new StandardEvent(sender1, message, responder));
+        mockEvents.add(new StandardEvent(sender2, message, responder));
+        mockEvents.add(new StandardEvent(sender2, message, responder));
+
+        MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);
+        runner = TestRunners.newTestRunner(mockListenUDP);
+        runner.setProperty(ListenRELP.PORT, "1");
+        runner.setProperty(ListenRELP.MAX_BATCH_SIZE, "10");
+
+        // sending 4 messages with a batch size of 10, but should get 2 FlowFiles because of different senders
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ListenRELP.REL_SUCCESS, 2);
+
+        verifyProvenance(2);
+    }
+
+    @Test
+    public void testRunWhenNoEventsAvailale() throws IOException, InterruptedException {
+        final List<StandardEvent> mockEvents = new ArrayList<>();
+
+        MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);
+        runner = TestRunners.newTestRunner(mockListenUDP);
+        runner.setProperty(ListenRELP.PORT, "1");
+        runner.setProperty(ListenRELP.MAX_BATCH_SIZE, "10");
+
+        runner.run(5);
+        runner.assertAllFlowFilesTransferred(ListenRELP.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testWithSendingHostAndPortSameAsSender() throws IOException, InterruptedException {
+        final String sendingHost = "localhost";
+        final Integer sendingPort = 21001;
+        runner.setProperty(ListenUDP.SENDING_HOST, sendingHost);
+        runner.setProperty(ListenUDP.SENDING_HOST_PORT, String.valueOf(sendingPort));
+
+        // bind to the same sending port that processor has for Sending Host Port
+        final DatagramSocket socket = new DatagramSocket(sendingPort);
+
+        final List<String> messages = getMessages(6);
+        final int expectedQueued = messages.size();
+        final int expectedTransferred = messages.size();
+
+        run(socket, messages, expectedQueued, expectedTransferred);
+        runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, messages.size());
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
+        verifyFlowFiles(mockFlowFiles);
+        verifyProvenance(expectedTransferred);
+    }
+
+    @Test
+    public void testWithSendingHostAndPortDifferentThanSender() throws IOException, InterruptedException {
+        final String sendingHost = "localhost";
+        final Integer sendingPort = 21001;
+        runner.setProperty(ListenUDP.SENDING_HOST, sendingHost);
+        runner.setProperty(ListenUDP.SENDING_HOST_PORT, String.valueOf(sendingPort));
+
+        // bind to a different sending port than the processor has for Sending Host Port
+        final DatagramSocket socket = new DatagramSocket(21002);
+
+        // no messages should come through since we are listening for 21001 and sending from 21002
+
+        final List<String> messages = getMessages(6);
+        final int expectedQueued = 0;
+        final int expectedTransferred = 0;
+
+        run(socket, messages, expectedQueued, expectedTransferred);
+        runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, 0);
+    }
+
+    private List<String> getMessages(int numMessages) {
+        final List<String> messages = new ArrayList<>();
+        for (int i=0; i < numMessages; i++) {
+            messages.add("This is message " + (i + 1));
+        }
+        return messages;
+    }
+
+    private void verifyFlowFiles(List<MockFlowFile> mockFlowFiles) {
+        for (int i = 0; i < mockFlowFiles.size(); i++) {
+            MockFlowFile flowFile = mockFlowFiles.get(i);
+            flowFile.assertContentEquals("This is message " + (i + 1));
+            Assert.assertEquals(String.valueOf(port), flowFile.getAttribute(ListenUDP.UDP_PORT_ATTR));
+            Assert.assertTrue(StringUtils.isNotEmpty(flowFile.getAttribute(ListenUDP.UDP_SENDER_ATTR)));
+        }
+    }
+
+    private void verifyProvenance(int expectedNumEvents) {
+        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
+        Assert.assertEquals(expectedNumEvents, provEvents.size());
+
+        for (ProvenanceEventRecord event : provEvents) {
+            Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
+            Assert.assertTrue(event.getTransitUri().startsWith("udp://"));
+        }
+    }
+
+    protected void run(final DatagramSocket socket, final List<String> messages, final int expectedQueueSize, final int expectedTransferred)
+            throws IOException, InterruptedException {
+
+        try {
+            // schedule to start listening on a random port
+            final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+            final ProcessContext context = runner.getProcessContext();
+            proc.onScheduled(context);
+            Thread.sleep(100);
+
+            // get the real port the dispatcher is listening on
+            final int destPort = proc.getDispatcherPort();
+            final InetSocketAddress destination = new InetSocketAddress("localhost", destPort);
+
+            // send the messages to the port the processors is listening on
+            for (final String message : messages) {
+                final byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
+                final DatagramPacket packet = new DatagramPacket(buffer, buffer.length, destination);
+                socket.send(packet);
+                Thread.sleep(10);
+            }
+
+            long responseTimeout = 10000;
+
+            // this first loop waits until the internal queue of the processor has the expected
+            // number of messages ready before proceeding, we want to guarantee they are all there
+            // before onTrigger gets a chance to run
+            long startTimeQueueSizeCheck = System.currentTimeMillis();
+            while (proc.getQueueSize() < expectedQueueSize
+                    && (System.currentTimeMillis() - startTimeQueueSizeCheck < responseTimeout)) {
+                Thread.sleep(100);
+            }
+
+            // want to fail here if the queue size isn't what we expect
+            Assert.assertEquals(expectedQueueSize, proc.getQueueSize());
+
+            // call onTrigger until we processed all the messages, or a certain amount of time passes
+            int numTransferred = 0;
+            long startTime = System.currentTimeMillis();
+            while (numTransferred < expectedTransferred  && (System.currentTimeMillis() - startTime < responseTimeout)) {
+                proc.onTrigger(context, processSessionFactory);
+                numTransferred = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS).size();
+                Thread.sleep(100);
+            }
+
+            // should have transferred the expected events
+            runner.assertTransferCount(ListenUDP.REL_SUCCESS, expectedTransferred);
+        } finally {
+            // unschedule to close connections
+            proc.onUnscheduled();
+            IOUtils.closeQuietly(socket);
+        }
+    }
+
+    // Extend ListenUDP to mock the ChannelDispatcher and allow us to return staged events
+    private static class MockListenUDP extends ListenUDP {
+
+        private List<StandardEvent> mockEvents;
+
+        public MockListenUDP(List<StandardEvent> mockEvents) {
+            this.mockEvents = mockEvents;
+        }
+
+        @OnScheduled
+        @Override
+        public void onScheduled(ProcessContext context) throws IOException {
+            super.onScheduled(context);
+            events.addAll(mockEvents);
         }
 
         @Override
-        public void run() {
-            final byte[] buffer = new byte[128];
-            try {
-                final DatagramPacket packet = new DatagramPacket(buffer, buffer.length, new InetSocketAddress("localhost", 20000));
-                final long startTime = System.nanoTime();
-                for (int i = 0; i < numpackets; i++) { // 100 MB
-                    socket.send(packet);
-                    if (throttle > 0) {
-                        try {
-                            Thread.sleep(throttle);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                final long endTime = System.nanoTime();
-                final long durationMillis = (endTime - startTime) / 1000000;
-                LOGGER.info("Sent all UDP packets without any obvious errors | duration ms= " + durationMillis);
-            } catch (IOException e) {
-                LOGGER.error("", e);
-            } finally {
-                if (closeSocket) {
-                    socket.close();
-                    LOGGER.info("Socket closed");
-                }
-            }
+        protected ChannelDispatcher createDispatcher(ProcessContext context, BlockingQueue<StandardEvent> events) throws IOException {
+            return Mockito.mock(ChannelDispatcher.class);
         }
+
     }
+
 }

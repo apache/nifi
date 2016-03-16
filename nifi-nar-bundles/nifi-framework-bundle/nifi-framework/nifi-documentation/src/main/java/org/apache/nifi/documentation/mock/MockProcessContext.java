@@ -108,4 +108,9 @@ public class MockProcessContext implements ProcessContext {
     public StateManager getStateManager() {
         return null;
     }
+
+    @Override
+    public String getName() {
+        return null;
+    }
 }

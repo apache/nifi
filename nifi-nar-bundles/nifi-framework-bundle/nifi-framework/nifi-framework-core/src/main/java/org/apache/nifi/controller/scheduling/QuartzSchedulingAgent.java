@@ -43,22 +43,21 @@ import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QuartzSchedulingAgent implements SchedulingAgent {
+public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
 
     private final Logger logger = LoggerFactory.getLogger(QuartzSchedulingAgent.class);
 
     private final FlowController flowController;
     private final ProcessContextFactory contextFactory;
-    private final FlowEngine flowEngine;
     private final StringEncryptor encryptor;
 
     private volatile String adminYieldDuration = "1 sec";
     private final Map<Object, List<AtomicBoolean>> canceledTriggers = new HashMap<>();
 
     public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final ProcessContextFactory contextFactory, final StringEncryptor enryptor) {
+        super(flowEngine);
         this.flowController = flowController;
         this.contextFactory = contextFactory;
-        this.flowEngine = flowEngine;
         this.encryptor = enryptor;
     }
 
@@ -71,7 +70,7 @@ public class QuartzSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void schedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
+    public void doSchedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
         final List<AtomicBoolean> existingTriggers = canceledTriggers.get(taskNode);
         if (existingTriggers != null) {
             throw new IllegalStateException("Cannot schedule " + taskNode.getReportingTask() + " because it is already scheduled to run");
@@ -121,7 +120,7 @@ public class QuartzSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public synchronized void schedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public synchronized void doSchedule(final Connectable connectable, final ScheduleState scheduleState) {
         final List<AtomicBoolean> existingTriggers = canceledTriggers.get(connectable);
         if (existingTriggers != null) {
             throw new IllegalStateException("Cannot schedule " + connectable + " because it is already scheduled to run");
@@ -189,12 +188,12 @@ public class QuartzSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public synchronized void unschedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public synchronized void doUnschedule(final Connectable connectable, final ScheduleState scheduleState) {
         unschedule((Object) connectable, scheduleState);
     }
 
     @Override
-    public synchronized void unschedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
+    public synchronized void doUnschedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
         unschedule((Object) taskNode, scheduleState);
     }
 

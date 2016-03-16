@@ -21,6 +21,7 @@ import com.ibm.icu.text.CharsetMatch;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -71,7 +72,19 @@ public class ContentViewerController extends HttpServlet {
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
 
-        final ContentRequestContext contentRequest = getContentRequest(request);
+        final ContentRequestContext contentRequest;
+        try {
+            contentRequest = getContentRequest(request);
+        } catch (final Exception e) {
+            request.setAttribute("title", "Error");
+            request.setAttribute("messages", "Unable to interpret content request.");
+
+            // forward to the error page
+            final ServletContext viewerContext = servletContext.getContext("/nifi");
+            viewerContext.getRequestDispatcher("/message").forward(request, response);
+            return;
+        }
+
         if (contentRequest.getDataUri() == null) {
             request.setAttribute("title", "Error");
             request.setAttribute("messages", "The data reference must be specified.");
@@ -137,10 +150,11 @@ public class ContentViewerController extends HttpServlet {
         // buffer the content to support reseting in case we need to detect the content type or char encoding
         try (final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());) {
             final String mimeType;
+            final String normalizedMimeType;
 
             // when standalone and we don't know the type is null as we were able to directly access the content bypassing the rest endpoint,
             // when clustered and we don't know the type set to octet stream since the content was retrieved from the node's rest endpoint
-            if (downloadableContent.getType() == null || downloadableContent.getType().equals(MediaType.OCTET_STREAM.toString())) {
+            if (downloadableContent.getType() == null || StringUtils.startsWithIgnoreCase(downloadableContent.getType(), MediaType.OCTET_STREAM.toString())) {
                 // attempt to detect the content stream if we don't know what it is ()
                 final DefaultDetector detector = new DefaultDetector();
 
@@ -157,6 +171,10 @@ public class ContentViewerController extends HttpServlet {
             } else {
                 mimeType = downloadableContent.getType();
             }
+
+            // Extract only mime type and subtype from content type (anything after the first ; are parameters)
+            // Lowercase so subsequent code does not need to implement case insensitivity
+            normalizedMimeType = mimeType.split(";",2)[0].toLowerCase();
 
             // add attributes needed for the header
             request.setAttribute("filename", downloadableContent.getFilename());
@@ -189,7 +207,7 @@ public class ContentViewerController extends HttpServlet {
                 request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
             } else {
                 // lookup a viewer for the content
-                final String contentViewerUri = servletContext.getInitParameter(mimeType);
+                final String contentViewerUri = servletContext.getInitParameter(normalizedMimeType);
 
                 // handle no viewer for content type
                 if (contentViewerUri == null) {
@@ -231,6 +249,11 @@ public class ContentViewerController extends HttpServlet {
 
                         @Override
                         public String getContentType() {
+                            return normalizedMimeType;
+                        }
+
+                        @Override
+                        public String getRawContentType() {
                             return mimeType;
                         }
                     });
@@ -274,26 +297,44 @@ public class ContentViewerController extends HttpServlet {
      * @return Get the content request context based on the specified request
      */
     private ContentRequestContext getContentRequest(final HttpServletRequest request) {
+        final String ref = request.getParameter("ref");
+        final String clientId = request.getParameter("clientId");
+        final String proxiedEntitiesChain = request.getHeader("X-ProxiedEntitiesChain");
+
+        final URI refUri = URI.create(ref);
+        final String query = refUri.getQuery();
+
+        String rawClusterNodeId = null;
+        if (query != null) {
+            final String[] queryParameters = query.split("&");
+
+            for (int i = 0; i < queryParameters.length; i++) {
+                if (queryParameters[0].startsWith("clusterNodeId=")) {
+                    rawClusterNodeId = StringUtils.substringAfterLast(queryParameters[0], "clusterNodeId=");
+                }
+            }
+        }
+        final String clusterNodeId = rawClusterNodeId;
+
         return new ContentRequestContext() {
             @Override
             public String getDataUri() {
-                return request.getParameter("ref");
+                return ref;
             }
 
             @Override
             public String getClusterNodeId() {
-                final String ref = request.getParameter("ref");
-                return StringUtils.substringAfterLast(ref, "clusterNodeId=");
+                return clusterNodeId;
             }
 
             @Override
             public String getClientId() {
-                return request.getParameter("clientId");
+                return clientId;
             }
 
             @Override
             public String getProxiedEntitiesChain() {
-                return request.getHeader("X-ProxiedEntitiesChain");
+                return proxiedEntitiesChain;
             }
         };
     }

@@ -299,11 +299,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
         final String executeCommand = context.getProperty(EXECUTION_COMMAND).evaluateAttributeExpressions(inputFlowFile).getValue();
         args.add(executeCommand);
-        final String commandArguments = context.getProperty(EXECUTION_ARGUMENTS).getValue();
+        final String commandArguments = context.getProperty(EXECUTION_ARGUMENTS).evaluateAttributeExpressions(inputFlowFile).getValue();
         final boolean ignoreStdin = Boolean.parseBoolean(context.getProperty(IGNORE_STDIN).getValue());
         if (!StringUtils.isBlank(commandArguments)) {
             for (String arg : ArgumentUtils.splitArgs(commandArguments, context.getProperty(ARG_DELIMITER).getValue().charAt(0))) {
-                args.add(context.newPropertyValue(arg).evaluateAttributeExpressions(inputFlowFile).getValue());
+                args.add(arg);
             }
         }
         final String workingDir = context.getProperty(WORKING_DIR).evaluateAttributeExpressions(inputFlowFile).getValue();

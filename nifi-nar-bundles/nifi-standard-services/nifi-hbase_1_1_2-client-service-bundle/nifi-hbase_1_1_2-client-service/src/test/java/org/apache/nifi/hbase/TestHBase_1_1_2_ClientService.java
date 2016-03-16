@@ -121,6 +121,35 @@ public class TestHBase_1_1_2_ClientService {
         runner.enableControllerService(service);
 
         runner.assertValid(service);
+
+        // Kerberos - principal with non-set keytab
+        runner.disableControllerService(service);
+        service.setIsSecurityEnabled(true);
+        runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/core-site-security.xml");
+        runner.setProperty(service, HBase_1_1_2_ClientService.KERBEROS_PRINCIPAL, "test@REALM");
+        runner.enableControllerService(service);
+        runner.assertNotValid(service);
+
+        // Kerberos - add valid options
+        runner.disableControllerService(service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.KERBEROS_KEYTAB, "src/test/resources/fake.keytab");
+        runner.setProperty(service, HBase_1_1_2_ClientService.KERBEROS_PRINCIPAL, "test@REALM");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        // Kerberos - add invalid non-existent keytab file
+        runner.disableControllerService(service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.KERBEROS_KEYTAB, "src/test/resources/missing.keytab");
+        runner.enableControllerService(service);
+        runner.assertNotValid(service);
+
+        // Kerberos - add invalid principal
+        runner.disableControllerService(service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.KERBEROS_KEYTAB, "src/test/resources/fake.keytab");
+        runner.setProperty(service, HBase_1_1_2_ClientService.KERBEROS_PRINCIPAL, "invalid");
+        runner.enableControllerService(service);
+        runner.assertNotValid(service);
+
         runner.removeControllerService(service);
     }
 
@@ -383,6 +412,10 @@ public class TestHBase_1_1_2_ClientService {
 
         public MockHBaseClientService(final Table table) {
             this.table = table;
+        }
+
+        public void setIsSecurityEnabled(boolean value) {
+            this.isSecurityEnabled = value;
         }
 
         public void addResult(final String rowKey, final Map<String, String> cells, final long timestamp) {

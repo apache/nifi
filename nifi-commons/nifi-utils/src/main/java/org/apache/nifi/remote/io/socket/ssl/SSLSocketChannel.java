@@ -85,10 +85,6 @@ public class SSLSocketChannel implements Closeable {
     }
 
     public SSLSocketChannel(final SSLContext sslContext, final SocketChannel socketChannel, final boolean client) throws IOException {
-        this(sslContext.createSSLEngine(), socketChannel, client);
-    }
-
-    public SSLSocketChannel(final SSLEngine sslEngine, final SocketChannel socketChannel, final boolean client) throws IOException {
         if (!socketChannel.isConnected()) {
             throw new IllegalArgumentException("Cannot pass an un-connected SocketChannel");
         }
@@ -100,9 +96,29 @@ public class SSLSocketChannel implements Closeable {
         this.hostname = socket.getInetAddress().getHostName();
         this.port = socket.getPort();
 
-        this.engine = sslEngine;
+        this.engine = sslContext.createSSLEngine();
         this.engine.setUseClientMode(client);
         this.engine.setNeedClientAuth(true);
+
+        streamInManager = new BufferStateManager(ByteBuffer.allocate(engine.getSession().getPacketBufferSize()));
+        streamOutManager = new BufferStateManager(ByteBuffer.allocate(engine.getSession().getPacketBufferSize()));
+        appDataManager = new BufferStateManager(ByteBuffer.allocate(engine.getSession().getApplicationBufferSize()));
+    }
+
+    public SSLSocketChannel(final SSLEngine sslEngine, final SocketChannel socketChannel) throws IOException {
+        if (!socketChannel.isConnected()) {
+            throw new IllegalArgumentException("Cannot pass an un-connected SocketChannel");
+        }
+
+        this.channel = socketChannel;
+
+        this.socketAddress = socketChannel.getRemoteAddress();
+        final Socket socket = socketChannel.socket();
+        this.hostname = socket.getInetAddress().getHostName();
+        this.port = socket.getPort();
+
+        // don't set useClientMode or needClientAuth, use the engine as is and let the caller configure it
+        this.engine = sslEngine;
 
         streamInManager = new BufferStateManager(ByteBuffer.allocate(engine.getSession().getPacketBufferSize()));
         streamOutManager = new BufferStateManager(ByteBuffer.allocate(engine.getSession().getPacketBufferSize()));

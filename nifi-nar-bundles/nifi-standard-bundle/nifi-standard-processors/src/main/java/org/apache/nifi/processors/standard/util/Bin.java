@@ -25,6 +25,8 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 
 /**
+ * Note: {@code Bin} objects are NOT thread safe. If multiple threads access a {@code Bin}, the caller must synchronize
+ * access.
  * @deprecated As of release 0.5.0, replaced by
  * {@link org.apache.nifi.processor.util.bin.Bin}
  */
@@ -125,8 +127,9 @@ public class Bin {
             final String countValue = flowFile.getAttribute(fileCountAttribute);
             final Integer count = toInteger(countValue);
             if (count != null) {
-                this.maximumEntries = Math.min(count, this.maximumEntries);
-                this.minimumEntries = this.maximumEntries;
+                final int currentMaximumEntries = this.maximumEntries;
+                this.maximumEntries = Math.min(count, currentMaximumEntries);
+                this.minimumEntries = currentMaximumEntries;
             }
         }
 

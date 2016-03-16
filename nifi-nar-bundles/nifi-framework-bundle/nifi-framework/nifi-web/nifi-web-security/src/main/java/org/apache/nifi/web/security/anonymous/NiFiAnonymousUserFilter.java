@@ -58,8 +58,11 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
                 user.getAuthorities().addAll(EnumSet.allOf(Authority.class));
             }
 
-            // only create an authentication token if the anonymous user has some authorities
-            if (!user.getAuthorities().isEmpty()) {
+            // only create an authentication token if the anonymous user has some authorities or they are accessing a ui
+            // extension. ui extensions have run this security filter but we shouldn't require authentication/authorization
+            // when accessing static resources like images, js, and css. authentication/authorization is required when
+            // interacting with nifi however and that will be verified in the NiFiWebContext or NiFiWebConfigurationContext
+            if (!user.getAuthorities().isEmpty() || !request.getContextPath().startsWith("/nifi-api")) {
                 NiFiUserDetails userDetails = new NiFiUserDetails(user);
 
                 // get the granted authorities

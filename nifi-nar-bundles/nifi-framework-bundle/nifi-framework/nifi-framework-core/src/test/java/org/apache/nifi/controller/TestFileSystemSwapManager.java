@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -57,7 +58,8 @@ public class TestFileSystemSwapManager {
             final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
             Mockito.when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
-            final List<FlowFileRecord> records = FileSystemSwapManager.deserializeFlowFiles(in, "/src/test/resources/old-swap-file.swap", flowFileQueue, new NopResourceClaimManager());
+            final SwapContents swapContents = FileSystemSwapManager.deserializeFlowFiles(in, "/src/test/resources/old-swap-file.swap", flowFileQueue, new NopResourceClaimManager());
+            final List<FlowFileRecord> records = swapContents.getFlowFiles();
             assertEquals(10000, records.size());
 
             for (final FlowFileRecord record : records) {
@@ -68,6 +70,7 @@ public class TestFileSystemSwapManager {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testRoundTripSerializeDeserialize() throws IOException {
         final List<FlowFileRecord> toSwap = new ArrayList<>(10000);
         final Map<String, String> attrs = new HashMap<>();
@@ -88,16 +91,16 @@ public class TestFileSystemSwapManager {
             FileSystemSwapManager.serializeFlowFiles(toSwap, flowFileQueue, swapLocation, fos);
         }
 
-        final List<FlowFileRecord> swappedIn;
+        final SwapContents swappedIn;
         try (final FileInputStream fis = new FileInputStream(swapFile);
             final DataInputStream dis = new DataInputStream(fis)) {
             swappedIn = FileSystemSwapManager.deserializeFlowFiles(dis, swapLocation, flowFileQueue, Mockito.mock(ResourceClaimManager.class));
         }
 
-        assertEquals(toSwap.size(), swappedIn.size());
+        assertEquals(toSwap.size(), swappedIn.getFlowFiles().size());
         for (int i = 0; i < toSwap.size(); i++) {
             final FlowFileRecord pre = toSwap.get(i);
-            final FlowFileRecord post = swappedIn.get(i);
+            final FlowFileRecord post = swappedIn.getFlowFiles().get(i);
 
             assertEquals(pre.getSize(), post.getSize());
             assertEquals(pre.getAttributes(), post.getAttributes());

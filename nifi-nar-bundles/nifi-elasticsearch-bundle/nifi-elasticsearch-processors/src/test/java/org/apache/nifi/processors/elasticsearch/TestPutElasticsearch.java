@@ -188,6 +188,26 @@ public class TestPutElasticsearch {
         runner.assertTransferCount(PutElasticsearch.REL_FAILURE, 1);
     }
 
+    @Test
+    public void testPutElasticsearchOnTriggerWithNoIdAttribute() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(true)); // simulate failures
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(AbstractElasticsearchProcessor.CLUSTER_NAME, "elasticsearch");
+        runner.setProperty(AbstractElasticsearchProcessor.HOSTS, "127.0.0.1:9300");
+        runner.setProperty(AbstractElasticsearchProcessor.PING_TIMEOUT, "5s");
+        runner.setProperty(AbstractElasticsearchProcessor.SAMPLER_INTERVAL, "5s");
+        runner.setProperty(PutElasticsearch.INDEX, "doc");
+        runner.setProperty(PutElasticsearch.TYPE, "status");
+        runner.setProperty(PutElasticsearch.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearch.ID_ATTRIBUTE, "doc_id");
+
+        runner.enqueue(docExample);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearch.REL_FAILURE, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearch.REL_FAILURE).get(0);
+        assertNotNull(out);
+    }
 
     /**
      * A Test class that extends the processor in order to inject/mock behavior

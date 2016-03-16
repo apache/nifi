@@ -45,9 +45,15 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.IncompleteSwapFileException;
+import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
+import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.swap.StandardSwapContents;
+import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -375,13 +381,74 @@ public class TestStandardFlowFileQueue {
         queue.poll(exp);
     }
 
-    @Test(timeout = 120000)
-    public void testDropSwappedFlowFiles() {
-        for (int i = 1; i <= 210000; i++) {
+    @Test
+    public void testQueueCountsUpdatedWhenIncompleteSwapFile() {
+        for (int i = 1; i <= 20000; i++) {
             queue.put(new TestFlowFile());
         }
 
-        assertEquals(20, swapManager.swappedOut.size());
+        assertEquals(20000, queue.size().getObjectCount());
+        assertEquals(20000, queue.size().getByteCount());
+
+        assertEquals(1, swapManager.swappedOut.size());
+
+        // when we swap in, cause an IncompleteSwapFileException to be
+        // thrown and contain only 9,999 of the 10,000 FlowFiles
+        swapManager.enableIncompleteSwapFileException(9999);
+        final Set<FlowFileRecord> expired = Collections.emptySet();
+        FlowFileRecord flowFile;
+
+        for (int i = 0; i < 10000; i++) {
+            flowFile = queue.poll(expired);
+            assertNotNull(flowFile);
+            queue.acknowledge(Collections.singleton(flowFile));
+        }
+
+        // 10,000 FlowFiles on queue - all swapped out
+        assertEquals(10000, queue.size().getObjectCount());
+        assertEquals(10000, queue.size().getByteCount());
+        assertEquals(1, swapManager.swappedOut.size());
+        assertEquals(0, swapManager.swapInCalledCount);
+
+        // Trigger swap in. This will remove 1 FlowFile from queue, leaving 9,999 but
+        // on swap in, we will get only 9,999 FlowFiles put onto the queue, and the queue size will
+        // be decremented by 10,000 (because the Swap File's header tells us that there are 10K
+        // FlowFiles, even though only 9999 are in the swap file)
+        flowFile = queue.poll(expired);
+        assertNotNull(flowFile);
+        queue.acknowledge(Collections.singleton(flowFile));
+
+        // size should be 9,998 because we lost 1 on Swap In, and then we pulled one above.
+        assertEquals(9998, queue.size().getObjectCount());
+        assertEquals(9998, queue.size().getByteCount());
+        assertEquals(0, swapManager.swappedOut.size());
+        assertEquals(1, swapManager.swapInCalledCount);
+
+        for (int i = 0; i < 9998; i++) {
+            flowFile = queue.poll(expired);
+            assertNotNull("Null FlowFile when i = " + i, flowFile);
+            queue.acknowledge(Collections.singleton(flowFile));
+
+            final QueueSize queueSize = queue.size();
+            assertEquals(9998 - i - 1, queueSize.getObjectCount());
+            assertEquals(9998 - i - 1, queueSize.getByteCount());
+        }
+
+        final QueueSize queueSize = queue.size();
+        assertEquals(0, queueSize.getObjectCount());
+        assertEquals(0L, queueSize.getByteCount());
+
+        flowFile = queue.poll(expired);
+        assertNull(flowFile);
+    }
+
+    @Test(timeout = 120000)
+    public void testDropSwappedFlowFiles() {
+        for (int i = 1; i <= 30000; i++) {
+            queue.put(new TestFlowFile());
+        }
+
+        assertEquals(2, swapManager.swappedOut.size());
         final DropFlowFileStatus status = queue.dropFlowFiles("1", "Unit Test");
         while (status.getState() != DropFlowFileState.COMPLETE) {
             try {
@@ -393,7 +460,7 @@ public class TestStandardFlowFileQueue {
         assertEquals(0, queue.size().getObjectCount());
         assertEquals(0, queue.size().getByteCount());
         assertEquals(0, swapManager.swappedOut.size());
-        assertEquals(20, swapManager.swapInCalledCount);
+        assertEquals(2, swapManager.swapInCalledCount);
     }
 
 
@@ -442,9 +509,15 @@ public class TestStandardFlowFileQueue {
         int swapOutCalledCount = 0;
         int swapInCalledCount = 0;
 
+        private int incompleteSwapFileRecordsToInclude = -1;
+
         @Override
         public void initialize(final SwapManagerInitializationContext initializationContext) {
 
+        }
+
+        public void enableIncompleteSwapFileException(final int flowFilesToInclude) {
+            incompleteSwapFileRecordsToInclude = flowFilesToInclude;
         }
 
         @Override
@@ -455,15 +528,34 @@ public class TestStandardFlowFileQueue {
             return location;
         }
 
-        @Override
-        public List<FlowFileRecord> peek(String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
-            return new ArrayList<FlowFileRecord>(swappedOut.get(swapLocation));
+        private void throwIncompleteIfNecessary(final String swapLocation, final boolean remove) throws IOException {
+            if (incompleteSwapFileRecordsToInclude > -1) {
+                final SwapSummary summary = getSwapSummary(swapLocation);
+
+                final List<FlowFileRecord> records;
+                if (remove) {
+                    records = swappedOut.remove(swapLocation);
+                } else {
+                    records = swappedOut.get(swapLocation);
+                }
+
+                final List<FlowFileRecord> partial = records.subList(0, incompleteSwapFileRecordsToInclude);
+                final SwapContents partialContents = new StandardSwapContents(summary, partial);
+                throw new IncompleteSwapFileException(swapLocation, partialContents);
+            }
         }
 
         @Override
-        public List<FlowFileRecord> swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
+        public SwapContents peek(String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
+            throwIncompleteIfNecessary(swapLocation, false);
+            return new StandardSwapContents(getSwapSummary(swapLocation), swappedOut.get(swapLocation));
+        }
+
+        @Override
+        public SwapContents swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
             swapInCalledCount++;
-            return swappedOut.remove(swapLocation);
+            throwIncompleteIfNecessary(swapLocation, true);
+            return new StandardSwapContents(getSwapSummary(swapLocation), swappedOut.remove(swapLocation));
         }
 
         @Override
@@ -472,37 +564,30 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
-        public QueueSize getSwapSize(String swapLocation) throws IOException {
+        @SuppressWarnings("deprecation")
+        public SwapSummary getSwapSummary(String swapLocation) throws IOException {
             final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
             if (flowFiles == null) {
-                return new QueueSize(0, 0L);
+                return StandardSwapSummary.EMPTY_SUMMARY;
             }
 
             int count = 0;
             long size = 0L;
+            Long max = null;
+            final List<ResourceClaim> resourceClaims = new ArrayList<>();
             for (final FlowFileRecord flowFile : flowFiles) {
                 count++;
                 size += flowFile.getSize();
-            }
-
-            return new QueueSize(count, size);
-        }
-
-        @Override
-        public Long getMaxRecordId(String swapLocation) throws IOException {
-            final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
-            if (flowFiles == null) {
-                return null;
-            }
-
-            Long max = null;
-            for (final FlowFileRecord flowFile : flowFiles) {
                 if (max == null || flowFile.getId() > max) {
                     max = flowFile.getId();
                 }
+
+                if (flowFile.getContentClaim() != null) {
+                    resourceClaims.add(flowFile.getContentClaim().getResourceClaim());
+                }
             }
 
-            return max;
+            return new StandardSwapSummary(new QueueSize(count, size), max, resourceClaims);
         }
 
         @Override
@@ -588,6 +673,7 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public int compareTo(final FlowFile o) {
             return Long.compare(id, o.getId());
         }

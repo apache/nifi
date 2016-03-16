@@ -21,8 +21,10 @@ import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
+import org.apache.nifi.processor.util.listen.event.EventQueue;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.StandardSocketOptions;
@@ -42,8 +44,10 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
 
     private final EventFactory<E> eventFactory;
     private final BlockingQueue<ByteBuffer> bufferPool;
-    private final BlockingQueue<E> events;
+    private final EventQueue<E> events;
     private final ProcessorLog logger;
+    private final String sendingHost;
+    private final Integer sendingPort;
 
     private Selector selector;
     private DatagramChannel datagramChannel;
@@ -53,10 +57,21 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                                      final BlockingQueue<ByteBuffer> bufferPool,
                                      final BlockingQueue<E> events,
                                      final ProcessorLog logger) {
+        this(eventFactory, bufferPool, events, logger, null, null);
+    }
+
+    public DatagramChannelDispatcher(final EventFactory<E> eventFactory,
+                                     final BlockingQueue<ByteBuffer> bufferPool,
+                                     final BlockingQueue<E> events,
+                                     final ProcessorLog logger,
+                                     final String sendingHost,
+                                     final Integer sendingPort) {
         this.eventFactory = eventFactory;
         this.bufferPool = bufferPool;
-        this.events = events;
         this.logger = logger;
+        this.sendingHost = sendingHost;
+        this.sendingPort = sendingPort;
+        this.events = new EventQueue<>(events, logger);
 
         if (bufferPool == null || bufferPool.size() == 0) {
             throw new IllegalArgumentException("A pool of available ByteBuffers is required");
@@ -64,7 +79,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
     }
 
     @Override
-    public void open(final int port, int maxBufferSize) throws IOException {
+    public void open(final InetAddress nicAddress, final int port, final int maxBufferSize) throws IOException {
         stopped = false;
         datagramChannel = DatagramChannel.open();
         datagramChannel.configureBlocking(false);
@@ -78,7 +93,17 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                         + "maximum receive buffer");
             }
         }
-        datagramChannel.socket().bind(new InetSocketAddress(port));
+
+        // we don't have to worry about nicAddress being null here because InetSocketAddress already handles it
+        datagramChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+        datagramChannel.socket().bind(new InetSocketAddress(nicAddress, port));
+
+        // if a sending host and port were provided then connect to that specific address to only receive
+        // datagrams from that host/port, otherwise we can receive datagrams from any host/port
+        if (sendingHost != null && sendingPort != null) {
+            datagramChannel.connect(new InetSocketAddress(sendingHost, sendingPort));
+        }
+
         selector = Selector.open();
         datagramChannel.register(selector, SelectionKey.OP_READ);
     }
@@ -115,9 +140,8 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
 
                             final Map<String,String> metadata = EventFactoryUtil.createMapWithSender(sender);
                             final E event = eventFactory.create(bytes, metadata, null);
+                            events.offer(event);
 
-                            // queue the raw message with the sender, block until space is available
-                            events.put(event);
                             buffer.clear();
                         }
                     }
