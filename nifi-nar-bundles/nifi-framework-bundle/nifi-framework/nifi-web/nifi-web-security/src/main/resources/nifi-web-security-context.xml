@@ -22,29 +22,29 @@
 
     <!-- principal extractor -->
     <bean id="principalExtractor" class="org.apache.nifi.web.security.x509.SubjectDnX509PrincipalExtractor"/>
-    
+
     <!-- ocsp validator -->
     <bean id="ocspValidator" class="org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator">
         <constructor-arg ref="nifiProperties"/>
     </bean>
-        
+
     <!-- x509 validator -->
     <bean id="certificateValidator" class="org.apache.nifi.web.security.x509.X509CertificateValidator">
-        <property name="ocspValidator" ref="ocspValidator"/> 
+        <property name="ocspValidator" ref="ocspValidator"/>
     </bean>
-    
+
     <!-- x509 identity provider -->
     <bean id="certificateIdentityProvider" class="org.apache.nifi.web.security.x509.X509IdentityProvider">
         <property name="principalExtractor" ref="principalExtractor"/>
         <property name="certificateValidator" ref="certificateValidator"/>
     </bean>
-    
+
     <!-- user details service -->
     <bean id="userDetailsService" class="org.apache.nifi.web.security.authorization.NiFiAuthorizationService">
         <property name="userService" ref="userService"/>
         <property name="properties" ref="nifiProperties"/>
     </bean>
-    
+
     <!-- jwt service -->
     <bean id="jwtService" class="org.apache.nifi.web.security.jwt.JwtService">
         <constructor-arg ref="userService"/>
@@ -53,9 +53,14 @@
     <!-- otp service -->
     <bean id="otpService" class="org.apache.nifi.web.security.otp.OtpService"/>
 
+    <!-- Kerberos service -->
+    <bean id="kerberosService" class="org.apache.nifi.web.security.kerberos.KerberosServiceFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+
     <!-- login identity provider -->
     <bean id="loginIdentityProvider" class="org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean">
         <property name="properties" ref="nifiProperties"/>
     </bean>
-    
+
 </beans>

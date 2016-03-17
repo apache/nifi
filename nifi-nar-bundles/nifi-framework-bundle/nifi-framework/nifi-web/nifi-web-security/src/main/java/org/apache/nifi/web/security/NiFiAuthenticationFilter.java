@@ -64,7 +64,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
     }
 
-    private boolean requiresAuthentication(final HttpServletRequest request) {
+    protected boolean requiresAuthentication(final HttpServletRequest request) {
         // continue attempting authorization if the user is anonymous
         if (isAnonymousUser()) {
             return true;

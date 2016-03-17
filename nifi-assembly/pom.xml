@@ -184,6 +184,11 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-iaa-providers-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-nar</artifactId>
             <type>nar</type>
         </dependency>
@@ -448,6 +453,9 @@ language governing permissions and limitations under the License. -->
 
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>
+        <nifi.kerberos.service.principal />
+        <nifi.kerberos.keytab.location />
+        <nifi.kerberos.authentication.expiration>12 hours</nifi.kerberos.authentication.expiration>
     </properties>
     <profiles>
         <profile>
