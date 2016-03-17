@@ -175,13 +175,13 @@ public class AbstractCassandraProcessorTest {
         contactPoints = processor.getContactPoints("192.168.99.100:9042");
         assertNotNull(contactPoints);
         assertEquals(1, contactPoints.size());
-        assertEquals("192.168.99.100", contactPoints.get(0).getHostName());
+        assertEquals("192.168.99.100", contactPoints.get(0).getAddress().getHostAddress());
         assertEquals(9042, contactPoints.get(0).getPort());
 
         contactPoints = processor.getContactPoints("192.168.99.100:9042, mydomain.com : 4000");
         assertNotNull(contactPoints);
         assertEquals(2, contactPoints.size());
-        assertEquals("192.168.99.100", contactPoints.get(0).getHostName());
+        assertEquals("192.168.99.100", contactPoints.get(0).getAddress().getHostAddress());
         assertEquals(9042, contactPoints.get(0).getPort());
         assertEquals("mydomain.com", contactPoints.get(1).getHostName());
         assertEquals(4000, contactPoints.get(1).getPort());
