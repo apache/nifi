@@ -15,16 +15,8 @@
   limitations under the License.
 -->
 <configuration>
-    <property>
-        <name>fs.default.name</name>
-        <value>hdfs://hbase</value>
-    </property>
-    <property>
-        <name>hadoop.security.authentication</name>
-        <value>kerberos</value>
-    </property>
-    <property>
-        <name>hadoop.security.authorization</name>
-        <value>true</value>
-    </property>
+  <property>
+    <name>fs.default.name</name>
+    <value>hdfs://hbase</value>
+  </property>
 </configuration>

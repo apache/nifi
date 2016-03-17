@@ -16,9 +16,20 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.nifi.processors.hadoop.CreateHadoopSequenceFile;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,19 +39,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestCreateHadoopSequenceFile {
 
@@ -52,6 +54,9 @@ public class TestCreateHadoopSequenceFile {
         new File(testdata, "randombytes-2"), new File(testdata, "randombytes-3")
     };
 
+    private NiFiProperties mockNiFiProperties;
+    private KerberosProperties kerberosProperties;
+
     @BeforeClass
     public static void setUpClass() {
         LOGGER = LoggerFactory.getLogger(TestCreateHadoopSequenceFile.class);
@@ -61,7 +66,12 @@ public class TestCreateHadoopSequenceFile {
 
     @Before
     public void setUp() {
-        controller = TestRunners.newTestRunner(CreateHadoopSequenceFile.class);
+        mockNiFiProperties = mock(NiFiProperties.class);
+        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
+        kerberosProperties = KerberosProperties.create(mockNiFiProperties);
+
+        CreateHadoopSequenceFile proc = new TestableCreateHadoopSequenceFile(kerberosProperties);
+        controller = TestRunners.newTestRunner(proc);
     }
 
     @After
@@ -183,4 +193,17 @@ public class TestCreateHadoopSequenceFile {
 //        fos.close();
     }
 
+    private static class TestableCreateHadoopSequenceFile extends CreateHadoopSequenceFile {
+
+        private KerberosProperties testKerbersProperties;
+
+        public TestableCreateHadoopSequenceFile(KerberosProperties testKerbersProperties) {
+            this.testKerbersProperties = testKerbersProperties;
+        }
+
+        @Override
+        protected KerberosProperties getKerberosProperties() {
+            return testKerbersProperties;
+        }
+    }
 }

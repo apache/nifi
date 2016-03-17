@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.hadoop.util;
 
+import org.apache.hadoop.fs.Path;
+
+import javax.xml.bind.annotation.XmlTransient;
+import javax.xml.bind.annotation.XmlType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -23,11 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import javax.xml.bind.annotation.XmlTransient;
-import javax.xml.bind.annotation.XmlType;
-
-import org.apache.hadoop.fs.Path;
 
 /**
  * A simple POJO for maintaining state about the last HDFS Listing that was performed so that

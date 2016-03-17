@@ -84,25 +84,5 @@ public class TestStandardValidators {
 
         vr = val.validate("DataSizeBounds", "water", validationContext);
         assertFalse(vr.isValid());
-
-    }
-
-    @Test
-    public void testKerbPrincipalValidator() {
-        Validator val = StandardValidators.KERB_PRINC_VALIDATOR;
-        ValidationResult vr;
-
-        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
-        vr = val.validate("Kerberos Principal","jon@CDH.PROD", validationContext);
-        assertTrue(vr.isValid());
-
-        vr = val.validate("Kerberos Principal","jon@CDH", validationContext);
-        assertTrue(vr.isValid());
-
-        vr = val.validate("kerberos-principal","service/nifi@PROD", validationContext);
-        assertTrue(vr.isValid());
-
-        vr = val.validate("keberos-principal", "joewitt", validationContext);
-        assertFalse(vr.isValid());
     }
 }

@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,6 +31,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.apache.nifi.util.StopWatch;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This processor is used to pull files from HDFS. The files being pulled in MUST be SequenceFile formatted files. The processor creates a flow file for each key/value entry in the ingested
@@ -64,17 +64,11 @@ public class GetHDFSSequenceFile extends GetHDFS {
             .required(true)
             .build();
 
-    static final List<PropertyDescriptor> props;
-
-    static {
-        List<PropertyDescriptor> someProps = new ArrayList<>(localProperties);
-        someProps.add(FLOWFILE_CONTENT);
-        props = Collections.unmodifiableList(someProps);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return props;
+        List<PropertyDescriptor> someProps = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        someProps.add(FLOWFILE_CONTENT);
+        return Collections.unmodifiableList(someProps);
     }
 
     @Override

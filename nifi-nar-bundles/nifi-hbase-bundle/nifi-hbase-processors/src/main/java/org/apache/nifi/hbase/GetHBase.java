@@ -453,10 +453,12 @@ public class GetHBase extends AbstractProcessor {
             localState.delete();
         }
 
-        try {
-            client.remove(getKey(), new StringSerDe());
-        } catch (IOException e) {
-            getLogger().warn("Processor state was not cleared from distributed cache due to {}", new Object[]{e});
+        if (client != null) {
+            try {
+                client.remove(getKey(), new StringSerDe());
+            } catch (IOException e) {
+                getLogger().warn("Processor state was not cleared from distributed cache due to {}", new Object[]{e});
+            }
         }
     }
 

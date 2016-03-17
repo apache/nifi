@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -58,12 +46,24 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.HDFSListing;
-import org.apache.nifi.processors.hadoop.util.StringSerDe;
 import org.apache.nifi.processors.hadoop.util.HDFSListing.StateKeys;
+import org.apache.nifi.processors.hadoop.util.StringSerDe;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 
 @TriggerSerially
@@ -143,15 +143,11 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(HADOOP_CONFIGURATION_RESOURCES);
-        properties.add(DISTRIBUTED_CACHE_SERVICE);
-        properties.add(DIRECTORY);
-        properties.add(RECURSE_SUBDIRS);
-        properties.add(KERBEROS_PRINCIPAL);
-        properties.add(KERBEROS_KEYTAB);
-        properties.add(KERBEROS_RELOGIN_PERIOD);
-        return properties;
+        final List<PropertyDescriptor> props = new ArrayList<>(properties);
+        props.add(DISTRIBUTED_CACHE_SERVICE);
+        props.add(DIRECTORY);
+        props.add(RECURSE_SUBDIRS);
+        return props;
     }
 
     @Override
