@@ -17,12 +17,15 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -40,17 +43,42 @@ public class AbstractHadoopTest {
 
     private static Logger logger;
 
+    private File temporaryFile;
+    private KerberosProperties kerberosProperties;
+    private NiFiProperties mockedProperties;
+
     @BeforeClass
-    public static void setUpClass() {
+    public static void setUpClass() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.hadoop", "debug");
         logger = LoggerFactory.getLogger(AbstractHadoopTest.class);
     }
 
+    @Before
+    public void setup() throws IOException {
+        // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
+        // config with Kerberos authentication enabled
+        System.setProperty("java.security.krb5.realm", "nifi.com");
+        System.setProperty("java.security.krb5.kdc", "nifi.kdc");
+
+        temporaryFile = File.createTempFile("hadoop-test", ".properties");
+
+        // mock properties and return a temporary file for the kerberos configuration
+        mockedProperties = mock(NiFiProperties.class);
+        when(mockedProperties.getKerberosConfigurationFile()).thenReturn(temporaryFile);
+        kerberosProperties = KerberosProperties.create(mockedProperties);
+    }
+
+    @After
+    public void cleanUp() {
+        temporaryFile.delete();
+    }
+
     @Test
     public void testErrorConditions() {
-        TestRunner runner = TestRunners.newTestRunner(SimpleHadoopProcessor.class);
+        SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(processor);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
@@ -81,8 +109,8 @@ public class AbstractHadoopTest {
 
     @Test
     public void testTimeoutDetection() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(SimpleHadoopProcessor.class);
-        SimpleHadoopProcessor processor = (SimpleHadoopProcessor) runner.getProcessor();
+        SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(processor);
         try {
             processor.resetHDFSResources("src/test/resources/core-site-broken.xml", "/target", runner.getProcessContext());
             Assert.fail("Should have thrown SocketTimeoutException");
@@ -92,29 +120,36 @@ public class AbstractHadoopTest {
 
     @Test
     public void testKerberosOptions() throws Exception {
-        File temporaryFile = File.createTempFile("hadoop-test", ".properties");
-        try {
-            // mock properties and return a temporary file for the kerberos configuration
-            NiFiProperties mockedProperties = mock(NiFiProperties.class);
-            when(mockedProperties.getKerberosConfigurationFile()).thenReturn(temporaryFile);
-            SimpleHadoopProcessor.NIFI_PROPERTIES = mockedProperties;
-            TestRunner runner = TestRunners.newTestRunner(SimpleHadoopProcessor.class);
-            // should be valid since no kerberos options specified
-            runner.assertValid();
-            // no longer valid since only the principal is provided
-            runner.setProperty(SimpleHadoopProcessor.KERBEROS_PRINCIPAL, "principal");
-            runner.assertNotValid();
-            // invalid since the keytab does not exist
-            runner.setProperty(SimpleHadoopProcessor.KERBEROS_KEYTAB, "BAD_KEYTAB_PATH");
-            runner.assertNotValid();
-            // valid since keytab is now a valid file location
-            runner.setProperty(SimpleHadoopProcessor.KERBEROS_KEYTAB, temporaryFile.getAbsolutePath());
-            runner.assertValid();
-            // invalid since the kerberos configuration was changed to a non-existent file
-            when(mockedProperties.getKerberosConfigurationFile()).thenReturn(new File("BAD_KERBEROS_PATH"));
-            runner.assertNotValid();
-        } finally {
-            temporaryFile.delete();
-        }
+        SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        // should be valid since no kerberos options specified
+        runner.assertValid();
+        // no longer valid since only the principal is provided
+        runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml");
+        runner.setProperty(kerberosProperties.getKerberosPrincipal(), "principal");
+        runner.assertNotValid();
+        // invalid since the keytab does not exist
+        runner.setProperty(kerberosProperties.getKerberosKeytab(), "BAD_KEYTAB_PATH");
+        runner.assertNotValid();
+        // valid since keytab is now a valid file location
+        runner.setProperty(kerberosProperties.getKerberosKeytab(), temporaryFile.getAbsolutePath());
+        runner.assertValid();
+    }
+
+    @Test
+    public void testKerberosOptionsWithBadKerberosConfigFile() throws Exception {
+        // invalid since the kerberos configuration was changed to a non-existent file
+        when(mockedProperties.getKerberosConfigurationFile()).thenReturn(new File("BAD_KERBEROS_PATH"));
+        kerberosProperties = KerberosProperties.create(mockedProperties);
+
+        SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.assertValid();
+
+        runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml");
+        runner.setProperty(kerberosProperties.getKerberosPrincipal(), "principal");
+        runner.setProperty(kerberosProperties.getKerberosKeytab(), temporaryFile.getAbsolutePath());
+        runner.assertNotValid();
+
     }
 }

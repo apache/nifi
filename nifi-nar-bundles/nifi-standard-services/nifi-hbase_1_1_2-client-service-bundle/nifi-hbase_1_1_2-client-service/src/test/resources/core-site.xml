@@ -15,8 +15,8 @@
   limitations under the License.
 -->
 <configuration>
-  <property>
-    <name>fs.default.name</name>
-    <value>hdfs://hbase</value>
-  </property>
+    <property>
+        <name>fs.default.name</name>
+        <value>hdfs://hbase</value>
+    </property>
 </configuration>

@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -62,6 +46,22 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
@@ -178,28 +178,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
     .build();
 
     private static final Set<Relationship> relationships;
-    protected static final List<PropertyDescriptor> localProperties;
 
     static {
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_SUCCESS);
         rels.add(REL_PASSTHROUGH);
         relationships = Collections.unmodifiableSet(rels);
-
-        List<PropertyDescriptor> props = new ArrayList<>(properties);
-        props.add(DIRECTORY);
-        props.add(RECURSE_SUBDIRS);
-        props.add(KEEP_SOURCE_FILE);
-        props.add(FILE_FILTER_REGEX);
-        props.add(FILTER_MATCH_NAME_ONLY);
-        props.add(IGNORE_DOTTED_FILES);
-        props.add(MIN_AGE);
-        props.add(MAX_AGE);
-        props.add(POLLING_INTERVAL);
-        props.add(BATCH_SIZE);
-        props.add(BUFFER_SIZE);
-        props.add(COMPRESSION_CODEC);
-        localProperties = Collections.unmodifiableList(props);
     }
 
     protected ProcessorConfiguration processorConfig;
@@ -219,7 +203,20 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return localProperties;
+        List<PropertyDescriptor> props = new ArrayList<>(properties);
+        props.add(DIRECTORY);
+        props.add(RECURSE_SUBDIRS);
+        props.add(KEEP_SOURCE_FILE);
+        props.add(FILE_FILTER_REGEX);
+        props.add(FILTER_MATCH_NAME_ONLY);
+        props.add(IGNORE_DOTTED_FILES);
+        props.add(MIN_AGE);
+        props.add(MAX_AGE);
+        props.add(POLLING_INTERVAL);
+        props.add(BATCH_SIZE);
+        props.add(BUFFER_SIZE);
+        props.add(COMPRESSION_CODEC);
+        return props;
     }
 
     @Override
