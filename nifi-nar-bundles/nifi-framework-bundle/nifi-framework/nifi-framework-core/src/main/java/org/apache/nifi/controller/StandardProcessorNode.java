@@ -1055,8 +1055,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
             processor.onTrigger(context, sessionFactory);
-        } catch (Exception ex) {
-            ex.printStackTrace();
         }
     }
 
