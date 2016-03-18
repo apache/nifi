@@ -44,7 +44,7 @@
         <module>nifi-flume-bundle</module>
         <module>nifi-hbase-bundle</module>
         <module>nifi-ambari-bundle</module>
-        <module>nifi-image-bundle</module>
+        <module>nifi-media-bundle</module>
         <module>nifi-avro-bundle</module>
         <module>nifi-couchbase-bundle</module>
         <module>nifi-azure-bundle</module>
