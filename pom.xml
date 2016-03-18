@@ -1106,9 +1106,15 @@ language governing permissions and limitations under the License. -->
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
-		<type>nar</type>
-	    </dependency>
-	    <dependency>
+		        <type>nar</type>
+	         </dependency>
+             <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-lumberjack-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-splunk-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
