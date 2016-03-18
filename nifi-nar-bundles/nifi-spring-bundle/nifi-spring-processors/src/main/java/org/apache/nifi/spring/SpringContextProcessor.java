@@ -20,11 +20,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -143,13 +143,13 @@ public class SpringContextProcessor extends AbstractProcessor {
             .name("Application Context config path")
             .description("The path to the Spring Application Context configuration file relative to the classpath")
             .required(true)
-            .addValidator(new SpringContextConfigValidator())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CTX_LIB_PATH = new PropertyDescriptor.Builder()
             .name("Application Context class path")
             .description("Path to the directory with resources (i.e., JARs, configuration files etc.) required to be on "
                             + "the classpath of the ApplicationContext.")
-            .addValidator(new SpringContextConfigValidator())
+            .addValidator(StandardValidators.createDirectoryExistsValidator(false, false))
             .required(true)
             .build();
     public static final PropertyDescriptor SEND_TIMEOUT = new PropertyDescriptor.Builder()
@@ -279,6 +279,12 @@ public class SpringContextProcessor extends AbstractProcessor {
             this.sendToSpring(flowFileToProcess, context, processSession);
         }
         this.receiveFromSpring(processSession);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        SpringContextConfigValidator v = new SpringContextConfigValidator();
+        return Collections.singletonList(v.validate(CTX_CONFIG_PATH.getName(), null, validationContext));
     }
 
     /**
@@ -425,18 +431,8 @@ public class SpringContextProcessor extends AbstractProcessor {
         List<URL> urls = new ArrayList<>();
         URLClassLoader parentLoader = (URLClassLoader) SpringContextProcessor.class.getClassLoader();
         urls.addAll(Arrays.asList(parentLoader.getURLs()));
-        String[] resourceNames = libDirPathFile.list();
-        try {
-            for (String resourceName : resourceNames) {
-                File r = new File(libDirPathFile, resourceName);
-                if (!r.isDirectory() && !r.getName().startsWith(".")) {
-                    URL url = new File(libDirPathFile, resourceName).toURI().toURL();
-                    urls.add(url);
-                }
-            }
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
-        }
+
+        urls.addAll(SpringContextFactory.gatherAdditionalClassPathUrls(libDirPathFile.getAbsolutePath()));
         boolean resolvable = false;
         try (URLClassLoader throwawayCl = new URLClassLoader(urls.toArray(new URL[] {}), null)) {
             resolvable = throwawayCl.findResource(configPath) != null;

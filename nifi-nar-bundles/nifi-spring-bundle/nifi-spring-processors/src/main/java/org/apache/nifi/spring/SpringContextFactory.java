@@ -66,8 +66,8 @@ final class SpringContextFactory {
      * Thread.contextClassLoader can find such resources.
      */
     static SpringDataExchanger createSpringContextDelegate(String classpath, String config) {
-        URL[] urls = gatherAdditionalClassPathUrls(classpath);
-        SpringContextClassLoader contextCl = new SpringContextClassLoader(urls,
+        List<URL> urls = gatherAdditionalClassPathUrls(classpath);
+        SpringContextClassLoader contextCl = new SpringContextClassLoader(urls.toArray(new URL[] {}),
                 SpringContextFactory.class.getClassLoader());
         ClassLoader tContextCl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(contextCl);
@@ -98,28 +98,34 @@ final class SpringContextFactory {
     /**
      *
      */
-    private static URL[] gatherAdditionalClassPathUrls(String path) {
+    static List<URL> gatherAdditionalClassPathUrls(String classPathRoot) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Adding additional resources from '" + path + "' to the classpath.");
+            logger.debug("Adding additional resources from '" + classPathRoot + "' to the classpath.");
         }
-        File libraryDir = new File(path);
-        if (libraryDir.exists() && libraryDir.isDirectory()) {
-            String[] cpResourceNames = libraryDir.list();
+        File classPathRootFile = new File(classPathRoot);
+        if (classPathRootFile.exists() && classPathRootFile.isDirectory()) {
+            String[] cpResourceNames = classPathRootFile.list();
             try {
                 List<URL> urls = new ArrayList<>();
-                for (int i = 0; i < cpResourceNames.length; i++) {
-                    URL url = new File(libraryDir, cpResourceNames[i]).toURI().toURL();
-                    urls.add(url);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Identifying additional resource to the classpath: " + url);
+                for (String resourceName : cpResourceNames) {
+                    File r = new File(classPathRootFile, resourceName);
+                    if (r.getName().toLowerCase().endsWith(".jar") || r.isDirectory()) {
+                        URL url = r.toURI().toURL();
+                        urls.add(url);
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Identifying additional resource to the classpath: " + url);
+                        }
                     }
                 }
-                return urls.toArray(new URL[] {});
+                urls.add(classPathRootFile.toURI().toURL());
+
+                return urls;
             } catch (Exception e) {
-                throw new IllegalStateException("Failed to parse user libraries from '" + libraryDir.getAbsolutePath() + "'", e);
+                throw new IllegalStateException(
+                        "Failed to parse user libraries from '" + classPathRootFile.getAbsolutePath() + "'", e);
             }
         } else {
-            throw new IllegalArgumentException("Path '" + libraryDir.getAbsolutePath()
+            throw new IllegalArgumentException("Path '" + classPathRootFile.getAbsolutePath()
                     + "' is not valid because it doesn't exist or does not point to a directory.");
         }
     }
