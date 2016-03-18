@@ -302,6 +302,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-cassandra-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-spring-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
     <properties>
