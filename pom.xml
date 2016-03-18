@@ -1107,6 +1107,12 @@ language governing permissions and limitations under the License. -->
                 <version>0.7.0-SNAPSHOT</version>
 		<type>nar</type>
 	    </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-lumberjack-nar</artifactId>
+            <version>0.7.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
 	    <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-splunk-nar</artifactId>
