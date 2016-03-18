@@ -143,7 +143,7 @@ public class SpringContextProcessor extends AbstractProcessor {
             .name("Application Context config path")
             .description("The path to the Spring Application Context configuration file relative to the classpath")
             .required(true)
-.addValidator(new SpringContextConfigValidator())
+            .addValidator(new SpringContextConfigValidator())
             .build();
     public static final PropertyDescriptor CTX_LIB_PATH = new PropertyDescriptor.Builder()
             .name("Application Context class path")
