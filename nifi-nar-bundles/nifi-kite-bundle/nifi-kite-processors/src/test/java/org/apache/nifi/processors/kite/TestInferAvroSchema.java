@@ -18,23 +18,28 @@
  */
 package org.apache.nifi.processors.kite;
 
-import org.junit.Assert;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.StringWriter;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.HashMap;
-import java.util.Map;
 
 public class TestInferAvroSchema {
 
@@ -53,7 +58,7 @@ public class TestInferAvroSchema {
         runner.setProperty(InferAvroSchema.HEADER_LINE_SKIP_COUNT, "0");
         runner.setProperty(InferAvroSchema.ESCAPE_STRING, "\\");
         runner.setProperty(InferAvroSchema.QUOTE_STRING, "'");
-        runner.setProperty(InferAvroSchema.RECORD_NAME, "com.jeremydyer.contact");
+        runner.setProperty(InferAvroSchema.RECORD_NAME, "org.apache.nifi.contact");
         runner.setProperty(InferAvroSchema.CHARSET, "UTF-8");
         runner.setProperty(InferAvroSchema.PRETTY_AVRO_OUTPUT, "true");
     }
@@ -74,7 +79,7 @@ public class TestInferAvroSchema {
         runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(new File("src/test/resources/Shapes_header.csv.avro").toPath());
+        flowFile.assertContentEquals(unix2PlatformSpecificLineEndings(new File("src/test/resources/Shapes_header.csv.avro")));
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
     }
 
@@ -101,7 +106,9 @@ public class TestInferAvroSchema {
 
         MockFlowFile data = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
         String avroSchema = data.getAttribute(InferAvroSchema.AVRO_SCHEMA_ATTRIBUTE_NAME);
-        String knownSchema = FileUtils.readFileToString(new File("src/test/resources/Shapes.json.avro"));
+        String knownSchema = new String(unix2PlatformSpecificLineEndings(
+                    new File("src/test/resources/Shapes.json.avro")),
+                    StandardCharsets.UTF_8);
         Assert.assertEquals(avroSchema, knownSchema);
 
         //Since that avro schema is written to an attribute this should be teh same as the original
@@ -130,7 +137,7 @@ public class TestInferAvroSchema {
         runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 1);
 
         MockFlowFile data = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
-        data.assertContentEquals(Paths.get("src/test/resources/Shapes_header.csv.avro"));
+        data.assertContentEquals(unix2PlatformSpecificLineEndings(new File("src/test/resources/Shapes_header.csv.avro")));
         data.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
     }
 
@@ -149,7 +156,7 @@ public class TestInferAvroSchema {
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
-        runner.enqueue((CSV_HEADER_LINE + "\nJeremy,Dyer,29,55555").getBytes(), attributes);
+        runner.enqueue((CSV_HEADER_LINE + "\nJane,Doe,29,55555").getBytes(), attributes);
 
         runner.run();
         runner.assertTransferCount(InferAvroSchema.REL_FAILURE, 0);
@@ -191,7 +198,7 @@ public class TestInferAvroSchema {
         runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(new File("src/test/resources/Shapes_header.csv.avro").toPath());
+        flowFile.assertContentEquals(unix2PlatformSpecificLineEndings(new File("src/test/resources/Shapes_header.csv.avro")));
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
     }
 
@@ -215,5 +222,20 @@ public class TestInferAvroSchema {
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(InferAvroSchema.REL_FAILURE).get(0);
         flowFile.assertContentEquals(new File("src/test/resources/Shapes_Header_TabDelimited.csv").toPath());
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/csv");
+    }
+    static byte [] unix2PlatformSpecificLineEndings(final File file) throws IOException {
+        try ( final BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+                final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte eol[] = System.lineSeparator().getBytes(StandardCharsets.UTF_8);
+            int justRead;
+            while ((justRead = in.read()) != -1) {
+                if (justRead == '\n'){
+                    out.write(eol);
+                } else {
+                    out.write(justRead);
+                }
+            }
+            return out.toByteArray();
+        }
     }
 }
