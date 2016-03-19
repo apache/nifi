@@ -260,6 +260,7 @@
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
         <property name="jwtService" ref="jwtService"/>
         <property name="otpService" ref="otpService"/>
+        <property name="kerberosService" ref="kerberosService"/>
         <property name="userDetailsService" ref="userDetailsService"/>
     </bean>
 

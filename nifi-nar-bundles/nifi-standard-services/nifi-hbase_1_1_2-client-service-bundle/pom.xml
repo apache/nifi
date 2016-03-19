@@ -40,6 +40,7 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/fake.keytab</exclude>
+                        <exclude>src/test/resources/krb5.conf</exclude>
                     </excludes>
                 </configuration>
             </plugin>

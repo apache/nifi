@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.otp;
 
-import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,7 +23,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.servlet.http.HttpServletRequest;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -96,16 +94,6 @@ public class OtpAuthenticationFilterTest {
         when(request.isSecure()).thenReturn(true);
         when(request.getParameter(OtpAuthenticationFilter.ACCESS_TOKEN)).thenReturn(null);
         assertNull(otpAuthenticationFilter.attemptAuthentication(request));
-    }
-
-    @Test(expected = InvalidAuthenticationException.class)
-    public void testTokenSupportDisabled() throws Exception {
-        final HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.isSecure()).thenReturn(true);
-        when(request.getParameter(OtpAuthenticationFilter.ACCESS_TOKEN)).thenReturn("my-access-token");
-
-        final OtpAuthenticationFilter noTokenAuthenticationFilter = new OtpAuthenticationFilter();
-        noTokenAuthenticationFilter.attemptAuthentication(request);
     }
 
     @Test

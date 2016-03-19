@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -46,12 +47,12 @@ import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -73,7 +74,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final AtomicReference<Position> position;
     private final AtomicReference<String> comments;
 
-    private final ProcessScheduler scheduler;
+    private final StandardProcessScheduler scheduler;
     private final ControllerServiceProvider controllerServiceProvider;
     private final FlowController flowController;
 
@@ -93,8 +94,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessGroup.class);
 
-    public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler, final NiFiProperties nifiProps, final StringEncryptor encryptor,
-        final FlowController flowController) {
+    public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final StandardProcessScheduler scheduler,
+        final NiFiProperties nifiProps, final StringEncryptor encryptor, final FlowController flowController) {
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
         this.parent = new AtomicReference<>();
@@ -729,7 +730,13 @@ public final class StandardProcessGroup implements ProcessGroup {
             processors.remove(id);
             LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
 
-            flowController.getStateManagerProvider().onComponentRemoved(processor.getIdentifier());
+            final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
+            scheduler.submitFrameworkTask(new Runnable() {
+                @Override
+                public void run() {
+                    stateManagerProvider.onComponentRemoved(processor.getIdentifier());
+                }
+            });
 
             // must copy to avoid a concurrent modification
             final Set<Connection> copy = new HashSet<>(processor.getConnections());

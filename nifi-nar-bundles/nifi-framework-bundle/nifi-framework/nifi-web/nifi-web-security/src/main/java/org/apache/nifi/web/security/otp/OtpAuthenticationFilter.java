@@ -57,10 +57,6 @@ public class OtpAuthenticationFilter extends NiFiAuthenticationFilter {
         if (accessToken == null) {
             return null;
         } else {
-            if (otpService == null) {
-                throw new InvalidAuthenticationException("NiFi is not configured to support username/password logins.");
-            }
-
             try {
                 String identity = null;
                 if (request.getContextPath().equals("/nifi-api")) {

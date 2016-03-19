@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,9 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class NiFiProperties extends Properties {
 
@@ -189,6 +189,9 @@ public class NiFiProperties extends Properties {
 
     // kerberos properties
     public static final String KERBEROS_KRB5_FILE = "nifi.kerberos.krb5.file";
+    public static final String KERBEROS_SERVICE_PRINCIPAL = "nifi.kerberos.service.principal";
+    public static final String KERBEROS_KEYTAB_LOCATION = "nifi.kerberos.keytab.location";
+    public static final String KERBEROS_AUTHENTICATION_EXPIRATION = "nifi.kerberos.authentication.expiration";
 
     // state management
     public static final String STATE_MANAGEMENT_CONFIG_FILE = "nifi.state.management.configuration.file";
@@ -246,6 +249,9 @@ public class NiFiProperties extends Properties {
 
     // state management defaults
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
+
+    // Kerberos defaults
+    public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
 
     private NiFiProperties() {
         super();
@@ -859,6 +865,55 @@ public class NiFiProperties extends Properties {
         } else {
             return null;
         }
+    }
+
+    public String getKerberosServicePrincipal() {
+        final String servicePrincipal = getProperty(KERBEROS_SERVICE_PRINCIPAL);
+        if (!StringUtils.isBlank(servicePrincipal)) {
+            return servicePrincipal.trim();
+        } else {
+            return null;
+        }
+    }
+
+    public String getKerberosKeytabLocation() {
+        final String keytabLocation = getProperty(KERBEROS_KEYTAB_LOCATION);
+        if (!StringUtils.isBlank(keytabLocation)) {
+            return keytabLocation.trim();
+        } else {
+            return null;
+        }
+    }
+
+    public String getKerberosAuthenticationExpiration() {
+        final String authenticationExpirationString = getProperty(KERBEROS_AUTHENTICATION_EXPIRATION, DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION);
+        if (!StringUtils.isBlank(authenticationExpirationString)) {
+            return authenticationExpirationString.trim();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Returns true if the Kerberos service principal and keytab location properties are populated.
+     *
+     * @return true if Kerberos service support is enabled
+     */
+    public boolean isKerberosServiceSupportEnabled() {
+        return !StringUtils.isBlank(getKerberosServicePrincipal()) && !StringUtils.isBlank(getKerberosKeytabLocation());
+    }
+
+    /**
+     * Returns true if client certificates are required for REST API. Determined if the following conditions are all true:
+     *
+     * - login identity provider is not populated
+     * - anonymous authorities is empty
+     * - Kerberos service support is not enabled
+     *
+     * @return true if client certificates are required for access to the REST API
+     */
+    public boolean isClientAuthRequiredForRestApi() {
+        return StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && getAnonymousAuthorities().isEmpty() && !isKerberosServiceSupportEnabled();
     }
 
     public InetSocketAddress getNodeApiAddress() {

@@ -28,8 +28,14 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -40,6 +46,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -174,6 +181,10 @@ public class GetKafka extends AbstractProcessor {
 
     private final AtomicBoolean consumerStreamsReady = new AtomicBoolean();
 
+    private volatile long deadlockTimeout;
+
+    private volatile ExecutorService executor;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final PropertyDescriptor clientNameWithDefault = new PropertyDescriptor.Builder()
@@ -287,6 +298,18 @@ public class GetKafka extends AbstractProcessor {
                 consumer.shutdown();
             }
         }
+        if (this.executor != null) {
+            this.executor.shutdown();
+            try {
+                if (!this.executor.awaitTermination(30000, TimeUnit.MILLISECONDS)) {
+                    this.executor.shutdownNow();
+                    getLogger().warn("Executor did not stop in 30 sec. Terminated.");
+                }
+                this.executor = null;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     @Override
@@ -297,6 +320,14 @@ public class GetKafka extends AbstractProcessor {
                 .build();
     }
 
+    @OnScheduled
+    public void schedule(ProcessContext context) {
+        this.deadlockTimeout = context.getProperty(KAFKA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS) * 2;
+        if (this.executor == null || this.executor.isShutdown()) {
+            this.executor = Executors.newCachedThreadPool();
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         /*
@@ -305,12 +336,55 @@ public class GetKafka extends AbstractProcessor {
          */
         synchronized (this.consumerStreamsReady) {
             if (!this.consumerStreamsReady.get()) {
-                this.createConsumers(context);
+                Future<Void> f = this.executor.submit(new Callable<Void>() {
+                    @Override
+                    public Void call() throws Exception {
+                        createConsumers(context);
+                        return null;
+                    }
+                });
+                try {
+                    f.get(this.deadlockTimeout, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    this.consumerStreamsReady.set(false);
+                    f.cancel(true);
+                    Thread.currentThread().interrupt();
+                    getLogger().warn("Interrupted while waiting to get connection", e);
+                } catch (ExecutionException e) {
+                    throw new IllegalStateException(e);
+                } catch (TimeoutException e) {
+                    this.consumerStreamsReady.set(false);
+                    f.cancel(true);
+                    getLogger().warn("Timed out after " + this.deadlockTimeout + " milliseconds while waiting to get connection", e);
+                }
             }
         }
-        ConsumerIterator<byte[], byte[]> iterator = this.getStreamIterator();
-        if (iterator != null) {
-            this.consumeFromKafka(context, session, iterator);
+        //===
+        if (this.consumerStreamsReady.get()) {
+            Future<Void> consumptionFuture = this.executor.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    ConsumerIterator<byte[], byte[]> iterator = getStreamIterator();
+                    if (iterator != null) {
+                        consumeFromKafka(context, session, iterator);
+                    }
+                    return null;
+                }
+            });
+            try {
+                consumptionFuture.get(this.deadlockTimeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                this.consumerStreamsReady.set(false);
+                consumptionFuture.cancel(true);
+                Thread.currentThread().interrupt();
+                getLogger().warn("Interrupted while consuming messages", e);
+            } catch (ExecutionException e) {
+                throw new IllegalStateException(e);
+            } catch (TimeoutException e) {
+                this.consumerStreamsReady.set(false);
+                consumptionFuture.cancel(true);
+                getLogger().warn("Timed out after " + this.deadlockTimeout + " milliseconds while consuming messages", e);
+            }
         }
     }
 

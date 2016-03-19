@@ -188,5 +188,26 @@ public abstract class AbstractTestStateProvider {
         assertFalse(replaced);
     }
 
+    @Test
+    public void testOnComponentRemoved() throws IOException, InterruptedException {
+        final StateProvider provider = getProvider();
+        final Map<String, String> newValue = new HashMap<>();
+        newValue.put("value", "value");
+
+        provider.setState(newValue, componentId);
+        final StateMap stateMap = provider.getState(componentId);
+        assertEquals(0L, stateMap.getVersion());
+
+        provider.onComponentRemoved(componentId);
+
+        // wait for the background process to complete
+        Thread.sleep(1000L);
+
+        final StateMap stateMapAfterRemoval = provider.getState(componentId);
+
+        // version should be -1 because the state has been removed entirely.
+        assertEquals(-1L, stateMapAfterRemoval.getVersion());
+    }
+
     protected abstract StateProvider getProvider();
 }

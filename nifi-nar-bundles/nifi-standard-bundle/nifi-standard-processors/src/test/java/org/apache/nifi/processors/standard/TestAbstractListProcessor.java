@@ -54,6 +54,30 @@ public class TestAbstractListProcessor {
     public final TemporaryFolder testFolder = new TemporaryFolder();
 
     @Test
+    public void testPreviouslySkippedEntriesEmittedOnNextIteration() throws Exception {
+        final ConcreteListProcessor proc = new ConcreteListProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.run();
+
+        final long initialTimestamp = System.currentTimeMillis();
+
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        proc.addEntity("name", "id", initialTimestamp);
+        proc.addEntity("name", "id2", initialTimestamp);
+        runner.run();
+
+        // First run, the above listed entries would be skipped to avoid write synchronization issues
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+
+        // Ensure we have covered the necessary lag period to avoid issues where the processor was immediately scheduled to run again
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+
+        // Run again without introducing any new entries
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
+    }
+
+    @Test
     public void testOnlyNewEntriesEmitted() throws Exception {
         final ConcreteListProcessor proc = new ConcreteListProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);

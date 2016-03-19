@@ -104,7 +104,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .description("The protocol for communication.")
             .required(true)
             .allowableValues(TCP_VALUE, UDP_VALUE)
-            .defaultValue(UDP_VALUE.getValue())
+            .defaultValue(TCP_VALUE.getValue())
             .build();
     public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
             .name("Message Delimiter")

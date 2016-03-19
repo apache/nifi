@@ -48,15 +48,14 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private final long noWorkYieldNanos;
 
     private final FlowController flowController;
-    private final FlowEngine flowEngine;
     private final ProcessContextFactory contextFactory;
     private final StringEncryptor encryptor;
 
     private volatile String adminYieldDuration = "1 sec";
 
     public TimerDrivenSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final ProcessContextFactory contextFactory, final StringEncryptor encryptor) {
+        super(flowEngine);
         this.flowController = flowController;
-        this.flowEngine = flowEngine;
         this.contextFactory = contextFactory;
         this.encryptor = encryptor;
 

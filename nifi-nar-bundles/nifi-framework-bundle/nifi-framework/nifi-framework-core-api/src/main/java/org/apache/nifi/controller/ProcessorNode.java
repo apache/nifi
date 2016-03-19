@@ -155,7 +155,7 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
      *            execute upon successful start of the Processor
      */
     public abstract <T extends ProcessContext & ControllerServiceLookup> void start(ScheduledExecutorService scheduler,
-            long administrativeYieldMillis, T processContext, Runnable schedulingAgentCallback);
+            long administrativeYieldMillis, T processContext, SchedulingAgentCallback schedulingAgentCallback);
 
     /**
      * Will stop the {@link Processor} represented by this {@link ProcessorNode}.

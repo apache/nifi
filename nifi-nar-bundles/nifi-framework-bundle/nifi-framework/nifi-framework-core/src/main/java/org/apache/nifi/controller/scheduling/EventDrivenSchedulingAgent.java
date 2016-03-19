@@ -55,7 +55,6 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(EventDrivenSchedulingAgent.class);
 
-    private final FlowEngine flowEngine;
     private final ControllerServiceProvider serviceProvider;
     private final StateManagerProvider stateManagerProvider;
     private final EventDrivenWorkerQueue workerQueue;
@@ -70,7 +69,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider serviceProvider, final StateManagerProvider stateManagerProvider,
         final EventDrivenWorkerQueue workerQueue, final ProcessContextFactory contextFactory, final int maxThreadCount, final StringEncryptor encryptor) {
-        this.flowEngine = flowEngine;
+        super(flowEngine);
         this.serviceProvider = serviceProvider;
         this.stateManagerProvider = stateManagerProvider;
         this.workerQueue = workerQueue;
