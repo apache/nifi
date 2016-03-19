@@ -1,7 +1,7 @@
 {
   "type" : "record",
   "name" : "contact",
-  "namespace" : "com.jeremydyer",
+  "namespace" : "org.apache.nifi",
   "fields" : [ {
     "name" : "shapes",
     "type" : {
