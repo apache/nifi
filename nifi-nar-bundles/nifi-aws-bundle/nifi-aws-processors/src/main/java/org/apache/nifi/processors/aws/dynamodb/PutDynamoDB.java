@@ -83,6 +83,11 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
                 HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, DOCUMENT_CHARSET, BATCH_SIZE,
                 REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
 
+   /**
+    * Dyamodb max item size limit 400 kb
+    */
+   public static final int DYNAMODB_MAX_ITEM_SIZE = 400 * 1024;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -117,6 +122,12 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
             }
 
             if ( ! isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue, session, flowFile) ) {
+                continue;
+            }
+
+            if ( ! isDataValid(flowFile, jsonDocument) ) {
+                flowFile = session.putAttribute(flowFile, AWS_DYNAMO_DB_ITEM_SIZE_ERROR, "Max size of item + attribute should be 400kb but was " + flowFile.getSize() + jsonDocument.length());
+                session.transfer(flowFile, REL_FAILURE);
                 continue;
             }
 
@@ -170,6 +181,10 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
+    }
+
+    private boolean isDataValid(FlowFile flowFile, String jsonDocument) {
+        return (flowFile.getSize() + jsonDocument.length()) < DYNAMODB_MAX_ITEM_SIZE;
     }
 
     /**

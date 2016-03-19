@@ -198,6 +198,118 @@ public class PutDynamoDBTest  {
     }
 
     @Test
+    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize1() {
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        String document = "{\"name\":\"john\"}";
+        putRunner.enqueue(document.getBytes());
+
+        byte [] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
+        for (int i = 0; i < item.length; i++) {
+            item[i] = 'a';
+        }
+        String document2 = new String(item);
+        putRunner.enqueue(document2.getBytes());
+
+        putRunner.run(2,true,true);
+
+        List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFilesFailed) {
+            System.out.println(flowFile.getAttributes());
+            flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
+            assertEquals(item.length,flowFile.getSize());
+        }
+
+        List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
+        for (MockFlowFile flowFile : flowFilesSuccessful) {
+            System.out.println(flowFile.getAttributes());
+            assertEquals(document, new String(flowFile.toByteArray()));
+        }
+    }
+
+    @Test
+    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize5() {
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+        putRunner.setProperty(AbstractDynamoDBProcessor.BATCH_SIZE, "5");
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        String document = "{\"name\":\"john\"}";
+        putRunner.enqueue(document.getBytes());
+
+        byte [] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
+        for (int i = 0; i < item.length; i++) {
+            item[i] = 'a';
+        }
+        String document2 = new String(item);
+        putRunner.enqueue(document2.getBytes());
+
+        putRunner.run(1);
+
+        List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_FAILURE);
+        for (MockFlowFile flowFile : flowFilesFailed) {
+            System.out.println(flowFile.getAttributes());
+            flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
+            assertEquals(item.length,flowFile.getSize());
+        }
+
+        List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
+        for (MockFlowFile flowFile : flowFilesSuccessful) {
+            System.out.println(flowFile.getAttributes());
+            assertEquals(document, new String(flowFile.toByteArray()));
+        }
+    }
+
+    @Test
+    public void testStringHashStringRangePutFailedWithItemSizeGreaterThan400Kb() {
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+
+        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        byte [] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
+        for (int i = 0; i < item.length; i++) {
+            item[i] = 'a';
+        }
+        String document = new String(item);
+        putRunner.enqueue(document.getBytes());
+
+        putRunner.run(1);
+
+        putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_FAILURE, 1);
+
+        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_FAILURE);
+        assertEquals(1,flowFiles.size());
+        for (MockFlowFile flowFile : flowFiles) {
+            System.out.println(flowFile.getAttributes());
+            flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
+            assertEquals(item.length,flowFile.getSize());
+        }
+
+    }
+
+    @Test
     public void testStringHashStringRangePutThrowsServiceException() {
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
             @Override
