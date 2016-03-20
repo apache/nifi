@@ -56,7 +56,8 @@ public class TestConvertAvroSchema {
 
     public static final String FAILURE_SUMMARY = "Cannot convert free to double";
 
-    public void testBasicConversion(String localeString) throws IOException {
+    @Test
+    public void testBasicConversion() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(ConvertAvroSchema.class);
         runner.assertNotValid();
         runner.setProperty(ConvertAvroSchema.INPUT_SCHEMA,
