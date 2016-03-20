@@ -21,6 +21,7 @@ package org.apache.nifi.processors.kite;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -43,6 +44,8 @@ public class AvroRecordConverter {
     private final Schema outputSchema;
     // Store this from output field to input field so we can look up by output.
     private final Map<String, String> fieldMapping;
+    private final Locale locale;
+    private static final Locale DEFAULT_LOCALE = Locale.getDefault();
 
     /**
      * @param inputSchema
@@ -55,6 +58,22 @@ public class AvroRecordConverter {
      */
     public AvroRecordConverter(Schema inputSchema, Schema outputSchema,
             Map<String, String> fieldMapping) {
+        this(inputSchema, outputSchema, fieldMapping, DEFAULT_LOCALE);
+    }
+
+    /**
+     * @param inputSchema
+     *            Schema of input record objects
+     * @param outputSchema
+     *            Schema of output record objects
+     * @param fieldMapping
+     *            Map from field name in input record to field name in output
+     *            record.
+     * @param locale
+     *            Locale to use
+     */
+    public AvroRecordConverter(Schema inputSchema, Schema outputSchema,
+            Map<String, String> fieldMapping, Locale locale) {
         this.inputSchema = inputSchema;
         this.outputSchema = outputSchema;
         // Need to reverse this map.
@@ -63,6 +82,7 @@ public class AvroRecordConverter {
         for (Map.Entry<String, String> entry : fieldMapping.entrySet()) {
             this.fieldMapping.put(entry.getValue(), entry.getKey());
         }
+        this.locale = locale;
     }
 
     /**
@@ -224,6 +244,7 @@ public class AvroRecordConverter {
             // return questionable results when a String starts with a number
             // but then contains other content
             Scanner scanner = new Scanner(content.toString());
+            scanner.useLocale(locale);
             switch (nonNillOutput.getType()) {
             case LONG:
                 if (scanner.hasNextLong()) {

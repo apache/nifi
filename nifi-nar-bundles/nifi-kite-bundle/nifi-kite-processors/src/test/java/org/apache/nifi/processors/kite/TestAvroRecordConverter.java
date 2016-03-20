@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
+import org.apache.commons.lang.LocaleUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 
@@ -87,7 +88,7 @@ public class TestAvroRecordConverter {
                 .endRecord();
 
         AvroRecordConverter converter = new AvroRecordConverter(input, output,
-                EMPTY_MAPPING);
+                EMPTY_MAPPING, LocaleUtils.toLocale("en_US"));
 
         Record inputRecord = new Record(input);
         inputRecord.put("s1", null);
