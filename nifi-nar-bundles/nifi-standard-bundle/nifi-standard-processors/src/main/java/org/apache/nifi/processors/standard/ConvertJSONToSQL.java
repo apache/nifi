@@ -425,10 +425,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 final Integer colSize = desc.getColumnSize();
                 final JsonNode fieldNode = rootNode.get(fieldName);
                 if (!fieldNode.isNull()) {
-                    String fieldValue = fieldNode.asText();
-                    if (colSize != null && fieldValue.length() > colSize) {
-                        fieldValue = fieldValue.substring(0, colSize);
-                    }
+                    String fieldValue = createSqlStringValue(fieldNode, colSize, sqlType);
                     attributes.put("sql.args." + fieldCount + ".value", fieldValue);
                 }
             }
@@ -450,6 +447,18 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         }
 
         return sqlBuilder.toString();
+    }
+
+    /**
+     *  Try to create correct SQL String representation of value.
+     *
+     */
+    protected static String createSqlStringValue(final JsonNode fieldNode, final Integer colSize, final int sqlType) {
+        String fieldValue = fieldNode.asText();
+        if (colSize != null && fieldValue.length() > colSize) {
+            fieldValue = fieldValue.substring(0, colSize);
+        }
+        return fieldValue;
     }
 
     private String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
@@ -529,10 +538,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
             final JsonNode fieldNode = rootNode.get(fieldName);
             if (!fieldNode.isNull()) {
-                String fieldValue = rootNode.get(fieldName).asText();
-                if (colSize != null && fieldValue.length() > colSize) {
-                    fieldValue = fieldValue.substring(0, colSize);
-                }
+                String fieldValue = createSqlStringValue(fieldNode, colSize, sqlType);
                 attributes.put("sql.args." + fieldCount + ".value", fieldValue);
             }
         }
