@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>0.6.0-SNAPSHOT</version>
+        <version>0.6.0</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-hbase_1_1_2-client-service-bundle</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.6.0</version>
     <packaging>pom</packaging>
 
     <modules>
