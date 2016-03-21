@@ -520,9 +520,9 @@ public final class DtoFactory {
             dto.setContentClaimSection(resourceClaim.getSection());
             dto.setContentClaimContainer(resourceClaim.getContainer());
             dto.setContentClaimIdentifier(resourceClaim.getId());
-            dto.setContentClaimOffset(contentClaim.getOffset());
-            dto.setContentClaimFileSizeBytes(contentClaim.getLength());
-            dto.setContentClaimFileSize(FormatUtils.formatDataSize(contentClaim.getLength()));
+            dto.setContentClaimOffset(contentClaim.getOffset() + record.getContentClaimOffset());
+            dto.setContentClaimFileSizeBytes(record.getSize());
+            dto.setContentClaimFileSize(FormatUtils.formatDataSize(record.getSize()));
         }
 
         return dto;
