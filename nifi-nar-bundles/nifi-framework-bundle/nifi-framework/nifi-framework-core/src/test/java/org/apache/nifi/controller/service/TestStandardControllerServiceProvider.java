@@ -29,7 +29,6 @@ import java.util.UUID;
 
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.controller.Heartbeater;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -76,8 +75,7 @@ public class TestStandardControllerServiceProvider {
     }
 
     private StandardProcessScheduler createScheduler() {
-        final Heartbeater heartbeater = Mockito.mock(Heartbeater.class);
-        return new StandardProcessScheduler(heartbeater, null, null, stateManagerProvider);
+        return new StandardProcessScheduler(null, null, stateManagerProvider);
     }
 
     @Test

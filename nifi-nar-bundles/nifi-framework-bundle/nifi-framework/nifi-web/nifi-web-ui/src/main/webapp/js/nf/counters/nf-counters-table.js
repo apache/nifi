@@ -278,25 +278,29 @@ nf.CountersTable = (function () {
             return $.ajax({
                 type: 'GET',
                 url: config.urls.counters,
+                data: {
+                    nodewise: true
+                },
                 dataType: 'json'
             }).done(function (response) {
                 var report = response.counters;
+                var aggregateSnapshot = report.aggregateSnapshot;
 
                 // ensure there are groups specified
-                if (nf.Common.isDefinedAndNotNull(report.counters)) {
+                if (nf.Common.isDefinedAndNotNull(aggregateSnapshot.counters)) {
                     var countersGrid = $('#counters-table').data('gridInstance');
                     var countersData = countersGrid.getData();
 
                     // set the items
-                    countersData.setItems(report.counters);
+                    countersData.setItems(aggregateSnapshot.counters);
                     countersData.reSort();
                     countersGrid.invalidate();
 
                     // update the stats last refreshed timestamp
-                    $('#counters-last-refreshed').text(report.generated);
+                    $('#counters-last-refreshed').text(aggregateSnapshot.generated);
 
                     // update the total number of processors
-                    $('#total-counters').text(report.counters.length);
+                    $('#total-counters').text(aggregateSnapshot.counters.length);
                 } else {
                     $('#total-counters').text('0');
                 }

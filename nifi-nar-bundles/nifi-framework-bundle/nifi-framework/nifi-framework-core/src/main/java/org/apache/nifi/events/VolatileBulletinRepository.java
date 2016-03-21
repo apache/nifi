@@ -19,7 +19,6 @@ package org.apache.nifi.events;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -205,25 +204,6 @@ public class VolatileBulletinRepository implements BulletinRepository {
         }
 
         return controllerBulletins;
-    }
-
-    /**
-     * Overrides the default bulletin processing strategy. When a custom
-     * bulletin strategy is employed, bulletins will not be persisted in this
-     * repository and will sent to the specified strategy instead.
-     *
-     * @param strategy bulletin strategy
-     */
-    public void overrideDefaultBulletinProcessing(final BulletinProcessingStrategy strategy) {
-        Objects.requireNonNull(strategy);
-        this.processingStrategy = strategy;
-    }
-
-    /**
-     * Restores the default bulletin processing strategy.
-     */
-    public void restoreDefaultBulletinProcessing() {
-        this.processingStrategy = new DefaultBulletinProcessingStrategy();
     }
 
     private List<RingBuffer<Bulletin>> getBulletinBuffers(final Bulletin bulletin) {

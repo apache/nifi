@@ -21,8 +21,6 @@ public abstract class ProtocolMessage {
     private volatile String requestorDN;
 
     public static enum MessageType {
-
-        BULLETINS,
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
         CONTROLLER_STARTUP_FAILURE,

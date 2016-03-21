@@ -44,9 +44,9 @@ public class StatusHistoryUtil {
 
         final StatusHistoryDTO dto = new StatusHistoryDTO();
         dto.setGenerated(new Date());
-        dto.setDetails(componentDetails);
+        dto.setComponentDetails(componentDetails);
         dto.setFieldDescriptors(StatusHistoryUtil.createFieldDescriptorDtos(metricDescriptors));
-        dto.setStatusSnapshots(snapshotDtos);
+        dto.setAggregateSnapshots(snapshotDtos);
         return dto;
     }
 

@@ -28,6 +28,7 @@
                 <div id="cluster-input-port-details">
                     <div id="cluster-input-port-name"></div>
                     <div id="cluster-input-port-id"></div>
+                    <div id="cluster-input-port-group-id" class="hidden"></div>
                 </div>
             </div>
         </div>

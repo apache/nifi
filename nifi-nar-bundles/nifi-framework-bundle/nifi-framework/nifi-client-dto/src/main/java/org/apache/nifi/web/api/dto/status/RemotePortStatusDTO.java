@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlType;
  * The status of a Port on a remote NiFi instance.
  */
 @XmlType(name = "remotePortStatus")
-public class RemotePortStatusDTO {
+public class RemotePortStatusDTO implements Cloneable {
 
     private String id;
     private String connectionId;
@@ -101,4 +101,12 @@ public class RemotePortStatusDTO {
         this.running = running;
     }
 
+    @Override
+    public RemotePortStatusDTO clone() {
+        try {
+            return (RemotePortStatusDTO) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError(e);
+        }
+    }
 }

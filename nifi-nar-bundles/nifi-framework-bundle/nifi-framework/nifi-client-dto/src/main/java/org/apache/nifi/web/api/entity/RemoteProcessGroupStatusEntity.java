@@ -16,28 +16,29 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
+
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.NodeSystemDiagnosticsDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a NodeSystemDiagnosticsDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupStatusDTO.
  */
-@XmlRootElement(name = "nodeSystemDiagnosticsEntity")
-public class NodeSystemDiagnosticsEntity extends Entity {
+@XmlRootElement(name = "remoteProcessGroupStatusEntity")
+public class RemoteProcessGroupStatusEntity extends Entity {
 
-    private NodeSystemDiagnosticsDTO nodeSystemDiagnostics;
+    private RemoteProcessGroupStatusDTO remoteProcessGroupStatus;
 
     /**
-     * The NodeSystemDiagnosticsDTO that is being serialized.
+     * The RemoteProcessGroupStatusDTO that is being serialized.
      *
-     * @return The NodeSystemDiagnosticsDTO object
+     * @return The RemoteProcessGroupStatusDTO object
      */
-    public NodeSystemDiagnosticsDTO getNodeSystemDiagnostics() {
-        return nodeSystemDiagnostics;
+    public RemoteProcessGroupStatusDTO getRemoteProcessGroupStatus() {
+        return remoteProcessGroupStatus;
     }
 
-    public void setNodeSystemDiagnostics(NodeSystemDiagnosticsDTO nodeSystemDiagnostics) {
-        this.nodeSystemDiagnostics = nodeSystemDiagnostics;
+    public void setRemoteProcessGroupStatus(RemoteProcessGroupStatusDTO remoteProcessGroupStatus) {
+        this.remoteProcessGroupStatus = remoteProcessGroupStatus;
     }
 
 }

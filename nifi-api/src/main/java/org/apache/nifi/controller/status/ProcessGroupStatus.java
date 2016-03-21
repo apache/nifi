@@ -32,7 +32,6 @@ public class ProcessGroupStatus implements Cloneable {
     private Long inputContentSize;
     private Integer outputCount;
     private Long outputContentSize;
-    private long creationTimestamp;
     private Integer activeThreadCount;
     private Integer queuedCount;
     private Long queuedContentSize;
@@ -130,14 +129,6 @@ public class ProcessGroupStatus implements Cloneable {
 
     public void setQueuedContentSize(final Long queuedContentSize) {
         this.queuedContentSize = queuedContentSize;
-    }
-
-    public long getCreationTimestamp() {
-        return creationTimestamp;
-    }
-
-    public void setCreationTimestamp(final long creationTimestamp) {
-        this.creationTimestamp = creationTimestamp;
     }
 
     public Integer getActiveThreadCount() {
@@ -249,7 +240,6 @@ public class ProcessGroupStatus implements Cloneable {
 
         final ProcessGroupStatus clonedObj = new ProcessGroupStatus();
 
-        clonedObj.creationTimestamp = creationTimestamp;
         clonedObj.id = id;
         clonedObj.name = name;
         clonedObj.outputContentSize = outputContentSize;
@@ -332,8 +322,6 @@ public class ProcessGroupStatus implements Cloneable {
         builder.append(outputCount);
         builder.append(", outputBytes=");
         builder.append(outputContentSize);
-        builder.append(", creationTimestamp=");
-        builder.append(creationTimestamp);
         builder.append(", activeThreadCount=");
         builder.append(activeThreadCount);
         builder.append(", flowFilesTransferred=");

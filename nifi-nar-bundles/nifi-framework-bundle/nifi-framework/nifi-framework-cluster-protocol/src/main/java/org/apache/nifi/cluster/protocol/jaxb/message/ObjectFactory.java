@@ -26,7 +26,6 @@ import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.MulticastProtocolMessage;
-import org.apache.nifi.cluster.protocol.message.NodeBulletinsMessage;
 import org.apache.nifi.cluster.protocol.message.PingMessage;
 import org.apache.nifi.cluster.protocol.message.PrimaryRoleAssignmentMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
@@ -96,9 +95,5 @@ public class ObjectFactory {
 
     public PrimaryRoleAssignmentMessage createPrimaryRoleAssignmentMessage() {
         return new PrimaryRoleAssignmentMessage();
-    }
-
-    public NodeBulletinsMessage createBulletinsMessage() {
-        return new NodeBulletinsMessage();
     }
 }
