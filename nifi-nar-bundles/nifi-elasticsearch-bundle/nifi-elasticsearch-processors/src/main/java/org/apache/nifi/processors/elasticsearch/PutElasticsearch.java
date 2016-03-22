@@ -146,9 +146,7 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        final String index = context.getProperty(INDEX).evaluateAttributeExpressions().getValue();
         final String id_attribute = context.getProperty(ID_ATTRIBUTE).getValue();
-        final String docType = context.getProperty(TYPE).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
 
         final List<FlowFile> flowFiles = session.get(batchSize);
@@ -166,6 +164,9 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
             }
 
             for (FlowFile file : flowFiles) {
+                final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();
+                final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(file).getValue();
+
                 final String id = file.getAttribute(id_attribute);
                 if (id == null) {
                     logger.error("No value in identifier attribute {} for {}, transferring to failure", new Object[]{id_attribute, file});
