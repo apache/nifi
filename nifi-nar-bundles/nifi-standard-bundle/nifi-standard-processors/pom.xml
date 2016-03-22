@@ -325,7 +325,9 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestUnpackContent/data.zip</exclude>
                         <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
                         <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/unsalted_128_raw.enc</exclude>
                         <!-- This file is copied from https://github.com/jeremyh/jBCrypt because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/processors/standard/util/crypto/bcrypt/BCrypt.java</exclude>
                     </excludes>
