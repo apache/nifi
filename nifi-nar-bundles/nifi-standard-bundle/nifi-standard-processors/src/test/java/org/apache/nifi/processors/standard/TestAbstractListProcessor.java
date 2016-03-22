@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.Charsets;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -50,6 +51,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class TestAbstractListProcessor {
 
+    static final long DEFAULT_SLEEP_MILLIS = TimeUnit.NANOSECONDS.toMillis(AbstractListProcessor.LISTING_LAG_NANOS * 2);
+
     @Rule
     public final TemporaryFolder testFolder = new TemporaryFolder();
 
@@ -59,7 +62,7 @@ public class TestAbstractListProcessor {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.run();
 
-        final long initialTimestamp = System.currentTimeMillis();
+        final long initialTimestamp = System.nanoTime();
 
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         proc.addEntity("name", "id", initialTimestamp);
@@ -70,7 +73,7 @@ public class TestAbstractListProcessor {
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
 
         // Ensure we have covered the necessary lag period to avoid issues where the processor was immediately scheduled to run again
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         // Run again without introducing any new entries
         runner.run();
@@ -83,7 +86,7 @@ public class TestAbstractListProcessor {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.run();
 
-        final long initialTimestamp = System.currentTimeMillis();
+        final long initialTimestamp = System.nanoTime();
 
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         proc.addEntity("name", "id", initialTimestamp);
@@ -95,7 +98,7 @@ public class TestAbstractListProcessor {
         runner.clearTransferState();
 
         // Ensure we have covered the necessary lag period to avoid issues where the processor was immediately scheduled to run again
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         // Running again, our two previously seen files are now cleared to be released
         runner.run();
@@ -126,7 +129,7 @@ public class TestAbstractListProcessor {
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         // But it should now show up that the appropriate pause has been eclipsed
         runner.run();
@@ -139,7 +142,7 @@ public class TestAbstractListProcessor {
         final ConcreteListProcessor proc = new ConcreteListProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
 
-        final long initialTimestamp = System.currentTimeMillis();
+        final long initialTimestamp = System.nanoTime();
 
         proc.addEntity("name", "id", initialTimestamp);
         proc.addEntity("name", "id2", initialTimestamp);
@@ -158,7 +161,7 @@ public class TestAbstractListProcessor {
         runner.clearTransferState();
 
         // Ensure we have covered the necessary lag period to avoid issues where the processor was immediately scheduled to run again
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         // Running again, these files should be eligible for transfer and again skipped
         runner.run();
@@ -189,7 +192,7 @@ public class TestAbstractListProcessor {
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         // But it should now show up that the appropriate pause has been eclipsed
         runner.run();
@@ -217,7 +220,7 @@ public class TestAbstractListProcessor {
         expectedState.put(AbstractListProcessor.PROCESSED_TIMESTAMP_KEY, "0");
         runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
 
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         runner.run();
         // Ensure only timestamp is migrated
@@ -301,7 +304,7 @@ public class TestAbstractListProcessor {
 
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
 
-        final long initialEventTimestamp = System.currentTimeMillis();
+        final long initialEventTimestamp = System.nanoTime();
         proc.addEntity("name", "id", initialEventTimestamp);
         proc.addEntity("name", "id2", initialEventTimestamp);
 
@@ -310,7 +313,7 @@ public class TestAbstractListProcessor {
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
 
         // after providing a pause in listings, the files should now  transfer
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
@@ -331,7 +334,7 @@ public class TestAbstractListProcessor {
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         // Ensure the original files are now transferred again.
         runner.run();
@@ -359,7 +362,7 @@ public class TestAbstractListProcessor {
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.run();
 
-        final long initialTimestamp = System.currentTimeMillis();
+        final long initialTimestamp = System.nanoTime();
 
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         proc.addEntity("name", "id", initialTimestamp);
@@ -369,7 +372,7 @@ public class TestAbstractListProcessor {
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
@@ -399,7 +402,7 @@ public class TestAbstractListProcessor {
         // Processed timestamp is lagging behind currently
         assertEquals(Long.toString(initialTimestamp), updatedStateMap.get(AbstractListProcessor.PROCESSED_TIMESTAMP_KEY));
 
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS * 2);
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
