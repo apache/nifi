@@ -54,6 +54,7 @@ import org.apache.nifi.stream.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,6 +65,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @TriggerSerially
@@ -113,6 +115,19 @@ public class GetSplunk extends AbstractProcessor {
             .required(true)
             .build();
 
+    public static final AllowableValue EVENT_TIME_VALUE = new AllowableValue("Event Time", "Event Time",
+            "Search based on the time of the event which may be different than when the event was indexed.");
+    public static final AllowableValue INDEX_TIME_VALUE = new AllowableValue("Index Time", "Index Time",
+            "Search based on the time the event was indexed in Splunk.");
+
+    public static final PropertyDescriptor TIME_FIELD_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Time Field Strategy")
+            .description("Indicates whether to search by the time attached to the event, or by the time the event was indexed in Splunk.")
+            .allowableValues(EVENT_TIME_VALUE, INDEX_TIME_VALUE)
+            .defaultValue(EVENT_TIME_VALUE.getValue())
+            .required(true)
+            .build();
+
     public static final AllowableValue MANAGED_BEGINNING_VALUE = new AllowableValue("Managed from Beginning", "Managed from Beginning",
             "The processor will manage the date ranges of the query starting from the beginning of time.");
     public static final AllowableValue MANAGED_CURRENT_VALUE = new AllowableValue("Managed from Current", "Managed from Current",
@@ -146,6 +161,13 @@ public class GetSplunk extends AbstractProcessor {
                     "See Splunk's documentation on Search Time Modifiers for guidance in populating this field.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
+            .build();
+    public static final PropertyDescriptor TIME_ZONE = new PropertyDescriptor.Builder()
+            .name("Time Zone")
+            .description("The Time Zone to use for formatting dates when performing a search. Only used with Managed time strategies.")
+            .allowableValues(TimeZone.getAvailableIDs())
+            .defaultValue("UTC")
+            .required(true)
             .build();
     public static final PropertyDescriptor APP = new PropertyDescriptor.Builder()
             .name("Application")
@@ -213,7 +235,7 @@ public class GetSplunk extends AbstractProcessor {
             .description("Results retrieved from Splunk are sent out this relationship.")
             .build();
 
-    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
     public static final String EARLIEST_TIME_KEY = "earliestTime";
     public static final String LATEST_TIME_KEY = "latestTime";
 
@@ -236,9 +258,11 @@ public class GetSplunk extends AbstractProcessor {
         descriptors.add(HOSTNAME);
         descriptors.add(PORT);
         descriptors.add(QUERY);
+        descriptors.add(TIME_FIELD_STRATEGY);
         descriptors.add(TIME_RANGE_STRATEGY);
         descriptors.add(EARLIEST_TIME);
         descriptors.add(LATEST_TIME);
+        descriptors.add(TIME_ZONE);
         descriptors.add(APP);
         descriptors.add(OWNER);
         descriptors.add(TOKEN);
@@ -290,13 +314,16 @@ public class GetSplunk extends AbstractProcessor {
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        if ( ((oldValue != null && !oldValue.equals(newValue)) || (oldValue == null && newValue != null))
+        if ( ((oldValue != null && !oldValue.equals(newValue)))
                 && (descriptor.equals(QUERY)
+                || descriptor.equals(TIME_FIELD_STRATEGY)
                 || descriptor.equals(TIME_RANGE_STRATEGY)
                 || descriptor.equals(EARLIEST_TIME)
                 || descriptor.equals(LATEST_TIME)
                 || descriptor.equals(HOSTNAME))
                 ) {
+            getLogger().debug("A property that require resetting state was modified - {} oldValue {} newValue {}",
+                    new Object[] {descriptor.getDisplayName(), oldValue, newValue});
             resetState = true;
         }
     }
@@ -311,6 +338,7 @@ public class GetSplunk extends AbstractProcessor {
         // if properties changed since last execution then remove any previous state
         if (resetState) {
             try {
+                getLogger().debug("Clearing state based on property modifications");
                 context.getStateManager().clear(Scope.CLUSTER);
             } catch (final IOException ioe) {
                 getLogger().warn("Failed to clear state", ioe);
@@ -351,6 +379,8 @@ public class GetSplunk extends AbstractProcessor {
         final String query = context.getProperty(QUERY).getValue();
         final String outputMode = context.getProperty(OUTPUT_MODE).getValue();
         final String timeRangeStrategy = context.getProperty(TIME_RANGE_STRATEGY).getValue();
+        final String timeZone = context.getProperty(TIME_ZONE).getValue();
+        final String timeFieldStrategy = context.getProperty(TIME_FIELD_STRATEGY).getValue();
 
         final JobExportArgs exportArgs = new JobExportArgs();
         exportArgs.setSearchMode(JobExportArgs.SearchMode.NORMAL);
@@ -368,6 +398,7 @@ public class GetSplunk extends AbstractProcessor {
                 // not provided so we need to check the previous state
                 final TimeRange previousRange = loadState(context.getStateManager());
                 final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
+                dateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
 
                 if (previousRange == null) {
                     // no previous state so set the earliest time based on the strategy
@@ -386,9 +417,16 @@ public class GetSplunk extends AbstractProcessor {
                     }
 
                 } else {
-                    // we have previous state so set earliestTime to latestTime of last range
-                    earliestTime = previousRange.getLatestTime();
-                    latestTime = dateFormat.format(new Date(currentTime));
+                    // we have previous state so set earliestTime to (latestTime + 1) of last range
+                    try {
+                        final String previousLastTime = previousRange.getLatestTime();
+                        final Date previousLastDate = dateFormat.parse(previousLastTime);
+
+                        earliestTime = dateFormat.format(new Date(previousLastDate.getTime() + 1));
+                        latestTime = dateFormat.format(new Date(currentTime));
+                    } catch (ParseException e) {
+                       throw new ProcessException(e);
+                    }
                 }
 
             } catch (IOException e) {
@@ -399,14 +437,26 @@ public class GetSplunk extends AbstractProcessor {
         }
 
         if (!StringUtils.isBlank(earliestTime)) {
-            exportArgs.setEarliestTime(earliestTime);
+            if (EVENT_TIME_VALUE.getValue().equalsIgnoreCase(timeFieldStrategy)) {
+                exportArgs.setEarliestTime(earliestTime);
+            } else {
+                exportArgs.setIndexEarliest(earliestTime);
+            }
         }
 
         if (!StringUtils.isBlank(latestTime)) {
-            exportArgs.setLatestTime(latestTime);
+            if (EVENT_TIME_VALUE.getValue().equalsIgnoreCase(timeFieldStrategy)) {
+                exportArgs.setLatestTime(latestTime);
+            } else {
+                exportArgs.setIndexLatest(latestTime);
+            }
         }
 
-        getLogger().debug("Using earliestTime of {} and latestTime of {}", new Object[] {earliestTime, latestTime});
+        if (EVENT_TIME_VALUE.getValue().equalsIgnoreCase(timeFieldStrategy)) {
+            getLogger().debug("Using earliest_time of {} and latest_time of {}", new Object[]{earliestTime, latestTime});
+        } else {
+            getLogger().debug("Using index_earliest of {} and index_latest of {}", new Object[]{earliestTime, latestTime});
+        }
 
         final InputStream exportSearch = splunkService.export(query, exportArgs);
 
