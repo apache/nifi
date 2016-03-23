@@ -83,6 +83,9 @@ import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
+import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
+import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
@@ -231,6 +234,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public static final String ROOT_GROUP_ID_ALIAS = "root";
     public static final String DEFAULT_ROOT_GROUP_NAME = "NiFi Flow";
+    public static final String PRIMARY_NODE_ROLE_NAME = "primary-node";
 
     private final AtomicInteger maxTimerDrivenThreads;
     private final AtomicInteger maxEventDrivenThreads;
@@ -277,6 +281,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private ProcessGroup rootGroup;
     private final List<Connectable> startConnectablesAfterInitialization;
     private final List<RemoteGroupPort> startRemoteGroupPortsAfterInitialization;
+    private final LeaderElectionManager leaderElectionManager;
+
 
     /**
      * true if controller is configured to operate in a clustered environment
@@ -326,12 +332,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      */
     private boolean clustered;
     private String clusterManagerDN;
-
-    // guarded by rwLock
-    /**
-     * true if controller is the primary of the cluster
-     */
-    private boolean primary;
 
     // guarded by rwLock
     /**
@@ -527,6 +527,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }, snapshotMillis, snapshotMillis, TimeUnit.MILLISECONDS);
 
         heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false, false));
+        if (configuredForClustering) {
+            leaderElectionManager = new CuratorLeaderElectionManager(4);
+        } else {
+            leaderElectionManager = null;
+        }
     }
 
     private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ResourceClaimManager contentClaimManager) {
@@ -1159,6 +1164,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new IllegalStateException("Controller already stopped or still stopping...");
             }
 
+            if (leaderElectionManager != null) {
+                leaderElectionManager.stop();
+            }
+
             if (kill) {
                 this.timerDrivenEngineRef.get().shutdownNow();
                 this.eventDrivenEngineRef.get().shutdownNow();
@@ -1365,7 +1374,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connected));
         } finally {
             writeLock.unlock();
         }
@@ -3119,6 +3128,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // update the bulletin repository
             if (isChanging) {
                 if (clustered) {
+                    leaderElectionManager.register(PRIMARY_NODE_ROLE_NAME, new LeaderElectionStateChangeListener() {
+                        @Override
+                        public void onLeaderElection() {
+                            setPrimary(true);
+                        }
+
+                        @Override
+                        public void onLeaderRelinquish() {
+                            setPrimary(false);
+                        }
+                    });
+
+                    leaderElectionManager.start();
                     stateManagerProvider.enableClusterProvider();
 
                     if (zooKeeperStateServer != null) {
@@ -3157,6 +3179,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                         LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1L));
                     }
                 } else {
+                    leaderElectionManager.unregister(PRIMARY_NODE_ROLE_NAME);
+
                     if (zooKeeperStateServer != null) {
                         zooKeeperStateServer.shutdown();
                     }
@@ -3170,7 +3194,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connected));
         } finally {
             writeLock.unlock();
         }
@@ -3180,51 +3204,38 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @return true if this instance is the primary node in the cluster; false otherwise
      */
     public boolean isPrimary() {
-        rwLock.readLock().lock();
-        try {
-            return primary;
-        } finally {
-            rwLock.readLock().unlock();
-        }
+        return leaderElectionManager != null && leaderElectionManager.isLeader(PRIMARY_NODE_ROLE_NAME);
     }
 
     public void setPrimary(final boolean primary) {
-        rwLock.writeLock().lock();
-        try {
-            // no update, so return
-            if (this.primary == primary) {
-                return;
+        final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
+        final ProcessGroup rootGroup = getGroup(getRootGroupId());
+        for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
+            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
             }
-
-            LOG.info("Setting primary flag from '" + this.primary + "' to '" + primary + "'");
-
-            final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
-            final ProcessGroup rootGroup = getGroup(getRootGroupId());
-            for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
-                }
-            }
-            for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
-                }
-            }
-            for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
-                }
-            }
-
-            // update primary
-            this.primary = primary;
-            eventDrivenWorkerQueue.setPrimary(primary);
-
-            // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
-        } finally {
-            rwLock.writeLock().unlock();
         }
+        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
+            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
+            }
+        }
+        for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
+            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
+            }
+        }
+
+        // update primary
+        eventDrivenWorkerQueue.setPrimary(primary);
+
+        // update the heartbeat bean
+        this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
+
+        // Emit a bulletin detailing the fact that the primary node state has changed
+        final String message = primary ? "This node has been elected Primary Node" : "This node is no longer Primary Node";
+        final Bulletin bulletin = BulletinFactory.createBulletin("Primary Node", Severity.INFO.name(), message);
+        bulletinRepository.addBulletin(bulletin);
     }
 
     static boolean areEqual(final String a, final String b) {
@@ -3603,7 +3614,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             this.connected = connected;
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connected));
         } finally {
             rwLock.writeLock().unlock();
         }

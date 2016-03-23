@@ -26,7 +26,6 @@ import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
-import org.apache.nifi.cluster.protocol.message.PrimaryRoleAssignmentMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -108,10 +107,4 @@ public class ClusterManagerProtocolSenderListener implements ClusterManagerProto
     public void disconnect(DisconnectMessage msg) throws ProtocolException {
         sender.disconnect(msg);
     }
-
-    @Override
-    public void assignPrimaryRole(PrimaryRoleAssignmentMessage msg) throws ProtocolException {
-        sender.assignPrimaryRole(msg);
-    }
-
 }

@@ -765,6 +765,17 @@ language governing permissions and limitations under the License. -->
                 <artifactId>zookeeper</artifactId>
                 <version>3.4.6</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-framework</artifactId>
+                <version>2.10.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-recipes</artifactId>
+                <version>2.10.0</version>
+            </dependency>
+
             
             <!-- Test Dependencies for testing interactions with ZooKeeper -->
             <dependency>
@@ -779,6 +790,8 @@ language governing permissions and limitations under the License. -->
                 <version>6.8.8</version>
                 <scope>test</scope>
             </dependency>
+            
+            
             <dependency>            
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>

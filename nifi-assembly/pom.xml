@@ -456,6 +456,12 @@ language governing permissions and limitations under the License. -->
         <nifi.cluster.manager.protocol.threads>10</nifi.cluster.manager.protocol.threads>
         <nifi.cluster.manager.safemode.duration>0 sec</nifi.cluster.manager.safemode.duration>
 
+        <!--  nifi.properties: zookeeper properties -->
+        <nifi.zookeeper.connect.string></nifi.zookeeper.connect.string>
+        <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
+        <nifi.zookeeper.session.timeout>3 secs</nifi.zookeeper.session.timeout>
+        <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
+
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>
         <nifi.kerberos.service.principal />

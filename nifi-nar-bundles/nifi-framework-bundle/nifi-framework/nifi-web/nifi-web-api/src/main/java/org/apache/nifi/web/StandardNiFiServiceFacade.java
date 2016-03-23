@@ -760,12 +760,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             clusterManager.requestReconnection(nodeDTO.getNodeId(), userDn);
         } else if (Node.Status.DISCONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
             clusterManager.requestDisconnection(nodeDTO.getNodeId(), userDn);
-        } else {
-            // handle primary
-            final Boolean primary = nodeDTO.isPrimary();
-            if (primary != null && primary) {
-                clusterManager.setPrimaryNode(nodeDTO.getNodeId(), userDn);
-            }
         }
 
         final String nodeId = nodeDTO.getNodeId();

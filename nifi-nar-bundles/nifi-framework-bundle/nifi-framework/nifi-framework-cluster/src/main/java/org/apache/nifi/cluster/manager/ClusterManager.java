@@ -23,9 +23,7 @@ import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDeletionException;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeReconnectionException;
-import org.apache.nifi.cluster.manager.exception.IneligiblePrimaryNodeException;
 import org.apache.nifi.cluster.manager.exception.NodeDisconnectionException;
-import org.apache.nifi.cluster.manager.exception.PrimaryRoleAssignmentException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.node.Node.Status;
@@ -140,22 +138,6 @@ public interface ClusterManager extends NodeInformant {
      * @return the list of events or an empty list if no node exists with the given identifier
      */
     List<Event> getNodeEvents(final String nodeId);
-
-    /**
-     * Revokes the primary role from the current primary node and assigns the primary role to given given node ID.
-     *
-     * If role revocation fails, then the current primary node is set to disconnected while retaining the primary role and no role assignment is performed.
-     *
-     * If role assignment fails, then the given node is set to disconnected and is given the primary role.
-     *
-     * @param nodeId the node identifier
-     * @param userDn the Distinguished Name of the user requesting that the Primary Node be assigned
-     *
-     * @throws UnknownNodeException if the node with the given identifier does not exist
-     * @throws IneligiblePrimaryNodeException if the node with the given identifier is not eligible to be the primary node
-     * @throws PrimaryRoleAssignmentException if the cluster was unable to change the primary role to the requested node
-     */
-    void setPrimaryNode(String nodeId, String userDn) throws UnknownNodeException, IneligiblePrimaryNodeException, PrimaryRoleAssignmentException;
 
     /**
      * @return the primary node of the cluster or null if no primary node exists
