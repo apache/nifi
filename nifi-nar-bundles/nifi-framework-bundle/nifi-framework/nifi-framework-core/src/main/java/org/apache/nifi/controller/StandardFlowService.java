@@ -55,7 +55,6 @@ import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
-import org.apache.nifi.cluster.protocol.message.PrimaryRoleAssignmentMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -342,7 +341,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             case RECONNECTION_REQUEST:
             case DISCONNECTION_REQUEST:
             case FLOW_REQUEST:
-            case PRIMARY_ROLE:
                 return true;
             default:
                 return false;
@@ -380,14 +378,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                         }
                     }, "Disconnect from Cluster").start();
 
-                    return null;
-                case PRIMARY_ROLE:
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            handlePrimaryRoleAssignment((PrimaryRoleAssignmentMessage) request);
-                        }
-                    }, "Set Primary Role Status").start();
                     return null;
                 default:
                     throw new ProtocolException("Handler cannot handle message type: " + request.getType());
@@ -512,14 +502,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    private void handlePrimaryRoleAssignment(final PrimaryRoleAssignmentMessage msg) {
-        writeLock.lock();
-        try {
-            controller.setPrimary(msg.isPrimary());
-        } finally {
-            writeLock.unlock();
-        }
-    }
 
     private void handleReconnectionRequest(final ReconnectionRequestMessage request) {
         writeLock.lock();
@@ -747,9 +729,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             controller.setConnected(true);
 
-            // set primary
-            controller.setPrimary(response.isPrimary());
-
             // start the processors as indicated by the dataflow
             controller.onFlowInitialized(dataFlow.isAutoStartProcessors());
 
@@ -862,31 +841,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     private class SaveHolder {
-
         private final Calendar saveTime;
         private final boolean shouldArchive;
 
         private SaveHolder(final Calendar moment, final boolean archive) {
             saveTime = moment;
             shouldArchive = archive;
-        }
-    }
-
-    public boolean isPrimary() {
-        readLock.lock();
-        try {
-            return controller.isPrimary();
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    public void setPrimary(boolean primary) {
-        writeLock.lock();
-        try {
-            controller.setPrimary(primary);
-        } finally {
-            writeLock.unlock();
         }
     }
 }

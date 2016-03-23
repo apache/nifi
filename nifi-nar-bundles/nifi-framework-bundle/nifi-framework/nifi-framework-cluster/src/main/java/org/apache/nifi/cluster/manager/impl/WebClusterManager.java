@@ -93,12 +93,10 @@ import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDeletionException;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeReconnectionException;
-import org.apache.nifi.cluster.manager.exception.IneligiblePrimaryNodeException;
 import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
 import org.apache.nifi.cluster.manager.exception.NoResponseFromNodesException;
 import org.apache.nifi.cluster.manager.exception.NodeDisconnectionException;
 import org.apache.nifi.cluster.manager.exception.NodeReconnectionException;
-import org.apache.nifi.cluster.manager.exception.PrimaryRoleAssignmentException;
 import org.apache.nifi.cluster.manager.exception.SafeModeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.exception.UriConstructionException;
@@ -118,7 +116,6 @@ import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
-import org.apache.nifi.cluster.protocol.message.PrimaryRoleAssignmentMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
@@ -550,9 +547,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 if (servicesBroadcaster != null) {
                     servicesBroadcaster.start();
                 }
-
-                // start in safe mode
-                executeSafeModeTask();
 
                 // Load and start running Reporting Tasks
                 final byte[] serializedReportingTasks = clusterDataFlow.getReportingTasks();
@@ -1312,88 +1306,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    /**
-     * Messages the node to have the primary role. If the messaging fails, then the node is marked as disconnected.
-     *
-     * @param nodeId the node ID to assign primary role
-     *
-     * @return true if primary role assigned; false otherwise
-     */
-    private boolean assignPrimaryRole(final NodeIdentifier nodeId) {
-        writeLock.lock();
-        try {
-            // create primary role message
-            final PrimaryRoleAssignmentMessage msg = new PrimaryRoleAssignmentMessage();
-            msg.setNodeId(nodeId);
-            msg.setPrimary(true);
-            logger.info("Attempting to assign primary role to node: " + nodeId);
-
-            // message
-            senderListener.assignPrimaryRole(msg);
-
-            logger.info("Assigned primary role to node: " + nodeId);
-            addBulletin(nodeId, Severity.INFO, "Node assigned primary role");
-
-            // true indicates primary role assigned
-            return true;
-
-        } catch (final ProtocolException ex) {
-
-            logger.warn("Failed attempt to assign primary role to node " + nodeId + " due to " + ex);
-            addBulletin(nodeId, Severity.ERROR, "Failed to assign primary role to node due to: " + ex);
-
-            // mark node as disconnected and log/record the event
-            final Node node = getRawNode(nodeId.getId());
-            node.setStatus(Status.DISCONNECTED);
-            addEvent(node.getNodeId(), "Disconnected because of failed attempt to assign primary role.");
-
-            addBulletin(nodeId, Severity.WARNING, "Node disconnected because of failed attempt to assign primary role");
-
-            // false indicates primary role failed to be assigned
-            return false;
-        } finally {
-            writeLock.unlock("assignPrimaryRole");
-        }
-    }
-
-    /**
-     * Messages the node with the given node ID to no longer have the primary role. If the messaging fails, then the node is marked as disconnected.
-     *
-     * @return true if the primary role was revoked from the node; false otherwise
-     */
-    private boolean revokePrimaryRole(final NodeIdentifier nodeId) {
-        writeLock.lock();
-        try {
-            // create primary role message
-            final PrimaryRoleAssignmentMessage msg = new PrimaryRoleAssignmentMessage();
-            msg.setNodeId(nodeId);
-            msg.setPrimary(false);
-            logger.info("Attempting to revoke primary role from node: " + nodeId);
-
-            // send message
-            senderListener.assignPrimaryRole(msg);
-
-            logger.info("Revoked primary role from node: " + nodeId);
-            addBulletin(nodeId, Severity.INFO, "Primary Role revoked from node");
-
-            // true indicates primary role was revoked
-            return true;
-        } catch (final ProtocolException ex) {
-
-            logger.warn("Failed attempt to revoke primary role from node " + nodeId + " due to " + ex);
-
-            // mark node as disconnected and log/record the event
-            final Node node = getRawNode(nodeId.getId());
-            node.setStatus(Status.DISCONNECTED);
-            addEvent(node.getNodeId(), "Disconnected because of failed attempt to revoke primary role.");
-            addBulletin(node, Severity.ERROR, "Node disconnected because of failed attempt to revoke primary role");
-
-            // false indicates primary role failed to be revoked
-            return false;
-        } finally {
-            writeLock.unlock("revokePrimaryRole");
-        }
-    }
 
     private NodeIdentifier addRequestorDn(final NodeIdentifier nodeId, final String dn) {
         return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort(),
@@ -1778,12 +1690,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     // get a raw reference to the node (if it doesn't exist, node will be null)
                     node = getRawNode(resolvedNodeIdentifier.getId());
 
-                    // if the node thinks it has the primary role, but the manager has assigned the role to a different node, then revoke the role
-                    if (mostRecentHeartbeat.isPrimary() && !isPrimaryNode(resolvedNodeIdentifier)) {
-                        addEvent(resolvedNodeIdentifier, "Heartbeat indicates node is running as primary node.  Revoking primary role because primary role is assigned to a different node.");
-                        revokePrimaryRole(resolvedNodeIdentifier);
-                    }
-
                     final boolean heartbeatIndicatesNotYetConnected = !mostRecentHeartbeat.isConnected();
 
                     if (isBlockedByFirewall(resolvedNodeIdentifier.getSocketAddress())) {
@@ -1871,6 +1777,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
                         // record heartbeat
                         node.setHeartbeat(mostRecentHeartbeat);
+
+                        if (mostRecentHeartbeat.isPrimary()) {
+                            setPrimaryNodeId(node.getNodeId());
+                        }
                     }
                 } catch (final Exception e) {
                     logger.error("Failed to process heartbeat from {}:{} due to {}",
@@ -1981,47 +1891,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             return nodeIds;
         } finally {
             readLock.unlock("getNodeIds(Status...)");
-        }
-    }
-
-    @Override
-    public void setPrimaryNode(final String nodeId, final String userDn) throws UnknownNodeException, IneligiblePrimaryNodeException, PrimaryRoleAssignmentException {
-        writeLock.lock();
-        try {
-
-            final Node node = getNode(nodeId);
-            if (node == null) {
-                throw new UnknownNodeException("Node does not exist.");
-            } else if (Status.CONNECTED != node.getStatus()) {
-                throw new IneligiblePrimaryNodeException("Node must be connected before it can be assigned as the primary node.");
-            }
-
-            // revoke primary role
-            final Node primaryNode;
-            if ((primaryNode = getPrimaryNode()) != null) {
-                if (primaryNode.getStatus() == Status.DISCONNECTED) {
-                    throw new PrimaryRoleAssignmentException("A disconnected, primary node exists.  Delete the node before assigning the primary role to a different node.");
-                } else if (revokePrimaryRole(primaryNode.getNodeId())) {
-                    addEvent(primaryNode.getNodeId(), "Role revoked from this node as part of primary role reassignment.");
-                } else {
-                    throw new PrimaryRoleAssignmentException(
-                            "Failed to revoke primary role from node. Primary node is now disconnected. Delete the node before assigning the primary role to a different node.");
-                }
-            }
-
-            // change the primary node ID to the given node
-            setPrimaryNodeId(node.getNodeId());
-
-            // assign primary role
-            if (assignPrimaryRole(node.getNodeId())) {
-                addEvent(node.getNodeId(), "Role assigned to this node as part of primary role reassignment. Action performed by " + userDn);
-                addBulletin(node, Severity.INFO, "Primary Role assigned to node by " + userDn);
-            } else {
-                throw new PrimaryRoleAssignmentException(
-                        "Cluster manager assigned primary role to node, but the node failed to accept the assignment.  Cluster manager disconnected node.");
-            }
-        } finally {
-            writeLock.unlock("setPrimaryNode");
         }
     }
 
@@ -4508,66 +4377,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    private void executeSafeModeTask() {
-
-        new Thread(new Runnable() {
-
-            private final long threadStartTime = System.currentTimeMillis();
-
-            @Override
-            public void run() {
-                logger.info("Entering safe mode...");
-                final int safeModeSeconds = (int) FormatUtils.getTimeDuration(properties.getClusterManagerSafeModeDuration(), TimeUnit.SECONDS);
-                final long timeToElect = safeModeSeconds <= 0 ? Long.MAX_VALUE : threadStartTime + TimeUnit.MILLISECONDS.convert(safeModeSeconds, TimeUnit.SECONDS);
-                boolean exitSafeMode = false;
-                while (isRunning()) {
-
-                    writeLock.lock();
-                    try {
-
-                        final long currentTime = System.currentTimeMillis();
-                        if (timeToElect < currentTime) {
-                            final Set<NodeIdentifier> connectedNodeIds = getNodeIds(Status.CONNECTED);
-                            if (!connectedNodeIds.isEmpty()) {
-                                // get first connected node ID
-                                final NodeIdentifier connectedNodeId = connectedNodeIds.iterator().next();
-                                if (assignPrimaryRole(connectedNodeId)) {
-                                    try {
-                                        setPrimaryNodeId(connectedNodeId);
-                                        exitSafeMode = true;
-                                    } catch (final DaoException de) {
-                                        final String message = String.format("Failed to persist primary node ID '%s' in cluster dataflow.", connectedNodeId);
-                                        logger.warn(message);
-                                        addBulletin(connectedNodeId, Severity.WARNING, message);
-                                        revokePrimaryRole(connectedNodeId);
-                                    }
-                                }
-                            }
-                        }
-
-                        if (!isInSafeMode()) {
-                            // a primary node has been selected outside of this thread
-                            exitSafeMode = true;
-                            logger.info("Exiting safe mode because " + primaryNodeId + " has been assigned the primary role.");
-                            break;
-                        }
-                    } finally {
-                        writeLock.unlock("executeSafeModeTask");
-                    }
-
-                    if (!exitSafeMode) {
-                        // sleep for a bit
-                        try {
-                            Thread.sleep(1000);
-                        } catch (final InterruptedException ie) {
-                            return;
-                        }
-                    }
-
-                }
-            }
-        }).start();
-    }
 
     /**
      * This timer task simply processes any pending heartbeats. This timer task is not strictly needed, as HeartbeatMonitoringTimerTask will do this. However, this task is scheduled much more
