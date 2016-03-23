@@ -31,7 +31,6 @@ public abstract class ProtocolMessage {
         FLOW_RESPONSE,
         HEARTBEAT,
         PING,
-        PRIMARY_ROLE,
         RECONNECTION_REQUEST,
         RECONNECTION_RESPONSE,
         SERVICE_BROADCAST,

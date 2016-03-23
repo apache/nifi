@@ -31,7 +31,6 @@ import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
-import org.apache.nifi.cluster.protocol.message.PrimaryRoleAssignmentMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -56,7 +55,6 @@ public class ClusterManagerProtocolSenderImpl implements ClusterManagerProtocolS
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final SocketConfiguration socketConfiguration;
     private int handshakeTimeoutSeconds;
-    private volatile BulletinRepository bulletinRepository;
 
     public ClusterManagerProtocolSenderImpl(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
         if (socketConfiguration == null) {
@@ -71,7 +69,6 @@ public class ClusterManagerProtocolSenderImpl implements ClusterManagerProtocolS
 
     @Override
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
-        this.bulletinRepository = bulletinRepository;
     }
 
     /**
@@ -183,30 +180,6 @@ public class ClusterManagerProtocolSenderImpl implements ClusterManagerProtocolS
         }
     }
 
-    /**
-     * Assigns the primary role to a node.
-     *
-     * @param msg a message
-     *
-     * @throws ProtocolException if the message failed to be sent
-     */
-    @Override
-    public void assignPrimaryRole(final PrimaryRoleAssignmentMessage msg) throws ProtocolException {
-        Socket socket = null;
-        try {
-            socket = createSocket(msg.getNodeId(), true);
-
-            try {
-                // marshal message to output stream
-                final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
-                marshaller.marshal(msg, socket.getOutputStream());
-            } catch (final IOException ioe) {
-                throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
-            }
-        } finally {
-            SocketUtils.closeQuietly(socket);
-        }
-    }
 
     private void setConnectionHandshakeTimeoutOnSocket(final Socket socket) throws SocketException {
         // update socket timeout, if handshake timeout was set; otherwise use socket's current timeout
