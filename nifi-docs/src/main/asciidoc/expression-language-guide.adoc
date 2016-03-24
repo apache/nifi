@@ -1215,7 +1215,63 @@ Expressions will provide the following results:
 |=======================================================================================
 
 
+[.function]
+=== jsonPath
 
+*Description*: [.description]#The `jsonPath` function generates a string by evaluating the Subject as JSON and applying a JSON
+  path expression. An empty string is generated if the Subject does not contain valid JSON, the _jsonPath_ is invalid, or the path
+	does not exist in the Subject.  If the evaluation results in a scalar value, the string representation of scalar value is
+	generated.  Otherwise a string representation of the JSON result is generated.  A JSON array of length 1 is special cased
+	when `[0]` is a scalar, the string representation of `[0]` is generated.^1^#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+	 [.argName]#_jsonPath_# : [.argDesc]#the JSON path expression used to evaluate the Subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "myJson" attribute is
+
+..........
+{
+  "firstName": "John",
+  "lastName": "Smith",
+  "isAlive": true,
+  "age": 25,
+  "address": {
+    "streetAddress": "21 2nd Street",
+    "city": "New York",
+    "state": "NY",
+    "postalCode": "10021-3100"
+  },
+  "phoneNumbers": [
+    {
+      "type": "home",
+      "number": "212 555-1234"
+    },
+    {
+      "type": "office",
+      "number": "646 555-4567"
+    }
+  ],
+  "children": [],
+  "spouse": null
+}
+..........
+
+.jsonPath Examples
+|===================================================================
+| Expression | Value
+| `${myJson:jsonPath('$.firstName')}` | `John`
+| `${myJson:jsonPath('$.address.postalCode')}` | `10021-3100`
+| `${myJson:jsonPath('$.phoneNumbers[?(@.type=="home")].number')}`^1^ | `212 555-1234`
+| `${myJson:jsonPath('$.phoneNumbers')}` | `[{"type":"home","number":"212 555-1234"},{"type":"office","number":"646 555-4567"}]`
+| `${myJson:jsonPath('$.missing-path')}` | _empty_
+| `${myJson:jsonPath('$.bad-json-path..')}` | _exception bulletin_
+|===================================================================
+
+An empty subject value or a subject value with an invalid JSON document results in an exception bulletin. 
 
 [[numbers]]
 == Mathematical Operations and Numeric Manipulation

@@ -152,6 +152,7 @@ OR : 'or';
 AND : 'and';
 JOIN : 'join';
 TO_LITERAL : 'literal';
+JSON_PATH : 'jsonPath';
 
 // 2 arg functions
 SUBSTRING	: 'substring';
