@@ -23,8 +23,6 @@ public abstract class ProtocolMessage {
     public static enum MessageType {
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
-        CONTROLLER_STARTUP_FAILURE,
-        RECONNECTION_FAILURE,
         DISCONNECTION_REQUEST,
         EXCEPTION,
         FLOW_REQUEST,
@@ -34,6 +32,7 @@ public abstract class ProtocolMessage {
         RECONNECTION_REQUEST,
         RECONNECTION_RESPONSE,
         SERVICE_BROADCAST,
+        NODE_STATUS_CHANGE;
     }
 
     public abstract MessageType getType();

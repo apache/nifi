@@ -27,6 +27,7 @@ import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
+import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
@@ -549,7 +550,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final String nodeId = nodeDTO.getNodeId();
-        return dtoFactory.createNodeDTO(clusterManager.getNode(nodeId), clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId));
+
+        NodeIdentifier nodeIdentifier = null;
+        for (final Node node : clusterManager.getNodes()) {
+            if (node.getNodeId().getId().equals(nodeId)) {
+                nodeIdentifier = node.getNodeId();
+                break;
+            }
+        }
+
+        final NodeHeartbeat nodeHeartbeat = nodeIdentifier == null ? null : clusterManager.getLatestHeartbeat(nodeIdentifier);
+        return dtoFactory.createNodeDTO(clusterManager.getNode(nodeId), nodeHeartbeat, clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId));
     }
 
     @Override
@@ -1923,7 +1934,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final Node node : clusterManager.getNodes()) {
             // create and add node dto
             final String nodeId = node.getNodeId().getId();
-            nodeDtos.add(dtoFactory.createNodeDTO(node, clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId)));
+            nodeDtos.add(dtoFactory.createNodeDTO(node, clusterManager.getLatestHeartbeat(node.getNodeId()), clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId)));
         }
 
         return clusterDto;
@@ -1935,7 +1946,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (node == null) {
             throw new UnknownNodeException("Node does not exist.");
         } else {
-            return dtoFactory.createNodeDTO(node, clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId));
+            return dtoFactory.createNodeDTO(node, clusterManager.getLatestHeartbeat(node.getNodeId()), clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId));
         }
     }
 

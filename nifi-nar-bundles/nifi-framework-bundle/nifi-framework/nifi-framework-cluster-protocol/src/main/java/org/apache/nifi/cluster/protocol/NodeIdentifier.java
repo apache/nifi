@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -32,6 +36,8 @@ import org.apache.commons.lang3.StringUtils;
  * @Immutable
  * @Threadsafe
  */
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.FIELD)
 public class NodeIdentifier {
     /**
      * the unique identifier for the node
@@ -108,6 +114,21 @@ public class NodeIdentifier {
         this.siteToSiteAddress = siteToSiteAddress == null ? apiAddress : siteToSiteAddress;
         this.siteToSitePort = siteToSitePort;
         this.siteToSiteSecure = siteToSiteSecure;
+    }
+
+    /**
+     * This constructor should not be used and exists solely for the use of JAXB
+     */
+    public NodeIdentifier() {
+        this.id = null;
+        this.apiAddress = null;
+        this.apiPort = 0;
+        this.socketAddress = null;
+        this.socketPort = 0;
+        this.nodeDn = null;
+        this.siteToSiteAddress = null;
+        this.siteToSitePort = null;
+        this.siteToSiteSecure = false;
     }
 
     public String getId() {
@@ -213,9 +234,7 @@ public class NodeIdentifier {
 
     @Override
     public String toString() {
-        return "[" + "id=" + id + ", apiAddress=" + apiAddress + ", apiPort=" + apiPort
-            + ", socketAddress=" + socketAddress + ", socketPort=" + socketPort
-            + ", siteToSiteAddress=" + siteToSiteAddress + ", siteToSitePort=" + siteToSitePort + ']';
+        return apiAddress + ":" + apiPort;
     }
 
 }

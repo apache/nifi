@@ -29,7 +29,6 @@ import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.node.Node.Status;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
-import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -47,14 +46,6 @@ import org.apache.nifi.reporting.BulletinRepository;
  *
  */
 public interface ClusterManager extends NodeInformant {
-
-    /**
-     * Handles a node's heartbeat.
-     *
-     * @param heartbeat a heartbeat
-     *
-     */
-    void handleHeartbeat(Heartbeat heartbeat);
 
     /**
      * @param statuses the statuses of the nodes

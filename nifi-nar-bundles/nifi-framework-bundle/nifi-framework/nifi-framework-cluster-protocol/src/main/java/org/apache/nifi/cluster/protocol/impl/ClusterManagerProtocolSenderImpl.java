@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.cluster.protocol.ClusterManagerProtocolSender;
@@ -31,6 +35,7 @@ import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -39,6 +44,7 @@ import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 
 /**
  * A protocol sender for sending protocol messages from the cluster manager to
@@ -214,6 +220,44 @@ public class ClusterManagerProtocolSenderImpl implements ClusterManagerProtocolS
             return socket;
         } catch (final IOException ioe) {
             throw new ProtocolException("Failed to create socket due to: " + ioe, ioe);
+        }
+    }
+
+    @Override
+    public void notifyNodeStatusChange(final Set<NodeIdentifier> nodesToNotify, final NodeStatusChangeMessage msg) {
+        final NiFiProperties properties = NiFiProperties.getInstance();
+        final int numThreads = Math.min(nodesToNotify.size(), properties.getClusterManagerProtocolThreads());
+
+        final byte[] msgBytes;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
+            marshaller.marshal(msg, baos);
+            msgBytes = baos.toByteArray();
+        } catch (final IOException e) {
+            throw new ProtocolException("Failed to marshal NodeStatusChangeMessage", e);
+        }
+
+        final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        for (final NodeIdentifier nodeId : nodesToNotify) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try (final Socket socket = createSocket(nodeId, true)) {
+                        // marshal message to output stream
+                        socket.getOutputStream().write(msgBytes);
+                    } catch (final IOException ioe) {
+                        throw new ProtocolException("Failed to send Node Status Change message to " + nodeId, ioe);
+                    }
+                }
+            });
+        }
+
+        executor.shutdown();
+
+        try {
+            executor.awaitTermination(10, TimeUnit.DAYS);
+        } catch (final InterruptedException ie) {
+            throw new ProtocolException(ie);
         }
     }
 }

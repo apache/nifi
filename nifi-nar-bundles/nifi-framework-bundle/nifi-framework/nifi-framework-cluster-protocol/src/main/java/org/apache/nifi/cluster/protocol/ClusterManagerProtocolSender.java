@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import java.util.Set;
+
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -61,4 +64,12 @@ public interface ClusterManagerProtocolSender {
      * @param bulletinRepository repo
      */
     void setBulletinRepository(final BulletinRepository bulletinRepository);
+
+    /**
+     * Notifies all nodes in the given set that a node in the cluster has a new status
+     *
+     * @param nodesToNotify the nodes that should be notified of the change
+     * @param msg the message that indicates which node's status changed and what it changed to
+     */
+    void notifyNodeStatusChange(Set<NodeIdentifier> nodesToNotify, NodeStatusChangeMessage msg);
 }

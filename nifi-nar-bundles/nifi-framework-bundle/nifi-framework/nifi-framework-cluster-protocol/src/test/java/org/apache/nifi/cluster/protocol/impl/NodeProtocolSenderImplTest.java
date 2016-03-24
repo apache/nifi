@@ -28,7 +28,6 @@ import java.util.UUID;
 
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
-import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
@@ -39,8 +38,6 @@ import org.apache.nifi.cluster.protocol.jaxb.JaxbProtocolContext;
 import org.apache.nifi.cluster.protocol.jaxb.message.JaxbProtocolUtils;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
-import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
-import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.PingMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
@@ -109,7 +106,7 @@ public class NodeProtocolSenderImplTest {
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         ConnectionResponseMessage mockMessage = new ConnectionResponseMessage();
         mockMessage.setConnectionResponse(new ConnectionResponse(nodeIdentifier,
-            new StandardDataFlow("flow".getBytes("UTF-8"), new byte[0], new byte[0]), false, null, null, UUID.randomUUID().toString()));
+            new StandardDataFlow("flow".getBytes("UTF-8"), new byte[0], new byte[0]), null, null, UUID.randomUUID().toString()));
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(mockMessage);
 
         ConnectionRequestMessage request = new ConnectionRequestMessage();
@@ -168,30 +165,4 @@ public class NodeProtocolSenderImplTest {
         fail("failed to throw exception");
 
     }
-
-    @Test
-    public void testHeartbeat() throws Exception {
-
-        when(mockServiceLocator.getService()).thenReturn(service);
-        when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
-        when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(null);
-
-        HeartbeatMessage hb = new HeartbeatMessage();
-        hb.setHeartbeat(new Heartbeat(new NodeIdentifier("id", "localhost", 3, "localhost", 4, "localhost", 3821, false), false, false, new byte[] {1, 2, 3}));
-        sender.heartbeat(hb);
-    }
-
-    @Test
-    public void testNotifyControllerStartupFailure() throws Exception {
-
-        when(mockServiceLocator.getService()).thenReturn(service);
-        when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
-        when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(null);
-
-        ControllerStartupFailureMessage msg = new ControllerStartupFailureMessage();
-        msg.setNodeId(new NodeIdentifier("some-id", "some-addr", 1, "some-addr", 1, "localhost", 3821, false));
-        msg.setExceptionMessage("some exception");
-        sender.notifyControllerStartupFailure(msg);
-    }
-
 }

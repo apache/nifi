@@ -14,30 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.cluster.protocol.message;
 
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 
 /**
+ * Message to indicate that the status of a node in the cluster has changed
  */
-@XmlRootElement(name = "controllerStartupFailureMessage")
-public class ControllerStartupFailureMessage extends ExceptionMessage {
-
+@XmlRootElement(name = "nodeStatusChange")
+public class NodeStatusChangeMessage extends ProtocolMessage {
+    private NodeConnectionStatus connectionStatus;
     private NodeIdentifier nodeId;
-
-    public ControllerStartupFailureMessage() {
-    }
+    private Long statusUpdateId = -1L;
 
     @Override
     public MessageType getType() {
-        return MessageType.CONTROLLER_STARTUP_FAILURE;
+        return MessageType.NODE_STATUS_CHANGE;
     }
 
-    @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
+    public void setNodeConnectionStatus(final NodeConnectionStatus status) {
+        this.connectionStatus = status;
+    }
+
+    public NodeConnectionStatus getNodeConnectionStatus() {
+        return connectionStatus;
+    }
+
     public NodeIdentifier getNodeId() {
         return nodeId;
     }
@@ -46,4 +52,11 @@ public class ControllerStartupFailureMessage extends ExceptionMessage {
         this.nodeId = nodeId;
     }
 
+    public Long getStatusUpdateIdentifier() {
+        return statusUpdateId;
+    }
+
+    public void setStatusUpdateIdentifier(Long statusUpdateId) {
+        this.statusUpdateId = statusUpdateId;
+    }
 }
