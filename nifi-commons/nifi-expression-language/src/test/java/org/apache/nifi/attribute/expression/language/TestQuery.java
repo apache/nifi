@@ -22,6 +22,10 @@ import static org.junit.Assert.assertTrue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
@@ -234,6 +238,34 @@ public class TestQuery {
 
         Query.validateExpression("${x:equals(\"${a}\")}", false);
         assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", attributes, null));
+    }
+
+    @Test
+    public void testJsonPath() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("json", getResourceAsString("/json/address-book.json"));
+        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
+        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
+        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
+                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+        verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
+        try {
+            verifyEquals("${json:jsonPath('$..')}", attributes, "");
+            Assert.fail("Did not detect bad JSON path expression");
+        } catch (final AttributeExpressionLanguageException e) {
+        }
+        try {
+            verifyEquals("${missing:jsonPath('$.firstName')}", attributes, "");
+            Assert.fail("Did not detect empty JSON document");
+        } catch (AttributeExpressionLanguageException e) {
+        }
+        attributes.put("invalid", "[}");
+        try {
+            verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John");
+            Assert.fail("Did not detect invalid JSON document");
+        } catch (AttributeExpressionLanguageException e) {
+        }
     }
 
     @Test
@@ -1282,4 +1314,25 @@ public class TestQuery {
 
         assertEquals(expectedResult, result.getValue());
     }
+
+    private String getResourceAsString(String resourceName) {
+        Reader reader = new InputStreamReader(new BufferedInputStream(getClass().getResourceAsStream(resourceName)));
+        int n = 0;
+        char[] buf = new char[1024];
+        StringBuilder sb = new StringBuilder();
+        while (n != -1) {
+            try {
+                n = reader.read(buf, 0, buf.length);
+            } catch (IOException e) {
+                throw new RuntimeException("failed to read resource", e);
+            }
+            if (n > 0) {
+                sb.append(buf, 0, n);
+            }
+        }
+        return sb.toString();
+
+
+    }
+
 }
