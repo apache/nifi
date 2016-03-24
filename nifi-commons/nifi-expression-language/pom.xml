@@ -61,5 +61,13 @@
             <artifactId>hamcrest-all</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+        </dependency>
+        <dependency>
+	        <groupId>com.fasterxml.jackson.core</groupId>
+	        <artifactId>jackson-databind</artifactId>
+        </dependency>
     </dependencies>
 </project>
