@@ -16,20 +16,16 @@
  */
 package org.apache.nifi.cluster.protocol.message;
 
-import org.apache.nifi.cluster.protocol.Heartbeat;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.nifi.cluster.protocol.Heartbeat;
 
 /**
  */
 @XmlRootElement(name = "heartbeatMessage")
-public class HeartbeatMessage extends ProtocolMessage {
+public class HeartbeatMessage {
 
     private Heartbeat heartbeat;
-
-    @Override
-    public MessageType getType() {
-        return MessageType.HEARTBEAT;
-    }
 
     public Heartbeat getHeartbeat() {
         return heartbeat;
@@ -38,5 +34,4 @@ public class HeartbeatMessage extends ProtocolMessage {
     public void setHeartbeat(Heartbeat heartbeat) {
         this.heartbeat = heartbeat;
     }
-
 }

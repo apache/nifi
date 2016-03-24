@@ -18,12 +18,7 @@ package org.apache.nifi.cluster.node;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.nifi.cluster.HeartbeatPayload;
-import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.cluster.protocol.ProtocolException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Represents a connected flow controller. Nodes always have an immutable identifier and a status. The status may be changed, but never null.
@@ -34,8 +29,6 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class Node implements Cloneable, Comparable<Node> {
-
-    private static final Logger lockLogger = LoggerFactory.getLogger("cluster.lock");
 
     /**
      * The semantics of a Node status are as follows:
@@ -66,15 +59,6 @@ public class Node implements Cloneable, Comparable<Node> {
      */
     private Status status;
 
-    /**
-     * the last heartbeat received by from the node
-     */
-    private Heartbeat lastHeartbeat;
-
-    /**
-     * the payload of the last heartbeat received from the node
-     */
-    private HeartbeatPayload lastHeartbeatPayload;
 
     /**
      * the last time the connection for this node was requested
@@ -98,40 +82,6 @@ public class Node implements Cloneable, Comparable<Node> {
 
     public NodeIdentifier getNodeId() {
         return nodeId;
-    }
-
-    /**
-     * Returns the last received heartbeat or null if no heartbeat has been set.
-     *
-     * @return a heartbeat or null
-     */
-    public Heartbeat getHeartbeat() {
-        return lastHeartbeat;
-    }
-
-    public HeartbeatPayload getHeartbeatPayload() {
-        return lastHeartbeatPayload;
-    }
-
-    /**
-     * Sets the last heartbeat received.
-     *
-     * @param heartbeat a heartbeat
-     *
-     * @throws ProtocolException if the heartbeat's payload failed unmarshalling
-     */
-    public void setHeartbeat(final Heartbeat heartbeat) throws ProtocolException {
-        this.lastHeartbeat = heartbeat;
-        if (this.lastHeartbeat == null) {
-            this.lastHeartbeatPayload = null;
-        } else {
-            final byte[] payload = lastHeartbeat.getPayload();
-            if (payload == null || payload.length == 0) {
-                this.lastHeartbeatPayload = null;
-            } else {
-                this.lastHeartbeatPayload = HeartbeatPayload.unmarshal(payload);
-            }
-        }
     }
 
     /**
@@ -174,14 +124,14 @@ public class Node implements Cloneable, Comparable<Node> {
     /**
      * @return the status
      */
-    public Status getStatus() {
+    public synchronized Status getStatus() {
         return status;
     }
 
     /**
      * @param status a status
      */
-    public void setStatus(final Status status) {
+    public synchronized void setStatus(final Status status) {
         if (status == null) {
             throw new IllegalArgumentException("Status may not be null.");
         }
@@ -192,8 +142,6 @@ public class Node implements Cloneable, Comparable<Node> {
     @Override
     public Node clone() {
         final Node clone = new Node(nodeId, status);
-        clone.lastHeartbeat = lastHeartbeat;
-        clone.lastHeartbeatPayload = lastHeartbeatPayload;
         clone.heartbeatDisconnection = heartbeatDisconnection;
         clone.connectionRequestedTimestamp = connectionRequestedTimestamp;
         return clone;

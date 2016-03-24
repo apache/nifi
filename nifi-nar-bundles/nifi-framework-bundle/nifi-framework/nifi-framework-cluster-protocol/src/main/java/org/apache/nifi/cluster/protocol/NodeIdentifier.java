@@ -213,9 +213,7 @@ public class NodeIdentifier {
 
     @Override
     public String toString() {
-        return "[" + "id=" + id + ", apiAddress=" + apiAddress + ", apiPort=" + apiPort
-            + ", socketAddress=" + socketAddress + ", socketPort=" + socketPort
-            + ", siteToSiteAddress=" + siteToSiteAddress + ", siteToSitePort=" + siteToSitePort + ']';
+        return apiAddress + ":" + apiPort;
     }
 
 }

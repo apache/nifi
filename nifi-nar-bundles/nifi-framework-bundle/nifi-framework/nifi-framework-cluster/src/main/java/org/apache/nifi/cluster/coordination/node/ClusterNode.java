@@ -14,34 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cluster.protocol.message;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+package org.apache.nifi.cluster.coordination.node;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 
-@XmlRootElement(name = "reconnectionFailureMessage")
-public class ReconnectionFailureMessage extends ExceptionMessage {
+public class ClusterNode {
+    private final NodeIdentifier nodeId;
+    private NodeConnectionStatus connectionStatus = new NodeConnectionStatus(NodeConnectionState.DISCONNECTED, DisconnectionCode.NOT_YET_CONNECTED);
 
-    private NodeIdentifier nodeId;
 
-    public ReconnectionFailureMessage() {
+    public ClusterNode(final NodeIdentifier nodeId) {
+        this.nodeId = nodeId;
     }
 
-    @Override
-    public MessageType getType() {
-        return MessageType.RECONNECTION_FAILURE;
-    }
-
-    @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
-    public NodeIdentifier getNodeId() {
+    public NodeIdentifier getIdentifier() {
         return nodeId;
     }
 
-    public void setNodeId(NodeIdentifier nodeId) {
-        this.nodeId = nodeId;
+    public NodeConnectionStatus getConnectionStatus() {
+        return connectionStatus;
     }
 
 }

@@ -23,13 +23,10 @@ public abstract class ProtocolMessage {
     public static enum MessageType {
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
-        CONTROLLER_STARTUP_FAILURE,
-        RECONNECTION_FAILURE,
         DISCONNECTION_REQUEST,
         EXCEPTION,
         FLOW_REQUEST,
         FLOW_RESPONSE,
-        HEARTBEAT,
         PING,
         RECONNECTION_REQUEST,
         RECONNECTION_RESPONSE,

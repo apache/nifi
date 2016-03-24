@@ -19,7 +19,6 @@ package org.apache.nifi.controller.leader.election;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -29,8 +28,8 @@ import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryForever;
+import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.common.PathUtils;
 import org.slf4j.Logger;
@@ -40,10 +39,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
     private static final Logger logger = LoggerFactory.getLogger(CuratorLeaderElectionManager.class);
 
     private final FlowEngine leaderElectionMonitorEngine;
-    private final int sessionTimeoutMs;
-    private final int connectionTimeoutMs;
-    private final String rootPath;
-    private final String connectString;
+    private final ZooKeeperClientConfig zkConfig;
 
     private CuratorFramework curatorClient;
 
@@ -56,21 +52,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         leaderElectionMonitorEngine = new FlowEngine(threadPoolSize, "Leader Election Notification", true);
 
         final NiFiProperties properties = NiFiProperties.getInstance();
-
-        connectString = properties.getProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING);
-        if (connectString == null || connectString.trim().isEmpty()) {
-            throw new IllegalStateException("The '" + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property is not set in nifi.properties");
-        }
-
-        sessionTimeoutMs = getTimePeriod(properties, NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_SESSION_TIMEOUT);
-        connectionTimeoutMs = getTimePeriod(properties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
-        rootPath = properties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
-
-        try {
-            PathUtils.validatePath(rootPath);
-        } catch (final IllegalArgumentException e) {
-            throw new IllegalStateException("The '" + NiFiProperties.ZOOKEEPER_ROOT_NODE + "' property in nifi.properties is set to an illegal value: " + rootPath);
-        }
+        zkConfig = ZooKeeperClientConfig.createConfig(properties);
     }
 
 
@@ -83,7 +65,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         stopped = false;
 
         final RetryPolicy retryPolicy = new RetryForever(5000);
-        curatorClient = CuratorFrameworkFactory.newClient(connectString, sessionTimeoutMs, connectionTimeoutMs, retryPolicy);
+        curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(), zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
         curatorClient.start();
 
         // Call #register for each already-registered role. This will
@@ -94,16 +76,6 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         }
 
         logger.info("{} started", this);
-    }
-
-    private int getTimePeriod(final NiFiProperties properties, final String propertyName, final String defaultValue) {
-        final String timeout = properties.getProperty(propertyName, defaultValue);
-        try {
-            return (int) FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
-        } catch (final Exception e) {
-            logger.warn("Value of '" + propertyName + "' property is set to '" + timeout + "', which is not a valid time period. Using default of " + defaultValue);
-            return (int) FormatUtils.getTimeDuration(defaultValue, TimeUnit.MILLISECONDS);
-        }
     }
 
 
@@ -122,6 +94,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             return;
         }
 
+        final String rootPath = zkConfig.getRootPath();
         final String leaderPath = (rootPath.endsWith("/") ? "" : "/") + "leaders/" + roleName;
 
         try {

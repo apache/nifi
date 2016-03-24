@@ -30,11 +30,8 @@ import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
-import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
-import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
-import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
@@ -110,21 +107,6 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
         }
     }
 
-    @Override
-    public void heartbeat(final HeartbeatMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sendProtocolMessage(msg);
-    }
-
-    @Override
-    public void notifyControllerStartupFailure(final ControllerStartupFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sendProtocolMessage(msg);
-    }
-
-    @Override
-    public void notifyReconnectionFailure(ReconnectionFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sendProtocolMessage(msg);
-    }
-
     private Socket createSocket() {
         // determine the cluster manager's address
         final DiscoverableService service = clusterManagerProtocolServiceLocator.getService();
@@ -137,23 +119,6 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
             return SocketUtils.createSocket(service.getServiceAddress(), socketConfiguration);
         } catch (final IOException ioe) {
             throw new ProtocolException("Failed to create socket due to: " + ioe, ioe);
-        }
-    }
-
-    private void sendProtocolMessage(final ProtocolMessage msg) {
-        Socket socket = null;
-        try {
-            socket = createSocket();
-
-            try {
-                // marshal message to output stream
-                final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
-                marshaller.marshal(msg, socket.getOutputStream());
-            } catch (final IOException ioe) {
-                throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
-            }
-        } finally {
-            SocketUtils.closeQuietly(socket);
         }
     }
 

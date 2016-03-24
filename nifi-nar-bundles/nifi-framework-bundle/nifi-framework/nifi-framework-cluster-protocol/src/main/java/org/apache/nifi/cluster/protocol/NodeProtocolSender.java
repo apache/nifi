@@ -18,9 +18,6 @@ package org.apache.nifi.cluster.protocol;
 
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
-import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
-import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
-import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 
 /**
  * An interface for sending protocol messages from a node to the cluster
@@ -39,36 +36,5 @@ public interface NodeProtocolSender {
      * @throws ProtocolException if communication failed
      */
     ConnectionResponseMessage requestConnection(ConnectionRequestMessage msg) throws ProtocolException, UnknownServiceAddressException;
-
-    /**
-     * Sends a "heartbeat" message to the cluster manager.
-     *
-     * @param msg a message
-     * @throws UnknownServiceAddressException if the cluster manager's address
-     * is not known
-     * @throws ProtocolException if communication failed
-     */
-    void heartbeat(HeartbeatMessage msg) throws ProtocolException, UnknownServiceAddressException;
-
-    /**
-     * Sends a failure notification if the controller was unable start.
-     *
-     * @param msg a message
-     * @throws UnknownServiceAddressException if the cluster manager's address
-     * is not known
-     * @throws ProtocolException if communication failed
-     */
-    void notifyControllerStartupFailure(ControllerStartupFailureMessage msg) throws ProtocolException, UnknownServiceAddressException;
-
-    /**
-     * Sends a failure notification if the node was unable to reconnect to the
-     * cluster
-     *
-     * @param msg a message
-     * @throws UnknownServiceAddressException if the cluster manager's address
-     * is not known
-     * @throws ProtocolException if communication failed
-     */
-    void notifyReconnectionFailure(ReconnectionFailureMessage msg) throws ProtocolException, UnknownServiceAddressException;
 
 }
