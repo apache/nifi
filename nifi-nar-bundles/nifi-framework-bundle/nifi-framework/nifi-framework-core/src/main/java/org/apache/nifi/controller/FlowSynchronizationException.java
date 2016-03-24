@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.cluster.ConnectionException;
+
 /**
  * Represents the exceptional case when a controller managing an existing flow fails to fully load a different flow.
  *
  */
-public class FlowSynchronizationException extends RuntimeException {
+public class FlowSynchronizationException extends ConnectionException {
 
     private static final long serialVersionUID = 109234802938L;
 

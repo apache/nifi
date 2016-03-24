@@ -14,39 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
-import org.apache.nifi.cluster.protocol.Heartbeat;
 
-/**
- */
-public class HeartbeatAdapter extends XmlAdapter<AdaptedHeartbeat, Heartbeat> {
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+
+public class NodeConnectionStatusAdapter extends XmlAdapter<AdaptedNodeConnectionStatus, NodeConnectionStatus> {
 
     @Override
-    public AdaptedHeartbeat marshal(final Heartbeat hb) {
-        final AdaptedHeartbeat aHb = new AdaptedHeartbeat();
-
-        if (hb != null) {
-            // set node identifier
-            aHb.setNodeIdentifier(hb.getNodeIdentifier());
-
-            // set payload
-            aHb.setPayload(hb.getPayload());
-
-            // set leader flag
-            aHb.setPrimary(hb.isPrimary());
-
-            // set connected flag
-            aHb.setConnectionStatus(hb.getConnectionStatus());
-        }
-
-        return aHb;
+    public NodeConnectionStatus unmarshal(final AdaptedNodeConnectionStatus adapted) throws Exception {
+        return new NodeConnectionStatus(adapted.getState(), adapted.getDisconnectCode(), adapted.getDisconnectReason(), adapted.getConnectionRequestTime());
     }
 
     @Override
-    public Heartbeat unmarshal(final AdaptedHeartbeat aHb) {
-        return new Heartbeat(aHb.getNodeIdentifier(), aHb.isPrimary(), aHb.getConnectionStatus(), aHb.getPayload());
+    public AdaptedNodeConnectionStatus marshal(final NodeConnectionStatus toAdapt) throws Exception {
+        final AdaptedNodeConnectionStatus adapted = new AdaptedNodeConnectionStatus();
+        adapted.setConnectionRequestTime(toAdapt.getConnectionRequestTime());
+        adapted.setDisconnectCode(toAdapt.getDisconnectCode());
+        adapted.setDisconnectReason(toAdapt.getDisconnectReason());
+        adapted.setState(toAdapt.getState());
+        return adapted;
     }
-
 }

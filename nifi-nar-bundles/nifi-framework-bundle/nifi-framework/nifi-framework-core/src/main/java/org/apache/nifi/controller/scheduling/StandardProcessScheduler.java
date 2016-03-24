@@ -120,8 +120,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      *
      * @param task the task to perform
      */
-    public void submitFrameworkTask(final Runnable task) {
-        frameworkTaskExecutor.submit(task);
+    public Future<?> submitFrameworkTask(final Runnable task) {
+        return frameworkTaskExecutor.submit(task);
     }
 
     @Override

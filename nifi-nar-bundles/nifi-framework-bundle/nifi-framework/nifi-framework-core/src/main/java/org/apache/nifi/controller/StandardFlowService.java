@@ -41,26 +41,31 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.ConnectionException;
+import org.apache.nifi.cluster.HeartbeatPayload;
+import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
+import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
-import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
-import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
-import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
@@ -341,6 +346,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             case RECONNECTION_REQUEST:
             case DISCONNECTION_REQUEST:
             case FLOW_REQUEST:
+            case NODE_STATUS_CHANGE:
                 return true;
             default:
                 return false;
@@ -354,6 +360,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             switch (request.getType()) {
                 case FLOW_REQUEST:
                     return handleFlowRequest((FlowRequestMessage) request);
+                case NODE_STATUS_CHANGE:
+                    final NodeStatusChangeMessage statusChangeMsg = (NodeStatusChangeMessage) request;
+                    controller.setNodeStatus(statusChangeMsg.getNodeId(), statusChangeMsg.getNodeConnectionStatus(), statusChangeMsg.getStatusUpdateIdentifier());
+                    return null;
                 case RECONNECTION_REQUEST:
                     // Suspend heartbeats until we've reconnected. Otherwise,
                     // we may send a heartbeat while we are still in the process of
@@ -419,7 +429,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     // set node as clustered, since it is trying to connect to a cluster
                     controller.setClustered(true, null);
                     controller.setClusterManagerRemoteSiteInfo(null, null);
-                    controller.setConnected(false);
+                    controller.setConnectionStatus(new NodeConnectionStatus(DisconnectionCode.NOT_YET_CONNECTED));
 
                     /*
                      * Start heartbeating.  Heartbeats will fail because we can't reach
@@ -444,23 +454,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                         loadFromConnectionResponse(response);
                     } catch (final ConnectionException ce) {
                         logger.error("Failed to load flow from cluster due to: " + ce, ce);
-
-                        /*
-                         * If we failed processing the response, then we want to notify
-                         * the manager so that it can mark the node as disconnected.
-                         */
-                        // create error message
-                        final ControllerStartupFailureMessage msg = new ControllerStartupFailureMessage();
-                        msg.setExceptionMessage(ce.getMessage());
-                        msg.setNodeId(response.getNodeIdentifier());
-
-                        // send error message to manager
-                        try {
-                            senderListener.notifyControllerStartupFailure(msg);
-                        } catch (final ProtocolException | UnknownServiceAddressException e) {
-                            logger.warn("Failed to notify cluster manager of controller startup failure due to: " + e, e);
-                        }
-
+                        handleConnectionFailure(ce);
                         throw new IOException(ce);
                     }
                 }
@@ -471,6 +465,33 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    private void handleConnectionFailure(final Exception ex) {
+        final Heartbeater heartbeater = controller.getHeartbeater();
+        if (heartbeater != null) {
+            final HeartbeatMessage startupFailureMessage = new HeartbeatMessage();
+            final NodeConnectionStatus connectionStatus;
+            if (ex instanceof UninheritableFlowException) {
+                connectionStatus = new NodeConnectionStatus(DisconnectionCode.MISMATCHED_FLOWS, ex.toString());
+            } else if (ex instanceof FlowSynchronizationException) {
+                connectionStatus = new NodeConnectionStatus(DisconnectionCode.MISMATCHED_FLOWS, ex.toString());
+            } else {
+                connectionStatus = new NodeConnectionStatus(DisconnectionCode.STARTUP_FAILURE, ex.toString());
+            }
+
+            final byte[] payload;
+            try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                HeartbeatPayload.marshal(new HeartbeatPayload(), baos);
+                payload = baos.toByteArray();
+
+                final Heartbeat failureHeartbeat = new Heartbeat(nodeId, false, connectionStatus, payload);
+                startupFailureMessage.setHeartbeat(failureHeartbeat);
+                heartbeater.send(startupFailureMessage);
+            } catch (final Exception e) {
+                logger.error("Failed to notify Cluster Coordinator that Connection failed", e);
+            }
         }
     }
 
@@ -509,7 +530,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             logger.info("Processing reconnection request from manager.");
 
             // reconnect
-            final ConnectionResponse connectionResponse = new ConnectionResponse(nodeId, request.getDataFlow(), request.isPrimary(),
+            final ConnectionResponse connectionResponse = new ConnectionResponse(nodeId, request.getDataFlow(),
                 request.getManagerRemoteSiteListeningPort(), request.isManagerRemoteSiteCommsSecure(), request.getInstanceId());
             connectionResponse.setClusterManagerDN(request.getRequestorDN());
             loadFromConnectionResponse(connectionResponse);
@@ -520,21 +541,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         } catch (final Exception ex) {
             // disconnect controller
             if (controller.isClustered()) {
-                disconnect();
+                disconnect("Failed to properly handle Reconnection request due to " + ex.toString());
             }
 
             logger.error("Handling reconnection request failed due to: " + ex, ex);
-
-            final ReconnectionFailureMessage failureMessage = new ReconnectionFailureMessage();
-            failureMessage.setNodeId(request.getNodeId());
-            failureMessage.setExceptionMessage(ex.toString());
-
-            // send error message to manager
-            try {
-                senderListener.notifyReconnectionFailure(failureMessage);
-            } catch (final ProtocolException | UnknownServiceAddressException e) {
-                logger.warn("Failed to notify cluster manager of controller reconnection failure due to: " + e, e);
-            }
+            handleConnectionFailure(ex);
         } finally {
             writeLock.unlock();
         }
@@ -544,20 +555,20 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         writeLock.lock();
         try {
             logger.info("Received disconnection request message from manager with explanation: " + request.getExplanation());
-            disconnect();
+            disconnect(request.getExplanation());
         } finally {
             writeLock.unlock();
         }
     }
 
-    private void disconnect() {
+    private void disconnect(final String explanation) {
         writeLock.lock();
         try {
 
             logger.info("Disconnecting node.");
 
             // mark node as not connected
-            controller.setConnected(false);
+            controller.setConnectionStatus(new NodeConnectionStatus(DisconnectionCode.UNKNOWN, explanation));
 
             // turn off primary flag
             controller.setPrimary(false);
@@ -727,7 +738,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setClustered(true, response.getInstanceId(), response.getClusterManagerDN());
             controller.setClusterManagerRemoteSiteInfo(response.getManagerRemoteInputPort(), response.isManagerRemoteCommsSecure());
 
-            controller.setConnected(true);
+            controller.setConnectionStatus(new NodeConnectionStatus(NodeConnectionState.CONNECTED));
 
             // start the processors as indicated by the dataflow
             controller.onFlowInitialized(dataFlow.isAutoStartProcessors());
@@ -736,11 +747,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             loadSnippets(dataFlow.getSnippets());
             controller.startHeartbeating();
         } catch (final UninheritableFlowException ufe) {
-            throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow is different than cluster flow.", ufe);
+            throw new UninheritableFlowException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow is different than cluster flow.", ufe);
         } catch (final FlowSerializationException fse) {
             throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + "local or cluster flow is malformed.", fse);
         } catch (final FlowSynchronizationException fse) {
-            throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow controller partially updated.  Administrator should disconnect node and review flow for corruption.", fse);
+            throw new FlowSynchronizationException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow controller partially updated. "
+                + "Administrator should disconnect node and review flow for corruption.", fse);
         } catch (final Exception ex) {
             throw new ConnectionException("Failed to connect node to cluster due to: " + ex, ex);
         } finally {

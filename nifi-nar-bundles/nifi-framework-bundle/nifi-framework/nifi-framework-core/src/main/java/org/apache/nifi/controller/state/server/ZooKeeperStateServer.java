@@ -54,11 +54,17 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
     }
 
     public synchronized void start() throws IOException {
+        if (started) {
+            return;
+        }
+
         if (quorumPeerConfig.isDistributed()) {
             startDistributed();
         } else {
             startStandalone();
         }
+
+        started = true;
     }
 
     private void startStandalone() throws IOException {
@@ -67,8 +73,6 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         final ServerConfig config = new ServerConfig();
         config.readFrom(quorumPeerConfig);
         try {
-            started = true;
-
             transactionLog = new FileTxnSnapLog(new File(config.getDataLogDir()), new File(config.getDataDir()));
 
             embeddedZkServer = new ZooKeeperServer();
@@ -94,8 +98,6 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         logger.info("Starting Embedded ZooKeeper Peer");
 
         try {
-            started = true;
-
             transactionLog = new FileTxnSnapLog(new File(quorumPeerConfig.getDataLogDir()), new File(quorumPeerConfig.getDataDir()));
 
             connectionFactory = ServerCnxnFactory.createFactory();

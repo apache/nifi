@@ -35,7 +35,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.cluster.HeartbeatPayload;
+import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.node.Node;
@@ -2545,8 +2545,8 @@ public final class DtoFactory {
         return revisionDTO;
     }
 
-    public NodeDTO createNodeDTO(Node node, List<Event> events, boolean primary) {
 
+    public NodeDTO createNodeDTO(Node node, NodeHeartbeat nodeHeartbeat, List<Event> events, boolean primary) {
         final NodeDTO nodeDto = new NodeDTO();
 
         // populate node dto
@@ -2560,16 +2560,12 @@ public final class DtoFactory {
         nodeDto.setConnectionRequested(connectionRequested);
 
         // only connected nodes have heartbeats
-        if (node.getHeartbeat() != null) {
-            final Date heartbeat = new Date(node.getHeartbeat().getCreatedTimestamp());
+        if (nodeHeartbeat != null) {
+            final Date heartbeat = new Date(nodeHeartbeat.getTimestamp());
             nodeDto.setHeartbeat(heartbeat);
-        }
-
-        final HeartbeatPayload nodeHeartbeatPayload = node.getHeartbeatPayload();
-        if (nodeHeartbeatPayload != null) {
-            nodeDto.setNodeStartTime(new Date(nodeHeartbeatPayload.getSystemStartTime()));
-            nodeDto.setActiveThreadCount(nodeHeartbeatPayload.getActiveThreadCount());
-            nodeDto.setQueued(FormatUtils.formatCount(nodeHeartbeatPayload.getTotalFlowFileCount()) + " / " + FormatUtils.formatDataSize(nodeHeartbeatPayload.getTotalFlowFileBytes()));
+            nodeDto.setNodeStartTime(new Date(nodeHeartbeat.getSystemStartTime()));
+            nodeDto.setActiveThreadCount(nodeHeartbeat.getActiveThreadCount());
+            nodeDto.setQueued(FormatUtils.formatCount(nodeHeartbeat.getFlowFileCount()) + " / " + FormatUtils.formatDataSize(nodeHeartbeat.getFlowFileBytes()));
         }
 
         // populate node events

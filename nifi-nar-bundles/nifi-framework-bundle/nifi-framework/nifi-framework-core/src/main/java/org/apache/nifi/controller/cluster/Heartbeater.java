@@ -14,32 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cluster;
+
+package org.apache.nifi.controller.cluster;
+
+import java.io.Closeable;
+import java.io.IOException;
+
+import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 
 /**
- * Represents the exceptional case when connection to the cluster fails.
- *
+ * <p>
+ * A mechanism for sending a heartbeat to a remote resource to indicate
+ * that the node is still an active participant in the cluster
+ * <p>
  */
-public class ConnectionException extends RuntimeException {
+public interface Heartbeater extends Closeable {
 
-    private static final long serialVersionUID = -1378294897231234028L;
+    /**
+     * Sends the given heartbeat to the remote resource
+     *
+     * @param heartbeat the Heartbeat to send
+     * @throws IOException if unable to communicate with the remote resource
+     */
+    void send(HeartbeatMessage heartbeat) throws IOException;
 
-    public ConnectionException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
-
-    public ConnectionException() {
-    }
-
-    public ConnectionException(String msg) {
-        super(msg);
-    }
-
-    public ConnectionException(Throwable cause) {
-        super(cause);
-    }
-
-    public ConnectionException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
 }

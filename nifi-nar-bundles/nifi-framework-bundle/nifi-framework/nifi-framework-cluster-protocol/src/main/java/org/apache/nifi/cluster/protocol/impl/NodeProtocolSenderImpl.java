@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.protocol.impl;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.cert.CertificateException;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
@@ -27,11 +28,9 @@ import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
-import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
-import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
@@ -95,27 +94,26 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
         }
     }
 
+    public void heartbeat(final HeartbeatMessage msg, final String address) throws ProtocolException {
+        final String hostname;
+        final int port;
+        try {
+            final String[] parts = address.split(":");
+            hostname = parts[0];
+            port = Integer.parseInt(parts[1]);
+        } catch (final Exception e) {
+            throw new IllegalArgumentException("Cannot send heartbeat to address [" + address + "]. Address must be in <hostname>:<port> format");
+        }
+
+        sendProtocolMessage(msg, hostname, port);
+    }
+
     private String getNCMDN(Socket socket) {
         try {
             return CertificateUtils.extractClientDNFromSSLSocket(socket);
         } catch (CertificateException e) {
             throw new ProtocolException(e);
         }
-    }
-
-    @Override
-    public void heartbeat(final HeartbeatMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sendProtocolMessage(msg);
-    }
-
-    @Override
-    public void notifyControllerStartupFailure(final ControllerStartupFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sendProtocolMessage(msg);
-    }
-
-    @Override
-    public void notifyReconnectionFailure(ReconnectionFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sendProtocolMessage(msg);
     }
 
     private Socket createSocket() {
@@ -133,10 +131,18 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
         }
     }
 
-    private void sendProtocolMessage(final ProtocolMessage msg) {
+    public SocketConfiguration getSocketConfiguration() {
+        return socketConfiguration;
+    }
+
+    private void sendProtocolMessage(final ProtocolMessage msg, final String hostname, final int port) {
         Socket socket = null;
         try {
-            socket = createSocket();
+            try {
+                socket = SocketUtils.createSocket(new InetSocketAddress(hostname, port), socketConfiguration);
+            } catch (IOException e) {
+                throw new ProtocolException("Failed to send message to Cluster Coordinator due to: " + e, e);
+            }
 
             try {
                 // marshal message to output stream
@@ -149,9 +155,4 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
             SocketUtils.closeQuietly(socket);
         }
     }
-
-    public SocketConfiguration getSocketConfiguration() {
-        return socketConfiguration;
-    }
-
 }

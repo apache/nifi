@@ -26,9 +26,7 @@ import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
-import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
-import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.reporting.BulletinRepository;
 
 public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolListener {
@@ -83,27 +81,17 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
     }
 
     @Override
-    public void heartbeat(final HeartbeatMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sender.heartbeat(msg);
-    }
-
-    @Override
     public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg) throws ProtocolException, UnknownServiceAddressException {
         return sender.requestConnection(msg);
     }
 
     @Override
-    public void notifyControllerStartupFailure(final ControllerStartupFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sender.notifyControllerStartupFailure(msg);
-    }
-
-    @Override
-    public void notifyReconnectionFailure(final ReconnectionFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        sender.notifyReconnectionFailure(msg);
-    }
-
-    @Override
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         listener.setBulletinRepository(bulletinRepository);
+    }
+
+    @Override
+    public void heartbeat(HeartbeatMessage msg, String address) throws ProtocolException {
+        sender.heartbeat(msg, address);
     }
 }

@@ -20,14 +20,13 @@ import javax.xml.bind.annotation.XmlRegistry;
 
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
-import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.MulticastProtocolMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.PingMessage;
-import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ServiceBroadcastMessage;
@@ -42,10 +41,6 @@ public class ObjectFactory {
 
     public ReconnectionRequestMessage createReconnectionRequestMessage() {
         return new ReconnectionRequestMessage();
-    }
-
-    public ReconnectionFailureMessage createReconnectionFailureMessage() {
-        return new ReconnectionFailureMessage();
     }
 
     public ReconnectionResponseMessage createReconnectionResponseMessage() {
@@ -88,7 +83,7 @@ public class ObjectFactory {
         return new MulticastProtocolMessage();
     }
 
-    public ControllerStartupFailureMessage createControllerStartupFailureMessage() {
-        return new ControllerStartupFailureMessage();
+    public NodeStatusChangeMessage createNodeStatusChangeMessage() {
+        return new NodeStatusChangeMessage();
     }
 }

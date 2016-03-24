@@ -33,16 +33,12 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Queue;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -71,9 +67,11 @@ import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
-import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextImpl;
+import org.apache.nifi.cluster.coordination.heartbeat.ClusterProtocolHeartbeatMonitor;
+import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
+import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.event.EventManager;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
@@ -104,7 +102,6 @@ import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.node.Node.Status;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
-import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
@@ -113,12 +110,9 @@ import org.apache.nifi.cluster.protocol.impl.ClusterManagerProtocolSenderListene
 import org.apache.nifi.cluster.protocol.impl.ClusterServicesBroadcaster;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
-import org.apache.nifi.cluster.protocol.message.ControllerStartupFailureMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
-import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
-import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -290,7 +284,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     public static final String BULLETIN_CATEGORY = "Clustering";
 
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(WebClusterManager.class));
-    private static final Logger heartbeatLogger = new NiFiLog(LoggerFactory.getLogger("org.apache.nifi.cluster.heartbeat"));
 
     /**
      * The HTTP header to store a cluster context. An example of what may be stored in the context is a node's auditable actions in response to a cluster request. The cluster context is serialized
@@ -385,10 +378,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private final ClusterManagerProtocolSenderListener senderListener;
     private final OptimisticLockingManager optimisticLockingManager;
     private final StringEncryptor encryptor;
-    private final Queue<Heartbeat> pendingHeartbeats = new ConcurrentLinkedQueue<>();
     private final ReentrantReadWriteLock resourceRWLock = new ReentrantReadWriteLock(true);
     private final ClusterManagerLock readLock = new ClusterManagerLock(resourceRWLock.readLock(), "Read");
     private final ClusterManagerLock writeLock = new ClusterManagerLock(resourceRWLock.writeLock(), "Write");
+    private final ClusterProtocolHeartbeatMonitor heartbeatMonitor;
+    private final WebClusterManagerCoordinator clusterCoordinator;
 
     private final Set<Node> nodes = new HashSet<>();
     private final ConcurrentMap<String, ReportingTaskNode> reportingTasks = new ConcurrentHashMap<>();
@@ -396,8 +390,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     // null means the dataflow should be read from disk
     private StandardDataFlow cachedDataFlow = null;
     private NodeIdentifier primaryNodeId = null;
-    private Timer heartbeatMonitor;
-    private Timer heartbeatProcessor;
     private volatile ClusterServicesBroadcaster servicesBroadcaster = null;
     private volatile EventManager eventManager = null;
     private volatile ClusterNodeFirewall clusterFirewall = null;
@@ -492,6 +484,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         processScheduler.setMaxThreadCount(SchedulingStrategy.CRON_DRIVEN, 10);
 
         controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
+
+        clusterCoordinator = new WebClusterManagerCoordinator(this, senderListener);
+        heartbeatMonitor = new ClusterProtocolHeartbeatMonitor(clusterCoordinator, properties);
+        senderListener.addHandler(heartbeatMonitor);
     }
 
     public void start() throws IOException {
@@ -502,13 +498,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             }
 
             try {
-                // setup heartbeat monitoring
-                heartbeatMonitor = new Timer("Heartbeat Monitor", /* is daemon */ true);
-                heartbeatMonitor.schedule(new HeartbeatMonitoringTimerTask(), 0, getHeartbeatMonitoringIntervalSeconds() * 1000);
-
-                heartbeatProcessor = new Timer("Process Pending Heartbeats", true);
-                final int processPendingHeartbeatDelay = 1000 * Math.max(1, getClusterProtocolHeartbeatSeconds() / 2);
-                heartbeatProcessor.schedule(new ProcessPendingHeartbeatsTask(), processPendingHeartbeatDelay, processPendingHeartbeatDelay);
+                heartbeatMonitor.start();
 
                 // start request replication service
                 httpRequestReplicator.start();
@@ -572,16 +562,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
             boolean encounteredException = false;
 
-            // stop the heartbeat monitoring
-            if (isHeartbeatMonitorRunning()) {
-                heartbeatMonitor.cancel();
-                heartbeatMonitor = null;
-            }
-
-            if (heartbeatProcessor != null) {
-                heartbeatProcessor.cancel();
-                heartbeatProcessor = null;
-            }
+            heartbeatMonitor.stop();
 
             // stop the HTTP request replicator service
             if (httpRequestReplicator.isRunning()) {
@@ -628,8 +609,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     public boolean isRunning() {
         readLock.lock();
         try {
-            return isHeartbeatMonitorRunning()
-                    || httpRequestReplicator.isRunning()
+            return httpRequestReplicator.isRunning()
                     || senderListener.isRunning()
                     || dataFlowManagementService.isRunning()
                     || isBroadcasting();
@@ -640,10 +620,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     @Override
     public boolean canHandle(ProtocolMessage msg) {
-        return MessageType.CONNECTION_REQUEST == msg.getType()
-                || MessageType.HEARTBEAT == msg.getType()
-                || MessageType.CONTROLLER_STARTUP_FAILURE == msg.getType()
-                || MessageType.RECONNECTION_FAILURE == msg.getType();
+        return MessageType.CONNECTION_REQUEST == msg.getType();
     }
 
     @Override
@@ -651,31 +628,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         switch (protocolMessage.getType()) {
             case CONNECTION_REQUEST:
                 return handleConnectionRequest((ConnectionRequestMessage) protocolMessage);
-            case HEARTBEAT:
-                final HeartbeatMessage heartbeatMessage = (HeartbeatMessage) protocolMessage;
-
-                final Heartbeat original = heartbeatMessage.getHeartbeat();
-                final NodeIdentifier originalNodeId = original.getNodeIdentifier();
-                final Heartbeat heartbeatWithDn = new Heartbeat(addRequestorDn(originalNodeId, heartbeatMessage.getRequestorDN()), original.isPrimary(), original.isConnected(), original.getPayload());
-
-                handleHeartbeat(heartbeatWithDn);
-                return null;
-            case CONTROLLER_STARTUP_FAILURE:
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        handleControllerStartupFailure((ControllerStartupFailureMessage) protocolMessage);
-                    }
-                }, "Handle Controller Startup Failure Message from " + ((ControllerStartupFailureMessage) protocolMessage).getNodeId()).start();
-                return null;
-            case RECONNECTION_FAILURE:
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        handleReconnectionFailure((ReconnectionFailureMessage) protocolMessage);
-                    }
-                }, "Handle Reconnection Failure Message from " + ((ReconnectionFailureMessage) protocolMessage).getNodeId()).start();
-                return null;
             default:
                 throw new ProtocolException("No handler defined for message type: " + protocolMessage.getType());
         }
@@ -758,15 +710,12 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 addEvent(node.getNodeId(), "Connection requested from new node.  Setting status to connecting.");
                 nodes.add(node);
             } else {
-                node.setStatus(Status.CONNECTING);
+                clusterCoordinator.updateNodeStatus(node, Status.CONNECTING);
                 addEvent(resolvedNodeIdentifier, "Connection requested from existing node.  Setting status to connecting");
             }
 
             // record the time of the connection request
             node.setConnectionRequestedTimestamp(new Date().getTime());
-
-            // clear out old heartbeat info
-            node.setHeartbeat(null);
 
             // try to obtain a current flow
             if (dataFlowManagementService.isFlowCurrent()) {
@@ -777,17 +726,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     primaryNodeId = clusterDataFlow.getPrimaryNodeId();
                 }
 
-                // determine if this node should be assigned the primary role
-                final boolean primaryRole;
-                if (primaryNodeId == null || primaryNodeId.logicallyEquals(node.getNodeId())) {
-                    setPrimaryNodeId(node.getNodeId());
-                    addEvent(node.getNodeId(), "Setting primary role in connection response.");
-                    primaryRole = true;
-                } else {
-                    primaryRole = false;
-                }
-
-                return new ConnectionResponse(node.getNodeId(), cachedDataFlow, primaryRole, remoteInputPort, remoteCommsSecure, instanceId);
+                return new ConnectionResponse(node.getNodeId(), cachedDataFlow, remoteInputPort, remoteCommsSecure, instanceId);
             }
 
             /*
@@ -848,9 +787,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 throw new IllegalNodeReconnectionException("Node must be disconnected before it can reconnect.");
             }
 
-            // clear out old heartbeat info
-            node.setHeartbeat(null);
-
             // get the dataflow to send with the reconnection request
             if (!dataFlowManagementService.isFlowCurrent()) {
                 /* node remains disconnected */
@@ -867,7 +803,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 primaryNodeId = clusterDataFlow.getPrimaryNodeId();
             }
 
-            node.setStatus(Status.CONNECTING);
+            clusterCoordinator.updateNodeStatus(node, Status.CONNECTING);
             addEvent(node.getNodeId(), "Reconnection requested for node.  Setting status to connecting.");
 
             // determine if this node should be assigned the primary role
@@ -889,7 +825,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         } catch (final Exception ex) {
             logger.warn("Problem encountered issuing reconnection request to node " + node.getNodeId() + " due to: " + ex, ex);
 
-            node.setStatus(Status.DISCONNECTED);
+            clusterCoordinator.updateNodeStatus(node, Status.DISCONNECTED);
             final String eventMsg = "Problem encountered issuing reconnection request. Node will remain disconnected: " + ex;
             addEvent(node.getNodeId(), eventMsg);
             addBulletin(node, Severity.WARNING, eventMsg);
@@ -1214,7 +1150,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             if (node == null) {
                 throw new UnknownNodeException("Node does not exist.");
             }
-            requestDisconnection(node.getNodeId(), /* ignore last node */ false, "User " + userDn + " Disconnected Node");
+
+            clusterCoordinator.requestNodeDisconnect(node.getNodeId(), DisconnectionCode.USER_DISCONNECTED, "User " + userDn + " Disconnected Node");
         } finally {
             writeLock.unlock("requestDisconnection(String)");
         }
@@ -1246,7 +1183,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
      * true.
      * @throws NodeDisconnectionException if the disconnection message fails to be sent.
      */
-    private void requestDisconnection(final NodeIdentifier nodeId, final boolean ignoreNodeChecks, final String explanation)
+    void requestDisconnection(final NodeIdentifier nodeId, final boolean ignoreNodeChecks, final String explanation)
             throws IllegalNodeDisconnectionException, NodeDisconnectionException {
 
         writeLock.lock();
@@ -1277,14 +1214,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 // cannot disconnect the last connected node in the cluster
                 if (connectedNodes.size() == 1 && connectedNodes.iterator().next().equals(nodeId)) {
                     throw new IllegalNodeDisconnectionException("Node may not be disconnected because it is the only connected node in the cluster.");
-                } else if (isPrimaryNode(nodeId)) {
-                    // cannot disconnect the primary node in the cluster
-                    throw new IllegalNodeDisconnectionException("Node may not be disconnected because it is the primary node in the cluster.");
                 }
             }
 
             // update status
-            node.setStatus(Status.DISCONNECTED);
+            clusterCoordinator.updateNodeStatus(node, Status.DISCONNECTED);
             notifyDataFlowManagementServiceOfNodeStatusChange();
 
             // issue the disconnection
@@ -1296,6 +1230,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             senderListener.disconnect(request);
             addEvent(nodeId, "Node disconnected due to " + explanation);
             addBulletin(node, Severity.INFO, "Node disconnected due to " + explanation);
+
+            heartbeatMonitor.removeHeartbeat(nodeId);
         } finally {
             writeLock.unlock("requestDisconnection(NodeIdentifier, boolean)");
         }
@@ -1318,36 +1254,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         return responseMessage;
     }
 
-    private void handleControllerStartupFailure(final ControllerStartupFailureMessage msg) {
-        writeLock.lock();
-        try {
-            final Node node = getRawNode(msg.getNodeId().getId());
-            if (node != null) {
-                node.setStatus(Status.DISCONNECTED);
-                addEvent(msg.getNodeId(), "Node could not join cluster because it failed to start up properly. Setting node to Disconnected. Node reported "
-                        + "the following error: " + msg.getExceptionMessage());
-                addBulletin(node, Severity.ERROR, "Node could not join cluster because it failed to start up properly. Setting node to Disconnected. Node "
-                        + "reported the following error: " + msg.getExceptionMessage());
-            }
-        } finally {
-            writeLock.unlock("handleControllerStartupFailure");
-        }
-    }
-
-    private void handleReconnectionFailure(final ReconnectionFailureMessage msg) {
-        writeLock.lock();
-        try {
-            final Node node = getRawNode(msg.getNodeId().getId());
-            if (node != null) {
-                node.setStatus(Status.DISCONNECTED);
-                final String errorMsg = "Node could not rejoin cluster. Setting node to Disconnected. Node reported the following error: " + msg.getExceptionMessage();
-                addEvent(msg.getNodeId(), errorMsg);
-                addBulletin(node, Severity.ERROR, errorMsg);
-            }
-        } finally {
-            writeLock.unlock("handleControllerStartupFailure");
-        }
-    }
 
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
@@ -1620,176 +1526,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     public void enableReportingTask(final ReportingTaskNode reportingTask) {
         reportingTask.verifyCanEnable();
         processScheduler.enableReportingTask(reportingTask);
-    }
-
-
-    /**
-     * Handles a node's heartbeat. If this heartbeat is a node's first heartbeat since its connection request, then the manager will mark the node as connected. If the node was previously disconnected
-     * due to a lack of heartbeat, then a reconnection request is issued. If the node was disconnected for other reasons, then a disconnection request is issued. If this instance is configured with a
-     * firewall and the heartbeat is blocked, then a disconnection request is issued.
-     */
-    @Override
-    public void handleHeartbeat(final Heartbeat heartbeat) {
-        // sanity check heartbeat
-        if (heartbeat == null) {
-            throw new IllegalArgumentException("Heartbeat may not be null.");
-        } else if (heartbeat.getNodeIdentifier() == null) {
-            throw new IllegalArgumentException("Heartbeat does not contain a node ID.");
-        }
-
-        /*
-         * Processing a heartbeat requires a write lock, which may take a while
-         * to obtain.  Only the last heartbeat is necessary to process per node.
-         * Futhermore, since many could pile up, heartbeats are processed in
-         * bulk.
-         * The below queue stores the pending heartbeats.
-         */
-        pendingHeartbeats.add(heartbeat);
-    }
-
-    private void processPendingHeartbeats() {
-        Node node;
-
-        writeLock.lock();
-        try {
-            /*
-             * Get the most recent heartbeats for the nodes in the cluster.  This
-             * is achieved by "draining" the pending heartbeats queue, populating
-             * a map that associates a node identifier with its latest heartbeat, and
-             * finally, getting the values of the map.
-             */
-            final Map<NodeIdentifier, Heartbeat> mostRecentHeartbeatsMap = new HashMap<>();
-            Heartbeat aHeartbeat;
-            while ((aHeartbeat = pendingHeartbeats.poll()) != null) {
-                mostRecentHeartbeatsMap.put(aHeartbeat.getNodeIdentifier(), aHeartbeat);
-            }
-            final Collection<Heartbeat> mostRecentHeartbeats = new ArrayList<>(mostRecentHeartbeatsMap.values());
-
-            // return fast if no work to do
-            if (mostRecentHeartbeats.isEmpty()) {
-                return;
-            }
-
-            logNodes("Before Heartbeat Processing", heartbeatLogger);
-
-            final int numPendingHeartbeats = mostRecentHeartbeats.size();
-            if (heartbeatLogger.isDebugEnabled()) {
-                heartbeatLogger.debug(String.format("Handling %s heartbeat%s", numPendingHeartbeats, numPendingHeartbeats > 1 ? "s" : ""));
-            }
-
-            for (final Heartbeat mostRecentHeartbeat : mostRecentHeartbeats) {
-                try {
-                    // resolve the proposed node identifier to valid node identifier
-                    final NodeIdentifier resolvedNodeIdentifier = resolveProposedNodeIdentifier(mostRecentHeartbeat.getNodeIdentifier());
-
-                    // get a raw reference to the node (if it doesn't exist, node will be null)
-                    node = getRawNode(resolvedNodeIdentifier.getId());
-
-                    final boolean heartbeatIndicatesNotYetConnected = !mostRecentHeartbeat.isConnected();
-
-                    if (isBlockedByFirewall(resolvedNodeIdentifier.getSocketAddress())) {
-                        if (node == null) {
-                            logger.info("Firewall blocked heartbeat received from unknown node " + resolvedNodeIdentifier + ".  Issuing disconnection request.");
-                        } else {
-                            // record event
-                            addEvent(resolvedNodeIdentifier, "Firewall blocked received heartbeat.  Issuing disconnection request.");
-                        }
-
-                        // request node to disconnect
-                        requestDisconnectionQuietly(resolvedNodeIdentifier, "Blocked By Firewall");
-
-                    } else if (node == null) {  // unknown node, so issue reconnect request
-                        // create new node and add to node set
-                        final Node newNode = new Node(resolvedNodeIdentifier, Status.DISCONNECTED);
-                        nodes.add(newNode);
-
-                        // record event
-                        addEvent(newNode.getNodeId(), "Received heartbeat from unknown node.  Issuing reconnection request.");
-
-                        // record heartbeat
-                        newNode.setHeartbeat(mostRecentHeartbeat);
-                        requestReconnection(resolvedNodeIdentifier.getId(), "NCM Heartbeat Processing");
-                    } else if (heartbeatIndicatesNotYetConnected) {
-                        if (Status.CONNECTED == node.getStatus()) {
-                            // record event
-                            addEvent(node.getNodeId(), "Received heartbeat from node that thinks it is not yet part of the cluster, though the Manager thought it "
-                                    + "was. Marking as Disconnected and issuing reconnection request.");
-
-                            // record heartbeat
-                            node.setHeartbeat(null);
-                            node.setStatus(Status.DISCONNECTED);
-
-                            requestReconnection(resolvedNodeIdentifier.getId(), "NCM Heartbeat Processing");
-                        }
-                    } else if (Status.DISCONNECTED == node.getStatus()) {
-                        // ignore heartbeats from nodes disconnected by means other than lack of heartbeat, unless it is
-                        // the only node. We allow it if it is the only node because if we have a one-node cluster, then
-                        // we cannot manually reconnect it.
-                        if (node.isHeartbeatDisconnection() || nodes.size() == 1) {
-                            // record event
-                            if (node.isHeartbeatDisconnection()) {
-                                addEvent(resolvedNodeIdentifier, "Received heartbeat from node previously disconnected due to lack of heartbeat.  Issuing reconnection request.");
-                            } else {
-                                addEvent(resolvedNodeIdentifier, "Received heartbeat from node previously disconnected, but it is the only known node, so issuing reconnection request.");
-                            }
-
-                            // record heartbeat
-                            node.setHeartbeat(mostRecentHeartbeat);
-
-                            // request reconnection
-                            requestReconnection(resolvedNodeIdentifier.getId(), "NCM Heartbeat Processing");
-                        } else {
-                            // disconnected nodes should not heartbeat, so we need to issue a disconnection request
-                            heartbeatLogger.info("Ignoring received heartbeat from disconnected node " + resolvedNodeIdentifier + ".  Issuing disconnection request.");
-
-                            // request node to disconnect
-                            requestDisconnectionQuietly(resolvedNodeIdentifier, "Received Heartbeat from Node, but Manager has already marked Node as Disconnected");
-                        }
-
-                    } else if (Status.DISCONNECTING == node.getStatus()) {
-                        /* ignore spurious heartbeat */
-                    } else {  // node is either either connected or connecting
-                        // first heartbeat causes status change from connecting to connected
-                        if (Status.CONNECTING == node.getStatus()) {
-                            if (mostRecentHeartbeat.getCreatedTimestamp() < node.getConnectionRequestedTimestamp()) {
-                                heartbeatLogger.info("Received heartbeat for node " + resolvedNodeIdentifier + " but ignoring because it was generated before the node was last asked to reconnect.");
-                                continue;
-                            }
-
-                            // set status to connected
-                            node.setStatus(Status.CONNECTED);
-
-                            // record event
-                            addEvent(resolvedNodeIdentifier, "Received first heartbeat from connecting node.  Setting node to connected.");
-
-                            // notify service of updated node set
-                            notifyDataFlowManagementServiceOfNodeStatusChange();
-
-                            addBulletin(node, Severity.INFO, "Node Connected");
-                        } else {
-                            heartbeatLogger.info("Received heartbeat for node " + resolvedNodeIdentifier + ".");
-                        }
-
-                        // record heartbeat
-                        node.setHeartbeat(mostRecentHeartbeat);
-
-                        if (mostRecentHeartbeat.isPrimary()) {
-                            setPrimaryNodeId(node.getNodeId());
-                        }
-                    }
-                } catch (final Exception e) {
-                    logger.error("Failed to process heartbeat from {}:{} due to {}",
-                            mostRecentHeartbeat.getNodeIdentifier().getApiAddress(), mostRecentHeartbeat.getNodeIdentifier().getApiPort(), e.toString());
-                    if (logger.isDebugEnabled()) {
-                        logger.error("", e);
-                    }
-                }
-            }
-
-            logNodes("After Heartbeat Processing", heartbeatLogger);
-        } finally {
-            writeLock.unlock("processPendingHeartbeats");
-        }
     }
 
 
@@ -2125,15 +1861,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    private boolean isPrimaryNode(final NodeIdentifier nodeId) {
-        readLock.lock();
-        try {
-            return primaryNodeId != null && primaryNodeId.equals(nodeId);
-        } finally {
-            readLock.unlock("isPrimaryNode");
-        }
-    }
-
     private boolean isInSafeMode() {
         readLock.lock();
         try {
@@ -2143,7 +1870,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    private void setPrimaryNodeId(final NodeIdentifier primaryNodeId) throws DaoException {
+    void setPrimaryNodeId(final NodeIdentifier primaryNodeId) throws DaoException {
         writeLock.lock();
         try {
             dataFlowManagementService.updatePrimaryNode(primaryNodeId);
@@ -3321,7 +3048,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             // create new "updated" node by cloning old node and updating status
             final Node currentNode = getRawNode(nodeResponse.getNodeId().getId());
             final Node updatedNode = currentNode.clone();
-            updatedNode.setStatus(nodeStatus);
+            clusterCoordinator.updateNodeStatus(updatedNode, nodeStatus);
 
             // map updated node to its response
             updatedNodesMap.put(updatedNode, nodeResponse);
@@ -4041,7 +3768,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     final Node node = updatedNodeEntry.getKey();
 
                     if (problematicNodeResponses.contains(nodeResponse)) {
-                        node.setStatus(Status.CONNECTED);
+                        clusterCoordinator.updateNodeStatus(node, Status.CONNECTED);
                         problematicNodeResponses.remove(nodeResponse);
                     }
                 }
@@ -4227,7 +3954,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
      *
      * @return false if the IP is listed in the firewall or if the firewall is not configured; true otherwise
      */
-    private boolean isBlockedByFirewall(final String ip) {
+    boolean isBlockedByFirewall(final String ip) {
         if (isFirewallConfigured()) {
             return !clusterFirewall.isPermissible(ip);
         } else {
@@ -4257,7 +3984,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    private Node getRawNode(final String nodeId) {
+    Node getRawNode(final String nodeId) {
         readLock.lock();
         try {
             for (final Node node : nodes) {
@@ -4320,16 +4047,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-
-    private boolean isHeartbeatMonitorRunning() {
-        readLock.lock();
-        try {
-            return heartbeatMonitor != null;
-        } finally {
-            readLock.unlock("isHeartbeatMonitorRunning");
-        }
-    }
-
     private boolean canChangeNodeState(final String method, final URI uri) {
         return HttpMethod.DELETE.equalsIgnoreCase(method) || HttpMethod.POST.equalsIgnoreCase(method) || HttpMethod.PUT.equalsIgnoreCase(method);
     }
@@ -4359,87 +4076,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    private void logNodes(final String header, final Logger logger) {
-        if (logger.isTraceEnabled()) {
-            if (StringUtils.isNotBlank(header)) {
-                logger.trace(header);
-            }
-            for (final Node node : getNodes()) {
-                logger.trace(node.getNodeId() + " : " + node.getStatus());
-            }
-        }
-    }
-
-
-    /**
-     * This timer task simply processes any pending heartbeats. This timer task is not strictly needed, as HeartbeatMonitoringTimerTask will do this. However, this task is scheduled much more
-     * frequently and by processing the heartbeats more frequently, the stats that we report have less of a delay.
-     */
-    private class ProcessPendingHeartbeatsTask extends TimerTask {
-
-        @Override
-        public void run() {
-            writeLock.lock();
-            try {
-                processPendingHeartbeats();
-            } finally {
-                writeLock.unlock("Process Pending Heartbeats Task");
-            }
-        }
-    }
-
-    /**
-     * A timer task to detect nodes that have not sent a heartbeat in a while. The "problem" nodes are marked as disconnected due to lack of heartbeat by the task. No disconnection request is sent to
-     * the node. This is because either the node is not functioning in which case sending the request is futile or the node is running a bit slow. In the latter case, we'll wait for the next heartbeat
-     * and send a reconnection request when we process the heartbeat in the heartbeatHandler() method.
-     */
-    private class HeartbeatMonitoringTimerTask extends TimerTask {
-
-        @Override
-        public void run() {
-            // keep track of any status changes
-            boolean statusChanged = false;
-
-            writeLock.lock();
-            try {
-                // process all of the heartbeats before we decided to kick anyone out of the cluster.
-                logger.debug("Processing pending heartbeats...");
-                processPendingHeartbeats();
-
-                logger.debug("Executing heartbeat monitoring");
-
-                // check for any nodes that have not heartbeated in a long time
-                for (final Node node : getRawNodes(Status.CONNECTED)) {
-                    // return prematurely if we were interrupted
-                    if (Thread.currentThread().isInterrupted()) {
-                        return;
-                    }
-
-                    // check if we received a recent heartbeat, changing status to disconnected if necessary
-                    final long lastHeardTimestamp = node.getHeartbeat().getCreatedTimestamp();
-                    final int heartbeatGapSeconds = (int) (new Date().getTime() - lastHeardTimestamp) / 1000;
-                    if (heartbeatGapSeconds > getMaxHeartbeatGapSeconds()) {
-                        node.setHeartbeatDisconnection();
-                        addEvent(node.getNodeId(), "Node disconnected due to lack of heartbeat.");
-                        addBulletin(node, Severity.WARNING, "Node disconnected due to lack of heartbeat");
-                        statusChanged = true;
-                    }
-                }
-
-                // if a status change occurred, make the necessary updates
-                if (statusChanged) {
-                    logNodes("Heartbeat Monitoring disconnected node(s)", logger);
-                    // notify service of updated node set
-                    notifyDataFlowManagementServiceOfNodeStatusChange();
-                } else {
-                    logNodes("Heartbeat Monitoring determined all nodes are healthy", logger);
-                }
-            } catch (final Exception ex) {
-                logger.warn("Heartbeat monitor experienced exception while monitoring: " + ex, ex);
-            } finally {
-                writeLock.unlock("HeartbeatMonitoringTimerTask");
-            }
-        }
+    public NodeHeartbeat getLatestHeartbeat(final NodeIdentifier nodeId) {
+        return heartbeatMonitor.getLatestHeartbeat(nodeId);
     }
 
     @Override
@@ -4449,16 +4087,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             final Collection<NodeInformation> nodeInfos = new ArrayList<>();
             for (final Node node : getRawNodes(Status.CONNECTED)) {
                 final NodeIdentifier id = node.getNodeId();
-                final HeartbeatPayload heartbeat = node.getHeartbeatPayload();
-                if (heartbeat == null) {
-                    continue;
-                }
 
                 final Integer siteToSitePort = id.getSiteToSitePort();
                 if (siteToSitePort == null) {
                     continue;
                 }
-                final int flowFileCount = (int) heartbeat.getTotalFlowFileCount();
+
+                final NodeHeartbeat nodeHeartbeat = heartbeatMonitor.getLatestHeartbeat(id);
+                final int flowFileCount = nodeHeartbeat == null ? 0 : nodeHeartbeat.getFlowFileCount();
                 final NodeInformation nodeInfo = new NodeInformation(id.getSiteToSiteAddress(), siteToSitePort, id.getApiPort(),
                     id.isSiteToSiteSecure(), flowFileCount);
                 nodeInfos.add(nodeInfo);
@@ -4625,5 +4261,12 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     @Override
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         return controllerServiceProvider.getControllerServiceIdentifiers(serviceType);
+    }
+
+    public void reportEvent(final NodeIdentifier nodeId, final Severity severity, final String message) {
+        bulletinRepository.addBulletin(BulletinFactory.createBulletin(nodeId == null ? "Cluster" : nodeId.getId(), severity.name(), message));
+        if (nodeId != null) {
+            addEvent(nodeId, message);
+        }
     }
 }
