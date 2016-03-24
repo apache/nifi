@@ -4105,13 +4105,17 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             for (final Node node : getRawNodes(Status.CONNECTED)) {
                 final NodeIdentifier id = node.getNodeId();
 
+                final NodeHeartbeat nodeHeartbeat = heartbeatMonitor.getLatestHeartbeat(id);
+                if (nodeHeartbeat == null) {
+                    continue;
+                }
+
                 final Integer siteToSitePort = id.getSiteToSitePort();
                 if (siteToSitePort == null) {
                     continue;
                 }
 
-                final NodeHeartbeat nodeHeartbeat = heartbeatMonitor.getLatestHeartbeat(id);
-                final int flowFileCount = nodeHeartbeat == null ? 0 : nodeHeartbeat.getFlowFileCount();
+                final int flowFileCount = nodeHeartbeat.getFlowFileCount();
                 final NodeInformation nodeInfo = new NodeInformation(id.getSiteToSiteAddress(), siteToSitePort, id.getApiPort(),
                     id.isSiteToSiteSecure(), flowFileCount);
                 nodeInfos.add(nodeInfo);
