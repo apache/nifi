@@ -17,6 +17,8 @@
 package org.apache.nifi.controller;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -203,6 +205,18 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     }
 
+    @Override
+    public void archiveFlow() throws IOException {
+        writeLock.lock();
+        try {
+            final File archiveFile = dao.createArchiveFile();
+            try (final OutputStream out = new FileOutputStream(archiveFile)) {
+                dao.load(out, true);
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
 
     @Override
     public void saveFlowChanges() throws IOException {

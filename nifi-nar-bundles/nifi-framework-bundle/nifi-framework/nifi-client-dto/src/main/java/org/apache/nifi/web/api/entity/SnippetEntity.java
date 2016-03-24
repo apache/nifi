@@ -23,7 +23,7 @@ import org.apache.nifi.web.api.dto.SnippetDTO;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a SnippetDTO.
  */
 @XmlRootElement(name = "snippetEntity")
-public class SnippetEntity extends Entity {
+public class SnippetEntity extends ComponentEntity {
 
     private SnippetDTO snippet;
 

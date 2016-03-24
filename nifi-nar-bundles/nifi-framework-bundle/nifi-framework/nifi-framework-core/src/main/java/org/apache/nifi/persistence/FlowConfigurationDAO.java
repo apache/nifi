@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.persistence;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -57,6 +58,15 @@ public interface FlowConfigurationDAO {
     void load(OutputStream os) throws IOException;
 
     /**
+     * Loads the stored flow into the given stream, optionally compressed
+     *
+     * @param os the Output Stream to write the flow to
+     * @param compressed whether or not the data should be gzipped
+     * @throws IOException if unable to load the flow
+     */
+    void load(OutputStream os, boolean compressed) throws IOException;
+
+    /**
      * Saves the given stream as the stored flow.
      *
      * @param is an input stream
@@ -96,4 +106,11 @@ public interface FlowConfigurationDAO {
      */
     void save(FlowController flow, boolean archive) throws IOException;
 
+    /**
+     * Creates a File that can be used to write an archive to. The file will not actually exist on disk.
+     *
+     * @return a File that can be used to write an archive to
+     * @throws IOException if unable to access the required directories
+     */
+    File createArchiveFile() throws IOException;
 }

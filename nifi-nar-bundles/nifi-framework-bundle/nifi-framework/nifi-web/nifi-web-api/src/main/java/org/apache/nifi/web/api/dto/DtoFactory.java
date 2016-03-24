@@ -16,6 +16,30 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
@@ -135,28 +159,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
-
-import javax.ws.rs.WebApplicationException;
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 
 public final class DtoFactory {
 
@@ -686,16 +689,29 @@ public final class DtoFactory {
         dto.setLinked(snippet.isLinked());
 
         // populate the snippet contents ids
-        dto.setConnections(copy(snippet.getConnections()));
-        dto.setFunnels(copy(snippet.getFunnels()));
-        dto.setInputPorts(copy(snippet.getInputPorts()));
-        dto.setLabels(copy(snippet.getLabels()));
-        dto.setOutputPorts(copy(snippet.getOutputPorts()));
-        dto.setProcessGroups(copy(snippet.getProcessGroups()));
-        dto.setProcessors(copy(snippet.getProcessors()));
-        dto.setRemoteProcessGroups(copy(snippet.getRemoteProcessGroups()));
+        dto.setConnections(mapRevisionToDto(snippet.getConnections()));
+        dto.setFunnels(mapRevisionToDto(snippet.getFunnels()));
+        dto.setInputPorts(mapRevisionToDto(snippet.getInputPorts()));
+        dto.setLabels(mapRevisionToDto(snippet.getLabels()));
+        dto.setOutputPorts(mapRevisionToDto(snippet.getOutputPorts()));
+        dto.setProcessGroups(mapRevisionToDto(snippet.getProcessGroups()));
+        dto.setProcessors(mapRevisionToDto(snippet.getProcessors()));
+        dto.setRemoteProcessGroups(mapRevisionToDto(snippet.getRemoteProcessGroups()));
 
         return dto;
+    }
+
+    private Map<String, RevisionDTO> mapRevisionToDto(final Map<String, Revision> revisionMap) {
+        final Map<String, RevisionDTO> dtos = new HashMap<>(revisionMap.size());
+        for (final Map.Entry<String, Revision> entry : revisionMap.entrySet()) {
+            final Revision revision = entry.getValue();
+            final RevisionDTO revisionDto = new RevisionDTO();
+            revisionDto.setClientId(revision.getClientId());
+            revisionDto.setVersion(revision.getVersion());
+
+            dtos.put(entry.getKey(), revisionDto);
+        }
+        return dtos;
     }
 
     /**
@@ -1173,7 +1189,7 @@ public final class DtoFactory {
         }
 
         // create the reference dto's
-        dto.setReferencingComponents(createControllerServiceReferencingComponentsDto(controllerServiceNode.getReferences()));
+        dto.setReferencingComponents(createControllerServiceReferencingComponentEntities(controllerServiceNode.getReferences()));
 
         // add the validation errors
         final Collection<ValidationResult> validationErrors = controllerServiceNode.getValidationErrors();
@@ -1187,6 +1203,55 @@ public final class DtoFactory {
         }
 
         return dto;
+    }
+
+
+    // TODO: REMOVE THIS...
+    public Set<ControllerServiceReferencingComponentEntity> createControllerServiceReferencingComponentEntities(final ControllerServiceReference reference) {
+        final Set<ControllerServiceReferencingComponentDTO> dtos = createControllerServiceReferencingComponentsDto(reference);
+        final Set<ControllerServiceReferencingComponentEntity> entities = new HashSet<>(dtos.size());
+        for (final ControllerServiceReferencingComponentDTO dto : dtos) {
+            final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
+            entity.setControllerServiceReferencingComponent(dto);
+            entities.add(entity);
+        }
+
+        return entities;
+    }
+
+
+    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ConfiguredComponent component) {
+        final ControllerServiceReferencingComponentDTO dto = new ControllerServiceReferencingComponentDTO();
+
+        dto.setDescriptors(new HashMap<>());
+        dto.setGroupId(null); // TODO
+        dto.setId(component.getIdentifier());
+        dto.setName(component.getName());
+        dto.setProperties(convertProperties(component.getProperties()));
+        dto.setState(null); // TODO
+        dto.setType(null); // TODO
+        dto.setValidationErrors(component.getValidationErrors().stream().map(err -> err.toString()).collect(Collectors.toList()));
+
+        if (component instanceof ControllerServiceNode) {
+            final ControllerServiceNode serviceNode = (ControllerServiceNode) component;
+            final Set<ConfiguredComponent> refs = serviceNode.getReferences().getReferencingComponents();
+            final Set<ControllerServiceReferencingComponentDTO> refDtos = new HashSet<>(refs.size());
+
+            for (final ConfiguredComponent ref : refs) {
+                refDtos.add(createControllerServiceReferencingComponentDTO(ref));
+            }
+            dto.setReferencingComponents(refDtos);
+        }
+
+        return dto;
+    }
+
+    private Map<String, String> convertProperties(final Map<PropertyDescriptor, String> properties) {
+        final Map<String, String> converted = new HashMap<>(properties.size());
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            converted.put(entry.getKey().getDisplayName(), entry.getValue());
+        }
+        return converted;
     }
 
     public Set<ControllerServiceReferencingComponentDTO> createControllerServiceReferencingComponentsDto(final ControllerServiceReference reference) {

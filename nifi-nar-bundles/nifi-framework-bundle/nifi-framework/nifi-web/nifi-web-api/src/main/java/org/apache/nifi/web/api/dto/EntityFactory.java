@@ -18,12 +18,16 @@ package org.apache.nifi.web.api.dto;
 
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.SnippetEntity;
 
 public final class EntityFactory {
 
@@ -152,4 +156,61 @@ public final class EntityFactory {
         return entity;
     }
 
+    public RemoteProcessGroupPortEntity createRemoteProcessGroupPortEntity(final RemoteProcessGroupPortDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setRemoteProcessGroupPort(dto);
+            }
+        }
+
+        return entity;
+    }
+
+    public SnippetEntity createSnippetEntity(final SnippetDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final SnippetEntity entity = new SnippetEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setSnippet(dto);
+            }
+        }
+
+        return entity;
+    }
+
+    public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final ReportingTaskEntity entity = new ReportingTaskEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setReportingTask(dto);
+            }
+        }
+
+        return entity;
+    }
+
+    public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(
+        final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+
+        final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setControllerServiceReferencingComponent(dto);
+            }
+        }
+
+        return entity;
+    }
 }

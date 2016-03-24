@@ -379,19 +379,23 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(revisionEntity.getRevision(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+
+        if (validationPhase) {
             serviceFacade.verifyCanClearProcessorState(id);
             return generateContinueResponse().build();
         }
 
         // get the component state
-        final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearProcessorState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
+        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearProcessorState(revision, id);
 
         // create the revision
         final RevisionDTO responseRevision = new RevisionDTO();
-        responseRevision.setClientId(requestRevision.getClientId());
+        responseRevision.setClientId(revision.getClientId());
         responseRevision.setVersion(snapshot.getVersion());
 
         // generate the response entity
@@ -475,15 +479,18 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(processorEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateProcessor(requestProcessorDTO);
             return generateContinueResponse().build();
         }
 
         // update the processor
-        final RevisionDTO revision = processorEntity.getRevision();
-        final UpdateResult<ProcessorEntity> result = serviceFacade.updateProcessor(new Revision(revision.getVersion(), revision.getClientId()), requestProcessorDTO);
+        final UpdateResult<ProcessorEntity> result = serviceFacade.updateProcessor(revision, requestProcessorDTO);
         final ProcessorEntity entity = result.getResult();
         populateRemainingProcessorEntityContent(entity);
 
@@ -547,21 +554,23 @@ public class ProcessorResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+
+        // We need to claim the revision for the Processor if either this is the first phase of a two-phase
+        // request, or if this is not a two-phase request.
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteProcessor(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the processor
-        final ProcessorEntity entity = serviceFacade.deleteProcessor(new Revision(clientVersion, clientId.getClientId()), id);
+        final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, id);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

@@ -148,9 +148,11 @@ public class ControllerFacade implements Authorizable {
 
     /**
      * Creates an archive of the current flow.
+     *
+     * @throws IOException if unable to save a copy of the flow
      */
-    public void createArchive() {
-        flowService.saveFlowChanges(TimeUnit.SECONDS, 0, true);
+    public void createArchive() throws IOException {
+        flowService.archiveFlow();
     }
 
     /**

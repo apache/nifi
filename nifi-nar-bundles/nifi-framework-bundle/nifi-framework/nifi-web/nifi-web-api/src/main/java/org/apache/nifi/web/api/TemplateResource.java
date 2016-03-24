@@ -195,8 +195,9 @@ public class TemplateResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        // TODO: NEED VERSION FOR REVISION!
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase) {
             return generateContinueResponse().build();
         }
 

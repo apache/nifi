@@ -370,8 +370,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
                 processor = entity.getComponent();
             } else {
-                final ConfigurationSnapshot<ProcessorDTO> response = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
-                processor = response.getConfiguration();
+                final ProcessorEntity entity = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
+                processor = entity.getComponent();
             }
 
             // return the processor info
@@ -453,8 +453,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 controllerServiceDto.setId(id);
                 controllerServiceDto.setAnnotationData(annotationData);
 
-                final ConfigurationSnapshot<ControllerServiceDTO> response = serviceFacade.updateControllerService(revision, controllerServiceDto);
-                controllerService = response.getConfiguration();
+                final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, controllerServiceDto);
+                controllerService = updateResult.getResult().getControllerService();
             } else {
                 // if this is a standalone instance the service should have been found above... there should
                 // no cluster to replicate the request to
@@ -588,8 +588,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 reportingTaskDto.setId(id);
                 reportingTaskDto.setAnnotationData(annotationData);
 
-                final ConfigurationSnapshot<ReportingTaskDTO> response = serviceFacade.updateReportingTask(revision, reportingTaskDto);
-                reportingTask = response.getConfiguration();
+                final UpdateResult<ReportingTaskEntity> updateResult = serviceFacade.updateReportingTask(revision, reportingTaskDto);
+                reportingTask = updateResult.getResult().getReportingTask();
             } else {
                 // if this is a standalone instance the task should have been found above... there should
                 // no cluster to replicate the request to

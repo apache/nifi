@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 /**
  * The NiFi flow starting at a given Process Group.
  */
-@XmlType(name = "processGroupflow")
+@XmlType(name = "processGroupFlow")
 public class ProcessGroupFlowDTO {
 
     private String id;

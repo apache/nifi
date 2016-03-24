@@ -77,6 +77,7 @@ import java.util.UUID;
     value = "/flowfile-queues",
     description = "Endpoint for managing a FlowFile Queue."
 )
+// TODO: Need revisions of the Connections for these endpoints!
 public class FlowFileQueueResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;

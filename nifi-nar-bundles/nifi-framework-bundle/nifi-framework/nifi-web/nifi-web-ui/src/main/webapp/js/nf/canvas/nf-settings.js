@@ -317,7 +317,7 @@ nf.Settings = (function () {
         // add the new controller service
         var addService = $.ajax({
             type: 'POST',
-            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(availability),
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/controller-services/' + encodeURIComponent(availability),
             data: JSON.stringify(controllerServiceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -861,7 +861,7 @@ nf.Settings = (function () {
         // get the controller services that are running on the nodes
         var nodeControllerServices = $.ajax({
             type: 'GET',
-            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(config.node),
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/controller-services/' + encodeURIComponent(config.node),
             dataType: 'json'
         }).done(function (response) {
             var nodeServices = response.controllerServices;
@@ -879,7 +879,7 @@ nf.Settings = (function () {
             if (nf.Canvas.isClustered()) {
                 $.ajax({
                     type: 'GET',
-                    url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(config.ncm),
+                    url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/controller-services/' + encodeURIComponent(config.ncm),
                     dataType: 'json'
                 }).done(function (response) {
                     var ncmServices = response.controllerServices;

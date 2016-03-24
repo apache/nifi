@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlType;
-import java.util.HashSet;
-import java.util.Set;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * The contents of a snippet of a flow.
@@ -34,14 +35,14 @@ public class SnippetDTO {
     private Boolean linked;
 
     // when specified these are only considered during creation
-    private Set<String> processGroups = new HashSet<>();
-    private Set<String> remoteProcessGroups = new HashSet<>();
-    private Set<String> processors = new HashSet<>();
-    private Set<String> inputPorts = new HashSet<>();
-    private Set<String> outputPorts = new HashSet<>();
-    private Set<String> connections = new HashSet<>();
-    private Set<String> labels = new HashSet<>();
-    private Set<String> funnels = new HashSet<>();
+    private Map<String, RevisionDTO> processGroups = new HashMap<>();
+    private Map<String, RevisionDTO> remoteProcessGroups = new HashMap<>();
+    private Map<String, RevisionDTO> processors = new HashMap<>();
+    private Map<String, RevisionDTO> inputPorts = new HashMap<>();
+    private Map<String, RevisionDTO> outputPorts = new HashMap<>();
+    private Map<String, RevisionDTO> connections = new HashMap<>();
+    private Map<String, RevisionDTO> labels = new HashMap<>();
+    private Map<String, RevisionDTO> funnels = new HashMap<>();
 
     /**
      * @return id of this snippet
@@ -109,11 +110,11 @@ public class SnippetDTO {
             value = "The ids of the connections in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
-    public Set<String> getConnections() {
+    public Map<String, RevisionDTO> getConnections() {
         return connections;
     }
 
-    public void setConnections(Set<String> connections) {
+    public void setConnections(Map<String, RevisionDTO> connections) {
         this.connections = connections;
     }
 
@@ -125,11 +126,11 @@ public class SnippetDTO {
             value = "The ids of the funnels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
-    public Set<String> getFunnels() {
+    public Map<String, RevisionDTO> getFunnels() {
         return funnels;
     }
 
-    public void setFunnels(Set<String> funnels) {
+    public void setFunnels(Map<String, RevisionDTO> funnels) {
         this.funnels = funnels;
     }
 
@@ -141,11 +142,11 @@ public class SnippetDTO {
             value = "The ids of the input ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
-    public Set<String> getInputPorts() {
+    public Map<String, RevisionDTO> getInputPorts() {
         return inputPorts;
     }
 
-    public void setInputPorts(Set<String> inputPorts) {
+    public void setInputPorts(Map<String, RevisionDTO> inputPorts) {
         this.inputPorts = inputPorts;
     }
 
@@ -157,11 +158,11 @@ public class SnippetDTO {
             value = "The ids of the labels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
-    public Set<String> getLabels() {
+    public Map<String, RevisionDTO> getLabels() {
         return labels;
     }
 
-    public void setLabels(Set<String> labels) {
+    public void setLabels(Map<String, RevisionDTO> labels) {
         this.labels = labels;
     }
 
@@ -173,11 +174,11 @@ public class SnippetDTO {
             value = "The ids of the output ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
-    public Set<String> getOutputPorts() {
+    public Map<String, RevisionDTO> getOutputPorts() {
         return outputPorts;
     }
 
-    public void setOutputPorts(Set<String> outputPorts) {
+    public void setOutputPorts(Map<String, RevisionDTO> outputPorts) {
         this.outputPorts = outputPorts;
     }
 
@@ -189,11 +190,11 @@ public class SnippetDTO {
             value = "The ids of the process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
-    public Set<String> getProcessGroups() {
+    public Map<String, RevisionDTO> getProcessGroups() {
         return processGroups;
     }
 
-    public void setProcessGroups(Set<String> processGroups) {
+    public void setProcessGroups(Map<String, RevisionDTO> processGroups) {
         this.processGroups = processGroups;
     }
 
@@ -205,11 +206,11 @@ public class SnippetDTO {
             value = "The ids of the processors in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
-    public Set<String> getProcessors() {
+    public Map<String, RevisionDTO> getProcessors() {
         return processors;
     }
 
-    public void setProcessors(Set<String> processors) {
+    public void setProcessors(Map<String, RevisionDTO> processors) {
         this.processors = processors;
     }
 
@@ -221,11 +222,11 @@ public class SnippetDTO {
             value = "The ids of the remote process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
-    public Set<String> getRemoteProcessGroups() {
+    public Map<String, RevisionDTO> getRemoteProcessGroups() {
         return remoteProcessGroups;
     }
 
-    public void setRemoteProcessGroups(Set<String> remoteProcessGroups) {
+    public void setRemoteProcessGroups(Map<String, RevisionDTO> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
     }
 

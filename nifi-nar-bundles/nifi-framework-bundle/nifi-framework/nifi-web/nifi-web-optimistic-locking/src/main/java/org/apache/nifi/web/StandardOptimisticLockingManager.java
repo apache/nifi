@@ -22,13 +22,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
+import org.apache.nifi.web.revision.NaiveRevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Implements the OptimisticLockingManager interface.
  *
+ * @deprecated This class has been deprecated in favor of {@link NaiveRevisionManager}
  */
+@Deprecated
 public class StandardOptimisticLockingManager implements OptimisticLockingManager {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardOptimisticLockingManager.class);

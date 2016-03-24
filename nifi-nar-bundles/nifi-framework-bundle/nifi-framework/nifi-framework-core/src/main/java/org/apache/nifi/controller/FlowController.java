@@ -83,7 +83,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.connectable.StandardConnection;
 import org.apache.nifi.controller.cluster.Heartbeater;
-import org.apache.nifi.controller.cluster.ZooKeeperHeartbeater;
+import org.apache.nifi.controller.cluster.ClusterProtocolHeartbeater;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -534,7 +534,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         if (configuredForClustering) {
             leaderElectionManager = new CuratorLeaderElectionManager(4);
-            heartbeater = new ZooKeeperHeartbeater(protocolSender, properties);
+            heartbeater = new ClusterProtocolHeartbeater(protocolSender, properties);
         } else {
             leaderElectionManager = null;
             heartbeater = null;
@@ -1273,6 +1273,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private void sendShutdownNotification() {
         // Generate a heartbeat message and publish it, indicating that we are shutting down
         final HeartbeatMessage heartbeatMsg = createHeartbeatMessage();
+        if (heartbeatMsg == null) {
+            LOG.warn("Cannot sent Shutdown Notification Message because node's identifier is not known at this time");
+            return;
+        }
+
         final Heartbeat heartbeat = heartbeatMsg.getHeartbeat();
         final byte[] hbPayload = heartbeatMsg.getHeartbeat().getPayload();
         final NodeConnectionStatus connectionStatus = new NodeConnectionStatus(DisconnectionCode.NODE_SHUTDOWN);
@@ -2540,6 +2545,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             status.setProcessingNanos(0);
             status.setInvocations(0);
             status.setAverageLineageDuration(0L);
+            status.setFlowFilesRemoved(0);
         } else {
             final int processedCount = entry.getFlowFilesOut();
             final long numProcessedBytes = entry.getContentSizeOut();
@@ -2566,6 +2572,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             status.setBytesReceived(entry.getBytesReceived());
             status.setFlowFilesSent(entry.getFlowFilesSent());
             status.setBytesSent(entry.getBytesSent());
+            status.setFlowFilesRemoved(entry.getFlowFilesRemoved());
         }
 
         // determine the run status and get any validation errors... must check
@@ -2835,23 +2842,23 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public void disableReferencingServices(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.disableReferencingServices(serviceNode);
+    public Set<ConfiguredComponent> disableReferencingServices(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.disableReferencingServices(serviceNode);
     }
 
     @Override
-    public void enableReferencingServices(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.enableReferencingServices(serviceNode);
+    public Set<ConfiguredComponent> enableReferencingServices(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.enableReferencingServices(serviceNode);
     }
 
     @Override
-    public void scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.scheduleReferencingComponents(serviceNode);
+    public Set<ConfiguredComponent> scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.scheduleReferencingComponents(serviceNode);
     }
 
     @Override
-    public void unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.unscheduleReferencingComponents(serviceNode);
+    public Set<ConfiguredComponent> unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.unscheduleReferencingComponents(serviceNode);
     }
 
     @Override
@@ -3744,7 +3751,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             hbPayload.setTotalFlowFileBytes(queueSize.getByteCount());
 
             // create heartbeat message
-            final Heartbeat heartbeat = new Heartbeat(getNodeId(), bean.isPrimary(), bean.getConnectionStatus(), hbPayload.marshal());
+            final NodeIdentifier nodeId = getNodeId();
+            if (nodeId == null) {
+                LOG.warn("Cannot create Heartbeat Message because node's identifier is not known at this time");
+                return null;
+            }
+
+            final Heartbeat heartbeat = new Heartbeat(nodeId, bean.isPrimary(), bean.getConnectionStatus(), hbPayload.marshal());
             final HeartbeatMessage message = new HeartbeatMessage();
             message.setHeartbeat(heartbeat);
 
