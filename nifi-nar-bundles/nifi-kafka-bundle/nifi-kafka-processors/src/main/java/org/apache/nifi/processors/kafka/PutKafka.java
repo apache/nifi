@@ -306,7 +306,7 @@ public class PutKafka extends AbstractProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
             } else {
                 flowFile = session.putAllAttributes(flowFile, this.buildFailedFlowFileAttributes(failedSegmentsRef.get(), messageContext));
-                session.transfer(flowFile, REL_FAILURE);
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
             }
 
         } else {
