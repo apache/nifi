@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,11 +36,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -455,9 +456,52 @@ public class ConvertJSONToSQL extends AbstractProcessor {
      */
     protected static String createSqlStringValue(final JsonNode fieldNode, final Integer colSize, final int sqlType) {
         String fieldValue = fieldNode.asText();
-        if (colSize != null && fieldValue.length() > colSize) {
-            fieldValue = fieldValue.substring(0, colSize);
+
+        switch (sqlType) {
+
+        // only "true" is considered true, everything else is false
+        case Types.BOOLEAN:
+            switch (fieldValue==null?"":fieldValue) {
+            case "true":
+                fieldValue = "true";
+                break;
+
+            default:
+                fieldValue = "false";
+                break;
+            }
+            break;
+
+        // Don't truncate numeric types.
+        // Should we check value is indeed number and throw error if not?
+        case Types.TINYINT:
+        case Types.SMALLINT:
+        case Types.INTEGER:
+        case Types.BIGINT:
+        case Types.REAL:
+        case Types.FLOAT:
+        case Types.DOUBLE:
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+            break;
+
+        // Don't truncate date and time types.
+        // Should we check value is indeed correct date and/or time and throw error if not?
+        // We assume date and time is already correct, but because ConvertJSONToSQL is often used together with PutSQL
+        // maybe we should assure PutSQL correctly understands date and time values.
+        // Currently PutSQL expect Long numeric values. But JSON usually uses ISO 8601, for example: 2012-04-23T18:25:43.511Z for dates.
+        case Types.DATE:
+        case Types.TIME:
+        case Types.TIMESTAMP:
+            break;
+
+        default:
+            if (colSize != null && fieldValue.length() > colSize) {
+                fieldValue = fieldValue.substring(0, colSize);
+            }
+            break;
         }
+
         return fieldValue;
     }
 
