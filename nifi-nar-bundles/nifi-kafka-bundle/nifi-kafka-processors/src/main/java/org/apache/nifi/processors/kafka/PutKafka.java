@@ -408,7 +408,7 @@ public class PutKafka extends AbstractProcessor {
         String failedSegmentsString = flowFile.getAttribute(ATTR_FAILED_SEGMENTS);
         if (flowFile.getAttribute(ATTR_PROC_ID) != null && flowFile.getAttribute(ATTR_PROC_ID).equals(this.getIdentifier()) && failedSegmentsString != null) {
             topicName = flowFile.getAttribute(ATTR_TOPIC);
-            key = flowFile.getAttribute(ATTR_KEY).getBytes();
+            key = flowFile.getAttribute(ATTR_KEY) == null ? null : flowFile.getAttribute(ATTR_KEY).getBytes();
             delimiterPattern = flowFile.getAttribute(ATTR_DELIMITER);
         } else {
             failedSegmentsString = null;
