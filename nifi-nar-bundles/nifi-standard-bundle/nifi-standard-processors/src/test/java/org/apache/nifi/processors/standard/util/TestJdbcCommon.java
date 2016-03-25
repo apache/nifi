@@ -46,7 +46,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
@@ -55,33 +55,35 @@ import org.mockito.stubbing.Answer;
 
 public class TestJdbcCommon {
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    static final String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
+    static final String dropTable = "drop table restaurants";
+
+    @ClassRule
+    public static TemporaryFolder folder = new TemporaryFolder();
+
+    /**
+     * Setting up Connection is expensive operation.
+     * So let's do this only once and reuse Connection in each test.
+     */
+    static protected Connection con;
 
     @BeforeClass
-    public static void setup() {
+    public static void setup() throws ClassNotFoundException, SQLException {
         System.setProperty("derby.stream.error.file", "target/derby.log");
-    }
-
-    String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
-    String dropTable = "drop table restaurants";
-
-    @Test
-    public void testCreateSchema() throws ClassNotFoundException, SQLException {
-
+        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         // remove previous test database, if any
         folder.delete();
 
-        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
-        final Statement st = con.createStatement();
-
-        try {
-            st.executeUpdate(dropTable);
-        } catch (final Exception e) {
-            // table may not exist, this is not serious problem.
+        String location = folder.getRoot().getAbsolutePath();
+        con = DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
+        try (final Statement stmt = con.createStatement()) {
+            stmt.executeUpdate(createTable);
         }
+    }
 
-        st.executeUpdate(createTable);
+    @Test
+    public void testCreateSchema() throws ClassNotFoundException, SQLException {
+        final Statement st = con.createStatement();
         st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
         st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
         st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
@@ -100,7 +102,7 @@ public class TestJdbcCommon {
         assertNotNull(schema.getField("CITY"));
 
         st.close();
-        con.close();
+//        con.close();
     }
 
     @Test
@@ -120,7 +122,6 @@ public class TestJdbcCommon {
         // may have different table names
         assertEquals("NiFi_ExecuteSQL_Record", schema.getName());
         assertNull(schema.getField("ID"));
-
     }
 
     @Test
@@ -144,20 +145,7 @@ public class TestJdbcCommon {
 
     @Test
     public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
-        // remove previous test database, if any
-        folder.delete();
-
-        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
         final Statement st = con.createStatement();
-
-        try {
-            st.executeUpdate(dropTable);
-        } catch (final Exception e) {
-            // table may not exist, this is not serious problem.
-        }
-
-        st.executeUpdate(createTable);
-
         st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
         st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
         st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
@@ -340,11 +328,6 @@ public class TestJdbcCommon {
     public void testDriverLoad() throws ClassNotFoundException {
         final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         assertNotNull(clazz);
-    }
-
-    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        return DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
     }
 
 }
