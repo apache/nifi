@@ -74,18 +74,6 @@ public class TestPutSQL {
     @Test
     public void testDirectStatements() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/*        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
-*/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
@@ -127,18 +115,6 @@ public class TestPutSQL {
     @Test
     public void testInsertWithGeneratedKeys() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/*        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersonsAutoId);
-            }
-        }
-*/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "true");
@@ -168,19 +144,6 @@ public class TestPutSQL {
     @Test
     public void testFailInMiddleWithBadStatement() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/****
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersonsAutoId);
-            }
-        }
-****/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -199,19 +162,6 @@ public class TestPutSQL {
     @Test
     public void testFailInMiddleWithBadParameterType() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/*****
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersonsAutoId);
-            }
-        }
-*****/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -240,19 +190,6 @@ public class TestPutSQL {
     @Test
     public void testFailInMiddleWithBadParameterValue() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/*****
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersonsAutoId);
-            }
-        }
-******/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -295,13 +232,6 @@ public class TestPutSQL {
     @Test
     public void testUsingSqlDataTypesWithNegativeValues() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/********
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-*****/
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE PERSONS2 (id integer primary key, name varchar(100), code bigint)");
@@ -334,19 +264,6 @@ public class TestPutSQL {
     @Test
     public void testStatementsWithPreparedParameters() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/*****
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
-******/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
@@ -408,19 +325,6 @@ public class TestPutSQL {
     @Test
     public void testMultipleStatementsWithinFlowFile() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/****
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
-*****/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
@@ -458,19 +362,6 @@ public class TestPutSQL {
     @Test
     public void testWithNullParameter() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/****
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
-*****/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
@@ -503,19 +394,6 @@ public class TestPutSQL {
     @Test
     public void testInvalidStatement() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/****
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
-*****/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
@@ -587,19 +465,6 @@ public class TestPutSQL {
     @Test
     public void testMultipleFlowFilesSuccessfulInTransaction() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/********
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
-*****/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
@@ -659,11 +524,6 @@ public class TestPutSQL {
     @Test
     public void testTransactionTimeout() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-/****
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
-****/
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
 
