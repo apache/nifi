@@ -55,8 +55,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import kafka.producer.DefaultPartitioner;
-
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({ "Apache", "Kafka", "Put", "Send", "Message", "PubSub" })
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka. The messages to send may be individual FlowFiles or may be delimited, using a "
@@ -454,7 +452,7 @@ public class PutKafka extends AbstractProcessor {
         if (partitionStrategy.equalsIgnoreCase(ROUND_ROBIN_PARTITIONING.getValue())) {
             partitionerClass = Partitioners.RoundRobinPartitioner.class.getName();
         } else if (partitionStrategy.equalsIgnoreCase(RANDOM_PARTITIONING.getValue())) {
-            partitionerClass = DefaultPartitioner.class.getName();
+            partitionerClass = Partitioners.RandomPartitioner.class.getName();
         }
         properties.setProperty("partitioner.class", partitionerClass);
 
