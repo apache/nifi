@@ -16,25 +16,34 @@
  */
 package org.apache.nifi.events;
 
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.nifi.reporting.Bulletin;
 
 /**
- *
+ * Strategy should not hold more than 5 Bulletins in memory.
  */
 public class NodeBulletinProcessingStrategy implements BulletinProcessingStrategy {
 
+    protected static final int MAX_ENTRIES = 5;
     private final Lock lock;
     private final Set<Bulletin> bulletins;
 
     public NodeBulletinProcessingStrategy() {
         lock = new ReentrantLock();
-        bulletins = new LinkedHashSet<>();
+        bulletins = Collections.newSetFromMap(new LinkedHashMap<Bulletin, Boolean>(){
+            private static final long serialVersionUID = 1L;
+
+            protected boolean removeEldestEntry(Map.Entry<Bulletin, Boolean> eldest) {
+                return size() > MAX_ENTRIES;
+            }
+        });
     }
 
     @Override
