@@ -16,37 +16,25 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
-public class GreaterThanEvaluator<Comp> extends BooleanEvaluator {
+import java.util.Map;
 
-    private final Evaluator<Comparable> subject;
-    private final Evaluator<Comparable> comparison;
+public class NumberToDecimalEvaluator extends DecimalEvaluator {
 
+    private final Evaluator<Long> subject;
 
-    public GreaterThanEvaluator(final Evaluator<Comparable> subject, final Evaluator<Comparable> comparison) {
+    public NumberToDecimalEvaluator(final Evaluator<Long> subject) {
         this.subject = subject;
-        this.comparison = comparison;
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final Comparable subjectValue = subject.evaluate(attributes).getValue();
-        if (subjectValue == null) {
-            return new BooleanQueryResult(false);
-        }
-
-        final Comparable comparisonValue = comparison.evaluate(attributes).getValue();
-        if (comparisonValue == null) {
-            return new BooleanQueryResult(false);
-        }
-
-        return new BooleanQueryResult(subjectValue.compareTo(comparisonValue) > 0);
+    public QueryResult<Double> evaluate(final Map<String, String> attributes) {
+        final Long subjectValue = subject.evaluate(attributes).getValue();
+        return new DecimalQueryResult(subjectValue == null ? null : Double.valueOf(subjectValue));
     }
 
     @Override

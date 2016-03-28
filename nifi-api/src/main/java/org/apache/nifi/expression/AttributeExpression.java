@@ -70,6 +70,6 @@ public interface AttributeExpression {
 
     public static enum ResultType {
 
-        STRING, BOOLEAN, NUMBER, DATE;
+        STRING, BOOLEAN, NUMBER, DATE, DECIMAL;
     }
 }
