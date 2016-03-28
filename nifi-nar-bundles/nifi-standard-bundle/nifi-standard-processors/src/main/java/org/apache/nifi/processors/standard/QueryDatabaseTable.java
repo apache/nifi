@@ -175,6 +175,15 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
             .defaultValue("None")
             .build();
 
+    public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Fetch Size")
+            .description("The number of result rows to be fetched from the result set at a time. This is a hint to the driver and may not be "
+                    + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
 
     private final List<PropertyDescriptor> propDescriptors;
 
@@ -192,6 +201,7 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
         pds.add(SQL_PREPROCESS_STRATEGY);
+        pds.add(FETCH_SIZE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -251,6 +261,8 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
         final String preProcessStrategy = context.getProperty(SQL_PREPROCESS_STRATEGY).getValue();
+        final Integer fetchSize = context.getProperty(FETCH_SIZE).asInteger();
+
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
 
@@ -271,6 +283,15 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
 
         try (final Connection con = dbcpService.getConnection();
              final Statement st = con.createStatement()) {
+
+            if (fetchSize != null && fetchSize > 0) {
+                try {
+                    st.setFetchSize(fetchSize);
+                } catch (SQLException se) {
+                    // Not all drivers support this, just log the error (at debug level) and move on
+                    logger.debug("Cannot set fetch size to {} due to {}", new Object[]{fetchSize, se.getLocalizedMessage()}, se);
+                }
+            }
 
             final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
             st.setQueryTimeout(queryTimeout); // timeout in seconds
