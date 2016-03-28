@@ -17,50 +17,26 @@
 package org.apache.nifi.events;
 
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.nifi.reporting.Bulletin;
 
 /**
  *
  */
 public class NodeBulletinProcessingStrategy implements BulletinProcessingStrategy {
-
-    private final Lock lock;
-    private final Set<Bulletin> bulletins;
-
-    public NodeBulletinProcessingStrategy() {
-        lock = new ReentrantLock();
-        bulletins = new LinkedHashSet<>();
-    }
+    static final int MAX_ENTRIES = 5;
+    private final CircularFifoQueue<Bulletin> ringBuffer = new CircularFifoQueue<>(MAX_ENTRIES);
 
     @Override
-    public void update(final Bulletin bulletin) {
-        lock.lock();
-        try {
-            bulletins.add(bulletin);
-        } finally {
-            lock.unlock();
-        }
+    public synchronized void update(final Bulletin bulletin) {
+        ringBuffer.add(bulletin);
     }
 
-    public Set<Bulletin> getBulletins() {
-        final Set<Bulletin> response = new HashSet<>();
-
-        lock.lock();
-        try {
-            // get all the bulletins currently stored
-            response.addAll(bulletins);
-
-            // remove the bulletins
-            bulletins.clear();
-        } finally {
-            lock.unlock();
-        }
-
+    public synchronized Set<Bulletin> getBulletins() {
+        final Set<Bulletin> response = new HashSet<>(ringBuffer);
+        ringBuffer.clear();
         return response;
     }
 }
