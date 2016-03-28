@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.attributes;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -37,15 +38,20 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -125,8 +131,10 @@ import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 @DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", supportsExpressionLanguage = true,
         description = "Updates a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @WritesAttribute(attribute = "See additional details", description = "This processor may write or remove zero or more attributes as described in additional details")
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "")
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
+    private Scope scope = null;
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);
     private final ConcurrentMap<String, PropertyValue> propertyValues = new ConcurrentHashMap<>();
 
@@ -168,6 +176,20 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .expressionLanguageSupported(true)
             .build();
 
+
+
+    public static final AllowableValue LOCATION_STATELESS = new AllowableValue("Stateless", "Stateless", "");
+    public static final AllowableValue LOCATION_LOCAL = new AllowableValue("Local", "Local", "");
+    public static final AllowableValue LOCATION_REMOTE = new AllowableValue("Remote", "Remote", "");
+
+    public static final PropertyDescriptor STATE_LOCATION = new PropertyDescriptor.Builder()
+            .name("State Location")
+            .description("")
+            .required(true)
+            .allowableValues(LOCATION_STATELESS, LOCATION_LOCAL, LOCATION_REMOTE)
+            .defaultValue(LOCATION_STATELESS.getValue())
+            .build();
+
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .description("All FlowFiles are routed to this relationship").name("success").build();
@@ -187,24 +209,67 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(DELETE_ATTRIBUTES);
+        descriptors.add(STATE_LOCATION);
         return Collections.unmodifiableList(descriptors);
     }
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .required(false)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(true)
-                .dynamic(true)
-                .build();
+        if(scope != null){
+            return new PropertyDescriptor.Builder()
+                    .name(propertyDescriptorName)
+                    .required(false)
+                    .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                    .expressionLanguageSupported(true)
+                    .dynamic(true)
+                    .build();
+        } else {
+            return new PropertyDescriptor.Builder()
+                    .name(propertyDescriptorName)
+                    .required(false)
+                    .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                    .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                    .expressionLanguageSupported(true)
+                    .dynamic(true)
+                    .build();
+        }
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        super.onPropertyModified(descriptor, oldValue, newValue);
+
+        if (descriptor.equals(STATE_LOCATION)) {
+            if (LOCATION_REMOTE.getValue().equalsIgnoreCase(newValue)) {
+                scope = Scope.CLUSTER;
+            } else if (LOCATION_LOCAL.getValue().equalsIgnoreCase(newValue)) {
+                scope = Scope.LOCAL;
+            } else {
+                scope = null;
+            }
+        }
     }
 
     @OnScheduled
-    public void clearPropertyValueMap() {
+    public void onScheduled(final ProcessContext context) throws IOException {
         propertyValues.clear();
+
+        if(scope != null) {
+            StateManager stateManager = context.getStateManager();
+            StateMap state = stateManager.getState(scope);
+            HashMap<String, String> tempMap = new HashMap<>();
+            tempMap.putAll(state.toMap());
+
+            for (PropertyDescriptor entry : context.getProperties().keySet()) {
+                if (entry.isDynamic()) {
+                    if(!tempMap.containsKey(entry.getName()+"_state")) {
+                        tempMap.put(entry.getName() + "_state", "0");
+                    }
+                }
+            }
+            context.getStateManager().setState(tempMap, scope);
+        }
     }
 
     @Override
@@ -489,46 +554,65 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, String> attributesToUpdate = new HashMap<>(actions.size());
         final Set<String> attributesToDelete = new HashSet<>(actions.size());
 
-        // go through each action
-        for (final Action action : actions.values()) {
-            if (!action.getAttribute().equals(DELETE_ATTRIBUTES.getName())) {
-                try {
-                    final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile).getValue();
+        try {
+            final Map<String, String> statefulAttributes;
 
-                    // log if appropriate
-                    if (logger.isDebugEnabled()) {
-                        logger.debug(String.format("%s setting attribute '%s' = '%s' for %s per rule '%s'.", this, action.getAttribute(), newAttributeValue, flowfile, ruleName));
+            if (scope != null) {
+                statefulAttributes = new HashMap<>(context.getStateManager().getState(scope).toMap());
+            } else{
+                statefulAttributes = null;
+            }
+
+            // go through each action
+            for (final Action action : actions.values()) {
+                if (!action.getAttribute().equals(DELETE_ATTRIBUTES.getName())) {
+                    try {
+                        final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, statefulAttributes).getValue();
+
+                        // log if appropriate
+                        if (logger.isDebugEnabled()) {
+                            logger.debug(String.format("%s setting attribute '%s' = '%s' for %s per rule '%s'.", this, action.getAttribute(), newAttributeValue, flowfile, ruleName));
+                        }
+
+                        if (statefulAttributes != null) {
+                            statefulAttributes.put(action.getAttribute()+"_state", newAttributeValue);
+                        }
+
+                        attributesToUpdate.put(action.getAttribute(), newAttributeValue);
+                    } catch (final ProcessException pe) {
+                        throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", action.getAttribute(), pe), pe);
                     }
+                } else {
+                    try {
+                        final String actionValue = action.getValue();
+                        final String regex = (actionValue == null) ? null :
+                                getPropertyValue(actionValue, context).evaluateAttributeExpressions(flowfile).getValue();
+                        if (regex != null) {
+                            Pattern pattern = Pattern.compile(regex);
+                            final Set<String> attributeKeys = flowfile.getAttributes().keySet();
+                            for (final String key : attributeKeys) {
+                                if (pattern.matcher(key).matches()) {
 
-                    attributesToUpdate.put(action.getAttribute(), newAttributeValue);
-                } catch (final ProcessException pe) {
-                    throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", action.getAttribute(), pe), pe);
-                }
-            } else {
-                try {
-                    final String actionValue = action.getValue();
-                    final String regex = (actionValue == null) ? null :
-                            getPropertyValue(actionValue, context).evaluateAttributeExpressions(flowfile).getValue();
-                    if (regex != null) {
-                        Pattern pattern = Pattern.compile(regex);
-                        final Set<String> attributeKeys = flowfile.getAttributes().keySet();
-                        for (final String key : attributeKeys) {
-                            if (pattern.matcher(key).matches()) {
+                                    // log if appropriate
+                                    if (logger.isDebugEnabled()) {
+                                        logger.debug(String.format("%s deleting attribute '%s' for %s per regex '%s'.", this,
+                                                key, flowfile, regex));
+                                    }
 
-                                // log if appropriate
-                                if (logger.isDebugEnabled()) {
-                                    logger.debug(String.format("%s deleting attribute '%s' for %s per regex '%s'.", this,
-                                            key, flowfile, regex));
+                                    attributesToDelete.add(key);
                                 }
-
-                                attributesToDelete.add(key);
                             }
                         }
+                    } catch (final ProcessException pe) {
+                        throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", action.getAttribute(), pe), pe);
                     }
-                } catch (final ProcessException pe) {
-                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", action.getAttribute(), pe), pe);
                 }
             }
+            if(statefulAttributes != null) {
+                context.getStateManager().setState(statefulAttributes, scope);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         // If the 'alternate.identifier' attribute is added, then we want to create an ADD_INFO provenance event.
@@ -554,10 +638,12 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, Action> defaultActions = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            final Action action = new Action();
-            action.setAttribute(entry.getKey().getName());
-            action.setValue(entry.getValue());
-            defaultActions.put(action.getAttribute(), action);
+            if(entry.getKey() != STATE_LOCATION) {
+                final Action action = new Action();
+                action.setAttribute(entry.getKey().getName());
+                action.setValue(entry.getValue());
+                defaultActions.put(action.getAttribute(), action);
+            }
         }
 
         return defaultActions;
