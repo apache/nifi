@@ -16,37 +16,37 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
-public class GreaterThanEvaluator<Comp> extends BooleanEvaluator {
+import java.util.Map;
 
-    private final Evaluator<Comparable> subject;
-    private final Evaluator<Comparable> comparison;
+public class DivideDecimalEvaluator extends DecimalEvaluator {
 
+    private final Evaluator<Double> subject;
+    private final Evaluator<Double> divideValue;
 
-    public GreaterThanEvaluator(final Evaluator<Comparable> subject, final Evaluator<Comparable> comparison) {
+    public DivideDecimalEvaluator(final Evaluator<Double> subject, final Evaluator<Double> divideValue) {
         this.subject = subject;
-        this.comparison = comparison;
+        this.divideValue = divideValue;
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final Comparable subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Double> evaluate(final Map<String, String> attributes) {
+        final Double subjectValue = subject.evaluate(attributes).getValue();
         if (subjectValue == null) {
-            return new BooleanQueryResult(false);
+            return new DecimalQueryResult(null);
         }
 
-        final Comparable comparisonValue = comparison.evaluate(attributes).getValue();
-        if (comparisonValue == null) {
-            return new BooleanQueryResult(false);
+        final Double divide = divideValue.evaluate(attributes).getValue();
+        if (divide == null) {
+            return new DecimalQueryResult(null);
         }
 
-        return new BooleanQueryResult(subjectValue.compareTo(comparisonValue) > 0);
+        final Double result = subjectValue / divide;
+        return new DecimalQueryResult(result);
     }
 
     @Override

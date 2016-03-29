@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
@@ -50,6 +51,9 @@ public class NumberCastEvaluator extends NumberEvaluator {
         switch (result.getResultType()) {
             case NUMBER:
                 return (NumberQueryResult) result;
+            case DECIMAL:
+                final Double value = ((DecimalQueryResult) result).getValue();
+                return new NumberQueryResult(value.longValue());
             case STRING:
                 final String trimmed = ((StringQueryResult) result).getValue().trim();
                 if (NUMBER_PATTERN.matcher(trimmed).matches()) {

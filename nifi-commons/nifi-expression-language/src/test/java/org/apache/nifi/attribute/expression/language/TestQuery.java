@@ -728,6 +728,66 @@ public class TestQuery {
     }
 
     @Test
+    public void testDecimalMathOperations() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("one", "1.1");
+        attributes.put("two", "2.2");
+        attributes.put("three", "3.3");
+        attributes.put("four", "4.4");
+        attributes.put("hundred", "100.001");
+
+        verifyEquals("${hundred:toDecimal():multiplyDecimal(${one}):divideDecimal(${two}):plusDecimal(${three}):minusDecimal(${four})}", attributes, 48.9005);
+        // Example of Double's loss of precision
+        verifyEquals("${one:modDecimal('0.9')}", attributes, 0.20000000000000007);
+
+    }
+
+    @Test
+    public void testStaticMathOperations() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("negative", "-1");
+        attributes.put("two", "2");
+        attributes.put("one.two", "1.2984581213888124");
+        attributes.put("tiny", "5.577469913807151E-4");
+        attributes.put("otherFormat", "1.5304136440e+1");
+
+        verifyEquals("${otherFormat:math('sqrt')}", attributes, 3.9120501581651532);
+        verifyEquals("${tiny:math('sqrt')}", attributes, 0.023616667660377386);
+
+        verifyEquals("${negative:math('abs')}", attributes, 1.0);
+        verifyEquals("${two:math('pow',${two})}", attributes, 4.0);
+        verifyEquals("${two:math('pow',2)}", attributes, 4.0);
+        verifyEquals("${two:math('pow','2.0')}", attributes, 4.0);
+        verifyEquals("${negative:plusDecimal(${two:math('pow','2.0')})}", attributes, 3.0);
+        verifyEquals("${one.two:math('sqrt')}", attributes, 1.139499065988565);
+    }
+
+    @Test
+    public void testDecimalLogicOperations() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("one", "1.1");
+        attributes.put("two", "2.2");
+        attributes.put("one_2", "1.1");
+
+        verifyEquals("${one:ltDecimal(${two})}", attributes, true);
+        verifyEquals("${one:ltDecimal(${one_2})}", attributes, false);
+        verifyEquals("${two:ltDecimal(${one})}", attributes, false);
+
+        verifyEquals("${one:leDecimal(${two})}", attributes, true);
+        verifyEquals("${one:leDecimal(${one_2})}", attributes, true);
+        verifyEquals("${two:leDecimal(${one_2})}", attributes, false);
+
+        verifyEquals("${one:geDecimal(${two})}", attributes, false);
+        verifyEquals("${one:geDecimal(${one_2})}", attributes, true);
+        verifyEquals("${two:geDecimal(${one_2})}", attributes, true);
+
+        verifyEquals("${one:gtDecimal(${two})}", attributes, false);
+        verifyEquals("${one:gtDecimal(${one_2})}", attributes, false);
+        verifyEquals("${two:gtDecimal(${one})}", attributes, true);
+    }
+
+
+    @Test
     public void testIndexOf() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "https://abc.go");
@@ -1234,10 +1294,12 @@ public class TestQuery {
         final Query query = Query.compile(expression);
         final QueryResult<?> result = query.evaluate(attributes);
 
-        if (expectedResult instanceof Number) {
+        if (expectedResult instanceof Long) {
             assertEquals(ResultType.NUMBER, result.getResultType());
         } else if (expectedResult instanceof Boolean) {
             assertEquals(ResultType.BOOLEAN, result.getResultType());
+        } else if (expectedResult instanceof Double) {
+            assertEquals(ResultType.DECIMAL, result.getResultType());
         } else {
             assertEquals(ResultType.STRING, result.getResultType());
         }
