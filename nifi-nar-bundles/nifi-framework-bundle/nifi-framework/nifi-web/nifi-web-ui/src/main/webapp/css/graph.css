@@ -53,7 +53,7 @@ text.unset {
 */
 
 g.component {
-    font-family: Arial,​ sans-serif;
+    font-family: Arial, sans-serif;
 }
 
 g.component.selected rect.border {
@@ -108,7 +108,7 @@ text.processor-stats-info {
 */
 
 g.connection {
-    font-family: Arial,​ sans-serif;
+    font-family: Arial, sans-serif;
 }
 
 path.connector {
