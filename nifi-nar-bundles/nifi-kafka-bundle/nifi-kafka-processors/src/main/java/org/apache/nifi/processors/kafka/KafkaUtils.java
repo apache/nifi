@@ -33,25 +33,42 @@ import scala.collection.JavaConversions;
  */
 class KafkaUtils {
 
+
     /**
      * Will retrieve the amount of partitions for a given Kafka topic.
      */
     static int retrievePartitionCountForTopic(String zookeeperConnectionString, String topicName) {
-        ZkClient zkClient = new ZkClient(zookeeperConnectionString);
+        ZkClient zkClient = null;
 
-        zkClient.setZkSerializer(new ZkSerializer() {
-            @Override
-            public byte[] serialize(Object o) throws ZkMarshallingError {
-                return ZKStringSerializer.serialize(o);
-            }
+        try {
+            zkClient = new ZkClient(zookeeperConnectionString);
+            zkClient.setZkSerializer(new ZkSerializer() {
+                @Override
+                public byte[] serialize(Object o) throws ZkMarshallingError {
+                    return ZKStringSerializer.serialize(o);
+                }
 
-            @Override
-            public Object deserialize(byte[] bytes) throws ZkMarshallingError {
-                return ZKStringSerializer.deserialize(bytes);
+                @Override
+                public Object deserialize(byte[] bytes) throws ZkMarshallingError {
+                    return ZKStringSerializer.deserialize(bytes);
+                }
+            });
+            scala.collection.Set<TopicMetadata> topicMetadatas = AdminUtils
+                    .fetchTopicMetadataFromZk(JavaConversions.asScalaSet(Collections.singleton(topicName)), zkClient);
+            if (topicMetadatas != null && topicMetadatas.size() > 0) {
+                return JavaConversions.asJavaSet(topicMetadatas).iterator().next().partitionsMetadata().size();
+            } else {
+                throw new IllegalStateException("Failed to get metadata for topic " + topicName);
             }
-        });
-        scala.collection.Set<TopicMetadata> topicMetadatas = AdminUtils
-                .fetchTopicMetadataFromZk(JavaConversions.asScalaSet(Collections.singleton(topicName)), zkClient);
-        return topicMetadatas.size();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to retrieve partitions for topic " + topicName, e);
+        } finally {
+            try {
+                zkClient.close();
+            } catch (Exception e2) {
+                // ignore
+            }
+        }
     }
+
 }
