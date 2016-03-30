@@ -243,12 +243,17 @@ public class ProvenanceReportingTask extends AbstractReportingTask {
 
         Long currMaxId = context.getEventAccess().getProvenanceRepository().getMaxEventId();
 
+        if(currMaxId == null) {
+            getLogger().debug("No events to send because no events have been created yet.");
+            return;
+        }
+
         if (firstEventId < 0) {
             Map<String, String> state;
             try {
                 state = context.getStateManager().getState(Scope.LOCAL).toMap();
             } catch (IOException e) {
-                getLogger().error("Failed to get state at start up due to {}", e);
+                getLogger().error("Failed to get state at start up due to {}:"+e.getMessage(), e);
                 return;
             }
             if (state.containsKey(LAST_EVENT_ID_KEY)) {
@@ -271,7 +276,7 @@ public class ProvenanceReportingTask extends AbstractReportingTask {
         try {
             events = context.getEventAccess().getProvenanceEvents(firstEventId, context.getProperty(BATCH_SIZE).asInteger());
         } catch (final IOException ioe) {
-            getLogger().error("Failed to retrieve Provenance Events from repository due to {}", ioe);
+            getLogger().error("Failed to retrieve Provenance Events from repository due to {}:"+ioe.getMessage(), ioe);
             return;
         }
 
@@ -322,7 +327,7 @@ public class ProvenanceReportingTask extends AbstractReportingTask {
             getLogger().info("Successfully sent {} Provenance Events to destination in {} ms; Transaction ID = {}; First Event ID = {}",
                 new Object[] {events.size(), transferMillis, transactionId, events.get(0).getEventId()});
         } catch (final IOException e) {
-            throw new ProcessException("Failed to send Provenance Events to destination due to IOException", e);
+            throw new ProcessException("Failed to send Provenance Events to destination due to IOException:" + e.getMessage(), e);
         }
 
         final ProvenanceEventRecord lastEvent = events.get(events.size() - 1);
@@ -334,8 +339,8 @@ public class ProvenanceReportingTask extends AbstractReportingTask {
             newMapOfState.put(LAST_EVENT_ID_KEY, lastEventId);
             stateManager.replace(stateMap, newMapOfState, Scope.LOCAL);
         } catch (final IOException ioe) {
-            getLogger().error("Failed to update state to {} due to {}; this could result in events being re-sent after a restart of MiNiFi",
-                new Object[] {lastEventId, ioe}, ioe);
+            getLogger().error("Failed to update state to {} due to {}; this could result in events being re-sent after a restart of MiNiFi. The message of {} was: {}",
+                new Object[] {lastEventId, ioe, ioe, ioe.getMessage()}, ioe);
         }
 
         firstEventId = lastEvent.getEventId() + 1;

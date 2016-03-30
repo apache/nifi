@@ -908,13 +908,6 @@ public class RunMiNiFi {
         final Runtime runtime = Runtime.getRuntime();
         runtime.addShutdownHook(shutdownHook);
 
-        final String hostname = getHostname();
-        String now = sdf.format(System.currentTimeMillis());
-        String user = System.getProperty("user.name");
-        if (user == null || user.trim().isEmpty()) {
-            user = "Unknown User";
-        }
-
         return  new Tuple<ProcessBuilder,Process>(builder,process);
     }
 
@@ -922,6 +915,10 @@ public class RunMiNiFi {
     public void start() throws IOException, InterruptedException {
 
         Tuple<ProcessBuilder,Process> tuple = startMiNiFi();
+        if (tuple == null) {
+            cmdLogger.info("Start method returned null, ending start command.");
+            return;
+        }
         ProcessBuilder builder = tuple.getKey();
         Process process = tuple.getValue();
 
