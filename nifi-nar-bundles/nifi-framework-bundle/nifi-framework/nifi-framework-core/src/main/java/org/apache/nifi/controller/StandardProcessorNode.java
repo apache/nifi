@@ -908,7 +908,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     getAnnotationData());
 
             final Collection<ValidationResult> validationResults;
-            validationResults = getProcessor().validate(validationContext);
+            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                validationResults = getProcessor().validate(validationContext);
+            }
 
             for (final ValidationResult result : validationResults) {
                 if (!result.isValid()) {
