@@ -3220,13 +3220,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
             final ProcessGroup rootGroup = getGroup(getRootGroupId());
             for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
+                }
             }
             for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
+                }
             }
             for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
+                }
             }
 
             // update primary
