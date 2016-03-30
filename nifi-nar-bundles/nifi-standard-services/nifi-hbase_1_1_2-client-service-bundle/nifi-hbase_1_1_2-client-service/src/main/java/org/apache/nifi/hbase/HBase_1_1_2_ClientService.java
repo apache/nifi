@@ -65,6 +65,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({ "hbase", "client"})
 @CapabilityDescription("Implementation of HBaseClientService for HBase 1.1.2. This service can be configured by providing " +
@@ -89,6 +90,9 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     private List<PropertyDescriptor> properties;
     private KerberosProperties kerberosProperties;
+
+    // Holder of cached Configuration information so validation does not reload the same config over and over
+    private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
@@ -145,7 +149,17 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
         if (confFileProvided) {
             final String configFiles = validationContext.getProperty(HADOOP_CONF_FILES).getValue();
-            final Configuration hbaseConfig = getConfigurationFromFiles(configFiles);
+            ValidationResources resources = validationResourceHolder.get();
+
+            // if no resources in the holder, or if the holder has different resources loaded,
+            // then load the Configuration and set the new resources in the holder
+            if (resources == null || !configFiles.equals(resources.getConfigResources())) {
+                getLogger().debug("Reloading validation resources");
+                resources = new ValidationResources(configFiles, getConfigurationFromFiles(configFiles));
+                validationResourceHolder.set(resources);
+            }
+
+            final Configuration hbaseConfig = resources.getConfiguration();
             final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
             final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
 
@@ -372,4 +386,23 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
         return table.getScanner(scan);
     }
+
+    static protected class ValidationResources {
+        private final String configResources;
+        private final Configuration configuration;
+
+        public ValidationResources(String configResources, Configuration configuration) {
+            this.configResources = configResources;
+            this.configuration = configuration;
+        }
+
+        public String getConfigResources() {
+            return configResources;
+        }
+
+        public Configuration getConfiguration() {
+            return configuration;
+        }
+    }
+
 }
