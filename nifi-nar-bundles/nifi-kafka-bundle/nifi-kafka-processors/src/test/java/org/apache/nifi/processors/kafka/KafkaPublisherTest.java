@@ -83,7 +83,7 @@ public class KafkaPublisherTest {
 
         SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, null);
 
-        publisher.publish(messageContext, fis, null);
+        publisher.publish(messageContext, fis, null, 2000);
 
         fis.close();
         publisher.close();
@@ -105,9 +105,9 @@ public class KafkaPublisherTest {
         Properties kafkaProperties = this.buildProducerProperties();
         KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
 
-        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, "\n");
+        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, "\n".getBytes(StandardCharsets.UTF_8));
 
-        publisher.publish(messageContext, fis, null);
+        publisher.publish(messageContext, fis, null, 2000);
         publisher.close();
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
@@ -131,9 +131,9 @@ public class KafkaPublisherTest {
         Properties kafkaProperties = this.buildProducerProperties();
         KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
 
-        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, "|");
+        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, "|".getBytes(StandardCharsets.UTF_8));
 
-        publisher.publish(messageContext, fis, null);
+        publisher.publish(messageContext, fis, null, 2000);
         publisher.close();
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
@@ -157,10 +157,10 @@ public class KafkaPublisherTest {
 
         KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
 
-        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, "\n");
+        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, "\n".getBytes(StandardCharsets.UTF_8));
         messageContext.setFailedSegments(1, 3);
 
-        publisher.publish(messageContext, fis, null);
+        publisher.publish(messageContext, fis, null, 2000);
         publisher.close();
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
@@ -174,6 +174,26 @@ public class KafkaPublisherTest {
         } catch (ConsumerTimeoutException e) {
             // that's OK since this is the Kafka mechanism to unblock
         }
+    }
+
+    @Test
+    public void validateWithMultiByteCharacters() throws Exception {
+        String data = "僠THIS IS MY NEW TEXT.僠IT HAS A NEWLINE.";
+        InputStream fis = new ByteArrayInputStream(data.getBytes());
+        String topicName = "validateWithMultiByteCharacters";
+
+        Properties kafkaProperties = this.buildProducerProperties();
+
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
+
+        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, null);
+
+        publisher.publish(messageContext, fis, null, 2000);
+        publisher.close();
+
+        ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
+        String r = new String(iter.next().message());
+        assertEquals(data, r);
     }
 
     private Properties buildProducerProperties() {

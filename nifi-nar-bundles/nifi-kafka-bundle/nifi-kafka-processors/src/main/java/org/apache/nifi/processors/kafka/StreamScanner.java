@@ -17,77 +17,148 @@
 package org.apache.nifi.processors.kafka;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
+import java.nio.ByteBuffer;
 
 /**
  *
  */
 class StreamScanner {
 
+    private final static byte EOF = -1;
+
     private final InputStream is;
 
-    private final byte[] delimiter;
+    private final byte[] delimiterBytes;
 
-    private final NonThreadSafeCircularBuffer buffer;
+    private final int maxDataSize;
 
-    private final ByteArrayOutputStream baos;
+    private ByteBuffer buffer;
 
     private byte[] data;
 
-    private boolean eos;
-
     /**
+     * Constructs a new instance
      *
+     * @param is
+     *            instance of {@link InputStream} representing the data
+     * @param delimiterBytes
+     *            byte array representing delimiter bytes used to split the
+     *            input stream. Can be null
+     * @param maxDataSize
+     *            maximum size of data derived from the input stream. This means
+     *            that neither {@link InputStream} nor its individual chunks (if
+     *            delimiter is used) can ever be greater then this size.
      */
-    StreamScanner(InputStream is, String delimiter) {
-        this.is = new BufferedInputStream(is);
-        this.delimiter = delimiter.getBytes();
-        buffer = new NonThreadSafeCircularBuffer(this.delimiter);
-        baos = new ByteArrayOutputStream();
+    StreamScanner(InputStream is, byte[] delimiterBytes, int maxDataSize) {
+        this(is, delimiterBytes, maxDataSize, 8192);
     }
 
     /**
+     * Constructs a new instance
+     *
+     * @param is
+     *            instance of {@link InputStream} representing the data
+     * @param delimiterBytes
+     *            byte array representing delimiter bytes used to split the
+     *            input stream. Can be null
+     * @param maxDataSize
+     *            maximum size of data derived from the input stream. This means
+     *            that neither {@link InputStream} nor its individual chunks (if
+     *            delimiter is used) can ever be greater then this size.
+     * @param initialBufferSize
+     *            initial size of the buffer used to buffer {@link InputStream}
+     *            or its parts (if delimiter is used) to create its byte[]
+     *            representation. Must be positive integer. The buffer will grow
+     *            automatically as needed up to the Integer.MAX_VALUE;
      *
      */
+    StreamScanner(InputStream is, byte[] delimiterBytes, int maxDataSize, int initialBufferSize) {
+        this.is = new BufferedInputStream(is);
+        this.delimiterBytes = delimiterBytes;
+        this.buffer = ByteBuffer.allocate(initialBufferSize);
+        this.maxDataSize = maxDataSize;
+    }
+
+    /**
+     * Checks if there are more elements in the stream. This operation is
+     * idempotent.
+     *
+     * @return <i>true</i> if there are more elements in the stream or
+     *         <i>false</i> when it reaches the end of the stream after the last
+     *         element was retrieved via {@link #next()} operation.
+     */
     boolean hasNext() {
-        this.data = null;
-        if (!this.eos) {
+        int j = 0;
+        int readVal = 0;
+        while (this.data == null && readVal != EOF) {
+            this.expandBufferIfNecessary();
             try {
-                boolean keepReading = true;
-                while (keepReading) {
-                    byte b = (byte) this.is.read();
-                    if (b > -1) {
-                        baos.write(b);
-                        if (buffer.addAndCompare(b)) {
-                            this.data = Arrays.copyOfRange(baos.getUnderlyingBuffer(), 0, baos.size() - delimiter.length);
-                            keepReading = false;
-                        }
-                    } else {
-                        this.data = baos.toByteArray();
-                        keepReading = false;
-                        this.eos = true;
-                    }
-                }
-                baos.reset();
-            } catch (Exception e) {
+                readVal = this.is.read();
+            } catch (IOException e) {
                 throw new IllegalStateException("Failed while reading InputStream", e);
+            }
+            if (readVal == EOF) {
+                this.extractDataToken(0);
+            } else {
+                byte byteVal = (byte)readVal;
+                this.buffer.put(byteVal);
+                if (this.buffer.position() > this.maxDataSize) {
+                    throw new IllegalStateException("Maximum allowed data size of " + this.maxDataSize + " exceeded.");
+                }
+                if (this.delimiterBytes != null && this.delimiterBytes[j] == byteVal) {
+                    if (++j == this.delimiterBytes.length) {
+                        this.extractDataToken(this.delimiterBytes.length);
+                        j = 0;
+                    }
+                } else {
+                    j = 0;
+                }
             }
         }
         return this.data != null;
     }
 
     /**
-     *
+     * @return byte array representing the next segment in the stream or the
+     *         whole stream if no delimiter is used
      */
     byte[] next() {
-        return this.data;
+        try {
+            return this.data;
+        } finally {
+            this.data = null;
+        }
     }
 
-    void close() {
-        this.baos.close();
+    /**
+     *
+     */
+    private void expandBufferIfNecessary() {
+        if (this.buffer.position() == Integer.MAX_VALUE ){
+            throw new IllegalStateException("Internal buffer has reached the capacity and can not be expended any further");
+        }
+        if (this.buffer.remaining() == 0) {
+            this.buffer.flip();
+            int pos = this.buffer.capacity();
+            int newSize = this.buffer.capacity() * 2 > Integer.MAX_VALUE ? Integer.MAX_VALUE : this.buffer.capacity() * 2;
+            ByteBuffer bb = ByteBuffer.allocate(newSize);
+            bb.put(this.buffer);
+            this.buffer = bb;
+            this.buffer.position(pos);
+        }
+    }
+
+    /**
+     *
+     */
+    private void extractDataToken(int lengthSubtract) {
+        this.buffer.flip();
+        if (this.buffer.limit() > 0){ // something must be in the buffer; at least delimiter (e.g., \n)
+            this.data = new byte[this.buffer.limit() - lengthSubtract];
+            this.buffer.get(this.data);
+        }
+        this.buffer.clear();
     }
 }
