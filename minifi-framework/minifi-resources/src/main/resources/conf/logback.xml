@@ -20,7 +20,7 @@
     </contextListener>
     
     <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/nifi-app.log</file>
+        <file>logs/minifi-app.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--
               For daily rollover, use 'app_%d.log'.
@@ -28,7 +28,7 @@
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
-            <fileNamePattern>./logs/nifi-app_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
+            <fileNamePattern>./logs/minifi-app_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>100MB</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
@@ -42,7 +42,7 @@
     </appender>
     
     <appender name="USER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/nifi-user.log</file>
+        <file>logs/minifi-user.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--
               For daily rollover, use 'user_%d.log'.
@@ -50,7 +50,7 @@
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
-            <fileNamePattern>./logs/nifi-user_%d.log</fileNamePattern>
+            <fileNamePattern>./logs/minifi-user_%d.log</fileNamePattern>
             <!-- keep 30 log files worth of history -->
             <maxHistory>30</maxHistory>
         </rollingPolicy>
@@ -60,7 +60,7 @@
     </appender>
 
     <appender name="BOOTSTRAP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/nifi-bootstrap.log</file>
+        <file>logs/minifi-bootstrap.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--
               For daily rollover, use 'user_%d.log'.
@@ -68,7 +68,7 @@
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
-            <fileNamePattern>./logs/nifi-bootstrap_%d.log</fileNamePattern>
+            <fileNamePattern>./logs/minifi-bootstrap_%d.log</fileNamePattern>
             <!-- keep 5 log files worth of history -->
             <maxHistory>5</maxHistory>
         </rollingPolicy>
@@ -86,13 +86,10 @@
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     
     <logger name="org.apache.nifi" level="INFO"/>
-    <logger name="org.apache.nifi.minifi.controller.repository.StandardProcessSession" level="WARN" />
-    
-    <!-- Logger for managing logging statements for nifi clusters. -->
-    <logger name="org.apache.nifi.minifi.cluster" level="INFO"/>
+    <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
 
     <!-- Logger for logging HTTP requests received by the web server. -->
-    <logger name="org.apache.nifi.minifi.server.JettyServer" level="INFO"/>
+    <logger name="org.apache.nifi.server.JettyServer" level="INFO"/>
 
     <!-- Logger for managing logging statements for jetty -->
     <logger name="org.eclipse.jetty" level="INFO"/>
@@ -110,19 +107,16 @@
         log events to the root logger. These messages are only sent to the
         user-log appender.
     -->
-    <logger name="org.apache.nifi.minifi.web.security" level="INFO" additivity="false">
+    <logger name="org.apache.nifi.web.security" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.minifi.web.api.config" level="INFO" additivity="false">
+    <logger name="org.apache.nifi.web.api.config" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.minifi.authorization" level="INFO" additivity="false">
+    <logger name="org.apache.nifi.authorization" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.minifi.cluster.authorization" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.apache.nifi.minifi.web.filter.RequestLogger" level="INFO" additivity="false">
+    <logger name="org.apache.nifi.web.filter.RequestLogger" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
 

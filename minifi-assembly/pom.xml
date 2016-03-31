@@ -76,7 +76,40 @@ limitations under the License.
             <type>zip</type>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
+
+
+    <properties>
+        <!--Bootstrap Properties -->
+        <minifi.jvm.heap.mb>512</minifi.jvm.heap.mb>
+        <minifi.jvm.permgen.mb>128</minifi.jvm.permgen.mb>
+        <minifi.run.as />
+    </properties>
 
     <profiles>
         <profile>
@@ -203,6 +236,10 @@ limitations under the License.
                                             <dependency>
                                                 <includes>
                                                     <include>org.apache.nifi.minifi:minifi-bootstrap</include>
+                                                    <include>org.slf4j:slf4j-api</include>
+                                                    <include>org.yaml:snakeyaml</include>
+                                                    <include>ch.qos.logback:logback-classic</include>
+                                                    <include>ch.qos.logback:logback-core</include>
                                                 </includes>
                                             </dependency>
                                         </mapping>
