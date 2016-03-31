@@ -43,7 +43,7 @@ import kafka.producer.Partitioner;
  * Wrapper over {@link KafkaProducer} to assist {@link PutKafka} processor with
  * sending content of {@link FlowFile}s to Kafka.
  */
-public class KafkaPublisher implements AutoCloseable {
+class KafkaPublisher implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaPublisher.class);
 
@@ -112,14 +112,16 @@ public class KafkaPublisher implements AutoCloseable {
      *            the value of the partition key. Only relevant is user wishes
      *            to provide a custom partition key instead of relying on
      *            variety of provided {@link Partitioner}(s)
+     * @param maxBufferSize maximum message size
      * @return The set containing the failed segment indexes for messages that
      *         failed to be sent to Kafka.
      */
-    BitSet publish(SplittableMessageContext messageContext, InputStream contentStream, Integer partitionKey) {
+    BitSet publish(SplittableMessageContext messageContext, InputStream contentStream, Integer partitionKey,
+            int maxBufferSize) {
         List<Future<RecordMetadata>> sendFutures = new ArrayList<>();
         BitSet prevFailedSegmentIndexes = messageContext.getFailedSegments();
         int segmentCounter = 0;
-        StreamScanner scanner = new StreamScanner(contentStream, messageContext.getDelimiterPattern());
+        StreamScanner scanner = new StreamScanner(contentStream, messageContext.getDelimiterBytes(), maxBufferSize);
 
         while (scanner.hasNext()) {
             byte[] content = scanner.next();
@@ -136,7 +138,6 @@ public class KafkaPublisher implements AutoCloseable {
                 segmentCounter++;
             }
         }
-        scanner.close();
         return this.processAcks(sendFutures);
     }
 
