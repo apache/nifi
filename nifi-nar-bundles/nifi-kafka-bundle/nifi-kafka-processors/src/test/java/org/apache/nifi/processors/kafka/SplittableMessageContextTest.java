@@ -32,9 +32,9 @@ public class SplittableMessageContextTest {
 
     @Test
     public void validateFullSetting() {
-        SplittableMessageContext ctx = new SplittableMessageContext("foo", "hello".getBytes(), "\n");
+        SplittableMessageContext ctx = new SplittableMessageContext("foo", "hello".getBytes(), "\n".getBytes(StandardCharsets.UTF_8));
         ctx.setFailedSegments(1, 3, 6);
-        assertEquals("\n", ctx.getDelimiterPattern());
+        assertEquals("\n", new String(ctx.getDelimiterBytes(), StandardCharsets.UTF_8));
         assertEquals("hello", new String(ctx.getKeyBytes(), StandardCharsets.UTF_8));
         assertEquals("foo", ctx.getTopicName());
         assertEquals("topic: 'foo'; delimiter: '\n'", ctx.toString());
@@ -44,7 +44,9 @@ public class SplittableMessageContextTest {
     @Test
     public void validateToString() {
         SplittableMessageContext ctx = new SplittableMessageContext("foo", null, null);
-        assertEquals("topic: 'foo'; delimiter: '(\\W)\\Z'", ctx.toString());
+        assertEquals("topic: 'foo';", ctx.toString());
+        ctx = new SplittableMessageContext("foo", null, "blah".getBytes(StandardCharsets.UTF_8));
+        assertEquals("topic: 'foo'; delimiter: 'blah'", ctx.toString());
     }
 
     @Test
@@ -56,7 +58,7 @@ public class SplittableMessageContextTest {
         ctx.setFailedSegmentsAsByteArray(null);
         assertNull(ctx.getFailedSegments());
 
-        assertEquals("(\\W)\\Z", ctx.getDelimiterPattern());;
+        assertNull(ctx.getDelimiterBytes());
         assertNull(ctx.getKeyBytes());
         assertNull(ctx.getKeyBytesAsString());
         assertEquals("foo", ctx.getTopicName());
