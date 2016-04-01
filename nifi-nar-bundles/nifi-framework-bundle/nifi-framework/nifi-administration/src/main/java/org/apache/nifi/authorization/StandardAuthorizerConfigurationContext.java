@@ -23,12 +23,12 @@ import java.util.Map;
 /**
  *
  */
-public class StandardAuthorityProviderConfigurationContext implements AuthorityProviderConfigurationContext {
+public class StandardAuthorizerConfigurationContext implements AuthorizerConfigurationContext {
 
     private final String identifier;
     private final Map<String, String> properties;
 
-    public StandardAuthorityProviderConfigurationContext(String identifier, Map<String, String> properties) {
+    public StandardAuthorizerConfigurationContext(String identifier, Map<String, String> properties) {
         this.identifier = identifier;
         this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
     }

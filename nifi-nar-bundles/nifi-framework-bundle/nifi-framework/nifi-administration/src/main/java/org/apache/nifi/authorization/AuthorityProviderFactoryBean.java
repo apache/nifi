@@ -16,6 +16,36 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.annotation.AuthorityProviderContext;
+import org.apache.nifi.authorization.exception.AuthorityAccessException;
+import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
+import org.apache.nifi.authorization.exception.ProviderCreationException;
+import org.apache.nifi.authorization.exception.ProviderDestructionException;
+import org.apache.nifi.authorization.exception.UnknownIdentityException;
+import org.apache.nifi.authorization.generated.AuthorityProviderProperty;
+import org.apache.nifi.authorization.generated.AuthorityProviders;
+import org.apache.nifi.authorization.generated.Provider;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.FactoryBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -27,35 +57,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import org.apache.nifi.authorization.annotation.AuthorityProviderContext;
-import org.apache.nifi.authorization.exception.AuthorityAccessException;
-import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
-import org.apache.nifi.authorization.exception.ProviderCreationException;
-import org.apache.nifi.authorization.exception.ProviderDestructionException;
-import org.apache.nifi.authorization.exception.UnknownIdentityException;
-import org.apache.nifi.authorization.generated.AuthorityProviders;
-import org.apache.nifi.authorization.generated.Property;
-import org.apache.nifi.authorization.generated.Provider;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.FactoryBean;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.xml.sax.SAXException;
 
 /**
  * Factory bean for loading the configured authority provider.
@@ -196,7 +197,7 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
     private AuthorityProviderConfigurationContext loadAuthorityProviderConfiguration(final Provider provider) {
         final Map<String, String> providerProperties = new HashMap<>();
 
-        for (final Property property : provider.getProperty()) {
+        for (final AuthorityProviderProperty property : provider.getProperty()) {
             providerProperties.put(property.getName(), property.getValue());
         }
 
