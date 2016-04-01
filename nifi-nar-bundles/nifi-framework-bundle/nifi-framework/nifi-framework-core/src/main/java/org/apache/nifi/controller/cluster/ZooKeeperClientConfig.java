@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.cluster;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -33,12 +34,18 @@ public class ZooKeeperClientConfig {
     private final int sessionTimeoutMillis;
     private final int connectionTimeoutMillis;
     private final String rootPath;
+    private final byte[] digest;
 
-    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis, String rootPath) {
+    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis, String rootPath, String username, String password) {
         this.connectString = connectString;
         this.sessionTimeoutMillis = sessionTimeoutMillis;
         this.connectionTimeoutMillis = connectionTimeoutMillis;
         this.rootPath = rootPath.endsWith("/") ? rootPath.substring(0, rootPath.length() - 1) : rootPath;
+        if (username == null || password == null) {
+            digest = null;
+        } else {
+            digest = (username + ":" + password).getBytes(StandardCharsets.UTF_8);
+        }
     }
 
     public String getConnectString() {
@@ -65,6 +72,10 @@ public class ZooKeeperClientConfig {
         return rootPath + "/" + path;
     }
 
+    public byte[] getDigest() {
+        return digest;
+    }
+
     public static ZooKeeperClientConfig createConfig(final Properties properties) {
         final String connectString = properties.getProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING);
         if (connectString == null || connectString.trim().isEmpty()) {
@@ -81,7 +92,10 @@ public class ZooKeeperClientConfig {
             throw new IllegalArgumentException("The '" + NiFiProperties.ZOOKEEPER_ROOT_NODE + "' property in nifi.properties is set to an illegal value: " + rootPath);
         }
 
-        return new ZooKeeperClientConfig(connectString, (int) sessionTimeoutMs, (int) connectionTimeoutMs, rootPath);
+        final String username = properties.getProperty(NiFiProperties.ZOOKEEPER_USERNAME);
+        final String password = properties.getProperty(NiFiProperties.ZOOKEEPER_PASSWORD);
+
+        return new ZooKeeperClientConfig(connectString, (int) sessionTimeoutMs, (int) connectionTimeoutMs, rootPath, username, password);
     }
 
     private static int getTimePeriod(final Properties properties, final String propertyName, final String defaultValue) {

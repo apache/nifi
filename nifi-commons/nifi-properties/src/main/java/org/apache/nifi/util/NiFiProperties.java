@@ -179,6 +179,8 @@ public class NiFiProperties extends Properties {
     public static final String ZOOKEEPER_CONNECT_TIMEOUT = "nifi.zookeeper.connect.timeout";
     public static final String ZOOKEEPER_SESSION_TIMEOUT = "nifi.zookeeper.session.timeout";
     public static final String ZOOKEEPER_ROOT_NODE = "nifi.zookeeper.root.node";
+    public static final String ZOOKEEPER_USERNAME = "nifi.zookeeper.username";
+    public static final String ZOOKEEPER_PASSWORD = "nifi.zookeeper.password";
 
     // cluster manager properties
     public static final String CLUSTER_IS_MANAGER = "nifi.cluster.is.manager";

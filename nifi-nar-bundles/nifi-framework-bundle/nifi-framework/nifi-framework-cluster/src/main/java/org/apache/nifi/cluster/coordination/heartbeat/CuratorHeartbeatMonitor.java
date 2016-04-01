@@ -226,7 +226,8 @@ public class CuratorHeartbeatMonitor implements HeartbeatMonitor {
                 case MISMATCHED_FLOWS:
                 case NODE_SHUTDOWN:
                 case STARTUP_FAILURE:
-                    requestingDisconnect = true;
+                    final NodeConnectionState expectedState = connectionStatus.getState();
+                    requestingDisconnect = expectedState == NodeConnectionState.CONNECTED || expectedState == NodeConnectionState.CONNECTING;
                     break;
                 default:
                     requestingDisconnect = false;

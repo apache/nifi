@@ -3701,7 +3701,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     heartbeatLogger.debug(usae.getMessage());
                 }
             } catch (final Throwable ex) {
-                heartbeatLogger.warn("Failed to send heartbeat to cluster manager due to: " + ex);
+                heartbeatLogger.warn("Failed to send heartbeat due to: " + ex);
                 if (heartbeatLogger.isDebugEnabled()) {
                     heartbeatLogger.warn("", ex);
                 }

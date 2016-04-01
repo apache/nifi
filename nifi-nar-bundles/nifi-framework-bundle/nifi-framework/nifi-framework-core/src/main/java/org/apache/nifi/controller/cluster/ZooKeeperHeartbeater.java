@@ -36,6 +36,9 @@ public class ZooKeeperHeartbeater implements Heartbeater {
     private final CuratorFramework curatorClient;
     private final String heartbeatPathPrefix;
 
+    private final byte[] digest;
+    private boolean digestSet = false;
+
     static {
         try {
             jaxbContext = JAXBContext.newInstance(HeartbeatMessage.class);
@@ -50,17 +53,38 @@ public class ZooKeeperHeartbeater implements Heartbeater {
 
         curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(),
             zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
-        curatorClient.start();
+        digest = zkConfig.getDigest();
 
+        try {
+            setDigest();
+        } catch (final Exception e) {
+            // Ignore for now - it will get set before doing any send.
+        }
+
+        curatorClient.start();
         heartbeatPathPrefix = zkConfig.resolvePath("cluster/heartbeats/");
     }
 
+    private void setDigest() throws IOException {
+        if (digestSet) {
+            return;
+        }
+
+        try {
+            curatorClient.getZookeeperClient().getZooKeeper().addAuthInfo("digest", digest);
+            digestSet = true;
+        } catch (final Exception e) {
+            throw new IOException(e);
+        }
+    }
+
     @Override
-    public void send(final HeartbeatMessage heartbeatMessage) throws IOException {
+    public synchronized void send(final HeartbeatMessage heartbeatMessage) throws IOException {
         final byte[] serialized = serialize(heartbeatMessage);
         final String heartbeatPath = heartbeatPathPrefix + heartbeatMessage.getHeartbeat().getNodeIdentifier().getId();
 
         try {
+            setDigest();
             curatorClient.setData().forPath(heartbeatPath, serialized);
         } catch (final NoNodeException nne) {
             try {
