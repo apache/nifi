@@ -23,6 +23,8 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.time.Instant;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -120,6 +122,24 @@ public class StandardValidators {
                 }
             } catch (final NumberFormatException e) {
                 reason = "not a valid 64-bit integer";
+            }
+
+            return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
+        }
+    };
+
+    public static final Validator NUMBER_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
+            String reason = null;
+            try {
+                NumberFormat.getInstance().parse(value);
+            } catch (ParseException e) {
+                reason = "not a valid Number";
             }
 
             return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();

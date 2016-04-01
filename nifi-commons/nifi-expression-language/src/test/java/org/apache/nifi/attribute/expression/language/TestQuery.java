@@ -72,6 +72,7 @@ public class TestQuery {
         assertValid("${hostname()}");
         assertValid("${literal(3)}");
         assertValid("${random()}");
+        assertValid("${getStateValue('the_count')}");
         // left here because it's convenient for looking at the output
         //System.out.println(Query.compile("").evaluate(null));
     }
@@ -1489,6 +1490,32 @@ public class TestQuery {
     }
 
     @Test
+    public void testGetStateValue() {
+        final Map<String, String> stateValues = new HashMap<>();
+        stateValues.put("abc", "xyz");
+        stateValues.put("123", "qwe");
+        stateValues.put("true", "asd");
+        stateValues.put("iop", "098");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "iop");
+        attributes.put("4321", "123");
+        attributes.put("false", "bnm");
+
+        String query = "${getStateValue('abc')}";
+        verifyEquals(query, attributes, stateValues, "xyz");
+
+        query = "${getStateValue(${'4321':toString()})}";
+        verifyEquals(query, attributes, stateValues, "qwe");
+
+        query = "${getStateValue(${literal(true):toString()})}";
+        verifyEquals(query, attributes, stateValues, "asd");
+
+        query = "${getStateValue(${abc}):equals('098')}";
+        verifyEquals(query, attributes, stateValues, true);
+    }
+
+    @Test
     public void testLiteralFunction() {
         final Map<String, String> attrs = Collections.<String, String>emptyMap();
         verifyEquals("${literal(2):gt(1)}", attrs, true);
@@ -1658,11 +1685,15 @@ public class TestQuery {
         }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
+        verifyEquals(expression,attributes, null, expectedResult);
+    }
+
+    private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final Object expectedResult) {
         Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));
+        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null, stateValues));
 
         final Query query = Query.compile(expression);
-        final QueryResult<?> result = query.evaluate(attributes);
+        final QueryResult<?> result = query.evaluate(attributes, stateValues);
 
         if (expectedResult instanceof Long) {
             if (ResultType.NUMBER.equals(result.getResultType())) {

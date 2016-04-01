@@ -248,6 +248,71 @@
         </p>
 
         <p>
+            <strong>Stateful Usage</strong>
+        </p>
+
+        <p>
+            By selecting "store state locally" option for the "Store State" property UpdateAttribute will not only store the evaluated properties as attributes of the FlowFile but
+            also as stateful variables to be referenced in a recursive fashion. This enables the processor to calculate things like the sum or count of incoming FlowFiles. A dynamic property can be
+            referenced as a stateful variable like so:
+
+            <ul>
+                <li>Dynamic Property
+                    <ul>
+                        <li>key : theCount</li>
+                        <li>value : ${getStateValue("theCount"):plus(1)}</li>
+                    </ul>
+                </li>
+            </ul>
+
+            This example will keep a count of the total number of FlowFiles that have passed through the processor. To use logic on top of State, simply use the "Advanced Usage" of UpdateAttribute.
+            All Actions will be stored as stateful attributes as well as being added to FlowFiles. Using the "Advanced Usage" it is possible to keep track of things like a maximum value of the
+            flow so far. This would be done by having a condition of "${getStateValue("maxValue"):lt(${value})}" and an action of attribute:"maxValue", value:"${value}".
+
+            The "Stateful Variables Initial Value" property is used to initialize the stateful variables and is required to be set if running statefully. Some logic rules will require a very high initial value, like using the Advanced rules to
+            determine the minimum value.
+
+
+            If stateful properties reference other stateful properties then the value for the other stateful properties will be an iteration behind. For example, attempting to calculate the
+            average of the incoming stream requires the sum and count. If all three properties are set in the same UpdateAttribute (like below) then the Average will always not include the most
+            recent values of count and sum:
+
+            <ul>
+                <li>Count
+                    <ul>
+                        <li>key : theCount</li>
+                        <li>value : ${getStateValue("theCount"):plus(1)}</li>
+                    </ul>
+                </li>
+
+                <li>Sum
+                    <ul>
+                        <li>key : theSum</li>
+                        <li>value : ${getStateValue("theSum"):plus(${flowfileValue})}</li>
+                    </ul>
+                </li>
+
+                <li>Average
+                    <ul>
+                        <li>key : theAverage</li>
+                        <li>value : ${getStateValue("theSum"):divide(getStateValue("theCount"))}</li>
+                    </ul>
+                </li>
+            </ul>
+
+            Instead, since average only relies on theCount and theSum attributes (which are added to the FlowFile as well) there should be a following Stateless UpdateAttribute which properly
+            calculates the average.
+
+            In the event that the processor is unable to get the state at the beginning of the onTrigger, the FlowFile will be pushed back to the originating relationship and the processor will yield.
+            If the processor is able to get the state at the beginning of the onTrigger but unable to set the state after adding attributes to the FlowFile, the FlowFile will be transferred to
+            "set state fail". This is normally due to the state not being the most up to date version (another thread has replaced the state with another version). In most use-cases this relationship
+            should loop back to the processor since the only affected attributes will be overwritten.
+
+            Note: Currently the only "stateful" option is to store state locally. This is done because the current implementation of clustered state relies on Zookeeper and Zookeeper isn't designed
+            for the type of load/throughput UpdateAttribute with state would demand. In the future, if/when multiple different clustered state options are added, UpdateAttribute will be updated.
+        </p>
+
+        <p>
             <strong>Properties:</strong>
         </p>
         <p>
@@ -267,7 +332,13 @@
             <li>success
                 <ul>
                     <li>If the processor successfully updates the specified attribute(s), then the FlowFile follows this relationship.</li>
-                </ul></li>		
+                </ul>
+            </li>
+            <li>set state fail
+                <ul>
+                    <li>If the processor is running statefully, and fails to set the state after adding attributes to the FlowFile, then the FlowFile will be routed to this relationship.</li>
+                </ul>
+            </li>
         </ul>
 
     </body>

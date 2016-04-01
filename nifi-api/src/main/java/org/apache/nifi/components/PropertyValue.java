@@ -257,6 +257,29 @@ public interface PropertyValue {
      */
     PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException;
 
+
+    /**
+     * <p>
+     * Replaces values in the Property Value using the NiFi Expression
+     * Language; a PropertyValue with the new value is then returned, supporting
+     * call chaining.
+     * </p>
+     *
+     * @param flowFile to evaluate attributes of
+     * @param additionalAttributes a Map of additional attributes that the Expression can reference. If entries in
+     * this Map conflict with entries in the FlowFile's attributes, the entries in this Map are given a higher priority.
+     * @param decorator the decorator to use in order to update the values returned by the Expression Language
+     * @param stateValues a Map of the state values to be referenced explicitly by specific state accessing functions
+     *
+     * @return a PropertyValue with the new value is returned, supporting call
+     * chaining
+     *
+     * @throws ProcessException if the Expression cannot be compiled or evaluating
+     * the Expression against the given attributes causes an Exception to be thrown
+     */
+    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
+            throws ProcessException;
+
     /**
      * <p>
      * Replaces values in the Property Value using the NiFi Expression Language.
