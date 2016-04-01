@@ -14,38 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+package org.apache.nifi.authorization.exception;
 
 /**
+ * Represents the exceptional case when an Authorizer fails destruction.
  *
  */
-public class StandardAuthorityProviderConfigurationContext implements AuthorityProviderConfigurationContext {
+public class AuthorizerDestructionException extends RuntimeException {
 
-    private final String identifier;
-    private final Map<String, String> properties;
-
-    public StandardAuthorityProviderConfigurationContext(String identifier, Map<String, String> properties) {
-        this.identifier = identifier;
-        this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
+    public AuthorizerDestructionException() {
     }
 
-    @Override
-    public String getIdentifier() {
-        return identifier;
+    public AuthorizerDestructionException(String msg) {
+        super(msg);
     }
 
-    @Override
-    public Map<String, String> getProperties() {
-        return properties;
+    public AuthorizerDestructionException(Throwable cause) {
+        super(cause);
     }
 
-    @Override
-    public String getProperty(String property) {
-        return properties.get(property);
+    public AuthorizerDestructionException(String msg, Throwable cause) {
+        super(msg, cause);
     }
-
 }

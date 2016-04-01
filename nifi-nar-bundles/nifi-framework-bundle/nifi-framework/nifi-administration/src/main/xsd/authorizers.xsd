@@ -15,34 +15,34 @@
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <!-- role -->
-    <xs:complexType name="Provider">
+    <xs:complexType name="Authorizer">
         <xs:sequence>
-            <xs:element name="identifier" type="AuthorityProviderNonEmptyStringType"/>
-            <xs:element name="class" type="AuthorityProviderNonEmptyStringType"/>
-            <xs:element name="property" type="AuthorityProviderProperty" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="identifier" type="NonEmptyStringType"/>
+            <xs:element name="class" type="NonEmptyStringType"/>
+            <xs:element name="property" type="Property" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
 
     <!-- Name/Value properties-->
-    <xs:complexType name="AuthorityProviderProperty">
+    <xs:complexType name="Property">
         <xs:simpleContent>
             <xs:extension base="xs:string">
-                <xs:attribute name="name" type="AuthorityProviderNonEmptyStringType"></xs:attribute>
+                <xs:attribute name="name" type="NonEmptyStringType"></xs:attribute>
             </xs:extension>
         </xs:simpleContent>
     </xs:complexType>
 
-    <xs:simpleType name="AuthorityProviderNonEmptyStringType">
+    <xs:simpleType name="NonEmptyStringType">
         <xs:restriction base="xs:string">
             <xs:minLength value="1"/>
         </xs:restriction>
     </xs:simpleType>
 
     <!-- users -->
-    <xs:element name="authorityProviders">
+    <xs:element name="authorizers">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="provider" type="Provider" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element name="authorizer" type="Authorizer" minOccurs="0" maxOccurs="unbounded"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>

@@ -16,36 +16,33 @@
  */
 package org.apache.nifi.authorization;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
  *
  */
-public class StandardAuthorityProviderConfigurationContext implements AuthorityProviderConfigurationContext {
+public interface AuthorizerConfigurationContext {
 
-    private final String identifier;
-    private final Map<String, String> properties;
+    /**
+     * @return identifier for the authorizer
+     */
+    String getIdentifier();
 
-    public StandardAuthorityProviderConfigurationContext(String identifier, Map<String, String> properties) {
-        this.identifier = identifier;
-        this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
-    }
+    /**
+     * Retrieves all properties the component currently understands regardless
+     * of whether a value has been set for them or not. If no value is present
+     * then its value is null and thus any registered default for the property
+     * descriptor applies.
+     *
+     * @return Map of all properties
+     */
+    Map<String, String> getProperties();
 
-    @Override
-    public String getIdentifier() {
-        return identifier;
-    }
-
-    @Override
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-
-    @Override
-    public String getProperty(String property) {
-        return properties.get(property);
-    }
-
+    /**
+     * @param property to lookup the descriptor and value of
+     * @return the value the component currently understands for the given
+     * PropertyDescriptor. This method does not substitute default
+     * PropertyDescriptor values, so the value returned will be null if not set
+     */
+    String getProperty(String property);
 }
