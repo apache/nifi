@@ -16,21 +16,17 @@
  */
 package org.apache.nifi.authorization;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  *
  */
-public class StandardAuthorityProviderConfigurationContext implements AuthorityProviderConfigurationContext {
+public class StandardAuthorizerInitializationContext implements AuthorizerInitializationContext {
 
     private final String identifier;
-    private final Map<String, String> properties;
+    private final AuthorizerLookup authorizerLookup;
 
-    public StandardAuthorityProviderConfigurationContext(String identifier, Map<String, String> properties) {
+    public StandardAuthorizerInitializationContext(String identifier, AuthorizerLookup authorizerLookup) {
         this.identifier = identifier;
-        this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
+        this.authorizerLookup = authorizerLookup;
     }
 
     @Override
@@ -38,14 +34,8 @@ public class StandardAuthorityProviderConfigurationContext implements AuthorityP
         return identifier;
     }
 
-    @Override
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-
-    @Override
-    public String getProperty(String property) {
-        return properties.get(property);
+    public AuthorizerLookup getAuthorizerLookup() {
+        return authorizerLookup;
     }
 
 }

@@ -16,36 +16,16 @@
  */
 package org.apache.nifi.authorization;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  *
  */
-public class StandardAuthorityProviderConfigurationContext implements AuthorityProviderConfigurationContext {
+public interface AuthorizerLookup {
 
-    private final String identifier;
-    private final Map<String, String> properties;
-
-    public StandardAuthorityProviderConfigurationContext(String identifier, Map<String, String> properties) {
-        this.identifier = identifier;
-        this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
-    }
-
-    @Override
-    public String getIdentifier() {
-        return identifier;
-    }
-
-    @Override
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-
-    @Override
-    public String getProperty(String property) {
-        return properties.get(property);
-    }
-
+    /**
+     * Looks up the Authorizer with the specified identifier
+     *
+     * @param identifier        The identifier of the Authorizer
+     * @return                  The Authorizer
+     */
+    Authorizer getAuthorizer(String identifier);
 }
