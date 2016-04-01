@@ -86,6 +86,7 @@ public class ZooKeeperHeartbeater implements Heartbeater {
         }
     }
 
+
     @Override
     public synchronized void send(final HeartbeatMessage heartbeatMessage) throws IOException {
         final String heartbeatAddress = getHeartbeatAddress();

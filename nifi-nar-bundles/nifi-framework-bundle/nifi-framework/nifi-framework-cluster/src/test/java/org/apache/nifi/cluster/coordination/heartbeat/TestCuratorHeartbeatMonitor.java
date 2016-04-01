@@ -164,6 +164,47 @@ public class TestCuratorHeartbeatMonitor {
     }
 
 
+    @Test
+    public void testDisconnectedHeartbeatOnStartup() throws InterruptedException {
+        final Set<NodeIdentifier> requestedToConnect = Collections.synchronizedSet(new HashSet<>());
+        final Set<NodeIdentifier> connected = Collections.synchronizedSet(new HashSet<>());
+        final Set<NodeIdentifier> disconnected = Collections.synchronizedSet(new HashSet<>());
+        final ClusterCoordinatorAdapter adapter = new ClusterCoordinatorAdapter() {
+            @Override
+            public synchronized void requestNodeConnect(final NodeIdentifier nodeId) {
+                super.requestNodeConnect(nodeId);
+                requestedToConnect.add(nodeId);
+            }
+
+            @Override
+            public synchronized void finishNodeConnection(final NodeIdentifier nodeId) {
+                super.finishNodeConnection(nodeId);
+                connected.add(nodeId);
+            }
+
+            @Override
+            public synchronized void requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
+                super.requestNodeDisconnect(nodeId, disconnectionCode, explanation);
+                disconnected.add(nodeId);
+            }
+        };
+
+        final TestFriendlyHeartbeatMonitor monitor = createMonitor(adapter);
+
+        requestedToConnect.clear();
+
+        monitor.addHeartbeat(createHeartbeat(nodeId, DisconnectionCode.NODE_SHUTDOWN));
+        monitor.waitForProcessed();
+
+        assertTrue(connected.isEmpty());
+        assertTrue(requestedToConnect.isEmpty());
+        assertTrue(disconnected.isEmpty());
+    }
+
+    private NodeHeartbeat createHeartbeat(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode) {
+        final NodeConnectionStatus status = new NodeConnectionStatus(disconnectionCode);
+        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, false, 0, 0, 0, 0);
+    }
 
     private NodeHeartbeat createHeartbeat(final NodeIdentifier nodeId, final NodeConnectionState state) {
         final NodeConnectionStatus status = new NodeConnectionStatus(state);
