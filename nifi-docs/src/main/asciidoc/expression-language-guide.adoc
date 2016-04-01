@@ -192,13 +192,18 @@ Language supports four different data types:
 - *Number*: A Number is an integer comprised of one or more digits (`0` through `9`). The Expression Language 
 	does not provide support for fractional numbers. When converting to numbers from Date data types, they are represented as
 	the number of milliseconds since midnight GMT on January 1, 1970.
+- *Decimal*: A Decimal is a numeric value that can support decimals and larger values with minimal loss of precision. More precisely it
+    is a double-precision 64-bit IEEE 754 floating point. Due to this minimal loss of precision this data type should not be used for
+    very precise values, such as currency. For more documentation on the range of values stored in this data type
+    refer to this https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link]. Decimals cannot be expressed as literals
+    when inputting an Expression Language function. They be input as Strings using single quotes, like so: '1.1'.
 - *Date*: A Date is an object that holds a Date and Time. Utilizing the <<dates>> and <<type_cast>> functions this data
 	type can be converted to/from Strings and numbers. If the whole Expression Language expression is evaluated to be a
 	date then it will be converted to a String with the format: "<Day of Week> <Month> <Day of Month> <Hour>:<Minute>:<Second> <Time Zone> <Year>".
 	Also expressed as "E MMM dd HH:mm:ss z yyyy" in Java SimpleDateFormat format. For example: "Wed Dec 31 12:00:04 UTC 2016".
 - *Boolean*: A Boolean is one of either `true` or `false`.
 
-All attributes are considered to be of type String.
+After evaluating expression language functions, all attributes are stored as of type String.
 
 The Expression Language is generally able to automatically coerce a value of one data type to the appropriate
 data type for a function. However, functions do exist to manually coerce a value into a specific data type. 
@@ -390,6 +395,82 @@ or we could check if the value of the attribute `hello` is equal to the value of
 	(less than or equal to) 1 megabyte (1048576 bytes). Otherwise, it will return `false`.
 
 
+
+[.function]
+=== gtDecimal
+*Description*: [.description]#The `gt` function is used for the comparison of Decimals and returns `true` if the subject is Greater Than
+	its argument. If either the subject or the argument cannot be coerced into a Decimal,
+	this function returns `false`.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+	- [.argName]#_value_# : [.argDesc]#The Decimal to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: `${decimalValue:gtDecimal( '1.1' )}` will return `true` if value in the decimalValue attribute is greater than '1.1'.
+    Otherwise, it will return `false`.
+
+
+
+
+[.function]
+=== geDecimal
+*Description*: [.description]#The `ge` function is used for the comparison of Decimals and returns `true` if the subject is Greater Than
+	Or Equal To its argument. If either the subject or the argument cannot be coerced into a Decimal,
+	this function returns `false`.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+	- [.argName]#_value_# : [.argDesc]#The Decimal to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: `${decimalValue:geDecimal( '1.1' )}` will return `true` if the value in the decimalValue attribute is at least (
+	is greater than or equal to) '1.1'. Otherwise, it will return `false`.
+
+
+
+[.function]
+=== ltDecimal
+*Description*: [.description]#The `lt` function is used for the comparison of Decimals and returns `true` if the subject is Less Than
+	its argument. If either the subject or the argument cannot be coerced into a Decimal,
+	this function returns `false`.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+	- [.argName]#_value_# : [.argDesc]#The Decimal to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: `${decimalValue:ltDecimal( '1.1' )}` will return `true` if the size of the FlowFile's content is less than
+	1 megabyte (1048576 bytes). Otherwise, it will return `false`.
+
+
+
+
+[.function]
+=== leDecimal
+*Description*: [.description]#The `le` function is used for numeric comparison and returns `true` if the subject is Less Than
+	Or Equal To its argument. If either the subject or the argument cannot be coerced into a Number,
+	this function returns `false`.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+	- [.argName]#_value_# : [.argDesc]#The Decimal to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: `${fileSize:leDecimal( 1048576 )}` will return `true` if the size of the FlowFile's content is at most
+	(less than or equal to) 1 megabyte (1048576 bytes). Otherwise, it will return `false`.
 
 
 
@@ -1230,13 +1311,13 @@ Expressions will provide the following results:
 [.function]
 === divide
 
-*Description*: [.description]#Divides a numeric value by the Subject and returns the result, rounded down to the nearest integer.#
+*Description*: [.description]#Divides the Subject by a numeric value and returns the result, rounded down to the nearest integer.#
 
 *Subject Type*: [.subject]#Number#
 
 *Arguments*:
 
-	- [.argName]#_Operand_# : [.argDesc]#The value to add divide the Subject by#
+	- [.argName]#_Operand_# : [.argDesc]#The value to divide the Subject by#
 
 *Return Type*: [.returnType]#Number#
 
@@ -1262,6 +1343,103 @@ Expressions will provide the following results:
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:mod(12)}`
 	will return the value `4`.
+
+
+[.function]
+=== plusDecimal
+
+*Description*: [.description]#Adds a decimal value to the Subject. If either the argument or the Subject cannot be
+	coerced into a Decimal, returns `null`.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+	- [.argName]#_Operand_# : [.argDesc]#The value to add to the Subject#
+
+*Return Type*: [.returnType]#Decimal#
+
+*Examples*: If the "decimalValue" attribute has a value of 0.4123, then the Expression `${decimalValue:plusDecimal('0.123')}`
+	will return the value `0.5353`.
+
+
+
+
+
+[.function]
+=== minusDecimal
+
+*Description*: [.description]#Subtracts a decimal value from the Subject.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+	- [.argName]#_Operand_# : [.argDesc]#The value to subtract from the Subject#
+
+*Return Type*: [.returnType]#Decimal#
+
+*Examples*: If the "decimalValue" attribute has a value of 0.4123, then the Expression `${decimalValue:minusDecimal('0.4123')}`
+	will return the value `0.0`.
+
+
+
+
+
+[.function]
+=== multiplyDecimal
+
+*Description*: [.description]#Multiplies a decimal value by the Subject and returns the product.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+	- [.argName]#_Operand_# : [.argDesc]#The value to multiple the Subject by#
+
+*Return Type*: [.returnType]#Decimal#
+
+*Examples*: If the "decimalValue" decimalValue has a value of 0.4123, then the Expression `${fileSize:multiplyDecimal('2.5')}`
+	will return the value `1.03075`.
+
+
+
+
+[.function]
+=== divideDecimal
+
+*Description*: [.description]#Divides the Subject by a decimal value and returns the result.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+	- [.argName]#_Operand_# : [.argDesc]#The value to divide the Subject by#
+
+*Return Type*: [.returnType]#Decimal#
+
+*Examples*: If the "decimalValue" attribute has a value of 0.4123, then the Expression `${fileSize:divide('1.5')}`
+	will return the value `0.27486666666666665`.
+
+
+
+[.function]
+=== modDecimal
+
+*Description*: [.description]#Performs a modular division of the Subject by the argument. That is, this function will divide
+    the Subject by the value of the argument and return not the quotient but rather the remainder.#
+
+*Subject Type*: [.subject]#Decimal#
+
+*Arguments*:
+
+    - [.argName]#_Operand_# : [.argDesc]#The value to divide the Subject by#
+
+*Return Type*: [.returnType]#Decimal#
+
+*Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:mod(12)}`
+    will return the value `4`.
+
 
 
 
@@ -1436,6 +1614,20 @@ manipulate the value.
 
 *Examples*: The Expression `${fileSize:toNumber()}` converts the String attribute value of "fileSize" to a number.
 
+
+
+[.function]
+=== toDecimal
+
+*Description*: [.description]#Coerces the Subject into a Decimal#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Decimal#
+
+*Examples*: The Expression `${fileSize:toDecimal()}` converts the String attribute value of "fileSize" to a decimal.
 
 
 

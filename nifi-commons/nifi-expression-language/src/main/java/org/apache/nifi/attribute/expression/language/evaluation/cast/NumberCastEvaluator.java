@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
@@ -31,7 +32,7 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 public class NumberCastEvaluator extends NumberEvaluator {
 
     private final Evaluator<?> subjectEvaluator;
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
+    protected static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
 
     public NumberCastEvaluator(final Evaluator<?> subjectEvaluator) {
         if (subjectEvaluator.getResultType() == ResultType.BOOLEAN) {
@@ -50,10 +51,15 @@ public class NumberCastEvaluator extends NumberEvaluator {
         switch (result.getResultType()) {
             case NUMBER:
                 return (NumberQueryResult) result;
+            case DECIMAL:
+                final Double value = ((DecimalQueryResult) result).getValue();
+                return new NumberQueryResult(value.longValue());
             case STRING:
                 final String trimmed = ((StringQueryResult) result).getValue().trim();
                 if (NUMBER_PATTERN.matcher(trimmed).matches()) {
                     return new NumberQueryResult(Long.valueOf(trimmed));
+                } else if (DecimalCastEvaluator.DOUBLE_PATTERN.matcher(trimmed).matches()){
+                    return new NumberQueryResult(Double.valueOf(trimmed).longValue());
                 } else {
                     return new NumberQueryResult(null);
                 }
