@@ -105,17 +105,218 @@ public class TestUpdateAttribute {
     @Test
     public void testDefaultAddAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("NewAttr", "abc${'Hello${Goose}'}!");
+        runner.setProperty("NewAttr", "${one:plus(${two})}");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("Goose", "Geese");
-        attributes.put("HelloGeese", "123");
+        attributes.put("one", "1");
+        attributes.put("two", "2");
         runner.enqueue(new byte[0], attributes);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(0).assertAttributeEquals("NewAttr", "abc123!");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(0).assertAttributeEquals("NewAttr", "3");
+    }
+
+    @Test
+    public void testDefaultState() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty("count", "${count_state:plus(1)}");
+        runner.setProperty("sum", "${sum_state:plus(${pencils})}");
+
+        runner.assertValid();
+
+        final Map<String, String> attributes2 = new HashMap<>();
+        attributes2.put("pencils", "2");
+
+        runner.enqueue(new byte[0],attributes2);
+        runner.enqueue(new byte[0],attributes2);
+
+        final Map<String, String> attributes3 = new HashMap<>();
+        attributes3.put("pencils", "3");
+        runner.enqueue(new byte[0], attributes3);
+        runner.enqueue(new byte[0], attributes3);
+
+        final Map<String, String> attributes5 = new HashMap<>();
+        attributes5.put("pencils", "5");
+        runner.enqueue(new byte[0], attributes5);
+
+        runner.run(5);
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 5);
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(4).assertAttributeEquals("count", "5");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(4).assertAttributeEquals("sum", "15");
+    }
+
+    @Test
+    public void testStateWithInitValue() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "10");
+        runner.setProperty("count", "${count_state:plus(1)}");
+        runner.setProperty("sum", "${sum_state:plus(${pencils})}");
+
+        runner.assertValid();
+
+        final Map<String, String> attributes2 = new HashMap<>();
+        attributes2.put("pencils", "2");
+
+        runner.enqueue(new byte[0],attributes2);
+        runner.enqueue(new byte[0],attributes2);
+
+        final Map<String, String> attributes3 = new HashMap<>();
+        attributes3.put("pencils", "3");
+        runner.enqueue(new byte[0], attributes3);
+        runner.enqueue(new byte[0], attributes3);
+
+        final Map<String, String> attributes5 = new HashMap<>();
+        attributes5.put("pencils", "5");
+        runner.enqueue(new byte[0], attributes5);
+
+        runner.run(5);
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 5);
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(4).assertAttributeEquals("count", "15");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(4).assertAttributeEquals("sum", "25");
+    }
+
+    @Test
+    public void testRuleHitWithState() throws Exception {
+        final Criteria criteria = getCriteria();
+        addRule(criteria, "rule", Arrays.asList(
+                // conditions
+                "${maxValue_state:lt(${value})}"), getMap(
+                // actions
+                "maxValue", "${value}"));
+
+        TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setAnnotationData(serialize(criteria));
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "2");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "4");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 4);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(2).assertAttributeEquals("maxValue", "4");
+        result.get(3).assertAttributeEquals("maxValue", null);
+    }
+
+    @Test
+    public void testRuleHitWithStateWithDefault() throws Exception {
+        final Criteria criteria = getCriteria();
+        addRule(criteria, "rule", Arrays.asList(
+                // conditions
+                "${maxValue_state:lt(${value})}"), getMap(
+                // actions
+                "maxValue", "${value}"));
+
+        TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setAnnotationData(serialize(criteria));
+        runner.setProperty("maxValue", "${maxValue_state}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "2");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "4");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 4);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(2).assertAttributeEquals("maxValue", "4");
+        result.get(3).assertAttributeEquals("maxValue", "4");
+    }
+
+    @Test
+    public void testRuleHitWithStateWithInitValue() throws Exception {
+        final Criteria criteria = getCriteria();
+        addRule(criteria, "rule", Arrays.asList(
+                // conditions
+                "${minValue_state:ge(${value})}"), getMap(
+                // actions
+                "minValue", "${value}"));
+
+        TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "5");
+        runner.setAnnotationData(serialize(criteria));
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "2");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "4");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 4);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(3).assertAttributeEquals("minValue", "1");
+    }
+
+    @Test
+    public void testMultipleRulesWithStateAndDelete() throws Exception {
+        final Criteria criteria = getCriteria();
+        addRule(criteria, "rule", Arrays.asList(
+                // conditions
+                "${maxValue_state:lt(${value})}"), getMap(
+                // actions
+                "maxValue", "${value}"));
+
+        TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "badValue");
+        runner.setAnnotationData(serialize(criteria));
+        runner.setProperty("maxValue", "${maxValue_state}");
+        runner.setProperty("theCount", "${theCount_state:plus(1)}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+        attributes.put("badValue", "10");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "2");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "5");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 4);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        result.get(3).assertAttributeEquals("maxValue", "5");
+        result.get(3).assertAttributeEquals("theCount", "4");
+        result.get(0).assertAttributeEquals("badValue", null);
     }
 
     @Test
@@ -423,7 +624,7 @@ public class TestUpdateAttribute {
     @Test
     public void testSimpleDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "attribute.2");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "attribute.2");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -441,7 +642,7 @@ public class TestUpdateAttribute {
     @Test
     public void testRegexDotDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "attribute.2");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "attribute.2");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -461,7 +662,7 @@ public class TestUpdateAttribute {
     @Test
     public void testRegexLiteralDotDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "attribute\\.2");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "attribute\\.2");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -481,7 +682,7 @@ public class TestUpdateAttribute {
     @Test
     public void testRegexGroupDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "(attribute\\.[2-5]|sample.*)");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "(attribute\\.[2-5]|sample.*)");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -507,7 +708,7 @@ public class TestUpdateAttribute {
     @Test
     public void testAttributeKey() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "(attribute\\.[2-5]|sample.*)");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "(attribute\\.[2-5]|sample.*)");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -533,7 +734,7 @@ public class TestUpdateAttribute {
     @Test
     public void testExpressionLiteralDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "${literal('attribute\\.'):append(${literal(6)})}");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "${literal('attribute\\.'):append(${literal(6)})}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -559,7 +760,7 @@ public class TestUpdateAttribute {
     @Test
     public void testExpressionRegexDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "${literal('(attribute\\.'):append(${literal('[2-5]')}):append(${literal('|sample.*)')})}");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "${literal('(attribute\\.'):append(${literal('[2-5]')}):append(${literal('|sample.*)')})}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -585,7 +786,7 @@ public class TestUpdateAttribute {
     @Test
     public void testAttributeListDelete() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "attribute.1|attribute.2|sample.1|simple.1");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "attribute.1|attribute.2|sample.1|simple.1");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute.1", "value.1");
@@ -611,14 +812,14 @@ public class TestUpdateAttribute {
     @Test
     public void testInvalidRegex() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "(");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "(");
         runner.assertNotValid();
     }
 
     @Test
     public void testInvalidRegexInAttribute() {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("Delete Attributes Expression", "${butter}");
+        runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "${butter}");
         runner.assertValid();
 
         final Map<String, String> attributes = new HashMap<>();
