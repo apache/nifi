@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.attributes;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -37,6 +38,8 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -46,6 +49,9 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -66,71 +72,49 @@ import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 
-/**
- * This processor supports updating flowfile attributes and can do so
- * conditionally or unconditionally.  It can also delete flowfile attributes
- * that match a regular expression.
- *
- * Like the FlowFileMetadataEnhancer, it can
- * be configured with an arbitrary number of optional properties to define how
- * attributes should be updated. Each optional property represents an action
- * that is applied to all incoming flow files. An action is comprised of an
- * attribute key and a format string. The format string supports the following
- * parameters.
- * <ul>
- * <li>%1 - is the random generated UUID. </li>
- * <li>%2 - is the current calendar time. </li>
- * <li>${"attribute.key") - is the flow file attribute value of the key
- * contained within the brackets.</li>
- * </ul>
- *
- * When creating the optional properties, enter the attribute key as the
- * property name and the desired format string as the value. The optional
- * properties are considered default actions and are applied unconditionally.
- *
- * In addition to the default actions, this processor has a user interface (UI)
- * where conditional actions can be specified. In the UI, rules can be created.
- * Rules are comprised of an arbitrary number of conditions and actions. In
- * order for a rule to be activated, all conditions must evaluate to true.
- *
- * A rule condition is comprised of an attribute key and a regular expression. A
- * condition evaluates to true when the flowfile contains the attribute
- * specified and it's value matches the specified regular expression.
- *
- * A rule action follows the same definition as a rule above. It includes an
- * attribute key and a format string. The format string supports the same
- * parameters defined above.
- *
- * When a rule is activated (because conditions evaluate to true), all actions
- * in that rule are executed. Once each action has been applied, any remaining
- * default actions will be applied. This means that if rule action and a default
- * action modify the same attribute, only the rule action will execute. Default
- * actions will only execute when the attribute in question is not modified as
- * part of an activated rule.
- *
- * The incoming flow file is cloned for each rule that is activated. If no rule
- * is activated, any default actions are applied to the original flowfile and it
- * is transferred.
- *
- * This processor only supports a SUCCESS relationship.
- *
- * Note: In order for configuration changes made in the custom UI to take
- * effect, the processor must be stopped and started.
- */
 @EventDriven
 @SideEffectFree
+@SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"attributes", "modification", "update", "delete", "Attribute Expression Language"})
+@Tags({"attributes", "modification", "update", "delete", "Attribute Expression Language", "state"})
 @CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language and/or deletes the attributes based on a regular expression")
 @DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", supportsExpressionLanguage = true,
         description = "Updates a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @WritesAttribute(attribute = "See additional details", description = "This processor may write or remove zero or more attributes as described in additional details")
+@Stateful(scopes = {Scope.LOCAL}, description = "Gives the option to store values not only on the FlowFile but as stateful variables to be referenced in a recursive manner.")
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
+
+    public static final String DO_NOT_STORE_STATE = "do not store state";
+    public static final String STORE_STATE_LOCALLY = "store state locally";
+
+    private boolean stateful = false;
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);
     private final ConcurrentMap<String, PropertyValue> propertyValues = new ConcurrentHashMap<>();
 
-    private final Set<Relationship> relationships;
+    private final static Set<Relationship> statelessRelationshipSet;
+    private final static Set<Relationship> statefulRelationshipSet;
+
+    // relationships
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .description("All successful FlowFiles are routed to this relationship").name("success").build();
+    public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
+            .description("A failure to set the state after adding the attributes to the FlowFile will route the FlowFile here.").name("set state fail").build();
+
+    static {
+        Set<Relationship> tempStatelessSet = new HashSet<>();
+        tempStatelessSet.add(REL_SUCCESS);
+
+        statelessRelationshipSet = Collections.unmodifiableSet(tempStatelessSet);
+
+        Set<Relationship> tempStatefulSet = new HashSet<>();
+        tempStatefulSet.add(REL_SUCCESS);
+        tempStatefulSet.add(REL_FAILED_SET_STATE);
+
+        statefulRelationshipSet = Collections.unmodifiableSet(tempStatefulSet);
+    }
+
+    private volatile Set<Relationship> relationships;
 
     private static final Validator DELETE_PROPERTY_VALIDATOR = new Validator() {
         private final Validator DPV_RE_VALIDATOR = StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true);
@@ -162,20 +146,32 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     // static properties
     public static final PropertyDescriptor DELETE_ATTRIBUTES = new PropertyDescriptor.Builder()
             .name("Delete Attributes Expression")
-            .description("Regular expression for attributes to be deleted from flowfiles.")
+            .description("Regular expression for attributes to be deleted from FlowFiles.")
             .required(false)
             .addValidator(DELETE_PROPERTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
 
-    // relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .description("All FlowFiles are routed to this relationship").name("success").build();
+    public static final PropertyDescriptor STORE_STATE = new PropertyDescriptor.Builder()
+            .name("Store State")
+            .description("Select whether or not state will be stored. Selecting 'Stateless' will offer the default functionality of purely updating the attributes on a " +
+                    "FlowFile in a stateless manner. Selecting a stateful option will not only store the attributes on the FlowFile but also in the Processors " +
+                    "state. See the 'Stateful Usage' topic of the 'Additional Details' section of this processor's documentation for more information")
+            .required(true)
+            .allowableValues(DO_NOT_STORE_STATE, STORE_STATE_LOCALLY)
+            .defaultValue(DO_NOT_STORE_STATE)
+            .build();
+    public static final PropertyDescriptor STATEFUL_VARIABLES_INIT_VALUE = new PropertyDescriptor.Builder()
+            .name("Stateful Variables Initial Value")
+            .description("If using state to set/reference variables then this value is used to set the initial value of the stateful variable. This will only be used in the @OnScheduled method " +
+                    "when state does not contain a value for the variable. This is required if running statefully but can be empty if needed.")
+            .required(false)
+            .addValidator(Validator.VALID)
+            .build();
+
 
     public UpdateAttribute() {
-        final Set<Relationship> relationshipSet = new HashSet<>();
-        relationshipSet.add(REL_SUCCESS);
-        relationships = Collections.unmodifiableSet(relationshipSet);
+        relationships = statelessRelationshipSet;
     }
 
     @Override
@@ -187,29 +183,95 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(DELETE_ATTRIBUTES);
+        descriptors.add(STORE_STATE);
+        descriptors.add(STATEFUL_VARIABLES_INIT_VALUE);
         return Collections.unmodifiableList(descriptors);
     }
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
+        PropertyDescriptor.Builder propertyBuilder = new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
                 .expressionLanguageSupported(true)
-                .dynamic(true)
-                .build();
+                .dynamic(true);
+
+        if (stateful) {
+            return propertyBuilder
+                    .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                    .build();
+        } else {
+            return propertyBuilder
+                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                    .build();
+        }
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        super.onPropertyModified(descriptor, oldValue, newValue);
+
+        if (descriptor.equals(STORE_STATE)) {
+            if (DO_NOT_STORE_STATE.equals(newValue)){
+                stateful = false;
+                relationships = statelessRelationshipSet;
+            } else {
+                stateful = true;
+                relationships = statefulRelationshipSet;
+            }
+        }
     }
 
     @OnScheduled
-    public void clearPropertyValueMap() {
+    public void onScheduled(final ProcessContext context) throws IOException {
+        criteriaCache.set(CriteriaSerDe.deserialize(context.getAnnotationData()));
+
         propertyValues.clear();
+
+        if(stateful) {
+            StateManager stateManager = context.getStateManager();
+            StateMap state = stateManager.getState(Scope.LOCAL);
+            HashMap<String, String> tempMap = new HashMap<>();
+            tempMap.putAll(state.toMap());
+            String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
+
+            // Initialize the stateful default actions
+            for (PropertyDescriptor entry : context.getProperties().keySet()) {
+                if (entry.isDynamic()) {
+                    if(!tempMap.containsKey(entry.getName())) {
+                        tempMap.put(entry.getName(), initValue);
+                    }
+                }
+            }
+
+            // Initialize the stateful actions if the criteria exists
+            final Criteria criteria = criteriaCache.get();
+            if (criteria != null) {
+                for (Rule rule : criteria.getRules()) {
+                    for (Action action : rule.getActions()) {
+                        if (!tempMap.containsKey(action.getAttribute())) {
+                            tempMap.put(action.getAttribute(), initValue);
+                        }
+                    }
+                }
+            }
+
+            context.getStateManager().setState(tempMap, Scope.LOCAL);
+        }
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> reasons = new ArrayList<>(super.customValidate(context));
+
+        if (!context.getProperty(STORE_STATE).getValue().equals(DO_NOT_STORE_STATE)){
+            String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
+            if (initValue == null){
+                reasons.add(new ValidationResult.Builder().subject(STATEFUL_VARIABLES_INIT_VALUE.getDisplayName()).valid(false)
+                        .explanation("initial state value much be set if the processor is configured to store state.").build());
+            }
+        }
 
         Criteria criteria = null;
         try {
@@ -325,20 +387,12 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
     }
 
-    @OnScheduled
-    public void parseAnnotationData(final ProcessContext context) {
-        criteriaCache.set(CriteriaSerDe.deserialize(context.getAnnotationData()));
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final ComponentLog logger = getLogger();
         final Criteria criteria = criteriaCache.get();
 
-        List<FlowFile> flowFiles = session.get(100);
-        if (flowFiles.isEmpty()) {
-            return;
-        }
+        FlowFile flowFile = session.get();
 
         final Map<PropertyDescriptor, String> properties = context.getProperties();
 
@@ -353,45 +407,70 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         // because is the original flowfile is used for all matching rules. in this
         // case the order of the matching rules is preserved in the list
         final Map<FlowFile, List<Rule>> matchedRules = new HashMap<>();
+        Map<String, String> statefulAttributes = null;
 
-        for (FlowFile flowFile : flowFiles) {
-            matchedRules.clear();
+        matchedRules.clear();
 
-            // if there is update criteria specified, evaluate it
-            if (criteria != null && evaluateCriteria(session, context, criteria, flowFile, matchedRules)) {
-                // apply the actions for each rule and transfer the flowfile
-                for (final Map.Entry<FlowFile, List<Rule>> entry : matchedRules.entrySet()) {
-                    FlowFile match = entry.getKey();
-                    final List<Rule> rules = entry.getValue();
+        try {
+            if (stateful) {
+                statefulAttributes = new HashMap<>(context.getStateManager().getState(Scope.LOCAL).toMap());
+            } else {
+                statefulAttributes = null;
+            }
+        } catch (IOException e) {
+            logger.error("Failed to update attributes for {} due to failing to get state; transferring FlowFile back to '{}'", new Object[]{flowFile, Relationship.SELF.getName()}, e);
+            session.transfer(flowFile);
+            context.yield();
+            return;
+        }
 
-                    // execute each matching rule(s)
-                    match = executeActions(session, context, rules, defaultActions, match);
+        // if there is update criteria specified, evaluate it
+        if (criteria != null && evaluateCriteria(session, context, criteria, flowFile, matchedRules, statefulAttributes)) {
+            // apply the actions for each rule and transfer the flowfile
+            for (final Map.Entry<FlowFile, List<Rule>> entry : matchedRules.entrySet()) {
+                FlowFile match = entry.getKey();
+                final List<Rule> rules = entry.getValue();
+
+                // execute each matching rule(s)
+                try {
+                    match = executeActions(session, context, rules, defaultActions, match, statefulAttributes);
                     logger.info("Updated attributes for {}; transferring to '{}'", new Object[]{match, REL_SUCCESS.getName()});
 
                     // transfer the match
                     session.getProvenanceReporter().modifyAttributes(match);
                     session.transfer(match, REL_SUCCESS);
+                } catch (IOException e) {
+                    logger.error("Failed to update attributes for {} due to a failure to set the state afterwards; transferring to '{}'", new Object[]{match, REL_FAILED_SET_STATE.getName()}, e);
+                    session.transfer(match, REL_FAILED_SET_STATE);
+                    return;
                 }
-            } else {
-                // transfer the flowfile to no match (that has the default actions applied)
-                flowFile = executeActions(session, context, null, defaultActions, flowFile);
+            }
+        } else {
+            // transfer the flowfile to no match (that has the default actions applied)
+            try {
+                flowFile = executeActions(session, context, null, defaultActions, flowFile, statefulAttributes);
                 logger.info("Updated attributes for {}; transferring to '{}'", new Object[]{flowFile, REL_SUCCESS.getName()});
                 session.getProvenanceReporter().modifyAttributes(flowFile);
                 session.transfer(flowFile, REL_SUCCESS);
+            } catch (IOException e) {
+                logger.error("Failed to update attributes for {} due to failures setting state afterwards; transferring to '{}'", new Object[]{flowFile, REL_FAILED_SET_STATE.getName()}, e);
+                session.transfer(flowFile, REL_FAILED_SET_STATE);
+                return;
             }
         }
     }
 
     //Evaluates the specified Criteria on the specified flowfile. Clones the
     // specified flow file for each rule that is applied.
-    private boolean evaluateCriteria(final ProcessSession session, final ProcessContext context, final Criteria criteria, final FlowFile flowfile, final Map<FlowFile, List<Rule>> matchedRules) {
-        final ComponentLog logger = getLogger();
+    private boolean evaluateCriteria(final ProcessSession session, final ProcessContext context, final Criteria criteria, final FlowFile flowfile, final Map<FlowFile,
+            List<Rule>> matchedRules, final Map<String, String> statefulAttributes) {
+            final ComponentLog logger = getLogger();
         final List<Rule> rules = criteria.getRules();
 
         // consider each rule and hold a copy of the flowfile for each matched rule
         for (final Rule rule : rules) {
             // evaluate the rule
-            if (evaluateRule(context, rule, flowfile)) {
+            if (evaluateRule(context, rule, flowfile, statefulAttributes)) {
                 final FlowFile flowfileToUse;
 
                 // determine if we should use the original flow file or clone
@@ -421,12 +500,12 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     }
 
     //Evaluates the specified rule on the specified flowfile.
-    private boolean evaluateRule(final ProcessContext context, final Rule rule, FlowFile flowfile) {
+    private boolean evaluateRule(final ProcessContext context, final Rule rule, FlowFile flowfile, final Map<String, String> statefulAttributes) {
         // go through each condition
         for (final Condition condition : rule.getConditions()) {
 
             // fail if any condition is not met
-            if (!evaluateCondition(context, condition, flowfile)) {
+            if (!evaluateCondition(context, condition, flowfile, statefulAttributes)) {
                 return false;
             }
         }
@@ -447,19 +526,20 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         return currentValue;
     }
 
-    //Evaluates the specified condition on the specified flowfile.
-    private boolean evaluateCondition(final ProcessContext context, final Condition condition, final FlowFile flowfile) {
+    // Evaluates the specified condition on the specified flowfile.
+    private boolean evaluateCondition(final ProcessContext context, final Condition condition, final FlowFile flowfile, final Map<String, String> statefulAttributes) {
         try {
             // evaluate the expression for the given flow file
-            return getPropertyValue(condition.getExpression(), context).evaluateAttributeExpressions(flowfile).asBoolean();
+            return getPropertyValue(condition.getExpression(), context).evaluateAttributeExpressions(flowfile, null, null, statefulAttributes).asBoolean();
         } catch (final ProcessException pe) {
             throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), pe), pe);
         }
     }
 
     // Executes the specified action on the specified flowfile.
-    private FlowFile executeActions(final ProcessSession session, final ProcessContext context, final List<Rule> rules, final Map<String, Action> defaultActions, final FlowFile flowfile) {
-        final ComponentLog logger = getLogger();
+    private FlowFile executeActions(final ProcessSession session, final ProcessContext context, final List<Rule> rules, final Map<String, Action> defaultActions, final FlowFile flowfile,
+                                    final Map<String, String> statefulAttributes) throws IOException {
+            final ComponentLog logger = getLogger();
         final Map<String, Action> actions = new HashMap<>(defaultActions);
         final String ruleName = (rules == null || rules.isEmpty()) ? "default" : rules.get(rules.size() - 1).getName();
 
@@ -489,15 +569,30 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, String> attributesToUpdate = new HashMap<>(actions.size());
         final Set<String> attributesToDelete = new HashSet<>(actions.size());
 
+        final Map<String, String> statefulAttributesToSet;
+
+        if (statefulAttributes != null){
+            statefulAttributesToSet = new HashMap<>();
+        } else {
+            statefulAttributesToSet = null;
+        }
+
+
         // go through each action
         for (final Action action : actions.values()) {
             if (!action.getAttribute().equals(DELETE_ATTRIBUTES.getName())) {
                 try {
-                    final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile).getValue();
+                    final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, statefulAttributes).getValue();
 
                     // log if appropriate
                     if (logger.isDebugEnabled()) {
                         logger.debug(String.format("%s setting attribute '%s' = '%s' for %s per rule '%s'.", this, action.getAttribute(), newAttributeValue, flowfile, ruleName));
+                    }
+
+                    if (statefulAttributesToSet != null) {
+                        if(!action.getAttribute().equals("UpdateAttribute.matchedRule")) {
+                            statefulAttributesToSet.put(action.getAttribute(), newAttributeValue);
+                        }
                     }
 
                     attributesToUpdate.put(action.getAttribute(), newAttributeValue);
@@ -545,8 +640,14 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             }
         }
 
-        // update and delete the flowfile attributes
-        return session.removeAllAttributes(session.putAllAttributes(flowfile, attributesToUpdate), attributesToDelete);
+        // update and delete the FlowFile attributes
+        FlowFile returnFlowfile = session.removeAllAttributes(session.putAllAttributes(flowfile, attributesToUpdate), attributesToDelete);
+
+        if(statefulAttributesToSet != null) {
+            context.getStateManager().setState(statefulAttributesToSet, Scope.LOCAL);
+        }
+
+        return  returnFlowfile;
     }
 
     // Gets the default actions.
@@ -554,10 +655,12 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, Action> defaultActions = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            final Action action = new Action();
-            action.setAttribute(entry.getKey().getName());
-            action.setValue(entry.getValue());
-            defaultActions.put(action.getAttribute(), action);
+            if(entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE) {
+                final Action action = new Action();
+                action.setAttribute(entry.getKey().getName());
+                action.setValue(entry.getValue());
+                defaultActions.put(action.getAttribute(), action);
+            }
         }
 
         return defaultActions;
