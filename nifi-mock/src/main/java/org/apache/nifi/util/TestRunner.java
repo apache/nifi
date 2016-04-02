@@ -36,6 +36,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.verifier.ConditionsBuilder;
 
 public interface TestRunner {
 
@@ -865,4 +866,8 @@ public interface TestRunner {
      * @return the State Manager that is used to store and retrieve state for the given controller service
      */
     MockStateManager getStateManager(ControllerService service);
+
+    void assertAllConditionsMet(final String relationshipName, ConditionsBuilder... andContentEqual);
+    
+    void assertAllConditionsMet(final Relationship relationship, ConditionsBuilder... andContentEqual);
 }
