@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.apache.nifi.util.verifier.ConditionsBuilder.*;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -46,6 +47,15 @@ public class TestStandardProcessorTestRunner {
         assertEquals(1, proc.getOnStoppedCallsWithContext());
         assertEquals(1, proc.getOnStoppedCallsWithoutContext());
     }
+
+    public void testVerifyFlowFiles() {
+        TestRunner runner = new StandardProcessorTestRunner(new DeprecatedAnnotation());
+        runner.assertAllConditionsMet("good", 
+                attributeEqual("GROUP_ATTRIBUTE_KEY", "1").andContentEqual("1,hello\n1,good-bye").andAttributeEqual("KeyB", "hihii"),
+                contentEqual("May Andersson").andAttributeEqual("age", "34")
+                );
+    }
+
 
     @Test(expected = AssertionError.class)
     @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")

@@ -71,6 +71,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.verifier.ConditionsBuilder;
 import org.junit.Assert;
 
 public class StandardProcessorTestRunner implements TestRunner {
@@ -842,4 +843,14 @@ public class StandardProcessorTestRunner implements TestRunner {
         return controllerServiceLoggers.get(identifier);
     }
 
+    @Override
+    public void assertAllConditionsMet(final String relationshipName, ConditionsBuilder... andContentEqual) {
+        assertAllConditionsMet(new Relationship.Builder().name(relationshipName).build(), andContentEqual);
+    }
+
+    public void assertAllConditionsMet(final Relationship relationship, ConditionsBuilder... andContentEqual) {
+        final List<MockFlowFile> list = getFlowFilesForRelationship(relationship);
+        
+        
+    }
 }
