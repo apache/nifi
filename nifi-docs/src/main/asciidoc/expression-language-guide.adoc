@@ -1299,8 +1299,18 @@ Expressions will provide the following results:
 | `${fileSize:toRadix(2, 16)}` | `0000010000000000`
 |=======================================================================================
 
+[.function]
+=== random
 
+*Description*: [.description]#Returns a random number ( 0 to 2^63 - 1) using an insecure random number generator.#
 
+*Subject Type*: [.subjectless]#No subject#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: ${random():mod(10):plus(1)} returns random number between 1 and 10 inclusive.
 
 [[dates]]
 == Date Manipulation
