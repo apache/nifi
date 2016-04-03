@@ -6,7 +6,7 @@ public class AttributeEqual implements Condition {
 
     protected final String name;
     protected final String value;
-    
+
     public AttributeEqual(String name, String value) {
         super();
         this.name = name;
@@ -14,8 +14,12 @@ public class AttributeEqual implements Condition {
     }
 
     @Override
-    public boolean check(MockFlowFile mockFlowFile) {
-
+    public boolean check(MockFlowFile flowFile) {
+        try {
+            flowFile.assertAttributeEquals(name,value);
+        } catch (AssertionError cf) {
+            return false;
+        }
         return true;
     }
 

@@ -22,12 +22,15 @@ public class ConditionsBuilder {
         conditions.add(new AttributeEqual(name,value));
         return this;
     }
-    
+
     public ConditionsBuilder andContentEqual(String content) {
         conditions.add(new ContentEqual(content));
         return this;
     }
-    
+
+    public ArrayList<Condition> getConditions() {
+        return conditions;
+    }
 
 
 }

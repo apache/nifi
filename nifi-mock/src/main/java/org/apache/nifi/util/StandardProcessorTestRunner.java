@@ -71,6 +71,8 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.verifier.Condition;
+import org.apache.nifi.util.verifier.Conditions;
 import org.apache.nifi.util.verifier.ConditionsBuilder;
 import org.junit.Assert;
 
@@ -843,14 +845,62 @@ public class StandardProcessorTestRunner implements TestRunner {
         return controllerServiceLoggers.get(identifier);
     }
 
+    /**
+     *  Maybe we should add possibility to be more precise:
+     *      "All FlowFiles must meet all conditions"
+     *  or
+     *      "At least one FlowFile must meet all conditions"
+     *  or
+     *      "Each FlowFile should meet at least one condition"
+     *
+     *  Current functionality is: "Each FlowFile should meet at least one condition"
+     *  So instead of assertAllConditionsMet we should use something like assertFlowFileMeetAnyCondition
+     *  (or assertFlowFileMeetAtLeastOneCondition)
+     *  Or add extra parameter which specifies how FlowFile must meet conditions.
+     *
+     */
     @Override
-    public void assertAllConditionsMet(final String relationshipName, ConditionsBuilder... andContentEqual) {
-        assertAllConditionsMet(new Relationship.Builder().name(relationshipName).build(), andContentEqual);
+    public void assertAllConditionsMet(final String relationshipName, ConditionsBuilder... conditionsBuilders) {
+        assertAllConditionsMet(new Relationship.Builder().name(relationshipName).build(), conditionsBuilders);
     }
 
-    public void assertAllConditionsMet(final Relationship relationship, ConditionsBuilder... andContentEqual) {
-        final List<MockFlowFile> list = getFlowFilesForRelationship(relationship);
-        
-        
+    @Override
+    public void assertAllConditionsMet(final Relationship relationship, ConditionsBuilder... conditionsBuilders) {
+        final List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
+
+        // So how we should handle case when no FlowFiles are available?
+        // It seems to be error
+        if (flowFiles.isEmpty())
+            Assert.fail("Relationship " + relationship.getName() + " does not contain any FlowFile");
+
+        ArrayList<Conditions> listOfConditions = new ArrayList<>();
+        for (ConditionsBuilder conditionsBuilder : conditionsBuilders)
+            listOfConditions.add(new Conditions(conditionsBuilder.getConditions()));
+
+        assertFlowFileMeetAtLeastOneCondition(flowFiles, listOfConditions);
+    }
+
+    protected void assertFlowFileMeetAtLeastOneCondition(List<MockFlowFile> flowFiles, ArrayList<Conditions> listOfConditions) {
+
+        for (MockFlowFile flowFile : flowFiles) {
+            if (flowFileMeetAtLeastOneCondition(flowFile,listOfConditions)==false)
+                Assert.fail("FlowFile " + flowFile + " does not meet any condition");
+        }
+    }
+
+    protected boolean flowFileMeetAtLeastOneCondition(MockFlowFile flowFile, ArrayList<Conditions> listOfConditions) {
+        for (Conditions conditions : listOfConditions) {
+            if (flowFileMeetsConditions(flowFile,conditions)==true)
+                return true;
+        }
+        return false;
+    }
+
+    protected boolean flowFileMeetsConditions(MockFlowFile flowFile, Conditions conditions) {
+        for (Condition condition : conditions.getConditions()) {
+            if (condition.check(flowFile)==false)
+                return false;
+        }
+        return true;
     }
 }
