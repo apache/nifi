@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import org.apache.nifi.processor.Relationship;
 
 public class FlowFileVerifierBuilder {
-    
+
     protected final Relationship relationship;
     protected final ArrayList<Conditions> conditions = new ArrayList<>();
 
@@ -13,5 +13,5 @@ public class FlowFileVerifierBuilder {
         super();
         this.relationship = relationship;
     }
-    
+
 }

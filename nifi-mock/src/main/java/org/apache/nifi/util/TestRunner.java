@@ -867,7 +867,20 @@ public interface TestRunner {
      */
     MockStateManager getStateManager(ControllerService service);
 
+    /**
+     *  Maybe we should add possibility to be more precise:
+     *      "All FlowFiles must meet all conditions"
+     *  or
+     *      "At least one FlowFile must meet all conditions"
+     *  or
+     *      "Each FlowFile should meet at least one condition"
+     *
+     *  Current functionality is: "Each FlowFile should meet at least one condition"
+     *  So instead of assertAllConditionsMet we should use something like assertFlowFileMeetAnyCondition
+     *  Or add extra parameter which specifies how FlowFile must meet conditions.
+     *
+     */
     void assertAllConditionsMet(final String relationshipName, ConditionsBuilder... andContentEqual);
-    
+
     void assertAllConditionsMet(final Relationship relationship, ConditionsBuilder... andContentEqual);
 }
