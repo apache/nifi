@@ -116,6 +116,7 @@ URL_ENCODE : 'urlEncode';
 URL_DECODE : 'urlDecode';
 NOT : 'not';
 COUNT : 'count';
+RANDOM : 'random';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
