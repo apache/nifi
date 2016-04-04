@@ -174,6 +174,12 @@ public class NiFiProperties extends Properties {
     public static final String CLUSTER_NODE_UNICAST_MANAGER_ADDRESS = "nifi.cluster.node.unicast.manager.address";
     public static final String CLUSTER_NODE_UNICAST_MANAGER_PROTOCOL_PORT = "nifi.cluster.node.unicast.manager.protocol.port";
 
+    // zookeeper properties
+    public static final String ZOOKEEPER_CONNECT_STRING = "nifi.zookeeper.connect.string";
+    public static final String ZOOKEEPER_CONNECT_TIMEOUT = "nifi.zookeeper.connect.timeout";
+    public static final String ZOOKEEPER_SESSION_TIMEOUT = "nifi.zookeeper.session.timeout";
+    public static final String ZOOKEEPER_ROOT_NODE = "nifi.zookeeper.root.node";
+
     // cluster manager properties
     public static final String CLUSTER_IS_MANAGER = "nifi.cluster.is.manager";
     public static final String CLUSTER_MANAGER_ADDRESS = "nifi.cluster.manager.address";
@@ -226,6 +232,9 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_PERSISTENT_STATE_DIRECTORY = "./conf/state";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
     public static final String DEFAULT_BORED_YIELD_DURATION = "10 millis";
+    public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
+    public static final String DEFAULT_ZOOKEEPER_SESSION_TIMEOUT = "3 secs";
+    public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi";
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";

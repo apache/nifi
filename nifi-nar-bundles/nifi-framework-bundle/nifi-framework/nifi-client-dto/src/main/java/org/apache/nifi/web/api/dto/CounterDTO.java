@@ -17,13 +17,14 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**
  * Counter value for a specific component in a specific context. A counter is a value that a component can adjust during processing.
  */
 @XmlType(name = "counter")
-public class CounterDTO {
+public class CounterDTO implements Cloneable {
 
     private String id;
     private String context;
@@ -98,4 +99,14 @@ public class CounterDTO {
         this.valueCount = valueCount;
     }
 
+    @Override
+    public CounterDTO clone() {
+        final CounterDTO other = new CounterDTO();
+        other.setId(getId());
+        other.setName(getName());
+        other.setContext(getContext());
+        other.setValue(getValue());
+        other.setValueCount(getValueCount());
+        return other;
+    }
 }

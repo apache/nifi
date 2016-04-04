@@ -22,8 +22,8 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
-import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -39,7 +39,6 @@ import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
-import org.apache.nifi.web.api.dto.NodeSystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -61,16 +60,12 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
-import org.apache.nifi.web.api.dto.status.ClusterConnectionStatusDTO;
-import org.apache.nifi.web.api.dto.status.ClusterPortStatusDTO;
-import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ClusterProcessorStatusDTO;
-import org.apache.nifi.web.api.dto.status.ClusterRemoteProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ClusterStatusDTO;
-import org.apache.nifi.web.api.dto.status.ClusterStatusHistoryDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
-import org.apache.nifi.web.api.dto.status.NodeStatusDTO;
+import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
+import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
+import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 
 import java.util.Collection;
@@ -388,6 +383,15 @@ public interface NiFiServiceFacade {
     ProcessorDTO getProcessor(String id);
 
     /**
+     * Gets the processor status.
+     *
+     * @param groupId group
+     * @param id id
+     * @return status
+     */
+    ProcessorStatusDTO getProcessorStatus(String groupId, String id);
+
+    /**
      * Gets the processor status history.
      *
      * @param groupId group
@@ -476,6 +480,15 @@ public interface NiFiServiceFacade {
      * @return The Connection transfer object
      */
     ConnectionDTO getConnection(String groupId, String connectionId);
+
+    /**
+     * Gets the status of the specified connection.
+     *
+     * @param groupId group
+     * @param connectionId connection
+     * @return status
+     */
+    ConnectionStatusDTO getConnectionStatus(String groupId, String connectionId);
 
     /**
      * Gets the status history of the specified connection.
@@ -649,6 +662,15 @@ public interface NiFiServiceFacade {
     Set<PortDTO> getInputPorts(String groupId);
 
     /**
+     * Gets the input port status.
+     *
+     * @param groupId group
+     * @param inputPortId input port
+     * @return status
+     */
+    PortStatusDTO getInputPortStatus(String groupId, String inputPortId);
+
+    /**
      * Determines if the input port could be updated.
      *
      * @param groupId The id of the group
@@ -713,6 +735,15 @@ public interface NiFiServiceFacade {
      * @return ports
      */
     Set<PortDTO> getOutputPorts(String groupId);
+
+    /**
+     * Gets the output port status.
+     *
+     * @param groupId group
+     * @param outputPortId output port
+     * @return status
+     */
+    PortStatusDTO getOutputPortStatus(String groupId, String outputPortId);
 
     /**
      * Determines if the output port could be updated.
@@ -849,6 +880,15 @@ public interface NiFiServiceFacade {
      * @return group
      */
     Set<RemoteProcessGroupDTO> getRemoteProcessGroups(String groupId);
+
+    /**
+     * Gets the remote process group status.
+     *
+     * @param groupId group
+     * @param id remote process group
+     * @return status
+     */
+    RemoteProcessGroupStatusDTO getRemoteProcessGroupStatus(String groupId, String id);
 
     /**
      * Gets the remote process group status history.
@@ -1506,103 +1546,6 @@ public interface NiFiServiceFacade {
      * @param nodeId a node identifier
      */
     void deleteNode(String nodeId);
-
-    /**
-     * Returns the status the specified node id.
-     *
-     * @param nodeId The id of the desired node
-     * @return The node status
-     */
-    NodeStatusDTO getNodeStatus(String nodeId);
-
-    /**
-     * Returns the system diagnostics for the specified node id.
-     *
-     * @param nodeId The id of the desired node
-     * @return The node status
-     */
-    NodeSystemDiagnosticsDTO getNodeSystemDiagnostics(String nodeId);
-
-    /**
-     * Returns the cluster's status.
-     *
-     * @return The cluster status
-     */
-    ClusterStatusDTO getClusterStatus();
-
-    /**
-     * Returns a processor's status for each node connected to the cluster.
-     *
-     * @param processorId a processor identifier
-     * @return The cluster processor status transfer object.
-     */
-    ClusterProcessorStatusDTO getClusterProcessorStatus(String processorId);
-
-    /**
-     * @param processorId id
-     * @return the processor status history for each node connected to the cluster
-     */
-    ClusterStatusHistoryDTO getClusterProcessorStatusHistory(String processorId);
-
-    /**
-     * Returns a connection's status for each node connected to the cluster.
-     *
-     * @param connectionId a connection identifier
-     * @return The cluster connection status transfer object.
-     */
-    ClusterConnectionStatusDTO getClusterConnectionStatus(String connectionId);
-
-    /**
-     * @param connectionId id
-     * @return the connection status history for each node connected to the cluster
-     */
-    ClusterStatusHistoryDTO getClusterConnectionStatusHistory(String connectionId);
-
-    /**
-     * @param processGroupId id
-     * @return the process group status history for each node connected to the cluster
-     */
-    ClusterStatusHistoryDTO getClusterProcessGroupStatusHistory(String processGroupId);
-
-    /**
-     * Returns a process group's status for each node connected to the cluster.
-     *
-     * @param processorId a process group identifier
-     * @return The cluster process group status transfer object.
-     */
-    ClusterProcessGroupStatusDTO getClusterProcessGroupStatus(String processorId);
-
-    /**
-     * Returns the remote process group status history for each node connected to the cluster.
-     *
-     * @param remoteProcessGroupId a remote process group identifier
-     * @return The cluster status history
-     */
-    ClusterStatusHistoryDTO getClusterRemoteProcessGroupStatusHistory(String remoteProcessGroupId);
-
-    /**
-     * Returns a remote process group's status for each node connected to the cluster.
-     *
-     * @param remoteProcessGroupId a remote process group identifier
-     * @return The cluster remote process group status transfer object.
-     */
-    ClusterRemoteProcessGroupStatusDTO getClusterRemoteProcessGroupStatus(String remoteProcessGroupId);
-
-    /**
-     * Returns an input port's status for each node connected to the cluster.
-     *
-     * @param inputPortId a port identifier
-     * @return The cluster port status transfer object.
-     */
-    ClusterPortStatusDTO getClusterInputPortStatus(String inputPortId);
-
-    /**
-     * Returns an output port's status for each node connected to the cluster.
-     *
-     * @param outputPortId a port identifier
-     * @return The cluster port status transfer object.
-     */
-    ClusterPortStatusDTO getClusterOutputPortStatus(String outputPortId);
 
     // ----------------------------------------
     // BulletinBoard methods

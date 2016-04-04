@@ -19,8 +19,8 @@
 
 nf.StatusHistory = (function () {
     var config = {
-        clusterInstanceId: 'cluster-instance-id',
-        clusterInstanceLabel: 'Cluster',
+        nifiInstanceId: 'nifi-instance-id',
+        nifiInstanceLabel: 'NiFi',
         type: {
             processor: 'Processor',
             inputPort: 'Input Port',
@@ -33,11 +33,7 @@ nf.StatusHistory = (function () {
             label: 'Label'
         },
         urls: {
-            processGroups: '../nifi-api/controller/process-groups/',
-            clusterProcessor: '../nifi-api/cluster/processors/',
-            clusterProcessGroup: '../nifi-api/cluster/process-groups/',
-            clusterRemoteProcessGroup: '../nifi-api/cluster/remote-process-groups/',
-            clusterConnection: '../nifi-api/cluster/connections/'
+            processGroups: '../nifi-api/controller/process-groups/'
         }
     };
 
@@ -83,73 +79,51 @@ nf.StatusHistory = (function () {
     var instances = null;
 
     /**
-     * Handles the status history response from a clustered NiFi.
+     * Handles the status history response.
      * 
-     * @param {type} groupId
-     * @param {type} id
-     * @param {type} clusterStatusHistory
-     * @param {type} componentType
-     * @param {type} selectedDescriptor
+     * @param {string} groupId
+     * @param {string} id
+     * @param {object} componentStatusHistory
+     * @param {string} componentType
+     * @param {object} selectedDescriptor
      */
-    var handleClusteredStatusHistoryResponse = function (groupId, id, clusterStatusHistory, componentType, selectedDescriptor) {
+    var handleStatusHistoryResponse = function (groupId, id, componentStatusHistory, componentType, selectedDescriptor) {
         // update the last refreshed
-        $('#status-history-last-refreshed').text(clusterStatusHistory.generated);
+        $('#status-history-last-refreshed').text(componentStatusHistory.generated);
 
         // initialize the status history
         var statusHistory = {
             groupId: groupId,
             id: id,
             type: componentType,
-            clustered: true,
             instances: []
         };
 
-        var descriptors = null;
-
-        // get the status history for the entire cluster
-        var aggregateStatusHistory = clusterStatusHistory.clusterStatusHistory;
+        // get the descriptors
+        var descriptors = componentStatusHistory.fieldDescriptors;
+        statusHistory.details = componentStatusHistory.componentDetails;
+        statusHistory.selectedDescriptor = nf.Common.isUndefined(selectedDescriptor) ? descriptors[0] : selectedDescriptor;
 
         // ensure enough status snapshots
-        if (aggregateStatusHistory.statusSnapshots.length > 1) {
-            // only do these once
-            if (descriptors === null) {
-                // get the descriptors
-                descriptors = aggregateStatusHistory.fieldDescriptors;
-
-                statusHistory.details = aggregateStatusHistory.details;
-                statusHistory.selectedDescriptor = nf.Common.isUndefined(selectedDescriptor) ? descriptors[0] : selectedDescriptor;
-            }
-
-            // but ensure each instance is added
+        if (nf.Common.isDefinedAndNotNull(componentStatusHistory.aggregateSnapshots) && componentStatusHistory.aggregateSnapshots.length > 1) {
             statusHistory.instances.push({
-                id: config.clusterInstanceId,
-                label: config.clusterInstanceLabel,
-                snapshots: aggregateStatusHistory.statusSnapshots
+                id: config.nifiInstanceId,
+                label: config.nifiInstanceLabel,
+                snapshots: componentStatusHistory.aggregateSnapshots
             });
+        } else {
+        	insufficientHistory();
+        	return;
         }
 
-        // get the status for each node in the cluster
-        $.each(clusterStatusHistory.nodeStatusHistory, function (_, nodeStatusHistory) {
-            var node = nodeStatusHistory.node;
-            var statusHistoryForNode = nodeStatusHistory.statusHistory;
-
+        // get the status for each node in the cluster if applicable
+        $.each(componentStatusHistory.nodeSnapshots, function (_, nodeSnapshots) {
             // ensure enough status snapshots
-            if (statusHistoryForNode.statusSnapshots.length > 1) {
-
-                // only do these once
-                if (descriptors === null) {
-                    // get the descriptors
-                    descriptors = statusHistoryForNode.fieldDescriptors;
-
-                    statusHistory.details = statusHistoryForNode.details;
-                    statusHistory.selectedDescriptor = nf.Common.isUndefined(selectedDescriptor) ? descriptors[0] : selectedDescriptor;
-                }
-
-                // but ensure each instance is added
+            if (nf.Common.isDefinedAndNotNull(nodeSnapshots.statusSnapshots) && nodeSnapshots.statusSnapshots.length > 1) {
                 statusHistory.instances.push({
-                    id: node.nodeId,
-                    label: node.address + ':' + node.apiPort,
-                    snapshots: statusHistoryForNode.statusSnapshots
+                    id: nodeSnapshots.nodeId,
+                    label: nodeSnapshots.address + ':' + nodeSnapshots.apiPort,
+                    snapshots: nodeSnapshots.statusSnapshots
                 });
             }
         });
@@ -164,50 +138,6 @@ nf.StatusHistory = (function () {
         } else {
             insufficientHistory();
         }
-    };
-
-    /**
-     * Handles the status history response for a standalone NiFi.
-     * 
-     * @param {type} groupId
-     * @param {type} id
-     * @param {type} statusHistory
-     * @param {type} componentType
-     * @param {type} selectedDescriptor
-     */
-    var handleStandaloneStatusHistoryResponse = function (groupId, id, statusHistory, componentType, selectedDescriptor) {
-        // ensure there are sufficent snapshots
-        if (statusHistory.statusSnapshots.length > 1) {
-            // update the last refreshed
-            $('#status-history-last-refreshed').text(statusHistory.generated);
-
-            // detect the available fields
-            var descriptors = statusHistory.fieldDescriptors;
-
-            // build the status history
-            var statusHistory = {
-                groupId: groupId,
-                id: id,
-                details: statusHistory.details,
-                type: componentType,
-                clustered: false,
-                selectedDescriptor: nf.Common.isUndefined(selectedDescriptor) ? descriptors[0] : selectedDescriptor,
-                instances: [{
-                        id: '',
-                        label: '',
-                        snapshots: statusHistory.statusSnapshots
-                    }]
-            };
-
-            // store the status history
-            $('#status-history-dialog').data('status-history', statusHistory);
-
-            // chart the status history
-            chart(statusHistory, descriptors);
-            return;
-        }
-
-        insufficientHistory();
     };
 
     /**
@@ -785,127 +715,107 @@ nf.StatusHistory = (function () {
                 });
             });
 
-            if (statusHistory.clustered) {
-                // consider visible nodes with data in the brush
-                var nodes = $.grep(withinBrush, function (d) {
-                    return d.id !== config.clusterInstanceId && d.visible && d.values.length > 0;
-                });
+            // consider visible nodes with data in the brush
+            var nodes = $.grep(withinBrush, function (d) {
+                return d.id !== config.nifiInstanceId && d.visible && d.values.length > 0;
+            });
 
-                var nodeMinValue = nodes.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMinValue(nodes));
-                var nodeMeanValue = nodes.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMeanValue(nodes));
-                var nodeMaxValue = nodes.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMaxValue(nodes));
+            var nodeMinValue = nodes.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMinValue(nodes));
+            var nodeMeanValue = nodes.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMeanValue(nodes));
+            var nodeMaxValue = nodes.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMaxValue(nodes));
 
-                // update the currently displayed min/max/mean
-                $('#node-aggregate-statistics').text(nodeMinValue + ' / ' + nodeMaxValue + ' / ' + nodeMeanValue);
+            // update the currently displayed min/max/mean
+            $('#node-aggregate-statistics').text(nodeMinValue + ' / ' + nodeMaxValue + ' / ' + nodeMeanValue);
 
-                // only consider the cluster with data in the brush
-                var cluster = $.grep(withinBrush, function (d) {
-                    return d.id === config.clusterInstanceId && d.visible && d.values.length > 0;
-                });
+            // only consider the cluster with data in the brush
+            var cluster = $.grep(withinBrush, function (d) {
+                return d.id === config.nifiInstanceId && d.visible && d.values.length > 0;
+            });
 
-                // determine the cluster values
-                var clusterMinValue = cluster.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMinValue(cluster));
-                var clusterMeanValue = cluster.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMeanValue(cluster));
-                var clusterMaxValue = cluster.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMaxValue(cluster));
+            // determine the cluster values
+            var clusterMinValue = cluster.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMinValue(cluster));
+            var clusterMeanValue = cluster.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMeanValue(cluster));
+            var clusterMaxValue = cluster.length === 0 ? 'NA' : formatters[selectedDescriptor.formatter](getMaxValue(cluster));
 
-                // update the cluster min/max/mean
-                $('#cluster-aggregate-statistics').text(clusterMinValue + ' / ' + clusterMaxValue + ' / ' + clusterMeanValue);
-            } else {
-                // only consider data in the brush
-                var instance = $.grep(withinBrush, function (d) {
-                    return d.values.length > 0;
-                });
-
-                // determine the min, max, mean
-                var instanceMinValue = instance.length === 0 ? 0 : formatters[selectedDescriptor.formatter](getMinValue(instance));
-                var instanceMeanValue = instance.length === 0 ? 0 : formatters[selectedDescriptor.formatter](getMeanValue(instance));
-                var instanceMaxValue = instance.length === 0 ? 0 : formatters[selectedDescriptor.formatter](getMaxValue(instance));
-
-                // update the instance min/max/mean
-                $('#instance-aggregate-statistics').text(instanceMinValue + ' / ' + instanceMaxValue + ' / ' + instanceMeanValue);
-            }
+            // update the cluster min/max/mean
+            $('#cluster-aggregate-statistics').text(clusterMinValue + ' / ' + clusterMaxValue + ' / ' + clusterMeanValue);
         };
 
         // ----------------
         // build the legend
         // ----------------
 
-        if (statusHistory.clustered) {
-            // identify all nodes and sort
-            var nodes = $.grep(statusData, function (status) {
-                return status.id !== config.clusterInstanceId;
-            }).sort(function (a, b) {
-                return a.label < b.label ? -1 : a.label > b.label ? 1 : 0;
-            });
+        // identify all nodes and sort
+        var nodes = $.grep(statusData, function (status) {
+            return status.id !== config.nifiInstanceId;
+        }).sort(function (a, b) {
+            return a.label < b.label ? -1 : a.label > b.label ? 1 : 0;
+        });
 
-            // adds a legend entry for the specified instance
-            var addLegendEntry = function (legend, instance) {
-                // create the label and the checkbox
-                var instanceLabelElement = $('<div></div>').addClass('legend-label').css('color', color(instance.label)).text(instance.label).ellipsis();
-                var instanceCheckboxElement = $('<div class="nf-checkbox"></div>').on('click', function () {
-                    // get the line and the control points for this instance (select all for the line to update control and main charts)
-                    var chartLine = d3.selectAll('path.chart-line-' + instance.id);
-                    var markGroup = d3.select('g.mark-group-' + instance.id);
+        // adds a legend entry for the specified instance
+        var addLegendEntry = function (legend, instance) {
+            // create the label and the checkbox
+            var instanceLabelElement = $('<div></div>').addClass('legend-label').css('color', color(instance.label)).text(instance.label).ellipsis();
+            var instanceCheckboxElement = $('<div class="nf-checkbox"></div>').on('click', function () {
+                // get the line and the control points for this instance (select all for the line to update control and main charts)
+                var chartLine = d3.selectAll('path.chart-line-' + instance.id);
+                var markGroup = d3.select('g.mark-group-' + instance.id);
 
-                    // determine if it was hidden
-                    var isHidden = markGroup.classed('hidden');
+                // determine if it was hidden
+                var isHidden = markGroup.classed('hidden');
 
-                    // toggle the visibility
-                    chartLine.classed('hidden', function () {
-                        return !isHidden;
-                    });
-                    markGroup.classed('hidden', function () {
-                        return !isHidden;
-                    });
-
-                    // update whether its visible
-                    instance.visible = isHidden;
-
-                    // record the current status so it persists across refreshes
-                    instances[instance.id] = instance.visible;
-
-                    // update the brush
-                    brushed();
-                }).addClass(instance.visible ? 'checkbox-checked' : 'checkbox-unchecked');
-
-                // add the legend entry
-                $('<div class="legend-entry"></div>').append(instanceCheckboxElement).append(instanceLabelElement).on('mouseenter', function () {
-                    d3.selectAll('path.chart-line-' + instance.id).classed('over', true);
-                }).on('mouseleave', function () {
-                    d3.selectAll('path.chart-line-' + instance.id).classed('over', false);
-                }).appendTo(legend);
-            };
-
-            // get the cluster instance
-            var cluster = $.grep(statusData, function (status) {
-                return status.id === config.clusterInstanceId;
-            });
-
-            // build the cluster container
-            var clusterDetailsContainer = buildDetailsContainer('Cluster');
-
-            // add the total cluster values
-            addDetailItem(clusterDetailsContainer, 'Min / Max / Mean', '', 'cluster-aggregate-statistics');
-
-            // build the cluster legend
-            addLegendEntry(clusterDetailsContainer, cluster[0]);
-
-            // if there are entries to render
-            if (nodes.length > 0) {
-                // build the cluster container
-                var nodeDetailsContainer = buildDetailsContainer('Nodes');
-
-                // add the total cluster values
-                addDetailItem(nodeDetailsContainer, 'Min / Max / Mean', '', 'node-aggregate-statistics');
-
-                // add each legend entry
-                $.each(nodes, function (_, instance) {
-                    addLegendEntry(nodeDetailsContainer, instance);
+                // toggle the visibility
+                chartLine.classed('hidden', function () {
+                    return !isHidden;
                 });
-            }
-        } else {
+                markGroup.classed('hidden', function () {
+                    return !isHidden;
+                });
+
+                // update whether its visible
+                instance.visible = isHidden;
+
+                // record the current status so it persists across refreshes
+                instances[instance.id] = instance.visible;
+
+                // update the brush
+                brushed();
+            }).addClass(instance.visible ? 'checkbox-checked' : 'checkbox-unchecked');
+
+            // add the legend entry
+            $('<div class="legend-entry"></div>').append(instanceCheckboxElement).append(instanceLabelElement).on('mouseenter', function () {
+                d3.selectAll('path.chart-line-' + instance.id).classed('over', true);
+            }).on('mouseleave', function () {
+                d3.selectAll('path.chart-line-' + instance.id).classed('over', false);
+            }).appendTo(legend);
+        };
+
+        // get the cluster instance
+        var cluster = $.grep(statusData, function (status) {
+            return status.id === config.nifiInstanceId;
+        });
+
+        // build the cluster container
+        var clusterDetailsContainer = buildDetailsContainer('NiFi');
+
+        // add the total cluster values
+        addDetailItem(clusterDetailsContainer, 'Min / Max / Mean', '', 'cluster-aggregate-statistics');
+
+        // build the cluster legend
+        addLegendEntry(clusterDetailsContainer, cluster[0]);
+
+        // if there are entries to render
+        if (nodes.length > 0) {
+            // build the cluster container
+            var nodeDetailsContainer = buildDetailsContainer('Nodes');
+
             // add the total cluster values
-            addDetailItem(detailsContainer, 'Min / Max / Mean', '', 'instance-aggregate-statistics');
+            addDetailItem(nodeDetailsContainer, 'Min / Max / Mean', '', 'node-aggregate-statistics');
+
+            // add each legend entry
+            $.each(nodes, function (_, instance) {
+                addLegendEntry(nodeDetailsContainer, instance);
+            });
         }
 
         // update the brush
@@ -1135,29 +1045,13 @@ nf.StatusHistory = (function () {
                 var statusHistory = $('#status-history-dialog').data('status-history');
                 if (statusHistory !== null) {
                     if (statusHistory.type === config.type.processor) {
-                        if (statusHistory.clustered === true) {
-                            nf.StatusHistory.showClusterProcessorChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
-                        } else {
-                            nf.StatusHistory.showStandaloneProcessorChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
-                        }
+                        nf.StatusHistory.showProcessorChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
                     } else if (statusHistory.type === config.type.processGroup) {
-                        if (statusHistory.clustered === true) {
-                            nf.StatusHistory.showClusterProcessGroupChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
-                        } else {
-                            nf.StatusHistory.showStandaloneProcessGroupChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
-                        }
+                        nf.StatusHistory.showProcessGroupChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
                     } else if (statusHistory.type === config.type.remoteProcessGroup) {
-                        if (statusHistory.clustered === true) {
-                            nf.StatusHistory.showClusterRemoteProcessGroupChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
-                        } else {
-                            nf.StatusHistory.showStandaloneRemoteProcessGroupChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
-                        }
+                        nf.StatusHistory.showRemoteProcessGroupChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
                     } else {
-                        if (statusHistory.clustered === true) {
-                            nf.StatusHistory.showClusterConnectionChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
-                        } else {
-                            nf.StatusHistory.showStandaloneConnectionChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
-                        }
+                        nf.StatusHistory.showConnectionChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
                     }
                 }
             });
@@ -1196,87 +1090,19 @@ nf.StatusHistory = (function () {
         },
         
         /**
-         * Shows the status history for the specified connection across the cluster.
-         * 
-         * @param {type} groupId 
-         * @param {type} connectionId
-         * @param {type} selectedDescriptor
-         */
-        showClusterConnectionChart: function (groupId, connectionId, selectedDescriptor) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.clusterConnection + encodeURIComponent(connectionId) + '/status/history',
-                dataType: 'json'
-            }).done(function (response) {
-                handleClusteredStatusHistoryResponse(groupId, connectionId, response.clusterStatusHistory, config.type.connection, selectedDescriptor);
-            }).fail(nf.Common.handleAjaxError);
-        },
-        
-        /**
-         * Shows the status history for the specified processor across the cluster.
-         * 
-         * @param {type} groupId
-         * @param {type} processorId
-         * @param {type} selectedDescriptor
-         */
-        showClusterProcessorChart: function (groupId, processorId, selectedDescriptor) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.clusterProcessor + encodeURIComponent(processorId) + '/status/history',
-                dataType: 'json'
-            }).done(function (response) {
-                handleClusteredStatusHistoryResponse(groupId, processorId, response.clusterStatusHistory, config.type.processor, selectedDescriptor);
-            }).fail(nf.Common.handleAjaxError);
-        },
-        
-        /**
-         * Shows the status history for the specified process group across the cluster.
-         * 
-         * @param {type} groupId
-         * @param {type} processGroupId
-         * @param {type} selectedDescriptor
-         */
-        showClusterProcessGroupChart: function (groupId, processGroupId, selectedDescriptor) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.clusterProcessGroup + encodeURIComponent(processGroupId) + '/status/history',
-                dataType: 'json'
-            }).done(function (response) {
-                handleClusteredStatusHistoryResponse(groupId, processGroupId, response.clusterStatusHistory, config.type.processGroup, selectedDescriptor);
-            }).fail(nf.Common.handleAjaxError);
-        },
-        
-        /**
-         * Shows the status history for the specified remote process group across the cluster.
-         * 
-         * @param {type} groupId
-         * @param {type} remoteProcessGroupId
-         * @param {type} selectedDescriptor
-         */
-        showClusterRemoteProcessGroupChart: function (groupId, remoteProcessGroupId, selectedDescriptor) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.clusterRemoteProcessGroup + encodeURIComponent(remoteProcessGroupId) + '/status/history',
-                dataType: 'json'
-            }).done(function (response) {
-                handleClusteredStatusHistoryResponse(groupId, remoteProcessGroupId, response.clusterStatusHistory, config.type.remoteProcessGroup, selectedDescriptor);
-            }).fail(nf.Common.handleAjaxError);
-        },
-        
-        /**
          * Shows the status history for the specified connection in this instance.
          * 
          * @param {type} groupId
          * @param {type} connectionId
          * @param {type} selectedDescriptor
          */
-        showStandaloneConnectionChart: function (groupId, connectionId, selectedDescriptor) {
+        showConnectionChart: function (groupId, connectionId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
                 url: config.urls.processGroups + encodeURIComponent(groupId) + '/connections/' + encodeURIComponent(connectionId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
-                handleStandaloneStatusHistoryResponse(groupId, connectionId, response.statusHistory, config.type.connection, selectedDescriptor);
+                handleStatusHistoryResponse(groupId, connectionId, response.statusHistory, config.type.connection, selectedDescriptor);
             }).fail(nf.Common.handleAjaxError);
         },
         
@@ -1287,13 +1113,13 @@ nf.StatusHistory = (function () {
          * @param {type} processorId
          * @param {type} selectedDescriptor
          */
-        showStandaloneProcessorChart: function (groupId, processorId, selectedDescriptor) {
+        showProcessorChart: function (groupId, processorId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
                 url: config.urls.processGroups + encodeURIComponent(groupId) + '/processors/' + encodeURIComponent(processorId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
-                handleStandaloneStatusHistoryResponse(groupId, processorId, response.statusHistory, config.type.processor, selectedDescriptor);
+                handleStatusHistoryResponse(groupId, processorId, response.statusHistory, config.type.processor, selectedDescriptor);
             }).fail(nf.Common.handleAjaxError);
         },
         
@@ -1304,13 +1130,13 @@ nf.StatusHistory = (function () {
          * @param {type} processGroupId
          * @param {type} selectedDescriptor
          */
-        showStandaloneProcessGroupChart: function (groupId, processGroupId, selectedDescriptor) {
+        showProcessGroupChart: function (groupId, processGroupId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
                 url: config.urls.processGroups + encodeURIComponent(processGroupId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
-                handleStandaloneStatusHistoryResponse(groupId, processGroupId, response.statusHistory, config.type.processGroup, selectedDescriptor);
+                handleStatusHistoryResponse(groupId, processGroupId, response.statusHistory, config.type.processGroup, selectedDescriptor);
             }).fail(nf.Common.handleAjaxError);
         },
         
@@ -1321,13 +1147,13 @@ nf.StatusHistory = (function () {
          * @param {type} remoteProcessGroupId
          * @param {type} selectedDescriptor
          */
-        showStandaloneRemoteProcessGroupChart: function (groupId, remoteProcessGroupId, selectedDescriptor) {
+        showRemoteProcessGroupChart: function (groupId, remoteProcessGroupId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
                 url: config.urls.processGroups + encodeURIComponent(groupId) + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
-                handleStandaloneStatusHistoryResponse(groupId, remoteProcessGroupId, response.statusHistory, config.type.remoteProcessGroup, selectedDescriptor);
+                handleStatusHistoryResponse(groupId, remoteProcessGroupId, response.statusHistory, config.type.remoteProcessGroup, selectedDescriptor);
             }).fail(nf.Common.handleAjaxError);
         }
     };

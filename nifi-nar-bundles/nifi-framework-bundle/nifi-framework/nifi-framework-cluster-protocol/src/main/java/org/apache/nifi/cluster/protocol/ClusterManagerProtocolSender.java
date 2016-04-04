@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.protocol;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
-import org.apache.nifi.cluster.protocol.message.PrimaryRoleAssignmentMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -55,14 +54,6 @@ public interface ClusterManagerProtocolSender {
      * @throws ProtocolException if communication failed
      */
     void disconnect(DisconnectMessage msg) throws ProtocolException;
-
-    /**
-     * Sends an "assign primary role" message to a node.
-     *
-     * @param msg a message
-     * @throws ProtocolException if communication failed
-     */
-    void assignPrimaryRole(PrimaryRoleAssignmentMessage msg) throws ProtocolException;
 
     /**
      * Sets the {@link BulletinRepository} that can be used to report bulletins

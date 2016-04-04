@@ -17,22 +17,22 @@
     <!-- role -->
     <xs:complexType name="Provider">
         <xs:sequence>
-            <xs:element name="identifier" type="NonEmptyStringType"/>
-            <xs:element name="class" type="NonEmptyStringType"/>
-            <xs:element name="property" type="Property" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="identifier" type="AuthorityProviderNonEmptyStringType"/>
+            <xs:element name="class" type="AuthorityProviderNonEmptyStringType"/>
+            <xs:element name="property" type="AuthorityProviderProperty" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
 
     <!-- Name/Value properties-->
-    <xs:complexType name="Property">
+    <xs:complexType name="AuthorityProviderProperty">
         <xs:simpleContent>
             <xs:extension base="xs:string">
-                <xs:attribute name="name" type="NonEmptyStringType"></xs:attribute>
+                <xs:attribute name="name" type="AuthorityProviderNonEmptyStringType"></xs:attribute>
             </xs:extension>
         </xs:simpleContent>
     </xs:complexType>
 
-    <xs:simpleType name="NonEmptyStringType">
+    <xs:simpleType name="AuthorityProviderNonEmptyStringType">
         <xs:restriction base="xs:string">
             <xs:minLength value="1"/>
         </xs:restriction>

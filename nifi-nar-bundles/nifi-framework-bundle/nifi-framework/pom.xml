@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework-bundle</artifactId>
-        <version>0.7.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework</artifactId>
     <packaging>pom</packaging>
@@ -36,6 +36,7 @@
         <module>nifi-file-authorization-provider</module>
         <module>nifi-cluster-authorization-provider</module>
         <module>nifi-user-actions</module>
+        <module>nifi-framework-authorization</module>
         <module>nifi-administration</module>
         <module>nifi-web</module>
         <module>nifi-resources</module>

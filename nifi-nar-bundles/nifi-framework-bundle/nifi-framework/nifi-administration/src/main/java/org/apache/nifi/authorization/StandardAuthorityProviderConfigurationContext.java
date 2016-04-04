@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -29,7 +30,7 @@ public class StandardAuthorityProviderConfigurationContext implements AuthorityP
 
     public StandardAuthorityProviderConfigurationContext(String identifier, Map<String, String> properties) {
         this.identifier = identifier;
-        this.properties = properties;
+        this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
     }
 
     @Override
@@ -39,7 +40,7 @@ public class StandardAuthorityProviderConfigurationContext implements AuthorityP
 
     @Override
     public Map<String, String> getProperties() {
-        return Collections.unmodifiableMap(properties);
+        return properties;
     }
 
     @Override

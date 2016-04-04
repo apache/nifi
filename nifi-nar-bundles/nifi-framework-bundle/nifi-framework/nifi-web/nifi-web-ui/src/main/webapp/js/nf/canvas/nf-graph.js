@@ -32,12 +32,12 @@ nf.Graph = (function () {
     };
 
     var combinePortStatus = function (status) {
-        if (nf.Common.isDefinedAndNotNull(status.inputPortStatus) && nf.Common.isDefinedAndNotNull(status.outputPortStatus)) {
-            return status.inputPortStatus.concat(status.outputPortStatus);
-        } else if (nf.Common.isDefinedAndNotNull(status.inputPortStatus)) {
-            return status.inputPortStatus;
-        } else if (nf.Common.isDefinedAndNotNull(status.outputPortStatus)) {
-            return status.outputPortStatus;
+        if (nf.Common.isDefinedAndNotNull(status.inputPortStatusSnapshots) && nf.Common.isDefinedAndNotNull(status.outputPortStatusSnapshots)) {
+            return status.inputPortStatusSnapshots.concat(status.outputPortStatusSnapshots);
+        } else if (nf.Common.isDefinedAndNotNull(status.inputPortStatusSnapshots)) {
+            return status.inputPortStatusSnapshots;
+        } else if (nf.Common.isDefinedAndNotNull(status.outputPortStatusSnapshots)) {
+            return status.outputPortStatusSnapshots;
         } else {
             return [];
         }
@@ -158,18 +158,18 @@ nf.Graph = (function () {
          * of the existing components on the graph and will not cause them to be repainted. 
          * This operation must be very inexpensive due to the frequency it is called.
          * 
-         * @argument {object} processGroupStatus    The status of the process group
+         * @argument {object} aggregateSnapshot    The status of the process group aggregated accross the cluster
          */
-        setStatus: function (processGroupStatus) {
+        setStatus: function (aggregateSnapshot) {
             // merge the port status together
-            var portStatus = combinePortStatus(processGroupStatus);
+            var portStatus = combinePortStatus(aggregateSnapshot);
 
             // set the component status
             nf.Port.setStatus(portStatus);
-            nf.RemoteProcessGroup.setStatus(processGroupStatus.remoteProcessGroupStatus);
-            nf.ProcessGroup.setStatus(processGroupStatus.processGroupStatus);
-            nf.Processor.setStatus(processGroupStatus.processorStatus);
-            nf.Connection.setStatus(processGroupStatus.connectionStatus);
+            nf.RemoteProcessGroup.setStatus(aggregateSnapshot.remoteProcessGroupStatusSnapshots);
+            nf.ProcessGroup.setStatus(aggregateSnapshot.processGroupStatusSnapshots);
+            nf.Processor.setStatus(aggregateSnapshot.processorStatusSnapshots);
+            nf.Connection.setStatus(aggregateSnapshot.connectionStatusSnapshots);
         },
         
         /**

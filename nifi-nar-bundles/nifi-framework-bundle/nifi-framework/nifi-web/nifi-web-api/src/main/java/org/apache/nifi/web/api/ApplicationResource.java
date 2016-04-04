@@ -79,6 +79,8 @@ public abstract class ApplicationResource {
     private static final int CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES = (int) (0.75 * HEADER_BUFFER_SIZE);
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 
+    public static final String NODEWISE = "false";
+
     @Context
     private HttpServletRequest httpServletRequest;
 

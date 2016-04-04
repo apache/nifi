@@ -46,7 +46,7 @@ public class ClusteredEventAccess implements EventAccess {
 
     @Override
     public ProcessGroupStatus getControllerStatus() {
-        return clusterManager.getProcessGroupStatus(WebClusterManager.ROOT_GROUP_ID_ALIAS);
+        return new ProcessGroupStatus();
     }
 
     @Override
