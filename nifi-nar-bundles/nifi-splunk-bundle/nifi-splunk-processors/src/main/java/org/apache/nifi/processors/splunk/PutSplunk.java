@@ -160,6 +160,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
                 getLogger().error("No available connections, and unable to create a new one, transferring {} to failure",
                         new Object[]{flowFile}, e);
                 session.transfer(flowFile, REL_FAILURE);
+                session.commit();
                 context.yield();
                 return;
             }

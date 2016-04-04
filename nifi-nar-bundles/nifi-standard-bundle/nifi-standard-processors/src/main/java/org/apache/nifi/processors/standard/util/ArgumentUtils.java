@@ -38,21 +38,18 @@ public class ArgumentUtils {
 
         final List<String> args = new ArrayList<>();
 
-        final String trimmed = input.trim();
         boolean inQuotes = false;
         final StringBuilder sb = new StringBuilder();
 
-        for (int i = 0; i < trimmed.length(); i++) {
-            final char c = trimmed.charAt(i);
+        for (int i = 0; i < input.length(); i++) {
+            final char c = input.charAt(i);
 
             if (DELIMITING_CHARACTERS.contains(c) || c == definedDelimiter) {
                 if (inQuotes) {
                     sb.append(c);
                 } else {
-                    final String arg = sb.toString().trim();
-                    if (!arg.isEmpty()) {
-                        args.add(arg);
-                    }
+                    final String arg = sb.toString();
+                    args.add(arg);
                     sb.setLength(0);
                 }
                 continue;
@@ -66,11 +63,7 @@ public class ArgumentUtils {
             sb.append(c);
         }
 
-        final String finalArg = sb.toString().trim();
-
-        if (!finalArg.isEmpty()) {
-            args.add(finalArg);
-        }
+        args.add(sb.toString());
 
         return args;
     }

@@ -40,6 +40,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.components.state.exception.StateTooLargeException;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -62,6 +63,8 @@ import org.apache.zookeeper.data.Stat;
  * consistency across configuration interactions.
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
+    private static final int ONE_MB = 1024 * 1024;
+
     static final AllowableValue OPEN_TO_WORLD = new AllowableValue("Open", "Open", "ZNodes will be open to any ZooKeeper client.");
     static final AllowableValue CREATOR_ONLY = new AllowableValue("CreatorOnly", "CreatorOnly",
         "ZNodes will be accessible only by the creator. The creator will have full access to create, read, write, delete, and administer the ZNodes.");
@@ -343,6 +346,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
      *
      * @throws IOException if unable to communicate with ZooKeeper
      * @throws NoNodeException if the corresponding ZNode does not exist in ZooKeeper and allowNodeCreation is set to <code>false</code>
+     * @throws StateTooLargeException if the state to be stored exceeds the maximum size allowed by ZooKeeper (1 MB, after serialization)
      */
     private void setState(final Map<String, String> stateValues, final int version, final String componentId, final boolean allowNodeCreation) throws IOException, NoNodeException {
         verifyEnabled();
@@ -350,13 +354,18 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         try {
             final String path = getComponentPath(componentId);
             final byte[] data = serialize(stateValues);
+            if (data.length > ONE_MB) {
+                throw new StateTooLargeException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId
+                    + " because the state had " + stateValues.size() + " values, which serialized to " + data.length
+                    + " bytes, and the maximum allowed by ZooKeeper is 1 MB (" + ONE_MB + " bytes)");
+            }
 
             final ZooKeeper keeper = getZooKeeper();
             try {
                 keeper.setData(path, data, version);
             } catch (final NoNodeException nne) {
                 if (allowNodeCreation) {
-                    createNode(path, data);
+                    createNode(path, data, componentId, stateValues);
                     return;
                 } else {
                     throw nne;
@@ -379,14 +388,22 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             }
 
             throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ke);
+        } catch (final StateTooLargeException stle) {
+            throw stle;
         } catch (final IOException ioe) {
             throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ioe);
         }
     }
 
 
-    private void createNode(final String path, final byte[] data) throws IOException, KeeperException {
+    private void createNode(final String path, final byte[] data, final String componentId, final Map<String, String> stateValues) throws IOException, KeeperException {
         try {
+            if (data != null && data.length > ONE_MB) {
+                throw new StateTooLargeException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId
+                    + " because the state had " + stateValues.size() + " values, which serialized to " + data.length
+                    + " bytes, and the maximum allowed by ZooKeeper is 1 MB (" + ONE_MB + " bytes)");
+            }
+
             getZooKeeper().create(path, data, acl, CreateMode.PERSISTENT);
         } catch (final InterruptedException ie) {
             throw new IOException("Failed to update cluster-wide state due to interruption", ie);
@@ -394,13 +411,13 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             final Code exceptionCode = ke.code();
             if (Code.NONODE == exceptionCode) {
                 final String parentPath = StringUtils.substringBeforeLast(path, "/");
-                createNode(parentPath, null);
-                createNode(path, data);
+                createNode(parentPath, null, componentId, stateValues);
+                createNode(path, data, componentId, stateValues);
                 return;
             }
             if (Code.SESSIONEXPIRED == exceptionCode) {
                 invalidateClient();
-                createNode(path, data);
+                createNode(path, data, componentId, stateValues);
                 return;
             }
 
@@ -412,7 +429,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 } catch (final KeeperException ke1) {
                     // Node no longer exists -- it was removed by someone else. Go recreate the node.
                     if (ke1.code() == Code.NONODE) {
-                        createNode(path, data);
+                        createNode(path, data, componentId, stateValues);
                         return;
                     }
                 } catch (final InterruptedException ie) {

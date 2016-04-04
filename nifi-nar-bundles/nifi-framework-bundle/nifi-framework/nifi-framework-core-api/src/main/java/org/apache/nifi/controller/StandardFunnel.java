@@ -349,21 +349,15 @@ public class StandardFunnel implements Funnel {
         readLock.lock();
         try {
             Set<Relationship> available = context.getAvailableRelationships();
-            int transferred = 0;
             while (!available.isEmpty()) {
-                final List<FlowFile> flowFiles = session.get(10);
+                final List<FlowFile> flowFiles = session.get(100);
                 if (flowFiles.isEmpty()) {
                     break;
                 }
 
-                transferred += flowFiles.size();
                 session.transfer(flowFiles, Relationship.ANONYMOUS);
                 session.commit();
                 available = context.getAvailableRelationships();
-            }
-
-            if (transferred == 0) {
-                context.yield();
             }
         } finally {
             readLock.unlock();

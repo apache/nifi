@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.processors.kafka;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import kafka.consumer.ConsumerIterator;
-import kafka.message.MessageAndMetadata;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.BasicConfigurator;
 import org.apache.nifi.processor.ProcessContext;
@@ -34,6 +33,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import kafka.consumer.ConsumerIterator;
+import kafka.message.MessageAndMetadata;
 
 public class TestGetKafka {
 
@@ -119,6 +121,13 @@ public class TestGetKafka {
 
         @Override
         public void createConsumers(ProcessContext context) {
+            try {
+                Field f = GetKafka.class.getDeclaredField("consumerStreamsReady");
+                f.setAccessible(true);
+                ((AtomicBoolean) f.get(this)).set(true);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
         }
 
         @Override

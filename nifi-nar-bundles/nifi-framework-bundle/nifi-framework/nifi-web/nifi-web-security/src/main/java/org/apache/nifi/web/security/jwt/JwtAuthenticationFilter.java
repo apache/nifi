@@ -18,6 +18,7 @@ package org.apache.nifi.web.security.jwt;
 
 import io.jsonwebtoken.JwtException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.token.NewAccountAuthorizationRequestToken;
 import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
@@ -27,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
-import org.apache.nifi.web.security.InvalidAuthenticationException;
 
 /**
  */
@@ -52,13 +52,9 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         final String authorization = request.getHeader(AUTHORIZATION);
 
         // if there is no authorization header, we don't know the user
-        if (authorization == null) {
+        if (authorization == null || !StringUtils.startsWith(authorization, "Bearer ")) {
             return null;
         } else {
-            if (jwtService == null) {
-                throw new InvalidAuthenticationException("NiFi is not configured to support username/password logins.");
-            }
-
             // Extract the Base64 encoded token from the Authorization header
             final String token = StringUtils.substringAfterLast(authorization, " ");
 

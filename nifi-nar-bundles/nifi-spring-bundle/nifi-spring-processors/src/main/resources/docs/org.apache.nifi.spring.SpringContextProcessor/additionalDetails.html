@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>SpringContextProcessor</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            <b>SpringContextProcessor</b> – allows integration of processes encapsulated in Spring Application Context to run as NiFi
+            processor by becoming a runtime host for an instance of Spring Application Context.
+        </p>
+        <p>
+            Communication between NiFi and process encapsulated within Spring Application Context is accomplished via Spring Messaging
+            (one of the core modules of Spring Framework) and supports 3 usage modes:
+            <ul>
+                <li><i>Headless</i> - no interaction with NiFi, meaning nothing is sent to it and nothing is received from it (i.e., some monitoring app).
+                In this case NiFi simply plays the role of the runtime host.</li>
+                <li><i>One way (NiFi -&gt; Spring or Spring -&gt; NiFi). </i> - This depends on existence of pre-defined message channel in Spring
+                Application Context. The name of the channel should be “fromNiFi” and the type <i>org.springframework.messaging.MessageChannel.</i></li>
+                <li><i>By-directional (NiFi -&gt; Spring -&gt; Nifi or Spring -&gt; NiFi -&gt; Spring)</i> - This depends on existence of two channels
+                in Spring Application Context. One channel receives messages from NiFi with name “fromNiFi” and type <i>org.springframework.messaging.MessageChannel</i>i>
+                and another is to receive messages from Spring with name “toNiFi” and type <i>org.springframework.messaging.PollableChannel.</i></li>
+            </ul>
+            The example below demonstrates template configuration for bi-directional Spring Application Context configuration:
+            <code>
+            <pre>
+    &lt;int:channel id=”fromNiFi”/&gt;
+
+    &lt;!—
+    your custom app configuration to receive messages from ‘fromNiFi’ channel and optionally send back to NiFi via ‘toNiFi’ channel.
+    It could contain any Spring-based application (i.e., Spring Integration, Apache Camel and/or custom code). All you need to do is inject
+    channels into your beans and send/receive messages from it.
+    --&gt;
+
+    &lt;int:channel id="toNiFi"&gt;
+        &lt;int:queue/&gt;
+    &lt;/int:channel&gt;
+            </pre>
+            </code>
+        </p>
+        <p>
+        The component is based on assumption that user has an existing Spring Application encapsulated in Spring Context that exposes optional in/out
+        MessagingChannels to allow data to flow to/from ApplicationContext and into/out-of. NiFi.
+        Such application is realized by having a directory on the file system, which contains contains all required resources for such application to run.
+        Such resources usually are JAR files to satisfy application's class-path as well as JAR representing the application and its configuration.
+        Below is the example of what such directory may contain. In this case the 'SI_DEMO-0.0.1-SNAPSHOT.jar' represents the actual application and the rest
+        of the JARs represent class-path dependency required by an application.
+        <pre>
+        deps
+         ├── SI_DEMO-0.0.1-SNAPSHOT.jar
+         ├── aopalliance-1.0.jar
+         ├── commons-logging-1.2.jar
+         ├── spring-aop-4.2.4.RELEASE.jar
+         ├── spring-beans-4.2.4.RELEASE.jar
+         ├── spring-context-4.2.4.RELEASE.jar
+         ├── spring-core-4.2.4.RELEASE.jar
+         ├── spring-expression-4.2.4.RELEASE.jar
+         ├── spring-integration-core-4.2.5.RELEASE.jar
+         ├── spring-messaging-4.2.4.RELEASE.jar
+        </pre>
+        </p>
+        <p>
+        You introduce the processor the usual way and then configure its properties:
+        <ul>
+        <li><i><b>Application Context config path</b></i> [REQUIRED] - a path to the Application Context configuration.
+        The path is relative to the class-path of the application defined by the <i>Application Context class path</i> property </li>
+        <li><i><b>Application Context class path</b></i> [REQUIRED] - a path to a directory on the file system where application dependencies are. </li>
+        <li><i>Send Timeout</i> [OPTIONAL] - the wait time for sending messages to Spring Application Context. Only required if NiFi plans to send data to Spring.
+        Defaults to 0 (don't wait). FlowFiles that were successfully sent to Spring will be removed from session while FlowFiles that could not be sent to
+        Spring will be routed to <i>failure</i> relationship.</li>
+        <li><i>Receive Timeout</i> - [OPTIONAL] - the wait time for receiving messages from Spring Application Context. Only required if NiFi plans to receive data from Spring.
+        Defaults to 0 (don't wait). FlowFile is created if and only if a message is successfully received from Spring. It is then transfered to <i>success</i> relationship.</li>
+        </ul>
+        </p>
+    </body>
+</html>

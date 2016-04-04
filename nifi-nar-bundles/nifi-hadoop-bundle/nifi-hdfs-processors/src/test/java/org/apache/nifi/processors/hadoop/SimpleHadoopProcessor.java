@@ -16,15 +16,26 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.nifi.processors.hadoop.AbstractHadoopProcessor;
+import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 
 public class SimpleHadoopProcessor extends AbstractHadoopProcessor {
 
+    private KerberosProperties testKerberosProperties;
+
+    public SimpleHadoopProcessor(KerberosProperties kerberosProperties) {
+        this.testKerberosProperties = kerberosProperties;
+    }
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    }
+
+    @Override
+    protected KerberosProperties getKerberosProperties() {
+        return testKerberosProperties;
     }
 
 }

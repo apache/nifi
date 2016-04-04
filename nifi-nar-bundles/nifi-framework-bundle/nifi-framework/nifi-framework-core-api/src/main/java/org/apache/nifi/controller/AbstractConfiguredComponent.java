@@ -44,7 +44,6 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final ConfigurableComponent component;
     private final ValidationContextFactory validationContextFactory;
     private final ControllerServiceProvider serviceProvider;
-
     private final AtomicReference<String> name;
     private final AtomicReference<String> annotationData = new AtomicReference<>();
 
@@ -298,4 +297,10 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     public abstract void verifyModifiable() throws IllegalStateException;
 
+    /**
+     *
+     */
+    ControllerServiceProvider getControllerServiceProvider() {
+        return this.serviceProvider;
+    }
 }

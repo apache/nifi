@@ -23,31 +23,26 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.listen.AbstractListenEventProcessor;
+import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.event.StandardEvent;
+import org.apache.nifi.processor.util.listen.event.StandardEventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.handler.socket.SocketChannelHandlerFactory;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -57,7 +52,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -71,7 +65,7 @@ import java.util.concurrent.LinkedBlockingQueue;
         @WritesAttribute(attribute="tcp.sender", description="The sending host of the messages."),
         @WritesAttribute(attribute="tcp.port", description="The sending port the messages were received.")
 })
-public class ListenTCP extends AbstractListenEventProcessor<ListenTCP.TCPEvent> {
+public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEvent> {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -89,15 +83,10 @@ public class ListenTCP extends AbstractListenEventProcessor<ListenTCP.TCPEvent> 
             .defaultValue(SSLContextService.ClientAuth.REQUIRED.name())
             .build();
 
-    // it is only the array reference that is volatile - not the contents.
-    private volatile byte[] messageDemarcatorBytes;
-
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
         return Arrays.asList(
                 MAX_CONNECTIONS,
-                MAX_BATCH_SIZE,
-                MESSAGE_DELIMITER,
                 SSL_CONTEXT_SERVICE,
                 CLIENT_AUTH
         );
@@ -120,15 +109,7 @@ public class ListenTCP extends AbstractListenEventProcessor<ListenTCP.TCPEvent> 
     }
 
     @Override
-    @OnScheduled
-    public void onScheduled(ProcessContext context) throws IOException {
-        super.onScheduled(context);
-        final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
-        messageDemarcatorBytes = msgDemarcator.getBytes(charset);
-    }
-
-    @Override
-    protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<TCPEvent> events)
+    protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<StandardEvent> events)
             throws IOException {
 
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asInteger();
@@ -136,12 +117,7 @@ public class ListenTCP extends AbstractListenEventProcessor<ListenTCP.TCPEvent> 
         final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
 
         // initialize the buffer pool based on max number of connections and the buffer size
-        final LinkedBlockingQueue<ByteBuffer> bufferPool = new LinkedBlockingQueue<>(maxConnections);
-        for (int i = 0; i < maxConnections; i++) {
-            bufferPool.offer(ByteBuffer.allocate(bufferSize));
-        }
-
-        final EventFactory<TCPEvent> eventFactory = new TCPEventFactory();
+        final BlockingQueue<ByteBuffer> bufferPool = createBufferPool(maxConnections, bufferSize);
 
         // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
         SSLContext sslContext = null;
@@ -154,73 +130,27 @@ public class ListenTCP extends AbstractListenEventProcessor<ListenTCP.TCPEvent> 
             clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
         }
 
-        final ChannelHandlerFactory<TCPEvent<SocketChannel>, AsyncChannelDispatcher> handlerFactory = new SocketChannelHandlerFactory<>();
+        final EventFactory<StandardEvent> eventFactory = new StandardEventFactory();
+        final ChannelHandlerFactory<StandardEvent<SocketChannel>, AsyncChannelDispatcher> handlerFactory = new SocketChannelHandlerFactory<>();
         return new SocketChannelDispatcher(eventFactory, handlerFactory, bufferPool, events, getLogger(), maxConnections, sslContext, clientAuth, charSet);
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
-        final Map<String,FlowFileEventBatch> batches = getBatches(session, maxBatchSize, messageDemarcatorBytes);
-
-        // if the size is 0 then there was nothing to process so return
-        // we don't need to yield here because we have a long poll in side of getBatches
-        if (batches.size() == 0) {
-            return;
-        }
-
-        for (Map.Entry<String,FlowFileEventBatch> entry : batches.entrySet()) {
-            FlowFile flowFile = entry.getValue().getFlowFile();
-            final List<TCPEvent> events = entry.getValue().getEvents();
-
-            if (flowFile.getSize() == 0L || events.size() == 0) {
-                session.remove(flowFile);
-                getLogger().debug("No data written to FlowFile from batch {}; removing FlowFile", new Object[] {entry.getKey()});
-                continue;
-            }
-
-            // the sender and command will be the same for all events based on the batch key
-            final String sender = events.get(0).getSender();
-
-            final Map<String,String> attributes = new HashMap<>(3);
-            attributes.put("tcp.sender", sender);
-            attributes.put("tcp.port", String.valueOf(port));
-            flowFile = session.putAllAttributes(flowFile, attributes);
-
-            getLogger().debug("Transferring {} to success", new Object[] {flowFile});
-            session.transfer(flowFile, REL_SUCCESS);
-            session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
-
-            // create a provenance receive event
-            final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
-            final String transitUri = new StringBuilder().append("tcp").append("://").append(senderHost).append(":")
-                    .append(port).toString();
-            session.getProvenanceReporter().receive(flowFile, transitUri);
-        }
+    protected Map<String, String> getAttributes(final FlowFileEventBatch batch) {
+        final String sender = batch.getEvents().get(0).getSender();
+        final Map<String,String> attributes = new HashMap<>(3);
+        attributes.put("tcp.sender", sender);
+        attributes.put("tcp.port", String.valueOf(port));
+        return attributes;
     }
 
-    /**
-     * Event implementation for TCP.
-     */
-    static class TCPEvent<C extends SelectableChannel> extends StandardEvent<C> {
-
-        public TCPEvent(String sender, byte[] data, ChannelResponder<C> responder) {
-            super(sender, data, responder);
-        }
+    @Override
+    protected String getTransitUri(FlowFileEventBatch batch) {
+        final String sender = batch.getEvents().get(0).getSender();
+        final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
+        final String transitUri = new StringBuilder().append("tcp").append("://").append(senderHost).append(":")
+                .append(port).toString();
+        return transitUri;
     }
 
-    /**
-     * Factory implementation for TCPEvents.
-     */
-    static final class TCPEventFactory implements EventFactory<TCPEvent> {
-
-        @Override
-        public TCPEvent create(byte[] data, Map<String, String> metadata, ChannelResponder responder) {
-            String sender = null;
-            if (metadata != null && metadata.containsKey(EventFactory.SENDER_KEY)) {
-                sender = metadata.get(EventFactory.SENDER_KEY);
-            }
-            return new TCPEvent(sender, data, responder);
-        }
-    }
 }

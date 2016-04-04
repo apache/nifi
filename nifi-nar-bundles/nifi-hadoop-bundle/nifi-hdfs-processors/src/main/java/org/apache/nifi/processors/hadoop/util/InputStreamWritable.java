@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.hadoop.util;
 
+import org.apache.hadoop.io.Writable;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
-
-import org.apache.hadoop.io.Writable;
 
 /**
  * Simple implementation of {@link Writable} that writes data from an InputStream. This class will throw an

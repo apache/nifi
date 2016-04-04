@@ -51,11 +51,10 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EventDrivenSchedulingAgent implements SchedulingAgent {
+public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(EventDrivenSchedulingAgent.class);
 
-    private final FlowEngine flowEngine;
     private final ControllerServiceProvider serviceProvider;
     private final StateManagerProvider stateManagerProvider;
     private final EventDrivenWorkerQueue workerQueue;
@@ -70,7 +69,7 @@ public class EventDrivenSchedulingAgent implements SchedulingAgent {
 
     public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider serviceProvider, final StateManagerProvider stateManagerProvider,
         final EventDrivenWorkerQueue workerQueue, final ProcessContextFactory contextFactory, final int maxThreadCount, final StringEncryptor encryptor) {
-        this.flowEngine = flowEngine;
+        super(flowEngine);
         this.serviceProvider = serviceProvider;
         this.stateManagerProvider = stateManagerProvider;
         this.workerQueue = workerQueue;
@@ -94,24 +93,24 @@ public class EventDrivenSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void schedule(final ReportingTaskNode taskNode, ScheduleState scheduleState) {
+    public void doSchedule(final ReportingTaskNode taskNode, ScheduleState scheduleState) {
         throw new UnsupportedOperationException("ReportingTasks cannot be scheduled in Event-Driven Mode");
     }
 
     @Override
-    public void unschedule(ReportingTaskNode taskNode, ScheduleState scheduleState) {
+    public void doUnschedule(ReportingTaskNode taskNode, ScheduleState scheduleState) {
         throw new UnsupportedOperationException("ReportingTasks cannot be scheduled in Event-Driven Mode");
     }
 
     @Override
-    public void schedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public void doSchedule(final Connectable connectable, final ScheduleState scheduleState) {
         workerQueue.resumeWork(connectable);
         logger.info("Scheduled {} to run in Event-Driven mode", connectable);
         scheduleStates.put(connectable, scheduleState);
     }
 
     @Override
-    public void unschedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public void doUnschedule(final Connectable connectable, final ScheduleState scheduleState) {
         workerQueue.suspendWork(connectable);
         logger.info("Stopped scheduling {} to run", connectable);
     }

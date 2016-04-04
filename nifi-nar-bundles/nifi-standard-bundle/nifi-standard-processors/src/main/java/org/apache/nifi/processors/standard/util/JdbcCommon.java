@@ -69,17 +69,30 @@ import org.apache.commons.lang3.StringUtils;
 public class JdbcCommon {
 
     public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream) throws SQLException, IOException {
-        final Schema schema = createSchema(rs);
+        return convertToAvroStream(rs, outStream, null, null);
+    }
+
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName)
+            throws SQLException, IOException {
+        return convertToAvroStream(rs, outStream, recordName, null);
+    }
+
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback)
+            throws SQLException, IOException {
+        final Schema schema = createSchema(rs, recordName);
         final GenericRecord rec = new GenericData.Record(schema);
 
-        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<GenericRecord>(schema);
-        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<GenericRecord>(datumWriter)) {
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
             dataFileWriter.create(schema, outStream);
 
             final ResultSetMetaData meta = rs.getMetaData();
             final int nrOfColumns = meta.getColumnCount();
             long nrOfRows = 0;
             while (rs.next()) {
+                if (callback != null) {
+                    callback.processRow(rs);
+                }
                 for (int i = 1; i <= nrOfColumns; i++) {
                     final int javaSqlType = meta.getColumnType(i);
                     final Object value = rs.getObject(i);
@@ -125,10 +138,23 @@ public class JdbcCommon {
     }
 
     public static Schema createSchema(final ResultSet rs) throws SQLException {
+        return createSchema(rs, null);
+    }
+
+    /**
+     * Creates an Avro schema from a result set. If the table/record name is known a priori and provided, use that as a
+     * fallback for the record name if it cannot be retrieved from the result set, and finally fall back to a default value.
+     *
+     * @param rs         The result set to convert to Avro
+     * @param recordName The a priori record name to use if it cannot be determined from the result set.
+     * @return A Schema object representing the result set converted to an Avro record
+     * @throws SQLException if any error occurs during conversion
+     */
+    public static Schema createSchema(final ResultSet rs, String recordName) throws SQLException {
         final ResultSetMetaData meta = rs.getMetaData();
         final int nrOfColumns = meta.getColumnCount();
-        String tableName = "NiFi_ExecuteSQL_Record";
-        if(nrOfColumns > 0) {
+        String tableName = StringUtils.isEmpty(recordName) ? "NiFi_ExecuteSQL_Record" : recordName;
+        if (nrOfColumns > 0) {
             String tableNameFromMeta = meta.getTableName(1);
             if (!StringUtils.isBlank(tableNameFromMeta)) {
                 tableName = tableNameFromMeta;
@@ -217,5 +243,14 @@ public class JdbcCommon {
         }
 
         return builder.endRecord();
+    }
+
+    /**
+     * An interface for callback methods which allows processing of a row during the convertToAvroStream() processing.
+     * <b>IMPORTANT:</b> This method should only work on the row pointed at by the current ResultSet reference.
+     * Advancing the cursor (e.g.) can cause rows to be skipped during Avro transformation.
+     */
+    public interface ResultSetRowCallback {
+        void processRow(ResultSet resultSet) throws IOException;
     }
 }

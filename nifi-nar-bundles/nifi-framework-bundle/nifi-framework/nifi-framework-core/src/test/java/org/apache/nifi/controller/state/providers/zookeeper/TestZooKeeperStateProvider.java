@@ -34,6 +34,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.components.state.exception.StateTooLargeException;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -201,5 +202,40 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             authorizedProvider.disable();
             authorizedProvider.shutdown();
         }
+    }
+
+    @Test
+    public void testStateTooLargeExceptionThrown() {
+        final Map<String, String> state = new HashMap<>();
+        final StringBuilder sb = new StringBuilder();
+
+        // Build a string that is a little less than 64 KB, because that's
+        // the largest value available for DataOutputStream.writeUTF
+        for (int i = 0; i < 6500; i++) {
+            sb.append("0123456789");
+        }
+
+        for (int i = 0; i < 20; i++) {
+            state.put("numbers." + i, sb.toString());
+        }
+
+        try {
+            getProvider().setState(state, componentId);
+            Assert.fail("Expected StateTooLargeException");
+        } catch (final StateTooLargeException stle) {
+            // expected behavior.
+        } catch (final Exception e) {
+            Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+        }
+
+        try {
+            getProvider().replace(getProvider().getState(componentId), state, componentId);
+            Assert.fail("Expected StateTooLargeException");
+        } catch (final StateTooLargeException stle) {
+            // expected behavior.
+        } catch (final Exception e) {
+            Assert.fail("Expected StateTooLargeException");
+        }
+
     }
 }

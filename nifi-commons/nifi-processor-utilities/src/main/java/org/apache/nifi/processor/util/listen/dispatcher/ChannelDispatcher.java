@@ -17,6 +17,7 @@
 package org.apache.nifi.processor.util.listen.dispatcher;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 /**
  * Dispatches handlers for a given channel.
@@ -27,11 +28,16 @@ public interface ChannelDispatcher extends Runnable {
      * Opens the dispatcher listening on the given port and attempts to set the
      * OS socket buffer to maxBufferSize.
      *
+     * @param nicAddress the local network interface to listen on, if null will listen on the wildcard address
+     *                   which means listening on all local network interfaces
+     *
      * @param port the port to listen on
+     *
      * @param maxBufferSize the size to set the OS socket buffer to
+     *
      * @throws IOException if an error occurred listening on the given port
      */
-    void open(int port, int maxBufferSize) throws IOException;
+    void open(InetAddress nicAddress, int port, int maxBufferSize) throws IOException;
 
     /**
      * @return the port being listened to

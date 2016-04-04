@@ -158,6 +158,8 @@ import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
@@ -3218,13 +3220,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
             final ProcessGroup rootGroup = getGroup(getRootGroupId());
             for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
+                }
             }
             for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
+                }
             }
             for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
+                }
             }
 
             // update primary
@@ -3381,7 +3389,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         requireNonNull(requestor);
         requireNonNull(requestUri);
 
-        final InputStream stream;
+        InputStream stream;
         final ResourceClaim resourceClaim;
         final ContentClaim contentClaim = flowFile.getContentClaim();
         if (contentClaim == null) {
@@ -3390,6 +3398,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         } else {
             resourceClaim = flowFile.getContentClaim().getResourceClaim();
             stream = contentRepository.read(flowFile.getContentClaim());
+            final long contentClaimOffset = flowFile.getContentClaimOffset();
+            if (contentClaimOffset > 0L) {
+                StreamUtils.skip(stream, contentClaimOffset);
+            }
+
+            stream = new LimitingInputStream(stream, flowFile.getSize());
         }
 
         // Register a Provenance Event to indicate that we replayed the data.
@@ -3406,7 +3420,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .setDetails("Download of Content requested by " + requestor + " for " + flowFile);
 
         if (contentClaim != null) {
-            sendEventBuilder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(), contentClaim.getOffset(), flowFile.getSize());
+            sendEventBuilder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
         }
 
         final ProvenanceEventRecord sendEvent = sendEventBuilder.build();

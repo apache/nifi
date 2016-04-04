@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.components.state.exception.StateTooLargeException;
 
 /**
  * <p>
@@ -60,6 +61,7 @@ public interface StateManager {
      * @param state the value to change the state to
      * @param scope the scope to use when storing the state
      *
+     * @throws StateTooLargeException if attempting to store more state than is allowed by the backing storage mechanism
      * @throws IOException if unable to communicate with the underlying storage mechanism
      */
     void setState(Map<String, String> state, Scope scope) throws IOException;
@@ -84,6 +86,7 @@ public interface StateManager {
      * @return <code>true</code> if the state was updated to the new value, <code>false</code> if the state's value was not
      *         equal to oldValue
      *
+     * @throws StateTooLargeException if attempting to store more state than is allowed by the backing storage mechanism
      * @throws IOException if unable to communicate with the underlying storage mechanism
      */
     boolean replace(StateMap oldValue, Map<String, String> newValue, Scope scope) throws IOException;

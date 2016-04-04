@@ -16,10 +16,25 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,27 +45,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessContext;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PutHDFSTest {
 
+    private NiFiProperties mockNiFiProperties;
+    private KerberosProperties kerberosProperties;
+
     @BeforeClass
-    public static void setUp() throws Exception{
+    public static void setUpClass() throws Exception{
         /*
          * Running Hadoop on Windows requires a special build which will produce required binaries and native modules [1]. Since functionality
          * provided by this module and validated by these test does not have any native implication we do not distribute required binaries and native modules
@@ -61,9 +69,17 @@ public class PutHDFSTest {
          */
     }
 
+    @Before
+    public void setup() {
+        mockNiFiProperties = mock(NiFiProperties.class);
+        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
+        kerberosProperties = KerberosProperties.create(mockNiFiProperties);
+    }
+
     @Test
     public void testValidators() {
-        TestRunner runner = TestRunners.newTestRunner(PutHDFS.class);
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
@@ -100,7 +116,8 @@ public class PutHDFSTest {
             assertTrue(vr.toString().contains("is invalid because short integer must be greater than zero"));
         }
 
-        runner = TestRunners.newTestRunner(PutHDFS.class);
+        proc = new TestablePutHDFS(kerberosProperties);
+        runner = TestRunners.newTestRunner(proc);
         results = new HashSet<>();
         runner.setProperty(PutHDFS.DIRECTORY, "/target");
         runner.setProperty(PutHDFS.REPLICATION_FACTOR, "0");
@@ -114,7 +131,8 @@ public class PutHDFSTest {
             assertTrue(vr.toString().contains("is invalid because short integer must be greater than zero"));
         }
 
-        runner = TestRunners.newTestRunner(PutHDFS.class);
+        proc = new TestablePutHDFS(kerberosProperties);
+        runner = TestRunners.newTestRunner(proc);
         results = new HashSet<>();
         runner.setProperty(PutHDFS.DIRECTORY, "/target");
         runner.setProperty(PutHDFS.UMASK, "-1");
@@ -128,7 +146,8 @@ public class PutHDFSTest {
             assertTrue(vr.toString().contains("is invalid because octal umask [-1] cannot be negative"));
         }
 
-        runner = TestRunners.newTestRunner(PutHDFS.class);
+        proc = new TestablePutHDFS(kerberosProperties);
+        runner = TestRunners.newTestRunner(proc);
         results = new HashSet<>();
         runner.setProperty(PutHDFS.DIRECTORY, "/target");
         runner.setProperty(PutHDFS.UMASK, "18");
@@ -156,7 +175,8 @@ public class PutHDFSTest {
         }
 
         results = new HashSet<>();
-        runner = TestRunners.newTestRunner(PutHDFS.class);
+        proc = new TestablePutHDFS(kerberosProperties);
+        runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "/target");
         runner.setProperty(PutHDFS.COMPRESSION_CODEC, CompressionCodec.class.getName());
         runner.enqueue(new byte[0]);
@@ -175,7 +195,8 @@ public class PutHDFSTest {
         // Refer to comment in the BeforeClass method for an explanation
         assumeTrue(isNotWindows());
 
-        TestRunner runner = TestRunners.newTestRunner(PutHDFS.class);
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setValidateExpressionUsage(false);
@@ -208,10 +229,16 @@ public class PutHDFSTest {
         FileSystem fs = FileSystem.get(config);
         Path p = new Path(dirName).makeQualified(fs.getUri(), fs.getWorkingDirectory());
 
+        final KerberosProperties testKerberosProperties = kerberosProperties;
         TestRunner runner = TestRunners.newTestRunner(new PutHDFS() {
             @Override
             protected void changeOwner(ProcessContext context, FileSystem hdfs, Path name) {
                 throw new ProcessException("Forcing Exception to get thrown in order to verify proper handling");
+            }
+
+            @Override
+            protected KerberosProperties getKerberosProperties() {
+                return testKerberosProperties;
             }
         });
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
@@ -236,4 +263,19 @@ public class PutHDFSTest {
     private boolean isNotWindows() {
         return !System.getProperty("os.name").startsWith("Windows");
     }
+
+    private static class TestablePutHDFS extends PutHDFS {
+
+        private KerberosProperties testKerberosProperties;
+
+        public TestablePutHDFS(KerberosProperties testKerberosProperties) {
+            this.testKerberosProperties = testKerberosProperties;
+        }
+
+        @Override
+        protected KerberosProperties getKerberosProperties() {
+            return testKerberosProperties;
+        }
+    }
+
 }

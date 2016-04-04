@@ -53,6 +53,7 @@ public class TestPutSplunk {
 
     @Test
     public void testUDPSendWholeFlowFile() {
+        runner.setProperty(PutSplunk.PROTOCOL, PutSplunk.UDP_VALUE.getValue());
         final String message = "This is one message, should send the whole FlowFile";
 
         runner.enqueue(message);
@@ -102,6 +103,8 @@ public class TestPutSplunk {
 
     @Test
     public void testUDPSendDelimitedMessages() {
+        runner.setProperty(PutSplunk.PROTOCOL, PutSplunk.UDP_VALUE.getValue());
+
         final String delimiter = "DD";
         runner.setProperty(PutSplunk.MESSAGE_DELIMITER, delimiter);
 
@@ -286,6 +289,8 @@ public class TestPutSplunk {
 
     @Test
     public void testCompletingPreviousBatchOnNextExecution() {
+        runner.setProperty(PutSplunk.PROTOCOL, PutSplunk.UDP_VALUE.getValue());
+
         final String message = "This is one message, should send the whole FlowFile";
 
         runner.enqueue(message);
@@ -297,6 +302,30 @@ public class TestPutSplunk {
 
         Assert.assertEquals(1, sender.getMessages().size());
         Assert.assertEquals(message, sender.getMessages().get(0));
+    }
+
+    @Test
+    public void testUnableToCreateConnectionShouldRouteToFailure() {
+        PutSplunk proc = new UnableToConnectPutSplunk();
+        runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutSplunk.PORT, "12345");
+
+        final String message = "This is one message, should send the whole FlowFile";
+
+        runner.enqueue(message);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutSplunk.REL_FAILURE, 1);
+    }
+
+    /**
+     * Extend PutSplunk to use a CapturingChannelSender.
+     */
+    private static class UnableToConnectPutSplunk extends PutSplunk {
+
+        @Override
+        protected ChannelSender createSender(String protocol, String host, int port, int timeout, int maxSendBufferSize, SSLContext sslContext) throws IOException {
+            throw new IOException("Unable to create connection");
+        }
     }
 
     /**
@@ -315,6 +344,7 @@ public class TestPutSplunk {
             return sender;
         }
     }
+
 
     /**
      * A ChannelSender that captures each message that was sent.

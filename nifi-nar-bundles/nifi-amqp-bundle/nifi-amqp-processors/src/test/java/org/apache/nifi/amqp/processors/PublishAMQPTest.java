@@ -18,9 +18,11 @@ package org.apache.nifi.amqp.processors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +53,20 @@ public class PublishAMQPTest {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "bar");
         attributes.put("amqp$contentType", "foo/bar");
+        attributes.put("amqp$contentEncoding", "foobar123");
+        attributes.put("amqp$headers", "foo=bar,foo2=bar2,foo3");
+        attributes.put("amqp$deliveryMode", "1");
+        attributes.put("amqp$priority", "2");
+        attributes.put("amqp$correlationId", "correlationId123");
+        attributes.put("amqp$replyTo", "replyTo123");
+        attributes.put("amqp$expiration", "expiration123");
+        attributes.put("amqp$messageId", "messageId123");
+        attributes.put("amqp$timestamp", "123456789");
+        attributes.put("amqp$type", "type123");
+        attributes.put("amqp$userId", "userId123");
+        attributes.put("amqp$appId", "appId123");
+        attributes.put("amqp$clusterId", "clusterId123");
+
         runner.enqueue("Hello Joe".getBytes(), attributes);
 
         runner.run();
@@ -60,6 +76,31 @@ public class PublishAMQPTest {
         GetResponse msg1 = channel.basicGet("queue1", true);
         assertNotNull(msg1);
         assertEquals("foo/bar", msg1.getProps().getContentType());
+
+        assertEquals("foobar123", msg1.getProps().getContentEncoding());
+
+        Map<String, Object> headerMap = msg1.getProps().getHeaders();
+
+        Object foo = headerMap.get("foo");
+        Object foo2 = headerMap.get("foo2");
+        Object foo3 = headerMap.get("foo3");
+
+        assertEquals("bar", foo.toString());
+        assertEquals("bar2", foo2.toString());
+        assertNull(foo3);
+
+        assertEquals((Integer) 1, msg1.getProps().getDeliveryMode());
+        assertEquals((Integer) 2, msg1.getProps().getPriority());
+        assertEquals("correlationId123", msg1.getProps().getCorrelationId());
+        assertEquals("replyTo123", msg1.getProps().getReplyTo());
+        assertEquals("expiration123", msg1.getProps().getExpiration());
+        assertEquals("messageId123", msg1.getProps().getMessageId());
+        assertEquals(new Date(123456789L), msg1.getProps().getTimestamp());
+        assertEquals("type123", msg1.getProps().getType());
+        assertEquals("userId123", msg1.getProps().getUserId());
+        assertEquals("appId123", msg1.getProps().getAppId());
+        assertEquals("clusterId123", msg1.getProps().getClusterId());
+
         assertNotNull(channel.basicGet("queue2", true));
     }
 

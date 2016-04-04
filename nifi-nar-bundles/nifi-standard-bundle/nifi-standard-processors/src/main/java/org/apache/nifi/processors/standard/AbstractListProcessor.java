@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -155,7 +156,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * files according to timestamp, it is ensured that at least the specified millis has been eclipsed to avoid getting scheduled
      * near instantaneously after the prior iteration effectively voiding the built in buffer
      */
-    static final long LISTING_LAG_MILLIS = 100L;
+    static final long LISTING_LAG_NANOS = TimeUnit.MILLISECONDS.toNanos(100L);
     static final String LISTING_TIMESTAMP_KEY = "listing.timestamp";
     static final String PROCESSED_TIMESTAMP_KEY = "processed.timestamp";
 
@@ -336,7 +337,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         final List<T> entityList;
         try {
-            // track of when this last executed for consideration of the lag millis
+            // track of when this last executed for consideration of the lag nanos
             entityList = performListing(context, minTimestamp);
         } catch (final IOException e) {
             getLogger().error("Failed to perform listing on remote host due to {}", e);
@@ -380,7 +381,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                  *   - the latest listing timestamp is If we have not eclipsed the minimal listing lag needed due to being triggered too soon after the last run
                  *   - the latest listing timestamp is equal to the last processed time, meaning we handled those items originally passed over
                  */
-                if (System.currentTimeMillis() - lastRunTime < LISTING_LAG_MILLIS || latestListingTimestamp.equals(lastProcessedTime)) {
+                if (System.nanoTime() - lastRunTime < LISTING_LAG_NANOS || latestListingTimestamp.equals(lastProcessedTime)) {
                     context.yield();
                     return;
                 }
@@ -411,7 +412,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 session.commit();
             }
 
-            lastRunTime = System.currentTimeMillis();
+            lastRunTime = System.nanoTime();
 
             if (!latestListingTimestamp.equals(lastListingTime) || processedNewFiles) {
                 // We have performed a listing and pushed any FlowFiles out that may have been generated

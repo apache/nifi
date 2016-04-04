@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -37,6 +31,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.hadoop.util.SequenceFileWriter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -93,13 +93,6 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
             .allowableValues(CompressionType.values())
             .build();
 
-    private static final List<PropertyDescriptor> props;
-
-    static {
-        List<PropertyDescriptor> someProps = new ArrayList<>(properties);
-        someProps.add(COMPRESSION_TYPE);
-        props = Collections.unmodifiableList(someProps);
-    }
     // Default Values.
     public static final String DEFAULT_COMPRESSION_TYPE = "NONE";
 
@@ -110,7 +103,9 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return props;
+        List<PropertyDescriptor> someProps = new ArrayList<>(properties);
+        someProps.add(COMPRESSION_TYPE);
+        return  someProps;
     }
 
     @Override

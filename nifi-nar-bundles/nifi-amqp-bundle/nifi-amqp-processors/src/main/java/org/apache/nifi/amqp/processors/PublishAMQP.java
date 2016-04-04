@@ -18,14 +18,12 @@ package org.apache.nifi.amqp.processors;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -97,8 +95,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
     private final static Set<Relationship> relationships;
 
-    private final static List<String> amqpPropertyNames = AMQPUtils.getAmqpPropertyNames();
-
     /*
      * Will ensure that the list of property descriptors is build only once.
      * Will also create a Set of relationships
@@ -118,11 +114,11 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
     /**
      * Will construct AMQP message by extracting its body from the incoming
-     * {@link FlowFile}. AMQP {@link Properties} will be extracted from the
+     * {@link FlowFile}. AMQP Properties will be extracted from the
      * {@link FlowFile} and converted to {@link BasicProperties} to be sent
      * along with the message. Upon success the incoming {@link FlowFile} is
-     * transfered to 'success' {@link Relationship} and upon failure FlowFile is
-     * penalized and transfered to the 'failure' {@link Relationship}
+     * transferred to 'success' {@link Relationship} and upon failure FlowFile is
+     * penalized and transferred to the 'failure' {@link Relationship}
      * <br>
      * NOTE: Attributes extracted from {@link FlowFile} are considered
      * candidates for AMQP properties if their names are prefixed with
@@ -195,26 +191,73 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * Extracts AMQP properties from the {@link FlowFile} attributes. Attributes
      * extracted from {@link FlowFile} are considered candidates for AMQP
      * properties if their names are prefixed with
-     * {@link AMQPUtils#AMQP_PROP_PREFIX} (e.g., amqp$contentType=text/xml)
+     * {@link AMQPUtils#AMQP_PROP_PREFIX} (e.g., amqp$contentType=text/xml).
+     *
+     * Some fields require a specific format and are validated:
+     *
+     * {@link AMQPUtils#validateAMQPHeaderProperty}
+     * {@link AMQPUtils#validateAMQPDeliveryModeProperty}
+     * {@link AMQPUtils#validateAMQPPriorityProperty}
+     * {@link AMQPUtils#validateAMQPTimestampProperty}
      */
     private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile) {
         Map<String, String> attributes = flowFile.getAttributes();
         AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
         for (Entry<String, String> attributeEntry : attributes.entrySet()) {
             if (attributeEntry.getKey().startsWith(AMQPUtils.AMQP_PROP_PREFIX)) {
-                String amqpPropName = attributeEntry.getKey().split("\\" + AMQPUtils.AMQP_PROP_DELIMITER)[1];
+                String amqpPropName = attributeEntry.getKey();
                 String amqpPropValue = attributeEntry.getValue();
-                try {
-                    if (amqpPropertyNames.contains(AMQPUtils.AMQP_PROP_PREFIX + amqpPropName)) {
-                        Method m = builder.getClass().getDeclaredMethod(amqpPropName, String.class);
-                        m.invoke(builder, amqpPropValue);
-                    } else {
-                        getLogger().warn("Unrecogninsed AMQP property '" + amqpPropName + "', will ignore.");
+
+                AMQPUtils.PropertyNames propertyNames = AMQPUtils.PropertyNames.fromValue(amqpPropName);
+
+                if (propertyNames != null) {
+                    switch (propertyNames){
+                        case CONTENT_TYPE:
+                            builder.contentType(amqpPropValue);
+                            break;
+                        case CONTENT_ENCODING:
+                            builder.contentEncoding(amqpPropValue);
+                            break;
+                        case HEADERS:
+                            builder.headers(AMQPUtils.validateAMQPHeaderProperty(amqpPropValue));
+                            break;
+                        case DELIVERY_MODE:
+                            builder.deliveryMode(AMQPUtils.validateAMQPDeliveryModeProperty(amqpPropValue));
+                            break;
+                        case PRIORITY:
+                            builder.priority(AMQPUtils.validateAMQPPriorityProperty(amqpPropValue));
+                            break;
+                        case CORRELATION_ID:
+                            builder.correlationId(amqpPropValue);
+                            break;
+                        case REPLY_TO:
+                            builder.replyTo(amqpPropValue);
+                            break;
+                        case EXPIRATION:
+                            builder.expiration(amqpPropValue);
+                            break;
+                        case MESSAGE_ID:
+                            builder.messageId(amqpPropValue);
+                            break;
+                        case TIMESTAMP:
+                            builder.timestamp(AMQPUtils.validateAMQPTimestampProperty(amqpPropValue));
+                            break;
+                        case TYPE:
+                            builder.type(amqpPropValue);
+                            break;
+                        case USER_ID:
+                            builder.userId(amqpPropValue);
+                            break;
+                        case APP_ID:
+                            builder.appId(amqpPropValue);
+                            break;
+                        case CLUSTER_ID:
+                            builder.clusterId(amqpPropValue);
+                            break;
                     }
-                } catch (Exception e) {
-                    // should really never happen since it should be caught by
-                    // the above IF.
-                    getLogger().warn("Failed while trying to build AMQP Properties.", e);
+
+                } else {
+                    getLogger().warn("Unrecognised AMQP property '" + amqpPropName + "', will ignore.");
                 }
             }
         }

@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -34,6 +35,7 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.commons.lang.LocaleUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -128,6 +130,27 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
         }
     };
 
+    public static final String DEFAULT_LOCALE_VALUE = "default";
+    public static final Validator LOCALE_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            String reason = null;
+            if (value.equals(DEFAULT_LOCALE_VALUE) == false) {
+                try {
+                    final Locale locale = LocaleUtils.toLocale(value);
+                    if (locale == null) {
+                        reason = "null locale returned";
+                    } else if (LocaleUtils.isAvailableLocale(locale) == false) {
+                        reason = "locale not available";
+                    }
+                } catch (final IllegalArgumentException e) {
+                    reason = "invalid format for locale";
+                }
+            }
+            return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
+        }
+    };
+
     @VisibleForTesting
     static final PropertyDescriptor INPUT_SCHEMA = new PropertyDescriptor.Builder()
             .name("Input Schema").description("Avro Schema of Input Flowfiles")
@@ -141,10 +164,19 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
             .addValidator(MAPPED_SCHEMA_VALIDATOR).expressionLanguageSupported(true)
             .required(true).build();
 
+    @VisibleForTesting
+    static final PropertyDescriptor LOCALE = new PropertyDescriptor.Builder()
+            .name("Locale")
+            .description("Locale to use for scanning data (see https://docs.oracle.com/javase/7/docs/api/java/util/Locale.html)" +
+                    "or \" " + DEFAULT_LOCALE_VALUE + "\" for JVM default")
+            .addValidator(LOCALE_VALIDATOR)
+            .defaultValue(DEFAULT_LOCALE_VALUE).build();
+
     private static final List<PropertyDescriptor> PROPERTIES = ImmutableList
             .<PropertyDescriptor> builder()
             .add(INPUT_SCHEMA)
-            .add(OUTPUT_SCHEMA).build();
+            .add(OUTPUT_SCHEMA)
+            .add(LOCALE).build();
 
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet
             .<Relationship> builder().add(SUCCESS).add(FAILURE).build();
@@ -240,8 +272,11 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
                 fieldMapping.put(entry.getKey().getName(), entry.getValue());
             }
         }
+        // Set locale
+        final String localeProperty = context.getProperty(LOCALE).getValue();
+        final Locale locale = (localeProperty == DEFAULT_LOCALE_VALUE)?Locale.getDefault():LocaleUtils.toLocale(localeProperty);
         final AvroRecordConverter converter = new AvroRecordConverter(
-                inputSchema, outputSchema, fieldMapping);
+                inputSchema, outputSchema, fieldMapping, locale);
 
         final DataFileWriter<Record> writer = new DataFileWriter<>(
                 AvroUtil.newDatumWriter(outputSchema, Record.class));

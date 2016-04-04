@@ -24,14 +24,12 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.listen.AbstractListenEventProcessor;
+import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
@@ -56,7 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"listen", "relp", "tcp", "logs"})
@@ -72,7 +69,7 @@ import java.util.concurrent.LinkedBlockingQueue;
         @WritesAttribute(attribute="mime.type", description="The mime.type of the content which is text/plain")
     })
 @SeeAlso({ParseSyslog.class})
-public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
+public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -83,11 +80,10 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
             .build();
 
     private volatile RELPEncoder relpEncoder;
-    private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
 
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
-        return Arrays.asList(MAX_CONNECTIONS, MAX_BATCH_SIZE, MESSAGE_DELIMITER, SSL_CONTEXT_SERVICE);
+        return Arrays.asList(MAX_CONNECTIONS, SSL_CONTEXT_SERVICE);
     }
 
     @Override
@@ -96,9 +92,6 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
         super.onScheduled(context);
         // wanted to ensure charset was already populated here
         relpEncoder = new RELPEncoder(charset);
-
-        final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
-        messageDemarcatorBytes = msgDemarcator.getBytes(charset);
     }
 
     @Override
@@ -111,10 +104,7 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
         final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
 
         // initialize the buffer pool based on max number of connections and the buffer size
-        final LinkedBlockingQueue<ByteBuffer> bufferPool = new LinkedBlockingQueue<>(maxConnections);
-        for (int i = 0; i < maxConnections; i++) {
-            bufferPool.offer(ByteBuffer.allocate(bufferSize));
-        }
+        final BlockingQueue<ByteBuffer> bufferPool = createBufferPool(maxConnections, bufferSize);
 
         // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
         SSLContext sslContext = null;
@@ -129,69 +119,20 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
-        final Map<String,FlowFileEventBatch> batches = getBatches(session, maxBatchSize, messageDemarcatorBytes);
-
-        // if the size is 0 then there was nothing to process so return
-        // we don't need to yield here because inside getBatches() we are polling a queue with a wait
-        // and yielding here could have a negative impact on performance
-        if (batches.size() == 0) {
-            return;
-        }
-
-        for (Map.Entry<String,FlowFileEventBatch> entry : batches.entrySet()) {
-            FlowFile flowFile = entry.getValue().getFlowFile();
-            final List<RELPEvent> events = entry.getValue().getEvents();
-
-            if (flowFile.getSize() == 0L || events.size() == 0) {
-                session.remove(flowFile);
-                getLogger().debug("No data written to FlowFile from batch {}; removing FlowFile", new Object[] {entry.getKey()});
-                continue;
-            }
-
-            // the sender and command will be the same for all events based on the batch key
-            final String sender = events.get(0).getSender();
-            final String command = events.get(0).getCommand();
-
-            final int numAttributes = events.size() == 1 ? 5 : 4;
-
-            final Map<String,String> attributes = new HashMap<>(numAttributes);
-            attributes.put(RELPAttributes.COMMAND.key(), command);
-            attributes.put(RELPAttributes.SENDER.key(), sender);
-            attributes.put(RELPAttributes.PORT.key(), String.valueOf(port));
-            attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
-
-            // if there was only one event then we can pass on the transaction
-            // NOTE: we could pass on all the transaction ids joined together
-            if (events.size() == 1) {
-                attributes.put(RELPAttributes.TXNR.key(), String.valueOf(events.get(0).getTxnr()));
-            }
-            flowFile = session.putAllAttributes(flowFile, attributes);
-
-            getLogger().debug("Transferring {} to success", new Object[] {flowFile});
-            session.transfer(flowFile, REL_SUCCESS);
-            session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
-
-            // create a provenance receive event
-            final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
-            final String transitUri = new StringBuilder().append("relp").append("://").append(senderHost).append(":")
-                    .append(port).toString();
-            session.getProvenanceReporter().receive(flowFile, transitUri);
-
-            // commit the session to guarantee the data has been delivered
-            session.commit();
-
-            // respond to each event to acknowledge successful receipt
-            for (final RELPEvent event : events) {
-                respond(event, RELPResponse.ok(event.getTxnr()));
-            }
-        }
+    protected String getBatchKey(RELPEvent event) {
+        return event.getSender() + "_" + event.getCommand();
     }
 
     @Override
-    protected String getBatchKey(RELPEvent event) {
-        return event.getSender() + "_" + event.getCommand();
+    protected void postProcess(final ProcessContext context, final ProcessSession session, final List<RELPEvent> events) {
+        // first commit the session so we guarantee we have all the events successfully
+        // written to FlowFiles and transferred to the success relationship
+        session.commit();
+
+        // respond to each event to acknowledge successful receipt
+        for (final RELPEvent event : events) {
+            respond(event, RELPResponse.ok(event.getTxnr()));
+        }
     }
 
     protected void respond(final RELPEvent event, final RELPResponse relpResponse) {
@@ -205,6 +146,39 @@ public class ListenRELP extends AbstractListenEventProcessor<RELPEvent> {
             getLogger().error("Error sending response for transaction {} due to {}",
                     new Object[] {event.getTxnr(), e.getMessage()}, e);
         }
+    }
+
+    @Override
+    protected Map<String, String> getAttributes(FlowFileEventBatch batch) {
+        final List<RELPEvent> events = batch.getEvents();
+
+        // the sender and command will be the same for all events based on the batch key
+        final String sender = events.get(0).getSender();
+        final String command = events.get(0).getCommand();
+
+        final int numAttributes = events.size() == 1 ? 5 : 4;
+
+        final Map<String,String> attributes = new HashMap<>(numAttributes);
+        attributes.put(RELPAttributes.COMMAND.key(), command);
+        attributes.put(RELPAttributes.SENDER.key(), sender);
+        attributes.put(RELPAttributes.PORT.key(), String.valueOf(port));
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
+
+        // if there was only one event then we can pass on the transaction
+        // NOTE: we could pass on all the transaction ids joined together
+        if (events.size() == 1) {
+            attributes.put(RELPAttributes.TXNR.key(), String.valueOf(events.get(0).getTxnr()));
+        }
+        return attributes;
+    }
+
+    @Override
+    protected String getTransitUri(FlowFileEventBatch batch) {
+        final String sender = batch.getEvents().get(0).getSender();
+        final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
+        final String transitUri = new StringBuilder().append("relp").append("://").append(senderHost).append(":")
+                .append(port).toString();
+        return transitUri;
     }
 
     public enum RELPAttributes implements FlowFileAttributeKey {

@@ -255,7 +255,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(element, "comments", port.getComments());
         addTextElement(element, "scheduledState", port.getScheduledState().name());
         addTextElement(element, "maxConcurrentTasks", port.getMaxConcurrentTasks());
-        addTextElement(element, "useCompression", String.valueOf(((RemoteGroupPort) port).isUseCompression()));
+        addTextElement(element, "useCompression", String.valueOf(port.isUseCompression()));
 
         parentElement.appendChild(element);
     }

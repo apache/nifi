@@ -45,6 +45,7 @@ import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaMetadataKeys;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.mime.MimeType;
 import org.apache.tika.mime.MimeTypeException;
@@ -117,6 +118,7 @@ public class IdentifyMimeType extends AbstractProcessor {
 
         final ProcessorLog logger = getLogger();
         final ObjectHolder<String> mimeTypeRef = new ObjectHolder<>(null);
+        final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
         session.read(flowFile, new InputStreamCallback() {
             @Override
@@ -124,6 +126,10 @@ public class IdentifyMimeType extends AbstractProcessor {
                 try (final InputStream in = new BufferedInputStream(stream)) {
                     TikaInputStream tikaStream = TikaInputStream.get(in);
                     Metadata metadata = new Metadata();
+                    // Add filename if it exists
+                    if (filename != null) {
+                        metadata.add(TikaMetadataKeys.RESOURCE_NAME_KEY, filename);
+                    }
                     // Get mime type
                     MediaType mediatype = detector.detect(tikaStream, metadata);
                     mimeTypeRef.set(mediatype.toString());

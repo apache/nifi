@@ -27,6 +27,7 @@ import org.apache.nifi.security.util.SslContextFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
@@ -104,7 +105,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
     }
 
     @Override
-    public void open(final int port, int maxBufferSize) throws IOException {
+    public void open(final InetAddress nicAddress, final int port, final int maxBufferSize) throws IOException {
         stopped = false;
         executor = Executors.newFixedThreadPool(maxConnections);
 
@@ -119,7 +120,9 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                         + "maximum receive buffer");
             }
         }
-        serverSocketChannel.socket().bind(new InetSocketAddress(port));
+
+        serverSocketChannel.socket().bind(new InetSocketAddress(nicAddress, port));
+
         selector = Selector.open();
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
     }

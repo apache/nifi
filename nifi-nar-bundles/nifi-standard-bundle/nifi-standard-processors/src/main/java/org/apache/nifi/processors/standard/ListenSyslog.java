@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -55,6 +58,8 @@ import org.apache.nifi.ssl.SSLContextService;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
@@ -189,6 +194,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(PROTOCOL);
         descriptors.add(PORT);
+        descriptors.add(NETWORK_INTF_NAME);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(RECV_BUFFER_SIZE);
         descriptors.add(MAX_MESSAGE_QUEUE_SIZE);
@@ -257,6 +263,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
         final String protocol = context.getProperty(PROTOCOL).getValue();
+        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final String charSet = context.getProperty(CHARSET).getValue();
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         messageDemarcatorBytes = msgDemarcator.getBytes(Charset.forName(charSet));
@@ -276,10 +283,16 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         parser = new SyslogParser(Charset.forName(charSet));
         syslogEvents = new LinkedBlockingQueue<>(maxMessageQueueSize);
 
+        InetAddress nicIPAddress = null;
+        if (!StringUtils.isEmpty(nicIPAddressStr)) {
+            NetworkInterface netIF = NetworkInterface.getByName(nicIPAddressStr);
+            nicIPAddress = netIF.getInetAddresses().nextElement();
+        }
+
         // create either a UDP or TCP reader and call open() to bind to the given port
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         channelDispatcher = createChannelReader(protocol, bufferPool, syslogEvents, maxConnections, sslContextService, Charset.forName(charSet));
-        channelDispatcher.open(port, maxChannelBufferSize);
+        channelDispatcher.open(nicIPAddress, port, maxChannelBufferSize);
 
         final Thread readerThread = new Thread(channelDispatcher);
         readerThread.setName("ListenSyslog [" + getIdentifier() + "]");

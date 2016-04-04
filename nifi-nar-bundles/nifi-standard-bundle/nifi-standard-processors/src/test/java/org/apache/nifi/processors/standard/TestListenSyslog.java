@@ -95,7 +95,7 @@ public class TestListenSyslog {
             while (numTransfered < numMessages && System.currentTimeMillis() < timeout) {
                 Thread.sleep(10);
                 proc.onTrigger(context, processSessionFactory);
-                numTransfered = runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size();
+                numTransfered = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
             }
             Assert.assertEquals("Did not process all the datagrams", numMessages, numTransfered);
 

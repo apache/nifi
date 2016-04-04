@@ -66,6 +66,27 @@ public class TestExtractText {
     }
 
     @Test
+    public void testWithUnmatchedOptionalCapturingGroup() {
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+        testRunner.setProperty("regex", "abc(def)?(g)");
+        testRunner.enqueue("abcg");
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
+        out.assertAttributeNotExists("regex.1");
+        out.assertAttributeEquals("regex.2", "g");
+
+        testRunner.clearTransferState();
+
+        testRunner.enqueue("abcdefg");
+        testRunner.run();
+        final MockFlowFile out2 = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
+        out2.assertAttributeEquals("regex.1", "def");
+        out2.assertAttributeEquals("regex.2", "g");
+    }
+
+    @Test
     public void testProcessorWithDotall() throws Exception {
 
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());

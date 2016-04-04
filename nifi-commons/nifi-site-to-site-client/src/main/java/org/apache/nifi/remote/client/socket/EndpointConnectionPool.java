@@ -708,7 +708,10 @@ public class EndpointConnectionPool {
                     throw new IOException(ex);
                 }
             } else {
-                final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress(hostname, port));
+                final SocketChannel socketChannel = SocketChannel.open();
+                socketChannel.socket().connect(new InetSocketAddress(hostname, port), commsTimeout);
+                socketChannel.socket().setSoTimeout(commsTimeout);
+
                 commsSession = new SocketChannelCommunicationsSession(socketChannel, destinationUri);
             }
 
