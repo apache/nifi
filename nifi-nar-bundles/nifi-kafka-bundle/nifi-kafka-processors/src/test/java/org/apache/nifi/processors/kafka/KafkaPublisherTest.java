@@ -179,7 +179,7 @@ public class KafkaPublisherTest {
     @Test
     public void validateWithMultiByteCharacters() throws Exception {
         String data = "僠THIS IS MY NEW TEXT.僠IT HAS A NEWLINE.";
-        InputStream fis = new ByteArrayInputStream(data.getBytes());
+        InputStream fis = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         String topicName = "validateWithMultiByteCharacters";
 
         Properties kafkaProperties = this.buildProducerProperties();
@@ -192,7 +192,7 @@ public class KafkaPublisherTest {
         publisher.close();
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
-        String r = new String(iter.next().message());
+        String r = new String(iter.next().message(), StandardCharsets.UTF_8);
         assertEquals(data, r);
     }
 
