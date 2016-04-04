@@ -41,8 +41,6 @@ public interface SSLContextService extends ControllerService {
 
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException;
 
-    public SSLContext createSSLContext() throws ProcessException;
-
     public String getTrustStoreFile();
 
     public String getTrustStoreType();
