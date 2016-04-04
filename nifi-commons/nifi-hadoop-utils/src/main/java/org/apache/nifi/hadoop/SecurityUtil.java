@@ -79,7 +79,7 @@ public class SecurityUtil {
      * @return true if kerberos is enabled on the given configuration, false otherwise
      *
      */
-    public static synchronized boolean isSecurityEnabled(final Configuration config) {
+    public static boolean isSecurityEnabled(final Configuration config) {
         Validate.notNull(config);
         return "kerberos".equalsIgnoreCase(config.get("hadoop.security.authentication"));
     }
