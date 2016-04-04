@@ -266,7 +266,7 @@ public class TestListFile {
         fos.write(bytes1000);
         fos.close();
 
-        final long now = TimeUnit.MICROSECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
+        final long now = getTestModifiedTime();
         assertTrue(file1.setLastModified(now));
         assertTrue(file2.setLastModified(now));
         assertTrue(file3.setLastModified(now));
@@ -342,7 +342,7 @@ public class TestListFile {
 
     @Test
     public void testFilterHidden() throws Exception {
-        final long now = TimeUnit.MICROSECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
+        final long now = TimeUnit.MILLISECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
 
         FileOutputStream fos;
 
@@ -398,8 +398,7 @@ public class TestListFile {
 
     @Test
     public void testFilterFilePattern() throws Exception {
-
-        final long now = TimeUnit.MICROSECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
+        final long now = getTestModifiedTime();
 
         final File file1 = new File(TESTDIR + "/file1-abc-apple.txt");
         assertTrue(file1.createNewFile());
@@ -416,12 +415,6 @@ public class TestListFile {
         final File file4 = new File(TESTDIR + "/file4-pdq-banana.txt");
         assertTrue(file4.createNewFile());
         assertTrue(file4.setLastModified(now));
-
-        System.out.println(file1.lastModified());
-        System.out.println(file2.lastModified());
-        System.out.println(file3.lastModified());
-        System.out.println(file4.lastModified());
-
 
         // check all files
         runner.clearTransferState();
@@ -453,7 +446,7 @@ public class TestListFile {
 
     @Test
     public void testFilterPathPattern() throws Exception {
-        final long now = TimeUnit.MICROSECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
+        final long now = TimeUnit.MILLISECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
 
         final File subdir1 = new File(TESTDIR + "/subdir1");
         assertTrue(subdir1.mkdirs());
@@ -522,7 +515,7 @@ public class TestListFile {
 
     @Test
     public void testRecurse() throws Exception {
-        final long now = TimeUnit.MICROSECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
+        final long now = getTestModifiedTime();
 
         final File subdir1 = new File(TESTDIR + "/subdir1");
         assertTrue(subdir1.mkdirs());
@@ -595,7 +588,7 @@ public class TestListFile {
 
     @Test
     public void testReadable() throws Exception {
-        final long now = TimeUnit.MICROSECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
+        final long now = getTestModifiedTime();
 
         final File file1 = new File(TESTDIR + "/file1.txt");
         assertTrue(file1.createNewFile());
@@ -699,6 +692,18 @@ public class TestListFile {
         assertEquals(true, processor.isListingResetNecessary(ListFile.MAX_SIZE));
         assertEquals(true, processor.isListingResetNecessary(ListFile.IGNORE_HIDDEN_FILES));
         assertEquals(false, processor.isListingResetNecessary(new PropertyDescriptor.Builder().name("x").build()));
+    }
+
+    /*
+     * HFS+, default for OS X, only has granularity to one second, accordingly, we go back in time to establish consistent test cases
+     *
+     * Provides "now" minus 1 second in millis
+    */
+    private static long getTestModifiedTime() {
+        final long nowNanos = System.nanoTime();
+        // Subtract a second to avoid possible rounding issues
+        final long nowSeconds = TimeUnit.SECONDS.convert(nowNanos, TimeUnit.NANOSECONDS) - 1;
+        return TimeUnit.MILLISECONDS.convert(nowSeconds, TimeUnit.SECONDS);
     }
 
     public void resetAges() {
