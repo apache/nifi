@@ -26,7 +26,7 @@ import java.nio.ByteBuffer;
  */
 class StreamScanner {
 
-    private final static byte EOF = -1;
+    private final static int EOF = -1;
 
     private final InputStream is;
 
