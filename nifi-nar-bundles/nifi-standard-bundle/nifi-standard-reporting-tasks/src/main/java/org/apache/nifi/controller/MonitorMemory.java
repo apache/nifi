@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.controller;
 
-import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -91,15 +92,26 @@ import org.slf4j.LoggerFactory;
         + " that the memory pool is exceeding this threshold.")
 public class MonitorMemory extends AbstractReportingTask {
 
+    private static final AllowableValue[] memPoolAllowableValues;
+
+    static {
+        List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans();
+        memPoolAllowableValues = new AllowableValue[memoryPoolBeans.size()];
+        for (int i = 0; i < memPoolAllowableValues.length; i++) {
+            memPoolAllowableValues[i] = new AllowableValue(memoryPoolBeans.get(i).getName());
+        }
+    }
+
     public static final PropertyDescriptor MEMORY_POOL_PROPERTY = new PropertyDescriptor.Builder()
             .name("Memory Pool")
+            .displayName("Memory Pool")
             .description("The name of the JVM Memory Pool to monitor")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue(null)
+            .allowableValues(memPoolAllowableValues)
             .build();
     public static final PropertyDescriptor THRESHOLD_PROPERTY = new PropertyDescriptor.Builder()
             .name("Usage Threshold")
+            .displayName("Usage Threshold")
             .description("Indicates the threshold at which warnings should be generated")
             .required(true)
             .addValidator(new ThresholdValidator())
@@ -107,6 +119,7 @@ public class MonitorMemory extends AbstractReportingTask {
             .build();
     public static final PropertyDescriptor REPORTING_INTERVAL = new PropertyDescriptor.Builder()
             .name("Reporting Interval")
+            .displayName("Reporting Interval")
             .description("Indicates how often this reporting task should report bulletins while the memory utilization exceeds the configured threshold")
             .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -121,22 +134,23 @@ public class MonitorMemory extends AbstractReportingTask {
 
     private volatile MemoryPoolMXBean monitoredBean;
     private volatile String threshold = "65%";
-    private volatile long lastReportTime = 0L;
+    private volatile long lastReportTime;
     private volatile long reportingIntervalMillis;
-    private volatile boolean lastValueWasExceeded = false;
+    private volatile boolean lastValueWasExceeded;
 
-    private final List<GarbageCollectorMXBean> garbageCollectorBeans = new ArrayList<>();
+    private final static List<PropertyDescriptor> propertyDescriptors;
 
-    public MonitorMemory() {
+    static {
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.add(MEMORY_POOL_PROPERTY);
+        _propertyDescriptors.add(THRESHOLD_PROPERTY);
+        _propertyDescriptors.add(REPORTING_INTERVAL);
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>(3);
-        descriptors.add(MEMORY_POOL_PROPERTY);
-        descriptors.add(THRESHOLD_PROPERTY);
-        descriptors.add(REPORTING_INTERVAL);
-        return descriptors;
+        return propertyDescriptors;
     }
 
     @OnScheduled
@@ -145,7 +159,6 @@ public class MonitorMemory extends AbstractReportingTask {
         final String thresholdValue = config.getProperty(THRESHOLD_PROPERTY).getValue().trim();
         threshold = thresholdValue;
 
-        // validate reporting interval
         final Long reportingIntervalValue = config.getProperty(REPORTING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         if (reportingIntervalValue == null) {
             reportingIntervalMillis = config.getSchedulingPeriod(TimeUnit.MILLISECONDS);
@@ -154,46 +167,27 @@ public class MonitorMemory extends AbstractReportingTask {
         }
 
         final List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans();
-        for (final MemoryPoolMXBean bean : memoryPoolBeans) {
-            final String memoryPoolName = bean.getName();
+        for (int i = 0; i < memoryPoolBeans.size() && monitoredBean == null; i++) {
+            MemoryPoolMXBean memoryPoolBean = memoryPoolBeans.get(i);
+            String memoryPoolName = memoryPoolBean.getName();
             if (desiredMemoryPoolName.equals(memoryPoolName)) {
-                monitoredBean = bean;
-                if (DATA_SIZE_PATTERN.matcher(thresholdValue).matches()) {
-                    final long bytes = DataUnit.parseDataSize(thresholdValue, DataUnit.B).longValue();
-                    if (bean.isCollectionUsageThresholdSupported()) {
-                        bean.setCollectionUsageThreshold(bytes);
+                monitoredBean = memoryPoolBean;
+                if (memoryPoolBean.isCollectionUsageThresholdSupported()) {
+                    long calculatedThreshold;
+                    if (DATA_SIZE_PATTERN.matcher(thresholdValue).matches()) {
+                        calculatedThreshold = DataUnit.parseDataSize(thresholdValue, DataUnit.B).longValue();
+                    } else {
+                        final String percentage = thresholdValue.substring(0, thresholdValue.length() - 1);
+                        final double pct = Double.parseDouble(percentage) / 100D;
+                        calculatedThreshold = (long) (monitoredBean.getUsage().getMax() * pct);
                     }
-                } else {
-                    final String percentage = thresholdValue.substring(0, thresholdValue.length() - 1);
-                    final double pct = Double.parseDouble(percentage) / 100D;
-                    final long calculatedThreshold = (long) (bean.getUsage().getMax() * pct);
-                    if (bean.isCollectionUsageThresholdSupported()) {
-                        bean.setCollectionUsageThreshold(calculatedThreshold);
-                    }
-                }
-            }
-        }
-
-        for (final GarbageCollectorMXBean bean : ManagementFactory.getGarbageCollectorMXBeans()) {
-            for (final String memoryPoolName : bean.getMemoryPoolNames()) {
-                if (desiredMemoryPoolName.equals(memoryPoolName)) {
-                    garbageCollectorBeans.add(bean);
+                    monitoredBean.setUsageThreshold(calculatedThreshold);
                 }
             }
         }
 
         if (monitoredBean == null) {
             throw new InitializationException("Found no JVM Memory Pool with name " + desiredMemoryPoolName + "; will not monitor Memory Pool");
-        }
-    }
-
-    private long calculateThresholdBytes(final long maxBytes) {
-        if (DATA_SIZE_PATTERN.matcher(threshold).matches()) {
-            return DataUnit.parseDataSize(threshold, DataUnit.B).longValue();
-        } else {
-            final String percentage = threshold.substring(0, threshold.length() - 1);
-            final double pct = Double.parseDouble(percentage) / 100D;
-            return (long) (maxBytes * pct);
         }
     }
 
@@ -204,17 +198,15 @@ public class MonitorMemory extends AbstractReportingTask {
             return;
         }
 
-        final MemoryUsage usage = bean.getCollectionUsage();
+        final MemoryUsage usage = bean.getUsage();
         if (usage == null) {
             logger.warn("{} could not determine memory usage for pool with name {}", this,
                     context.getProperty(MEMORY_POOL_PROPERTY));
             return;
         }
 
-        final boolean exceeded = usage.getUsed() > calculateThresholdBytes(usage.getMax());
         final double percentageUsed = (double) usage.getUsed() / (double) usage.getMax() * 100D;
-
-        if (exceeded) {
+        if (bean.isUsageThresholdExceeded()) {
             if (System.currentTimeMillis() < reportingIntervalMillis + lastReportTime && lastReportTime > 0L) {
                 return;
             }

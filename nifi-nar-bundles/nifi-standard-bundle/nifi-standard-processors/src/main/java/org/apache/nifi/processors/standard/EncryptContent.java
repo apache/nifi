@@ -511,7 +511,6 @@ public class EncryptContent extends AbstractProcessor {
         } catch (final ProcessException e) {
             logger.error("Cannot {}crypt {} - ", new Object[]{encrypt ? "en" : "de", flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
     }
 
