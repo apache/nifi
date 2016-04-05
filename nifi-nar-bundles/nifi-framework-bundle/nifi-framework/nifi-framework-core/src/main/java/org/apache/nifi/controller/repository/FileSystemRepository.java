@@ -1196,7 +1196,7 @@ public class FileSystemRepository implements ContentRepository {
     private long destroyExpiredArchives(final String containerName, final Path container) throws IOException {
         archiveExpirationLog.debug("Destroying Expired Archives for Container {}", containerName);
         final List<ArchiveInfo> notYetExceedingThreshold = new ArrayList<>();
-        final long removalTimeThreshold = System.currentTimeMillis() - maxArchiveMillis;
+        long removalTimeThreshold = System.currentTimeMillis() - maxArchiveMillis;
         long oldestArchiveDateFound = System.currentTimeMillis();
 
         // determine how much space we must have in order to stop deleting old data
@@ -1229,6 +1229,8 @@ public class FileSystemRepository implements ContentRepository {
         while ((toDelete = fileQueue.peek()) != null) {
             try {
                 final long fileSize = toDelete.getSize();
+
+                removalTimeThreshold = System.currentTimeMillis() - maxArchiveMillis;
 
                 // we use fileQueue.peek above instead of fileQueue.poll() because we don't always want to
                 // remove the head of the queue. Instead, we want to remove it only if we plan to delete it.
@@ -1287,6 +1289,7 @@ public class FileSystemRepository implements ContentRepository {
             }
 
             try {
+                final long timestampThreshold = removalTimeThreshold;
                 Files.walkFileTree(archive, new SimpleFileVisitor<Path>() {
                     @Override
                     public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
@@ -1295,7 +1298,7 @@ public class FileSystemRepository implements ContentRepository {
                         }
 
                         final long lastModTime = getLastModTime(file);
-                        if (lastModTime < removalTimeThreshold) {
+                        if (lastModTime < timestampThreshold) {
                             try {
                                 Files.deleteIfExists(file);
                                 containerState.decrementArchiveCount();
