@@ -132,7 +132,7 @@ image:nifi-toolbar-components.png["Toolbar Components"]
 === Adding a Processor
 
 We can now begin creating our dataflow by adding a Processor to our canvas. To do this, drag the Processor icon
-image:iconProcessor.png["Processor"] from the top-left of the screen into the middle of the canvas (the graph paper-like
+(image:iconProcessor.png["Processor"]) from the top-left of the screen into the middle of the canvas (the graph paper-like
 background) and drop it there. This will give us a dialog that allows us to choose which Processor we want to add:
 
 image:add-processor.png["Add Processor"]
@@ -160,16 +160,16 @@ for each type. Properties that are in bold are required properties. The Processo
 properties have been configured. The most important property to configure for GetFile is the directory from which
 to pick up files. If we set the directory name to `./data-in`, this will cause the Processor to start picking up
 any data in the `data-in` subdirectory of the NiFi Home directory. We can choose to configure several different
-Properties for this Processor. If unsure what a particular Property does, we can hover over the help icon (
+Properties for this Processor. If unsure what a particular Property does, we can hover over the Help icon (
 image:iconInfo.png["Help"]
 )
 next to the Property Name with the mouse in order to read a description of the property. Additionally, the
-tooltip that is displayed when hovering over the help icon will provide the default value for that property,
+tooltip that is displayed when hovering over the Help icon will provide the default value for that property,
 if one exists, information about whether or not the property supports the Expression Language (see the
 <<ExpressionLanguage>> section below), and previously configured values for that property.
 
 In order for this property to be valid, create a directory named `data-in` in the NiFi home directory and then
-click the `OK` button to close the dialog.
+click the `Ok` button to close the dialog.
 
 
 === Connecting Processors
@@ -239,9 +239,8 @@ Processor, and then hold the Shift key while selecting the other Processor in or
 right-click and choose the `Start` menu item. As an alternative to using the context menu, we can select the Processors and
 then click the Start icon in the toolbar at the top of the screen.
 
-Once started, the icon in the top-left corner of the Processors will change from a stopped icon to a Running icon. We can then
-stop the Processors in the same manner that we started them but using the Stop icon in the toolbar or the Stop menu item
-as opposed to the Start button.
+Once started, the icon in the top-left corner of the Processors will change from a stopped icon to a running icon. We can then
+stop the Processors by using the Stop icon in the toolbar or the `Stop` menu item.
 
 Once a Processor has started, we are not able to configure it anymore. Instead, when we right-click on the Processor, we are
 given the option to view its current configuration. In order to configure a Processor, we must first stop the Processor and
@@ -482,7 +481,7 @@ process the data.
 In addition to having Processors that are able to extract particular pieces of information from FlowFile content into Attributes,
 it is also common for users to want to add their own user-defined Attributes to each FlowFile at a particular place in the flow.
 The UpdateAttribute Processor is designed specifically for this purpose. Users are able to add a new property to the Processor
-in the Configure dialog by clicking the "New Property" button in the top-right corner of the Properties tab. The user is then
+in the Configure dialog by clicking the "+" button in the top-right corner of the Properties tab. The user is then
 prompted to enter the name of the property and then a value. For each FlowFile that is processed by this UpdateAttribute
 Processor, an Attribute will be added for each user-defined property. The name of the Attribute will be the same as the name of
 the property that was added. The value of the Attribute will be the same as the value of the property.
@@ -495,7 +494,7 @@ here.
 
 In addition to always adding a defined set of Attributes, the UpdateAttribute Processor has an Advanced UI that allows the user
 to configure a set of rules for which Attributes should be added when. To access this capability, in the Configure dialog's
-Properties tab, click the `Advanced...` button at the bottom of the dialog. This will provide a UI that is tailored specifically
+Properties tab, click the `Advanced` button at the bottom of the dialog. This will provide a UI that is tailored specifically
 to this Processor, rather than the simple Properties table that is provided for all Processors. Within this UI, the user is able
 to configure a rules engine, essentially, specifying rules that must match in order to have the configured Attributes added
 to the FlowFile.
@@ -504,7 +503,7 @@ to the FlowFile.
 
 One of the most powerful features of NiFi is the ability to route FlowFiles based on their Attributes. The primary mechanism
 for doing this is the RouteOnAttribute Processor. This Processor, like UpdateAttribute, is configured by adding user-defined properties.
-Any number of properties can be added by clicking the "New Property" icon in the top-right corner of the Properties tab in the
+Any number of properties can be added by clicking the "+" button in the top-right corner of the Properties tab in the
 Processor's Configure dialog.
 
 Each FlowFile's Attributes will be compared against the configured properties to determine whether or not the FlowFile meets the
@@ -526,7 +525,7 @@ As we extract Attributes from FlowFiles' contents and add user-defined Attribute
 we have some mechanism by which we can use them. The NiFi Expression Language allows us to access and manipulate FlowFile Attribute
 values as we configure our flows. Not all Processor properties allow the Expression Language to be used, but many do. In order to
 determine whether or not a property supports the Expression Language, a user can hover over the Help icon (
-icon:iconInfo.png["Help Icon"]
+icon:iconInfo.png["Help"]
 ) in the Properties tab of the Processor Configure dialog. This will provide a tooltip that shows a description of the property, the
 default value, if any, and whether or not the property supports the Expression Language.
 
@@ -569,29 +568,28 @@ A template can be thought of as a reusable sub-flow. To create a template, follo
   the Shift key while selecting additional components (to include the Connections between those components), or by holding the Shift key
 	while dragging a box around the desired components on the canvas.
 - Select the Create Template Icon (
-	image:iconTemplate.png[Template Icon]
+	image:iconNewTemplate.png[New Template Icon]
 	) from the middle toolbar at the top of the screen.
 - Provide a name and optionally comments about the template.
-- Click the Create button.
+- Click the `Create` button.
 
 Once we have created a template, we can now use it as a building block in our flow, just as we would a Processor. To do this, we will
 click and drag the Template icon from the left-most toolbar onto our canvas. We can then choose the template that we would like to add
-or our canvas and click the Add button.
+or our canvas and click the `Add` button.
 
 Finally, we have the ability to manage our templates by using the Template Management dialog. To access this dialog, click the Template
 icon in the top-right toolbar. From here, we can see which templates exist and filter the templates to find the templates of interest.
 On the right-hand side of the table is icon to Export, or Download, the template as an XML file. This can then be provided to others so
 that they can use your template.
 
-To import a template into your NiFi instance, click the Browse button in the top-right corner of the dialog and navigate to the file on
-your computer. Then click the Import button. The template will now show up in your table, and you can drag it onto your canvas as you would
+To import a template into your NiFi instance, click the `Browse` button in the top-right corner of the dialog and navigate to the file on
+your computer. Then click the `Import` button. The template will now show up in your table, and you can drag it onto your canvas as you would
 any other template that you have created.
 
 There are a few important notes to remember when working with templates:
-- Any properties that are identified as being Sensitive Properties (such as a password that is configured in a Processor) will not be added
-  to the template. These sensitive properties will have to be populated each time that the template is added to the canvas.
-- If a component that is included in the template references a Controller Service, the Controller Service will also be added to the template.
-  This means that each time that the template is added to the graph, it will create a copy of the Controller Service.
+
+- Any properties that are identified as being Sensitive Properties (such as a password that is configured in a Processor) will not be added to the template. These sensitive properties will have to be populated each time that the template is added to the canvas.
+- If a component that is included in the template references a Controller Service, the Controller Service will also be added to the template. This means that each time that the template is added to the graph, it will create a copy of the Controller Service.
 
 
 Monitoring NiFi
@@ -620,7 +618,7 @@ that have been emitted by the Processor.
 The connections between Processors also expose the number of items that are currently queued.
 
 It may also be valuable to see historical values for these metrics and, if clustered, how the different nodes compare to one another.
-In order to see this information, we can right-click on a component and choose the Stats menu item. This will show us a graph that spans
+In order to see this information, we can right-click on a component and choose the `Stats` menu item. This will show us a graph that spans
 the time since NiFi was started, or up to 24 hours, whichever is less. The amount of time that is shown here can be extended or reduced
 by changing the configuration in the properties file.
 
@@ -655,7 +653,7 @@ the Provenance events that we have searched for:
 image:provenance-table.png[Provenance Table]
 
 Initially, this table is populated with the most recent 1,000 Provenance Events that have occurred (though it may take a few
-seconds for the information to be processed after the events occur). From this dialog, there is a Search button that allows the
+seconds for the information to be processed after the events occur). From this dialog, there is a `Search` button that allows the
 user to search for events that happened by a particular Processor, for a particular FlowFile by filename or UUID, or several other
 fields. The `nifi.properties` file provides the ability to configure which of these properties are indexed, or made searchable.
 Additionally, the properties file also allows you to choose specific FlowFile Attributes that will be indexed. As a result, you can
@@ -665,7 +663,7 @@ choose which Attributes will be important to your specific dataflows and make th
 === Event Details
 Once we have performed our search, our table will be populated only with the events that match the search criteria. From here, we
 can choose the Info icon (
-image:iconInfo.png[Info Icon]
+image:iconDetails.png[Details Icon]
 ) on the left-hand side of the table to view the details of that event:
 
 image:event-details.png[Event Details]
@@ -693,7 +691,7 @@ This tab provides us information about where in the Content Repository the FlowF
 of the FlowFile, we will see the 'before' and 'after' content claims. We are then given the option to Download the content or to View the
 content within NiFi itself, if the data format is one that NiFi understands how to render.
 
-Additionally, there is 'Replay' button that allows the user to re-insert the FlowFile into the flow and re-process it from exactly the point
+Additionally, in the Replay section of the tab, there is a 'Submit' button that allows the user to re-insert the FlowFile into the flow and re-process it from exactly the point
 at which the event happened. This provides a very powerful mechanism, as we are able to modify our flow in real time, re-process a FlowFile,
 and then view the results. If they are not as expected, we can modify the flow again, and re-process the FlowFile again. We are able to perform
 this iterative development of the flow until it is processing the data exactly as intended.
@@ -708,7 +706,7 @@ This provides us with a graphical representation of exactly what happened to tha
 
 image:lineage-graph-annotated.png[Lineage Graph]
 
-From here, we can right-click on any of the events represented and click the "View Details" menu item to see the <<EventDetails>>.
+From here, we can right-click on any of the events represented and click the `View Details` menu item to see the <<EventDetails>>.
 This graphical representation shows us exactly which events occurred to the data. There are a few "special" event types to be
 aware of. If we see a JOIN, FORK, or CLONE event, we can right-click and choose to Find Parents or Expand. This allows us to
 see the lineage of parent FlowFiles and children FlowFiles that were created as well.
