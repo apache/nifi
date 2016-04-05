@@ -176,10 +176,10 @@ click the `OK` button to close the dialog.
 
 Each Processor has a set of defined "Relationships" that it is able to send data to. When a Processor finishes handling
 a FlowFile, it transfers it to one of these Relationships. This allows a user to configure how to handle FlowFiles based
-on the result of Processing. For example, many Processor define two Relationships: `success` and `failure`. Users are
+on the result of Processing. For example, many Processors define two Relationships: `success` and `failure`. Users are
 then able to configure data to be routed through the flow one way if the Processor is able to successfully process
-the data and route the data through the flow in a completely different many if the Processor cannot process the
-data for some reason. Or, depending on the use case, the may simply route both relationships to the same route through
+the data and route the data through the flow in a completely different manner if the Processor cannot process the
+data for some reason. Or, depending on the use case, it may simply route both relationships to the same route through
 the flow.
 
 Now that we have added and configured our GetFile processor and applied the configuration, we can see in the
@@ -221,7 +221,7 @@ the prioritizer. If multiple prioritizers are activated, they will be evaluated 
 will be evaluated first and if two FlowFiles are determined to be equal according to that Prioritizers, the second Prioritizer
 will be used.
 
-For the sake of this discuss, we can simply click `Add`. to add the Connection to our graph. We should now see that the Alert 
+For the sake of this discussion, we can simply click `Add`. to add the Connection to our graph. We should now see that the Alert 
 icon has changed to a Stopped icon (
 image:iconStop.png[Stopped]
 ). The LogAttribute Processor, however, is now invalid because its `success` Relationship has not been connected to
@@ -438,10 +438,10 @@ Working With Attributes
 -----------------------
 Each FlowFile is created with several Attributes, and these Attributes will change over the life of
 the FlowFile. The concept of a FlowFile is extremely powerful and provides three primary benefits.
-First, it allows the user to make routing decisions in the flow so that FlowFiles that meeting some criteria
+First, it allows the user to make routing decisions in the flow so that FlowFiles that meet some criteria
 can be handled differently than other FlowFiles. This is done using the RouteOnAttribute and similar Processors.
 
-Secondly, Attributes are used in order to configure Processors in such a way that the configurationg of the
+Secondly, Attributes are used in order to configure Processors in such a way that the configuration of the
 Processor is dependent on the data itself. For instance, the PutFile Processor is able to use the Attributes in order
 to know where to store each FlowFile, while the directory and filename Attributes may be different for each FlowFile.
 
@@ -532,7 +532,7 @@ default value, if any, and whether or not the property supports the Expression L
 
 For properties that do support the Expression Language, it is used by adding an expression within the opening `${` tag and the closing
 `}` tag. An expression can be as simple as an attribute name. For example, to reference the `uuid` Attribute, we can simply use the
-value `${uuid}`. If the Attribute name begins with any character other than a letter, or if it contians a character other than
+value `${uuid}`. If the Attribute name begins with any character other than a letter, or if it contains a character other than
 a number, a letter, a period (.), or an underscore (_), the Attribute name will need to be quoted. For example, `${My Attribute Name}`
 will be invalid, but `${'My Attribute Name'}` will refer to the Attribute `My Attribute Name`.
 
@@ -553,8 +553,8 @@ link:expression-language-guide.html[Expression Language Guide] provides far grea
 
 In addition, this Expression Language guide is built in to the application so that users are able to easily see which functions are available
 and see their documentation while typing. When setting the value of a property that supports the Expression Language, if the cursor is within
-the Expression Language start and end tags, pressing Ctrl + Space on the keyword will provide a popup of all of the available functions and
-will provide auto-complete functionality. Clicking on or using the keyboard to navigate to one of the functions listed in the popup will
+the Expression Language start and end tags, pressing Ctrl + Space on the keyword will provide a pop-up of all of the available functions and
+will provide auto-complete functionality. Clicking on or using the keyboard to navigate to one of the functions listed in the pop-up will
 cause a tooltip to show, which explains what the function does, the arguments that it expects, and the return type of the function.
 
 
@@ -620,7 +620,7 @@ that have been emitted by the Processor.
 The connections between Processors also expose the number of items that are currently queued.
 
 It may also be valuable to see historical values for these metrics and, if clustered, how the different nodes compare to one another.
-In order to see this information, we can right-click on a component and choose the Status menu item. This will show us a graph that spans
+In order to see this information, we can right-click on a component and choose the Stats menu item. This will show us a graph that spans
 the time since NiFi was started, or up to 24 hours, whichever is less. The amount of time that is shown here can be extended or reduced
 by changing the configuration in the properties file.
 
@@ -630,7 +630,7 @@ user to select a smaller portion of the graph to zoom in.
 
 === Bulletins
 
-In addition to the statistics provided by each component, as a user we will want to know if any problems occur. While we could monitor the
+In addition to the statistics provided by each component, a user will want to know if any problems occur. While we could monitor the
 logs for anything interesting, it is much more convenient to have notifications pop up on the screen. If a Processor logs
 anything as a WARNING or ERROR, we will see a "Bulletin Indicator" show up in the top-left-hand corner of the Processor. This indicator
 looks like a sticky note and will be shown for five minutes after the event occurs. Hovering over the bulletin provides information about
@@ -682,7 +682,7 @@ Attributes. This allows us to know which Attributes changed as a result of this 
 corner is a checkbox that allows the user to see only those Attributes that changed. This may not be particularly useful if the FlowFile has
 only a handful of Attributes, but can be very helpful when a FlowFile has hundreds of Attributes.
 
-This is very important, because it allows the user to understand the exactly context in which the FlowFile was processed. This is very helpful
+This is very important because it allows the user to understand the exact context in which the FlowFile was processed. It is helpful
 to understand 'why' the FlowFile was processed the way that it was, especially when the Processor was configured using the Expression Language.
 
 Finally, we have the Content tab:
@@ -709,7 +709,7 @@ This provides us with a graphical representation of exactly what happened to tha
 image:lineage-graph-annotated.png[Lineage Graph]
 
 From here, we can right-click on any of the events represented and click the "View Details" menu item to see the <<EventDetails>>.
-This graphical representation shows us exactly which events occurred to the data. There are a view "special" event types to be
+This graphical representation shows us exactly which events occurred to the data. There are a few "special" event types to be
 aware of. If we see a JOIN, FORK, or CLONE event, we can right-click and choose to Find Parents or Expand. This allows us to
 see the lineage of parent FlowFiles and children FlowFiles that were created as well.
 
