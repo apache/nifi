@@ -203,7 +203,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             }
 
                             try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                                ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, OnConfigured.class, reportingTask, taskNode.getConfigurationContext());
+                                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
                             }
 
                             agent.schedule(taskNode, scheduleState);
@@ -254,7 +254,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     try {
                         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                            ReflectionUtils.invokeMethodsWithAnnotations(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
+                            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
                         }
                     } catch (final Exception e) {
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
@@ -274,7 +274,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     agent.unschedule(taskNode, scheduleState);
 
                     if (scheduleState.getActiveThreadCount() == 0 && scheduleState.mustCallOnStoppedMethods()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
                     }
                 }
             }
