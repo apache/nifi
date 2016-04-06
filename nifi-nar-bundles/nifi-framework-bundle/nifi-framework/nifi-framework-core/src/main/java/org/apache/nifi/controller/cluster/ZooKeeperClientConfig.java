@@ -17,13 +17,15 @@
 
 package org.apache.nifi.controller.cluster;
 
-import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.common.PathUtils;
+import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,18 +36,14 @@ public class ZooKeeperClientConfig {
     private final int sessionTimeoutMillis;
     private final int connectionTimeoutMillis;
     private final String rootPath;
-    private final byte[] digest;
+    private final List<ACL> acls;
 
-    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis, String rootPath, String username, String password) {
+    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis, String rootPath, List<ACL> acls) {
         this.connectString = connectString;
         this.sessionTimeoutMillis = sessionTimeoutMillis;
         this.connectionTimeoutMillis = connectionTimeoutMillis;
         this.rootPath = rootPath.endsWith("/") ? rootPath.substring(0, rootPath.length() - 1) : rootPath;
-        if (username == null || password == null) {
-            digest = null;
-        } else {
-            digest = (username + ":" + password).getBytes(StandardCharsets.UTF_8);
-        }
+        this.acls = acls;
     }
 
     public String getConnectString() {
@@ -64,16 +62,16 @@ public class ZooKeeperClientConfig {
         return rootPath;
     }
 
+    public List<ACL> getACLs() {
+        return acls;
+    }
+
     public String resolvePath(final String path) {
         if (path.startsWith("/")) {
             return rootPath + path;
         }
 
         return rootPath + "/" + path;
-    }
-
-    public byte[] getDigest() {
-        return digest;
     }
 
     public static ZooKeeperClientConfig createConfig(final Properties properties) {
@@ -85,6 +83,18 @@ public class ZooKeeperClientConfig {
         final long sessionTimeoutMs = getTimePeriod(properties, NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_SESSION_TIMEOUT);
         final long connectionTimeoutMs = getTimePeriod(properties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
         final String rootPath = properties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
+        final String accessControl = properties.getProperty(NiFiProperties.ZOOKEEPER_ACCESS_CONTROL);
+
+        final List<ACL> acls;
+        if (accessControl == null || accessControl.trim().isEmpty()) {
+            acls = null;
+        } else if (accessControl.equalsIgnoreCase("Open")) {
+            acls = Ids.OPEN_ACL_UNSAFE;
+        } else if (accessControl.equalsIgnoreCase("CreatorOnly")) {
+            acls = Ids.CREATOR_ALL_ACL;
+        } else {
+            acls = null;
+        }
 
         try {
             PathUtils.validatePath(rootPath);
@@ -92,10 +102,7 @@ public class ZooKeeperClientConfig {
             throw new IllegalArgumentException("The '" + NiFiProperties.ZOOKEEPER_ROOT_NODE + "' property in nifi.properties is set to an illegal value: " + rootPath);
         }
 
-        final String username = properties.getProperty(NiFiProperties.ZOOKEEPER_USERNAME);
-        final String password = properties.getProperty(NiFiProperties.ZOOKEEPER_PASSWORD);
-
-        return new ZooKeeperClientConfig(connectString, (int) sessionTimeoutMs, (int) connectionTimeoutMs, rootPath, username, password);
+        return new ZooKeeperClientConfig(connectString, (int) sessionTimeoutMs, (int) connectionTimeoutMs, rootPath, acls);
     }
 
     private static int getTimePeriod(final Properties properties, final String propertyName, final String defaultValue) {
