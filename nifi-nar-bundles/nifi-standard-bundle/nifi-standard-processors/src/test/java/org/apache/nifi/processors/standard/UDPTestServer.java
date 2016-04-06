@@ -68,6 +68,10 @@ public class UDPTestServer implements Runnable {
         return recvQueue.poll();
     }
 
+    public int getLocalPort() {
+        return serverSocket == null ? 0 : serverSocket.getLocalPort();
+    }
+
     @Override
     public void run() {
         try {
