@@ -34,12 +34,6 @@ public class TestPutUDP {
     private final static String UDP_SERVER_ADDRESS = "127.0.0.1";
     private final static String UNKNOWN_HOST = "fgdsfgsdffd";
     private final static String INVALID_IP_ADDRESS = "300.300.300.300";
-    private final static int UDP_SERVER_PORT = 54674;
-    private final static int UDP_SERVER_PORT_ALT = 54675;
-    private final static int MIN_INVALID_PORT = 0;
-    private final static int MIN_VALID_PORT = 1;
-    private final static int MAX_VALID_PORT = 65535;
-    private final static int MAX_INVALID_PORT = 65536;
     private final static int BUFFER_SIZE = 1024;
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private final static int VALID_SMALL_FILE_SIZE = 64;
@@ -63,7 +57,7 @@ public class TestPutUDP {
 
     @Before
     public void setup() throws Exception {
-        createTestServer(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, BUFFER_SIZE);
+        createTestServer(UDP_SERVER_ADDRESS, 0, BUFFER_SIZE);
         runner = TestRunners.newTestRunner(PutUDP.class);
     }
 
@@ -98,7 +92,7 @@ public class TestPutUDP {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testValidFiles() throws Exception {
-        configureProperties(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, true);
+        configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
         checkInputQueueIsEmpty();
@@ -106,7 +100,7 @@ public class TestPutUDP {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testEmptyFile() throws Exception {
-        configureProperties(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, true);
+        configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(EMPTY_FILE);
         checkRelationships(EMPTY_FILE.length, 0);
         checkNoDataReceived();
@@ -115,7 +109,7 @@ public class TestPutUDP {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testlargeValidFile() throws Exception {
-        configureProperties(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, true);
+        configureProperties(UDP_SERVER_ADDRESS, true);
         final String[] testData = createContent(VALID_LARGE_FILE_SIZE);
         sendTestData(testData);
         checkReceivedAllData(testData);
@@ -124,7 +118,7 @@ public class TestPutUDP {
 
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testlargeInvalidFile() throws Exception {
-        configureProperties(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, true);
+        configureProperties(UDP_SERVER_ADDRESS, true);
         String[] testData = createContent(INVALID_LARGE_FILE_SIZE);
         sendTestData(testData);
         checkRelationships(0, testData.length);
@@ -140,7 +134,7 @@ public class TestPutUDP {
 
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testInvalidIPAddress() throws Exception {
-        configureProperties(INVALID_IP_ADDRESS, UDP_SERVER_PORT, true);
+        configureProperties(INVALID_IP_ADDRESS, true);
         sendTestData(VALID_FILES);
         checkNoDataReceived();
         checkRelationships(0, VALID_FILES.length);
@@ -149,7 +143,7 @@ public class TestPutUDP {
 
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testUnknownHostname() throws Exception {
-        configureProperties(UNKNOWN_HOST, UDP_SERVER_PORT, true);
+        configureProperties(UNKNOWN_HOST, true);
         sendTestData(VALID_FILES);
         checkNoDataReceived();
         checkRelationships(0, VALID_FILES.length);
@@ -157,24 +151,16 @@ public class TestPutUDP {
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
-    public void testInvalidPort() throws Exception {
-        configureProperties(UDP_SERVER_ADDRESS, MIN_INVALID_PORT, false);
-        configureProperties(UDP_SERVER_ADDRESS, MIN_VALID_PORT, true);
-        configureProperties(UDP_SERVER_ADDRESS, MAX_VALID_PORT, true);
-        configureProperties(UDP_SERVER_ADDRESS, MAX_INVALID_PORT, false);
-    }
-
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testReconfiguration() throws Exception {
-        configureProperties(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, true);
+        configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
-        reset(UDP_SERVER_ADDRESS, UDP_SERVER_PORT_ALT, BUFFER_SIZE);
-        configureProperties(UDP_SERVER_ADDRESS, UDP_SERVER_PORT_ALT, true);
+        reset(UDP_SERVER_ADDRESS, 0, BUFFER_SIZE);
+        configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
-        reset(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, BUFFER_SIZE);
-        configureProperties(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, true);
+        reset(UDP_SERVER_ADDRESS, 0, BUFFER_SIZE);
+        configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
         checkInputQueueIsEmpty();
@@ -183,7 +169,7 @@ public class TestPutUDP {
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testLoadTest() throws Exception {
         final String[] testData = createContent(VALID_SMALL_FILE_SIZE);
-        configureProperties(UDP_SERVER_ADDRESS, UDP_SERVER_PORT, true);
+        configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(testData, LOAD_TEST_ITERATIONS, LOAD_TEST_THREAD_COUNT);
         checkReceivedAllData(testData, LOAD_TEST_ITERATIONS);
         checkInputQueueIsEmpty();
@@ -195,9 +181,9 @@ public class TestPutUDP {
         createTestServer(address, port, recvQueueSize);
     }
 
-    private void configureProperties(final String host, final int port, final boolean expectValid) {
+    private void configureProperties(final String host, final boolean expectValid) {
         runner.setProperty(PutUDP.HOSTNAME, host);
-        runner.setProperty(PutUDP.PORT, Integer.toString(port));
+        runner.setProperty(PutUDP.PORT, Integer.toString(server.getLocalPort()));
         if (expectValid) {
             runner.assertValid();
         } else {
@@ -205,18 +191,22 @@ public class TestPutUDP {
         }
     }
 
-    private void sendTestData(final String[] testData) {
+    private void sendTestData(final String[] testData) throws InterruptedException {
         sendTestData(testData, DEFAULT_ITERATIONS, DEFAULT_THREAD_COUNT);
     }
 
-    private void sendTestData(final String[] testData, final int iterations, final int threadCount) {
+    private void sendTestData(final String[] testData, final int iterations, final int threadCount) throws InterruptedException {
         for (String item : testData) {
             runner.setThreadCount(threadCount);
             for (int i = 0; i < iterations; i++) {
                 runner.enqueue(item.getBytes());
+                runner.run(1, false);
+                Thread.sleep(1);
             }
-            runner.run(iterations);
         }
+
+        // ensure @OnStopped methods get called
+        runner.run();
     }
 
     private void checkRelationships(final int successCount, final int failedCount) {
