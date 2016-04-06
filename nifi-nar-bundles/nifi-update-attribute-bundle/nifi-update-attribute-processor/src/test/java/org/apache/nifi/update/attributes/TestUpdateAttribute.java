@@ -121,7 +121,7 @@ public class TestUpdateAttribute {
     @Test
     public void testDefaultState() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
         runner.setProperty("count", "${count_state:plus(1)}");
         runner.setProperty("sum", "${sum_state:plus(${pencils})}");
 
@@ -152,7 +152,7 @@ public class TestUpdateAttribute {
     @Test
     public void testStateWithInitValue() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
         runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "10");
         runner.setProperty("count", "${count_state:plus(1)}");
         runner.setProperty("sum", "${sum_state:plus(${pencils})}");
@@ -191,7 +191,7 @@ public class TestUpdateAttribute {
                 "maxValue", "${value}"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
         runner.setAnnotationData(serialize(criteria));
 
         final Map<String, String> attributes = new HashMap<>();
@@ -224,7 +224,7 @@ public class TestUpdateAttribute {
                 "maxValue", "${value}"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
         runner.setAnnotationData(serialize(criteria));
         runner.setProperty("maxValue", "${maxValue_state}");
 
@@ -258,7 +258,7 @@ public class TestUpdateAttribute {
                 "minValue", "${value}"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
         runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "5");
         runner.setAnnotationData(serialize(criteria));
 
@@ -291,7 +291,7 @@ public class TestUpdateAttribute {
                 "maxValue", "${value}"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
         runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "badValue");
         runner.setAnnotationData(serialize(criteria));
         runner.setProperty("maxValue", "${maxValue_state}");

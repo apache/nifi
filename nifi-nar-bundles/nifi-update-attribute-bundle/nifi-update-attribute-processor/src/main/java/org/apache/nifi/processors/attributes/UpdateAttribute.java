@@ -44,7 +44,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -82,11 +81,10 @@ import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 @DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", supportsExpressionLanguage = true,
         description = "Updates a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @WritesAttribute(attribute = "See additional details", description = "This processor may write or remove zero or more attributes as described in additional details")
-@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "Gives the option to store values not only on the FlowFile but as stateful variables to be referenced in a recursive manner." +
-        "State is stored either local or clustered depend on the <State Location> property.")
+@Stateful(scopes = {Scope.LOCAL}, description = "Gives the option to store values not only on the FlowFile but as stateful variables to be referenced in a recursive manner.")
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
-    private Scope scope = null;
+    private boolean stateful = false;
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);
     private final ConcurrentMap<String, PropertyValue> propertyValues = new ConcurrentHashMap<>();
 
@@ -128,19 +126,14 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .expressionLanguageSupported(true)
             .build();
 
-
-    public static final AllowableValue LOCATION_STATELESS = new AllowableValue("Stateless", "Stateless", "Do not store state.");
-    public static final AllowableValue LOCATION_LOCAL = new AllowableValue("Local", "Local", "Store the state locally.");
-    public static final AllowableValue LOCATION_CLUSTER = new AllowableValue("Cluster", "Cluster", "Store the state at the cluster level.");
-
-    public static final PropertyDescriptor STATE_LOCATION = new PropertyDescriptor.Builder()
-            .name("State Location")
-            .description("Select where or not state will be store and if so, where to store it. Selecting 'Stateless' will offer the default functionality of purely updating the attributes on a " +
-                    "FlowFile in a stateless manner. Selecting 'Local' or 'Cluster' will not only store the attributes on the FlowFile but also in the Processors state. See the 'Stateful Usage' " +
+    public static final PropertyDescriptor STORE_STATE = new PropertyDescriptor.Builder()
+            .name("Store State")
+            .description("Select whether or not state will be stored. Selecting 'Stateless' will offer the default functionality of purely updating the attributes on a " +
+                    "FlowFile in a stateless manner. Selecting 'Stateful' will not only store the attributes on the FlowFile but also in the Processors state. See the 'Stateful Usage' " +
                     "topic of the 'Additional Details' section of this processor's documentation for more information")
             .required(true)
-            .allowableValues(LOCATION_STATELESS, LOCATION_LOCAL, LOCATION_CLUSTER)
-            .defaultValue(LOCATION_STATELESS.getValue())
+            .allowableValues("false", "true")
+            .defaultValue("false")
             .build();
     public static final PropertyDescriptor STATEFUL_VARIABLES_INIT_VALUE = new PropertyDescriptor.Builder()
             .name("Stateful Variables Initial Value")
@@ -174,14 +167,14 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(DELETE_ATTRIBUTES);
-        descriptors.add(STATE_LOCATION);
+        descriptors.add(STORE_STATE);
         descriptors.add(STATEFUL_VARIABLES_INIT_VALUE);
         return Collections.unmodifiableList(descriptors);
     }
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        if(scope != null){
+        if(!stateful){
             return new PropertyDescriptor.Builder()
                     .name(propertyDescriptorName)
                     .required(false)
@@ -206,13 +199,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
 
-        if (descriptor.equals(STATE_LOCATION)) {
-            if (LOCATION_CLUSTER.getValue().equalsIgnoreCase(newValue)) {
-                scope = Scope.CLUSTER;
-            } else if (LOCATION_LOCAL.getValue().equalsIgnoreCase(newValue)) {
-                scope = Scope.LOCAL;
+        if (descriptor.equals(STORE_STATE)) {
+            if ("true".equalsIgnoreCase(newValue)) {
+                stateful = true;
             } else {
-                scope = null;
+                stateful = false;
             }
         }
     }
@@ -223,9 +214,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
         propertyValues.clear();
 
-        if(scope != null) {
+        if(stateful) {
             StateManager stateManager = context.getStateManager();
-            StateMap state = stateManager.getState(scope);
+            StateMap state = stateManager.getState(Scope.LOCAL);
             HashMap<String, String> tempMap = new HashMap<>();
             tempMap.putAll(state.toMap());
             String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
@@ -251,7 +242,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 }
             }
 
-            context.getStateManager().setState(tempMap, scope);
+            context.getStateManager().setState(tempMap, Scope.LOCAL);
         }
     }
 
@@ -398,8 +389,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         matchedRules.clear();
 
         try {
-            if (scope != null) {
-                statefulAttributes = new HashMap<>(context.getStateManager().getState(scope).toMap());
+            if (stateful) {
+                statefulAttributes = new HashMap<>(context.getStateManager().getState(Scope.LOCAL).toMap());
             } else {
                 statefulAttributes = null;
             }
@@ -630,7 +621,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         FlowFile returnFlowfile = session.removeAllAttributes(session.putAllAttributes(flowfile, attributesToUpdate), attributesToDelete);
 
         if(statefulAttributesToSet != null) {
-            context.getStateManager().setState(statefulAttributesToSet, scope);
+            context.getStateManager().setState(statefulAttributesToSet, Scope.LOCAL);
         }
 
         return  returnFlowfile;
@@ -641,7 +632,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, Action> defaultActions = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            if(entry.getKey() != STATE_LOCATION && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE) {
+            if(entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE) {
                 final Action action = new Action();
                 action.setAttribute(entry.getKey().getName());
                 action.setValue(entry.getValue());
