@@ -18,32 +18,20 @@ limitations under the License.
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>minifi</artifactId>
-        <groupId>org.apache.nifi.minifi</groupId>
+        <artifactId>minifi-nar-bundles</artifactId>
+        <groupId>org.apache.nifi</groupId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>minifi-bootstrap</artifactId>
-    <packaging>jar</packaging>
+    <modelVersion>4.0.0</modelVersion>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-expression-language</artifactId>
-        </dependency>
-    </dependencies>
+    <groupId>org.apache.nifi.minifi</groupId>
+    <artifactId>minifi-framework-bundle</artifactId>
+    <packaging>pom</packaging>
+    <version>0.0.1-SNAPSHOT</version>
+
+    <modules>
+        <module>minifi-framework-nar</module>
+        <module>minifi-framework</module>
+    </modules>
 </project>

@@ -20,15 +20,20 @@ limitations under the License.
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>minifi</artifactId>
+        <artifactId>minifi-framework-bundle</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-framework</artifactId>
     <packaging>pom</packaging>
-
     <modules>
+        <module>minifi-runtime</module>
         <module>minifi-resources</module>
     </modules>
-
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>

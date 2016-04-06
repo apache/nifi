@@ -18,32 +18,50 @@ limitations under the License.
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>minifi</artifactId>
+        <artifactId>minifi-framework-bundle</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>minifi-bootstrap</artifactId>
-    <packaging>jar</packaging>
+    <modelVersion>4.0.0</modelVersion>
 
+    <groupId>org.apache.nifi.minifi</groupId>
+    <artifactId>minifi-framework-nar</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>nar</packaging>
+
+    <description>MiNiFi: Framework NAR</description>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
     <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
+        <!-- mark these nifi artifacts as provided since it is included in the lib -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
+            <artifactId>nifi-runtime</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-runtime</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-expression-language</artifactId>
+            <artifactId>nifi-nar-utils</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-properties</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
