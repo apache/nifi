@@ -34,7 +34,6 @@ public class AuthorizationRequest {
 
     private AuthorizationRequest(final Builder builder) {
         Objects.requireNonNull(builder.resource, "The resource is required when creating an authorization request");
-        Objects.requireNonNull(builder.identity, "The identity of the user is required when creating an authorization request");
         Objects.requireNonNull(builder.action, "The action is required when creating an authorization request");
 
         this.resource = builder.resource;
@@ -54,7 +53,7 @@ public class AuthorizationRequest {
     }
 
     /**
-     * The identity accessing the Resource. Not null.
+     * The identity accessing the Resource. May be null if the user could not authenticate.
      *
      * @return The identity
      */

@@ -14,11 +14,15 @@
   limitations under the License.
 -->
 <!--
-    This file lists all authority providers to use when running securely.
+    This file lists the authority providers to use when running securely. In order
+    to use a specific provider it must be configured here and it's identifier
+    must be specified in the nifi.properties file.
 -->
-<authorityProviders>
+<authorizers>
     <provider>
-        <identifier>test-provider</identifier>
-        <class>org.apache.nifi.integration.util.NiFiTestAuthorizer</class>
+        <identifier>file-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAuthorizationProvider</class>
+        <property name="Authorized Users File">./conf/authorized-users.xml</property>
+        <property name="Default User Roles"></property>
     </provider>
-</authorityProviders>
+</authorizers>

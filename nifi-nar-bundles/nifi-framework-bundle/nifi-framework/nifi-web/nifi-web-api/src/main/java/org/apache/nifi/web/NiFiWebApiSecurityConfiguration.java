@@ -18,15 +18,14 @@ package org.apache.nifi.web;
 
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.security.jwt.JwtService;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
 import org.apache.nifi.web.security.otp.OtpAuthenticationFilter;
-import org.apache.nifi.web.security.otp.OtpService;
-import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
+import org.apache.nifi.web.security.otp.OtpAuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
+import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.web.security.x509.X509IdentityProvider;
 import org.slf4j.Logger;
@@ -42,7 +41,6 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 
 /**
@@ -56,16 +54,20 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     private NiFiProperties properties;
     private UserService userService;
-    private AuthenticationUserDetailsService authenticationUserDetailsService;
-    private JwtService jwtService;
-    private OtpService otpService;
-    private X509CertificateExtractor certificateExtractor;
-    private X509IdentityProvider certificateIdentityProvider;
 
     private NodeAuthorizedUserFilter nodeAuthorizedUserFilter;
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-    private OtpAuthenticationFilter otpAuthenticationFilter;
+
     private X509AuthenticationFilter x509AuthenticationFilter;
+    private X509CertificateExtractor certificateExtractor;
+    private X509IdentityProvider certificateIdentityProvider;
+    private X509AuthenticationProvider x509AuthenticationProvider;
+
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private JwtAuthenticationProvider jwtAuthenticationProvider;
+
+    private OtpAuthenticationFilter otpAuthenticationFilter;
+    private OtpAuthenticationProvider otpAuthenticationProvider;
+
     private NiFiAnonymousUserFilter anonymousAuthenticationFilter;
 
     public NiFiWebApiSecurityConfiguration() {
@@ -95,17 +97,17 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // cluster authorized user
         http.addFilterBefore(nodeAuthorizedUserFilterBean(), AnonymousAuthenticationFilter.class);
 
-        // anonymous
-        http.anonymous().authenticationFilter(anonymousFilterBean());
-
         // x509
-        http.addFilterAfter(x509FilterBean(), AnonymousAuthenticationFilter.class);
+        http.addFilterBefore(x509FilterBean(), AnonymousAuthenticationFilter.class);
 
         // jwt
-        http.addFilterAfter(jwtFilterBean(), AnonymousAuthenticationFilter.class);
+        http.addFilterBefore(jwtFilterBean(), AnonymousAuthenticationFilter.class);
 
         // otp
-        http.addFilterAfter(otpFilterBean(), AnonymousAuthenticationFilter.class);
+        http.addFilterBefore(otpFilterBean(), AnonymousAuthenticationFilter.class);
+
+        // anonymous
+        http.anonymous().authenticationFilter(anonymousFilterBean());
     }
 
     @Bean
@@ -117,7 +119,10 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.authenticationProvider(new NiFiAuthenticationProvider(authenticationUserDetailsService));
+        auth
+                .authenticationProvider(x509AuthenticationProvider)
+                .authenticationProvider(jwtAuthenticationProvider)
+                .authenticationProvider(otpAuthenticationProvider);
     }
 
     @Bean
@@ -137,7 +142,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
             jwtAuthenticationFilter = new JwtAuthenticationFilter();
             jwtAuthenticationFilter.setProperties(properties);
             jwtAuthenticationFilter.setAuthenticationManager(authenticationManager());
-            jwtAuthenticationFilter.setJwtService(jwtService);
         }
         return jwtAuthenticationFilter;
     }
@@ -148,7 +152,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
             otpAuthenticationFilter = new OtpAuthenticationFilter();
             otpAuthenticationFilter.setProperties(properties);
             otpAuthenticationFilter.setAuthenticationManager(authenticationManager());
-            otpAuthenticationFilter.setOtpService(otpService);
         }
         return otpAuthenticationFilter;
     }
@@ -159,7 +162,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
             x509AuthenticationFilter = new X509AuthenticationFilter();
             x509AuthenticationFilter.setProperties(properties);
             x509AuthenticationFilter.setCertificateExtractor(certificateExtractor);
-            x509AuthenticationFilter.setCertificateIdentityProvider(certificateIdentityProvider);
             x509AuthenticationFilter.setAuthenticationManager(authenticationManager());
         }
         return x509AuthenticationFilter;
@@ -175,11 +177,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     }
 
     @Autowired
-    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthorizationRequestToken> userDetailsService) {
-        this.authenticationUserDetailsService = userDetailsService;
-    }
-
-    @Autowired
     public void setUserService(UserService userService) {
         this.userService = userService;
     }
@@ -190,13 +187,18 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     }
 
     @Autowired
-    public void setJwtService(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public void setJwtAuthenticationProvider(JwtAuthenticationProvider jwtAuthenticationProvider) {
+        this.jwtAuthenticationProvider = jwtAuthenticationProvider;
     }
 
     @Autowired
-    public void setOtpService(OtpService otpService) {
-        this.otpService = otpService;
+    public void setOtpAuthenticationProvider(OtpAuthenticationProvider otpAuthenticationProvider) {
+        this.otpAuthenticationProvider = otpAuthenticationProvider;
+    }
+
+    @Autowired
+    public void setX509AuthenticationProvider(X509AuthenticationProvider x509AuthenticationProvider) {
+        this.x509AuthenticationProvider = x509AuthenticationProvider;
     }
 
     @Autowired

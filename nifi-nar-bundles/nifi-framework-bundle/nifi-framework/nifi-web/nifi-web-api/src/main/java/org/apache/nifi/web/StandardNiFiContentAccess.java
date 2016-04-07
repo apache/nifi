@@ -20,7 +20,6 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
@@ -29,7 +28,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -180,19 +178,19 @@ public class StandardNiFiContentAccess implements ContentAccess {
     }
 
     private DownloadableContent getFlowFileContent(final String groupId, final String connectionId, final String flowfileId, final String dataUri) {
-        // ensure the user is authorized as DFM - not checking with @PreAuthorized annotation as aspect not trigger on call within a class
-        if (!NiFiUserUtils.getAuthorities().contains(Authority.ROLE_DFM.toString())) {
-            throw new AccessDeniedException("Access is denied.");
-        }
+        // TODO - ensure the user is authorized - not checking with @PreAuthorized annotation as aspect not trigger on call within a class
+//        if (!NiFiUserUtils.getAuthorities().contains(Authority.ROLE_DFM.toString())) {
+//            throw new AccessDeniedException("Access is denied.");
+//        }
 
         return serviceFacade.getContent(groupId, connectionId, flowfileId, dataUri);
     }
 
     private DownloadableContent getProvenanceEventContent(final Long eventId, final String dataUri, final ContentDirection direction) {
-        // ensure the user is authorized as Provenance - not checking with @PreAuthorized annotation as aspect not trigger on call within a class
-        if (!NiFiUserUtils.getAuthorities().contains(Authority.ROLE_PROVENANCE.toString())) {
-            throw new AccessDeniedException("Access is denied.");
-        }
+        // TODO - ensure the user is authorized - not checking with @PreAuthorized annotation as aspect not trigger on call within a class
+//        if (!NiFiUserUtils.getAuthorities().contains(Authority.ROLE_PROVENANCE.toString())) {
+//            throw new AccessDeniedException("Access is denied.");
+//        }
 
         return serviceFacade.getContent(eventId, dataUri, direction);
     }

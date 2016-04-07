@@ -38,8 +38,6 @@ public class ControllerStatusDTO implements Cloneable {
     private Integer connectedNodeCount = 0;
     private Integer totalNodeCount = 0;
 
-    private Boolean hasPendingAccounts;
-
     private Integer runningCount = 0;
     private Integer stoppedCount = 0;
     private Integer invalidCount = 0;
@@ -124,18 +122,6 @@ public class ControllerStatusDTO implements Cloneable {
 
     public void setReportingTaskBulletins(List<BulletinDTO> reportingTaskBulletins) {
         this.reportingTaskBulletins = reportingTaskBulletins;
-    }
-
-    /**
-     * @return whether or not there are pending user requests
-     */
-    @ApiModelProperty("Whether there are any pending user account requests.")
-    public Boolean getHasPendingAccounts() {
-        return hasPendingAccounts;
-    }
-
-    public void setHasPendingAccounts(Boolean hasPendingAccounts) {
-        this.hasPendingAccounts = hasPendingAccounts;
     }
 
     /**
@@ -256,7 +242,6 @@ public class ControllerStatusDTO implements Cloneable {
         other.setConnectedNodes(getConnectedNodes());
         other.setConnectedNodeCount(getConnectedNodeCount());
         other.setTotalNodeCount(getTotalNodeCount());
-        other.setHasPendingAccounts(getHasPendingAccounts());
         other.setRunningCount(getRunningCount());
         other.setStoppedCount(getStoppedCount());
         other.setInvalidCount(getInvalidCount());

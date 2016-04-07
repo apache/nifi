@@ -16,17 +16,14 @@
  */
 package org.apache.nifi.web;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
-import org.apache.nifi.admin.service.AccountNotFoundException;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.UserService;
-import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
@@ -64,9 +61,7 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.user.AccountStatus;
 import org.apache.nifi.user.NiFiUser;
-import org.apache.nifi.user.NiFiUserGroup;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
@@ -106,8 +101,6 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.nifi.web.api.dto.UserDTO;
-import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
@@ -135,12 +128,10 @@ import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.dao.TemplateDAO;
-import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 
 import javax.ws.rs.WebApplicationException;
 import java.nio.charset.StandardCharsets;
@@ -148,8 +139,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1898,120 +1887,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void invalidateUser(String userId) {
-        try {
-            userService.invalidateUserAccount(userId);
-        } catch (final AccountNotFoundException anfe) {
-            // ignore
-        }
-    }
-
-    @Override
-    public void invalidateUserGroup(String userGroup, Set<String> userIds) {
-        // invalidates any user currently associated with this group
-        if (userGroup != null) {
-            userService.invalidateUserGroupAccount(userGroup);
-        }
-
-        // invalidates any user that will be associated with this group
-        if (userIds != null) {
-            for (final String userId : userIds) {
-                invalidateUser(userId);
-            }
-        }
-    }
-
-    @Override
-    public UserDTO createUser() {
-        NewAccountRequest newAccountRequest = NiFiUserUtils.getNewAccountRequest();
-
-        // log the new user account request
-        logger.info("Requesting new user account for " + newAccountRequest.getUsername());
-
-        // get the justification
-        String justification = newAccountRequest.getJustification();
-        if (justification == null) {
-            justification = StringUtils.EMPTY;
-        }
-
-        // create the pending user account
-        return dtoFactory.createUserDTO(userService.createPendingUserAccount(newAccountRequest.getUsername(), justification));
-    }
-
-    @Override
-    public UserDTO updateUser(UserDTO userDto) {
-        NiFiUser user;
-
-        // attempt to parse the user id
-        final String id = userDto.getId();
-
-        // determine the authorities that have been specified in the request
-        Set<Authority> authorities = null;
-        if (userDto.getAuthorities() != null) {
-            authorities = Authority.convertRawAuthorities(userDto.getAuthorities());
-        }
-
-        // if the account status isn't specified or isn't changing
-        final AccountStatus accountStatus = AccountStatus.valueOfStatus(userDto.getStatus());
-        if (accountStatus == null || AccountStatus.ACTIVE.equals(accountStatus)) {
-            // ensure that authorities have been specified (may be empty, but not null)
-            if (authorities == null) {
-                throw new IllegalArgumentException("Authorities must be specified when updating an account.");
-            }
-
-            // update the user account
-            user = userService.update(id, authorities);
-        } else if (AccountStatus.DISABLED.equals(accountStatus)) {
-            // disable the account
-            user = userService.disable(id);
-        } else {
-            throw new IllegalArgumentException("Accounts cannot be marked pending.");
-        }
-
-        return dtoFactory.createUserDTO(user);
-    }
-
-    @Override
-    public void deleteUser(String userId) {
-        userService.deleteUser(userId);
-    }
-
-    @Override
-    public UserGroupDTO updateUserGroup(final UserGroupDTO userGroupDTO) {
-        NiFiUserGroup userGroup;
-
-        // convert the authorities
-        Set<Authority> authorities = null;
-        if (userGroupDTO.getAuthorities() != null) {
-            authorities = Authority.convertRawAuthorities(userGroupDTO.getAuthorities());
-        }
-
-        final AccountStatus accountStatus = AccountStatus.valueOfStatus(userGroupDTO.getStatus());
-        if (accountStatus == null || AccountStatus.ACTIVE.equals(accountStatus)) {
-            // update the user group
-            userGroup = userService.updateGroup(userGroupDTO.getGroup(), userGroupDTO.getUserIds(), authorities);
-        } else if (AccountStatus.DISABLED.equals(accountStatus)) {
-            // disable the accounts
-            userGroup = userService.disableGroup(userGroupDTO.getGroup());
-        } else {
-            throw new IllegalArgumentException("Accounts cannot be marked pending.");
-        }
-
-        // generate the user group dto
-        return dtoFactory.createUserGroupDTO(userGroup);
-    }
-
-    @Override
-    public void removeUserFromGroup(String userId) {
-        userService.ungroupUser(userId);
-    }
-
-    @Override
-    public void removeUserGroup(String userGroup) {
-        userService.ungroup(userGroup);
-    }
-
-    @Override
     public ProvenanceDTO submitProvenance(ProvenanceDTO query) {
         return controllerFacade.submitProvenance(query);
     }
@@ -2086,15 +1961,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ControllerStatusDTO getControllerStatus() {
-        // get the controller status
-        final ControllerStatusDTO controllerStatus = controllerFacade.getControllerStatus();
-
-        // determine if there are any pending user accounts - only include if appropriate
-        if (NiFiUserUtils.getAuthorities().contains(Authority.ROLE_ADMIN.toString())) {
-            controllerStatus.setHasPendingAccounts(userService.hasPendingUserAccount());
-        }
-
-        return controllerStatus;
+        return controllerFacade.getControllerStatus();
     }
 
     @Override
@@ -2329,18 +2196,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return true;
         }
 
-        final Set<String> allowedUsers = port.getUserAccessControl();
-        if (allowedUsers.contains(user.getIdentity())) {
-            return true;
-        }
-
-        final String userGroup = user.getUserGroup();
-        if (userGroup == null) {
-            return false;
-        }
-
-        final Set<String> allowedGroups = port.getGroupAccessControl();
-        return allowedGroups.contains(userGroup);
+        // TODO - defer to authorizer to see if user is able to retrieve site-to-site details for the specified port
+        return true;
     }
 
     @Override
@@ -2350,12 +2207,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
 
-        // at this point we know that the user must have ROLE_NIFI because it's required
-        // get to the endpoint that calls this method but we'll check again anyways
-        final Set<Authority> authorities = user.getAuthorities();
-        if (!authorities.contains(Authority.ROLE_NIFI)) {
-            throw new AccessDeniedException("User must have the NiFi role in order to access these details.");
-        }
+        // TODO - defer to authorizer to see if user is able to retrieve site-to-site details
+
+        // TODO - filter response for access to specific ports
 
         // serialize the input ports this NiFi has access to
         final Set<PortDTO> inputPorts = new LinkedHashSet<>();
@@ -2690,82 +2544,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         history.setPropertyHistory(propertyHistoryDtos);
 
         return history;
-    }
-
-    @Override
-    public UserDTO getUser(String userId) {
-        // get the user
-        NiFiUser user = userService.getUserById(userId);
-
-        // ensure the user was found
-        if (user == null) {
-            throw new ResourceNotFoundException(String.format("Unable to find user with id '%s'.", userId));
-        }
-
-        return dtoFactory.createUserDTO(user);
-    }
-
-    @Override
-    public Collection<UserDTO> getUsers(Boolean grouped) {
-        // get the users
-        final Collection<NiFiUser> users = userService.getUsers();
-        final Collection<UserDTO> userDTOs = new HashSet<>();
-
-        if (grouped) {
-            final Map<String, UserDTO> groupedUserDTOs = new HashMap<>();
-
-            // group the users
-            for (final NiFiUser user : users) {
-                if (StringUtils.isNotBlank(user.getUserGroup())) {
-                    if (groupedUserDTOs.containsKey(user.getUserGroup())) {
-                        final UserDTO groupedUser = groupedUserDTOs.get(user.getUserGroup());
-                        groupedUser.setId(groupedUser.getId() + "," + String.valueOf(user.getId()));
-                        groupedUser.setUserName(groupedUser.getUserName() + ", " + user.getUserName());
-                        groupedUser.setDn(groupedUser.getDn() + ", " + user.getIdentity());
-                        groupedUser.setCreation(getOldestDate(groupedUser.getCreation(), user.getCreation()));
-                        groupedUser.setLastAccessed(getNewestDate(groupedUser.getLastAccessed(), user.getLastAccessed()));
-                        groupedUser.setLastVerified(getNewestDate(groupedUser.getLastVerified(), user.getLastVerified()));
-
-                        // only retain the justification if al users have the same justification
-                        if (groupedUser.getJustification() != null) {
-                            if (!groupedUser.getStatus().equals(user.getJustification())) {
-                                groupedUser.setJustification(null);
-                            }
-                        }
-
-                        // only retain the status if all users have the same status
-                        if (groupedUser.getStatus() != null) {
-                            if (!groupedUser.getStatus().equals(user.getStatus().toString())) {
-                                groupedUser.setStatus(null);
-                            }
-                        }
-
-                        // only retain the authorities if all users have the same authorities
-                        if (groupedUser.getAuthorities() != null) {
-                            final Set<String> groupAuthorities = new HashSet<>(groupedUser.getAuthorities());
-                            final Set<String> userAuthorities = Authority.convertAuthorities(user.getAuthorities());
-                            if (!CollectionUtils.isEqualCollection(groupAuthorities, userAuthorities)) {
-                                groupedUser.setAuthorities(null);
-                            }
-                        }
-                    } else {
-                        groupedUserDTOs.put(user.getUserGroup(), dtoFactory.createUserDTO(user));
-                    }
-                } else {
-                    userDTOs.add(dtoFactory.createUserDTO(user));
-                }
-            }
-
-            // add the grouped users
-            userDTOs.addAll(groupedUserDTOs.values());
-        } else {
-            // convert each into a DTOs
-            for (final NiFiUser user : users) {
-                userDTOs.add(dtoFactory.createUserDTO(user));
-            }
-        }
-
-        return userDTOs;
     }
 
     @Override

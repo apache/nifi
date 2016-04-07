@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.admin.service.transaction.impl;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
 import org.apache.nifi.admin.RepositoryUtils;
 import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.admin.dao.impl.DAOFactoryImpl;
 import org.apache.nifi.admin.service.action.AdministrationAction;
-import org.apache.nifi.admin.service.transaction.TransactionException;
 import org.apache.nifi.admin.service.transaction.Transaction;
-import org.apache.nifi.authorization.AuthorityProvider;
+import org.apache.nifi.admin.service.transaction.TransactionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * Transaction implementation that uses the specified SQL Connection and
@@ -37,11 +37,9 @@ public class StandardTransaction implements Transaction {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardTransaction.class);
 
-    private final AuthorityProvider authorityProvider;
     private Connection connection;
 
-    public StandardTransaction(AuthorityProvider authorityProvider, Connection connection) {
-        this.authorityProvider = authorityProvider;
+    public StandardTransaction(Connection connection) {
         this.connection = connection;
     }
 
@@ -56,7 +54,7 @@ public class StandardTransaction implements Transaction {
         DAOFactory daoFactory = new DAOFactoryImpl(connection);
 
         // execute the specified action
-        return action.execute(daoFactory, authorityProvider);
+        return action.execute(daoFactory);
     }
 
     @Override

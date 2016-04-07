@@ -21,7 +21,6 @@ import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
-import org.apache.nifi.authorization.generated.AuthorityProviders;
 import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.nar.ExtensionManager;
@@ -83,7 +82,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
     public Object getObject() throws Exception {
         if (authorizer == null) {
             // look up the authorizer to use
-            final String authorizerIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_AUTHORITY_PROVIDER);
+            final String authorizerIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
 
             // ensure the authorizer class name was specified
             if (StringUtils.isBlank(authorizerIdentifier)) {
@@ -122,14 +121,14 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
     }
 
     private Authorizers loadAuthorizersConfiguration() throws Exception {
-        final File authorizersConfigurationFile = properties.getAuthorityProviderConfiguraitonFile();
+        final File authorizersConfigurationFile = properties.getAuthorizerConfiguraitonFile();
 
         // load the authorizers from the specified file
         if (authorizersConfigurationFile.exists()) {
             try {
                 // find the schema
                 final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-                final Schema schema = schemaFactory.newSchema(AuthorityProviders.class.getResource(AUTHORIZERS_XSD));
+                final Schema schema = schemaFactory.newSchema(Authorizers.class.getResource(AUTHORIZERS_XSD));
 
                 // attempt to unmarshal
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
@@ -221,7 +220,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
         }
 
         final Class parentClass = authorizerClass.getSuperclass();
-        if (parentClass != null && AuthorityProvider.class.isAssignableFrom(parentClass)) {
+        if (parentClass != null && Authorizer.class.isAssignableFrom(parentClass)) {
             performMethodInjection(instance, parentClass);
         }
     }
@@ -253,7 +252,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
         }
 
         final Class parentClass = authorizerClass.getSuperclass();
-        if (parentClass != null && AuthorityProvider.class.isAssignableFrom(parentClass)) {
+        if (parentClass != null && Authorizer.class.isAssignableFrom(parentClass)) {
             performFieldInjection(instance, parentClass);
         }
     }

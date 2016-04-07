@@ -48,7 +48,7 @@ public class NiFiProperties extends Properties {
     public static final String PROPERTIES_FILE_PATH = "nifi.properties.file.path";
     public static final String FLOW_CONFIGURATION_FILE = "nifi.flow.configuration.file";
     public static final String FLOW_CONFIGURATION_ARCHIVE_FILE = "nifi.flow.configuration.archive.file";
-    public static final String AUTHORITY_PROVIDER_CONFIGURATION_FILE = "nifi.authority.provider.configuration.file";
+    public static final String AUTHORIZER_CONFIGURATION_FILE = "nifi.authorizer.configuration.file";
     public static final String LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "nifi.login.identity.provider.configuration.file";
     public static final String REPOSITORY_DATABASE_DIRECTORY = "nifi.database.directory";
     public static final String RESTORE_DIRECTORY = "nifi.restore.directory";
@@ -131,7 +131,7 @@ public class NiFiProperties extends Properties {
     public static final String SECURITY_TRUSTSTORE_TYPE = "nifi.security.truststoreType";
     public static final String SECURITY_TRUSTSTORE_PASSWD = "nifi.security.truststorePasswd";
     public static final String SECURITY_NEED_CLIENT_AUTH = "nifi.security.needClientAuth";
-    public static final String SECURITY_USER_AUTHORITY_PROVIDER = "nifi.security.user.authority.provider";
+    public static final String SECURITY_USER_AUTHORIZER = "nifi.security.user.authorizer";
     public static final String SECURITY_USER_LOGIN_IDENTITY_PROVIDER = "nifi.security.user.login.identity.provider";
     public static final String SECURITY_CLUSTER_AUTHORITY_PROVIDER_PORT = "nifi.security.cluster.authority.provider.port";
     public static final String SECURITY_CLUSTER_AUTHORITY_PROVIDER_THREADS = "nifi.security.cluster.authority.provider.threads";
@@ -504,10 +504,10 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * @return the user authorities file
+     * @return the user authorizers file
      */
-    public File getAuthorityProviderConfiguraitonFile() {
-        final String value = getProperty(AUTHORITY_PROVIDER_CONFIGURATION_FILE);
+    public File getAuthorizerConfiguraitonFile() {
+        final String value = getProperty(AUTHORIZER_CONFIGURATION_FILE);
         if (StringUtils.isBlank(value)) {
             return new File(DEFAULT_AUTHORITY_PROVIDER_CONFIGURATION_FILE);
         } else {

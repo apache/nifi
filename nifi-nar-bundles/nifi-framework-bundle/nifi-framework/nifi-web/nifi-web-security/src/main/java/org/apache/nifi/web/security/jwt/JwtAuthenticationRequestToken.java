@@ -14,32 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao.impl;
+package org.apache.nifi.web.security.jwt;
 
-import java.sql.Connection;
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.admin.dao.KeyDAO;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 /**
- *
+ * This is an authentication request with a given JWT token.
  */
-public class DAOFactoryImpl implements DAOFactory {
+public class JwtAuthenticationRequestToken extends AbstractAuthenticationToken {
 
-    private final Connection connection;
+    private final String token;
 
-    public DAOFactoryImpl(Connection connection) {
-        this.connection = connection;
+    /**
+     * Creates a representation of the jwt authentication request for a user.
+     *
+     * @param token   The unique token for this user
+     */
+    public JwtAuthenticationRequestToken(final String token) {
+        super(null);
+        setAuthenticated(false);
+        this.token = token;
     }
 
     @Override
-    public ActionDAO getActionDAO() {
-        return new StandardActionDAO(connection);
+    public Object getCredentials() {
+        return null;
     }
 
     @Override
-    public KeyDAO getKeyDAO() {
-        return new StandardKeyDAO(connection);
+    public Object getPrincipal() {
+        return token;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    @Override
+    public String toString() {
+        return getName();
     }
 
 }

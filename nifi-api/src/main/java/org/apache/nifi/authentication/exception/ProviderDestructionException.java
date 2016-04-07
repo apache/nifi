@@ -14,32 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao.impl;
-
-import java.sql.Connection;
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.admin.dao.KeyDAO;
+package org.apache.nifi.authentication.exception;
 
 /**
+ * Represents the exceptional case when an AuthorityProvider fails destruction.
  *
  */
-public class DAOFactoryImpl implements DAOFactory {
+public class ProviderDestructionException extends RuntimeException {
 
-    private final Connection connection;
-
-    public DAOFactoryImpl(Connection connection) {
-        this.connection = connection;
+    public ProviderDestructionException() {
     }
 
-    @Override
-    public ActionDAO getActionDAO() {
-        return new StandardActionDAO(connection);
+    public ProviderDestructionException(String msg) {
+        super(msg);
     }
 
-    @Override
-    public KeyDAO getKeyDAO() {
-        return new StandardKeyDAO(connection);
+    public ProviderDestructionException(Throwable cause) {
+        super(cause);
     }
 
+    public ProviderDestructionException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
 }

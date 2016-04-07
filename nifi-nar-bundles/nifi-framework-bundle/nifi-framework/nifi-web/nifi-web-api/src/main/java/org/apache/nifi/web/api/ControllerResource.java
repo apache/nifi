@@ -84,6 +84,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -118,34 +119,6 @@ public class ControllerResource extends ApplicationResource {
     )
     public ProvenanceResource getProvenanceResource() {
         return resourceContext.getResource(ProvenanceResource.class);
-    }
-
-    /**
-     * Locates the User sub-resource.
-     *
-     * @return the User sub-resource
-     */
-    @Path("/users")
-    @ApiOperation(
-            value = "Gets the user resource",
-            response = UserResource.class
-    )
-    public UserResource getUserResource() {
-        return resourceContext.getResource(UserResource.class);
-    }
-
-    /**
-     * Locates the User sub-resource.
-     *
-     * @return the User sub-resource
-     */
-    @Path("/user-groups")
-    @ApiOperation(
-            value = "Gets the user group resource",
-            response = UserGroupResource.class
-    )
-    public UserGroupResource getUserGroupResource() {
-        return resourceContext.getResource(UserGroupResource.class);
     }
 
     /**
@@ -932,7 +905,7 @@ public class ControllerResource extends ApplicationResource {
         // create the response entity
         IdentityEntity entity = new IdentityEntity();
         entity.setRevision(revision);
-        entity.setUserId(user.getId());
+        entity.setUserId(user.getIdentity());
         entity.setIdentity(user.getUserName());
 
         // generate the response
@@ -990,8 +963,8 @@ public class ControllerResource extends ApplicationResource {
         // create the response entity
         AuthorityEntity entity = new AuthorityEntity();
         entity.setRevision(revision);
-        entity.setUserId(user.getId());
-        entity.setAuthorities(NiFiUserUtils.getAuthorities());
+        entity.setUserId(user.getIdentity());
+        entity.setAuthorities(new HashSet<>(Arrays.asList("ROLE_MONITOR", "ROLE_DFM", "ROLE_ADMIN", "ROLE_PROXY", "ROLE_NIFI", "ROLE_PROVENANCE")));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

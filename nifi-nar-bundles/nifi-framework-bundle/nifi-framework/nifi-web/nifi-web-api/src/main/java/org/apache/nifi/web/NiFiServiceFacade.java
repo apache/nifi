@@ -50,8 +50,6 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.nifi.web.api.dto.UserDTO;
-import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
@@ -68,7 +66,6 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 
-import java.util.Collection;
 import java.util.Date;
 import java.util.Set;
 
@@ -1427,84 +1424,6 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     ConfigurationSnapshot<Void> deleteSnippet(Revision revision, String snippetId);
-
-    // ----------------------------------------
-    // User methods
-    // ----------------------------------------
-    /**
-     * Gets the user with the specified id.
-     *
-     * @param userId The user id
-     * @return user
-     */
-    UserDTO getUser(String userId);
-
-    /**
-     * Gets all of the users registered with this controller.
-     *
-     * @param grouped grouped
-     * @return user
-     */
-    Collection<UserDTO> getUsers(Boolean grouped);
-
-    /**
-     * Creates a new account request.
-     *
-     * @return user
-     */
-    UserDTO createUser();
-
-    /**
-     * Updates the specified user accordingly.
-     *
-     * @param user The user to update
-     * @return user
-     */
-    UserDTO updateUser(UserDTO user);
-
-    /**
-     * Invalidates the specified user.
-     *
-     * @param userId user
-     */
-    void invalidateUser(String userId);
-
-    /**
-     * Invalidates the specified user accounts and all accounts associated with this group.
-     *
-     * @param userGroup group
-     * @param userIds id
-     */
-    void invalidateUserGroup(String userGroup, Set<String> userIds);
-
-    /**
-     * Deletes the specified user.
-     *
-     * @param userId user id
-     */
-    void deleteUser(String userId);
-
-    /**
-     * Updates a user group with the specified group and comprised of the specified users.
-     *
-     * @param userGroup group
-     * @return group
-     */
-    UserGroupDTO updateUserGroup(UserGroupDTO userGroup);
-
-    /**
-     * Ungroups the specified user.
-     *
-     * @param userId id
-     */
-    void removeUserFromGroup(String userId);
-
-    /**
-     * Deletes the specified user group.
-     *
-     * @param userGroup group
-     */
-    void removeUserGroup(String userGroup);
 
     // ----------------------------------------
     // Cluster methods

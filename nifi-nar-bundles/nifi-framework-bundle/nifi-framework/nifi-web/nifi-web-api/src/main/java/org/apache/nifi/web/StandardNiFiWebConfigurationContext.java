@@ -160,7 +160,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     @Override
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserDn() {
-        String userIdentity = NiFiUser.ANONYMOUS_USER_IDENTITY;
+        String userIdentity = NiFiUser.ANONYMOUS.getIdentity();
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
@@ -173,7 +173,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     @Override
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserName() {
-        String userName = NiFiUser.ANONYMOUS_USER_IDENTITY;
+        String userName = NiFiUser.ANONYMOUS.getIdentity();
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
