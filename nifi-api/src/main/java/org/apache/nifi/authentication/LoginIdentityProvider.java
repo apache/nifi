@@ -18,8 +18,8 @@ package org.apache.nifi.authentication;
 
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
-import org.apache.nifi.authentication.exception.ProviderCreationException;
-import org.apache.nifi.authentication.exception.ProviderDestructionException;
+import org.apache.nifi.authorization.exception.ProviderCreationException;
+import org.apache.nifi.authorization.exception.ProviderDestructionException;
 
 /**
  * Identity provider that is able to authentication a user with username/password credentials.

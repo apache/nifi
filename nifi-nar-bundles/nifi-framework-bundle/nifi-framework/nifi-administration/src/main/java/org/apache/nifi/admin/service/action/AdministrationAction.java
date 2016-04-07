@@ -17,6 +17,7 @@
 package org.apache.nifi.admin.service.action;
 
 import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.authorization.AuthorityProvider;
 
 /**
  * Defines the administration action. Actions are provided a DAO factory and
@@ -30,7 +31,8 @@ public interface AdministrationAction<T> {
      * Performs an action using the specified DAOFactory and AuthorityProvider.
      *
      * @param daoFactory factory
+     * @param authorityProvider provider
      * @return action result
      */
-    T execute(DAOFactory daoFactory);
+    T execute(DAOFactory daoFactory, AuthorityProvider authorityProvider);
 }

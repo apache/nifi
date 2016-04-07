@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.web.security.user;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.user.NiFiUser;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.nifi.authorization.Authority;
+import org.apache.nifi.user.NiFiUser;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 /**
  * User details for a NiFi user.
@@ -56,7 +58,12 @@ public class NiFiUserDetails implements UserDetails {
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.EMPTY_SET;
+        final Set<Authority> authorities = user.getAuthorities();
+        final Set<GrantedAuthority> grantedAuthorities = new HashSet<>(authorities.size());
+        for (final Authority authority : authorities) {
+            grantedAuthorities.add(new SimpleGrantedAuthority(authority.toString()));
+        }
+        return grantedAuthorities;
     }
 
     @Override

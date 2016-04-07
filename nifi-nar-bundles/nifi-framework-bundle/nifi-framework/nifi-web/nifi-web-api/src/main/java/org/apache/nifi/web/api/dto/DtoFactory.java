@@ -16,6 +16,29 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
@@ -34,6 +57,7 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.manager.StatusMerger;
@@ -98,6 +122,8 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.user.NiFiUserGroup;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
@@ -128,28 +154,6 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
-
-import javax.ws.rs.WebApplicationException;
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 public final class DtoFactory {
 
@@ -2528,6 +2532,57 @@ public final class DtoFactory {
         revisionDTO.setLastModifier(lastMod.getLastModifier());
 
         return revisionDTO;
+    }
+
+    /**
+     * Factory method for creating a new user transfer object.
+     *
+     * @param user user
+     * @return dto
+     */
+    public UserDTO createUserDTO(NiFiUser user) {
+        // convert the users authorities
+        Set<String> authorities = Authority.convertAuthorities(user.getAuthorities());
+
+        // create the user
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(String.valueOf(user.getId()));
+        userDTO.setDn(user.getIdentity());
+        userDTO.setUserName(user.getUserName());
+        userDTO.setUserGroup(user.getUserGroup());
+        userDTO.setJustification(user.getJustification());
+        userDTO.setAuthorities(authorities);
+
+        // ensure the date fields are not null
+        if (user.getCreation() != null) {
+            userDTO.setCreation(user.getCreation());
+        }
+        if (user.getLastAccessed() != null) {
+            userDTO.setLastAccessed(user.getLastAccessed());
+        }
+        if (user.getLastVerified() != null) {
+            userDTO.setLastVerified(user.getLastVerified());
+        }
+        if (user.getStatus() != null) {
+            userDTO.setStatus(user.getStatus().toString());
+        }
+
+        return userDTO;
+    }
+
+    public UserGroupDTO createUserGroupDTO(NiFiUserGroup userGroup) {
+        UserGroupDTO userGroupDto = new UserGroupDTO();
+        userGroupDto.setGroup(userGroup.getGroup());
+        userGroupDto.setUserIds(new HashSet<String>());
+
+        // set the users if they have been specified
+        if (userGroup.getUsers() != null) {
+            for (NiFiUser user : userGroup.getUsers()) {
+                userGroupDto.getUserIds().add(String.valueOf(user.getId()));
+            }
+        }
+
+        return userGroupDto;
     }
 
     public NodeDTO createNodeDTO(Node node, List<Event> events, boolean primary) {

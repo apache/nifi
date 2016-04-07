@@ -25,15 +25,19 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.filter.GenericFilterBean;
 
 /**
@@ -61,41 +65,72 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
     }
 
     private boolean requiresAuthentication(final HttpServletRequest request) {
-        return NiFiUserUtils.getNiFiUser() == null;
+        // continue attempting authorization if the user is anonymous
+        if (isAnonymousUser()) {
+            return true;
+        }
+
+        // or there is no user yet
+        return NiFiUserUtils.getNiFiUser() == null && NiFiUserUtils.getNewAccountRequest() == null;
+    }
+
+    private boolean isAnonymousUser() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        return user != null && NiFiUser.ANONYMOUS_USER_IDENTITY.equals(user.getIdentity());
     }
 
     private void authenticate(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain) throws IOException, ServletException {
         String dnChain = null;
         try {
-            final Authentication authenticationRequest = attemptAuthentication(request);
-            if (authenticationRequest != null) {
+            final NiFiAuthorizationRequestToken authenticated = attemptAuthentication(request);
+            if (authenticated != null) {
+                dnChain = ProxiedEntitiesUtils.formatProxyDn(StringUtils.join(authenticated.getChain(), "><"));
+
                 // log the request attempt - response details will be logged later
-                log.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", authenticationRequest.toString(), request.getMethod(),
+                log.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", dnChain, request.getMethod(),
                         request.getRequestURL().toString(), request.getRemoteAddr()));
 
                 // attempt to authorize the user
-                final Authentication authenticated = authenticationManager.authenticate(authenticationRequest);
-                successfulAuthorization(request, response, authenticated);
+                final Authentication authorized = authenticationManager.authenticate(authenticated);
+                successfulAuthorization(request, response, authorized);
             }
 
             // continue
             chain.doFilter(request, response);
-        } catch (final AuthenticationException ae) {
+        } catch (final InvalidAuthenticationException iae) {
             // invalid authentication - always error out
-            unsuccessfulAuthorization(request, response, ae);
+            unsuccessfulAuthorization(request, response, iae);
+        } catch (final AuthenticationException ae) {
+            // other authentication exceptions... if we are already the anonymous user, allow through otherwise error out
+            if (isAnonymousUser()) {
+                if (dnChain == null) {
+                    log.info(String.format("Continuing as anonymous user. Unable to authenticate %s: %s", dnChain, ae));
+                } else {
+                    log.info(String.format("Continuing as anonymous user. Unable to authenticate: %s", ae));
+                }
+
+                chain.doFilter(request, response);
+            } else {
+                unsuccessfulAuthorization(request, response, ae);
+            }
         }
     }
 
     /**
-     * Attempt to extract an authentication attempt from the specified request.
+     * Attempt to authenticate the client making the request. If the request does not contain an authentication attempt, this method should return null. If the request contains an authentication
+     * request, the implementation should convert it to a NiFiAuthorizationRequestToken (which is used when authorizing the client). Implementations should throw InvalidAuthenticationException when
+     * the request contains an authentication request but it could not be authenticated.
      *
      * @param request The request
-     * @return The authentication attempt or null if none is found int he request
+     * @return The NiFiAutorizationRequestToken used to later authorized the client
+     * @throws InvalidAuthenticationException If the request contained an authentication attempt, but could not authenticate
      */
-    public abstract Authentication attemptAuthentication(HttpServletRequest request);
+    public abstract NiFiAuthorizationRequestToken attemptAuthentication(HttpServletRequest request);
 
     protected void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
-        log.info("Authentication success for " + authResult);
+        if (log.isDebugEnabled()) {
+            log.debug("Authentication success: " + authResult);
+        }
 
         SecurityContextHolder.getContext().setAuthentication(authResult);
         ProxiedEntitiesUtils.successfulAuthorization(request, response, authResult);
@@ -112,8 +147,19 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         PrintWriter out = response.getWriter();
 
         // use the type of authentication exception to determine the response code
-        if (ae instanceof InvalidAuthenticationException) {
+        if (ae instanceof UsernameNotFoundException) {
+            if (properties.getSupportNewAccountRequests()) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                out.println("Not authorized.");
+            } else {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                out.println("Access is denied.");
+            }
+        } else if (ae instanceof InvalidAuthenticationException) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            out.println(ae.getMessage());
+        } else if (ae instanceof AccountStatusException) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             out.println(ae.getMessage());
         } else if (ae instanceof UntrustedProxyException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -135,6 +181,39 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         if (log.isDebugEnabled()) {
             log.debug(StringUtils.EMPTY, ae);
         }
+    }
+
+    /**
+     * Determines if the specified request is attempting to register a new user account.
+     *
+     * @param request http request
+     * @return true if new user
+     */
+    protected final boolean isNewAccountRequest(HttpServletRequest request) {
+        if ("POST".equalsIgnoreCase(request.getMethod())) {
+            String path = request.getPathInfo();
+            if (StringUtils.isNotBlank(path)) {
+                if ("/controller/users".equals(path)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Extracts the justification from the specified request.
+     *
+     * @param request The request
+     * @return The justification
+     */
+    protected final String getJustification(HttpServletRequest request) {
+        // get the justification
+        String justification = request.getParameter("justification");
+        if (justification == null) {
+            justification = StringUtils.EMPTY;
+        }
+        return justification;
     }
 
     @Override

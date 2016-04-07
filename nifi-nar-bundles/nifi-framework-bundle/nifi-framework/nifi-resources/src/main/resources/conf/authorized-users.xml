@@ -17,7 +17,7 @@
     This file lists all authorized users for this NiFi instance when using 
     the FileAuthorizationProvider or ClusterManagerAuthorizationProvider. If one of
     these providers is not in use then this file is not used. Refer to the properties 
-    file and authorizers.xml for configuration details.
+    file and authority-providers.xml for configuration details.
     
     Available roles:
         ROLE_MONITOR        - for users - read only access to flow

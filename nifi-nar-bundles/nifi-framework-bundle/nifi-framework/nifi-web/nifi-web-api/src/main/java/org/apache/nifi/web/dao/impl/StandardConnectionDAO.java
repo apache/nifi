@@ -17,6 +17,7 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -47,6 +48,7 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
@@ -608,12 +610,12 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             // calculate the dn chain
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
 
-            // TODO - ensure the users in this chain are allowed to download this content
+            // ensure the users in this chain are allowed to download this content
             final Map<String, String> attributes = flowFile.getAttributes();
-//            final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
-//            if (!downloadAuthorization.isApproved()) {
-//                throw new AccessDeniedException(downloadAuthorization.getExplanation());
-//            }
+            final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
+            if (!downloadAuthorization.isApproved()) {
+                throw new AccessDeniedException(downloadAuthorization.getExplanation());
+            }
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());

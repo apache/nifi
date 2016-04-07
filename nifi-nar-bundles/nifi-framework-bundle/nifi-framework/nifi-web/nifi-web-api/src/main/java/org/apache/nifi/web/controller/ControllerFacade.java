@@ -20,6 +20,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -103,6 +104,7 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
@@ -947,11 +949,11 @@ public class ControllerFacade {
             // calculate the dn chain
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
 
-            // TODO - ensure the users in this chain are allowed to download this content
-//            final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
-//            if (!downloadAuthorization.isApproved()) {
-//                throw new AccessDeniedException(downloadAuthorization.getExplanation());
-//            }
+            // ensure the users in this chain are allowed to download this content
+            final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
+            if (!downloadAuthorization.isApproved()) {
+                throw new AccessDeniedException(downloadAuthorization.getExplanation());
+            }
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());

@@ -16,28 +16,13 @@
  */
 package org.apache.nifi.web.security.spring;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authentication.AuthenticationResponse;
-import org.apache.nifi.authentication.LoginCredentials;
-import org.apache.nifi.authentication.LoginIdentityProvider;
-import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
-import org.apache.nifi.authentication.LoginIdentityProviderInitializationContext;
-import org.apache.nifi.authentication.LoginIdentityProviderLookup;
-import org.apache.nifi.authentication.annotation.LoginIdentityProviderContext;
-import org.apache.nifi.authentication.exception.ProviderCreationException;
-import org.apache.nifi.authentication.exception.ProviderDestructionException;
-import org.apache.nifi.authentication.generated.LoginIdentityProviders;
-import org.apache.nifi.authentication.generated.Property;
-import org.apache.nifi.authentication.generated.Provider;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.FactoryBean;
-import org.xml.sax.SAXException;
-
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -46,13 +31,27 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.AuthenticationResponse;
+import org.apache.nifi.authentication.LoginCredentials;
+import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
+import org.apache.nifi.authentication.LoginIdentityProviderInitializationContext;
+import org.apache.nifi.authentication.LoginIdentityProviderLookup;
+import org.apache.nifi.authentication.annotation.LoginIdentityProviderContext;
+import org.apache.nifi.authentication.generated.LoginIdentityProviders;
+import org.apache.nifi.authentication.generated.Property;
+import org.apache.nifi.authentication.generated.Provider;
+import org.apache.nifi.authorization.exception.ProviderCreationException;
+import org.apache.nifi.authorization.exception.ProviderDestructionException;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.FactoryBean;
+import org.xml.sax.SAXException;
 
 /**
  *

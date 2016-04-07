@@ -16,13 +16,18 @@
  */
 package org.apache.nifi.web.security.jwt;
 
+import io.jsonwebtoken.JwtException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
+import org.apache.nifi.web.security.token.NewAccountAuthorizationRequestToken;
+import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
+import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 
 /**
  */
@@ -31,11 +36,12 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     public static final String AUTHORIZATION = "Authorization";
-    public static final String BEARER = "Bearer ";
+
+    private JwtService jwtService;
 
     @Override
-    public Authentication attemptAuthentication(final HttpServletRequest request) {
-        // only support jwt login when running securely
+    public NiFiAuthorizationRequestToken attemptAuthentication(final HttpServletRequest request) {
+        // only suppport jwt login when running securely
         if (!request.isSecure()) {
             return null;
         }
@@ -46,12 +52,28 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         final String authorization = request.getHeader(AUTHORIZATION);
 
         // if there is no authorization header, we don't know the user
-        if (authorization == null || !StringUtils.startsWith(authorization, BEARER)) {
+        if (authorization == null || !StringUtils.startsWith(authorization, "Bearer ")) {
             return null;
         } else {
             // Extract the Base64 encoded token from the Authorization header
             final String token = StringUtils.substringAfterLast(authorization, " ");
-            return new JwtAuthenticationRequestToken(token);
+
+            try {
+                final String jwtPrincipal = jwtService.getAuthenticationFromToken(token);
+
+                if (isNewAccountRequest(request)) {
+                    return new NewAccountAuthorizationRequestToken(new NewAccountRequest(Arrays.asList(jwtPrincipal), getJustification(request)));
+                } else {
+                    return new NiFiAuthorizationRequestToken(Arrays.asList(jwtPrincipal));
+                }
+            } catch (JwtException e) {
+                throw new InvalidAuthenticationException(e.getMessage(), e);
+            }
         }
     }
+
+    public void setJwtService(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
+
 }

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.admin.service.action;
 
+import java.util.Date;
 import org.apache.nifi.admin.dao.ActionDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.authorization.AuthorityProvider;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
-
-import java.util.Date;
 
 /**
  * Get all actions that match the specified query.
@@ -35,7 +35,7 @@ public class GetActionsAction implements AdministrationAction<History> {
     }
 
     @Override
-    public History execute(DAOFactory daoFactory) {
+    public History execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
         ActionDAO actionDao = daoFactory.getActionDAO();
 
         // find all matching history

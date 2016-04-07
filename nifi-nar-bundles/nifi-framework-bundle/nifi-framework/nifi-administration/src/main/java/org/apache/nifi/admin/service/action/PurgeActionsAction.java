@@ -19,6 +19,7 @@ package org.apache.nifi.admin.service.action;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.dao.ActionDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.authorization.AuthorityProvider;
 
 import java.util.Date;
 
@@ -36,7 +37,7 @@ public class PurgeActionsAction implements AdministrationAction<Void> {
     }
 
     @Override
-    public Void execute(DAOFactory daoFactory) {
+    public Void execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
         ActionDAO actionDao = daoFactory.getActionDAO();
 
         // remove the corresponding actions

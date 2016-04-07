@@ -17,6 +17,8 @@
 package org.apache.nifi.admin.service.action;
 
 import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.authorization.AuthorityProvider;
+
 import org.apache.nifi.admin.dao.KeyDAO;
 import org.apache.nifi.key.Key;
 
@@ -32,7 +34,7 @@ public class GetKeyByIdAction implements AdministrationAction<Key> {
     }
 
     @Override
-    public Key execute(DAOFactory daoFactory) {
+    public Key execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
         final KeyDAO keyDao = daoFactory.getKeyDAO();
         return keyDao.findKeyById(id);
     }

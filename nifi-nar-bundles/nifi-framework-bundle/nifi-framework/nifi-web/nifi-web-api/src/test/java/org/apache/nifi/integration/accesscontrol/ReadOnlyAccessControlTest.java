@@ -49,13 +49,11 @@ import org.apache.nifi.web.api.entity.ProcessorsEntity;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Access control test for a read only user.
  */
-@Ignore
 public class ReadOnlyAccessControlTest {
 
     public static final String READ_ONLY_USER_DN = "CN=Lastname Firstname Middlename monitor, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown";

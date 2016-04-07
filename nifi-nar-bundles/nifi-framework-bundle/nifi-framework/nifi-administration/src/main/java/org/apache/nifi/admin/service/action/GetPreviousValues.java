@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.admin.service.action;
 
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.history.PreviousValue;
-
 import java.util.List;
 import java.util.Map;
+import org.apache.nifi.admin.dao.ActionDAO;
+import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.authorization.AuthorityProvider;
+import org.apache.nifi.history.PreviousValue;
 
 /**
  * Gets the action with the specified id.
@@ -35,7 +35,7 @@ public class GetPreviousValues implements AdministrationAction<Map<String, List<
     }
 
     @Override
-    public Map<String, List<PreviousValue>> execute(DAOFactory daoFactory) {
+    public Map<String, List<PreviousValue>> execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
         ActionDAO actionDao = daoFactory.getActionDAO();
         return actionDao.getPreviousValues(componentId);
     }

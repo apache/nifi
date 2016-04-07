@@ -22,6 +22,7 @@ import javax.sql.DataSource;
 import org.apache.nifi.admin.service.transaction.Transaction;
 import org.apache.nifi.admin.service.transaction.TransactionBuilder;
 import org.apache.nifi.admin.service.transaction.TransactionException;
+import org.apache.nifi.authorization.AuthorityProvider;
 
 /**
  *
@@ -29,6 +30,7 @@ import org.apache.nifi.admin.service.transaction.TransactionException;
 public class StandardTransactionBuilder implements TransactionBuilder {
 
     private DataSource dataSource;
+    private AuthorityProvider authorityProvider;
 
     @Override
     public Transaction start() throws TransactionException {
@@ -38,7 +40,7 @@ public class StandardTransactionBuilder implements TransactionBuilder {
             connection.setAutoCommit(false);
 
             // create a new transaction
-            return new StandardTransaction(connection);
+            return new StandardTransaction(authorityProvider, connection);
         } catch (SQLException sqle) {
             throw new TransactionException(sqle.getMessage());
         }
@@ -47,5 +49,9 @@ public class StandardTransactionBuilder implements TransactionBuilder {
     /* setters */
     public void setDataSource(DataSource dataSource) {
         this.dataSource = dataSource;
+    }
+
+    public void setAuthorityProvider(AuthorityProvider authorityProvider) {
+        this.authorityProvider = authorityProvider;
     }
 }

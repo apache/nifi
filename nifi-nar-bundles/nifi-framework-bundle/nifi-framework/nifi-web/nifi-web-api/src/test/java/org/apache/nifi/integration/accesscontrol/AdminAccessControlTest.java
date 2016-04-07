@@ -53,13 +53,11 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Access control test for the admin user.
  */
-@Ignore
 public class AdminAccessControlTest {
 
     public static final String ADMIN_USER_DN = "CN=Lastname Firstname Middlename admin, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown";

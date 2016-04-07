@@ -78,7 +78,6 @@ import org.junit.Test;
 /**
  * Access control test for the dfm user.
  */
-@Ignore
 public class DfmAccessControlTest {
 
     public static final String DFM_USER_DN = "CN=Lastname Firstname Middlename dfm, OU=Unknown, OU=Unknown, OU=Unknown, O=Unknown, C=Unknown";

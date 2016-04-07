@@ -325,7 +325,7 @@ language governing permissions and limitations under the License. -->
         <nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
         <nifi.flow.configuration.archive.dir>./conf/archive/</nifi.flow.configuration.archive.dir>
         <nifi.login.identity.provider.configuration.file>./conf/login-identity-providers.xml</nifi.login.identity.provider.configuration.file>
-        <nifi.authorizer.configuration.file>./conf/authorizers.xml</nifi.authorizer.configuration.file>
+        <nifi.authority.provider.configuration.file>./conf/authority-providers.xml</nifi.authority.provider.configuration.file>
         <nifi.templates.directory>./conf/templates</nifi.templates.directory>
         <nifi.database.directory>./database_repository</nifi.database.directory>
 
@@ -413,8 +413,9 @@ language governing permissions and limitations under the License. -->
         <nifi.security.truststoreType />
         <nifi.security.truststorePasswd />
         <nifi.security.needClientAuth />
+        <nifi.security.authorizedUsers.file>./conf/authorized-users.xml</nifi.security.authorizedUsers.file>
         <nifi.security.user.credential.cache.duration>24 hours</nifi.security.user.credential.cache.duration>
-        <nifi.security.user.authorizer>file-provider</nifi.security.user.authorizer>
+        <nifi.security.user.authority.provider>file-provider</nifi.security.user.authority.provider>
         <nifi.security.user.login.identity.provider />
         <nifi.security.x509.principal.extractor />
         <nifi.security.support.new.account.requests />
