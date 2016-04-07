@@ -53,8 +53,8 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
             .defaultValue("true")
             .build();
 
-    private static final Logger processorLogger = LoggerFactory.getLogger(ControllerStatusReportingTask.class + ".Processors");
-    private static final Logger connectionLogger = LoggerFactory.getLogger(ControllerStatusReportingTask.class + ".Connections");
+    private static final Logger processorLogger = LoggerFactory.getLogger(ControllerStatusReportingTask.class.getName() + ".Processors");
+    private static final Logger connectionLogger = LoggerFactory.getLogger(ControllerStatusReportingTask.class.getName() + ".Connections");
 
     private static final String PROCESSOR_LINE_FORMAT_NO_DELTA = "| %1$-30.30s | %2$-36.36s | %3$-24.24s | %4$10.10s | %5$19.19s | %6$19.19s | %7$12.12s | %8$13.13s | %9$5.5s | %10$12.12s |\n";
     private static final String PROCESSOR_LINE_FORMAT_WITH_DELTA = "| %1$-30.30s | %2$-36.36s | %3$-24.24s | %4$10.10s | %5$43.43s | %6$43.43s | %7$28.28s | %8$30.30s | %9$14.14s | %10$28.28s |\n";
