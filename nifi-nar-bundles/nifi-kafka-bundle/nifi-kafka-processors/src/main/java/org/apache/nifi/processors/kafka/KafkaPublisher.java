@@ -33,6 +33,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.stream.io.util.StreamScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ class KafkaPublisher implements AutoCloseable {
     KafkaPublisher(Properties kafkaProperties) {
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-        this.producer = new KafkaProducer<byte[], byte[]>(kafkaProperties);
+        this.producer = new KafkaProducer<>(kafkaProperties);
         this.ackWaitTime = Long.parseLong(kafkaProperties.getProperty(ProducerConfig.TIMEOUT_CONFIG)) * 2;
         try {
             if (kafkaProperties.containsKey("partitioner.class")){
@@ -132,7 +133,7 @@ class KafkaPublisher implements AutoCloseable {
                     partitionKey = this.getPartition(key, topicName);
                 }
                 if (prevFailedSegmentIndexes == null || prevFailedSegmentIndexes.get(segmentCounter)) {
-                    ProducerRecord<byte[], byte[]> message = new ProducerRecord<byte[], byte[]>(topicName, partitionKey, key, content);
+                    ProducerRecord<byte[], byte[]> message = new ProducerRecord<>(topicName, partitionKey, key, content);
                     sendFutures.add(this.toKafka(message));
                 }
                 segmentCounter++;
