@@ -33,7 +33,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.stream.io.util.StreamScanner;
+import org.apache.nifi.stream.io.util.StreamTokenizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,10 +122,10 @@ class KafkaPublisher implements AutoCloseable {
         List<Future<RecordMetadata>> sendFutures = new ArrayList<>();
         BitSet prevFailedSegmentIndexes = messageContext.getFailedSegments();
         int segmentCounter = 0;
-        StreamScanner scanner = new StreamScanner(contentStream, messageContext.getDelimiterBytes(), maxBufferSize);
+        StreamTokenizer scanner = new StreamTokenizer(contentStream, messageContext.getDelimiterBytes(), maxBufferSize);
 
-        while (scanner.hasNext()) {
-            byte[] content = scanner.next();
+        byte[] content;
+        while ((content = scanner.nextToken()) != null) {
             if (content.length > 0){
                 byte[] key = messageContext.getKeyBytes();
                 String topicName = messageContext.getTopicName();
