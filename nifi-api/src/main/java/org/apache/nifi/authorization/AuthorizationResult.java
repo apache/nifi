@@ -21,7 +21,7 @@ package org.apache.nifi.authorization;
  */
 public class AuthorizationResult {
 
-    private enum Result {
+    public enum Result {
         Approved,
         Denied,
         ResourceNotFound

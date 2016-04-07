@@ -35,6 +35,7 @@
         <module>nifi-framework-cluster</module>
         <module>nifi-user-actions</module>
         <module>nifi-framework-authorization</module>
+        <module>nifi-file-authorizer</module>
         <module>nifi-administration</module>
         <module>nifi-web</module>
         <module>nifi-resources</module>

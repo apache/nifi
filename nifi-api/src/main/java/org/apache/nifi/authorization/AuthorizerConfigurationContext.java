@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.components.PropertyValue;
+
 import java.util.Map;
 
 /**
@@ -44,5 +46,5 @@ public interface AuthorizerConfigurationContext {
      * PropertyDescriptor. This method does not substitute default
      * PropertyDescriptor values, so the value returned will be null if not set
      */
-    String getProperty(String property);
+    PropertyValue getProperty(String property);
 }
