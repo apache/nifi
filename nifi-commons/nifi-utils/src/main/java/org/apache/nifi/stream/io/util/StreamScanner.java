@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.kafka;
+package org.apache.nifi.stream.io.util;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -24,7 +24,7 @@ import java.nio.ByteBuffer;
 /**
  *
  */
-class StreamScanner {
+public class StreamScanner {
 
     private final static int EOF = -1;
 
@@ -51,7 +51,7 @@ class StreamScanner {
      *            that neither {@link InputStream} nor its individual chunks (if
      *            delimiter is used) can ever be greater then this size.
      */
-    StreamScanner(InputStream is, byte[] delimiterBytes, int maxDataSize) {
+    public StreamScanner(InputStream is, byte[] delimiterBytes, int maxDataSize) {
         this(is, delimiterBytes, maxDataSize, 8192);
     }
 
@@ -74,7 +74,7 @@ class StreamScanner {
      *            automatically as needed up to the Integer.MAX_VALUE;
      *
      */
-    StreamScanner(InputStream is, byte[] delimiterBytes, int maxDataSize, int initialBufferSize) {
+    public StreamScanner(InputStream is, byte[] delimiterBytes, int maxDataSize, int initialBufferSize) {
         this.is = new BufferedInputStream(is);
         this.delimiterBytes = delimiterBytes;
         this.buffer = ByteBuffer.allocate(initialBufferSize);
@@ -89,7 +89,7 @@ class StreamScanner {
      *         <i>false</i> when it reaches the end of the stream after the last
      *         element was retrieved via {@link #next()} operation.
      */
-    boolean hasNext() {
+    public boolean hasNext() {
         int j = 0;
         int readVal = 0;
         while (this.data == null && readVal != EOF) {
@@ -124,7 +124,7 @@ class StreamScanner {
      * @return byte array representing the next segment in the stream or the
      *         whole stream if no delimiter is used
      */
-    byte[] next() {
+    public byte[] next() {
         try {
             return this.data;
         } finally {
