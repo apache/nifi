@@ -18,12 +18,9 @@ package org.apache.nifi.processors.kafka;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.nio.charset.StandardCharsets;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,12 +28,10 @@ import java.util.Properties;
 
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import kafka.consumer.Consumer;
@@ -45,15 +40,16 @@ import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 
-
-public class TestPutKafka {
+// The test is valid and should be ran when working on this module. @Ignore is
+// to speed up the overall build
+public class PutKafkaTest {
 
     private static EmbeddedKafka kafkaLocal;
 
     private static EmbeddedKafkaProducerHelper producerHelper;
 
     @BeforeClass
-    public static void bforeClass() {
+    public static void beforeClass() {
         kafkaLocal = new EmbeddedKafka();
         kafkaLocal.start();
         producerHelper = new EmbeddedKafkaProducerHelper(kafkaLocal);
@@ -66,9 +62,8 @@ public class TestPutKafka {
     }
 
     @Test
-    @Ignore
-    public void testDelimitedMessagesWithKey() {
-        String topicName = "testDelimitedMessagesWithKey";
+    public void validateSingleCharacterDemarcatedMessages() {
+        String topicName = "validateSingleCharacterDemarcatedMessages";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PutKafka.TOPIC, topicName);
@@ -94,73 +89,35 @@ public class TestPutKafka {
     }
 
     @Test
-    @Ignore
-    public void testWithFailureAndPartialResend() throws Exception {
-        String topicName = "testWithFailureAndPartialResend";
+    public void validateMultiCharacterDelimiyedMessages() {
+        String topicName = "validateMultiCharacterDemarcatedMessagesAndCustomPartitioner";
         PutKafka putKafka = new PutKafka();
-        final TestRunner runner = TestRunners.newTestRunner(putKafka);
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PutKafka.TOPIC, topicName);
         runner.setProperty(PutKafka.CLIENT_NAME, "foo");
         runner.setProperty(PutKafka.KEY, "key1");
-        runner.setProperty(PutKafka.SEED_BROKERS, "0.0.0.0:" + kafkaLocal.getKafkaPort());
-        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
-
-        final String text = "Hello World\nGoodbye\n1\n2";
-        runner.enqueue(text.getBytes(StandardCharsets.UTF_8));
-        afterClass(); // kill Kafka right before send to ensure producer fails
-        runner.run(1, false);
-
-        runner.assertAllFlowFilesTransferred(PutKafka.REL_FAILURE, 1);
-        MockFlowFile ff = runner.getFlowFilesForRelationship(PutKafka.REL_FAILURE).get(0);
-        String failedSegmentsStr = ff.getAttribute(PutKafka.ATTR_FAILED_SEGMENTS);
-        BitSet fs = BitSet.valueOf(failedSegmentsStr.getBytes(StandardCharsets.UTF_8));
-        assertTrue(fs.get(0));
-        assertTrue(fs.get(1));
-        assertTrue(fs.get(2));
-        assertTrue(fs.get(3));
-        String delimiter = ff.getAttribute(PutKafka.ATTR_DELIMITER);
-        assertEquals("\n", delimiter);
-        String key = ff.getAttribute(PutKafka.ATTR_KEY);
-        assertEquals("key1", key);
-        String topic = ff.getAttribute(PutKafka.ATTR_TOPIC);
-        assertEquals(topicName, topic);
-
-        bforeClass();
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:" + kafkaLocal.getKafkaPort());
-        Map<String, String> attr = new HashMap<>(ff.getAttributes());
-        /*
-         * So here we are emulating partial success. Basically even though all 4
-         * messages failed to be sent by changing the ATTR_FAILED_SEGMENTS value
-         * we essentially saying that only two failed and need to be resent.
-         */
-        BitSet _fs = new BitSet();
-        _fs.set(1);
-        _fs.set(3);
-        attr.put(PutKafka.ATTR_FAILED_SEGMENTS, new String(_fs.toByteArray(), StandardCharsets.UTF_8));
-        ff.putAttributes(attr);
-        runner.enqueue(ff);
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "foo");
+
+        runner.enqueue("Hello WorldfooGoodbyefoo1foo2foo3foo4foo5".getBytes(StandardCharsets.UTF_8));
         runner.run(1, false);
-        MockFlowFile sff = runner.getFlowFilesForRelationship(PutKafka.REL_SUCCESS).get(0);
-        assertNull(sff.getAttribute(PutKafka.ATTR_FAILED_SEGMENTS));
-        assertNull(sff.getAttribute(PutKafka.ATTR_TOPIC));
-        assertNull(sff.getAttribute(PutKafka.ATTR_KEY));
-        assertNull(sff.getAttribute(PutKafka.ATTR_DELIMITER));
 
+        runner.assertAllFlowFilesTransferred(PutKafka.REL_SUCCESS, 1);
         ConsumerIterator<byte[], byte[]> consumer = this.buildConsumer(topicName);
-
+        assertEquals("Hello World", new String(consumer.next().message(), StandardCharsets.UTF_8));
         assertEquals("Goodbye", new String(consumer.next().message(), StandardCharsets.UTF_8));
+        assertEquals("1", new String(consumer.next().message(), StandardCharsets.UTF_8));
         assertEquals("2", new String(consumer.next().message(), StandardCharsets.UTF_8));
-        try {
-            consumer.next();
-            fail();
-        } catch (Exception e) {
-            // ignore
-        }
+        assertEquals("3", new String(consumer.next().message(), StandardCharsets.UTF_8));
+        assertEquals("4", new String(consumer.next().message(), StandardCharsets.UTF_8));
+        assertEquals("5", new String(consumer.next().message(), StandardCharsets.UTF_8));
+
+        runner.shutdown();
     }
 
     @Test
-    public void testWithEmptyMessages() {
-        String topicName = "testWithEmptyMessages";
+    public void validateDemarcationIntoEmptyMessages() {
+        String topicName = "validateDemarcationIntoEmptyMessages";
         PutKafka putKafka = new PutKafka();
         final TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PutKafka.TOPIC, topicName);
@@ -169,13 +126,14 @@ public class TestPutKafka {
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:" + kafkaLocal.getKafkaPort());
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
 
-        final byte[] bytes = "\n\n\n1\n2\n\n\n\n3\n4\n\n\n".getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes = "\n\n\n1\n2\n\n\n3\n4\n\n\n".getBytes(StandardCharsets.UTF_8);
         runner.enqueue(bytes);
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutKafka.REL_SUCCESS, 1);
 
         ConsumerIterator<byte[], byte[]> consumer = this.buildConsumer(topicName);
+
         assertNotNull(consumer.next());
         assertNotNull(consumer.next());
         assertNotNull(consumer.next());
@@ -189,8 +147,8 @@ public class TestPutKafka {
     }
 
     @Test
-    public void testComplexRightPartialDelimitedMessages() {
-        String topicName = "testComplexRightPartialDelimitedMessages";
+    public void validateComplexRightPartialDemarcatedMessages() {
+        String topicName = "validateComplexRightPartialDemarcatedMessages";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PutKafka.TOPIC, topicName);
@@ -210,8 +168,8 @@ public class TestPutKafka {
     }
 
     @Test
-    public void testComplexLeftPartialDelimitedMessages() {
-        String topicName = "testComplexLeftPartialDelimitedMessages";
+    public void validateComplexLeftPartialDemarcatedMessages() {
+        String topicName = "validateComplexLeftPartialDemarcatedMessages";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PutKafka.TOPIC, topicName);
@@ -233,8 +191,8 @@ public class TestPutKafka {
     }
 
     @Test
-    public void testComplexPartialMatchDelimitedMessages() {
-        String topicName = "testComplexPartialMatchDelimitedMessages";
+    public void validateComplexPartialMatchDemarcatedMessages() {
+        String topicName = "validateComplexPartialMatchDemarcatedMessages";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PutKafka.TOPIC, topicName);
