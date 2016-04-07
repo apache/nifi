@@ -40,8 +40,8 @@ public class AuthorizationRequest {
         this.resource = builder.resource;
         this.identity = builder.identity;
         this.action = builder.action;
-        this.context = Collections.unmodifiableMap(builder.context);
-        this.eventAttributes = Collections.unmodifiableMap(builder.eventAttributes);
+        this.context = builder.context == null ? null : Collections.unmodifiableMap(builder.context);
+        this.eventAttributes = builder.context == null ? null : Collections.unmodifiableMap(builder.eventAttributes);
     }
 
     /**
