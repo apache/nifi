@@ -389,6 +389,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                 // Right now, that information, though, is only in the ProcessSession, not the ProcessContext,
                 // so it is not known to us. Should see if it can be added to the ProcessContext.
                 final AsyncContext async = baseRequest.startAsync();
+                async.setTimeout(Long.MAX_VALUE); // timeout is handled by HttpContextMap
                 final boolean added = containerQueue.offer(new HttpRequestContainer(request, response, async));
 
                 if (added) {
