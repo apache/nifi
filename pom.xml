@@ -96,6 +96,24 @@ limitations under the License.
         <org.apache.nifi.version>0.6.0</org.apache.nifi.version>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -326,6 +344,29 @@ limitations under the License.
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-write-ahead-log</artifactId>
                 <version>${org.apache.nifi.version}</version>
+            </dependency>
+
+            <!-- Test Dependencies -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.12</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>1.10.19</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-all</artifactId>
+                <version>1.10.19</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
+                <version>${org.slf4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
