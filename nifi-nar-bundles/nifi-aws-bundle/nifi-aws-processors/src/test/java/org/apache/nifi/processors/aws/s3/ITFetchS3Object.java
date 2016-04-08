@@ -55,6 +55,10 @@ public class ITFetchS3Object extends AbstractS3IT {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
+        MockFlowFile ff = ffs.get(0);
+        ff.assertAttributeNotExists(PutS3Object.S3_SSE_ALGORITHM);
+        ff.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
     }
 
     @Test
@@ -75,7 +79,9 @@ public class ITFetchS3Object extends AbstractS3IT {
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
-        ffs.get(0).assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        MockFlowFile ff = ffs.get(0);
+        ff.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        ff.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
     }
 
     @Test
