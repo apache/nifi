@@ -31,6 +31,7 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -287,4 +288,10 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     }
 
+    @OnShutdown
+    public void onShutdown() {
+        if ( getClient() != null ) {
+            getClient().shutdown();
+        }
+    }
 }
