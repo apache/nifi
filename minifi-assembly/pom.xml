@@ -105,6 +105,12 @@ limitations under the License.
             <artifactId>minifi-runtime</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-provenance-reporting-nar</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
 
         <!-- MiNiFi NiFi Dependencies -->
         <dependency>
