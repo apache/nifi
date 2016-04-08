@@ -119,6 +119,67 @@ public class ITPutS3Object extends AbstractS3IT {
         }
     }
 
+    private void testPutThenFetch(String sseAlgorithm) throws IOException {
+
+        // Put
+        TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
+            runner.setProperty(PutS3Object.SERVER_SIDE_ENCRYPTION, sseAlgorithm);
+        }
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename",  "filename-on-s3.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
+            ffs.get(0).assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        } else {
+            ffs.get(0).assertAttributeNotExists(PutS3Object.S3_SSE_ALGORITHM);
+        }
+
+        // Fetch
+        runner = TestRunners.newTestRunner(new FetchS3Object());
+
+        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
+
+        runner.enqueue(new byte[0], attrs);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
+        ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
+        MockFlowFile ff = ffs.get(0);
+        ff.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+
+        if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
+            ff.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        } else {
+            ff.assertAttributeNotExists(PutS3Object.S3_SSE_ALGORITHM);
+        }
+
+    }
+
+
+    @Test
+    public void testPutThenFetchWithoutSSE() throws IOException {
+        testPutThenFetch(PutS3Object.NO_SERVER_SIDE_ENCRYPTION);
+    }
+
+    @Test
+    public void testPutThenFetchWithSSE() throws IOException {
+        testPutThenFetch(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+    }
+
+
     @Test
     public void testPutS3ObjectUsingCredentialsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
