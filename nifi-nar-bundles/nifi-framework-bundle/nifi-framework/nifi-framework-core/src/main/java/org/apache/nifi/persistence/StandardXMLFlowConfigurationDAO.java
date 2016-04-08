@@ -53,7 +53,10 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor) throws IOException {
         final File flowXmlFile = flowXml.toFile();
         if (!flowXmlFile.exists()) {
-            Files.createDirectories(flowXml.getParent());
+            // createDirectories would throw an exception if the directory exists but is a symbolic link
+            if (Files.notExists(flowXml.getParent())) {
+                Files.createDirectories(flowXml.getParent());
+            }
             Files.createFile(flowXml);
             //TODO: find a better solution. With Windows 7 and Java 7, Files.isWritable(source.getParent()) returns false, even when it should be true.
         } else if (!flowXmlFile.canRead() || !flowXmlFile.canWrite()) {
