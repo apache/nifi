@@ -48,7 +48,8 @@ public class PutIOTShadow extends AbstractIOTShadowProcessor {
             Arrays.asList(
                     PROP_THING,
                     TIMEOUT,
-                    PROXY_HOST_PORT,
+                    AWS_CREDENTIALS_PROVIDER_SERVICE,
+                    PROXY_HOST,
                     PROXY_HOST_PORT,
                     REGION));
 

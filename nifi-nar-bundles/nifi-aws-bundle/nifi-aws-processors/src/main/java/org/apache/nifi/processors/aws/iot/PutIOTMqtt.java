@@ -69,6 +69,7 @@ public class PutIOTMqtt extends AbstractIOTMqttProcessor {
                     PROP_ENDPOINT,
                     PROP_KEEPALIVE,
                     PROP_CLIENT,
+                    AWS_CREDENTIALS_PROVIDER_SERVICE,
                     TIMEOUT,
                     REGION));
 

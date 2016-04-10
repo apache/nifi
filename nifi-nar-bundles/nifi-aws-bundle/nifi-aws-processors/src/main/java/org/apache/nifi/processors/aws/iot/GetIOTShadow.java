@@ -51,7 +51,7 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
                     PROP_THING,
                     AWS_CREDENTIALS_PROVIDER_SERVICE,
                     TIMEOUT,
-                    PROXY_HOST_PORT,
+                    PROXY_HOST,
                     PROXY_HOST_PORT,
                     REGION));
 
