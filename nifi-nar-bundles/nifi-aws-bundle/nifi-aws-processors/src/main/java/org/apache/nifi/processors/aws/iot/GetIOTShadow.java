@@ -50,7 +50,7 @@ import java.util.*;
 })
 public class GetIOTShadow extends AbstractIOTShadowProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(PROP_THING, AWS_CREDENTIALS_PROVIDER_SERVICE, PROXY_HOST, PROXY_HOST_PORT));
+            Arrays.asList(PROP_THING, AWS_CREDENTIALS_PROVIDER_SERVICE, PROXY_HOST, PROXY_HOST_PORT, REGION));
 
     private final static String ATTR_NAME_THING = PROP_NAME_THING + ".override";
 
@@ -75,7 +75,7 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
                         flowFile.getAttribute(ATTR_NAME_THING) :
                         context.getProperty(PROP_NAME_THING).getValue();
 
-        final AWSIotDataClient iotClient = new AWSIotDataClient();
+        final AWSIotDataClient iotClient = getClient();
         final GetThingShadowRequest iotRequest = new GetThingShadowRequest().withThingName(thingName);
         final GetThingShadowResult iotResponse = iotClient.getThingShadow(iotRequest);
 

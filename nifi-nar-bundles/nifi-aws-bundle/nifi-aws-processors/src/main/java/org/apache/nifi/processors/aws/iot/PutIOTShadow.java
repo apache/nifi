@@ -17,10 +17,7 @@
 package org.apache.nifi.processors.aws.iot;
 
 import com.amazonaws.services.iotdata.AWSIotDataClient;
-import com.amazonaws.services.iotdata.model.GetThingShadowRequest;
-import com.amazonaws.services.iotdata.model.GetThingShadowResult;
 import com.amazonaws.services.iotdata.model.UpdateThingShadowRequest;
-import com.amazonaws.services.iotdata.model.UpdateThingShadowResult;
 import org.apache.nifi.annotation.behavior.*;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -31,12 +28,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.*;
 
@@ -89,7 +82,7 @@ public class PutIOTShadow extends AbstractIOTShadowProcessor {
 
         ByteBuffer buffer = ByteBuffer.wrap(fileContentStream.toByteArray());
 
-        final AWSIotDataClient iotClient = new AWSIotDataClient();
+        final AWSIotDataClient iotClient = getClient();
         final UpdateThingShadowRequest iotRequest = new UpdateThingShadowRequest()
                 .withThingName(thingName)
                 .withPayload(buffer);

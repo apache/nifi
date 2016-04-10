@@ -19,13 +19,13 @@ package org.apache.nifi.processors.aws.iot;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.iot.AWSIotClient;
+import com.amazonaws.services.iotdata.AWSIotDataClient;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-public abstract class AbstractIOTShadowProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotClient> {
+public abstract class AbstractIOTShadowProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotDataClient> {
     protected static final String PROP_NAME_THING = "aws.iot.thing";
 
     public static final PropertyDescriptor PROP_THING = new PropertyDescriptor
@@ -39,10 +39,10 @@ public abstract class AbstractIOTShadowProcessor extends AbstractAWSCredentialsP
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
-    protected AWSIotClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+    protected AWSIotDataClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials provider ");
 
-        return new AWSIotClient(credentialsProvider, config);
+        return new AWSIotDataClient(credentialsProvider, config);
     }
 
     /**
@@ -51,9 +51,9 @@ public abstract class AbstractIOTShadowProcessor extends AbstractAWSCredentialsP
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */
     @Override
-    protected AWSIotClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
+    protected AWSIotDataClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials ");
 
-        return new AWSIotClient(credentials, config);
+        return new AWSIotDataClient(credentials, config);
     }
 }

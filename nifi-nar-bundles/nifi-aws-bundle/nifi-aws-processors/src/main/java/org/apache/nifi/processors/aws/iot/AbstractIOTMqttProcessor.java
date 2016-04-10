@@ -42,7 +42,7 @@ abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsProviderPr
     protected static final String PROP_NAME_TOPIC = "aws.iot.mqtt.topic";
     protected static final String PROP_NAME_QOS = "aws.iot.mqtt.qos";
     protected static final Integer PROP_DEFAULT_KEEPALIVE = 300;
-    protected static final String PROP_DEFAULT_CLIENT = AbstractIOTMqttProcessor.class.getName();
+    protected static final String PROP_DEFAULT_CLIENT = AbstractIOTMqttProcessor.class.getSimpleName();
     protected static final Integer DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION = 20;
     protected static final Integer DEFAULT_QOS = 0;
     protected String awsTopic;
@@ -172,7 +172,7 @@ abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsProviderPr
      * @throws Exception
      */
     protected MqttWebSocketAsyncClient connect(ProcessContext context) {
-        AWSCredentials awsCredentials = super.getCredentialsProvider(context).getCredentials();
+        AWSCredentials awsCredentials = getCredentialsProvider(context).getCredentials();
 
         // generate mqtt endpoint-address with authentication details
         String strEndpointAddress = null;
