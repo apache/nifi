@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.*;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -43,14 +44,17 @@ import java.util.*;
         @ReadsAttribute(attribute = "aws.iot.thing.override", description = "Overrides the processor configuration for topic."),
 })
 @WritesAttributes({
-        @WritesAttribute(attribute = "aws.iot.mqtt.endpoint", description = "AWS endpoint this message was received from."),
-        @WritesAttribute(attribute = "aws.iot.mqtt.topic", description = "MQTT topic this message was received from."),
-        @WritesAttribute(attribute = "aws.iot.mqtt.client", description = "MQTT client which received the message."),
-        @WritesAttribute(attribute = "aws.iot.mqtt.qos", description = "Underlying MQTT quality-of-service.")
+        @WritesAttribute(attribute = "aws.iot.mqtt.thing", description = "Thing name in AWS IoT"),
 })
 public class GetIOTShadow extends AbstractIOTShadowProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(PROP_THING, AWS_CREDENTIALS_PROVIDER_SERVICE, PROXY_HOST, PROXY_HOST_PORT, REGION));
+            Arrays.asList(
+                    PROP_THING,
+                    ACCESS_KEY,
+                    SECRET_KEY,
+                    CREDENTIALS_FILE,
+                    AWS_CREDENTIALS_PROVIDER_SERVICE,
+                    REGION));
 
     private final static String ATTR_NAME_THING = PROP_NAME_THING + ".override";
 
@@ -64,9 +68,12 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
         return Collections.singleton(REL_SUCCESS);
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        long startTime = System.nanoTime();
         // get flowfile
         FlowFile flowFile = session.get();
         // if provided override configured thing name with the name from the corresponding message attribute

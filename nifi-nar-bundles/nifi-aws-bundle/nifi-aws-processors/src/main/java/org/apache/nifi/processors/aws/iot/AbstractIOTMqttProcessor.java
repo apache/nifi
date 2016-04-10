@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 
 abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotClient> {
     protected static final String PROP_NAME_ENDPOINT = "aws.iot.endpoint";
-    protected static final String PROP_NAME_REGION = "aws.iot.region";
     protected static final String PROP_NAME_CLIENT = "aws.iot.mqtt.client";
     protected static final String PROP_NAME_KEEPALIVE = "aws.iot.mqtt.keepalive";
     protected static final String PROP_NAME_TOPIC = "aws.iot.mqtt.topic";
@@ -67,13 +66,6 @@ abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsProviderPr
             .description("MQTT client ID to use. Under the cover your input will be extended by a random string to ensure a unique id among all conntected clients.")
             .required(false)
             .defaultValue(PROP_DEFAULT_CLIENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_REGION = new PropertyDescriptor
-            .Builder().name(PROP_NAME_REGION)
-            .description("AWS-region in which the MQTT topic(s) reside in (e.g. us-east-1)")
-            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

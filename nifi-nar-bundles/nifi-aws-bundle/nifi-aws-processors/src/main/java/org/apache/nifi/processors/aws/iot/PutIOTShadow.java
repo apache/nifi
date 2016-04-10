@@ -48,7 +48,15 @@ import java.util.*;
 })
 public class PutIOTShadow extends AbstractIOTShadowProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(PROP_THING, PROXY_HOST, PROXY_HOST_PORT, AWS_CREDENTIALS_PROVIDER_SERVICE, REGION));
+            Arrays.asList(
+                    PROP_THING,
+                    PROXY_HOST,
+                    PROXY_HOST_PORT,
+                    ACCESS_KEY,
+                    SECRET_KEY,
+                    CREDENTIALS_FILE,
+                    AWS_CREDENTIALS_PROVIDER_SERVICE,
+                    REGION));
 
     private final static String ATTR_NAME_THING = PROP_NAME_THING + ".override";
 

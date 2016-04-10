@@ -51,7 +51,17 @@ import java.util.*;
 public class GetIOTMqtt extends AbstractIOTMqttProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(PROP_QOS, PROP_TOPIC, PROP_ENDPOINT, PROP_KEEPALIVE, PROP_CLIENT, AWS_CREDENTIALS_PROVIDER_SERVICE, REGION));
+            Arrays.asList(
+                    PROP_QOS,
+                    PROP_TOPIC,
+                    PROP_ENDPOINT,
+                    PROP_KEEPALIVE,
+                    PROP_CLIENT,
+                    ACCESS_KEY,
+                    SECRET_KEY,
+                    CREDENTIALS_FILE,
+                    AWS_CREDENTIALS_PROVIDER_SERVICE,
+                    REGION));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

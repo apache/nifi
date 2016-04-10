@@ -29,11 +29,11 @@ import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 
 public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCallback {
 
-    private volatile LinkedBlockingQueue<IoTMessage> awsQueuedMqttMessages = new LinkedBlockingQueue<IoTMessage>();
-    private final ProcessorLog logger;
-    private final String serverURI;
+    protected volatile LinkedBlockingQueue<IoTMessage> awsQueuedMqttMessages = new LinkedBlockingQueue<IoTMessage>();
+    protected final ProcessorLog logger;
+    protected final String serverURI;
 
-    private static String createDummyURI(String original) {
+    protected static String createDummyURI(String original) {
         if (!original.startsWith("ws:") && !original.startsWith("wss:")) {
             return original;
         }
@@ -42,7 +42,7 @@ public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCal
                 + (uri.getPort() > 0 ? uri.getPort() : 80);
     }
 
-    private static boolean isDummyURI(String uri) {
+    protected static boolean isDummyURI(String uri) {
         return uri.startsWith("tcp://DUMMY-");
     }
 
@@ -79,7 +79,7 @@ public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCal
      *            MQTT connect options
      * @return a network module appropriate to the specified address.
      */
-    private NetworkModule createNetworkModule(String input,
+    protected NetworkModule createNetworkModule(String input,
                                                 MqttConnectOptions options) throws MqttException,
             MqttSecurityException {
         final String address = isDummyURI(input) ? this.serverURI : input;
