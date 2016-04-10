@@ -34,7 +34,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotClient> {
+public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotClient> {
     protected static final String PROP_NAME_ENDPOINT = "aws.iot.endpoint";
     protected static final String PROP_NAME_CLIENT = "aws.iot.mqtt.client";
     protected static final String PROP_NAME_KEEPALIVE = "aws.iot.mqtt.keepalive";

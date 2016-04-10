@@ -57,9 +57,6 @@ public class GetIOTMqtt extends AbstractIOTMqttProcessor {
                     PROP_ENDPOINT,
                     PROP_KEEPALIVE,
                     PROP_CLIENT,
-                    ACCESS_KEY,
-                    SECRET_KEY,
-                    CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE,
                     REGION));
 

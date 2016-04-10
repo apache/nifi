@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.behavior.*;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -50,12 +49,10 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(
                     PROP_THING,
-                    PROXY_HOST,
-                    PROXY_HOST_PORT,
-                    ACCESS_KEY,
-                    SECRET_KEY,
-                    CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE,
+                    TIMEOUT,
+                    PROXY_HOST_PORT,
+                    PROXY_HOST_PORT,
                     REGION));
 
     private final static String ATTR_NAME_THING = PROP_NAME_THING + ".override";
@@ -72,6 +69,12 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final AWSIotDataClient iotClient = this.getClient();
+
+        if (iotClient == null) {
+            getLogger().error("AWS-Client was not initialized. See logs to find reasons.");
+            return;
+        }
         // get flowfile
         FlowFile flowFile = session.get();
         // if provided override configured thing name with the name from the corresponding message attribute
@@ -79,13 +82,6 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
                 flowFile != null && flowFile.getAttributes().containsKey(ATTR_NAME_THING) ?
                         flowFile.getAttribute(ATTR_NAME_THING) :
                         context.getProperty(PROP_NAME_THING).getValue();
-
-        final AWSIotDataClient iotClient = getClient();
-
-        if (iotClient == null) {
-            getLogger().error("AWS-Client was not initialized. See logs to find reasons.");
-            return;
-        }
 
         final GetThingShadowRequest iotRequest = new GetThingShadowRequest().withThingName(thingName);
         final GetThingShadowResult iotResponse = iotClient.getThingShadow(iotRequest);
