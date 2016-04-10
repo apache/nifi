@@ -16,43 +16,60 @@
  */
 package org.apache.nifi.processors.aws.iot;
 
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
 
-public class TestGetIOTMqtt {
+public class ITPutIOTMqtt {
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
+    @Ignore
     @Test
-    public void testSimpleGetUsingCredentailsProviderService() throws Throwable {
-        final TestRunner runner = TestRunners.newTestRunner(new GetIOTMqtt());
-
-        runner.setProperty(GetIOTMqtt.PROP_NAME_CLIENT, "RandomClientId");
-        runner.setProperty(GetIOTMqtt.PROP_NAME_ENDPOINT, "A1B71MLXKNXXXX");
-        runner.setProperty(GetIOTMqtt.PROP_NAME_TOPIC, "$aws/things/nifiConsumer/shadow/update");
-        runner.setProperty(GetIOTMqtt.PROP_QOS, "0");
-
+    public void testSimplePutUsingCredentialsProviderService() throws Throwable {
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+        final TestRunner runner = TestRunners.newTestRunner(new PutIOTMqtt());
+        final String clientId = PutIOTMqtt.class.getSimpleName();
+        final String endpoint = "A1B71MLXKNXXXX";
+        final String topic = "$aws/things/nifiConsumer/shadow/update";
+        final String qos = "0";
+        final byte[] message = "{\"state\":{\"desired\":{\"key\":\"value\"}}}".getBytes();
+        final Region region = Regions.getCurrentRegion();
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
-        runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.enableControllerService(serviceImpl);
+        runner.setProperty(PutIOTMqtt.PROP_CLIENT, clientId);
+        runner.setProperty(PutIOTMqtt.PROP_ENDPOINT, endpoint);
+        runner.setProperty(PutIOTMqtt.PROP_TOPIC, topic);
+        runner.setProperty(PutIOTMqtt.PROP_QOS, qos);
+        runner.setProperty(PutIOTMqtt.REGION, region.getName());
+        runner.setProperty(PutIOTMqtt.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
 
+        runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
+
+        // ensure that the Controller Service is configured accordingly
         runner.assertValid(serviceImpl);
 
-        runner.setProperty(GetIOTMqtt.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+        // If the Controller Service is not valid, this method will throw an IllegalStateException. Otherwise, the service is now ready to use.
+        runner.enableControllerService(serviceImpl);
+
+        runner.enqueue(message);
+
         runner.run(1);
 
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetIOTMqtt.REL_SUCCESS);
+        // validate that the FlowFiles went where they were expected to go
+        runner.assertAllFlowFilesTransferred(PutIOTMqtt.REL_SUCCESS, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutIOTMqtt.REL_SUCCESS);
         for (final MockFlowFile mff : flowFiles) {
-            System.out.println(mff.getAttributes());
-            System.out.println(new String(mff.toByteArray()));
+            mff.assertContentEquals(message);
         }
     }
 }
