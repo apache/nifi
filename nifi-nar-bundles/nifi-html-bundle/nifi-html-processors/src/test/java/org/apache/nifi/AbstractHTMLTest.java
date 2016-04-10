@@ -22,7 +22,7 @@ public abstract class AbstractHTMLTest {
     protected final String GDR_WEATHER_TEXT = "<i>Grand Rapids Weather</i>";
     protected final String ATL_WEATHER_LINK = "http://w1.weather.gov/obhistory/KPDK.html";
     protected final String GR_WEATHER_LINK = "http://w1.weather.gov/obhistory/KGRR.html";
-    protected final String AUTHOR_NAME = "Jeremy Dyer";
+    protected final String AUTHOR_NAME = "Apache NiFi Community";
     protected final String ATL_ID = "ATL";
     protected final String GDR_ID = "GDR";
 }
