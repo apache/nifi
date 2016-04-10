@@ -26,6 +26,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
@@ -42,7 +50,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-public class DeleteDynamoDBTest {
+public class DeleteDynamoDBTest extends AbstractDynamoDBTest{
 
     protected DeleteDynamoDB deleteDynamoDB;
     protected BatchWriteItemResult result = new BatchWriteItemResult();
@@ -70,9 +78,21 @@ public class DeleteDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeDeleteOnlyHashFailure() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
+        // Inject a mock DynamoDB to create the exception condition
+        final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
+        // When writing, mock thrown service exception from AWS
+        Mockito.when(mockDynamoDb.batchWriteItem(Matchers.<TableWriteItems>anyVararg())).thenThrow(getSampleAwsServiceException());
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
+        deleteDynamoDB = new DeleteDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDb;
+            }
+        };
+
+        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
+
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY, "abcd");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);

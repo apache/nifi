@@ -33,6 +33,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -46,7 +48,7 @@ import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;
 
-public class GetDynamoDBTest {
+public class GetDynamoDBTest extends AbstractDynamoDBTest {
     protected GetDynamoDB getDynamoDB;
     protected BatchGetItemOutcome outcome;
     protected BatchGetItemResult result = new BatchGetItemResult();
@@ -401,7 +403,19 @@ public class GetDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeGetOnlyHashFailure() {
-        final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
+        // Inject a mock DynamoDB to create the exception condition
+        final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
+        // When writing, mock thrown service exception from AWS
+        Mockito.when(mockDynamoDb.batchGetItem(Matchers.<TableKeysAndAttributes>anyVararg())).thenThrow(getSampleAwsServiceException());
+
+        getDynamoDB = new GetDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDb;
+            }
+        };
+
+        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
 
         getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
         getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
