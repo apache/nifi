@@ -31,6 +31,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -43,7 +45,7 @@ import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
 import com.amazonaws.services.dynamodbv2.model.PutRequest;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
-public class PutDynamoDBTest  {
+public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
     protected PutDynamoDB putDynamoDB;
     protected BatchWriteItemResult result = new BatchWriteItemResult();
@@ -71,7 +73,19 @@ public class PutDynamoDBTest  {
 
     @Test
     public void testStringHashStringRangePutOnlyHashFailure() {
-        final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
+        // Inject a mock DynamoDB to create the exception condition
+        final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
+        // When writing, mock thrown service exception from AWS
+        Mockito.when(mockDynamoDb.batchWriteItem(Matchers.<TableWriteItems>anyVararg())).thenThrow(getSampleAwsServiceException());
+
+        putDynamoDB = new PutDynamoDB() {
+            @Override
+            protected DynamoDB getDynamoDB() {
+                return mockDynamoDb;
+            }
+        };
+
+        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
 
         putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
         putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");

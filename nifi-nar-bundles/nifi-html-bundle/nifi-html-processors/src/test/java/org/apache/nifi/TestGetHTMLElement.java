@@ -16,6 +16,11 @@
  */
 package org.apache.nifi;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -24,12 +29,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Selector;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.Exception;
-import java.net.URL;
-import java.util.List;
 
 public class TestGetHTMLElement extends AbstractHTMLTest {
 
@@ -44,14 +43,10 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.HTML_CHARSET, "UTF-8");
     }
 
-    @Test
+    @Test(expected = Selector.SelectorParseException.class)
     public void testCSSSelectorSyntaxValidator() throws IOException {
-        Document doc = Jsoup.parse(new URL("http://www.google.com"), 5000);
-        try {
-            doc.select("---jeremy");
-        } catch (Selector.SelectorParseException ex) {
-            ex.printStackTrace();
-        }
+        Document doc = Jsoup.parse(new File("src/test/resources/Weather.html"), StandardCharsets.UTF_8.name());
+        doc.select("---invalidCssSelector");
     }
 
     @Test
