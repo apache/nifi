@@ -41,10 +41,7 @@ import java.util.*;
         @ReadsAttribute(attribute = "aws.iot.thing.override", description = "Overrides the processor configuration for topic."),
 })
 @WritesAttributes({
-        @WritesAttribute(attribute = "aws.iot.mqtt.endpoint", description = "AWS endpoint this message was received from."),
-        @WritesAttribute(attribute = "aws.iot.mqtt.topic", description = "MQTT topic this message was received from."),
-        @WritesAttribute(attribute = "aws.iot.mqtt.client", description = "MQTT client which received the message."),
-        @WritesAttribute(attribute = "aws.iot.mqtt.qos", description = "Underlying MQTT quality-of-service.")
+        @WritesAttribute(attribute = "aws.iot.thing", description = "Underlying MQTT quality-of-service.")
 })
 public class PutIOTShadow extends AbstractIOTShadowProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(

@@ -44,12 +44,14 @@ import java.util.*;
         @ReadsAttribute(attribute = "aws.iot.thing.override", description = "Overrides the processor configuration for topic."),
 })
 @WritesAttributes({
-        @WritesAttribute(attribute = "aws.iot.mqtt.thing", description = "Thing name in AWS IoT"),
+        @WritesAttribute(attribute = "aws.iot.thing", description = "Thing name in AWS IoT"),
 })
 public class GetIOTShadow extends AbstractIOTShadowProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(
                     PROP_THING,
+                    PROXY_HOST,
+                    PROXY_HOST_PORT,
                     ACCESS_KEY,
                     SECRET_KEY,
                     CREDENTIALS_FILE,
@@ -68,10 +70,6 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
         return Collections.singleton(REL_SUCCESS);
     }
 
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // get flowfile
@@ -83,6 +81,12 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
                         context.getProperty(PROP_NAME_THING).getValue();
 
         final AWSIotDataClient iotClient = getClient();
+
+        if (iotClient == null) {
+            getLogger().error("AWS-Client was not initialized. See logs to find reasons.");
+            return;
+        }
+
         final GetThingShadowRequest iotRequest = new GetThingShadowRequest().withThingName(thingName);
         final GetThingShadowResult iotResponse = iotClient.getThingShadow(iotRequest);
 
