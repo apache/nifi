@@ -75,6 +75,7 @@ import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,6 +98,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     public static final int VERBOSE_LOG_THRESHOLD = 10;
     public static final String DEFAULT_FLOWFILE_PATH = "./";
 
+    public static final String ROLLBACK_COUNT_ATTR_NAME = "rollback.count";
+
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessSession.class);
     private static final Logger claimLog = LoggerFactory.getLogger(StandardProcessSession.class.getSimpleName() + ".claims");
 
@@ -110,6 +113,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private final Set<Path> deleteOnCommit = new HashSet<>();
     private final long sessionId;
     private final String connectableDescription;
+
+    private final Boolean isRollbackCountEnabled;
+    private final Boolean isRollbackLogUnackFFEnabled;
+    private final Long rollbackLogUnackFFMax;
 
     private final Set<String> removedFlowFiles = new HashSet<>();
     private final Set<String> createdFlowFiles = new HashSet<>();
@@ -126,6 +133,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private ContentClaim currentReadClaim = null;
     private ByteCountingInputStream currentReadClaimStream = null;
     private long processingStartTime;
+
+
 
     // maps a FlowFile to all Provenance Events that were generated for that FlowFile.
     // we do this so that if we generate a Fork event, for example, and then remove the event in the same
@@ -174,6 +183,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             context.getProvenanceRepository(), this);
         this.sessionId = idGenerator.getAndIncrement();
         this.connectableDescription = description;
+
+        this.isRollbackCountEnabled = NiFiProperties.getInstance().isRollbackCountEnabled();
+        this.isRollbackLogUnackFFEnabled = NiFiProperties.getInstance().isRollbackLogUnackFFEnabled();
+        this.rollbackLogUnackFFMax = NiFiProperties.getInstance().getRollbackLogUnackFFMax();
 
         LOG.trace("Session {} created for {}", this, connectableDescription);
         processingStartTime = System.nanoTime();
@@ -909,13 +922,27 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             if (record.getOriginal() != null) {
                 final FlowFileQueue originalQueue = record.getOriginalQueue();
                 if (originalQueue != null) {
+                    FlowFileRecord fileRecord;
                     if (penalize) {
                         final long expirationEpochMillis = System.currentTimeMillis() + context.getConnectable().getPenalizationPeriod(TimeUnit.MILLISECONDS);
-                        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getOriginal()).penaltyExpirationTime(expirationEpochMillis).build();
-                        originalQueue.put(newFile);
+                        fileRecord = new StandardFlowFileRecord.Builder().fromFlowFile(record.getOriginal()).penaltyExpirationTime(expirationEpochMillis).build();
                     } else {
-                        originalQueue.put(record.getOriginal());
+                        fileRecord = record.getOriginal();
                     }
+                    final Map<String, String> attributes = new HashMap<>();
+                    if (this.isRollbackCountEnabled) {
+                        try {
+                            Long rollbackCount = 0L;
+                            if (record.getCurrent().getAttributes().containsKey(ROLLBACK_COUNT_ATTR_NAME)) {
+                                rollbackCount = Long.parseLong(record.getOriginalAttributes().get(ROLLBACK_COUNT_ATTR_NAME));
+                            }
+                            rollbackCount += 1;
+                            attributes.put(ROLLBACK_COUNT_ATTR_NAME, rollbackCount.toString());
+                        } catch (NumberFormatException ignore) {
+                        }
+                    }
+                    fileRecord = new StandardFlowFileRecord.Builder().fromFlowFile(fileRecord).addAttributes(attributes).build();
+                    originalQueue.put(fileRecord);
                 }
             }
         }
@@ -2525,6 +2552,44 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     @Override
     public String toString() {
         return "StandardProcessSession[id=" + sessionId + "]";
+    }
+
+    @Override
+    public String getUnacknowledgedFlowfileInfo() {
+        final StringBuilder bldr = new StringBuilder(1024);
+        if (!isRollbackLogUnackFFEnabled) {
+            return "";
+        }
+        bldr.append("(unacknowledged flowfiles [");
+        for (Relationship relationship : context.getAvailableRelationships()) {
+            for (Connection connection : context.getConnections(relationship)) {
+                long filesListed = 0;
+                for (FlowFileRecord rec : unacknowledgedFlowFiles.get(connection)) {
+                    if (bldr.length() > 1) {
+                        bldr.append(", ");
+                    }
+                    // todo debug connection logging
+                    bldr.append("rel=")
+                            .append(relationship.getName())
+                            .append("/conn=")
+                            .append(connection.getName())
+                            .append("/filename=")
+                            .append(rec.getAttribute(CoreAttributes.FILENAME.key()))
+                            .append("/uuid=")
+                            .append(rec.getAttribute(CoreAttributes.UUID.key()));
+                    if (isRollbackCountEnabled) {
+                        bldr.append("/rollbacks=")
+                                .append(rec.getAttribute(StandardProcessSession.ROLLBACK_COUNT_ATTR_NAME));
+                    }
+                    filesListed++;
+                    if (filesListed > rollbackLogUnackFFMax) {
+                        break;
+                    }
+                }
+            }
+        }
+        bldr.append("]) ");
+        return bldr.toString();
     }
 
     /**

@@ -73,6 +73,10 @@ public class MockProcessSession implements ProcessSession {
     private boolean rolledback = false;
     private int removedCount = 0;
 
+    private boolean isRollbackCountEnabled;
+    private boolean isRollbackLogUnackFFEnabled;
+    private long rollbackLogUnackFFMax;
+
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor) {
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
@@ -285,6 +289,37 @@ public class MockProcessSession implements ProcessSession {
     @Override
     public QueueSize getQueueSize() {
         return processorQueue.size();
+    }
+
+    @Override
+    public String getUnacknowledgedFlowfileInfo() {
+        StringBuilder bldr = new StringBuilder();
+        if (!isRollbackLogUnackFFEnabled) {
+            return "";
+        }
+        bldr.append("(unacknowledged flowfiles [");
+        long filesListed = 0;
+        for (Long flowFileId : beingProcessed) {
+            MockFlowFile flowFile = currentVersions.get(flowFileId);
+            if (bldr.length() > 0) {
+                bldr.append(", ");
+            }
+            bldr.append("rel=NA")
+                    .append("/conn=NA")
+                    .append("/filename=")
+                    .append(flowFile.getAttribute(CoreAttributes.FILENAME.key()))
+                    .append("/uuid=")
+                    .append(flowFile.getAttribute(CoreAttributes.UUID.key()));
+            if (isRollbackCountEnabled) {
+                bldr.append("/rollbacks=NA");
+            }
+            filesListed++;
+            if (filesListed > rollbackLogUnackFFMax) {
+                break;
+            }
+        }
+        bldr.append("]) ");
+        return bldr.toString();
     }
 
     @Override
@@ -1068,5 +1103,17 @@ public class MockProcessSession implements ProcessSession {
         }
 
         return true;
+    }
+
+    public void setRollbackCountEnabled(boolean rollbackCountEnabled) {
+        isRollbackCountEnabled = rollbackCountEnabled;
+    }
+
+    public void setRollbackLogUnackFFEnabled(boolean rollbackLogUnackFFEnabled) {
+        isRollbackLogUnackFFEnabled = rollbackLogUnackFFEnabled;
+    }
+
+    public void setRollbackLogUnackFFMax(long rollbackLogUnackFFMax) {
+        this.rollbackLogUnackFFMax = rollbackLogUnackFFMax;
     }
 }

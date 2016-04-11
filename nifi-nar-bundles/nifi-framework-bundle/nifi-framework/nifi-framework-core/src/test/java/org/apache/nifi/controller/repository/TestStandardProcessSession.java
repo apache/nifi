@@ -243,6 +243,16 @@ public class TestStandardProcessSession {
 
         flowFile = session.get();
         assertNotNull(flowFile);
+        assertNotNull(flowFile.getAttribute(StandardProcessSession.ROLLBACK_COUNT_ATTR_NAME));
+        assertEquals("1", flowFile.getAttribute(StandardProcessSession.ROLLBACK_COUNT_ATTR_NAME));
+        session.remove(flowFile);
+        session.rollback();
+        assertEquals(1, contentRepo.getExistingClaims().size());
+
+        flowFile = session.get();
+        assertNotNull(flowFile);
+        assertNotNull(flowFile.getAttribute(StandardProcessSession.ROLLBACK_COUNT_ATTR_NAME));
+        assertEquals("2", flowFile.getAttribute(StandardProcessSession.ROLLBACK_COUNT_ATTR_NAME));
         session.remove(flowFile);
         session.commit();
         assertEquals(0, contentRepo.getExistingClaims().size());

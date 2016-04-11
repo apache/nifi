@@ -50,5 +50,10 @@
             <artifactId>junit</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-core-api</artifactId>
+            <version>0.7.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 </project>
