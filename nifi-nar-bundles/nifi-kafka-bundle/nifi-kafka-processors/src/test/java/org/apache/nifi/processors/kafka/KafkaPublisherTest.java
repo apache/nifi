@@ -67,6 +67,12 @@ public class KafkaPublisherTest {
         kafkaLocal.stop();
     }
 
+    String test = "Khalid El Bakraoui rented an apartment in Brussels that was raided last week and both are suspected of having ties to "
+            + "the terror attacks in Paris in November, the source said. While Belgian officials say both brothers were suicide bombers, a U.S. "
+            + "official briefed earlier on preliminary evidence from the investigation says authorities are looking at the possibility that one of "
+            + "the airport explosions may have been caused by a bomb inside a suitcase and the other was a suicide bombing. But identifying the brothers "
+            + "should help spring the investigation forward, says Cedric Leighton, a CNN military analyst and the former deputy director for the Joint Chiefs of Staff.";
+
     @Test
     public void validateSuccessfulSendAsWhole() throws Exception {
         InputStream fis = new ByteArrayInputStream(sampleData.getBytes(StandardCharsets.UTF_8));
