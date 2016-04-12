@@ -20,8 +20,6 @@ import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.cluster.event.EventManager;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.flow.DataFlowManagementService;
-import org.apache.nifi.cluster.manager.HttpRequestReplicator;
-import org.apache.nifi.cluster.manager.HttpResponseMapper;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.protocol.impl.ClusterManagerProtocolSenderListener;
 import org.apache.nifi.cluster.protocol.impl.ClusterServicesBroadcaster;
@@ -61,15 +59,11 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
              */
             return null;
         } else if (clusterManager == null) {
-            final HttpRequestReplicator requestReplicator = applicationContext.getBean("httpRequestReplicator", HttpRequestReplicator.class);
-            final HttpResponseMapper responseMapper = applicationContext.getBean("httpResponseMapper", HttpResponseMapper.class);
             final DataFlowManagementService dataFlowService = applicationContext.getBean("dataFlowManagementService", DataFlowManagementService.class);
             final ClusterManagerProtocolSenderListener senderListener = applicationContext.getBean("clusterManagerProtocolSenderListener", ClusterManagerProtocolSenderListener.class);
 
             // create the manager
             clusterManager = new WebClusterManager(
-                    requestReplicator,
-                    responseMapper,
                     dataFlowService,
                     senderListener,
                     properties,

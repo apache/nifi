@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 /**
@@ -109,7 +110,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param serviceNode the node
      */
-    void unscheduleReferencingComponents(ControllerServiceNode serviceNode);
+    Set<ConfiguredComponent> unscheduleReferencingComponents(ControllerServiceNode serviceNode);
 
     /**
      * Verifies that all Controller Services referencing the provided Controller
@@ -130,7 +131,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param serviceNode the node
      */
-    void disableReferencingServices(ControllerServiceNode serviceNode);
+    Set<ConfiguredComponent> disableReferencingServices(ControllerServiceNode serviceNode);
 
     /**
      * Verifies that all Controller Services referencing the provided
@@ -149,8 +150,10 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * Service A and B will both be enabled.
      *
      * @param serviceNode the node
+     *
+     * @return the set of all components that were updated as a result of this action
      */
-    void enableReferencingServices(ControllerServiceNode serviceNode);
+    Set<ConfiguredComponent> enableReferencingServices(ControllerServiceNode serviceNode);
 
     /**
      * Verifies that all enabled Processors referencing the ControllerService
@@ -172,5 +175,5 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param serviceNode the node
      */
-    void scheduleReferencingComponents(ControllerServiceNode serviceNode);
+    Set<ConfiguredComponent> scheduleReferencingComponents(ControllerServiceNode serviceNode);
 }

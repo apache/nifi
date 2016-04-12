@@ -27,10 +27,11 @@ import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 
 public class ControllerServiceReferenceEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern CONTROLLER_SERVICE_REFERENCES_URI_PATTERN = Pattern.compile("/nifi-api/controller/controller-services/node/[a-f0-9\\-]{36}/references");
+    public static final Pattern CONTROLLER_SERVICE_REFERENCES_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/node/[a-f0-9\\-]{36}/references");
 
     @Override
     public boolean canHandle(URI uri, String method) {
@@ -48,13 +49,13 @@ public class ControllerServiceReferenceEndpointMerger implements EndpointRespons
         }
 
         final ControllerServiceReferencingComponentsEntity responseEntity = clientResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
-        final Set<ControllerServiceReferencingComponentDTO> referencingComponents = responseEntity.getControllerServiceReferencingComponents();
+        final Set<ControllerServiceReferencingComponentEntity> referencingComponents = responseEntity.getControllerServiceReferencingComponents();
 
-        final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> resultsMap = new HashMap<>();
+        final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> resultsMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
             final ControllerServiceReferencingComponentsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity
                 : nodeResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
-            final Set<ControllerServiceReferencingComponentDTO> nodeReferencingComponents = nodeResponseEntity.getControllerServiceReferencingComponents();
+            final Set<ControllerServiceReferencingComponentEntity> nodeReferencingComponents = nodeResponseEntity.getControllerServiceReferencingComponents();
 
             resultsMap.put(nodeResponse.getNodeId(), nodeReferencingComponents);
         }

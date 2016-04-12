@@ -18,16 +18,19 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorsEntity;
 
-public class ProcessorsEndpointMerger extends AbstractMultiEntityEndpoint<ProcessorsEntity, ProcessorDTO> {
+public class ProcessorsEndpointMerger implements EndpointResponseMerger {
     public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
 
     @Override
@@ -36,22 +39,40 @@ public class ProcessorsEndpointMerger extends AbstractMultiEntityEndpoint<Proces
     }
 
     @Override
-    protected Class<ProcessorsEntity> getEntityClass() {
-        return ProcessorsEntity.class;
-    }
+    public final NodeResponse merge(final URI uri, final String method, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
+        if (!canHandle(uri, method)) {
+            throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
+        }
 
-    @Override
-    protected Set<ProcessorDTO> getDtos(final ProcessorsEntity entity) {
-        return entity.getProcessors();
-    }
+        final ProcessorsEntity responseEntity = clientResponse.getClientResponse().getEntity(ProcessorsEntity.class);
+        final Set<ProcessorEntity> processorEntities = responseEntity.getProcessors();
 
-    @Override
-    protected String getComponentId(final ProcessorDTO dto) {
-        return dto.getId();
-    }
+        final Map<String, Map<NodeIdentifier, ProcessorDTO>> dtoMap = new HashMap<>();
+        for (final NodeResponse nodeResponse : successfulResponses) {
+            final ProcessorsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorsEntity.class);
+            final Set<ProcessorEntity> nodeProcessorEntities = nodeResponseEntity.getProcessors();
 
-    @Override
-    protected void mergeResponses(ProcessorDTO clientDto, Map<NodeIdentifier, ProcessorDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        new ProcessorEndpointMerger().mergeResponses(clientDto, dtoMap, successfulResponses, problematicResponses);
+            for (final ProcessorEntity nodeProcessorEntity : nodeProcessorEntities) {
+                final NodeIdentifier nodeId = nodeResponse.getNodeId();
+                Map<NodeIdentifier, ProcessorDTO> innerMap = dtoMap.get(nodeId);
+                if (innerMap == null) {
+                    innerMap = new HashMap<>();
+                    dtoMap.put(nodeProcessorEntity.getId(), innerMap);
+                }
+
+                innerMap.put(nodeResponse.getNodeId(), nodeProcessorEntity.getComponent());
+            }
+        }
+
+        final ProcessorEndpointMerger procMerger = new ProcessorEndpointMerger();
+        for (final ProcessorEntity entity : processorEntities) {
+            final String componentId = entity.getId();
+            final Map<NodeIdentifier, ProcessorDTO> mergeMap = dtoMap.get(componentId);
+
+            procMerger.mergeResponses(entity.getComponent(), mergeMap, successfulResponses, problematicResponses);
+        }
+
+        // create a new client response
+        return new NodeResponse(clientResponse, responseEntity);
     }
 }

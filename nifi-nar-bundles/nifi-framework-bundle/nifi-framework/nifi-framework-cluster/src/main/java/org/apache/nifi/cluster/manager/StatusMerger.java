@@ -62,15 +62,9 @@ public class StatusMerger {
             return;
         }
 
-        target.setActiveRemotePortCount(target.getActiveRemotePortCount() + toMerge.getActiveRemotePortCount());
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
         target.setBytesQueued(target.getBytesQueued() + toMerge.getBytesQueued());
-        target.setDisabledCount(target.getDisabledCount() + toMerge.getDisabledCount());
         target.setFlowFilesQueued(target.getFlowFilesQueued() + toMerge.getFlowFilesQueued());
-        target.setInactiveRemotePortCount(target.getInactiveRemotePortCount() + toMerge.getInactiveRemotePortCount());
-        target.setInvalidCount(target.getInvalidCount() + toMerge.getInvalidCount());
-        target.setRunningCount(target.getRunningCount() + toMerge.getRunningCount());
-        target.setStoppedCount(target.getStoppedCount() + toMerge.getStoppedCount());
 
         target.setBulletins(mergeBulletins(target.getBulletins(), toMerge.getBulletins()));
         target.setControllerServiceBulletins(mergeBulletins(target.getControllerServiceBulletins(), toMerge.getControllerServiceBulletins()));

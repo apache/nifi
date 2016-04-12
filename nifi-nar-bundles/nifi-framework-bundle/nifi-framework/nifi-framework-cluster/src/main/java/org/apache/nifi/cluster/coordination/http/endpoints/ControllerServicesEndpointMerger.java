@@ -27,7 +27,7 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 
 public class ControllerServicesEndpointMerger extends AbstractMultiEntityEndpoint<ControllerServicesEntity, ControllerServiceDTO> {
-    public static final String CONTROLLER_SERVICES_URI = "/nifi-api/controller/controller-services/node";
+    public static final String CONTROLLER_SERVICES_URI = "/nifi-api/controller-services/node";
 
     @Override
     public boolean canHandle(URI uri, String method) {

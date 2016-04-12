@@ -16,25 +16,10 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
-import org.apache.nifi.web.api.dto.FunnelDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.FunnelEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.LongParameter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -50,10 +35,27 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
+import org.apache.nifi.web.api.dto.FunnelDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.FunnelEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Funnel.
@@ -233,16 +235,21 @@ public class FunnelResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(funnelEntity), getHeaders(headersToOverride)).getResponse();
         }
 
+        // Extract the revision
+        final Revision revision = getRevision(funnelEntity, id);
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
+            serviceFacade.claimRevision(revision);
             return generateContinueResponse().build();
         }
 
         // update the funnel
-        final RevisionDTO revision = funnelEntity.getRevision();
-        final UpdateResult<FunnelEntity> updateResult = serviceFacade.updateFunnel(
-                new Revision(revision.getVersion(), revision.getClientId()), requestFunnelDTO);
+        final UpdateResult<FunnelEntity> updateResult = serviceFacade.updateFunnel(revision, requestFunnelDTO);
 
         // get the results
         final FunnelEntity entity = updateResult.getResult();
@@ -312,20 +319,18 @@ public class FunnelResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteFunnel(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the specified funnel
-        final FunnelEntity entity = serviceFacade.deleteFunnel(new Revision(clientVersion, clientId.getClientId()), id);
+        final FunnelEntity entity = serviceFacade.deleteFunnel(revision, id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 

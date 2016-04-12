@@ -30,8 +30,8 @@ import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 
 public class DropRequestEndpiontMerger extends AbstractSingleEntityEndpoint<DropRequestEntity, DropRequestDTO> {
-    public static final Pattern DROP_REQUESTS_URI = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections/[a-f0-9\\-]{36}/drop-requests");
-    public static final Pattern DROP_REQUEST_URI = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections/[a-f0-9\\-]{36}/drop-requests/[a-f0-9\\-]{36}");
+    public static final Pattern DROP_REQUESTS_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/drop-requests");
+    public static final Pattern DROP_REQUEST_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/drop-requests/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(URI uri, String method) {

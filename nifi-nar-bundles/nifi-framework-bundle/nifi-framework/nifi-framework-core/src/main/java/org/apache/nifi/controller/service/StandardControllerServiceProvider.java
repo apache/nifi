@@ -207,39 +207,46 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public void disableReferencingServices(final ControllerServiceNode serviceNode) {
+    public Set<ConfiguredComponent> disableReferencingServices(final ControllerServiceNode serviceNode) {
         // Get a list of all Controller Services that need to be disabled, in the order that they need to be
         // disabled.
         final List<ControllerServiceNode> toDisable = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
 
         final Set<ControllerServiceNode> serviceSet = new HashSet<>(toDisable);
 
+        final Set<ConfiguredComponent> updated = new HashSet<>();
         for (final ControllerServiceNode nodeToDisable : toDisable) {
             if (nodeToDisable.isActive()) {
                 nodeToDisable.verifyCanDisable(serviceSet);
+                updated.add(nodeToDisable);
             }
         }
 
         Collections.reverse(toDisable);
         processScheduler.disableControllerServices(toDisable);
+        return updated;
     }
 
     @Override
-    public void scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+    public Set<ConfiguredComponent> scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.
         final List<ProcessorNode> processors = findRecursiveReferences(serviceNode, ProcessorNode.class);
         final List<ReportingTaskNode> reportingTasks = findRecursiveReferences(serviceNode, ReportingTaskNode.class);
 
+        final Set<ConfiguredComponent> updated = new HashSet<>();
+
         // verify that  we can start all components (that are not disabled) before doing anything
         for (final ProcessorNode node : processors) {
             if (node.getScheduledState() != ScheduledState.DISABLED) {
                 node.verifyCanStart();
+                updated.add(node);
             }
         }
         for (final ReportingTaskNode node : reportingTasks) {
             if (node.getScheduledState() != ScheduledState.DISABLED) {
                 node.verifyCanStart();
+                updated.add(node);
             }
         }
 
@@ -247,21 +254,27 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         for (final ProcessorNode node : processors) {
             if (node.getScheduledState() != ScheduledState.DISABLED) {
                 node.getProcessGroup().startProcessor(node);
+                updated.add(node);
             }
         }
         for (final ReportingTaskNode node : reportingTasks) {
             if (node.getScheduledState() != ScheduledState.DISABLED) {
                 processScheduler.schedule(node);
+                updated.add(node);
             }
         }
+
+        return updated;
     }
 
     @Override
-    public void unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+    public Set<ConfiguredComponent> unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.
         final List<ProcessorNode> processors = findRecursiveReferences(serviceNode, ProcessorNode.class);
         final List<ReportingTaskNode> reportingTasks = findRecursiveReferences(serviceNode, ReportingTaskNode.class);
+
+        final Set<ConfiguredComponent> updated = new HashSet<>();
 
         // verify that  we can stop all components (that are running) before doing anything
         for (final ProcessorNode node : processors) {
@@ -279,13 +292,17 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         for (final ProcessorNode node : processors) {
             if (node.getScheduledState() == ScheduledState.RUNNING) {
                 node.getProcessGroup().stopProcessor(node);
+                updated.add(node);
             }
         }
         for (final ReportingTaskNode node : reportingTasks) {
             if (node.getScheduledState() == ScheduledState.RUNNING) {
                 processScheduler.unschedule(node);
+                updated.add(node);
             }
         }
+
+        return updated;
     }
 
     @Override
@@ -541,15 +558,17 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public void enableReferencingServices(final ControllerServiceNode serviceNode) {
+    public Set<ConfiguredComponent> enableReferencingServices(final ControllerServiceNode serviceNode) {
         final List<ControllerServiceNode> recursiveReferences = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
-        enableReferencingServices(serviceNode, recursiveReferences);
+        return enableReferencingServices(serviceNode, recursiveReferences);
     }
 
-    private void enableReferencingServices(final ControllerServiceNode serviceNode, final List<ControllerServiceNode> recursiveReferences) {
+    private Set<ConfiguredComponent> enableReferencingServices(final ControllerServiceNode serviceNode, final List<ControllerServiceNode> recursiveReferences) {
         if (!serviceNode.isActive()) {
             serviceNode.verifyCanEnable(new HashSet<>(recursiveReferences));
         }
+
+        final Set<ConfiguredComponent> updated = new HashSet<>();
 
         final Set<ControllerServiceNode> ifEnabled = new HashSet<>();
         for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
@@ -562,8 +581,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
             if (!nodeToEnable.isActive()) {
                 enableControllerService(nodeToEnable);
+                updated.add(nodeToEnable);
             }
         }
+
+        return updated;
     }
 
     @Override

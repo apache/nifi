@@ -33,7 +33,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 public class ProcessGroupEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))");
+    public static final Pattern PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
@@ -47,18 +47,18 @@ public class ProcessGroupEndpointMerger implements EndpointResponseMerger {
         }
 
         final ProcessGroupEntity responseEntity = clientResponse.getClientResponse().getEntity(ProcessGroupEntity.class);
-        final ProcessGroupDTO responseDto = responseEntity.getProcessGroup();
+        final ProcessGroupDTO responseDto = responseEntity.getComponent();
 
         final FlowSnippetDTO contents = responseDto.getContents();
         if (contents == null) {
-            return clientResponse;
+            return new NodeResponse(clientResponse, responseEntity);
         } else {
             final Map<String, Map<NodeIdentifier, ProcessorDTO>> processorMap = new HashMap<>();
             final Map<String, Map<NodeIdentifier, RemoteProcessGroupDTO>> remoteProcessGroupMap = new HashMap<>();
 
             for (final NodeResponse nodeResponse : successfulResponses) {
                 final ProcessGroupEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessGroupEntity.class);
-                final ProcessGroupDTO nodeProcessGroup = nodeResponseEntity.getProcessGroup();
+                final ProcessGroupDTO nodeProcessGroup = nodeResponseEntity.getComponent();
 
                 for (final ProcessorDTO nodeProcessor : nodeProcessGroup.getContents().getProcessors()) {
                     Map<NodeIdentifier, ProcessorDTO> innerMap = processorMap.get(nodeProcessor.getId());

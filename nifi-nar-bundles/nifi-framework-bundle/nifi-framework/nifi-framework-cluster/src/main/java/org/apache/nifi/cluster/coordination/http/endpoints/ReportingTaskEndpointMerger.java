@@ -30,7 +30,7 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 public class ReportingTaskEndpointMerger extends AbstractSingleEntityEndpoint<ReportingTaskEntity, ReportingTaskDTO> {
     public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks/node";
-    public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile("/nifi-api/controller/reporting-tasks/node/[a-f0-9\\-]{36}");
+    public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile("/nifi-api/reporting-tasks/node/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(URI uri, String method) {

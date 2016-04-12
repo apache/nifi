@@ -357,6 +357,10 @@ public class FlowResource extends ApplicationResource {
     public Response getRevision() {
         authorizeFlow();
 
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
         // create the current revision
         final RevisionDTO revision = serviceFacade.getRevision();
 

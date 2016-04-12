@@ -155,20 +155,11 @@ public class ControllerResource extends ApplicationResource {
 
         // create the archive
         final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.createArchive(new Revision(requestRevision.getVersion(), requestRevision.getClientId()));
-
-        // create the revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(requestRevision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // create the response entity
-        final ProcessGroupEntity controllerEntity = new ProcessGroupEntity();
-        controllerEntity.setRevision(updatedRevision);
+        final ProcessGroupEntity entity = serviceFacade.createArchive(new Revision(requestRevision.getVersion(), requestRevision.getClientId()));
 
         // generate the response
         URI uri = URI.create(generateResourceUri("controller", "archive"));
-        return clusterContext(generateCreatedResponse(uri, controllerEntity)).build();
+        return clusterContext(generateCreatedResponse(uri, entity)).build();
     }
 
     /**
@@ -432,15 +423,17 @@ public class ControllerResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(configEntity), getHeaders()).getResponse();
         }
 
+        final RevisionDTO revisionDto = configEntity.getRevision();
+        final Revision revision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), "controller");
+
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
 
-        final RevisionDTO revision = configEntity.getRevision();
         final ConfigurationSnapshot<ControllerConfigurationDTO> controllerResponse
-                = serviceFacade.updateControllerConfiguration(new Revision(revision.getVersion(), revision.getClientId()), configEntity.getConfig());
+            = serviceFacade.updateControllerConfiguration(revision, configEntity.getConfig());
         final ControllerConfigurationDTO controllerConfig = controllerResponse.getConfiguration();
 
         // get the updated revision
@@ -580,9 +573,6 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("The type of reporting task to create must be specified.");
         }
 
-        // get the revision
-        final RevisionDTO revision = reportingTaskEntity.getRevision();
-
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(reportingTaskEntity), getHeaders()).getResponse();
         }
@@ -602,22 +592,13 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // create the reporting task and generate the json
-        final ConfigurationSnapshot<ReportingTaskDTO> controllerResponse = serviceFacade.createReportingTask(
-            new Revision(revision.getVersion(), revision.getClientId()), reportingTaskEntity.getReportingTask());
-        final ReportingTaskDTO reportingTask = controllerResponse.getConfiguration();
+        final Revision revision = getRevision(reportingTaskEntity.getRevision(), reportingTaskEntity.getReportingTask().getId());
+        final ReportingTaskEntity entity = serviceFacade.createReportingTask(revision, reportingTaskEntity.getReportingTask());
 
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ReportingTaskEntity entity = new ReportingTaskEntity();
-        entity.setRevision(updatedRevision);
-        entity.setReportingTask(reportingTaskResource.populateRemainingReportingTaskContent(availability, reportingTask));
+        reportingTaskResource.populateRemainingReportingTaskContent(availability, entity.getReportingTask());
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(reportingTask.getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getReportingTask().getUri()), entity)).build();
     }
 
     /**

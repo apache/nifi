@@ -65,6 +65,10 @@ import org.apache.nifi.cluster.coordination.heartbeat.ClusterProtocolHeartbeatMo
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
+import org.apache.nifi.cluster.coordination.http.replication.AsyncClusterResponse;
+import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.coordination.http.replication.ThreadPoolRequestReplicator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.event.EventManager;
@@ -74,10 +78,7 @@ import org.apache.nifi.cluster.flow.DaoException;
 import org.apache.nifi.cluster.flow.DataFlowManagementService;
 import org.apache.nifi.cluster.flow.PersistedFlowState;
 import org.apache.nifi.cluster.manager.HttpClusterManager;
-import org.apache.nifi.cluster.manager.HttpRequestReplicator;
-import org.apache.nifi.cluster.manager.HttpResponseMapper;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.manager.exception.ConflictingNodeIdException;
 import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
@@ -110,6 +111,7 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -132,6 +134,7 @@ import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
@@ -153,9 +156,7 @@ import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformation;
 import org.apache.nifi.remote.protocol.socket.ClusterManagerServerProtocol;
 import org.apache.nifi.reporting.Bulletin;
-import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
@@ -170,8 +171,6 @@ import org.apache.nifi.web.OptimisticLockingManager;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UpdateRevision;
 import org.apache.nifi.web.api.dto.BulletinDTO;
-import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
-import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +181,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 /**
  * Provides a cluster manager implementation. The manager federates incoming HTTP client requests to the nodes' external API using the HTTP protocol. The manager also communicates with nodes using the
@@ -195,7 +195,7 @@ import com.sun.jersey.api.client.ClientResponse;
  * The start() and stop() methods must be called to initialize and stop the instance.
  *
  */
-public class WebClusterManager implements HttpClusterManager, ProtocolHandler, ControllerServiceProvider, ReportingTaskProvider {
+public class WebClusterManager implements HttpClusterManager, ProtocolHandler, ControllerServiceProvider, ReportingTaskProvider, RequestCompletionCallback {
 
     public static final String ROOT_GROUP_ID_ALIAS = "root";
     public static final String BULLETIN_CATEGORY = "Clustering";
@@ -246,7 +246,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     public static final Pattern COUNTER_URI_PATTERN = Pattern.compile("/nifi-api/controller/counters/[a-f0-9\\-]{36}");
 
     private final NiFiProperties properties;
-    private final HttpRequestReplicator httpRequestReplicator;
     private final DataFlowManagementService dataFlowManagementService;
     private final ClusterManagerProtocolSenderListener senderListener;
     private final OptimisticLockingManager optimisticLockingManager;
@@ -278,17 +277,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private final StandardProcessScheduler processScheduler;
     private final StateManagerProvider stateManagerProvider;
 
-    private final HttpResponseMerger responseMerger = new StandardHttpResponseMerger();
+    private final HttpResponseMerger responseMerger = new StandardHttpResponseMerger(this);
+    private final RequestReplicator httpRequestReplicator;
 
-    public WebClusterManager(final HttpRequestReplicator httpRequestReplicator, final HttpResponseMapper httpResponseMapper,
+    public WebClusterManager(
             final DataFlowManagementService dataFlowManagementService, final ClusterManagerProtocolSenderListener senderListener,
             final NiFiProperties properties, final StringEncryptor encryptor, final OptimisticLockingManager optimisticLockingManager) {
 
-        if (httpRequestReplicator == null) {
-            throw new IllegalArgumentException("HttpRequestReplicator may not be null.");
-        } else if (httpResponseMapper == null) {
-            throw new IllegalArgumentException("HttpResponseMapper may not be null.");
-        } else if (dataFlowManagementService == null) {
+        if (dataFlowManagementService == null) {
             throw new IllegalArgumentException("DataFlowManagementService may not be null.");
         } else if (senderListener == null) {
             throw new IllegalArgumentException("ClusterManagerProtocolSenderListener may not be null.");
@@ -296,8 +292,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             throw new IllegalArgumentException("NiFiProperties may not be null.");
         }
 
-        // Ensure that our encryptor/decryptor is properly initialized
-        this.httpRequestReplicator = httpRequestReplicator;
         this.dataFlowManagementService = dataFlowManagementService;
         this.properties = properties;
         this.bulletinRepository = new VolatileBulletinRepository();
@@ -348,9 +342,33 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
 
-        clusterCoordinator = new WebClusterManagerCoordinator(this, senderListener);
+        clusterCoordinator = new WebClusterManagerCoordinator(this, senderListener, dataFlowManagementService);
         heartbeatMonitor = new ClusterProtocolHeartbeatMonitor(clusterCoordinator, properties);
         senderListener.addHandler(heartbeatMonitor);
+        httpRequestReplicator = createRequestReplicator(properties);
+    }
+
+    private RequestReplicator createRequestReplicator(final NiFiProperties properties) {
+        final int numThreads = properties.getClusterManagerNodeApiRequestThreads();
+        final String connectionTimeout = properties.getClusterManagerNodeApiConnectionTimeout();
+        final String readTimeout = properties.getClusterManagerNodeApiReadTimeout();
+        final EventReporter eventReporter = createEventReporter();
+
+        final Client jerseyClient = WebUtils.createClient(new DefaultClientConfig(), SslContextFactory.createSslContext(properties));
+        return new ThreadPoolRequestReplicator(numThreads, jerseyClient, clusterCoordinator, connectionTimeout, readTimeout, this,
+            eventReporter, this, optimisticLockingManager, dataFlowManagementService);
+    }
+
+    private EventReporter createEventReporter() {
+        return new EventReporter() {
+            private static final long serialVersionUID = 7770887158588031619L;
+
+            @Override
+            public void reportEvent(Severity severity, String category, String message) {
+                final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);
+                getBulletinRepository().addBulletin(bulletin);
+            }
+        };
     }
 
     public void start() throws IOException {
@@ -1198,23 +1216,23 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     @Override
-    public void disableReferencingServices(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.disableReferencingServices(serviceNode);
+    public Set<ConfiguredComponent> disableReferencingServices(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.disableReferencingServices(serviceNode);
     }
 
     @Override
-    public void enableReferencingServices(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.enableReferencingServices(serviceNode);
+    public Set<ConfiguredComponent> enableReferencingServices(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.enableReferencingServices(serviceNode);
     }
 
     @Override
-    public void scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.scheduleReferencingComponents(serviceNode);
+    public Set<ConfiguredComponent> scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.scheduleReferencingComponents(serviceNode);
     }
 
     @Override
-    public void unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.unscheduleReferencingComponents(serviceNode);
+    public Set<ConfiguredComponent> unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.unscheduleReferencingComponents(serviceNode);
     }
 
     @Override
@@ -1539,18 +1557,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         lock.lock();
         try {
-            // check that the request can be applied
-            if (mutableRequest) {
-                if (isInSafeMode()) {
-                    throw new SafeModeMutableRequestException("Received a mutable request [" + method + " -- " + uri + "] while in safe mode");
-                } else if (!getNodeIds(Status.DISCONNECTED, Status.DISCONNECTING).isEmpty()) {
-                    throw new DisconnectedNodeMutableRequestException("Received a mutable request [" + method + " -- " + uri + "] while a node is disconnected from the cluster");
-                } else if (!getNodeIds(Status.CONNECTING).isEmpty()) {
-                    // if any node is connecting and a request can change the flow, then we throw an exception
-                    throw new ConnectingNodeMutableRequestException("Received a mutable request [" + method + " -- " + uri + "] while a node is trying to connect to the cluster");
-                }
-            }
-
             final NodeResponse clientResponse = federateRequest(method, uri, parameters, null, headers, nodeIdentifiers);
             if (clientResponse == null) {
                 if (mutableRequest) {
@@ -1776,55 +1782,20 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 final String serializedClusterCtx = WebUtils.serializeObjectToHex(clusterCtx);
                 updatedHeaders.put(CLUSTER_CONTEXT_HTTP_HEADER, serializedClusterCtx);
 
-                // if the request is mutable, we need to verify that it is a valid request for all nodes in the cluster.
-                if (mutableRequest) {
-                    updatedHeaders.put(NCM_EXPECTS_HTTP_HEADER, "150-NodeContinue");
-
-                    final Set<NodeResponse> nodeResponses;
-                    if (entity == null) {
-                        nodeResponses = httpRequestReplicator.replicate(nodeIds, method, uri, parameters, updatedHeaders);
-                    } else {
-                        nodeResponses = httpRequestReplicator.replicate(nodeIds, method, uri, entity, updatedHeaders);
-                    }
-
-                    updatedHeaders.remove(NCM_EXPECTS_HTTP_HEADER);
-
-                    for (final NodeResponse response : nodeResponses) {
-                        if (response.getStatus() != NODE_CONTINUE_STATUS_CODE) {
-                            final String nodeDescription = response.getNodeId().getApiAddress() + ":" + response.getNodeId().getApiPort();
-                            final ClientResponse clientResponse = response.getClientResponse();
-                            if (clientResponse == null) {
-                                throw new IllegalClusterStateException("Node " + nodeDescription + " is unable to fulfill this request due to: Unexpected Response Code " + response.getStatus());
-                            }
-                            final String nodeExplanation = clientResponse.getEntity(String.class);
-                            throw new IllegalClusterStateException("Node " + nodeDescription + " is unable to fulfill this request due to: " + nodeExplanation, response.getThrowable());
-                        }
-                    }
-
-                    // set flow state to unknown to denote a mutable request replication in progress
-                    logger.debug("Setting Flow State to UNKNOWN due to mutable request to {} {}", method, uri);
-                    notifyDataFlowManagmentServiceOfFlowStateChange(PersistedFlowState.UNKNOWN);
-                }
-
                 // replicate request
-                final Set<NodeResponse> nodeResponses;
-                try {
-                    if (entity == null) {
-                        nodeResponses = httpRequestReplicator.replicate(nodeIds, method, uri, parameters, updatedHeaders);
-                    } else {
-                        nodeResponses = httpRequestReplicator.replicate(nodeIds, method, uri, entity, updatedHeaders);
-                    }
-                } catch (final UriConstructionException uce) {
-                    // request was not replicated, so mark the flow with its original state
-                    if (mutableRequest) {
-                        notifyDataFlowManagmentServiceOfFlowStateChange(originalPersistedFlowState);
-                    }
+                final AsyncClusterResponse clusterResponse = httpRequestReplicator.replicate(nodeIds, method, uri, entity == null ? parameters : entity, updatedHeaders);
 
-                    throw uce;
+                final NodeResponse clientResponse;
+                try {
+                    clientResponse = clusterResponse.awaitMergedResponse();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.warn("Thread was interrupted while waiting for a response from one or more nodes", e);
+                    final Set<NodeIdentifier> noResponses = clusterResponse.getNodesInvolved();
+                    noResponses.removeAll(clusterResponse.getCompletedNodeIdentifiers());
+                    throw new IllegalClusterStateException("Interrupted while waiting for a response from the following nodes: " + noResponses, e);
                 }
 
-                // merge the response
-                final NodeResponse clientResponse = mergeResponses(uri, method, nodeResponses, mutableRequest);
                 holder.set(clientResponse);
 
                 // if we have a response get the updated cluster context for auditing and revision updating
@@ -1873,17 +1844,12 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
 
-    private static boolean isCounterEndpoint(final URI uri) {
-        return COUNTER_URI_PATTERN.matcher(uri.getPath()).matches();
+    private static boolean isCounterEndpoint(final String uriPath) {
+        return COUNTER_URI_PATTERN.matcher(uriPath).matches();
     }
 
 
-    static boolean isResponseInterpreted(final URI uri, final String method) {
-        return StandardHttpResponseMerger.isResponseInterpreted(uri, method);
-    }
-
-
-    private List<BulletinDTO> mergeNCMBulletins(final List<BulletinDTO> nodeBulletins, final List<Bulletin> ncmBulletins) {
+    public List<BulletinDTO> mergeNCMBulletins(final List<BulletinDTO> nodeBulletins, final List<Bulletin> ncmBulletins) {
         if (ncmBulletins == null || ncmBulletins.isEmpty()) {
             return nodeBulletins;
         }
@@ -1979,48 +1945,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     // of the NCM, this goes away completely.
     public static final Pattern CONTROLLER_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/controller/status");
 
-    private static boolean isControllerStatusEndpoint(final URI uri, final String method) {
+    public boolean isControllerStatusEndpoint(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && CONTROLLER_STATUS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
 
-
-    // requires write lock to be already acquired unless request is not mutable
-    private NodeResponse mergeResponses(final URI uri, final String method, final Set<NodeResponse> nodeResponses, final boolean mutableRequest) {
-        final NodeResponse clientResponse = responseMerger.mergeResponses(uri, method, nodeResponses);
-
-        // determine if we have at least one response
-        final boolean hasClientResponse = clientResponse != null;
-        final boolean hasSuccessfulClientResponse = hasClientResponse && clientResponse.is2xx();
-
-        if (hasSuccessfulClientResponse && isControllerStatusEndpoint(uri, method)) {
-
-            // for now, we need to merge the NCM's bulletins too.
-            // TODO: Remove this logic when we can.
-            final ControllerStatusEntity responseEntity = (ControllerStatusEntity) clientResponse.getUpdatedEntity();
-            final ControllerStatusDTO mergedStatus = responseEntity.getControllerStatus();
-
-            final int totalNodeCount = getNodeIds().size();
-            final int connectedNodeCount = getNodeIds(Status.CONNECTED).size();
-
-            final List<Bulletin> ncmControllerBulletins = getBulletinRepository().findBulletinsForController();
-            mergedStatus.setBulletins(mergeNCMBulletins(mergedStatus.getBulletins(), ncmControllerBulletins));
-
-            // get the controller service bulletins
-            final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();
-            final List<Bulletin> ncmServiceBulletins = getBulletinRepository().findBulletins(controllerServiceQuery);
-            mergedStatus.setControllerServiceBulletins(mergeNCMBulletins(mergedStatus.getControllerServiceBulletins(), ncmServiceBulletins));
-
-            // get the reporting task bulletins
-            final BulletinQuery reportingTaskQuery = new BulletinQuery.Builder().sourceType(ComponentType.REPORTING_TASK).build();
-            final List<Bulletin> ncmReportingTaskBulletins = getBulletinRepository().findBulletins(reportingTaskQuery);
-            mergedStatus.setReportingTaskBulletins(mergeNCMBulletins(mergedStatus.getReportingTaskBulletins(), ncmReportingTaskBulletins));
-
-            mergedStatus.setConnectedNodeCount(connectedNodeCount);
-            mergedStatus.setTotalNodeCount(totalNodeCount);
-            StatusMerger.updatePrettyPrintedFields(mergedStatus);
-        }
-
+    @Override
+    public void afterRequest(final String uriPath, final String method, final Set<NodeResponse> nodeResponses) {
+        final boolean mutableRequest = canChangeNodeState(method, null);
 
         /*
          * Nodes that encountered issues handling the request are marked as
@@ -2036,7 +1968,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
             // some nodes had a problematic response because of a missing counter, ensure the are not disconnected
             final boolean someNodesFailedMissingCounter = !problematicNodeResponses.isEmpty()
-                && problematicNodeResponses.size() < nodeResponses.size() && isMissingCounter(problematicNodeResponses, uri);
+                && problematicNodeResponses.size() < nodeResponses.size() && isMissingCounter(problematicNodeResponses, uriPath);
 
             // ensure nodes stay connected in certain scenarios
             if (allNodesFailed || someNodesFailedMissingCounter) {
@@ -2050,26 +1982,17 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
             }
 
-            // notify service of updated node set
-            notifyDataFlowManagementServiceOfNodeStatusChange();
-
-            // mark flow as stale since this request could have changed the flow
-            notifyDataFlowManagmentServiceOfFlowStateChange(PersistedFlowState.STALE);
-
             // disconnect problematic nodes
             if (!problematicNodeResponses.isEmpty()) {
                 if (problematicNodeResponses.size() < nodeResponses.size()) {
-                    logger.warn(String.format("One or more nodes failed to process URI '%s'.  Requesting each node to disconnect from cluster.", uri));
-                    disconnectNodes(problematicNodeResponses, "Failed to process URI " + uri);
+                    logger.warn(String.format("The following nodes failed to process URI '%s'.  Requesting each node to disconnect from cluster: ", uriPath, problematicNodeResponses));
+                    disconnectNodes(problematicNodeResponses, "Failed to process URI " + uriPath);
                 } else {
-                    logger.warn("All nodes failed to process URI {}. As a result, no node will be disconnected from cluster", uri);
+                    logger.warn("All nodes failed to process URI {}. As a result, no node will be disconnected from cluster", uriPath);
                 }
             }
         }
-
-        return clientResponse;
     }
-
 
 
     /**
@@ -2077,11 +2000,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
      * one node contained the counter in question).
      *
      * @param problematicNodeResponses The problematic node responses
-     * @param uri The URI for the request
+     * @param uriPath The path of the URI for the request
      * @return Whether all problematic node responses were due to a missing counter
      */
-    private boolean isMissingCounter(final Set<NodeResponse> problematicNodeResponses, final URI uri) {
-        if (isCounterEndpoint(uri)) {
+    private boolean isMissingCounter(final Set<NodeResponse> problematicNodeResponses, final String uriPath) {
+        if (isCounterEndpoint(uriPath)) {
             boolean notFound = true;
             for (final NodeResponse problematicResponse : problematicNodeResponses) {
                 if (problematicResponse.getStatus() != 404) {

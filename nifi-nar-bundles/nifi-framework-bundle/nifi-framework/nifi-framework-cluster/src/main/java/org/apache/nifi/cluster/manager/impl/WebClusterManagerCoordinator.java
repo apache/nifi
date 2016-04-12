@@ -17,6 +17,8 @@
 
 package org.apache.nifi.cluster.manager.impl;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -25,6 +27,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.flow.DataFlowManagementService;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.node.Node.Status;
 import org.apache.nifi.cluster.protocol.ClusterManagerProtocolSender;
@@ -41,10 +44,12 @@ public class WebClusterManagerCoordinator implements ClusterCoordinator {
 
     private final WebClusterManager clusterManager;
     private final ClusterManagerProtocolSender protocolSender;
+    private final DataFlowManagementService dfmService;
 
-    public WebClusterManagerCoordinator(final WebClusterManager clusterManager, final ClusterManagerProtocolSender protocolSender) {
+    public WebClusterManagerCoordinator(final WebClusterManager clusterManager, final ClusterManagerProtocolSender protocolSender, final DataFlowManagementService dfmService) {
         this.clusterManager = clusterManager;
         this.protocolSender = protocolSender;
+        this.dfmService = dfmService;
     }
 
     @Override
@@ -196,6 +201,8 @@ public class WebClusterManagerCoordinator implements ClusterCoordinator {
             protocolSender.notifyNodeStatusChange(nodesToNotify, message);
         }
 
+        dfmService.setNodeIds(getNodeIdentifiers(NodeConnectionState.CONNECTED));
+
         return true;
     }
 
@@ -241,6 +248,17 @@ public class WebClusterManagerCoordinator implements ClusterCoordinator {
             message.setStatusUpdateIdentifier(statusUpdateId);
 
             protocolSender.notifyNodeStatusChange(nodesToNotify, message);
+            dfmService.setNodeIds(getNodeIdentifiers(NodeConnectionState.CONNECTED));
         }
+    }
+
+    @Override
+    public Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates() {
+        final Set<Node> nodes = clusterManager.getNodes();
+        final Map<NodeConnectionState, List<NodeIdentifier>> connectionStatusMap = nodes.stream()
+            .map(node -> node.getNodeId())
+            .collect(Collectors.groupingBy(nodeId -> getConnectionStatus(nodeId).getState()));
+
+        return connectionStatusMap;
     }
 }

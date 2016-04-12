@@ -29,7 +29,7 @@ import org.apache.nifi.web.api.dto.status.NodeConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 
 public class ConnectionStatusEndpiontMerger extends AbstractNodeStatusEndpoint<ConnectionStatusEntity, ConnectionStatusDTO> {
-    public static final Pattern CONNECTION_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections/[a-f0-9\\-]{36}/status");
+    public static final Pattern CONNECTION_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/connections/[a-f0-9\\-]{36}/status");
 
     @Override
     public boolean canHandle(URI uri, String method) {

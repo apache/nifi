@@ -36,10 +36,8 @@ import org.apache.nifi.web.api.dto.QueueSizeDTO;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
 
 public class ListFlowFilesEndpointMerger extends AbstractSingleEntityEndpoint<ListingRequestEntity, ListingRequestDTO> {
-    public static final Pattern LISTING_REQUESTS_URI = Pattern
-        .compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections/[a-f0-9\\-]{36}/listing-requests");
-    public static final Pattern LISTING_REQUEST_URI = Pattern
-        .compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections/[a-f0-9\\-]{36}/listing-requests/[a-f0-9\\-]{36}");
+    public static final Pattern LISTING_REQUESTS_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/listing-requests");
+    public static final Pattern LISTING_REQUEST_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/listing-requests/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(URI uri, String method) {

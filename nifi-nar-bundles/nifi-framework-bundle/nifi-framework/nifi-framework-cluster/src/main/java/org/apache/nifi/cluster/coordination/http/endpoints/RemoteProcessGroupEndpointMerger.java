@@ -33,8 +33,8 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
 public class RemoteProcessGroupEndpointMerger extends AbstractSingleEntityEndpoint<RemoteProcessGroupEntity, RemoteProcessGroupDTO> {
-    public static final Pattern REMOTE_PROCESS_GROUPS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/remote-process-groups");
-    public static final Pattern REMOTE_PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/remote-process-groups/[a-f0-9\\-]{36}");
+    public static final Pattern REMOTE_PROCESS_GROUPS_URI_PATTERN = Pattern.compile("/nifi-api/remote-process-groups");
+    public static final Pattern REMOTE_PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/remote-process-groups/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
@@ -54,7 +54,7 @@ public class RemoteProcessGroupEndpointMerger extends AbstractSingleEntityEndpoi
 
     @Override
     protected RemoteProcessGroupDTO getDto(final RemoteProcessGroupEntity entity) {
-        return entity.getRemoteProcessGroup();
+        return entity.getComponent();
     }
 
     @Override

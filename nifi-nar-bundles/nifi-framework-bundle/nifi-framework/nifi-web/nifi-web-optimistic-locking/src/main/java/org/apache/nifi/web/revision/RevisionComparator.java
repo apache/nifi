@@ -15,25 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cluster.coordination.node;
+package org.apache.nifi.web.revision;
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import java.util.Comparator;
 
-public class ClusterNode {
-    private final NodeIdentifier nodeId;
-    private NodeConnectionStatus connectionStatus = new NodeConnectionStatus(NodeConnectionState.DISCONNECTED, DisconnectionCode.NOT_YET_CONNECTED);
+import org.apache.nifi.web.Revision;
 
+public class RevisionComparator implements Comparator<Revision> {
 
-    public ClusterNode(final NodeIdentifier nodeId) {
-        this.nodeId = nodeId;
-    }
+    @Override
+    public int compare(final Revision o1, final Revision o2) {
+        final int componentComparison = o1.getComponentId().compareTo(o2.getComponentId());
+        if (componentComparison != 0) {
+            return componentComparison;
+        }
 
-    public NodeIdentifier getIdentifier() {
-        return nodeId;
-    }
+        final int clientComparison = o1.getClientId().compareTo(o2.getClientId());
+        if (clientComparison != 0) {
+            return clientComparison;
+        }
 
-    public NodeConnectionStatus getConnectionStatus() {
-        return connectionStatus;
+        return o1.getVersion().compareTo(o2.getVersion());
     }
 
 }

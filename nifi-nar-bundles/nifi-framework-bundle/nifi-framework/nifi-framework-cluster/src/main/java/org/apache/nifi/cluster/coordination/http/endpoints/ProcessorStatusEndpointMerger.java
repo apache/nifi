@@ -29,7 +29,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 
 public class ProcessorStatusEndpointMerger extends AbstractNodeStatusEndpoint<ProcessorStatusEntity, ProcessorStatusDTO> {
-    public static final Pattern PROCESSOR_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors/[a-f0-9\\-]{36}/status");
+    public static final Pattern PROCESSOR_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/processors/[a-f0-9\\-]{36}/status");
 
     @Override
     public boolean canHandle(URI uri, String method) {

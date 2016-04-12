@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.nifi.web.Revision;
+
 
 /**
  * Represents a data flow snippet.
@@ -33,14 +35,14 @@ public class StandardSnippet implements Snippet {
     private String parentGroupId;
     private Boolean linked;
 
-    private final Set<String> processGroups = new HashSet<>();
-    private final Set<String> remoteProcessGroups = new HashSet<>();
-    private final Set<String> processors = new HashSet<>();
-    private final Set<String> inputPorts = new HashSet<>();
-    private final Set<String> outputPorts = new HashSet<>();
-    private final Set<String> connections = new HashSet<>();
-    private final Set<String> labels = new HashSet<>();
-    private final Set<String> funnels = new HashSet<>();
+    private Map<String, Revision> processGroups = new HashMap<>();
+    private Map<String, Revision> remoteProcessGroups = new HashMap<>();
+    private Map<String, Revision> processors = new HashMap<>();
+    private Map<String, Revision> inputPorts = new HashMap<>();
+    private Map<String, Revision> outputPorts = new HashMap<>();
+    private Map<String, Revision> connections = new HashMap<>();
+    private Map<String, Revision> labels = new HashMap<>();
+    private Map<String, Revision> funnels = new HashMap<>();
 
     @Override
     public String getId() {
@@ -74,75 +76,75 @@ public class StandardSnippet implements Snippet {
     }
 
     @Override
-    public Set<String> getConnections() {
-        return Collections.unmodifiableSet(connections);
+    public Map<String, Revision> getConnections() {
+        return Collections.unmodifiableMap(connections);
     }
 
-    public void addConnections(Collection<String> ids) {
-        connections.addAll(ids);
-    }
-
-    @Override
-    public Set<String> getFunnels() {
-        return Collections.unmodifiableSet(funnels);
-    }
-
-    public void addFunnels(Collection<String> ids) {
-        funnels.addAll(ids);
+    public void addConnections(Map<String, Revision> ids) {
+        connections.putAll(ids);
     }
 
     @Override
-    public Set<String> getInputPorts() {
-        return Collections.unmodifiableSet(inputPorts);
+    public Map<String, Revision> getFunnels() {
+        return Collections.unmodifiableMap(funnels);
     }
 
-    public void addInputPorts(Collection<String> ids) {
-        inputPorts.addAll(ids);
-    }
-
-    @Override
-    public Set<String> getOutputPorts() {
-        return Collections.unmodifiableSet(outputPorts);
-    }
-
-    public void addOutputPorts(Collection<String> ids) {
-        outputPorts.addAll(ids);
+    public void addFunnels(Map<String, Revision> ids) {
+        funnels.putAll(ids);
     }
 
     @Override
-    public Set<String> getLabels() {
-        return Collections.unmodifiableSet(labels);
+    public Map<String, Revision> getInputPorts() {
+        return Collections.unmodifiableMap(inputPorts);
     }
 
-    public void addLabels(Collection<String> ids) {
-        labels.addAll(ids);
-    }
-
-    @Override
-    public Set<String> getProcessGroups() {
-        return Collections.unmodifiableSet(processGroups);
-    }
-
-    public void addProcessGroups(Collection<String> ids) {
-        processGroups.addAll(ids);
+    public void addInputPorts(Map<String, Revision> ids) {
+        inputPorts.putAll(ids);
     }
 
     @Override
-    public Set<String> getProcessors() {
-        return Collections.unmodifiableSet(processors);
+    public Map<String, Revision> getOutputPorts() {
+        return Collections.unmodifiableMap(outputPorts);
     }
 
-    public void addProcessors(Collection<String> ids) {
-        processors.addAll(ids);
+    public void addOutputPorts(Map<String, Revision> ids) {
+        outputPorts.putAll(ids);
     }
 
     @Override
-    public Set<String> getRemoteProcessGroups() {
-        return Collections.unmodifiableSet(remoteProcessGroups);
+    public Map<String, Revision> getLabels() {
+        return Collections.unmodifiableMap(labels);
     }
 
-    public void addRemoteProcessGroups(Collection<String> ids) {
-        remoteProcessGroups.addAll(ids);
+    public void addLabels(Map<String, Revision> ids) {
+        labels.putAll(ids);
+    }
+
+    @Override
+    public Map<String, Revision> getProcessGroups() {
+        return Collections.unmodifiableMap(processGroups);
+    }
+
+    public void addProcessGroups(Map<String, Revision> ids) {
+        processGroups.putAll(ids);
+    }
+
+    @Override
+    public Map<String, Revision> getProcessors() {
+        return Collections.unmodifiableMap(processors);
+    }
+
+    public void addProcessors(Map<String, Revision> ids) {
+        processors.putAll(ids);
+    }
+
+    @Override
+    public Map<String, Revision> getRemoteProcessGroups() {
+        return Collections.unmodifiableMap(remoteProcessGroups);
+    }
+
+    public void addRemoteProcessGroups(Map<String, Revision> ids) {
+        remoteProcessGroups.putAll(ids);
     }
 
     @Override

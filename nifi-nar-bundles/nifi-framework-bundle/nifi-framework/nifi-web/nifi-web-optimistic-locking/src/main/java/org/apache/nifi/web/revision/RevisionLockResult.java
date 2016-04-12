@@ -15,25 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cluster.coordination.node;
+package org.apache.nifi.web.revision;
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
+public enum RevisionLockResult {
 
-public class ClusterNode {
-    private final NodeIdentifier nodeId;
-    private NodeConnectionStatus connectionStatus = new NodeConnectionStatus(NodeConnectionState.DISCONNECTED, DisconnectionCode.NOT_YET_CONNECTED);
+    /**
+     * A lock was obtained for all Revisions for which a lock was requested.
+     */
+    LOCK_OBTAINED(true),
+
+    /**
+     * No lock was obtained because one or more of the Revisions was not up to date.
+     */
+    INVALID_REVISION(false);
 
 
-    public ClusterNode(final NodeIdentifier nodeId) {
-        this.nodeId = nodeId;
+
+    private final boolean successful;
+
+    private RevisionLockResult(final boolean successful) {
+        this.successful = successful;
     }
 
-    public NodeIdentifier getIdentifier() {
-        return nodeId;
+    /**
+     * Indicates whether or not the result provides a successful lock
+     *
+     * @return <code>true</code> if a lock was successfully obtained, <code>false</code> otherwise
+     */
+    public boolean isSuccess() {
+        return successful;
     }
-
-    public NodeConnectionStatus getConnectionStatus() {
-        return connectionStatus;
-    }
-
 }

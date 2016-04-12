@@ -115,4 +115,10 @@ public interface FlowService extends LifeCycle {
      */
     FlowController getController();
 
+    /**
+     * Creates a copy of the current flow and saves it in the configured 'archive' directory
+     * 
+     * @throws IOException if unable to write to the archive directory
+     */
+    void archiveFlow() throws IOException;
 }

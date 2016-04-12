@@ -16,14 +16,38 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.sun.jersey.multipart.FormDataParam;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
@@ -72,36 +96,14 @@ import org.apache.nifi.web.util.Availability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import com.sun.jersey.api.core.ResourceContext;
+import com.sun.jersey.multipart.FormDataParam;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -332,15 +334,18 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(processGroupEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateProcessGroup(requestProcessGroupDTO);
             return generateContinueResponse().build();
         }
 
         // update the process group
-        final RevisionDTO revision = processGroupEntity.getRevision();
-        final UpdateResult<ProcessGroupEntity> updateResult = serviceFacade.updateProcessGroup(new Revision(revision.getVersion(), revision.getClientId()), requestProcessGroupDTO);
+        final UpdateResult<ProcessGroupEntity> updateResult = serviceFacade.updateProcessGroup(revision, requestProcessGroupDTO);
         final ProcessGroupEntity entity = updateResult.getResult();
         populateRemainingProcessGroupEntityContent(entity);
 
@@ -405,20 +410,18 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteProcessGroup(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the process group
-        final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(new Revision(clientVersion, clientId.getClientId()), id);
+        final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(revision, id);
 
         // create the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -1687,7 +1690,7 @@ public class ProcessGroupResource extends ApplicationResource {
         snippetEntity.getSnippet().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return (Response) clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(snippetEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(snippetEntity), getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1959,18 +1962,9 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // delete the specified snippet
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteSnippet(new Revision(clientVersion, clientId.getClientId()), id);
+        final SnippetEntity snippetEntity = serviceFacade.deleteSnippet(new Revision(clientVersion, clientId.getClientId()), id);
 
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(revision);
-
-        return clusterContext(generateOkResponse(entity)).build();
+        return clusterContext(generateOkResponse(snippetEntity)).build();
     }
 
     // ----------------
@@ -2039,30 +2033,24 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // copy the specified snippet
         final RevisionDTO requestRevision = copySnippetEntity.getRevision();
-        final ConfigurationSnapshot<FlowDTO> controllerResponse = serviceFacade.copySnippet(
+        final FlowEntity flowEntity = serviceFacade.copySnippet(
             new Revision(requestRevision.getVersion(), requestRevision.getClientId()),
             groupId, copySnippetEntity.getSnippetId(), copySnippetEntity.getOriginX(), copySnippetEntity.getOriginY());
 
         // get the snippet
-        final FlowDTO flow = controllerResponse.getConfiguration();
+        final FlowDTO flow = flowEntity.getFlow();
 
         // prune response as necessary
         for (ProcessGroupEntity childGroupEntity : flow.getProcessGroups()) {
             childGroupEntity.getComponent().setContents(null);
         }
 
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(requestRevision.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
-        final FlowEntity entity = new FlowEntity();
-        entity.setRevision(revision);
-        entity.setFlow(populateRemainingSnippetContent(flow));
+        populateRemainingSnippetContent(flow);
 
         // generate the response
-        return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
+        return clusterContext(generateCreatedResponse(getAbsolutePath(), flowEntity)).build();
     }
 
     // -----------------
@@ -2131,26 +2119,20 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // create the template and generate the json
         final RevisionDTO requestRevision = instantiateTemplateRequestEntity.getRevision();
-        final ConfigurationSnapshot<FlowDTO> response = serviceFacade.createTemplateInstance(
+        final FlowEntity entity = serviceFacade.createTemplateInstance(
             new Revision(requestRevision.getVersion(), requestRevision.getClientId()), groupId, instantiateTemplateRequestEntity.getOriginX(),
             instantiateTemplateRequestEntity.getOriginY(), instantiateTemplateRequestEntity.getTemplateId());
 
-        final FlowDTO flowSnippet = response.getConfiguration();
+        final FlowDTO flowSnippet = entity.getFlow();
 
         // prune response as necessary
         for (ProcessGroupEntity childGroupEntity : flowSnippet.getProcessGroups()) {
             childGroupEntity.getComponent().setContents(null);
         }
 
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(requestRevision.getClientId());
-        revision.setVersion(response.getVersion());
 
         // create the response entity
-        final FlowEntity entity = new FlowEntity();
-        entity.setRevision(revision);
-        entity.setFlow(populateRemainingSnippetContent(flowSnippet));
+        populateRemainingSnippetContent(flowSnippet);
 
         // generate the response
         return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
@@ -2531,22 +2513,14 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the controller service and generate the json
-        final ConfigurationSnapshot<ControllerServiceDTO> controllerResponse = serviceFacade.createControllerService(
+        final ControllerServiceEntity entity = serviceFacade.createControllerService(
             new Revision(revision.getVersion(), revision.getClientId()), controllerServiceEntity.getControllerService());
-        final ControllerServiceDTO controllerService = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // build the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setControllerService(controllerServiceResource.populateRemainingControllerServiceContent(availability, controllerService));
-        entity.setRevision(updatedRevision);
+        controllerServiceResource.populateRemainingControllerServiceContent(availability, entity.getControllerService());
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(controllerService.getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getControllerService().getUri()), entity)).build();
     }
 
     /**

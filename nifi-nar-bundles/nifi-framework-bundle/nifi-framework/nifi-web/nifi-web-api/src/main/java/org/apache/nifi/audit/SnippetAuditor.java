@@ -271,7 +271,7 @@ public class SnippetAuditor extends NiFiAuditor {
             // create move audit records for all items in this snippet
             final Collection<Action> actions = new ArrayList<>();
 
-            for (String id : snippet.getProcessors()) {
+            for (String id : snippet.getProcessors().keySet()) {
                 final ProcessorNode processor = processorDAO.getProcessor(id);
                 final Action action = processorAuditor.generateAuditRecord(processor, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
@@ -279,7 +279,7 @@ public class SnippetAuditor extends NiFiAuditor {
                 }
             }
 
-            for (String id : snippet.getFunnels()) {
+            for (String id : snippet.getFunnels().keySet()) {
                 final Funnel funnel = funnelDAO.getFunnel(id);
                 final Action action = funnelAuditor.generateAuditRecord(funnel, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
@@ -287,7 +287,7 @@ public class SnippetAuditor extends NiFiAuditor {
                 }
             }
 
-            for (String id : snippet.getInputPorts()) {
+            for (String id : snippet.getInputPorts().keySet()) {
                 final Port port = inputPortDAO.getPort(id);
                 final Action action = portAuditor.generateAuditRecord(port, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
@@ -295,7 +295,7 @@ public class SnippetAuditor extends NiFiAuditor {
                 }
             }
 
-            for (String id : snippet.getOutputPorts()) {
+            for (String id : snippet.getOutputPorts().keySet()) {
                 final Port port = outputPortDAO.getPort(id);
                 final Action action = portAuditor.generateAuditRecord(port, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
@@ -303,7 +303,7 @@ public class SnippetAuditor extends NiFiAuditor {
                 }
             }
 
-            for (String id : snippet.getRemoteProcessGroups()) {
+            for (String id : snippet.getRemoteProcessGroups().keySet()) {
                 final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(id);
                 final Action action = remoteProcessGroupAuditor.generateAuditRecord(remoteProcessGroup, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
@@ -311,7 +311,7 @@ public class SnippetAuditor extends NiFiAuditor {
                 }
             }
 
-            for (String id : snippet.getProcessGroups()) {
+            for (String id : snippet.getProcessGroups().keySet()) {
                 final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
                 final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id);
                 final Action action = processGroupAuditor.generateAuditRecord(processGroup, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
@@ -320,7 +320,7 @@ public class SnippetAuditor extends NiFiAuditor {
                 }
             }
 
-            for (String id : snippet.getConnections()) {
+            for (String id : snippet.getConnections().keySet()) {
                 final Connection connection = connectionDAO.getConnection(id);
                 final Action action = relationshipAuditor.generateAuditRecordForConnection(connection, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
@@ -356,38 +356,38 @@ public class SnippetAuditor extends NiFiAuditor {
         if (snippet.isLinked()) {
             // locate all the components being removed
             final Set<Funnel> funnels = new HashSet<>();
-            for (String id : snippet.getFunnels()) {
+            for (String id : snippet.getFunnels().keySet()) {
                 funnels.add(funnelDAO.getFunnel(id));
             }
 
             final Set<Port> inputPorts = new HashSet<>();
-            for (String id : snippet.getInputPorts()) {
+            for (String id : snippet.getInputPorts().keySet()) {
                 inputPorts.add(inputPortDAO.getPort(id));
             }
 
             final Set<Port> outputPorts = new HashSet<>();
-            for (String id : snippet.getOutputPorts()) {
+            for (String id : snippet.getOutputPorts().keySet()) {
                 outputPorts.add(outputPortDAO.getPort(id));
             }
 
             final Set<RemoteProcessGroup> remoteProcessGroups = new HashSet<>();
-            for (String id : snippet.getRemoteProcessGroups()) {
+            for (String id : snippet.getRemoteProcessGroups().keySet()) {
                 remoteProcessGroups.add(remoteProcessGroupDAO.getRemoteProcessGroup(id));
             }
 
             final Set<ProcessGroup> processGroups = new HashSet<>();
             final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
-            for (String id : snippet.getProcessGroups()) {
+            for (String id : snippet.getProcessGroups().keySet()) {
                 processGroups.add(processGroupDAO.getProcessGroup(id));
             }
 
             final Set<ProcessorNode> processors = new HashSet<>();
-            for (String id : snippet.getProcessors()) {
+            for (String id : snippet.getProcessors().keySet()) {
                 processors.add(processorDAO.getProcessor(id));
             }
 
             final Set<Connection> connections = new HashSet<>();
-            for (String id : snippet.getConnections()) {
+            for (String id : snippet.getConnections().keySet()) {
                 connections.add(connectionDAO.getConnection(id));
             }
 

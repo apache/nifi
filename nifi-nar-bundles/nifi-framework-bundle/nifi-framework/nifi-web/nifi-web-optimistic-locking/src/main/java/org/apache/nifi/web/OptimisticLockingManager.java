@@ -16,12 +16,16 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.web.revision.RevisionManager;
+
 /**
  * A manager for optimistic locking based on revisions. A revision is composed
  * of a client ID and a version number. Two revisions are considered equal if
  * either their version numbers match or their client IDs match.
  *
+ * @deprecated This class has been deprecated in favor of {@link RevisionManager}
  */
+@Deprecated
 public interface OptimisticLockingManager {
 
     /**

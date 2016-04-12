@@ -29,8 +29,8 @@ import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 
 public class PortStatusEndpointMerger extends AbstractNodeStatusEndpoint<PortStatusEntity, PortStatusDTO> {
-    public static final Pattern INPUT_PORT_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/input-ports/[a-f0-9\\-]{36}/status");
-    public static final Pattern OUTPUT_PORT_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/output-ports/[a-f0-9\\-]{36}/status");
+    public static final Pattern INPUT_PORT_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/input-ports/[a-f0-9\\-]{36}/status");
+    public static final Pattern OUTPUT_PORT_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/output-ports/[a-f0-9\\-]{36}/status");
 
     @Override
     public boolean canHandle(URI uri, String method) {

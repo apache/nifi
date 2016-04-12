@@ -16,26 +16,10 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
-import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.LongParameter;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -51,10 +35,27 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Remote group.
@@ -239,19 +240,17 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteRemoteProcessGroup(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
-        final RemoteProcessGroupEntity entity = serviceFacade.deleteRemoteProcessGroup(new Revision(clientVersion, clientId.getClientId()), id);
+        final RemoteProcessGroupEntity entity = serviceFacade.deleteRemoteProcessGroup(revision, id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -318,28 +317,27 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(remoteProcessGroupPortEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             // verify the update at this time
             serviceFacade.verifyUpdateRemoteProcessGroupInputPort(id, requestRemoteProcessGroupPort);
             return generateContinueResponse().build();
         }
 
         // update the specified remote process group
-        final RevisionDTO revision = remoteProcessGroupPortEntity.getRevision();
-        final ConfigurationSnapshot<RemoteProcessGroupPortDTO> controllerResponse
-                = serviceFacade.updateRemoteProcessGroupInputPort(new Revision(revision.getVersion(),
-                                revision.getClientId()), id, requestRemoteProcessGroupPort);
+        final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupInputPort(revision, id, requestRemoteProcessGroupPort);
 
         // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
+        final RevisionDTO updatedRevision = controllerResponse.getRevision();
 
         // build the response entity
         final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
         entity.setRevision(updatedRevision);
-        entity.setRemoteProcessGroupPort(controllerResponse.getConfiguration());
+        entity.setRemoteProcessGroupPort(controllerResponse.getRemoteProcessGroupPort());
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -407,28 +405,27 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(remoteProcessGroupPortEntity, portId);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             // verify the update at this time
             serviceFacade.verifyUpdateRemoteProcessGroupOutputPort(id, requestRemoteProcessGroupPort);
             return generateContinueResponse().build();
         }
 
         // update the specified remote process group
-        final RevisionDTO revision = remoteProcessGroupPortEntity.getRevision();
-        final ConfigurationSnapshot<RemoteProcessGroupPortDTO> controllerResponse
-                = serviceFacade.updateRemoteProcessGroupOutputPort(new Revision(revision.getVersion(),
-                                revision.getClientId()), id, requestRemoteProcessGroupPort);
+        final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupOutputPort(revision, id, requestRemoteProcessGroupPort);
 
         // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
+        final RevisionDTO updatedRevision = controllerResponse.getRevision();
 
         // build the response entity
         RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
         entity.setRevision(updatedRevision);
-        entity.setRemoteProcessGroupPort(controllerResponse.getConfiguration());
+        entity.setRemoteProcessGroupPort(controllerResponse.getRemoteProcessGroupPort());
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -493,8 +490,12 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(remoteProcessGroupEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             // verify the update at this time
             serviceFacade.verifyUpdateRemoteProcessGroup(requestRemoteProcessGroup);
             return generateContinueResponse().build();
@@ -533,9 +534,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         // update the specified remote process group
-        final RevisionDTO revision = remoteProcessGroupEntity.getRevision();
-        final UpdateResult<RemoteProcessGroupEntity> updateResult
-                = serviceFacade.updateRemoteProcessGroup(new Revision(revision.getVersion(), revision.getClientId()), requestRemoteProcessGroup);
+        final UpdateResult<RemoteProcessGroupEntity> updateResult = serviceFacade.updateRemoteProcessGroup(revision, requestRemoteProcessGroup);
 
         final RemoteProcessGroupEntity entity = updateResult.getResult();
         populateRemainingRemoteProcessGroupEntityContent(entity);

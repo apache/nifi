@@ -30,8 +30,8 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 
 public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<ProcessorEntity, ProcessorDTO> implements EndpointResponseMerger {
-    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
-    public static final Pattern PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors/[a-f0-9\\-]{36}");
+    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/processors");
+    public static final Pattern PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}");
     public static final Pattern CLUSTER_PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/cluster/processors/[a-f0-9\\-]{36}");
 
     @Override
@@ -53,7 +53,7 @@ public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<Proces
 
     @Override
     protected ProcessorDTO getDto(final ProcessorEntity entity) {
-        return entity.getProcessor();
+        return entity.getComponent();
     }
 
     @Override

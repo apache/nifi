@@ -29,8 +29,7 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 
 public class RemoteProcessGroupStatusEndpointMerger extends AbstractNodeStatusEndpoint<RemoteProcessGroupStatusEntity, RemoteProcessGroupStatusDTO> {
-    public static final Pattern REMOTE_PROCESS_GROUP_STATUS_URI_PATTERN = Pattern
-        .compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/remote-process-groups/[a-f0-9\\-]{36}/status");
+    public static final Pattern REMOTE_PROCESS_GROUP_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status");
 
     @Override
     public boolean canHandle(URI uri, String method) {

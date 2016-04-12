@@ -25,38 +25,6 @@
     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
 
-    <!-- jersey client -->
-    <bean id="jersey-client" class="org.apache.nifi.web.util.WebUtils" factory-method="createClient">
-        <constructor-arg>
-            <bean class="com.sun.jersey.api.client.config.DefaultClientConfig"/>
-        </constructor-arg>
-        <constructor-arg>
-            <bean class="org.apache.nifi.framework.security.util.SslContextFactory" factory-method="createSslContext">
-                <constructor-arg ref="nifiProperties"/>
-            </bean>
-        </constructor-arg>
-    </bean>
-
-    <!-- http request replicator -->
-    <bean id="httpRequestReplicator" class="org.apache.nifi.cluster.manager.impl.HttpRequestReplicatorImpl">
-        <constructor-arg index="0">
-            <bean factory-bean="nifiProperties" factory-method="getClusterManagerNodeApiRequestThreads"/>
-        </constructor-arg>
-        <constructor-arg ref="jersey-client" index="1"/>
-        <constructor-arg index="2">
-            <bean factory-bean="nifiProperties" factory-method="getClusterManagerNodeApiConnectionTimeout"/>
-        </constructor-arg>
-        <constructor-arg index="3">
-            <bean factory-bean="nifiProperties" factory-method="getClusterManagerNodeApiReadTimeout"/>
-        </constructor-arg>
-        <property name="nodeProtocolScheme">
-            <bean factory-bean="nifiProperties" factory-method="getClusterProtocolManagerToNodeApiScheme"/>
-        </property>
-    </bean>
-    
-    <!-- http response mapper -->
-    <bean id="httpResponseMapper" class="org.apache.nifi.cluster.manager.impl.HttpResponseMapperImpl"/>
-
     <!-- cluster flow DAO -->
     <bean id="dataFlowDao" class="org.apache.nifi.cluster.flow.impl.DataFlowDaoImpl">
         <constructor-arg index="0">

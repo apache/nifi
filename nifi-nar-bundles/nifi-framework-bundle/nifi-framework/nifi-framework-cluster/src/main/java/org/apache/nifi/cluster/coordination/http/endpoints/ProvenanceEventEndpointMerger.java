@@ -28,7 +28,7 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
 
 public class ProvenanceEventEndpointMerger extends AbstractSingleEntityEndpoint<ProvenanceEventEntity, ProvenanceEventDTO> {
-    public static final Pattern PROVENANCE_EVENT_URI = Pattern.compile("/nifi-api/controller/provenance/events/[0-9]+");
+    public static final Pattern PROVENANCE_EVENT_URI = Pattern.compile("/nifi-api/provenance/events/[0-9]+");
 
     @Override
     public boolean canHandle(URI uri, String method) {

@@ -29,10 +29,11 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 
 public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoint<ControllerServiceEntity, ControllerServiceDTO> {
-    public static final String CONTROLLER_SERVICES_URI = "/nifi-api/controller/controller-services/node";
-    public static final Pattern CONTROLLER_SERVICE_URI_PATTERN = Pattern.compile("/nifi-api/controller/controller-services/node/[a-f0-9\\-]{36}");
+    public static final String CONTROLLER_SERVICES_URI = "/nifi-api/controller-services/node";
+    public static final Pattern CONTROLLER_SERVICE_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/node/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(URI uri, String method) {
@@ -58,8 +59,8 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
     @Override
     protected void mergeResponses(ControllerServiceDTO clientDto, Map<NodeIdentifier, ControllerServiceDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
-        final Set<ControllerServiceReferencingComponentDTO> referencingComponents = clientDto.getReferencingComponents();
-        final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> nodeReferencingComponentsMap = new HashMap<>();
+        final Set<ControllerServiceReferencingComponentEntity> referencingComponents = clientDto.getReferencingComponents();
+        final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> nodeReferencingComponentsMap = new HashMap<>();
 
         String state = null;
         for (final Map.Entry<NodeIdentifier, ControllerServiceDTO> nodeEntry : dtoMap.entrySet()) {
@@ -74,9 +75,7 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
                 }
             }
 
-            for (final ControllerServiceReferencingComponentDTO nodeReferencingComponents : nodeControllerService.getReferencingComponents()) {
-                nodeReferencingComponentsMap.put(nodeId, nodeReferencingComponents.getReferencingComponents());
-            }
+            nodeReferencingComponentsMap.put(nodeId, nodeControllerService.getReferencingComponents());
 
             // merge the validation errors
             mergeValidationErrors(validationErrorMap, nodeId, nodeControllerService.getValidationErrors());
@@ -94,17 +93,19 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
         clientDto.setValidationErrors(normalizedMergedValidationErrors(validationErrorMap, dtoMap.size()));
     }
 
-    public static void mergeControllerServiceReferences(Set<ControllerServiceReferencingComponentDTO> referencingComponents,
-        Map<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> referencingComponentMap) {
+    public static void mergeControllerServiceReferences(Set<ControllerServiceReferencingComponentEntity> referencingComponents,
+        Map<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> referencingComponentMap) {
 
         final Map<String, Integer> activeThreadCounts = new HashMap<>();
         final Map<String, String> states = new HashMap<>();
-        for (final Map.Entry<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> nodeEntry : referencingComponentMap.entrySet()) {
-            final Set<ControllerServiceReferencingComponentDTO> nodeReferencingComponents = nodeEntry.getValue();
+        for (final Map.Entry<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> nodeEntry : referencingComponentMap.entrySet()) {
+            final Set<ControllerServiceReferencingComponentEntity> nodeReferencingComponents = nodeEntry.getValue();
 
             // go through all the nodes referencing components
             if (nodeReferencingComponents != null) {
-                for (final ControllerServiceReferencingComponentDTO nodeReferencingComponent : nodeReferencingComponents) {
+                for (final ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity : nodeReferencingComponents) {
+                    final ControllerServiceReferencingComponentDTO nodeReferencingComponent = nodeReferencingComponentEntity.getControllerServiceReferencingComponent();
+
                     // handle active thread counts
                     if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
                         final Integer current = activeThreadCounts.get(nodeReferencingComponent.getId());
@@ -129,15 +130,15 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
         }
 
         // go through each referencing components
-        for (final ControllerServiceReferencingComponentDTO referencingComponent : referencingComponents) {
+        for (final ControllerServiceReferencingComponentEntity referencingComponent : referencingComponents) {
             final Integer activeThreadCount = activeThreadCounts.get(referencingComponent.getId());
             if (activeThreadCount != null) {
-                referencingComponent.setActiveThreadCount(activeThreadCount);
+                referencingComponent.getControllerServiceReferencingComponent().setActiveThreadCount(activeThreadCount);
             }
 
             final String state = states.get(referencingComponent.getId());
             if (state != null) {
-                referencingComponent.setState(state);
+                referencingComponent.getControllerServiceReferencingComponent().setState(state);
             }
         }
     }

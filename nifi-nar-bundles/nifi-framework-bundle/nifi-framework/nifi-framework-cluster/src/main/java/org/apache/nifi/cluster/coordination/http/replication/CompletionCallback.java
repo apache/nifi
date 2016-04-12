@@ -15,25 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cluster.coordination.node;
+package org.apache.nifi.cluster.coordination.http.replication;
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-
-public class ClusterNode {
-    private final NodeIdentifier nodeId;
-    private NodeConnectionStatus connectionStatus = new NodeConnectionStatus(NodeConnectionState.DISCONNECTED, DisconnectionCode.NOT_YET_CONNECTED);
-
-
-    public ClusterNode(final NodeIdentifier nodeId) {
-        this.nodeId = nodeId;
-    }
-
-    public NodeIdentifier getIdentifier() {
-        return nodeId;
-    }
-
-    public NodeConnectionStatus getConnectionStatus() {
-        return connectionStatus;
-    }
-
+public interface CompletionCallback {
+    void onCompletion(AsyncClusterResponse response);
 }

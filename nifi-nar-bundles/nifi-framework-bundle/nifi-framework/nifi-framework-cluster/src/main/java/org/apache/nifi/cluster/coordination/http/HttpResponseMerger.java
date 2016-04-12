@@ -53,4 +53,13 @@ public interface HttpResponseMerger {
      *         that indicate that the node was unable to fulfill the request
      */
     Set<NodeResponse> getProblematicNodeResponses(Set<NodeResponse> allResponses);
+
+    /**
+     * Indicates whether or not the responses from nodes for the given URI & HTTP method must be interpreted in order to merge them
+     *
+     * @param uri the URI of the request
+     * @param httpMethod the HTTP Method of the request
+     * @return <code>true</code> if the response must be interpreted, <code>false</code> otherwise
+     */
+    boolean isResponseInterpreted(URI uri, String httpMethod);
 }

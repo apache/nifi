@@ -18,16 +18,19 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 
-public class RemoteProcessGroupsEndpointMerger extends AbstractMultiEntityEndpoint<RemoteProcessGroupsEntity, RemoteProcessGroupDTO> {
+public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger {
     public static final Pattern REMOTE_PROCESS_GROUPS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/remote-process-groups");
 
     @Override
@@ -36,22 +39,40 @@ public class RemoteProcessGroupsEndpointMerger extends AbstractMultiEntityEndpoi
     }
 
     @Override
-    protected Class<RemoteProcessGroupsEntity> getEntityClass() {
-        return RemoteProcessGroupsEntity.class;
-    }
+    public NodeResponse merge(URI uri, String method, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses, NodeResponse clientResponse) {
+        if (!canHandle(uri, method)) {
+            throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
+        }
 
-    @Override
-    protected Set<RemoteProcessGroupDTO> getDtos(final RemoteProcessGroupsEntity entity) {
-        return entity.getRemoteProcessGroups();
-    }
+        final RemoteProcessGroupsEntity responseEntity = clientResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
+        final Set<RemoteProcessGroupEntity> rpgEntities = responseEntity.getRemoteProcessGroups();
 
-    @Override
-    protected String getComponentId(final RemoteProcessGroupDTO dto) {
-        return dto.getId();
-    }
+        final Map<String, Map<NodeIdentifier, RemoteProcessGroupDTO>> dtoMap = new HashMap<>();
+        for (final NodeResponse nodeResponse : successfulResponses) {
+            final RemoteProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
+            final Set<RemoteProcessGroupEntity> nodeRpgEntities = nodeResponseEntity.getRemoteProcessGroups();
 
-    @Override
-    protected void mergeResponses(RemoteProcessGroupDTO clientDto, Map<NodeIdentifier, RemoteProcessGroupDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        new RemoteProcessGroupEndpointMerger().mergeResponses(clientDto, dtoMap, successfulResponses, problematicResponses);
+            for (final RemoteProcessGroupEntity nodeRpgEntity : nodeRpgEntities) {
+                final NodeIdentifier nodeId = nodeResponse.getNodeId();
+                Map<NodeIdentifier, RemoteProcessGroupDTO> innerMap = dtoMap.get(nodeId);
+                if (innerMap == null) {
+                    innerMap = new HashMap<>();
+                    dtoMap.put(nodeRpgEntity.getId(), innerMap);
+                }
+
+                innerMap.put(nodeResponse.getNodeId(), nodeRpgEntity.getComponent());
+            }
+        }
+
+        final RemoteProcessGroupEndpointMerger rpgMerger = new RemoteProcessGroupEndpointMerger();
+        for (final RemoteProcessGroupEntity entity : rpgEntities) {
+            final String componentId = entity.getId();
+            final Map<NodeIdentifier, RemoteProcessGroupDTO> mergeMap = dtoMap.get(componentId);
+
+            rpgMerger.mergeResponses(entity.getComponent(), mergeMap, successfulResponses, problematicResponses);
+        }
+
+        // create a new client response
+        return new NodeResponse(clientResponse, responseEntity);
     }
 }
