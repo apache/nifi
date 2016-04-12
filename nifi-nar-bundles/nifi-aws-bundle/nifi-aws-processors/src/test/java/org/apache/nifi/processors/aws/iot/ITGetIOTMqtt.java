@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.iot;
 
-import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
@@ -40,7 +39,7 @@ public class ITGetIOTMqtt {
         final String endpoint = "A1B71MLXKNXXXX";
         final String topic = "$aws/things/nifiConsumer/shadow/update";
         final String qos = "0";
-        final Region region = Regions.getCurrentRegion();
+        final Regions region = Regions.US_EAST_1;
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
@@ -61,9 +60,6 @@ public class ITGetIOTMqtt {
 
         // trigger once
         runner.run(1);
-
-        // validate that the FlowFiles went where they were expected to go
-        runner.assertAllFlowFilesTransferred(GetIOTMqtt.REL_SUCCESS, 1);
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetIOTMqtt.REL_SUCCESS);
         for (final MockFlowFile mff : flowFiles) {

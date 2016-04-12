@@ -37,8 +37,11 @@ import java.util.*;
 
 @Tags({"Amazon", "AWS", "IOT", "Shadow", "Get"})
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@CapabilityDescription("Gets last persisted state of a thing in AWS IoT by reading out the shadow.")
-@SeeAlso({})
+@CapabilityDescription("Gets last persisted state of a thing in AWS IoT by reading out the shadow. " +
+        "A shadow might change more often than you get triggered. In order to get every message send " +
+        "out by a thing you better use GetIOTMqtt processor. You can dynamically set a thing-name " +
+        "when overriding the processor-configuration with a message-attribute \"aws.iot.thing.override\".")
+@SeeAlso({ GetIOTMqtt.class })
 @ReadsAttributes({
         @ReadsAttribute(attribute = "aws.iot.thing.override", description = "Overrides the processor configuration for topic."),
 })
@@ -77,12 +80,13 @@ public class GetIOTShadow extends AbstractIOTShadowProcessor {
         }
         // get flowfile
         FlowFile flowFile = session.get();
-        // if provided override configured thing name with the name from the corresponding message attribute
+        // if provided override configured thing name with name from corresponding message attribute
         String thingName =
                 flowFile != null && flowFile.getAttributes().containsKey(ATTR_NAME_THING) ?
                         flowFile.getAttribute(ATTR_NAME_THING) :
                         context.getProperty(PROP_NAME_THING).getValue();
 
+        // ask shadow of the thing for last reported state by requesting the API of AWS
         final GetThingShadowRequest iotRequest = new GetThingShadowRequest().withThingName(thingName);
         final GetThingShadowResult iotResponse = iotClient.getThingShadow(iotRequest);
 

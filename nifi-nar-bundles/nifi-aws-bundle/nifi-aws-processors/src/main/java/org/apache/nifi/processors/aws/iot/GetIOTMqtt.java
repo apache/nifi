@@ -40,8 +40,13 @@ import java.util.*;
 
 @Tags({"Amazon", "AWS", "IOT", "MQTT", "Websockets", "Get", "Subscribe", "Receive"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("Subscribes to and receives messages from MQTT-topic(s) of AWS IoT.")
-@SeeAlso({})
+@CapabilityDescription("Subscribes to and receives messages from MQTT-topic(s) of AWS IoT." +
+    "The processors keeps open a WebSocket connection and will automatically renew the " +
+    "connection to overcome Amazon's service limit on maximum connection duration. Depending on " +
+    "your set up QoS the processor will miss some messages (QoS=0) or receives messages twice (QoS=1) " +
+    "while reconnecting to AWS IoT WebSocket endpoint. We strongly recommend you to make use of " +
+    "processor isolation as concurrent subscriptions to an MQTT topic result in multiple message receiptions.")
+@SeeAlso({ GetIOTShadow.class })
 @WritesAttributes({
         @WritesAttribute(attribute = "aws.iot.mqtt.endpoint", description = "AWS endpoint this message was received from."),
         @WritesAttribute(attribute = "aws.iot.mqtt.topic", description = "MQTT topic this message was received from."),
@@ -72,9 +77,11 @@ public class GetIOTMqtt extends AbstractIOTMqttProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        // init to build up mqtt connection over web-sockets
         init(context);
         if (mqttClient != null && mqttClient.isConnected()) {
             try {
+                // subscribe to topic with configured qos in order to start receiving messages
                 mqttClient.subscribe(awsTopic, awsQos);
             } catch (MqttException e) {
                 getLogger().error("Error while subscribing to topic " + awsTopic + " with client-id " + mqttClient.getClientId() + " caused by " + e.getMessage());
@@ -85,7 +92,6 @@ public class GetIOTMqtt extends AbstractIOTMqttProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final List messageList = new LinkedList();
-
         // check if connection is about to terminate
         if (isConnectionAboutToExpire()) {
             MqttWebSocketAsyncClient _mqttClient = null;
@@ -98,8 +104,8 @@ public class GetIOTMqtt extends AbstractIOTMqttProcessor {
                 // now subscribe to topic with new connection
                 _mqttClient.subscribe(awsTopic, awsQos);
                 // between re-subscription and disconnect from old connection
-                // QoS=0 subscription may lose some messages
-                // QoS=1 subscription may receive some messages twice
+                // QoS=0 subscription eventually lose some messages
+                // QoS=1 subscription eventually receive some messages twice
                 // now terminate old connection
                 mqttClient.disconnect();
             } catch (MqttException e) {

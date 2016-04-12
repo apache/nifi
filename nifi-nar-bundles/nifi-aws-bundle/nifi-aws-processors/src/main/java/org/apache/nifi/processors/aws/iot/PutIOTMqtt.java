@@ -34,8 +34,12 @@ import java.util.*;
 
 @Tags({"Amazon", "AWS", "IOT", "MQTT", "Websockets", "Put", "Publish", "Send"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Publishes messages to MQTT-topic(s) of AWS IoT.")
-@SeeAlso({})
+@CapabilityDescription("Publishes messages to MQTT-topic(s) of AWS IoT. The processors keeps open a WebSocket connection and will automatically renew the " +
+        "connection to overcome Amazon's service limit on maximum connection duration. Most of the " +
+        "configuration can be overridden by values coming in as message attributes. This applies for " +
+        "the topic (corresponding message attribute is \"aws.iot.mqtt.topic.override\"), the qos-level " +
+        "(\"aws.iot.mqtt.qos.override\") and the retention (\"aws.iot.mqtt.retained.override\")")
+@SeeAlso({ PutIOTShadow.class })
 @ReadsAttributes({
         @ReadsAttribute(attribute = "aws.iot.mqtt.topic.override", description = "Overrides the processor configuration for topic."),
         @ReadsAttribute(attribute = "aws.iot.mqtt.qos.override", description = "Overrides the processor configuration for quality of service."),

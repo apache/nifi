@@ -71,7 +71,7 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
 
     public static final PropertyDescriptor PROP_KEEPALIVE = new PropertyDescriptor
             .Builder().name(PROP_NAME_KEEPALIVE)
-            .description("Seconds a WebSocket-connection remains open after automatically renewing it. This is neccessary due to Amazon's service limit on WebSocket connection duration. As soon as the limit is changed by Amazon you can adjust the value here. Never use a duration longer than supported by Amazon. This processor renews the connection 30 seconds before the actual expiration. If no value set the default will be " + PROP_DEFAULT_KEEPALIVE + ".")
+            .description("Seconds a WebSocket-connection remains open after automatically renewing it. This is neccessary due to Amazon's service limit on WebSocket connection duration. As soon as the limit is changed by Amazon you can adjust the value here. Never use a duration longer than supported by Amazon. This processor renews the connection " + DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION + " seconds before the actual expiration. If no value set the default will be " + PROP_DEFAULT_KEEPALIVE + ".")
             .required(false)
             .defaultValue(PROP_DEFAULT_KEEPALIVE.toString())
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -100,7 +100,8 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
     @Override
     protected AWSIotClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials provider ");
-
+        // actually this client is not needed. However, it is initialized due to the pattern of
+        // AbstractAWSCredentialsProviderProcessor
         return new AWSIotClient(credentialsProvider, config);
     }
 
@@ -112,11 +113,13 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
     @Override
     protected AWSIotClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials ");
-
+        // actually this client is not needed. it is initialized due to the pattern of
+        // AbstractAWSProcessor
         return new AWSIotClient(credentials, config);
     }
 
     protected void init(final ProcessContext context) {
+        // read out properties
         awsEndpoint = context.getProperty(PROP_ENDPOINT).getValue();
         awsRegion = context.getProperty(REGION).getValue();
         awsClientId = context.getProperty(PROP_CLIENT).isSet() ? context.getProperty(PROP_CLIENT).getValue() : PROP_DEFAULT_CLIENT;
@@ -140,13 +143,18 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
     /**
      * Returns the lifetime-seconds of the established websocket-connection
      *
-     * @return Lifetime-seconds of websocket-connection
+     * @return seconds
      */
     protected long getConnectionDuration() {
         return dtLastConnect != null ?
                 TimeUnit.MILLISECONDS.toSeconds(new Date().getTime() - dtLastConnect.getTime()) : awsKeepAliveSeconds + 1;
     }
 
+    /**
+     * In seconds get the remaining lifetime of the connection. It is not the actual time to
+     * expiration but an advice to when it is worth renewing the connection.
+     * @return seconds
+     */
     protected long getRemainingConnectionLifetime() {
         return awsKeepAliveSeconds - DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION;
     }
@@ -156,15 +164,14 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
     }
 
     /**
-     * Connects to the websocket-endpoint over an MQTT client. In addition to that it subscribes to all of the topics
-     * with respective quality of service.
-     *
+     * Connects to the websocket-endpoint over an MQTT client.
      * @param context processcontext
      * @return websocket connection client
      * @throws Exception
      */
     protected MqttWebSocketAsyncClient connect(ProcessContext context) {
         AWSCredentials awsCredentials = getCredentialsProvider(context).getCredentials();
+        MqttWebSocketAsyncClient _mqttClient = null;
 
         // generate mqtt endpoint-address with authentication details
         String strEndpointAddress = null;
@@ -172,18 +179,17 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
             strEndpointAddress = AWS4Signer.getAddress(awsRegion, awsEndpoint, awsCredentials);
         } catch (Exception e) {
             getLogger().error("Error while generating AWS endpoint-address caused by " + e.getMessage());
+            return _mqttClient;
         }
-
         // extend clientId with random string in order to ensure unique id per connection
         String clientId = awsClientId + RandomStringUtils.random(12, true, false);
 
         final MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
         options.setKeepAliveInterval(0);
-        getLogger().info("Connecting to AWS: " + awsEndpoint + " with " + clientId);
+        getLogger().info("Connecting to AWS IoT: " + awsEndpoint + " with " + clientId);
 
         // set up mqtt-Client with endpoint-address
-        MqttWebSocketAsyncClient _mqttClient = null;
         try {
             _mqttClient = new MqttWebSocketAsyncClient(strEndpointAddress, clientId, getLogger());
             // start connecting and wait for completion
@@ -191,9 +197,9 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
         } catch (MqttException e) {
             getLogger().error("Error while connecting to AWS websocket-endpoint caused by " + e.getMessage());
         }
+        // keep in mind last connection date to be aware of its expiration later on
         dtLastConnect = new Date();
-        getLogger().info("Connected to AWS.");
-
+        getLogger().info("Connected to AWS IoT.");
         return _mqttClient;
     }
 }
