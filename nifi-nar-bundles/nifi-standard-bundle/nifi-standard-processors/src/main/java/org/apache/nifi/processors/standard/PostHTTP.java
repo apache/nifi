@@ -27,7 +27,9 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,13 +44,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
-import javax.security.cert.X509Certificate;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpException;
@@ -105,6 +104,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
@@ -119,9 +119,8 @@ import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
-
-import com.sun.jersey.api.client.ClientResponse.Status;
 import org.apache.nifi.util.StringUtils;
+import com.sun.jersey.api.client.ClientResponse.Status;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -250,14 +249,14 @@ public class PostHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
-        .name("Content-Type")
-        .description("The Content-Type to specify for the content of the FlowFile being POSTed if " + SEND_AS_FLOWFILE.getName() + " is false. "
-            + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
-        .required(true)
-        .expressionLanguageSupported(true)
-        .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("Content-Type")
+            .description("The Content-Type to specify for the content of the FlowFile being POSTed if " + SEND_AS_FLOWFILE.getName() + " is false. "
+                    + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
+            .required(true)
+            .expressionLanguageSupported(true)
+            .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -334,9 +333,9 @@ public class PostHTTP extends AbstractProcessor {
         int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
         boolean chunkedSet = context.getProperty(CHUNKED_ENCODING).isSet();
 
-        if(compressionLevel == 0 && !sendAsFlowFile && !chunkedSet) {
+        if (compressionLevel == 0 && !sendAsFlowFile && !chunkedSet) {
             results.add(new ValidationResult.Builder().valid(false).subject(CHUNKED_ENCODING.getName())
-                    .explanation("if compression level is 0 and not sending as a FlowFile, then the \'"+CHUNKED_ENCODING.getName()+"\' property must be set").build());
+                    .explanation("if compression level is 0 and not sending as a FlowFile, then the \'" + CHUNKED_ENCODING.getName() + "\' property must be set").build());
         }
 
         return results;
@@ -504,13 +503,19 @@ public class PostHTTP extends AbstractProcessor {
                         final SSLSession sslSession = conn.getSSLSession();
 
                         if (sslSession != null) {
-                            final X509Certificate[] certChain = sslSession.getPeerCertificateChain();
+                            final Certificate[] certChain = sslSession.getPeerCertificates();
                             if (certChain == null || certChain.length == 0) {
                                 throw new SSLPeerUnverifiedException("No certificates found");
                             }
 
-                            final X509Certificate cert = certChain[0];
-                            dnHolder.set(cert.getSubjectDN().getName().trim());
+                            try {
+                                final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certChain[0]);
+                                dnHolder.set(cert.getSubjectDN().getName().trim());
+                            } catch (CertificateException e) {
+                                final String msg = "Could not extract subject DN from SSL session peer certificate";
+                                logger.warn(msg);
+                                throw new SSLPeerUnverifiedException(msg);
+                            }
                         }
                     }
                 });
@@ -637,7 +642,7 @@ public class PostHTTP extends AbstractProcessor {
 
             @Override
             public long getContentLength() {
-                if(compressionLevel == 0 && !sendAsFlowFile && !context.getProperty(CHUNKED_ENCODING).asBoolean() ) {
+                if (compressionLevel == 0 && !sendAsFlowFile && !context.getProperty(CHUNKED_ENCODING).asBoolean()) {
                     return toSend.get(0).getSize();
                 } else {
                     return -1;
@@ -645,7 +650,7 @@ public class PostHTTP extends AbstractProcessor {
             }
         };
 
-        if(context.getProperty(CHUNKED_ENCODING).isSet()) {
+        if (context.getProperty(CHUNKED_ENCODING).isSet()) {
             entity.setChunked(context.getProperty(CHUNKED_ENCODING).asBoolean());
         }
         post.setEntity(entity);
@@ -765,7 +770,7 @@ public class PostHTTP extends AbstractProcessor {
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
                     logger.error("Failed to Post {} to {}: response code was {}:{}; will yield processing, "
-                            + "since the destination is temporarily unavailable",
+                                    + "since the destination is temporarily unavailable",
                             new Object[]{flowFile, url, responseCode, responseReason});
                     session.transfer(flowFile, REL_FAILURE);
                 }
