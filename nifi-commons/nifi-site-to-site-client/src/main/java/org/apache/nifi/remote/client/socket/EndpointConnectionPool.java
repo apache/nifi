@@ -31,6 +31,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,11 +55,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
-
 import javax.net.ssl.SSLContext;
-import javax.security.cert.CertificateExpiredException;
-import javax.security.cert.CertificateNotYetValidException;
-
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -72,7 +69,6 @@ import org.apache.nifi.remote.cluster.NodeInformation;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
-import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
@@ -236,12 +232,12 @@ public class EndpointConnectionPool {
         }
     }
 
-    public EndpointConnection getEndpointConnection(final TransferDirection direction) throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
+    public EndpointConnection getEndpointConnection(final TransferDirection direction) throws IOException {
         return getEndpointConnection(direction, null);
     }
 
     public EndpointConnection getEndpointConnection(final TransferDirection direction, final SiteToSiteClientConfig config)
-            throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
+            throws IOException {
         //
         // Attempt to get a connection state that already exists for this URL.
         //
@@ -532,10 +528,10 @@ public class EndpointConnectionPool {
 
     private boolean isPenalized(final PeerStatus peerStatus) {
         final Long expirationEnd = peerTimeoutExpirations.get(peerStatus.getPeerDescription());
-        return (expirationEnd == null ? false : expirationEnd > System.currentTimeMillis());
+        return (expirationEnd != null && expirationEnd > System.currentTimeMillis());
     }
 
-    private List<PeerStatus> createPeerStatusList(final TransferDirection direction) throws IOException, HandshakeException, UnknownPortException, PortNotRunningException {
+    private List<PeerStatus> createPeerStatusList(final TransferDirection direction) throws IOException {
         Set<PeerStatus> statuses = getPeerStatuses();
         if (statuses == null) {
             refreshPeers();
@@ -576,7 +572,7 @@ public class EndpointConnectionPool {
         return cache.getStatuses();
     }
 
-    private Set<PeerStatus> fetchRemotePeerStatuses() throws IOException, HandshakeException, UnknownPortException, PortNotRunningException {
+    private Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
         final String hostname = clusterUrl.getHost();
         final Integer port = getSiteToSitePort();
         if (port == null) {
@@ -704,7 +700,7 @@ public class EndpointConnectionPool {
 
                 try {
                     commsSession.setUserDn(socketChannel.getDn());
-                } catch (final CertificateNotYetValidException | CertificateExpiredException ex) {
+                } catch (final CertificateException ex) {
                     throw new IOException(ex);
                 }
             } else {
@@ -801,7 +797,7 @@ public class EndpointConnectionPool {
                         connection.getSocketClientProtocol().shutdown(connection.getPeer());
                     } catch (final Exception e) {
                         logger.debug("Failed to shut down {} using {} due to {}",
-                                new Object[]{connection.getSocketClientProtocol(), connection.getPeer(), e});
+                                connection.getSocketClientProtocol(), connection.getPeer(), e);
                     }
 
                     terminate(connection);
