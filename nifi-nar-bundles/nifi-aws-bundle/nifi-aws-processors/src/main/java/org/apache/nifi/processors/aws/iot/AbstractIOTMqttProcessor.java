@@ -40,9 +40,18 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
     protected static final String PROP_NAME_KEEPALIVE = "aws.iot.mqtt.keepalive";
     protected static final String PROP_NAME_TOPIC = "aws.iot.mqtt.topic";
     protected static final String PROP_NAME_QOS = "aws.iot.mqtt.qos";
+    /**
+     * Amazon's current service limit on websocket connection duration
+     */
     protected static final Integer PROP_DEFAULT_KEEPALIVE = 300;
-    protected static final String PROP_DEFAULT_CLIENT = AbstractIOTMqttProcessor.class.getSimpleName();
+    /**
+     * When to start indicating the need for connection renewal (in seconds before actual termination)
+     */
     protected static final Integer DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION = 20;
+    protected static final String PROP_DEFAULT_CLIENT = AbstractIOTMqttProcessor.class.getSimpleName();
+    /**
+     * Default QoS level for message delivery
+     */
     protected static final Integer DEFAULT_QOS = 0;
     protected String awsTopic;
     protected int awsQos;
@@ -100,7 +109,7 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
     @Override
     protected AWSIotClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials provider ");
-        // actually this client is not needed. However, it is initialized due to the pattern of
+        // Actually this client is not needed. However, it is initialized due to the pattern of
         // AbstractAWSCredentialsProviderProcessor
         return new AWSIotClient(credentialsProvider, config);
     }
@@ -113,11 +122,15 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
     @Override
     protected AWSIotClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials ");
-        // actually this client is not needed. it is initialized due to the pattern of
+        // Actually this client is not needed. it is initialized due to the pattern of
         // AbstractAWSProcessor
         return new AWSIotClient(credentials, config);
     }
 
+    /**
+     * Gets ready an MQTT client by connecting to a AWS IoT WebSocket endpoint specific to the properties
+     * @param context
+     */
     protected void init(final ProcessContext context) {
         // read out properties
         awsEndpoint = context.getProperty(PROP_ENDPOINT).getValue();
@@ -142,7 +155,6 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
 
     /**
      * Returns the lifetime-seconds of the established websocket-connection
-     *
      * @return seconds
      */
     protected long getConnectionDuration() {
@@ -159,6 +171,11 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
         return awsKeepAliveSeconds - DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION;
     }
 
+    /**
+     * Indicates if WebSocket connection is about to expire. It gives the caller an advice
+     * to renew the connection some time before the actual expiration.
+     * @return Indication (if true caller should renew the connection)
+     */
     protected boolean isConnectionAboutToExpire() {
         return getConnectionDuration() > getRemainingConnectionLifetime();
     }
@@ -170,6 +187,7 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
      * @throws Exception
      */
     protected MqttWebSocketAsyncClient connect(ProcessContext context) {
+        getCredentialsProvider(context).refresh();
         AWSCredentials awsCredentials = getCredentialsProvider(context).getCredentials();
         MqttWebSocketAsyncClient _mqttClient = null;
 
