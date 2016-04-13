@@ -101,4 +101,12 @@ public interface ComponentLog {
     void debug(String msg, Object[] os, Throwable t);
 
     void debug(String msg);
+
+    void log(LogLevel level, String msg, Throwable t);
+
+    void log(LogLevel level, String msg, Object[] os);
+
+    void log(LogLevel level, String msg);
+
+    void log(LogLevel level, String msg, Object[] os, Throwable t);
 }
