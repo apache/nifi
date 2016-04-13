@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.configuration;
+package org.apache.nifi.minifi.bootstrap.configuration;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static org.mockito.Mockito.verify;
@@ -62,7 +62,7 @@ public class TestFileChangeNotifier {
         notifierSpy.close();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = IllegalStateException.class)
     public void testInitialize_invalidFile() throws Exception {
         testProperties.put(FileChangeNotifier.CONFIG_FILE_PATH_KEY, "/land/of/make/believe");
         notifierSpy.initialize(testProperties);
@@ -73,7 +73,7 @@ public class TestFileChangeNotifier {
         notifierSpy.initialize(testProperties);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = IllegalStateException.class)
     public void testInitialize_invalidPollingPeriod() throws Exception {
         testProperties.put(FileChangeNotifier.POLLING_PERIOD_INTERVAL_KEY, "abc");
         notifierSpy.initialize(testProperties);

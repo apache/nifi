@@ -17,12 +17,13 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 
-import static org.junit.Assert.assertTrue;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestConfigTransformer {
 
@@ -60,5 +61,13 @@ public class TestConfigTransformer {
         assertTrue(flowXml.canRead());
 
         flowXml.deleteOnExit();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void handleTransformInvalidFile() throws Exception {
+
+        ConfigTransformer.transformConfigFile("./src/test/resources/config-invalid.yml", "./target/");
+
+        Assert.fail("Invalid configuration file was not detected.");
     }
 }

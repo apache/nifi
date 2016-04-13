@@ -80,7 +80,7 @@ public class BootstrapListener {
         listenThread.start();
 
         logger.debug("Notifying Bootstrap that local port is {}", localPort);
-        sendCommand("PORT", new String[] { String.valueOf(localPort), secretKey});
+        sendCommand("PORT", new String[]{String.valueOf(localPort), secretKey});
     }
 
     public void stop() {
@@ -91,7 +91,7 @@ public class BootstrapListener {
 
     public void sendStartedStatus(boolean status) throws IOException {
         logger.debug("Notifying Bootstrap that the status of starting MiNiFi is {}", status);
-        sendCommand("STARTED", new String[]{ String.valueOf(status) });
+        sendCommand("STARTED", new String[]{String.valueOf(status)});
     }
 
     private void sendCommand(final String command, final String[] args) throws IOException {
@@ -186,6 +186,11 @@ public class BootstrapListener {
                                         echoPing(socket.getOutputStream());
                                         logger.debug("Responded to PING request from Bootstrap");
                                         break;
+                                    case RELOAD:
+                                        logger.info("Received RELOAD request from Bootstrap");
+                                        echoReload(socket.getOutputStream());
+                                        nifi.shutdownHook();
+                                        return;
                                     case SHUTDOWN:
                                         logger.info("Received SHUTDOWN request from Bootstrap");
                                         echoShutdown(socket.getOutputStream());
@@ -328,6 +333,11 @@ public class BootstrapListener {
         out.flush();
     }
 
+    private void echoReload(final OutputStream out) throws IOException {
+        out.write("RELOAD\n".getBytes(StandardCharsets.UTF_8));
+        out.flush();
+    }
+
     @SuppressWarnings("resource")  // we don't want to close the stream, as the caller will do that
     private BootstrapRequest readRequest(final InputStream in) throws IOException {
         // We want to ensure that we don't try to read data from an InputStream directly
@@ -369,7 +379,7 @@ public class BootstrapListener {
     private static class BootstrapRequest {
 
         public static enum RequestType {
-
+            RELOAD,
             SHUTDOWN,
             DUMP,
             PING;

@@ -42,6 +42,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
@@ -145,11 +146,17 @@ public final class ConfigTransformer {
             Yaml yaml = new Yaml();
 
             // Parse the YAML file
-            Map<String, Object> result = (Map<String, Object>) yaml.load(sourceStream);
+            final Object loadedObject = yaml.load(sourceStream);
 
-            // Write nifi.properties and flow.xml.gz
-            writeNiFiProperties(result, destPath);
-            writeFlowXml(result, destPath);
+            // Verify the parsed object is a Map structure
+            if (loadedObject instanceof Map) {
+                final Map<String, Object> result = (Map<String, Object>) loadedObject;
+                // Write nifi.properties and flow.xml.gz
+                writeNiFiProperties(result, destPath);
+                writeFlowXml(result, destPath);
+            } else {
+                throw new IllegalArgumentException("Provided YAML configuration is malformed.");
+            }
         } finally {
             if (sourceStream != null) {
                 sourceStream.close();
@@ -160,7 +167,8 @@ public final class ConfigTransformer {
     private static void writeNiFiProperties(Map<String, Object> topLevelYaml, String path) throws FileNotFoundException, UnsupportedEncodingException {
         PrintWriter writer = null;
         try {
-            writer = new PrintWriter(path+"nifi.properties", "UTF-8");
+            final Path nifiPropertiesPath = Paths.get(path, "nifi.properties");
+            writer = new PrintWriter(nifiPropertiesPath.toFile(), "UTF-8");
 
             Map<String,Object> coreProperties = (Map<String, Object>) topLevelYaml.get(CORE_PROPS_KEY);
             Map<String,Object> flowfileRepo = (Map<String, Object>) topLevelYaml.get(FLOWFILE_REPO_KEY);
@@ -313,7 +321,7 @@ public final class ConfigTransformer {
             addProvenanceReportingTask(reportingTasksNode, topLevelYaml);
 
             final DOMSource domSource = new DOMSource(doc);
-            final OutputStream fileOut = Files.newOutputStream(Paths.get(path + "flow.xml.gz"));
+            final OutputStream fileOut = Files.newOutputStream(Paths.get(path, "flow.xml.gz"));
             final OutputStream outStream = new GZIPOutputStream(fileOut);
             final StreamResult streamResult = new StreamResult(outStream);
 
@@ -444,6 +452,9 @@ public final class ConfigTransformer {
 
     private static void addConfiguration(final Element element, Map<String, Object> elementConfig) {
         final Document doc = element.getOwnerDocument();
+        if (elementConfig == null){
+            return;
+        }
         for (final Map.Entry<String, Object> entry : elementConfig.entrySet()) {
 
             final Element propElement = doc.createElement("property");

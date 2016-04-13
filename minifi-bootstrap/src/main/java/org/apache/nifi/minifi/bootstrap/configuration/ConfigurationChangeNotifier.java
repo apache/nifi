@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.configuration;
+package org.apache.nifi.minifi.bootstrap.configuration;
 
+import java.io.Closeable;
 import java.util.Properties;
 import java.util.Set;
 
-public interface ConfigurationChangeNotifier {
-
+public interface ConfigurationChangeNotifier extends Closeable {
 
     /**
      * Provides an opportunity for the implementation to perform configuration and initialization based on properties received from the bootstrapping configuration

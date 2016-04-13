@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.minifi.bootstrap;
 
-import org.apache.nifi.util.Tuple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,6 +38,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,8 +55,16 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.util.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- *
  * <p>
  * The class which bootstraps Apache MiNiFi. This class looks for the
  * bootstrap.conf file by looking in the following places (in order):</p>
@@ -71,7 +76,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <li>./conf/bootstrap.conf, where {@code ./} represents the working
  * directory.</li>
  * </ol>
- *
+ * <p>
  * If the {@code bootstrap.conf} file cannot be found, throws a {@code FileNotFoundException}.
  */
 public class RunMiNiFi {
@@ -79,6 +84,11 @@ public class RunMiNiFi {
     public static final String DEFAULT_CONFIG_FILE = "./conf/bootstrap.conf";
     public static final String DEFAULT_NIFI_PROPS_FILE = "./conf/nifi.properties";
     public static final String DEFAULT_JAVA_CMD = "java";
+
+
+    public static final String CONF_DIR_KEY = "conf.dir";
+
+    public static final String MINIFI_CONFIG_FILE_KEY = "nifi.minifi.config";
 
     public static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
     public static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
@@ -89,8 +99,12 @@ public class RunMiNiFi {
     public static final int STARTUP_WAIT_SECONDS = 60;
 
     public static final String SHUTDOWN_CMD = "SHUTDOWN";
+    public static final String RELOAD_CMD = "RELOAD";
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
+
+    public static final String NOTIFIER_PROPERTY_PREFIX = "nifi.minifi.notifier";
+    public static final String NOTIFIER_COMPONENTS_KEY = NOTIFIER_PROPERTY_PREFIX + ".components";
 
     private volatile boolean autoRestartNiFi = true;
     private volatile int ccPort = -1;
@@ -115,9 +129,12 @@ public class RunMiNiFi {
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
     private volatile int gracefulShutdownSeconds;
 
+    private final Set<ConfigurationChangeNotifier> changeNotifiers;
+    private final ConfigurationChangeListener changeListener;
+
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
-    public RunMiNiFi(final File bootstrapConfigFile, final boolean verbose) throws IOException {
+    public RunMiNiFi(final File bootstrapConfigFile) throws IOException {
         this.bootstrapConfigFile = bootstrapConfigFile;
 
         loggingExecutor = Executors.newFixedThreadPool(2, new ThreadFactory() {
@@ -129,12 +146,15 @@ public class RunMiNiFi {
                 return t;
             }
         });
+
+        this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
+        this.changeNotifiers = initializeNotifiers();
     }
 
     private static void printUsage() {
         System.out.println("Usage:");
         System.out.println();
-        System.out.println("java org.apache.nifi.minifi.bootstrap.RunMiNiFi [<-verbose>] <command> [options]");
+        System.out.println("java org.apache.nifi.minifi.bootstrap.RunMiNiFi <command> [options]");
         System.out.println();
         System.out.println("Valid commands include:");
         System.out.println("");
@@ -147,10 +167,6 @@ public class RunMiNiFi {
         System.out.println();
     }
 
-    private static String[] shift(final String[] orig) {
-        return Arrays.copyOfRange(orig, 1, orig.length);
-    }
-
     public static void main(String[] args) throws IOException, InterruptedException {
         if (args.length < 1 || args.length > 3) {
             printUsage();
@@ -158,11 +174,6 @@ public class RunMiNiFi {
         }
 
         File dumpFile = null;
-        boolean verbose = false;
-        if (args[0].equals("-verbose")) {
-            verbose = true;
-            args = shift(args);
-        }
 
         final String cmd = args[0];
         if (cmd.equals("dump")) {
@@ -188,7 +199,7 @@ public class RunMiNiFi {
         }
 
         final File configFile = getBootstrapConfFile();
-        final RunMiNiFi runMiNiFi = new RunMiNiFi(configFile, verbose);
+        final RunMiNiFi runMiNiFi = new RunMiNiFi(configFile);
 
         switch (cmd.toLowerCase()) {
             case "start":
@@ -258,6 +269,16 @@ public class RunMiNiFi {
         final File lockFile = new File(bin, "minifi.lock");
 
         logger.debug("Lock File: {}", lockFile);
+        return lockFile;
+    }
+
+    public File getReloadFile(final Logger logger) {
+        final File confDir = bootstrapConfigFile.getParentFile();
+        final File nifiHome = confDir.getParentFile();
+        final File bin = new File(nifiHome, "bin");
+        final File lockFile = new File(bin, "minifi.reload.lock");
+
+        logger.debug("Reload File: {}", lockFile);
         return lockFile;
     }
 
@@ -375,8 +396,8 @@ public class RunMiNiFi {
             boolean running = false;
             String line;
             try (final InputStream in = proc.getInputStream();
-                final Reader streamReader = new InputStreamReader(in);
-                final BufferedReader reader = new BufferedReader(streamReader)) {
+                 final Reader streamReader = new InputStreamReader(in);
+                 final BufferedReader reader = new BufferedReader(streamReader)) {
 
                 while ((line = reader.readLine()) != null) {
                     if (line.trim().startsWith(pid)) {
@@ -464,7 +485,7 @@ public class RunMiNiFi {
         }
     }
 
-    public void env(){
+    public void env() {
         final Logger logger = cmdLogger;
         final Status status = getStatus(logger);
         if (status.getPid() == null) {
@@ -497,19 +518,19 @@ public class RunMiNiFi {
             return;
         }
 
-        try{
+        try {
             final Method getSystemPropertiesMethod = virtualMachine.getClass().getMethod("getSystemProperties");
 
-            final Properties sysProps = (Properties)getSystemPropertiesMethod.invoke(virtualMachine);
+            final Properties sysProps = (Properties) getSystemPropertiesMethod.invoke(virtualMachine);
             for (Entry<Object, Object> syspropEntry : sysProps.entrySet()) {
-                logger.info(syspropEntry.getKey().toString() + " = " +syspropEntry.getValue().toString());
+                logger.info(syspropEntry.getKey().toString() + " = " + syspropEntry.getValue().toString());
             }
         } catch (Throwable t) {
             throw new RuntimeException(t);
         } finally {
             try {
                 detachMethod.invoke(virtualMachine);
-            } catch (final Exception e){
+            } catch (final Exception e) {
                 logger.warn("Caught exception detaching from process", e);
             }
         }
@@ -567,6 +588,104 @@ public class RunMiNiFi {
         }
     }
 
+    public void reload() throws IOException {
+        final Logger logger = defaultLogger;
+        final Integer port = getCurrentPort(logger);
+        if (port == null) {
+            logger.info("Apache MiNiFi is not currently running");
+            return;
+        }
+
+        // indicate that a reload command is in progress
+        final File reloadLockFile = getReloadFile(logger);
+        if (!reloadLockFile.exists()) {
+            reloadLockFile.createNewFile();
+        }
+
+        final Properties nifiProps = loadProperties(logger);
+        final String secretKey = nifiProps.getProperty("secret.key");
+        final String pid = nifiProps.getProperty("pid");
+
+        try (final Socket socket = new Socket()) {
+            logger.debug("Connecting to MiNiFi instance");
+            socket.setSoTimeout(10000);
+            socket.connect(new InetSocketAddress("localhost", port));
+            logger.debug("Established connection to MiNiFi instance.");
+            socket.setSoTimeout(10000);
+
+            logger.debug("Sending RELOAD Command to port {}", port);
+            final OutputStream out = socket.getOutputStream();
+            out.write((RELOAD_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
+            out.flush();
+            socket.shutdownOutput();
+
+            final InputStream in = socket.getInputStream();
+            int lastChar;
+            final StringBuilder sb = new StringBuilder();
+            while ((lastChar = in.read()) > -1) {
+                sb.append((char) lastChar);
+            }
+            final String response = sb.toString().trim();
+
+            logger.debug("Received response to RELOAD command: {}", response);
+
+            if (RELOAD_CMD.equals(response)) {
+                logger.info("Apache MiNiFi has accepted the Reload Command and is reloading");
+
+                if (pid != null) {
+                    final Properties bootstrapProperties = getBootstrapProperties();
+
+                    String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
+                    int gracefulShutdownSeconds;
+                    try {
+                        gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
+                    } catch (final NumberFormatException nfe) {
+                        gracefulShutdownSeconds = Integer.parseInt(DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
+                    }
+
+                    final long startWait = System.nanoTime();
+                    while (isProcessRunning(pid, logger)) {
+                        logger.info("Waiting for Apache MiNiFi to finish shutting down...");
+                        final long waitNanos = System.nanoTime() - startWait;
+                        final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
+                        if (waitSeconds >= gracefulShutdownSeconds && gracefulShutdownSeconds > 0) {
+                            if (isProcessRunning(pid, logger)) {
+                                logger.warn("MiNiFi has not finished shutting down after {} seconds as part of configuration reload. Killing process.", gracefulShutdownSeconds);
+                                try {
+                                    killProcessTree(pid, logger);
+                                } catch (final IOException ioe) {
+                                    logger.error("Failed to kill Process with PID {}", pid);
+                                }
+                            }
+                            break;
+                        } else {
+                            try {
+                                Thread.sleep(2000L);
+                            } catch (final InterruptedException ie) {
+                            }
+                        }
+                    }
+
+                    logger.info("MiNiFi has finished shutting down.");
+                }
+            } else {
+                logger.error("When sending RELOAD command to MiNiFi, got unexpected response {}", response);
+            }
+        } catch (final IOException ioe) {
+            if (pid == null) {
+                logger.error("Failed to send shutdown command to port {} due to {}. No PID found for the MiNiFi process, so unable to kill process; "
+                    + "the process should be killed manually.", new Object[]{port, ioe.toString()});
+            } else {
+                logger.error("Failed to send shutdown command to port {} due to {}. Will kill the MiNiFi Process with PID {}.", new Object[]{port, ioe.toString(), pid});
+                killProcessTree(pid, logger);
+            }
+        } finally {
+            if (reloadLockFile.exists() && !reloadLockFile.delete()) {
+                logger.error("Failed to delete reload lock file {}; this file should be cleaned up manually", reloadLockFile);
+            }
+        }
+    }
+
     public void stop() throws IOException {
         final Logger logger = cmdLogger;
         final Integer port = getCurrentPort(logger);
@@ -613,10 +732,7 @@ public class RunMiNiFi {
                 logger.info("Apache MiNiFi has accepted the Shutdown Command and is shutting down now");
 
                 if (pid != null) {
-                    final Properties bootstrapProperties = new Properties();
-                    try (final FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
-                        bootstrapProperties.load(fis);
-                    }
+                    final Properties bootstrapProperties = getBootstrapProperties();
 
                     String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
                     int gracefulShutdownSeconds;
@@ -660,9 +776,9 @@ public class RunMiNiFi {
         } catch (final IOException ioe) {
             if (pid == null) {
                 logger.error("Failed to send shutdown command to port {} due to {}. No PID found for the MiNiFi process, so unable to kill process; "
-                    + "the process should be killed manually.", new Object[] {port, ioe.toString()});
+                    + "the process should be killed manually.", new Object[]{port, ioe.toString()});
             } else {
-                logger.error("Failed to send shutdown command to port {} due to {}. Will kill the MiNiFi Process with PID {}.", new Object[] {port, ioe.toString(), pid});
+                logger.error("Failed to send shutdown command to port {} due to {}. Will kill the MiNiFi Process with PID {}.", new Object[]{port, ioe.toString(), pid});
                 killProcessTree(pid, logger);
                 if (statusFile.exists() && !statusFile.delete()) {
                     logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
@@ -675,11 +791,19 @@ public class RunMiNiFi {
         }
     }
 
+    private Properties getBootstrapProperties() throws IOException {
+        final Properties bootstrapProperties = new Properties();
+        try (final FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
+            bootstrapProperties.load(fis);
+        }
+        return bootstrapProperties;
+    }
+
     private static List<String> getChildProcesses(final String ppid) throws IOException {
         final Process proc = Runtime.getRuntime().exec(new String[]{"ps", "-o", "pid", "--no-headers", "--ppid", ppid});
         final List<String> childPids = new ArrayList<>();
         try (final InputStream in = proc.getInputStream();
-            final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+             final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
 
             String line;
             while ((line = reader.readLine()) != null) {
@@ -726,7 +850,7 @@ public class RunMiNiFi {
         return hostname + " (" + ip + ")";
     }
 
-    private int getGracefulShutdownSeconds(Map<String, String> props, File bootstrapConfigAbsoluteFile){
+    private int getGracefulShutdownSeconds(Map<String, String> props, File bootstrapConfigAbsoluteFile) {
         String gracefulShutdown = props.get(GRACEFUL_SHUTDOWN_PROP);
         if (gracefulShutdown == null) {
             gracefulShutdown = DEFAULT_GRACEFUL_SHUTDOWN_VALUE;
@@ -737,12 +861,12 @@ public class RunMiNiFi {
             gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
         } catch (final NumberFormatException nfe) {
             throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File "
-                    + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+                + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
         }
 
         if (gracefulShutdownSeconds < 0) {
             throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File "
-                    + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+                + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
         }
         return gracefulShutdownSeconds;
     }
@@ -763,7 +887,7 @@ public class RunMiNiFi {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public Tuple<ProcessBuilder,Process> startMiNiFi() throws IOException, InterruptedException {
+    public Tuple<ProcessBuilder, Process> startMiNiFi() throws IOException, InterruptedException {
         final Integer port = getCurrentPort(cmdLogger);
         if (port != null) {
             cmdLogger.info("Apache MiNiFi is already running, listening to Bootstrap on port " + port);
@@ -795,7 +919,7 @@ public class RunMiNiFi {
         final String libFilename = replaceNull(props.get("lib.dir"), "./lib").trim();
         File libDir = getFile(libFilename, workingDir);
 
-        final String confFilename = replaceNull(props.get("conf.dir"), "./conf").trim();
+        final String confFilename = replaceNull(props.get(CONF_DIR_KEY), "./conf").trim();
         File confDir = getFile(confFilename, workingDir);
 
         String nifiPropsFilename = props.get("props.file");
@@ -908,13 +1032,13 @@ public class RunMiNiFi {
         final Runtime runtime = Runtime.getRuntime();
         runtime.addShutdownHook(shutdownHook);
 
-        return  new Tuple<ProcessBuilder,Process>(builder,process);
+        return new Tuple<ProcessBuilder, Process>(builder, process);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void start() throws IOException, InterruptedException {
 
-        Tuple<ProcessBuilder,Process> tuple = startMiNiFi();
+        Tuple<ProcessBuilder, Process> tuple = startMiNiFi();
         if (tuple == null) {
             cmdLogger.info("Start method returned null, ending start command.");
             return;
@@ -946,10 +1070,17 @@ public class RunMiNiFi {
                         return;
                     }
 
-                    final File  lockFile = getLockFile(defaultLogger);
+                    final File lockFile = getLockFile(defaultLogger);
                     if (lockFile.exists()) {
                         defaultLogger.info("A shutdown was initiated. Will not restart MiNiFi");
                         return;
+                    }
+
+                    final File reloadFile = getReloadFile(defaultLogger);
+                    if (reloadFile.exists()) {
+                        defaultLogger.info("Currently reloading configuration.  Will not restart MiNiFi.");
+                        Thread.sleep(5000L);
+                        continue;
                     }
 
                     final boolean previouslyStarted = getNifiStarted();
@@ -960,7 +1091,6 @@ public class RunMiNiFi {
                         setNiFiStarted(false);
                     }
 
-                    defaultLogger.warn("Apache MiNiFi appears to have died. Restarting...");
                     process = builder.start();
                     handleLogging(process);
 
@@ -977,7 +1107,6 @@ public class RunMiNiFi {
 
                     final boolean started = waitForStart();
 
-                    final String hostname = getHostname();
                     if (started) {
                         defaultLogger.info("Successfully started Apache MiNiFi{}", (pid == null ? "" : " with PID " + pid));
                     } else {
@@ -1146,6 +1275,114 @@ public class RunMiNiFi {
             return nifiStarted;
         } finally {
             startedLock.unlock();
+        }
+    }
+
+    public Set<ConfigurationChangeNotifier> getChangeNotifiers() {
+        return Collections.unmodifiableSet(changeNotifiers);
+    }
+
+    private Set<ConfigurationChangeNotifier> initializeNotifiers() throws IOException {
+        final Set<ConfigurationChangeNotifier> changeNotifiers = new HashSet<>();
+
+        final Properties bootstrapProperties = getBootstrapProperties();
+
+        final String notifiersCsv = bootstrapProperties.getProperty(NOTIFIER_COMPONENTS_KEY);
+        if (notifiersCsv != null && !notifiersCsv.isEmpty()) {
+            for (String notifierClassname : Arrays.asList(notifiersCsv.split(","))) {
+                try {
+                    Class<?> notifierClass = Class.forName(notifierClassname);
+                    ConfigurationChangeNotifier notifier = (ConfigurationChangeNotifier) notifierClass.newInstance();
+                    notifier.initialize(bootstrapProperties);
+                    changeNotifiers.add(notifier);
+                    notifier.registerListener(changeListener);
+                    notifier.start();
+                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                    throw new RuntimeException("Issue instantiating notifier " + notifierClassname, e);
+                }
+            }
+        }
+        return changeNotifiers;
+    }
+
+    private static class MiNiFiConfigurationChangeListener implements ConfigurationChangeListener {
+
+        private final RunMiNiFi runner;
+        private final Logger logger;
+
+        public MiNiFiConfigurationChangeListener(RunMiNiFi runner, Logger logger) {
+            this.runner = runner;
+            this.logger = logger;
+        }
+
+        @Override
+        public void handleChange(InputStream configInputStream) {
+            logger.info("Received notification of a change");
+            try {
+                final Properties bootstrapProperties = runner.getBootstrapProperties();
+                final File configFile = new File(bootstrapProperties.getProperty(MINIFI_CONFIG_FILE_KEY));
+
+                // Store the incoming stream as a byte array to be shared among components that need it
+                final ByteArrayOutputStream bufferedConfigOs = new ByteArrayOutputStream();
+                byte[] copyArray = new byte[1024];
+                int available = -1;
+                while ((available = configInputStream.read(copyArray)) > 0) {
+                    bufferedConfigOs.write(copyArray, 0, available);
+                }
+
+                // Create an input stream to use for writing a config file as well as feeding to the config transformer
+                final ByteArrayInputStream newConfigBais = new ByteArrayInputStream(bufferedConfigOs.toByteArray());
+                newConfigBais.mark(-1);
+
+                logger.info("Persisting changes to {}", configFile.getAbsolutePath());
+                saveFile(newConfigBais, configFile);
+
+                // Reset the input stream to provide to the transformer
+                newConfigBais.reset();
+
+                final String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
+                logger.info("Performing transformation for input and saving outputs to {}", configFile);
+                performTransformation(newConfigBais, confDir);
+
+                logger.info("Reloading instance with new configuration");
+                restartInstance();
+
+            } catch (IOException ioe) {
+                logger.error("Unable to carry out reloading of configuration on receipt of notification event", ioe);
+                throw new IllegalStateException("Unable to perform reload of received configuration change", ioe);
+            }
+        }
+
+        private void saveFile(final InputStream configInputStream, File configFile) {
+            try {
+                try (final FileOutputStream configFileOutputStream = new FileOutputStream(configFile)) {
+                    byte[] copyArray = new byte[1024];
+                    int available = -1;
+                    while ((available = configInputStream.read(copyArray)) > 0) {
+                        configFileOutputStream.write(copyArray, 0, available);
+                    }
+                }
+            } catch (IOException ioe) {
+                throw new IllegalStateException("Unable to save updated configuration to the configured config file location", ioe);
+            }
+        }
+
+        private void performTransformation(InputStream configIs, String configDestinationPath) {
+            try {
+                ConfigTransformer.transformConfigFile(configIs, configDestinationPath);
+            } catch (Exception e) {
+                logger.error("Unable to successfully transform the provided configuration", e);
+                throw new IllegalStateException("Unable to successfully transform the provided configuration", e);
+            }
+        }
+
+        private void restartInstance() {
+            logger.info("Restarting MiNiFi with new configuration");
+            try {
+                runner.reload();
+            } catch (IOException e) {
+                throw new IllegalStateException("Unable to successfully restart MiNiFi instance after configuration change.", e);
+            }
         }
     }
 

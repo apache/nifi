@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.configuration;
+package org.apache.nifi.minifi.bootstrap.configuration;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.NOTIFIER_PROPERTY_PREFIX;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -34,6 +34,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -41,17 +42,17 @@ import java.util.concurrent.TimeUnit;
  * associated listeners receive notification of a change allowing configuration logic to be reanalyzed.  The backing implementation is associated with a {@link ScheduledExecutorService} that
  * ensures continuity of monitoring.
  */
-public class FileChangeNotifier implements Runnable, ConfigurationChangeNotifier, Closeable {
+public class FileChangeNotifier implements Runnable, ConfigurationChangeNotifier {
 
     private Path configFile;
     private WatchService watchService;
     private long pollingSeconds;
 
-    private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService executorService;
     private final Set<ConfigurationChangeListener> configurationChangeListeners = new HashSet<>();
 
-    protected static final String CONFIG_FILE_PATH_KEY = "nifi.minifi.notifier.file.config.path";
-    protected static final String POLLING_PERIOD_INTERVAL_KEY = "nifi.minifi.notifier.file.polling.period.seconds";
+    protected static final String CONFIG_FILE_PATH_KEY = NOTIFIER_PROPERTY_PREFIX + ".file.config.path";
+    protected static final String POLLING_PERIOD_INTERVAL_KEY = NOTIFIER_PROPERTY_PREFIX + ".file.polling.period.seconds";
 
     protected static final int DEFAULT_POLLING_PERIOD_INTERVAL = 15;
     protected static final TimeUnit DEFAULT_POLLING_PERIOD_UNIT = TimeUnit.SECONDS;
@@ -130,20 +131,20 @@ public class FileChangeNotifier implements Runnable, ConfigurationChangeNotifier
         final String rawPath = properties.getProperty(CONFIG_FILE_PATH_KEY);
         final String rawPollingDuration = properties.getProperty(POLLING_PERIOD_INTERVAL_KEY, Long.toString(DEFAULT_POLLING_PERIOD_INTERVAL));
 
+        if (rawPath == null || rawPath.isEmpty()) {
+            throw new IllegalArgumentException("Property, " + CONFIG_FILE_PATH_KEY + ", for the path of the config file must be specified.");
+        }
+
         try {
             setConfigFile(Paths.get(rawPath));
             setPollingPeriod(Long.parseLong(rawPollingDuration), DEFAULT_POLLING_PERIOD_UNIT);
             setWatchService(initializeWatcher(configFile));
         } catch (Exception e) {
-            throw new IllegalArgumentException("Could not successfully initialize file change notifier.", e);
+            throw new IllegalStateException("Could not successfully initialize file change notifier.", e);
         }
     }
 
     protected void setConfigFile(Path configFile) {
-        final File file = configFile.toFile();
-        if (!file.exists() || !file.canRead() || !file.isFile()) {
-            throw new IllegalArgumentException(String.format("The specified path %s must be a readable file.", configFile));
-        }
         this.configFile = configFile;
     }
 
@@ -160,12 +161,21 @@ public class FileChangeNotifier implements Runnable, ConfigurationChangeNotifier
 
     @Override
     public void start() {
+        executorService = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread t = Executors.defaultThreadFactory().newThread(r);
+                t.setName("File Change Notifier Thread");
+                t.setDaemon(true);
+                return t;
+            }
+        });
         this.executorService.scheduleWithFixedDelay(this, 0, pollingSeconds, DEFAULT_POLLING_PERIOD_UNIT);
     }
 
     @Override
     public void close() {
-        if (!this.executorService.isShutdown() || !this.executorService.isTerminated()) {
+        if (this.executorService != null) {
             this.executorService.shutdownNow();
         }
     }

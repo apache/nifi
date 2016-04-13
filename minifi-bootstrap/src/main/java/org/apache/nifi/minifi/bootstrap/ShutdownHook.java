@@ -25,6 +25,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+
 public class ShutdownHook extends Thread {
 
     private final Process nifiProcess;
@@ -49,6 +51,15 @@ public class ShutdownHook extends Thread {
     @Override
     public void run() {
         executor.shutdown();
+
+        System.out.println("Initiating shutdown of bootstrap change notifiers...");
+        for (ConfigurationChangeNotifier notifier : runner.getChangeNotifiers()) {
+            try {
+                notifier.close();
+            } catch (IOException ioe) {
+                System.out.println("Could not successfully stop notifier " + notifier.getClass() + " due to " + ioe);
+            }
+        }
         runner.setAutoRestartNiFi(false);
         final int ccPort = runner.getNiFiCommandControlPort();
         if (ccPort > 0) {
@@ -65,6 +76,7 @@ public class ShutdownHook extends Thread {
                 System.out.println("Failed to Shutdown MiNiFi due to " + ioe);
             }
         }
+
 
         System.out.println("Waiting for Apache MiNiFi to finish shutting down...");
         final long startWait = System.nanoTime();
