@@ -43,6 +43,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -100,6 +101,20 @@ public class FetchFile extends AbstractProcessor {
         .defaultValue(CONFLICT_RENAME.getValue())
         .required(true)
         .build();
+    static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
+        .name("Log level when file not found")
+        .description("Log level to use in case the file does not exist when the processor is trigerred")
+        .allowableValues(LogLevel.values())
+        .defaultValue(LogLevel.ERROR.toString())
+        .required(true)
+        .build();
+    static final PropertyDescriptor PERM_DENIED_LOG_LEVEL = new PropertyDescriptor.Builder()
+        .name("Log level when permission denied")
+        .description("Log level to use in case user " + System.getProperty("user.name") + " does not have sufficient permissions to read the file")
+        .allowableValues(LogLevel.values())
+        .defaultValue(LogLevel.ERROR.toString())
+        .required(true)
+        .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -126,6 +141,8 @@ public class FetchFile extends AbstractProcessor {
         properties.add(COMPLETION_STRATEGY);
         properties.add(MOVE_DESTINATION_DIR);
         properties.add(CONFLICT_STRATEGY);
+        properties.add(FILE_NOT_FOUND_LOG_LEVEL);
+        properties.add(PERM_DENIED_LOG_LEVEL);
         return properties;
     }
 
@@ -162,11 +179,13 @@ public class FetchFile extends AbstractProcessor {
 
         final StopWatch stopWatch = new StopWatch(true);
         final String filename = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
+        final LogLevel levelFileNotFound = LogLevel.valueOf(context.getProperty(FILE_NOT_FOUND_LOG_LEVEL).getValue());
+        final LogLevel levelPermDenied = LogLevel.valueOf(context.getProperty(PERM_DENIED_LOG_LEVEL).getValue());
         final File file = new File(filename);
 
         // Verify that file exists
         if (!file.exists()) {
-            getLogger().error("Could not fetch file {} from file system for {} because the file does not exist; routing to not.found", new Object[] {file, flowFile});
+            getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the file does not exist; routing to not.found", new Object[] {file, flowFile});
             session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
             session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
             return;
@@ -175,7 +194,7 @@ public class FetchFile extends AbstractProcessor {
         // Verify read permission on file
         final String user = System.getProperty("user.name");
         if (!isReadable(file)) {
-            getLogger().error("Could not fetch file {} from file system for {} due to user {} not having sufficient permissions to read the file; routing to permission.denied",
+            getLogger().log(levelPermDenied, "Could not fetch file {} from file system for {} due to user {} not having sufficient permissions to read the file; routing to permission.denied",
                 new Object[] {file, flowFile, user});
             session.getProvenanceReporter().route(flowFile, REL_PERMISSION_DENIED);
             session.transfer(session.penalize(flowFile), REL_PERMISSION_DENIED);
