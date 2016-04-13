@@ -2472,7 +2472,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // determine if this input port is connected
             final boolean isConnected = port.hasIncomingConnection();
 
-            // we only want to conside remote ports that we are connected to
+            // we only want to consider remote ports that we are connected to
             if (isConnected) {
                 if (port.isRunning()) {
                     activePortCount++;
@@ -2481,15 +2481,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
 
                 activeThreadCount += processScheduler.getActiveThreadCount(port);
-            }
 
-            final FlowFileEvent portEvent = statusReport.getReportEntry(port.getIdentifier());
-            if (portEvent != null) {
-                lineageMillis += portEvent.getAggregateLineageMillis();
-                flowFilesRemoved += portEvent.getFlowFilesRemoved();
-                flowFilesTransferred += portEvent.getFlowFilesOut();
-                sentCount += portEvent.getFlowFilesSent();
-                sentContentSize += portEvent.getBytesSent();
+                final FlowFileEvent portEvent = statusReport.getReportEntry(port.getIdentifier());
+                if (portEvent != null) {
+                    lineageMillis += portEvent.getAggregateLineageMillis();
+                    flowFilesRemoved += portEvent.getFlowFilesRemoved();
+                    flowFilesTransferred += portEvent.getFlowFilesOut();
+                    sentCount += portEvent.getFlowFilesSent();
+                    sentContentSize += portEvent.getBytesSent();
+                }
             }
         }
 
@@ -2497,7 +2497,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // determine if this output port is connected
             final boolean isConnected = !port.getConnections().isEmpty();
 
-            // we only want to conside remote ports that we are connected from
+            // we only want to consider remote ports that we are connected from
             if (isConnected) {
                 if (port.isRunning()) {
                     activePortCount++;
@@ -2506,12 +2506,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
 
                 activeThreadCount += processScheduler.getActiveThreadCount(port);
-            }
 
-            final FlowFileEvent portEvent = statusReport.getReportEntry(port.getIdentifier());
-            if (portEvent != null) {
-                receivedCount += portEvent.getFlowFilesReceived();
-                receivedContentSize += portEvent.getBytesReceived();
+                final FlowFileEvent portEvent = statusReport.getReportEntry(port.getIdentifier());
+                if (portEvent != null) {
+                    receivedCount += portEvent.getFlowFilesReceived();
+                    receivedContentSize += portEvent.getBytesReceived();
+                }
             }
         }
 
