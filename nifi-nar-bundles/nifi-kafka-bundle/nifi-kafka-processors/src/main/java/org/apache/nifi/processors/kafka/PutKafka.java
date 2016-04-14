@@ -41,7 +41,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -279,7 +278,6 @@ public class PutKafka extends AbstractProcessor {
     /**
      *
      */
-    @OnScheduled
     public void createKafkaPublisher(ProcessContext context) {
         this.kafkaPublisher = new KafkaPublisher(this.buildKafkaConfigProperties(context));
         this.kafkaPublisher.setProcessLog(this.getLogger());
@@ -290,6 +288,11 @@ public class PutKafka extends AbstractProcessor {
      */
     @Override
     public void onTrigger(final ProcessContext context, ProcessSession session) throws ProcessException {
+        synchronized (this) {
+            if (this.kafkaPublisher == null) {
+                this.createKafkaPublisher(context);
+            }
+        }
         FlowFile flowFile = session.get();
         if (flowFile != null) {
             final SplittableMessageContext messageContext = this.buildMessageContext(flowFile, context, session);
@@ -335,6 +338,8 @@ public class PutKafka extends AbstractProcessor {
             this.kafkaPublisher.close();
         } catch (Exception e) {
             getLogger().warn("Failed while closing KafkaPublisher", e);
+        } finally {
+            this.kafkaPublisher = null;
         }
     }
 
@@ -361,7 +366,7 @@ public class PutKafka extends AbstractProcessor {
         final List<ValidationResult> results = new ArrayList<>();
 
         final String partitionStrategy = validationContext.getProperty(PARTITION_STRATEGY).getValue();
-        if (partitionStrategy.equalsIgnoreCase(USER_DEFINED_PARTITIONING.getValue())
+        if (USER_DEFINED_PARTITIONING.getValue().equalsIgnoreCase(partitionStrategy)
                 && !validationContext.getProperty(PARTITION).isSet()) {
             results.add(new ValidationResult.Builder().subject("Partition").valid(false)
                     .explanation("The <Partition> property must be set when configured to use the User-Defined Partitioning Strategy")
@@ -404,11 +409,16 @@ public class PutKafka extends AbstractProcessor {
      */
     private Map<String, String> buildFailedFlowFileAttributes(BitSet failedSegments, SplittableMessageContext messageContext) {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(ATTR_PROC_ID, this.getIdentifier());
-        attributes.put(ATTR_FAILED_SEGMENTS, new String(failedSegments.toByteArray(), StandardCharsets.UTF_8));
-        attributes.put(ATTR_TOPIC, messageContext.getTopicName());
-        attributes.put(ATTR_KEY, messageContext.getKeyBytesAsString());
-        attributes.put(ATTR_DELIMITER, new String(messageContext.getDelimiterBytes(), StandardCharsets.UTF_8));
+        // unless there were failed segments we don't need to add any attributes
+        if (failedSegments != null && failedSegments.toByteArray() != null) {
+            attributes.put(ATTR_PROC_ID, this.getIdentifier());
+            attributes.put(ATTR_FAILED_SEGMENTS, new String(failedSegments.toByteArray(), StandardCharsets.UTF_8));
+            attributes.put(ATTR_TOPIC, messageContext.getTopicName());
+            attributes.put(ATTR_KEY, messageContext.getKeyBytesAsString());
+            if (messageContext.getDelimiterBytes() != null) {
+                attributes.put(ATTR_DELIMITER, new String(messageContext.getDelimiterBytes(), StandardCharsets.UTF_8));
+            }
+        }
         return attributes;
     }
 
