@@ -101,7 +101,7 @@ nf.Settings = (function () {
                     document.title = response.config.name;
 
                     // set the data flow title and close the shell
-                    $('#data-flow-title-container').children('span.link:first-child').text(response.config.name);
+                    nf.Canvas.reload();
 
                     // close the settings dialog
                     nf.Dialog.showOkDialog({

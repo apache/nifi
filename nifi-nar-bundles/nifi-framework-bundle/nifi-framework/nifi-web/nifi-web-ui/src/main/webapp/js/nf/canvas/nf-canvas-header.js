@@ -281,59 +281,6 @@ nf.CanvasHeader = (function () {
                 }
             });
 
-            // mousewheel -> IE, Chrome
-            // DOMMouseScroll -> FF
-            // wheel -> FF, IE
-
-            // still having issues with this in IE :/
-            $('#data-flow-title-viewport').on('DOMMouseScroll mousewheel', function (evt, d) {
-                if (nf.Common.isUndefinedOrNull(evt.originalEvent)) {
-                    return;
-                }
-
-                var title = $('#data-flow-title-container');
-                var titlePosition = title.position();
-                var titleWidth = title.outerWidth();
-                var titleRight = titlePosition.left + titleWidth;
-
-                var padding = $('#breadcrumbs-right-border').width();
-                var viewport = $('#data-flow-title-viewport');
-                var viewportWidth = viewport.width();
-                var viewportRight = viewportWidth - padding;
-
-                // if the width of the title is larger than the viewport
-                if (titleWidth > viewportWidth) {
-                    var adjust = false;
-
-                    var delta = 0;
-                    if (nf.Common.isDefinedAndNotNull(evt.originalEvent.detail)) {
-                        delta = -evt.originalEvent.detail;
-                    } else if (nf.Common.isDefinedAndNotNull(evt.originalEvent.wheelDelta)) {
-                        delta = evt.originalEvent.wheelDelta;
-                    }
-
-                    // determine the increment
-                    if (delta > 0 && titleRight > viewportRight) {
-                        var increment = -25;
-                        adjust = true;
-                    } else if (delta < 0 && (titlePosition.left - padding) < 0) {
-                        increment = 25;
-
-                        // don't shift too far
-                        if (titlePosition.left + increment > padding) {
-                            increment = padding - titlePosition.left;
-                        }
-
-                        adjust = true;
-                    }
-
-                    if (adjust) {
-                        // adjust the position
-                        title.css('left', (titlePosition.left + increment) + 'px');
-                    }
-                }
-            });
-
             var toolbar = $('#toolbar');
             var groupButton = $('#action-group');
             $(window).on('resize', function () {
