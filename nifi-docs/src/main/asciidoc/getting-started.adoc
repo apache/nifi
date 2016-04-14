@@ -285,6 +285,7 @@ categorizing them by their functions.
 - *EncryptContent*: Encrypt or Decrypt Content
 - *ReplaceText*: Use Regular Expressions to modify textual Content
 - *TransformXml*: Apply an XSLT transform to XML Content
+- *TransformJSON*: Apply a JOLT specification to transform JSON Content
 
 === Routing and Mediation
 - *ControlRate*: Throttle the rate at which data can flow through one part of the flow
