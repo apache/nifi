@@ -15,15 +15,12 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="breadcrumbs">
-    <div id="cluster-indicator"></div>
-    <div id="data-flow-title-viewport">
-        <div id="breadcrumbs-left-border"></div>
-        <div id="data-flow-title-container"></div>
-        <div id="breadcrumbs-right-border"></div>
-    </div>
-    <div id="breadcrumbs-background"></div>
-</div>
+<breadcrumbs-directive
+        breadcrumbs="AppCtrl.ServiceProvider.BreadcrumbsCtrl.getBreadcrumbs();"
+        click-func="AppCtrl.nf.CanvasUtils.enterGroup"
+        highlight-crumb-id="AppCtrl.nf.Canvas.getGroupId();"
+        separator-func="AppCtrl.nf.Common.isDefinedAndNotNull">
+</breadcrumbs-directive>
 <div id="pan-and-zoom">
     <div id="graph-control-separator">&nbsp;</div>
     <table class="pan">

@@ -326,6 +326,12 @@
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-clipboard.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-ng-canvas-app-config.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-app-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-breadcrumbs-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/directives/nf-ng-breadcrumbs-directive.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
@@ -628,8 +634,13 @@
                                 js/d3/**/*,
                                 js/codemirror/**/*,
                                 js/jquery/**/*,
+                                js/angular/**/*,
                                 js/nf/nf-namespace.js,
                                 js/nf/nf-namespace.js.gz,
+                                js/nf/nf-ng-namespace.js,
+                                js/nf/nf-ng-namespace.js.gz,
+                                js/nf/canvas/nf-ng-canvas-namespace.js,
+                                js/nf/canvas/nf-ng-canvas-namespace.js.gz,
                                 js/nf/nf-universal-capture.js,
                                 js/nf/nf-universal-capture.js.gz,
                                 js/nf/nf-storage.js,
@@ -660,6 +671,8 @@
                                 js/nf/bulletin-board/nf-bulletin-board-all.js.gz,
                                 js/nf/login/nf-login-all.js,
                                 js/nf/login/nf-login-all.js.gz,
+                                views/*,
+                                fonts/**/*,
                                 images/*,
                                 resources/*,
                                 images/*,
@@ -678,6 +691,8 @@
                                 <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
                                 <exclude>src/main/webapp/js/codemirror/</exclude>
                                 <exclude>src/main/webapp/css/reset.css</exclude>
+                                <exclude>src/main/webapp/js/angular/**/*</exclude>
+                                <exclude>src/main/webapp/fonts/**/*</exclude>
                             </excludes>
                         </configuration>
                     </plugin>

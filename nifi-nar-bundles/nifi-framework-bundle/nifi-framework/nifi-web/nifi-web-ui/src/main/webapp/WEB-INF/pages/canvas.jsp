@@ -62,13 +62,23 @@
         <script type="text/javascript" src="js/jquery/slickgrid/slick.dataview.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.core.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.grid.js"></script>
+        <script type="text/javascript" src="js/angular/angular.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-messages/angular-messages.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-resource/angular-resource.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-route/angular-route.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-aria/angular-aria.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-animate/angular-animate.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-material/angular-material.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-sanitize/angular-sanitize.min.js"></script>
         <script type="text/javascript" src="js/json2.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/canvas/nf-ng-canvas-namespace.js?${project.version}"></script>
         ${nf.canvas.script.tags}
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
     </head>
-    <body id="canvas-body">
+    <body ng-controller="ngCanvasAppCtrl" id="canvas-body">
         <div id="splash">
             <img id="splash-img" src="images/loadAnimation.gif" alt="Loading..."/>
         </div>
