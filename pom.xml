@@ -81,8 +81,8 @@ language governing permissions and limitations under the License. -->
         <url>https://issues.apache.org/jira/browse/NIFI</url>
     </issueManagement>
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <maven.min-version>3.1.0</maven.min-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -1313,7 +1313,7 @@ language governing permissions and limitations under the License. -->
                         <show>private</show>
                         <encoding>UTF-8</encoding>
                         <quiet>true</quiet>
-                        <javadocVersion>1.7</javadocVersion>
+                        <javadocVersion>1.8</javadocVersion>
                         <additionalJOption>-J-Xmx512m</additionalJOption>
                     </configuration>
                 </plugin>
@@ -1383,8 +1383,8 @@ language governing permissions and limitations under the License. -->
                     </execution>
                 </executions>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
                 <dependencies>
                     <dependency>
