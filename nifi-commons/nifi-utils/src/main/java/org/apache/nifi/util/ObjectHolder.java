@@ -16,10 +16,16 @@
  */
 package org.apache.nifi.util;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
- * A bean that holds a single value of type T.
+ * @deprecated As of release 0.7.0. Please use {@link AtomicReference}
+ *
+ *             A bean that holds a single value of type T.
  *
  */
+
+@Deprecated
 public class ObjectHolder<T> {
 
     private T value;
