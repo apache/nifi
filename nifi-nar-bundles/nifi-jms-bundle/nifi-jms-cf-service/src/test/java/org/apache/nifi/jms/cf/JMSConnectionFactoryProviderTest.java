@@ -69,9 +69,9 @@ public class JMSConnectionFactoryProviderTest {
         assertNotNull(cf);
         assertEquals("org.apache.nifi.jms.testcflib.TestConnectionFactory", cf.getClass().getName());
         assertEquals("myhost", this.get("getHost", cf));
-        assertEquals(1234, this.get("getPort", cf));
+        assertEquals(1234, ((Integer) this.get("getPort", cf)).intValue());
         assertEquals("foo", this.get("getFoo", cf));
-        assertEquals(3, this.get("getBar", cf));
+        assertEquals(3, ((Integer) this.get("getBar", cf)).intValue());
     }
 
     @Test(expected = AssertionError.class)
