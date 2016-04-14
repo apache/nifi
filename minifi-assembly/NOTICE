@@ -14,3 +14,8 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache NiFi
       Copyright 2014-2016 The Apache Software Foundation
+
+  (ASLv2) Jetty
+    The following NOTICE information applies:
+       Jetty Web Container
+       Copyright 1995-2015 Mort Bay Consulting Pty Ltd.

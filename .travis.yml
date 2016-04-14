@@ -5,8 +5,6 @@ os:
 
 jdk:
   - oraclejdk8
-  - oraclejdk7
-  - openjdk7
 
 # before_install aids in a couple workarounds for issues within the Travis-CI environment
 #   1. Workaround for buffer overflow issues with OpenJDK versions of java as per https://github.com/travis-ci/travis-ci/issues/5227#issuecomment-165135711
