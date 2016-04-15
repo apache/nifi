@@ -154,6 +154,7 @@ public class CompressContent extends AbstractProcessor {
 
         final Map<String, String> mimeTypeMap = new HashMap<>();
         mimeTypeMap.put("application/gzip", COMPRESSION_FORMAT_GZIP);
+        mimeTypeMap.put("application/x-gzip", COMPRESSION_FORMAT_GZIP);
         mimeTypeMap.put("application/bzip2", COMPRESSION_FORMAT_BZIP2);
         mimeTypeMap.put("application/x-bzip2", COMPRESSION_FORMAT_BZIP2);
         mimeTypeMap.put("application/x-lzma", COMPRESSION_FORMAT_LZMA);

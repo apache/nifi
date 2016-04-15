@@ -207,6 +207,18 @@ public class TestCompressContent {
         flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
         flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
         flowFile.assertAttributeEquals("filename", "SampleFile1.txt");
+
+        runner.clearTransferState();
+        runner.setProperty(CompressContent.COMPRESSION_FORMAT, CompressContent.COMPRESSION_FORMAT_ATTRIBUTE);
+        Map<String,String> attributes = new HashMap<String,String>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/x-gzip");
+        runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.gz"), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
+        flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
+        flowFile.assertAttributeEquals("filename", "SampleFile.txt");
     }
 
     @Test
