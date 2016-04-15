@@ -23,7 +23,9 @@ import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,6 +47,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
@@ -571,6 +574,73 @@ public class TestProcessorLifecycle {
 
         Thread.sleep(500);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
+        fc.shutdown(true);
+    }
+
+    /**
+     * Test deletion of processor when connected to another
+     * @throws Exception exception
+     */
+    @Test
+    public void validateProcessorDeletion() throws Exception {
+        FlowController fc = this.buildFlowControllerForTest();
+        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
+        this.setControllerRootGroup(fc, testGroup);
+
+        ProcessorNode testProcNodeA = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
+        testProcNodeA.setProperty("P", "hello");
+        testGroup.addProcessor(testProcNodeA);
+
+        ProcessorNode testProcNodeB = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
+        testProcNodeB.setProperty("P", "hello");
+        testGroup.addProcessor(testProcNodeB);
+
+        Collection<String> relationNames = new ArrayList<String>();
+        relationNames.add("relation");
+        Connection connection = fc.createConnection(UUID.randomUUID().toString(), Connection.class.getName(), testProcNodeA, testProcNodeB, relationNames);
+        testGroup.addConnection(connection);
+
+        ProcessScheduler ps = fc.getProcessScheduler();
+        ps.startProcessor(testProcNodeA);
+        ps.startProcessor(testProcNodeB);
+
+        try {
+            testGroup.removeProcessor(testProcNodeA);
+            fail();
+        } catch (Exception e) {
+            // should throw exception because processor running
+        }
+
+        try {
+            testGroup.removeProcessor(testProcNodeB);
+            fail();
+        } catch (Exception e) {
+            // should throw exception because processor running
+        }
+
+        ps.stopProcessor(testProcNodeB);
+        Thread.sleep(100);
+
+        try {
+            testGroup.removeProcessor(testProcNodeA);
+            fail();
+        } catch (Exception e) {
+            // should throw exception because destination processor running
+        }
+
+        try {
+            testGroup.removeProcessor(testProcNodeB);
+            fail();
+        } catch (Exception e) {
+            // should throw exception because source processor running
+        }
+
+        ps.stopProcessor(testProcNodeA);
+        Thread.sleep(100);
+
+        testGroup.removeProcessor(testProcNodeA);
+        testGroup.removeProcessor(testProcNodeB);
+        testGroup.shutdown();
         fc.shutdown(true);
     }
 
