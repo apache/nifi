@@ -19,7 +19,6 @@ package org.apache.nifi.admin.service.action;
 import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.dao.KeyDAO;
-import org.apache.nifi.authorization.AuthorityProvider;
 
 /**
  *
@@ -38,7 +37,7 @@ public class DeleteKeysAction implements AdministrationAction<Void> {
     }
 
     @Override
-    public Void execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) throws DataAccessException {
+    public Void execute(DAOFactory daoFactory) throws DataAccessException {
         final KeyDAO keyDao = daoFactory.getKeyDAO();
         keyDao.deleteKeys(identity);
         return null;

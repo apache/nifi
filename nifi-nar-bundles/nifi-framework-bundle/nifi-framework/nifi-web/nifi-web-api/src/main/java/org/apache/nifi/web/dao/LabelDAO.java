@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.web.api.dto.LabelDTO;
+
+import java.util.Set;
 
 public interface LabelDAO {
 
     /**
-     * @param groupId group id
      * @param labelId label id
      * @return Determines if the specified label exists in the specified group
      */
-    boolean hasLabel(String groupId, String labelId);
+    boolean hasLabel(String labelId);
 
     /**
      * Creates a label in the specified group.
@@ -41,11 +41,10 @@ public interface LabelDAO {
     /**
      * Gets the specified label in the specified group.
      *
-     * @param groupId group id
      * @param labelId The label id
      * @return The label
      */
-    Label getLabel(String groupId, String labelId);
+    Label getLabel(String labelId);
 
     /**
      * Gets all of the labels in the specified group.
@@ -58,17 +57,15 @@ public interface LabelDAO {
     /**
      * Updates the specified label in the specified group.
      *
-     * @param groupId group id
      * @param labelDTO The label DTO
      * @return The label
      */
-    Label updateLabel(String groupId, LabelDTO labelDTO);
+    Label updateLabel(LabelDTO labelDTO);
 
     /**
      * Deletes the specified label in the specified group.
      *
-     * @param groupId group id
      * @param labelId The label id
      */
-    void deleteLabel(String groupId, String labelId);
+    void deleteLabel(String labelId);
 }

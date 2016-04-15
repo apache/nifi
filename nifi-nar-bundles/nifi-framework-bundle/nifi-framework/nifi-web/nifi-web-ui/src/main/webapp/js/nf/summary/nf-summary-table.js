@@ -27,8 +27,9 @@ nf.SummaryTable = (function () {
             filterList: 'summary-filter-list'
         },
         urls: {
-            status: '../nifi-api/controller/process-groups/root/status',
-            processGroups: '../nifi-api/controller/process-groups/',
+            api: '../nifi-api',
+            status: '../nifi-api/process-groups/root/status',
+            processGroups: '../nifi-api/process-groups/',
             systemDiagnostics: '../nifi-api/system-diagnostics',
             controllerConfig: '../nifi-api/controller/config',
             d3Script: 'js/d3/d3.min.js',
@@ -2161,7 +2162,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.processGroups + encodeURIComponent(groupId) + '/processors/' + encodeURIComponent(processorId) + '/status',
+            url: config.urls.api + '/processors/' + encodeURIComponent(processorId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2218,7 +2219,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.processGroups + encodeURIComponent(groupId) + '/connections/' + encodeURIComponent(connectionId) + '/status',
+            url: config.urls.api + '/connections/' + encodeURIComponent(connectionId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2331,7 +2332,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.processGroups + encodeURIComponent(groupId) + '/input-ports/' + encodeURIComponent(inputPortId) + '/status',
+            url: config.urls.api + '/input-ports/' + encodeURIComponent(inputPortId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2383,7 +2384,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.processGroups + encodeURIComponent(groupId) + '/output-ports/' + encodeURIComponent(outputPortId) + '/status',
+            url: config.urls.api + '/output-ports/' + encodeURIComponent(outputPortId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2435,7 +2436,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.processGroups + encodeURIComponent(groupId) + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status',
+            url: config.urls.api + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status',
             data: {
                 nodewise: true
             },

@@ -945,6 +945,27 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Connection findConnection(final String id) {
+        return findConnection(id, this);
+    }
+
+    private Connection findConnection(final String id, final ProcessGroup start) {
+        Connection connection = start.getConnection(id);
+        if (connection != null) {
+            return connection;
+        }
+
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            connection = findConnection(id, group);
+            if (connection != null) {
+                return connection;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     public List<Connection> findAllConnections() {
         return findAllConnections(this);
     }
@@ -1476,6 +1497,27 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Label findLabel(final String id) {
+        return findLabel(id, this);
+    }
+
+    private Label findLabel(final String id, final ProcessGroup start) {
+        Label label = start.getLabel(id);
+        if (label != null) {
+            return label;
+        }
+
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            label = findLabel(id, group);
+            if (label != null) {
+                return label;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     public List<Label> findAllLabels() {
         return findAllLabels(this);
     }
@@ -1600,6 +1642,27 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+    }
+
+    @Override
+    public Funnel findFunnel(final String id) {
+        return findFunnel(id, this);
+    }
+
+    private Funnel findFunnel(final String id, final ProcessGroup start) {
+        Funnel funnel = start.getFunnel(id);
+        if (funnel != null) {
+            return funnel;
+        }
+
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            funnel = findFunnel(id, group);
+            if (funnel != null) {
+                return funnel;
+            }
+        }
+
+        return null;
     }
 
     @Override

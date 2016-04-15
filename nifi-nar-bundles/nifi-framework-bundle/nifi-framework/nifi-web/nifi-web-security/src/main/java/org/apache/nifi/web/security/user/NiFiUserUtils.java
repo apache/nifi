@@ -77,27 +77,6 @@ public final class NiFiUserUtils {
         return user;
     }
 
-    /**
-     * Returns the NewAccountRequest or null if this is not a new account request.
-     *
-     * @return new account request
-     */
-    public static NewAccountRequest getNewAccountRequest() {
-        NewAccountRequest newAccountRequest = null;
-
-        // obtain the principal in the current authentication
-        final SecurityContext context = SecurityContextHolder.getContext();
-        final Authentication authentication = context.getAuthentication();
-        if (authentication != null) {
-            Object principal = authentication.getPrincipal();
-            if (principal instanceof NewAccountRequest) {
-                newAccountRequest = (NewAccountRequest) principal;
-            }
-        }
-
-        return newAccountRequest;
-    }
-
     public static String getNiFiUserName() {
         // get the nifi user to extract the username
         NiFiUser user = NiFiUserUtils.getNiFiUser();

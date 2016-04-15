@@ -23,12 +23,18 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import java.io.InputStream;
-import java.net.URI;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.entity.TemplateEntity;
+import org.apache.nifi.web.api.entity.TemplatesEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -49,19 +55,12 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.NiFiServiceFacade;
-import static org.apache.nifi.web.api.ApplicationResource.CLIENT_ID;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.nifi.web.api.entity.TemplateEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.access.prepost.PreAuthorize;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * RESTful endpoint for managing a Template.
@@ -109,7 +108,7 @@ public class TemplateResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets all templates",
             response = TemplatesEntity.class,
@@ -172,7 +171,7 @@ public class TemplateResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates a template",
             response = TemplateEntity.class,
@@ -254,7 +253,7 @@ public class TemplateResource extends ApplicationResource {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_XML)
     @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     public Response importTemplate(
             @Context HttpServletRequest httpServletRequest,
             @FormDataParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
@@ -316,7 +315,7 @@ public class TemplateResource extends ApplicationResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces(MediaType.APPLICATION_XML)
     @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     public Response importTemplate(
             @Context HttpServletRequest httpServletRequest,
             TemplateEntity templateEntity) {
@@ -377,7 +376,7 @@ public class TemplateResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_XML)
     @Path("{id}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Exports a template",
             response = TemplateDTO.class,
@@ -445,7 +444,7 @@ public class TemplateResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a template",
             response = TemplateEntity.class,

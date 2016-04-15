@@ -22,7 +22,7 @@ nf.Snippet = (function () {
     var config = {
         urls: {
             snippets: '../nifi-api/controller/snippets',
-            processGroups: '../nifi-api/controller/process-groups'
+            processGroups: '../nifi-api/process-groups'
         }
     };
 

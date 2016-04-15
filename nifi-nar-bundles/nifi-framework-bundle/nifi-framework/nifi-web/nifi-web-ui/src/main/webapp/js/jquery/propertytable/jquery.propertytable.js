@@ -891,7 +891,7 @@
                     // add the new controller service
                     $.ajax({
                         type: 'POST',
-                        url: '../nifi-api/controller/controller-services/node',
+                        url: '../nifi-api/controller-services/node',
                         data: {
                             version: revision.version,
                             clientId: revision.clientId,

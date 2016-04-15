@@ -24,7 +24,7 @@ nf.ConnectionConfiguration = (function () {
 
     var config = {
         urls: {
-            controller: '../nifi-api/controller',
+            api: '../nifi-api',
             prioritizers: '../nifi-api/controller/prioritizers'
         }
     };
@@ -248,7 +248,7 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(processGroupData.component.id),
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupData.component.id),
                 data: {
                     verbose: true
                 },
@@ -473,7 +473,7 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(processGroupData.component.id),
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupData.component.id),
                 data: {
                     verbose: true
                 },
@@ -717,8 +717,14 @@ nf.ConnectionConfiguration = (function () {
 
             var xOffset = nf.Connection.config.selfLoopXOffset;
             var yOffset = nf.Connection.config.selfLoopYOffset;
-            bends.push((rightCenter.x + xOffset) + ',' + (rightCenter.y - yOffset));
-            bends.push((rightCenter.x + xOffset) + ',' + (rightCenter.y + yOffset));
+            bends.push({
+                'x': (rightCenter.x + xOffset),
+                'y': (rightCenter.y - yOffset)
+            });
+            bends.push({
+                'x': (rightCenter.x + xOffset),
+                'y': (rightCenter.y + yOffset)
+            });
         } else {
             var existingConnections = [];
 
@@ -794,10 +800,16 @@ nf.ConnectionConfiguration = (function () {
                     while (positioned === false) {
                         // consider above and below, then increment and try again (if necessary)
                         if (collides(xCandidate - xStep, yCandidate - yStep) === false) {
-                            bends.push((xCandidate - xStep) + ',' + (yCandidate - yStep));
+                            bends.push({
+                                'x': (xCandidate - xStep),
+                                'y': (yCandidate - yStep)
+                            });
                             positioned = true;
                         } else if (collides(xCandidate + xStep, yCandidate + yStep) === false) {
-                            bends.push((xCandidate + xStep) + ',' + (yCandidate + yStep));
+                            bends.push({
+                                'x': (xCandidate + xStep),
+                                'y': (yCandidate + yStep)
+                            });
                             positioned = true;
                         }
 
@@ -827,30 +839,36 @@ nf.ConnectionConfiguration = (function () {
         var prioritizers = $('#prioritizer-selected').sortable('toArray');
 
         if (validateSettings()) {
-            var revision = nf.Client.getRevision();
+            var connectionEntity = {
+                'revision': nf.Client.getRevision(),
+                'connection': {
+                    'name': connectionName,
+                    'source': {
+                        'id': sourceId,
+                        'groupId': sourceGroupId,
+                        'type': sourceType
+                    },
+                    'destination': {
+                        'id': destinationId,
+                        'groupId': destinationGroupId,
+                        'type': destinationType
+                    },
+                    'selectedRelationships': selectedRelationships,
+                    'flowFileExpiration': flowFileExpiration,
+                    'backPressureDataSizeThreshold': backPressureDataSizeThreshold,
+                    'backPressureObjectThreshold': backPressureObjectThreshold,
+                    'bends': bends,
+                    'prioritizers': prioritizers
+                }
+            };
 
             // create the new connection
             $.ajax({
                 type: 'POST',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/connections',
-                data: {
-                    version: revision.version,
-                    clientId: revision.clientId,
-                    sourceId: sourceId,
-                    sourceGroupId: sourceGroupId,
-                    sourceType: sourceType,
-                    relationships: selectedRelationships,
-                    bends: bends,
-                    name: connectionName,
-                    flowFileExpiration: flowFileExpiration,
-                    backPressureObjectThreshold: backPressureObjectThreshold,
-                    backPressureDataSizeThreshold: backPressureDataSizeThreshold,
-                    prioritizers: prioritizers,
-                    destinationId: destinationId,
-                    destinationGroupId: destinationGroupId,
-                    destinationType: destinationType
-                },
-                dataType: 'json'
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/connections',
+                data: JSON.stringify(connectionEntity),
+                dataType: 'json',
+                contentType: 'application/json'
             }).done(function (response) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
@@ -882,6 +900,7 @@ nf.ConnectionConfiguration = (function () {
      */
     var updateConnection = function (selectedRelationships) {
         // get the connection details
+        var connectionId = $('#connection-id').text();
         var connectionUri = $('#connection-uri').val();
 
         // get the source details
@@ -904,26 +923,31 @@ nf.ConnectionConfiguration = (function () {
         var prioritizers = $('#prioritizer-selected').sortable('toArray');
 
         if (validateSettings()) {
-            var revision = nf.Client.getRevision();
+            var connectionEntity = {
+                'revision': nf.Client.getRevision(),
+                'connection': {
+                    'id': connectionId,
+                    'name': connectionName,
+                    'destination': {
+                        'id': destinationId,
+                        'groupId': destinationGroupId,
+                        'type': destinationType
+                    },
+                    'selectedRelationships': selectedRelationships,
+                    'flowFileExpiration': flowFileExpiration,
+                    'backPressureDataSizeThreshold': backPressureDataSizeThreshold,
+                    'backPressureObjectThreshold': backPressureObjectThreshold,
+                    'prioritizers': prioritizers
+                }
+            };
 
             // update the connection
             return $.ajax({
                 type: 'PUT',
                 url: connectionUri,
-                data: {
-                    version: revision.version,
-                    clientId: revision.clientId,
-                    relationships: selectedRelationships,
-                    name: connectionName,
-                    flowFileExpiration: flowFileExpiration,
-                    backPressureObjectThreshold: backPressureObjectThreshold,
-                    backPressureDataSizeThreshold: backPressureDataSizeThreshold,
-                    prioritizers: prioritizers,
-                    destinationId: destinationId,
-                    destinationType: destinationType,
-                    destinationGroupId: destinationGroupId
-                },
-                dataType: 'json'
+                data: JSON.stringify(connectionEntity),
+                dataType: 'json',
+                contentType: 'application/json'
             }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.connection)) {
                     var connection = response.connection;

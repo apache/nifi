@@ -71,15 +71,6 @@ nf.CanvasHeader = (function () {
                 });
             });
 
-            // mouse over for the users link
-            if (nf.Common.isAdmin()) {
-                nf.Common.addHoverEffect('#users-link', 'users-link', 'users-link-hover').click(function () {
-                    nf.Shell.showPage('users');
-                });
-            } else {
-                $('#users-link').addClass('users-link-disabled');
-            }
-
             // mouse over for the cluster link
             if (nf.Canvas.isClustered()) {
                 nf.Common.addHoverEffect('#cluster-link', 'cluster-link', 'cluster-link-hover').click(function () {
@@ -181,8 +172,6 @@ nf.CanvasHeader = (function () {
                                 // color the selected components
                                 selection.each(function (d) {
                                     var selected = d3.select(this);
-
-                                    var revision = nf.Client.getRevision();
                                     var selectedData = selected.datum();
 
                                     // get the color and update the styles
@@ -190,16 +179,24 @@ nf.CanvasHeader = (function () {
 
                                     // ensure the color actually changed
                                     if (color !== selectedData.component.style['background-color']) {
+                                        // build the request entity
+                                        var entity = {
+                                            'revision': nf.Client.getRevision()
+                                        };
+                                        entity[nf[selectedData.type].getEntityKey()] = {
+                                            'id': selectedData.component.id,
+                                            'style': {
+                                                'background-color': color
+                                            }
+                                        };
+
                                         // update the style for the specified component
                                         $.ajax({
                                             type: 'PUT',
                                             url: selectedData.component.uri,
-                                            data: {
-                                                'version': revision.version,
-                                                'clientId': revision.clientId,
-                                                'style[background-color]': color
-                                            },
-                                            dataType: 'json'
+                                            data: JSON.stringify(entity),
+                                            dataType: 'json',
+                                            contentType: 'application/json'
                                         }).done(function (response) {
                                             // update the revision
                                             nf.Client.setRevision(response.revision);

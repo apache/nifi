@@ -411,10 +411,26 @@ public interface ProcessGroup {
     Set<Connection> getConnections();
 
     /**
+     * @param id of the Connection
+     * @return the Connection with the given ID, if it exists as a child or
+     * descendant of this ProcessGroup. This performs a recursive search of all
+     * descendant ProcessGroups
+     */
+    Connection findConnection(String id);
+
+    /**
      * @return a List of all Connections contains within this ProcessGroup and
      * any child ProcessGroups
      */
     List<Connection> findAllConnections();
+
+    /**
+     * @param id of the Funnel
+     * @return the Funnel with the given ID, if it exists as a child or
+     * descendant of this ProcessGroup. This performs a recursive search of all
+     * descendant ProcessGroups
+     */
+    Funnel findFunnel(String id);
 
     /**
      * Adds the given RemoteProcessGroup to this ProcessGroup
@@ -519,6 +535,14 @@ public interface ProcessGroup {
      * ProcessGroups
      */
     List<ProcessorNode> findAllProcessors();
+
+    /**
+     * @param id of the Label
+     * @return the Label with the given ID, if it exists as a child or
+     * descendant of this ProcessGroup. This performs a recursive search of all
+     * descendant ProcessGroups
+     */
+    Label findLabel(String id);
 
     /**
      * @return a List of all Labels that are children or descendants of this

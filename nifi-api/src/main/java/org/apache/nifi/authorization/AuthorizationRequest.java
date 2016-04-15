@@ -29,17 +29,22 @@ public class AuthorizationRequest {
     private final Resource resource;
     private final String identity;
     private final RequestAction action;
+    private final boolean isAccessAttempt;
+    private final boolean isAnonymous;
     private final Map<String, String> context;
     private final Map<String, String> eventAttributes;
 
     private AuthorizationRequest(final Builder builder) {
         Objects.requireNonNull(builder.resource, "The resource is required when creating an authorization request");
-        Objects.requireNonNull(builder.identity, "The identity of the user is required when creating an authorization request");
         Objects.requireNonNull(builder.action, "The action is required when creating an authorization request");
+        Objects.requireNonNull(builder.isAccessAttempt, "Whether this request is an access attempt is request");
+        Objects.requireNonNull(builder.isAnonymous, "Whether this request is being performed by an anonymous user is required");
 
         this.resource = builder.resource;
         this.identity = builder.identity;
         this.action = builder.action;
+        this.isAccessAttempt = builder.isAccessAttempt;
+        this.isAnonymous = builder.isAnonymous;
         this.context = builder.context == null ? null : Collections.unmodifiableMap(builder.context);
         this.eventAttributes = builder.context == null ? null : Collections.unmodifiableMap(builder.eventAttributes);
     }
@@ -54,12 +59,30 @@ public class AuthorizationRequest {
     }
 
     /**
-     * The identity accessing the Resource. Not null.
+     * The identity accessing the Resource. May be null if the user could not authenticate.
      *
      * @return The identity
      */
     public String getIdentity() {
         return identity;
+    }
+
+    /**
+     * Whether this is a direct access attempt of the Resource if if it's being checked as part of another response.
+     *
+     * @return if this is a direct access attempt
+     */
+    public boolean isAccessAttempt() {
+        return isAccessAttempt;
+    }
+
+    /**
+     * Whether the entity accessing is anonymous.
+     *
+     * @return whether the entity is anonymous
+     */
+    public boolean isAnonymous() {
+        return isAnonymous;
     }
 
     /**
@@ -96,6 +119,8 @@ public class AuthorizationRequest {
 
         private Resource resource;
         private String identity;
+        private Boolean isAnonymous;
+        private Boolean isAccessAttempt;
         private RequestAction action;
         private Map<String, String> context;
         private Map<String, String> eventAttributes;
@@ -107,6 +132,16 @@ public class AuthorizationRequest {
 
         public Builder identity(final String identity) {
             this.identity = identity;
+            return this;
+        }
+
+        public Builder anonymous(final Boolean isAnonymous) {
+            this.isAnonymous = isAnonymous;
+            return this;
+        }
+
+        public Builder accessAttempt(final Boolean isAccessAttempt) {
+            this.isAccessAttempt = isAccessAttempt;
             return this;
         }
 

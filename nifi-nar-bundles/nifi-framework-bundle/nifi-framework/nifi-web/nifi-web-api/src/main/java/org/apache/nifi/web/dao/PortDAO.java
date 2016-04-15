@@ -16,19 +16,18 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
-
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.web.api.dto.PortDTO;
+
+import java.util.Set;
 
 public interface PortDAO {
 
     /**
-     * @param groupId group id
      * @param portId port id
      * @return Determines if the specified port exists in the specified group
      */
-    boolean hasPort(String groupId, String portId);
+    boolean hasPort(String portId);
 
     /**
      * Creates a port in the specified group.
@@ -42,11 +41,10 @@ public interface PortDAO {
     /**
      * Gets the specified port in the specified group.
      *
-     * @param groupId group id
      * @param portId The port id
      * @return The port
      */
-    Port getPort(String groupId, String portId);
+    Port getPort(String portId);
 
     /**
      * Gets all of the ports in the specified group.
@@ -59,33 +57,29 @@ public interface PortDAO {
     /**
      * Verifies the specified port can be updated per the specified request.
      *
-     * @param groupId group id
      * @param portDTO port
      */
-    void verifyUpdate(String groupId, PortDTO portDTO);
+    void verifyUpdate(PortDTO portDTO);
 
     /**
      * Updates the specified port in the specified group.
      *
-     * @param groupId group
      * @param portDTO The port DTO
      * @return The port
      */
-    Port updatePort(String groupId, PortDTO portDTO);
+    Port updatePort(PortDTO portDTO);
 
     /**
      * Verifies the specified port can be removed.
      *
-     * @param groupId group id
      * @param portId port id
      */
-    void verifyDelete(String groupId, String portId);
+    void verifyDelete(String portId);
 
     /**
      * Deletes the specified label in the specified group.
      *
-     * @param groupId group id
      * @param portId The port id
      */
-    void deletePort(String groupId, String portId);
+    void deletePort(String portId);
 }

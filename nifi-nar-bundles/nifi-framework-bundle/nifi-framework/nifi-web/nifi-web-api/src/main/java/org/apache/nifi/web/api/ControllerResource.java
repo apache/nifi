@@ -64,7 +64,6 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -84,6 +83,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -121,62 +121,6 @@ public class ControllerResource extends ApplicationResource {
     }
 
     /**
-     * Locates the User sub-resource.
-     *
-     * @return the User sub-resource
-     */
-    @Path("/users")
-    @ApiOperation(
-            value = "Gets the user resource",
-            response = UserResource.class
-    )
-    public UserResource getUserResource() {
-        return resourceContext.getResource(UserResource.class);
-    }
-
-    /**
-     * Locates the User sub-resource.
-     *
-     * @return the User sub-resource
-     */
-    @Path("/user-groups")
-    @ApiOperation(
-            value = "Gets the user group resource",
-            response = UserGroupResource.class
-    )
-    public UserGroupResource getUserGroupResource() {
-        return resourceContext.getResource(UserGroupResource.class);
-    }
-
-    /**
-     * Locates the History sub-resource.
-     *
-     * @return the History sub-resource
-     */
-    @Path("/history")
-    @ApiOperation(
-            value = "Gets the history resource",
-            response = HistoryResource.class
-    )
-    public HistoryResource getHistoryResource() {
-        return resourceContext.getResource(HistoryResource.class);
-    }
-
-    /**
-     * Locates the History sub-resource.
-     *
-     * @return the History sub-resource
-     */
-    @Path("/bulletin-board")
-    @ApiOperation(
-            value = "Gets the bulletin board resource",
-            response = BulletinBoardResource.class
-    )
-    public BulletinBoardResource getBulletinBoardResource() {
-        return resourceContext.getResource(BulletinBoardResource.class);
-    }
-
-    /**
      * Locates the Template sub-resource.
      *
      * @return the Template sub-resource
@@ -205,63 +149,12 @@ public class ControllerResource extends ApplicationResource {
     }
 
     /**
-     * Locates the Controller Services sub-resource.
-     *
-     * @return the Controller Services sub-resource
-     */
-    @Path("/controller-services")
-    @ApiOperation(
-            value = "Gets the controller service resource",
-            response = ControllerServiceResource.class
-    )
-    public ControllerServiceResource getControllerServiceResource() {
-        return resourceContext.getResource(ControllerServiceResource.class);
-    }
-
-    /**
-     * Locates the Reporting Tasks sub-resource.
-     *
-     * @return the Reporting Tasks sub-resource
-     */
-    @Path("/reporting-tasks")
-    @ApiOperation(
-            value = "Gets the reporting task resource",
-            response = ReportingTaskResource.class
-    )
-    public ReportingTaskResource getReportingTaskResource() {
-        return resourceContext.getResource(ReportingTaskResource.class);
-    }
-
-    /**
-     * Locates the Group sub-resource.
-     *
-     * @param groupId The process group id
-     * @return the Group sub-resource
-     */
-    @Path("/process-groups/{process-group-id}")
-    @ApiOperation(
-            value = "Gets the process group resource",
-            response = ProcessGroupResource.class
-    )
-    public ProcessGroupResource getGroupResource(
-            @ApiParam(
-                    value = "The id of the process group that is the parent of the requested resource(s). If the desired process group is "
-                    + "the root group an alias 'root' may be used as the process-group-id.",
-                    required = true
-            )
-            @PathParam("process-group-id") String groupId) {
-        ProcessGroupResource groupResource = resourceContext.getResource(ProcessGroupResource.class);
-        groupResource.setGroupId(groupId);
-        return groupResource;
-    }
-
-    /**
      * Returns a 200 OK response to indicate this is a valid controller endpoint.
      *
      * @return An OK response with an empty entity body.
      */
     @HEAD
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     public Response getControllerHead() {
         if (properties.isClusterManager()) {
             throw new IllegalClusterResourceRequestException("A cluster manager cannot process the request.");
@@ -279,7 +172,7 @@ public class ControllerResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @PreAuthorize("hasRole('ROLE_NIFI')")
+    // TODO - @PreAuthorize("hasRole('ROLE_NIFI')")
     @ApiOperation(
             value = "Returns the details about this NiFi necessary to communicate via site to site",
             response = ControllerEntity.class,
@@ -330,7 +223,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/search-results")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Performs a search against this NiFi using the specified search term",
             response = SearchResultsEntity.class,
@@ -380,7 +273,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/archive")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates a new archive of this NiFi flow configuration",
             notes = "This POST operation returns a URI that is not representative of the thing "
@@ -457,7 +350,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/revision")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the current revision of this NiFi",
             notes = "NiFi employs an optimistic locking strategy where the client must include a revision in their request when "
@@ -505,7 +398,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/status")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the current status of this NiFi",
             response = Entity.class,
@@ -559,7 +452,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/counters")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the current counters for this NiFi",
             response = Entity.class,
@@ -654,7 +547,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/counters/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates the specified counter. This will reset the counter value to 0",
             response = CounterEntity.class,
@@ -717,7 +610,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/config")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_NIFI')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_NIFI')")
     @ApiOperation(
             value = "Retrieves the configuration for this NiFi",
             response = ControllerConfigurationEntity.class,
@@ -780,7 +673,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/config")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     public Response updateControllerConfig(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -831,7 +724,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/config")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Retrieves the configuration for this NiFi",
             response = ControllerConfigurationEntity.class,
@@ -932,7 +825,7 @@ public class ControllerResource extends ApplicationResource {
         // create the response entity
         IdentityEntity entity = new IdentityEntity();
         entity.setRevision(revision);
-        entity.setUserId(user.getId());
+        entity.setUserId(user.getIdentity());
         entity.setIdentity(user.getUserName());
 
         // generate the response
@@ -949,7 +842,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/authorities")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_PROXY', 'ROLE_NIFI', 'ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_PROXY', 'ROLE_NIFI', 'ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Retrieves the user details, including the authorities, about the user making the request",
             response = AuthorityEntity.class,
@@ -990,8 +883,8 @@ public class ControllerResource extends ApplicationResource {
         // create the response entity
         AuthorityEntity entity = new AuthorityEntity();
         entity.setRevision(revision);
-        entity.setUserId(user.getId());
-        entity.setAuthorities(NiFiUserUtils.getAuthorities());
+        entity.setUserId(user.getIdentity());
+        entity.setAuthorities(new HashSet<>(Arrays.asList("ROLE_MONITOR", "ROLE_DFM", "ROLE_ADMIN", "ROLE_PROXY", "ROLE_NIFI", "ROLE_PROVENANCE")));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -1007,7 +900,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/banners")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Retrieves the banners for this NiFi",
             response = BannerEntity.class,
@@ -1063,7 +956,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/processor-types")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Retrieves the types of processors that this NiFi supports",
             response = ProcessorTypesEntity.class,
@@ -1117,7 +1010,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/controller-service-types")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Retrieves the types of controller services that this NiFi supports",
             response = ControllerServiceTypesEntity.class,
@@ -1175,7 +1068,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/reporting-task-types")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Retrieves the types of reporting tasks that this NiFi supports",
             response = ReportingTaskTypesEntity.class,
@@ -1228,7 +1121,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/prioritizers")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Retrieves the types of prioritizers that this NiFi supports",
             response = PrioritizerTypesEntity.class,
@@ -1281,7 +1174,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/about")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Retrieves details about this NiFi to put in the About dialog",
             response = AboutEntity.class,

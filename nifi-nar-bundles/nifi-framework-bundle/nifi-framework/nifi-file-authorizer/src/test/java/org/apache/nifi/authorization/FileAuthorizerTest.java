@@ -18,7 +18,7 @@ package org.apache.nifi.authorization;
 
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
-import org.apache.nifi.authorization.exception.ProviderCreationException;
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -111,20 +111,20 @@ public class FileAuthorizerTest {
         assertEquals(primary.length(), restore.length());
     }
 
-    @Test(expected = ProviderCreationException.class)
+    @Test(expected = AuthorizerCreationException.class)
     public void testPostConstructionWhenPrimaryDoesNotExist() throws Exception {
         writeAuthorizationsFile(restore, EMPTY_AUTHORIZATIONS_CONCISE);
         authorizer.onConfigured(configurationContext);
     }
 
-    @Test(expected = ProviderCreationException.class)
+    @Test(expected = AuthorizerCreationException.class)
     public void testPostConstructionWhenPrimaryDifferentThanRestore() throws Exception {
         writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS);
         writeAuthorizationsFile(restore, EMPTY_AUTHORIZATIONS_CONCISE);
         authorizer.onConfigured(configurationContext);
     }
 
-    @Test(expected = ProviderCreationException.class)
+    @Test(expected = AuthorizerCreationException.class)
     public void testBadSchema() throws Exception {
         writeAuthorizationsFile(primary, BAD_SCHEMA_AUTHORIZATIONS);
         authorizer.onConfigured(configurationContext);
@@ -135,7 +135,8 @@ public class FileAuthorizerTest {
         writeAuthorizationsFile(primary, AUTHORIZATIONS);
         authorizer.onConfigured(configurationContext);
 
-        final AuthorizationRequest request = new AuthorizationRequest.Builder().resource(ResourceFactory.getFlowResource()).identity("user-1").action(RequestAction.READ).build();
+        final AuthorizationRequest request = new AuthorizationRequest.Builder().resource(ResourceFactory.getFlowResource()).identity("user-1").anonymous(false).accessAttempt(true).action(RequestAction
+            .READ).build();
         final AuthorizationResult result = authorizer.authorize(request);
         assertTrue(Result.Approved.equals(result.getResult()));
     }
@@ -145,7 +146,8 @@ public class FileAuthorizerTest {
         writeAuthorizationsFile(primary, AUTHORIZATIONS);
         authorizer.onConfigured(configurationContext);
 
-        final AuthorizationRequest request = new AuthorizationRequest.Builder().resource(ResourceFactory.getFlowResource()).identity("user-2").action(RequestAction.READ).build();
+        final AuthorizationRequest request =
+            new AuthorizationRequest.Builder().resource(ResourceFactory.getFlowResource()).identity("user-2").anonymous(false).accessAttempt(true).action(RequestAction.READ).build();
         final AuthorizationResult result = authorizer.authorize(request);
         assertFalse(Result.Approved.equals(result.getResult()));
     }
@@ -155,7 +157,8 @@ public class FileAuthorizerTest {
         writeAuthorizationsFile(primary, AUTHORIZATIONS);
         authorizer.onConfigured(configurationContext);
 
-        final AuthorizationRequest request = new AuthorizationRequest.Builder().resource(ResourceFactory.getFlowResource()).identity("user-1").action(RequestAction.WRITE).build();
+        final AuthorizationRequest request =
+            new AuthorizationRequest.Builder().resource(ResourceFactory.getFlowResource()).identity("user-1").anonymous(false).accessAttempt(true).action(RequestAction.WRITE).build();
         final AuthorizationResult result = authorizer.authorize(request);
         assertFalse(Result.Approved.equals(result.getResult()));
     }
@@ -167,7 +170,8 @@ public class FileAuthorizerTest {
         authorizer.onConfigured(configurationContext);
 
         // ensure the user currently does not have write access
-        final AuthorizationRequest request = new AuthorizationRequest.Builder().resource(ResourceFactory.getFlowResource()).identity("user-1").action(RequestAction.WRITE).build();
+        final AuthorizationRequest request =
+            new AuthorizationRequest.Builder().resource(ResourceFactory.getFlowResource()).identity("user-1").anonymous(false).accessAttempt(true).action(RequestAction.WRITE).build();
         AuthorizationResult result = authorizer.authorize(request);
         assertFalse(Result.Approved.equals(result.getResult()));
 

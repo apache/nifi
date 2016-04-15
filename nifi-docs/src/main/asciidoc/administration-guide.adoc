@@ -154,9 +154,6 @@ NiFi provides several different configuration options for security purposes. The
                                 by the NiFi cluster protocol. If the Truststore properties are not set, this must be `false`. Otherwise, a value
                                 of `true` indicates that nodes in the cluster will be authenticated and must have certificates that are trusted
                                 by the Truststores.
-|`nifi.security.anonymous.authorities` | Specifies the roles that should be granted to users that connect over HTTPS anonymously. All users can make
-                                use of anonymous access, however if they have been granted a particular level of access by an administrator
-                                it will take precedence if they access NiFi using a client certificate or once they have logged in.
 |==================================================================================================================================================
 
 Once the above properties have been configured, we can enable the User Interface to be accessed over HTTPS instead of HTTP. This is accomplished
@@ -167,10 +164,10 @@ be accessible from all network interfaces, a value of `0.0.0.0` should be used.
 NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
 
 Similar to `nifi.security.needClientAuth`, the web server can be configured to require certificate based client authentication for users accessing
-the User Interface. In order to do this it must be configured to not support username/password authentication (see below) and not grant access to
-anonymous users (see `nifi.security.anonymous.authorities` above). Either of these options will configure the web server to WANT certificate based client
-authentication. This will allow it to support users with certificates and those without that may be logging in with their credentials or those accessing
-anonymously. If username/password authentication and anonymous access are not configured, the web server will REQUIRE certificate based client authentication.
+the User Interface. In order to do this it must be configured to not support username/password authentication (see below). Either of these options
+will configure the web server to WANT certificate based client authentication. This will allow it to support users with certificates and those without
+that may be logging in with their credentials or those accessing anonymously. If username/password authentication and anonymous access are not configured,
+the web server will REQUIRE certificate based client authentication.
 
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
@@ -288,127 +285,6 @@ nifi.security.user.login.identity.provider=kerberos-provider
 |==================================================================================================================================================
 
 See also <<kerberos_service>> to allow single sign-on access via client Kerberos tickets.
-
-Controlling Levels of Access
-----------------------------
-
-Once NiFi is configured to run securely and an authentication mechanism is configured, it is necessary
-to configure who will have access to the system and what types of access those people will have.
-NiFi controls this through the user of an 'Authority Provider.' The Authority Provider is a pluggable
-mechanism for providing authorizations to different users. Which Authority Provider to use is configured
-using two properties in the _nifi.properties_ file.
-
-The `nifi.authority.provider.configuration.file` property specifies the configuration file for Authority Providers.
-The `nifi.security.user.authority.provider` property indicates which of the configured Authority Providers should be
-used.
-
-By default, the `file-provider` Authority Provider is selected and is configured to use the permissions granted in
-the _authorized-users.xml_ file. This is typically sufficient for instances of NiFi that are run in "standalone" mode.
-If the NiFi instance is configured to run in a cluster, the node will typically use the `cluster-node-provider`
-Provider and the Cluster Manager will typically use the `cluster-ncm-provider` Provider. Both of these Providers
-have a default configuration in the _authority-providers.xml_ file but are commented out.
-
-When using the `cluster-node-provider` Provider, all of the authorization is provided by the Cluster Manager. In this
-way, the configuration only has to be maintained in one place and will be consistent across the entire cluster.
-
-When configuring the Cluster Manager or a standalone node, it is necessary to manually designate an ADMIN user
-in the _authorized-users.xml_ file, which is located in the root installation's conf directory.
-After this ADMIN user has been added, s/he may grant access
-to other users, systems, and other instances of NiFi, through the User Interface (UI) without having to manually edit the _authorized-users.xml_
-file. If you are the administrator, you would add yourself as the ADMIN user in this file.
-
-Open the _authorized-users.xml_ file in a text editor. You will notice that it includes a template
-to guide you, with example entries that are commented out.
-
-It is only necessary to manually add one user, the ADMIN user, to this file.
-So, at a minimum, the following example entry should be included and contain the user Distinguished Name (DN)
-in place of "user dn - read only and admin":
-
-----
-<users>
-    <user dn="[user dn - read only and admin]">
-        <role name="ROLE_ADMIN"/>
-    </user>
-</users>
-----
-
-Here is an LDAP example entry using the name John Smith:
-
-----
-<users>
-    <user dn="cn=John Smith,ou=people,dc=example,dc=com">
-        <role name="ROLE_ADMIN"/>
-    </user>
-</users>
-----
-
-Here is a Kerberos example entry using the name John Smith and realm `NIFI.APACHE.ORG`:
-
-----
-<users>
-    <user dn="johnsmith@NIFI.APACHE.ORG">
-        <role name="ROLE_ADMIN"/>
-    </user>
-</users>
-----
-
-After the _authorized-users.xml_ file has been edited and saved, restart NiFi.
-Once the application starts, the ADMIN user is
-able to access the UI at the HTTPS URL that is configured in the _nifi.properties_ file.
-
-From the UI, click on the Users icon ( image:iconUsers.png["Users", width=32] ) in the
-Management Toolbar (upper-right corner of the UI), and the User Management Page opens.
-
-The ADMIN user should be listed. Click on the pencil icon to see this user's role(s). You may edit the
-roles by selecting the appropriate checkboxes.
-
-The following roles are available in NiFi:
-
-[options="header,footer"]
-|========================================================================================================
-| Role Name | Description
-| Administrator | Administrator is able to configure thread pool sizes and user accounts as well as
-                  purge the dataflow change history.
-| Data Flow Manager | Data Flow Manager is given the ability to manipulate the dataflow. S/he is able to
-                      add, remove, and manipulate components on the graph; add, remove, and manipulate
-                      Controller Services and Reporting Tasks; create and manage templates;
-                      view statistics; and view the bulletin board.
-| Read Only | Users with Read Only access are able to view the dataflow but are unable to change anything.
-| Provenance | Users with Provenance access are able to query the Data Provenance repository and view
-               the lineage of data. Additionally, this role provides the ability to view or download
-               the content of a FlowFile from a Provenance event (assuming that the content is still
-               available in the Content Repository and that the Authority Provider also grants access).
-               This access is not provided to users with Read Only
-               (unless the user has both Read Only and Provenance roles) because the information provided
-               to users with this role can potentially be very sensitive in nature, as all FlowFile attributes
-               and data are exposed. In order to Replay a Provenance event, a user is required to have both
-               the Provenance role as well as the Data Flow Manager role.
-| NiFi | The NiFi Role is intended to be assigned to machines that will interact with an instance of NiFi
-         via Site-to-Site. This role provides the ability to send data to or retrieve data from Root
-         Group Ports (but only those that they are given permissions to interact with - see the User Guide
-         for more information on providing access to specific Ports) as well as obtain information about
-         which Ports exist. Note that this role allows the client to know only about the Ports that it
-         has permissions to interact with.
-| Proxy | The Proxy Role is assigned to a system in order to grant that system permission to make requests
-          on behalf of a user. For instance, if an HTTP proxy service is used to gain access to the system,
-          the certificate being used by that service can be given the Proxy Role.
-|========================================================================================================
-
-
-When users want access to the NiFi UI, they navigate to the configured URL and are
-prompted to request access. When someone has requested access, the ADMIN user sees a star
-on the Users icon in the Management Toolbar, alerting the ADMIN to the fact that a request is
-pending. Upon opening the User Management Page, the pending request is visible, and the ADMIN
-can grant access and click on the pencil icon to set the user's roles appropriately.
-
-The ADMIN may also select multiple users and add them to a "Group". Hold down the Shift key and select
-multiple users, then click the `Group` button in the upper-right corner of the User Management Page.
-Then, provide a name for the group.
-
-The group feature is especially useful when a remote NiFi cluster is connecting to this NiFi using
-a Remote Process Group. In that scenario, all the nodes
-in the remote cluster can be included in the same group. When the ADMIN wants to grant port access to the remote
-cluster, s/he can grant it to the group and avoid having to grant it individually to each node in the cluster.
 
 [[encryption]]
 Encryption Configuration
@@ -1454,15 +1330,8 @@ Security Configuration section of this Administrator's Guide.
 |nifi.security.truststoreType|The truststore type. It is blank by default.
 |nifi.security.truststorePasswd|The truststore password. It is blank by default.
 |nifi.security.needClientAuth|This indicates whether client authentication in the cluster protocol. It is blank by default.
-|nifi.security.user.credential.cache.duration|The length of time to cache user credentials. The default value is 24 hours.
-|nifi.security.user.authority.provider|This indicates what type of authority provider to use. The default value is file-provider, which refers to the file
-configured in the core property `nifi.authority.provider.configuration.file`. Another authority provider may be used, such as when the NiFi instance is part of a cluster. But the default value of file-provider is fine for a standalone instance of NiFi.
 |nifi.security.user.login.identity.provider|This indicates what type of login identity provider to use. The default value is blank, can be set to the identifier from a provider
 in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication.
-|nifi.security.support.new.account.requests|This indicates whether a secure NiFi is configured to allow users to request access. It is blank by default.
-|nifi.security.anonymous.authorities|This indicates what roles to grant to anonymous users accessing NiFi over HTTPS. It is blank by default, but could be
-set to any combination of ROLE_MONITOR, ROLE_DFM, ROLE_ADMIN, ROLE_PROVENANCE, ROLE_NIFI. Leaving this property blank will require that users accessing NiFi
-over HTTPS be authenticated either using a client certificate or their credentials against the configured log identity provider.
 |nifi.security.ocsp.responder.url|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
 |nifi.security.ocsp.responder.certificate|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
 |====

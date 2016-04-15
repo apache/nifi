@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
@@ -32,23 +28,29 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
 
     private FlowController flowController;
 
-    private Port locatePort(String groupId, String portId) {
-        return locatePort(locateProcessGroup(flowController, groupId), portId);
+    private Port locatePort(final String portId) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final Port port = rootGroup.findInputPort(portId);
+
+        if (port == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find port with id '%s'.", portId));
+        } else {
+            return port;
+        }
     }
 
-    private Port locatePort(ProcessGroup group, String portId) {
-        Port port = group.getInputPort(portId);
-
-        // ensure the port exists
-        if (port == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate an input port with id '%s'.", portId));
-        }
-
-        return port;
+    @Override
+    public boolean hasPort(String portId) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        return rootGroup.findInputPort(portId) != null;
     }
 
     @Override
@@ -88,19 +90,8 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
     }
 
     @Override
-    public Port getPort(String groupId, String portId) {
-        return locatePort(groupId, portId);
-    }
-
-    @Override
-    public boolean hasPort(String groupId, String portId) {
-        ProcessGroup group = flowController.getGroup(groupId);
-
-        if (group == null) {
-            return false;
-        }
-
-        return group.getInputPort(portId) != null;
+    public Port getPort(String portId) {
+        return locatePort(portId);
     }
 
     @Override
@@ -110,9 +101,8 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
     }
 
     @Override
-    public void verifyUpdate(String groupId, PortDTO portDTO) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        final Port inputPort = locatePort(group, portDTO.getId());
+    public void verifyUpdate(PortDTO portDTO) {
+        final Port inputPort = locatePort(portDTO.getId());
         verifyUpdate(inputPort, portDTO);
     }
 
@@ -178,9 +168,8 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
     }
 
     @Override
-    public Port updatePort(String groupId, PortDTO portDTO) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-        Port inputPort = locatePort(group, portDTO.getId());
+    public Port updatePort(PortDTO portDTO) {
+        Port inputPort = locatePort(portDTO.getId());
 
         // ensure we can do this update
         verifyUpdate(inputPort, portDTO);
@@ -195,20 +184,20 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
                     // perform the appropriate action
                     switch (purposedScheduledState) {
                         case RUNNING:
-                            group.startInputPort(inputPort);
+                            inputPort.getProcessGroup().startInputPort(inputPort);
                             break;
                         case STOPPED:
                             switch (inputPort.getScheduledState()) {
                                 case RUNNING:
-                                    group.stopInputPort(inputPort);
+                                    inputPort.getProcessGroup().stopInputPort(inputPort);
                                     break;
                                 case DISABLED:
-                                    group.enableInputPort(inputPort);
+                                    inputPort.getProcessGroup().enableInputPort(inputPort);
                                     break;
                             }
                             break;
                         case DISABLED:
-                            group.disableInputPort(inputPort);
+                            inputPort.getProcessGroup().disableInputPort(inputPort);
                             break;
                     }
                 } catch (IllegalStateException ise) {
@@ -248,17 +237,15 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
     }
 
     @Override
-    public void verifyDelete(final String groupId, final String portId) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        final Port inputPort = locatePort(group, portId);
+    public void verifyDelete(final String portId) {
+        final Port inputPort = locatePort(portId);
         inputPort.verifyCanDelete();
     }
 
     @Override
-    public void deletePort(final String groupId, final String portId) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        final Port inputPort = locatePort(group, portId);
-        group.removeInputPort(inputPort);
+    public void deletePort(final String portId) {
+        final Port inputPort = locatePort(portId);
+        inputPort.getProcessGroup().removeInputPort(inputPort);
     }
 
     /* setters */

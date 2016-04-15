@@ -16,16 +16,8 @@
  */
 package org.apache.nifi.nar;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
 import org.apache.nifi.authentication.LoginIdentityProvider;
-
-import org.apache.nifi.authorization.AuthorityProvider;
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -39,6 +31,14 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.reporting.ReportingTask;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 
 /**
  * THREAD SAFE
@@ -58,7 +58,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(OutputStreamCallback.class);
         narSpecificClasses.add(StreamCallback.class);
         narSpecificClasses.add(ControllerService.class);
-        narSpecificClasses.add(AuthorityProvider.class);
+        narSpecificClasses.add(Authorizer.class);
         narSpecificClasses.add(LoginIdentityProvider.class);
         narSpecificClasses.add(ProvenanceEventRepository.class);
         narSpecificClasses.add(ComponentStatusRepository.class);

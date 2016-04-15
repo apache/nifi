@@ -30,7 +30,6 @@ import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -65,7 +64,7 @@ public class NodeResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a node in the cluster",
             response = NodeEntity.class,
@@ -132,7 +131,7 @@ public class NodeResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public Response updateNode(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @PathParam("id") String id,
             @FormParam("status") String status,
@@ -168,7 +167,7 @@ public class NodeResource extends ApplicationResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @ApiOperation(
             value = "Updates a node in the cluster",
             response = NodeEntity.class,
@@ -244,7 +243,7 @@ public class NodeResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @ApiOperation(
             value = "Removes a node from the cluster",
             response = NodeEntity.class,

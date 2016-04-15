@@ -255,15 +255,15 @@ nf.ComponentState = (function () {
 
                     if (stateEntryCount > 0) {
                         // clear the state
-                        var revision = nf.Client.getRevision();
+                        var revision = {
+                            'revision': nf.Client.getRevision()
+                        };
+                        
                         var component = componentStateTable.data('component');
                         $.ajax({
                             type: 'POST',
                             url: component.uri + '/state/clear-requests',
-                            data: {
-                                version: revision.version,
-                                clientId: revision.clientId
-                            },
+                            data: JSON.stringify(revision),
                             dataType: 'json'
                         }).done(function (response) {
                             // update the revision

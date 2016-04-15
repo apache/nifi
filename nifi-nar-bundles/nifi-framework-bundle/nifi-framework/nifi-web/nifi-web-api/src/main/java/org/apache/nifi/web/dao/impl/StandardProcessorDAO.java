@@ -16,16 +16,7 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
@@ -33,8 +24,8 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
+import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
@@ -47,11 +38,19 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
-
-import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 
 public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
@@ -59,34 +58,25 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     private FlowController flowController;
     private ComponentStateDAO componentStateDAO;
 
-    private ProcessorNode locateProcessor(String groupId, String processorId) {
-        return locateProcessor(locateProcessGroup(flowController, groupId), processorId);
-    }
-
-    private ProcessorNode locateProcessor(ProcessGroup group, String processorId) {
-        // get the specified processor
-        ProcessorNode processor = group.getProcessor(processorId);
+    private ProcessorNode locateProcessor(final String processorId) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessorNode processor = rootGroup.findProcessor(processorId);
 
         if (processor == null) {
             throw new ResourceNotFoundException(String.format("Unable to find processor with id '%s'.", processorId));
+        } else {
+            return processor;
         }
-
-        return processor;
     }
 
     @Override
-    public boolean hasProcessor(String groupId, String id) {
-        ProcessGroup group = flowController.getGroup(groupId);
-
-        if (group == null) {
-            return false;
-        }
-
-        return group.getProcessor(id) != null;
+    public boolean hasProcessor(String id) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        return rootGroup.findProcessor(id) != null;
     }
 
     @Override
-    public ProcessorNode createProcessor(String groupId, ProcessorDTO processorDTO) {
+    public ProcessorNode createProcessor(final String groupId, ProcessorDTO processorDTO) {
         if (processorDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, processorDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Processor is being added.");
         }
@@ -120,7 +110,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
     }
 
-    private void configureProcessor(ProcessorNode processor, ProcessorDTO processorDTO) {
+    private void configureProcessor(final ProcessorNode processor, final ProcessorDTO processorDTO) {
         final ProcessorConfigDTO config = processorDTO.getConfig();
 
         // ensure some configuration was specified
@@ -206,7 +196,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
     }
 
-    private List<String> validateProposedConfiguration(ProcessorNode processorNode, ProcessorConfigDTO config) {
+    private List<String> validateProposedConfiguration(final ProcessorNode processorNode, final ProcessorConfigDTO config) {
         List<String> validationErrors = new ArrayList<>();
 
         // validate settings
@@ -297,8 +287,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public ProcessorNode getProcessor(String groupId, String id) {
-        return locateProcessor(groupId, id);
+    public ProcessorNode getProcessor(final String id) {
+        return locateProcessor(id);
     }
 
     @Override
@@ -308,9 +298,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public void verifyUpdate(String groupId, ProcessorDTO processorDTO) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-        verifyUpdate(locateProcessor(group, processorDTO.getId()), processorDTO);
+    public void verifyUpdate(final ProcessorDTO processorDTO) {
+        verifyUpdate(locateProcessor(processorDTO.getId()), processorDTO);
     }
 
     private void verifyUpdate(ProcessorNode processor, ProcessorDTO processorDTO) {
@@ -384,8 +373,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public ProcessorNode updateProcessor(String groupId, ProcessorDTO processorDTO) {
-        ProcessorNode processor = locateProcessor(groupId, processorDTO.getId());
+    public ProcessorNode updateProcessor(ProcessorDTO processorDTO) {
+        ProcessorNode processor = locateProcessor(processorDTO.getId());
         ProcessGroup parentGroup = processor.getProcessGroup();
 
         // ensure we can perform the update
@@ -436,41 +425,39 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public void verifyDelete(String groupId, String processorId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-        ProcessorNode processor = locateProcessor(group, processorId);
+    public void verifyDelete(String processorId) {
+        ProcessorNode processor = locateProcessor(processorId);
         processor.verifyCanDelete();
     }
 
     @Override
-    public void deleteProcessor(String groupId, String processorId) {
+    public void deleteProcessor(String processorId) {
         // get the group and the processor
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-        ProcessorNode processor = locateProcessor(group, processorId);
+        ProcessorNode processor = locateProcessor(processorId);
 
         try {
             // attempt remove the processor
-            group.removeProcessor(processor);
+            processor.getProcessGroup().removeProcessor(processor);
         } catch (ComponentLifeCycleException plce) {
             throw new NiFiCoreException(plce.getMessage(), plce);
         }
     }
 
     @Override
-    public StateMap getState(String groupId, String processorId, final Scope scope) {
-        final ProcessorNode processor = locateProcessor(groupId, processorId);
+    public StateMap getState(String processorId, final Scope scope) {
+        final ProcessorNode processor = locateProcessor(processorId);
         return componentStateDAO.getState(processor, scope);
     }
 
     @Override
-    public void verifyClearState(String groupId, String processorId) {
-        final ProcessorNode processor = locateProcessor(groupId, processorId);
+    public void verifyClearState(String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
         processor.verifyCanClearState();
     }
 
     @Override
-    public void clearState(String groupId, String processorId) {
-        final ProcessorNode processor = locateProcessor(groupId, processorId);
+    public void clearState(String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
         componentStateDAO.clearState(processor);
     }
 

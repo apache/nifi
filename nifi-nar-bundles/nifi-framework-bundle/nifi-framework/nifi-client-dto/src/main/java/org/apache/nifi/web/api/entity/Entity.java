@@ -35,7 +35,11 @@ public class Entity {
             value = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
     )
     public RevisionDTO getRevision() {
-        return revision;
+        if (revision == null) {
+            return new RevisionDTO();
+        } else {
+            return revision;
+        }
     }
 
     public void setRevision(RevisionDTO revision) {

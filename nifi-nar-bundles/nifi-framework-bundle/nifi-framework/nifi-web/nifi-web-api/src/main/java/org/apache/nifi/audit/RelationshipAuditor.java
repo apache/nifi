@@ -100,19 +100,18 @@ public class RelationshipAuditor extends NiFiAuditor {
      * Audits the creation and removal of relationships via updateConnection().
      *
      * @param proceedingJoinPoint join point
-     * @param groupId group id
      * @param connectionDTO dto
      * @param connectionDAO dao
      * @return connection
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ConnectionDAO+) && "
-            + "execution(org.apache.nifi.connectable.Connection updateConnection(java.lang.String, org.apache.nifi.web.api.dto.ConnectionDTO)) && "
-            + "args(groupId, connectionDTO) && "
+            + "execution(org.apache.nifi.connectable.Connection updateConnection(org.apache.nifi.web.api.dto.ConnectionDTO)) && "
+            + "args(connectionDTO) && "
             + "target(connectionDAO)")
-    public Connection updateConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ConnectionDTO connectionDTO, ConnectionDAO connectionDAO) throws Throwable {
+    public Connection updateConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, ConnectionDTO connectionDTO, ConnectionDAO connectionDAO) throws Throwable {
         // get the previous configuration
-        Connection connection = connectionDAO.getConnection(groupId, connectionDTO.getId());
+        Connection connection = connectionDAO.getConnection(connectionDTO.getId());
         Connectable previousDestination = connection.getDestination();
         Collection<Relationship> previousRelationships = connection.getRelationships();
         Map<String, String> values = extractConfiguredPropertyValues(connection, connectionDTO);
@@ -214,18 +213,17 @@ public class RelationshipAuditor extends NiFiAuditor {
      * Audits the removal of relationships via deleteConnection().
      *
      * @param proceedingJoinPoint join point
-     * @param groupId group id
      * @param id id
      * @param connectionDAO dao
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ConnectionDAO+) && "
-            + "execution(void deleteConnection(java.lang.String, java.lang.String)) && "
-            + "args(groupId, id) && "
+            + "execution(void deleteConnection(java.lang.String)) && "
+            + "args(id) && "
             + "target(connectionDAO)")
-    public void removeConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, String id, ConnectionDAO connectionDAO) throws Throwable {
+    public void removeConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, String id, ConnectionDAO connectionDAO) throws Throwable {
         // get the connection before performing the update
-        Connection connection = connectionDAO.getConnection(groupId, id);
+        Connection connection = connectionDAO.getConnection(id);
 
         // perform the underlying operation
         proceedingJoinPoint.proceed();

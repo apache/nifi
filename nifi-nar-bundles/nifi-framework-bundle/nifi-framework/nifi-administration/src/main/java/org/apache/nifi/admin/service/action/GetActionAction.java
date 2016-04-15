@@ -19,7 +19,6 @@ package org.apache.nifi.admin.service.action;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.dao.ActionDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.authorization.AuthorityProvider;
 
 /**
  * Gets the action with the specified id.
@@ -33,7 +32,7 @@ public class GetActionAction implements AdministrationAction<Action> {
     }
 
     @Override
-    public Action execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
+    public Action execute(DAOFactory daoFactory) {
         ActionDAO actionDao = daoFactory.getActionDAO();
         return actionDao.getAction(id);
     }

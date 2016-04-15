@@ -34,17 +34,23 @@ nf.ProcessGroupConfiguration = (function () {
                                 var processGroupId = $('#process-group-id').text();
                                 var processGroupData = d3.select('#id-' + processGroupId).datum();
 
+                                // build the entity
+                                var entity = {
+                                    'revision': nf.Client.getRevision(),
+                                    'processGroup': {
+                                        'id': processGroupId,
+                                        'name': $('#process-group-name').val(),
+                                        'comments': $('#process-group-comments').val()
+                                    }
+                                };
+
                                 // update the selected component
                                 $.ajax({
                                     type: 'PUT',
-                                    data: {
-                                        version: revision.version,
-                                        clientId: revision.clientId,
-                                        name: $('#process-group-name').val(),
-                                        comments: $('#process-group-comments').val()
-                                    },
+                                    data: JSON.stringify(entity),
                                     url: processGroupData.component.uri,
-                                    dataType: 'json'
+                                    dataType: 'json',
+                                    contentType: 'application/json'
                                 }).done(function (response) {
                                     if (nf.Common.isDefinedAndNotNull(response.processGroup)) {
                                         // update the revision

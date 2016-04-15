@@ -100,19 +100,18 @@ public class ProcessorAuditor extends NiFiAuditor {
      * Audits the configuration of a single processor.
      *
      * @param proceedingJoinPoint join point
-     * @param groupId group id
      * @param processorDTO dto
      * @param processorDAO dao
      * @return node
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessorDAO+) && "
-            + "execution(org.apache.nifi.controller.ProcessorNode updateProcessor(java.lang.String, org.apache.nifi.web.api.dto.ProcessorDTO)) && "
-            + "args(groupId, processorDTO) && "
+            + "execution(org.apache.nifi.controller.ProcessorNode updateProcessor(org.apache.nifi.web.api.dto.ProcessorDTO)) && "
+            + "args(processorDTO) && "
             + "target(processorDAO)")
-    public ProcessorNode updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
+    public ProcessorNode updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
         // determine the initial values for each property/setting thats changing
-        ProcessorNode processor = processorDAO.getProcessor(groupId, processorDTO.getId());
+        ProcessorNode processor = processorDAO.getProcessor(processorDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(processor, processorDTO);
         final ScheduledState scheduledState = processor.getScheduledState();
 
@@ -121,7 +120,7 @@ public class ProcessorAuditor extends NiFiAuditor {
 
         // if no exceptions were thrown, add the processor action...
         // get the updated verbose state
-        processor = processorDAO.getProcessor(updatedProcessor.getProcessGroup().getIdentifier(), updatedProcessor.getIdentifier());
+        processor = processorDAO.getProcessor(updatedProcessor.getIdentifier());
 
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -235,18 +234,17 @@ public class ProcessorAuditor extends NiFiAuditor {
      * Audits the removal of a processor via deleteProcessor().
      *
      * @param proceedingJoinPoint join point
-     * @param groupId group id
      * @param processorId processor id
      * @param processorDAO dao
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessorDAO+) && "
-            + "execution(void deleteProcessor(java.lang.String, java.lang.String)) && "
-            + "args(groupId, processorId) && "
+            + "execution(void deleteProcessor(java.lang.String)) && "
+            + "args(processorId) && "
             + "target(processorDAO)")
-    public void removeProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, String processorId, ProcessorDAO processorDAO) throws Throwable {
+    public void removeProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, String processorId, ProcessorDAO processorDAO) throws Throwable {
         // get the processor before removing it
-        ProcessorNode processor = processorDAO.getProcessor(groupId, processorId);
+        ProcessorNode processor = processorDAO.getProcessor(processorId);
 
         // remove the processor
         proceedingJoinPoint.proceed();

@@ -47,7 +47,6 @@ import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.otp.OtpService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.apache.nifi.web.security.token.OtpAuthenticationToken;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
@@ -59,8 +58,6 @@ import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -103,8 +100,6 @@ public class AccessResource extends ApplicationResource {
 
     private KerberosService kerberosService;
 
-    private AuthenticationUserDetailsService<NiFiAuthorizationRequestToken> userDetailsService;
-
     /**
      * Retrieves the access configuration for this NiFi.
      *
@@ -132,7 +127,7 @@ public class AccessResource extends ApplicationResource {
 
         // specify whether login should be supported and only support for secure requests
         accessConfiguration.setSupportsLogin(loginIdentityProvider != null && httpServletRequest.isSecure());
-        accessConfiguration.setSupportsAnonymous(!properties.getAnonymousAuthorities().isEmpty() || !httpServletRequest.isSecure());
+        accessConfiguration.setSupportsAnonymous(false);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -211,16 +206,12 @@ public class AccessResource extends ApplicationResource {
                         // without a certificate, this is not a proxied request
                         final List<String> chain = Arrays.asList(principal);
 
-                        // ensure the proxy chain is authorized
-                        final UserDetails userDetails = checkAuthorization(chain);
+                        // TODO - ensure the proxy chain is authorized
+//                        final UserDetails userDetails = checkAuthorization(chain);
 
                         // no issues with authorization... verify authorities
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                        if (userDetails.getAuthorities().isEmpty()) {
-                            accessStatus.setMessage("Your account is active but currently does not have any level of access.");
-                        } else {
-                            accessStatus.setMessage("Your account is active and you are already logged in.");
-                        }
+                        accessStatus.setMessage("Your account is active and you are already logged in.");
                     } catch (JwtException e) {
                         throw new InvalidAuthenticationException(e.getMessage(), e);
                     }
@@ -240,28 +231,19 @@ public class AccessResource extends ApplicationResource {
                     accessStatus.setIdentity(proxyChain.get(0));
                     accessStatus.setUsername(CertificateUtils.extractUsername(proxyChain.get(0)));
 
-                    // ensure the proxy chain is authorized
-                    final UserDetails userDetails = checkAuthorization(proxyChain);
+                    // TODO - ensure the proxy chain is authorized
+//                    final UserDetails userDetails = checkAuthorization(proxyChain);
 
                     // no issues with authorization... verify authorities
                     accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                    if (userDetails.getAuthorities().isEmpty()) {
-                        accessStatus.setMessage("Your account is active but currently does not have any level of access.");
-                    } else {
-                        accessStatus.setMessage("Your account is active and you are already logged in.");
-                    }
+                    accessStatus.setMessage("Your account is active and you are already logged in.");
                 } catch (final IllegalArgumentException iae) {
                     throw new InvalidAuthenticationException(iae.getMessage(), iae);
                 }
             }
         } catch (final UsernameNotFoundException unfe) {
-            if (properties.getSupportNewAccountRequests()) {
-                accessStatus.setStatus(AccessStatusDTO.Status.UNREGISTERED.name());
-                accessStatus.setMessage(String.format("Unregistered user %s", accessStatus.getIdentity()));
-            } else {
-                accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
-                accessStatus.setMessage("This NiFi does not support new account requests.");
-            }
+            accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
+            accessStatus.setMessage("This NiFi does not support new account requests.");
         } catch (final AccountStatusException ase) {
             accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
             accessStatus.setMessage(ase.getMessage());
@@ -281,16 +263,6 @@ public class AccessResource extends ApplicationResource {
         entity.setAccessStatus(accessStatus);
 
         return generateOkResponse(entity).build();
-    }
-
-    /**
-     * Checks the status of the proxy.
-     *
-     * @param proxyChain the proxy chain
-     * @throws AuthenticationException if the proxy chain is not authorized
-     */
-    private UserDetails checkAuthorization(final List<String> proxyChain) throws AuthenticationException {
-        return userDetailsService.loadUserDetails(new NiFiAuthorizationRequestToken(proxyChain));
     }
 
     /**
@@ -535,8 +507,8 @@ public class AccessResource extends ApplicationResource {
                 throw new IllegalArgumentException("Unable to determine the user from the incoming request.");
             }
 
-            // authorize the proxy if necessary
-            authorizeProxyIfNecessary(proxyChain);
+            // TODO - authorize the proxy if necessary
+//            authorizeProxyIfNecessary(proxyChain);
 
             // create the authentication token
             loginAuthenticationToken = new LoginAuthenticationToken(proxyChain.get(0), authenticationResponse.getExpiration(), authenticationResponse.getIssuer());
@@ -548,30 +520,6 @@ public class AccessResource extends ApplicationResource {
         // build the response
         final URI uri = URI.create(generateResourceUri("access", "token"));
         return generateCreatedResponse(uri, token).build();
-    }
-
-    /**
-     * Ensures the proxyChain is authorized before allowing the user to be authenticated.
-     *
-     * @param proxyChain the proxy chain
-     * @throws AuthenticationException if the proxy chain is not authorized
-     */
-    private void authorizeProxyIfNecessary(final List<String> proxyChain) throws AuthenticationException {
-        if (proxyChain.size() > 1) {
-            try {
-                userDetailsService.loadUserDetails(new NiFiAuthorizationRequestToken(proxyChain));
-            } catch (final UsernameNotFoundException unfe) {
-                // if a username not found exception was thrown, the proxies were authorized and now
-                // we can issue a new token to the end user which they will use to identify themselves
-                // when they enter a new account request
-            } catch (final AuthenticationServiceException ase) {
-                // throw an administration exception which will return a 500
-                throw new AdministrationException(ase.getMessage(), ase);
-            } catch (final Exception e) {
-                // any other issue we're going to treat as access denied exception which will return 403
-                throw new AccessDeniedException(e.getMessage(), e);
-            }
-        }
     }
 
     private long validateTokenExpiration(long proposedTokenExpiration, String identity) {
@@ -619,9 +567,4 @@ public class AccessResource extends ApplicationResource {
     public void setCertificateIdentityProvider(X509IdentityProvider certificateIdentityProvider) {
         this.certificateIdentityProvider = certificateIdentityProvider;
     }
-
-    public void setUserDetailsService(AuthenticationUserDetailsService<NiFiAuthorizationRequestToken> userDetailsService) {
-        this.userDetailsService = userDetailsService;
-    }
-
 }

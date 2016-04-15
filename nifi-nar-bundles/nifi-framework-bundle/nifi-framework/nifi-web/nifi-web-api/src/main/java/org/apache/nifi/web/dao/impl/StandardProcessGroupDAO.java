@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.util.Set;
-
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
+
+import java.util.Set;
 
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
 
@@ -52,13 +52,13 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup getProcessGroup(String groupId) {
-        return locateProcessGroup(flowController, groupId);
+    public boolean hasProcessGroup(String groupId) {
+        return flowController.getGroup(groupId) != null;
     }
 
     @Override
-    public boolean hasProcessGroup(String groupId) {
-        return flowController.getGroup(groupId) != null;
+    public ProcessGroup getProcessGroup(String groupId) {
+        return locateProcessGroup(flowController, groupId);
     }
 
     @Override

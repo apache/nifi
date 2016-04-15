@@ -19,8 +19,7 @@ package org.apache.nifi.web.controller;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.admin.service.UserService;
-import org.apache.nifi.authorization.DownloadAuthorization;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -104,7 +103,6 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 
 import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
@@ -133,7 +131,7 @@ public class ControllerFacade {
     // nifi components
     private FlowController flowController;
     private FlowService flowService;
-    private UserService userService;
+    private KeyService keyService;
 
     // properties
     private NiFiProperties properties;
@@ -242,22 +240,20 @@ public class ControllerFacade {
     /**
      * Returns the status history for the specified processor.
      *
-     * @param groupId group id
      * @param processorId processor id
      * @return status history
      */
-    public StatusHistoryDTO getProcessorStatusHistory(final String groupId, final String processorId) {
+    public StatusHistoryDTO getProcessorStatusHistory(final String processorId) {
         return flowController.getProcessorStatusHistory(processorId);
     }
 
     /**
      * Returns the status history for the specified connection.
      *
-     * @param groupId group id
      * @param connectionId connection id
      * @return status history
      */
-    public StatusHistoryDTO getConnectionStatusHistory(final String groupId, final String connectionId) {
+    public StatusHistoryDTO getConnectionStatusHistory(final String connectionId) {
         return flowController.getConnectionStatusHistory(connectionId);
     }
 
@@ -274,11 +270,10 @@ public class ControllerFacade {
     /**
      * Returns the status history for the specified remote process group.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId remote process group id
      * @return status history
      */
-    public StatusHistoryDTO getRemoteProcessGroupStatusHistory(final String groupId, final String remoteProcessGroupId) {
+    public StatusHistoryDTO getRemoteProcessGroupStatusHistory(final String remoteProcessGroupId) {
         return flowController.getRemoteProcessGroupStatusHistory(remoteProcessGroupId);
     }
 
@@ -489,11 +484,20 @@ public class ControllerFacade {
     /**
      * Gets the status for the specified processor.
      *
-     * @param groupId group id
      * @param processorId processor id
      * @return the status for the specified processor
      */
-    public ProcessorStatusDTO getProcessorStatus(final String groupId, final String processorId) {
+    public ProcessorStatusDTO getProcessorStatus(final String processorId) {
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessorNode processor = root.findProcessor(processorId);
+
+        // ensure the processor was found
+        if (processor == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate processor with id '%s'.", processorId));
+        }
+
+        // calculate the process group status
+        final String groupId = processor.getProcessGroup().getIdentifier();
         final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
@@ -511,11 +515,20 @@ public class ControllerFacade {
     /**
      * Gets the status for the specified connection.
      *
-     * @param groupId group id
      * @param connectionId connection id
      * @return the status for the specified connection
      */
-    public ConnectionStatusDTO getConnectionStatus(final String groupId, final String connectionId) {
+    public ConnectionStatusDTO getConnectionStatus(final String connectionId) {
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final Connection connection = root.findConnection(connectionId);
+
+        // ensure the connection was found
+        if (connection == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate connection with id '%s'.", connectionId));
+        }
+
+        // calculate the process group status
+        final String groupId = connection.getProcessGroup().getIdentifier();
         final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
@@ -533,11 +546,19 @@ public class ControllerFacade {
     /**
      * Gets the status for the specified input port.
      *
-     * @param groupId group id
      * @param portId input port id
      * @return the status for the specified input port
      */
-    public PortStatusDTO getInputPortStatus(final String groupId, final String portId) {
+    public PortStatusDTO getInputPortStatus(final String portId) {
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final Port port = root.findInputPort(portId);
+
+        // ensure the input port was found
+        if (port == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate input port with id '%s'.", portId));
+        }
+
+        final String groupId = port.getProcessGroup().getIdentifier();
         final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
@@ -555,11 +576,19 @@ public class ControllerFacade {
     /**
      * Gets the status for the specified output port.
      *
-     * @param groupId group id
      * @param portId output port id
      * @return the status for the specified output port
      */
-    public PortStatusDTO getOutputPortStatus(final String groupId, final String portId) {
+    public PortStatusDTO getOutputPortStatus(final String portId) {
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final Port port = root.findOutputPort(portId);
+
+        // ensure the output port was found
+        if (port == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate output port with id '%s'.", portId));
+        }
+
+        final String groupId = port.getProcessGroup().getIdentifier();
         final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
@@ -577,11 +606,19 @@ public class ControllerFacade {
     /**
      * Gets the status for the specified remote process group.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId remote process group id
      * @return the status for the specified remote process group
      */
-    public RemoteProcessGroupStatusDTO getRemoteProcessGroupStatus(final String groupId, final String remoteProcessGroupId) {
+    public RemoteProcessGroupStatusDTO getRemoteProcessGroupStatus(final String remoteProcessGroupId) {
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final RemoteProcessGroup remoteProcessGroup = root.findRemoteProcessGroup(remoteProcessGroupId);
+
+        // ensure the output port was found
+        if (remoteProcessGroup == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate remote process group with id '%s'.", remoteProcessGroupId));
+        }
+
+        final String groupId = remoteProcessGroup.getProcessGroup().getIdentifier();
         final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
@@ -949,11 +986,11 @@ public class ControllerFacade {
             // calculate the dn chain
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
 
-            // ensure the users in this chain are allowed to download this content
-            final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
-            if (!downloadAuthorization.isApproved()) {
-                throw new AccessDeniedException(downloadAuthorization.getExplanation());
-            }
+            // TODO - ensure the users in this chain are allowed to download this content
+//            final DownloadAuthorization downloadAuthorization = keyService.authorizeDownload(dnChain, attributes);
+//            if (!downloadAuthorization.isApproved()) {
+//                throw new AccessDeniedException(downloadAuthorization.getExplanation());
+//            }
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());
@@ -1526,8 +1563,8 @@ public class ControllerFacade {
         this.properties = properties;
     }
 
-    public void setUserService(UserService userService) {
-        this.userService = userService;
+    public void setKeyService(KeyService keyService) {
+        this.keyService = keyService;
     }
 
     public void setFlowService(FlowService flowService) {

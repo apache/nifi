@@ -33,7 +33,8 @@ nf.StatusHistory = (function () {
             label: 'Label'
         },
         urls: {
-            processGroups: '../nifi-api/controller/process-groups/'
+            api: '../nifi-api',
+            processGroups: '../nifi-api/process-groups/'
         }
     };
 
@@ -1099,7 +1100,7 @@ nf.StatusHistory = (function () {
         showConnectionChart: function (groupId, connectionId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.processGroups + encodeURIComponent(groupId) + '/connections/' + encodeURIComponent(connectionId) + '/status/history',
+                url: config.urls.api + '/connections/' + encodeURIComponent(connectionId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
                 handleStatusHistoryResponse(groupId, connectionId, response.statusHistory, config.type.connection, selectedDescriptor);
@@ -1116,7 +1117,7 @@ nf.StatusHistory = (function () {
         showProcessorChart: function (groupId, processorId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.processGroups + encodeURIComponent(groupId) + '/processors/' + encodeURIComponent(processorId) + '/status/history',
+                url: config.urls.api + '/processors/' + encodeURIComponent(processorId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
                 handleStatusHistoryResponse(groupId, processorId, response.statusHistory, config.type.processor, selectedDescriptor);
@@ -1150,7 +1151,7 @@ nf.StatusHistory = (function () {
         showRemoteProcessGroupChart: function (groupId, remoteProcessGroupId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.processGroups + encodeURIComponent(groupId) + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status/history',
+                url: config.urls.api + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
                 handleStatusHistoryResponse(groupId, remoteProcessGroupId, response.statusHistory, config.type.remoteProcessGroup, selectedDescriptor);

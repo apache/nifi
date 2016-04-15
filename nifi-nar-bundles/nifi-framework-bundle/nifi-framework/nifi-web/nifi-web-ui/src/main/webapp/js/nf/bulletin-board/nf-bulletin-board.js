@@ -34,7 +34,7 @@ nf.BulletinBoard = (function () {
         urls: {
             banners: '../nifi-api/controller/banners',
             controllerAbout: '../nifi-api/controller/about',
-            bulletinBoard: '../nifi-api/controller/bulletin-board'
+            bulletinBoard: '../nifi-api/bulletin-board'
         },
         styles: {
             filterList: 'bulletin-board-filter-list',

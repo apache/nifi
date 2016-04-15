@@ -22,17 +22,36 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.context.ClusterContext;
+import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.cluster.node.Node;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.DownloadableContent;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
+import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
+import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
+import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageRequestType;
+import org.apache.nifi.web.api.entity.LineageEntity;
+import org.apache.nifi.web.api.entity.ProvenanceEntity;
+import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
+import org.apache.nifi.web.api.entity.ProvenanceOptionsEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.DateTimeParameter;
+import org.apache.nifi.web.api.request.IntegerParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -52,40 +71,17 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.repository.claim.ContentDirection;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.NiFiServiceFacade;
-import static org.apache.nifi.web.api.ApplicationResource.CLIENT_ID;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
-import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
-import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
-import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageRequestType;
-import org.apache.nifi.web.api.entity.LineageEntity;
-import org.apache.nifi.web.api.entity.ProvenanceEntity;
-import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
-import org.apache.nifi.web.api.entity.ProvenanceOptionsEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.DateTimeParameter;
-import org.apache.nifi.web.api.request.IntegerParameter;
-import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.DownloadableContent;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.access.prepost.PreAuthorize;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * RESTful endpoint for querying data provenance.
@@ -126,7 +122,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/search-options")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets the searchable attributes for provenance events",
             response = ProvenanceOptionsEntity.class,
@@ -183,7 +179,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/replays")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE') and hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE') and hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Replays content from a provenance event",
             response = ProvenanceEventEntity.class,
@@ -278,7 +274,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/events/{id}/content/input")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets the input content for a provenance event",
             authorizations = {
@@ -377,7 +373,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/events/{id}/content/output")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets the output content for a provenance event",
             authorizations = {
@@ -488,7 +484,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     public Response submitProvenanceRequest(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
@@ -569,7 +565,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Submits a provenance query",
             notes = "Provenance queries may be long running so this endpoint submits a request. The response will include the "
@@ -685,7 +681,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets a provenance query",
             response = ProvenanceEntity.class,
@@ -771,7 +767,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Deletes a provenance query",
             response = ProvenanceEntity.class,
@@ -860,7 +856,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/events/{id}")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets a provenance event",
             response = ProvenanceEventEntity.class,
@@ -959,7 +955,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/lineage")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     public Response submitLineageRequest(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
@@ -1020,7 +1016,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/lineage")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Submits a lineage query",
             notes = "Lineage queries may be long running so this endpoint submits a request. The response will include the "
@@ -1142,7 +1138,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/lineage/{id}")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets a lineage query",
             response = LineageEntity.class,
@@ -1226,7 +1222,7 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/lineage/{id}")
-    @PreAuthorize("hasRole('ROLE_PROVENANCE')")
+    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Deletes a lineage query",
             response = LineageEntity.class,

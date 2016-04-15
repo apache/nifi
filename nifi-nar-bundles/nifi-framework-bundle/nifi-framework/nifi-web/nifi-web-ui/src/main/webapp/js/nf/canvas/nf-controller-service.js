@@ -548,7 +548,7 @@ nf.ControllerService = (function () {
         
         return $.ajax({
             type: 'GET',
-            url: '../nifi-api/controller/bulletin-board',
+            url: '../nifi-api/bulletin-board',
             data: {
                 sourceId: ids
             },
@@ -564,22 +564,26 @@ nf.ControllerService = (function () {
      * @param {function} pollCondition
      */
     var setEnabled = function (controllerService, enabled, pollCondition) {
-        var revision = nf.Client.getRevision();
-        
+        // build the request entity
+        var controllerServiceEntity = {
+            'revision': nf.Client.getRevision(),
+            'controllerService': {
+                'id': controllerService.id,
+                'state': enabled ? 'ENABLED' : 'DISABLED'
+            }
+        };
+
         var updated = $.ajax({
             type: 'PUT',
             url: controllerService.uri,
-            data: {
-                clientId: revision.clientId,
-                version: revision.version,
-                state: enabled === true ? 'ENABLED' : 'DISABLED'
-            },
-            dataType: 'json'
+            data: JSON.stringify(controllerServiceEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             nf.Client.setRevision(response.revision);
         }).fail(nf.Common.handleAjaxError);
         
-        // wait unil the polling of each service finished
+        // wait until the polling of each service finished
         return $.Deferred(function(deferred) {
             updated.done(function() {
                 var serviceUpdated = pollService(controllerService, function (service, bulletins) {
@@ -650,18 +654,19 @@ nf.ControllerService = (function () {
      * @param {function} pollCondition
      */
     var updateReferencingSchedulableComponents = function (controllerService, running, pollCondition) {
-        var revision = nf.Client.getRevision();
-        
+        var referenceEntity = {
+            'revision': nf.Client.getRevision(),
+            'id': controllerService.id,
+            'state': running ? 'RUNNING' : 'STOPPED'
+        };
+
         // issue the request to update the referencing components
         var updated = $.ajax({
             type: 'PUT',
             url: controllerService.uri + '/references',
-            data: {
-                clientId: revision.clientId,
-                version: revision.version,
-                state: running ? 'RUNNING' : 'STOPPED'
-            },
-            dataType: 'json'
+            data: JSON.stringify(referenceEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             nf.Client.setRevision(response.revision);
         }).fail(nf.Common.handleAjaxError);
@@ -908,18 +913,20 @@ nf.ControllerService = (function () {
      * @param {function} pollCondition
      */
     var updateReferencingServices = function (controllerService, enabled, pollCondition) {
-        var revision = nf.Client.getRevision();
+        // build the reference entity
+        var referenceEntity = {
+            'revision': nf.Client.getRevision(),
+            'id': controllerService.id,
+            'state': enabled ? 'ENABLED' : 'DISABLED'
+        };
         
         // issue the request to update the referencing components
         var updated = $.ajax({
             type: 'PUT',
             url: controllerService.uri + '/references',
-            data: {
-                clientId: revision.clientId,
-                version: revision.version,
-                state: enabled ? 'ENABLED' : 'DISABLED'
-            },
-            dataType: 'json'
+            data: JSON.stringify(referenceEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             nf.Client.setRevision(response.revision);
         }).fail(nf.Common.handleAjaxError);
@@ -1301,7 +1308,6 @@ nf.ControllerService = (function () {
                 data: JSON.stringify(updatedControllerService),
                 url: controllerService.uri,
                 dataType: 'json',
-                processData: false,
                 contentType: 'application/json'
             }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.controllerService)) {
@@ -1605,7 +1611,7 @@ nf.ControllerService = (function () {
             // get the controller service history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/controller/history/controller-services/' + encodeURIComponent(controllerService.id),
+                url: '../nifi-api/history/controller-services/' + encodeURIComponent(controllerService.id),
                 dataType: 'json'
             });
             
@@ -1762,7 +1768,7 @@ nf.ControllerService = (function () {
             // get the controller service history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/controller/history/controller-services/' + encodeURIComponent(controllerService.id),
+                url: '../nifi-api/history/controller-services/' + encodeURIComponent(controllerService.id),
                 dataType: 'json'
             });
             
