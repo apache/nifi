@@ -119,6 +119,30 @@ class KafkaPublisher implements AutoCloseable {
      */
     BitSet publish(SplittableMessageContext messageContext, InputStream contentStream, Integer partitionKey,
             int maxBufferSize) {
+        List<Future<RecordMetadata>> sendFutures = this.split(messageContext, contentStream, partitionKey, maxBufferSize);
+        return this.publish(sendFutures);
+    }
+
+    /**
+     * This method splits (if required) the incoming content stream into
+     * messages to publish to Kafka topic. See publish method for more
+     * details
+     *
+     * @param messageContext
+     *            instance of {@link SplittableMessageContext} which hold
+     *            context information about the message to be sent
+     * @param contentStream
+     *            instance of open {@link InputStream} carrying the content of
+     *            the message(s) to be send to Kafka
+     * @param partitionKey
+     *            the value of the partition key. Only relevant is user wishes
+     *            to provide a custom partition key instead of relying on
+     *            variety of provided {@link Partitioner}(s)
+     * @param maxBufferSize maximum message size
+     * @return The list of messages to publish
+     */
+    List<Future<RecordMetadata>> split(SplittableMessageContext messageContext, InputStream contentStream, Integer partitionKey,
+            int maxBufferSize) {
         List<Future<RecordMetadata>> sendFutures = new ArrayList<>();
         BitSet prevFailedSegmentIndexes = messageContext.getFailedSegments();
         int segmentCounter = 0;
@@ -139,13 +163,13 @@ class KafkaPublisher implements AutoCloseable {
                 segmentCounter++;
             }
         }
-        return this.processAcks(sendFutures);
+        return sendFutures;
     }
 
     /**
      *
      */
-    private BitSet processAcks(List<Future<RecordMetadata>> sendFutures) {
+    BitSet publish(List<Future<RecordMetadata>> sendFutures) {
         int segmentCounter = 0;
         BitSet failedSegments = new BitSet();
         for (Future<RecordMetadata> future : sendFutures) {
