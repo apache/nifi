@@ -381,7 +381,8 @@ nf.QueueListing = (function () {
             $.ajax({
                 type: 'POST',
                 url: connection.component.uri + '/listing-requests',
-                dataType: 'json'
+                dataType: 'json',
+                contentType: 'application/json'
             }).done(function(response) {
                 // initialize the progress bar value
                 updateProgress(0);

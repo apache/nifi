@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.util.Set;
-
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.FlowController;
@@ -27,24 +25,27 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.dao.LabelDAO;
 
+import java.util.Set;
+
 public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
 
     private FlowController flowController;
 
-    private Label locateLabel(String groupId, String labelId) {
-        return locateLabel(locateProcessGroup(flowController, groupId), labelId);
+    private Label locateLabel(final String labelId) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final Label label = rootGroup.findLabel(labelId);
+
+        if (label == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find label with id '%s'.", labelId));
+        } else {
+            return label;
+        }
     }
 
-    private Label locateLabel(ProcessGroup group, String labelId) {
-        // get the label
-        Label label = group.getLabel(labelId);
-
-        // ensure the label exists
-        if (label == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate label with id '%s'.", labelId));
-        }
-
-        return label;
+    @Override
+    public boolean hasLabel(String labelId) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        return rootGroup.findLabel(labelId) != null;
     }
 
     @Override
@@ -72,20 +73,8 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
     }
 
     @Override
-    public Label getLabel(String groupId, String labelId) {
-        return locateLabel(groupId, labelId);
-    }
-
-    @Override
-    public boolean hasLabel(String groupId, String labelId) {
-        ProcessGroup group;
-        try {
-            group = flowController.getGroup(groupId);
-        } catch (NullPointerException | IllegalArgumentException e) {
-            return false;
-        }
-
-        return group.getLabel(labelId) != null;
+    public Label getLabel(String labelId) {
+        return locateLabel(labelId);
     }
 
     @Override
@@ -95,11 +84,9 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
     }
 
     @Override
-    public Label updateLabel(String groupId, LabelDTO labelDTO) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-
+    public Label updateLabel(LabelDTO labelDTO) {
         // get the label being updated
-        Label label = locateLabel(group, labelDTO.getId());
+        Label label = locateLabel(labelDTO.getId());
 
         // update the label state
         if (labelDTO.getPosition() != null) {
@@ -119,14 +106,12 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
     }
 
     @Override
-    public void deleteLabel(String groupId, String labelId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-
+    public void deleteLabel(String labelId) {
         // get the label
-        Label label = locateLabel(group, labelId);
+        Label label = locateLabel(labelId);
 
         // remove the label
-        group.removeLabel(label);
+        label.getProcessGroup().removeLabel(label);
     }
 
     /* setters */

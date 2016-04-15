@@ -124,8 +124,6 @@
         <jsp:include page="/WEB-INF/partials/canvas/remote-port-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/port-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/port-details.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/secure-port-configuration.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/secure-port-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/label-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/connection-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/drop-request-status-dialog.jsp"/>

@@ -79,7 +79,7 @@ public class NiFiTestServer {
         org.eclipse.jetty.util.ssl.SslContextFactory contextFactory = new org.eclipse.jetty.util.ssl.SslContextFactory();
 
         // require client auth when not supporting login or anonymous access
-        if (StringUtils.isBlank(properties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && properties.getAnonymousAuthorities().isEmpty()) {
+        if (StringUtils.isBlank(properties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER))) {
             contextFactory.setNeedClientAuth(true);
         } else {
             contextFactory.setWantClientAuth(true);

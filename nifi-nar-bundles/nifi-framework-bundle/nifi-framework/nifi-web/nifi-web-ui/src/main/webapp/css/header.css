@@ -622,19 +622,6 @@ div.provenance-link-disabled {
     background: transparent url(../images/iconProvenance.png) no-repeat scroll top right;
 }
 
-div.users-link {
-    background: transparent url(../images/iconAdminUser.png) no-repeat scroll top left;
-}
-
-div.users-link-hover {
-    background: transparent url(../images/iconAdminUser.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-div.users-link-disabled {
-    background: transparent url(../images/iconAdminUser.png) no-repeat scroll top right;
-}
-
 div.cluster-link {
     background: transparent url(../images/iconCluster.png) no-repeat scroll top left;
 }

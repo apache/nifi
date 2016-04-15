@@ -123,7 +123,7 @@
                 // perform query...
                 var xhr = $.ajax({
                     type: 'GET',
-                    url: '../nifi-api/controller/history',
+                    url: '../nifi-api/history',
                     data: query,
                     dataType: 'json'
                 }).done(function (response) {

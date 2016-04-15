@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.util.Set;
-
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
@@ -26,24 +24,27 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.dao.FunnelDAO;
 
+import java.util.Set;
+
 public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
 
     private FlowController flowController;
 
-    private Funnel locateFunnel(String groupId, String funnelId) {
-        return locateFunnel(locateProcessGroup(flowController, groupId), funnelId);
+    private Funnel locateFunnel(final String funnelId) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final Funnel funnel = rootGroup.findFunnel(funnelId);
+
+        if (funnel == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find funnel with id '%s'.", funnelId));
+        } else {
+            return funnel;
+        }
     }
 
-    private Funnel locateFunnel(ProcessGroup group, String funnelId) {
-        // get the funnel
-        Funnel funnel = group.getFunnel(funnelId);
-
-        // ensure the funnel exists
-        if (funnel == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate funnel with id '%s'.", funnelId));
-        }
-
-        return funnel;
+    @Override
+    public boolean hasFunnel(String funnelId) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        return rootGroup.findFunnel(funnelId) != null;
     }
 
     @Override
@@ -68,20 +69,8 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
     }
 
     @Override
-    public Funnel getFunnel(String groupId, String funnelId) {
-        return locateFunnel(groupId, funnelId);
-    }
-
-    @Override
-    public boolean hasFunnel(String groupId, String funnelId) {
-        ProcessGroup group;
-        try {
-            group = flowController.getGroup(groupId);
-        } catch (NullPointerException | IllegalArgumentException e) {
-            return false;
-        }
-
-        return group.getFunnel(funnelId) != null;
+    public Funnel getFunnel(String funnelId) {
+        return locateFunnel(funnelId);
     }
 
     @Override
@@ -91,11 +80,9 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
     }
 
     @Override
-    public Funnel updateFunnel(String groupId, FunnelDTO funnelDTO) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-
+    public Funnel updateFunnel(FunnelDTO funnelDTO) {
         // get the funnel being updated
-        Funnel funnel = locateFunnel(group, funnelDTO.getId());
+        Funnel funnel = locateFunnel(funnelDTO.getId());
 
         // update the label state
         if (isNotNull(funnelDTO.getPosition())) {
@@ -108,21 +95,18 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
     }
 
     @Override
-    public void verifyDelete(String groupId, String funnelId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-        Funnel funnel = locateFunnel(group, funnelId);
+    public void verifyDelete(String funnelId) {
+        Funnel funnel = locateFunnel(funnelId);
         funnel.verifyCanDelete();
     }
 
     @Override
-    public void deleteFunnel(String groupId, String funnelId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
-
+    public void deleteFunnel(String funnelId) {
         // get the funnel
-        Funnel funnel = locateFunnel(group, funnelId);
+        Funnel funnel = locateFunnel(funnelId);
 
         // remove the funnel
-        group.removeFunnel(funnel);
+        funnel.getProcessGroup().removeFunnel(funnel);
     }
 
     /* setters */

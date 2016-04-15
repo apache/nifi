@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
@@ -31,7 +30,7 @@ public interface Authorizer {
      *
      * @param   request The authorization request
      * @return  the authorization result
-     * @throws  AuthorityAccessException if unable to access the authorities
+     * @throws  AuthorizationAccessException if unable to access the authorities
      */
     AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException;
 

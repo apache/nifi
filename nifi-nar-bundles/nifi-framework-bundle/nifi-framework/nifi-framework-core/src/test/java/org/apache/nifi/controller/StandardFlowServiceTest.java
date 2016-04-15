@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.util.NiFiProperties;
@@ -55,7 +55,7 @@ public class StandardFlowServiceTest {
     private FlowController flowController;
     private NiFiProperties properties;
     private FlowFileEventRepository mockFlowFileEventRepository;
-    private UserService mockUserService;
+    private KeyService mockKeyService;
     private AuditService mockAuditService;
     private StringEncryptor mockEncryptor;
 
@@ -68,9 +68,9 @@ public class StandardFlowServiceTest {
     public void setup() throws Exception {
         properties = NiFiProperties.getInstance();
         mockFlowFileEventRepository = mock(FlowFileEventRepository.class);
-        mockUserService = mock(UserService.class);
+        mockKeyService = mock(KeyService.class);
         mockAuditService = mock(AuditService.class);
-        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, mockUserService, mockAuditService, mockEncryptor);
+        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, mockKeyService, mockAuditService, mockEncryptor);
         flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor);
     }
 

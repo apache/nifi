@@ -17,7 +17,7 @@
 package org.apache.nifi.spring;
 
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -38,7 +38,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private ApplicationContext applicationContext;
     private FlowController flowController;
     private NiFiProperties properties;
-    private UserService userService;
+    private KeyService keyService;
     private AuditService auditService;
     private StringEncryptor encryptor;
 
@@ -58,7 +58,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                 flowController = FlowController.createClusteredInstance(
                         flowFileEventRepository,
                         properties,
-                        userService,
+                    keyService,
                         auditService,
                         encryptor,
                         nodeProtocolSender);
@@ -66,7 +66,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                 flowController = FlowController.createStandaloneInstance(
                         flowFileEventRepository,
                         properties,
-                        userService,
+                    keyService,
                         auditService,
                         encryptor);
             }
@@ -95,8 +95,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.properties = properties;
     }
 
-    public void setUserService(final UserService userService) {
-        this.userService = userService;
+    public void setKeyService(final KeyService keyService) {
+        this.keyService = keyService;
     }
 
     public void setEncryptor(final StringEncryptor encryptor) {

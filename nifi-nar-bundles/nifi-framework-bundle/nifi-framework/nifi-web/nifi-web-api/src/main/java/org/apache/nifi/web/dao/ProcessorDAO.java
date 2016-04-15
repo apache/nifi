@@ -16,26 +16,25 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
-
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 
+import java.util.Set;
+
 public interface ProcessorDAO {
 
     /**
-     * @param groupId group id
      * @param id id
      * @return Determines if the specified processor is loaded
      */
-    boolean hasProcessor(String groupId, String id);
+    boolean hasProcessor(String id);
 
     /**
      * Creates a new Processor.
      *
-     * @param groupId group id
+     * @param groupId The group id where this component will be created
      * @param processorDTO The processor DTO
      * @return The new Processor
      */
@@ -44,11 +43,10 @@ public interface ProcessorDAO {
     /**
      * Gets the Processor transfer object for the specified id.
      *
-     * @param groupId group id
      * @param id Id of the processor to return
      * @return The Processor
      */
-    ProcessorNode getProcessor(String groupId, String id);
+    ProcessorNode getProcessor(String id);
 
     /**
      * Gets all the Processor transfer objects for this controller.
@@ -61,58 +59,51 @@ public interface ProcessorDAO {
     /**
      * Verifies the specified processor can be updated.
      *
-     * @param groupId group id
      * @param processorDTO processor
      */
-    void verifyUpdate(String groupId, ProcessorDTO processorDTO);
+    void verifyUpdate(ProcessorDTO processorDTO);
 
     /**
      * Updates the configuration for the processor using the specified processorDTO.
      *
-     * @param groupId group id
      * @param processorDTO processor
      * @return updated processor
      */
-    ProcessorNode updateProcessor(String groupId, ProcessorDTO processorDTO);
+    ProcessorNode updateProcessor(ProcessorDTO processorDTO);
 
     /**
      * Verifies the specified processor can be removed.
      *
-     * @param groupId group id
      * @param processorId processor id
      */
-    void verifyDelete(String groupId, String processorId);
+    void verifyDelete(String processorId);
 
     /**
      * Deletes the specified processor.
      *
-     * @param groupId group id
      * @param processorId The processor id to delete
      */
-    void deleteProcessor(String groupId, String processorId);
+    void deleteProcessor(String processorId);
 
     /**
      * Gets the specified processor.
      *
-     * @param groupId group id
      * @param processorId processor id
      * @return state map
      */
-    StateMap getState(String groupId, String processorId, Scope scope);
+    StateMap getState(String processorId, Scope scope);
 
     /**
      * Verifies the processor can clear state.
      *
-     * @param groupId group id
      * @param processorId processor id
      */
-    void verifyClearState(String groupId, String processorId);
+    void verifyClearState(String processorId);
 
     /**
      * Clears the state of the specified processor.
      *
-     * @param groupId group id
      * @param processorId processor id
      */
-    void clearState(String groupId, String processorId);
+    void clearState(String processorId);
 }

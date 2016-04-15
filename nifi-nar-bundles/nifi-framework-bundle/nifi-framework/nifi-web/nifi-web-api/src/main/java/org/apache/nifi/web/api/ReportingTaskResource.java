@@ -16,36 +16,14 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.context.ClusterContext;
+import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -59,25 +37,40 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.Availability;
-import org.springframework.security.access.prepost.PreAuthorize;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * RESTful endpoint for managing a Reporting Task.
  */
-@Api(hidden = true)
+@Path("reporting-tasks")
 public class ReportingTaskResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -105,7 +98,7 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     private ReportingTaskDTO populateRemainingReportingTaskContent(final String availability, final ReportingTaskDTO reportingTask) {
         // populate the reporting task href
-        reportingTask.setUri(generateResourceUri("controller", "reporting-tasks", availability, reportingTask.getId()));
+        reportingTask.setUri(generateResourceUri("reporting-tasks", availability, reportingTask.getId()));
         reportingTask.setAvailability(availability);
 
         // see if this processor has any ui extensions
@@ -155,9 +148,9 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets all reporting tasks",
             response = ReportingTasksEntity.class,
@@ -212,52 +205,6 @@ public class ReportingTaskResource extends ApplicationResource {
     }
 
     /**
-     * Creates a new reporting task.
-     *
-     * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
-     * @param type The type of reporting task to create.
-     * @return A reportingTaskEntity.
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
-    public Response createReportingTask(
-            @Context HttpServletRequest httpServletRequest,
-            @FormParam(VERSION) LongParameter version,
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("availability") String availability,
-            @FormParam("type") String type) {
-
-        // create the reporting task DTO
-        final ReportingTaskDTO reportingTaskDTO = new ReportingTaskDTO();
-        reportingTaskDTO.setType(type);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        if (version != null) {
-            revision.setVersion(version.getLong());
-        }
-
-        // create the reporting task entity
-        final ReportingTaskEntity reportingTaskEntity = new ReportingTaskEntity();
-        reportingTaskEntity.setRevision(revision);
-        reportingTaskEntity.setReportingTask(reportingTaskDTO);
-
-        return createReportingTask(httpServletRequest, availability, reportingTaskEntity);
-    }
-
-    /**
      * Creates a new Reporting Task.
      *
      * @param httpServletRequest request
@@ -268,10 +215,10 @@ public class ReportingTaskResource extends ApplicationResource {
      * @return A reportingTaskEntity.
      */
     @POST
-    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates a new reporting task",
             response = ReportingTaskEntity.class,
@@ -321,34 +268,22 @@ public class ReportingTaskResource extends ApplicationResource {
         // get the revision
         final RevisionDTO revision = reportingTaskEntity.getRevision();
 
-        // if cluster manager, convert POST to PUT (to maintain same ID across nodes) and replicate
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            // create ID for resource
-            final String id = UUID.randomUUID().toString();
-
-            // set ID for resource
-            reportingTaskEntity.getReportingTask().setId(id);
-
-            // convert POST request to PUT request to force entity ID to be the same across nodes
-            URI putUri = null;
-            try {
-                putUri = new URI(getAbsolutePath().toString() + "/" + id);
-            } catch (final URISyntaxException e) {
-                throw new WebApplicationException(e);
-            }
-
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate put request
-            return clusterManager.applyRequest(HttpMethod.PUT, putUri, updateClientId(reportingTaskEntity), getHeaders(headersToOverride)).getResponse();
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(reportingTaskEntity), getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
+        }
+
+        // set the processor id as appropriate
+        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
+        if (clusterContext != null) {
+            reportingTaskEntity.getReportingTask().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
+        } else {
+            reportingTaskEntity.getReportingTask().setId(UUID.randomUUID().toString());
         }
 
         // create the reporting task and generate the json
@@ -384,9 +319,9 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a reporting task",
             response = ReportingTaskEntity.class,
@@ -458,9 +393,9 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}/descriptors")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}/descriptors")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a reporting task property descriptor",
             response = PropertyDescriptorEntity.class,
@@ -542,9 +477,9 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}/state")
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}/state")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Gets the state for a reporting task",
         response = ComponentStateDTO.class,
@@ -605,8 +540,7 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Clears the state for a reporting task.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
      * @param availability Whether the reporting task is available on the
      * NCM only (ncm) or on the nodes only (node). If this instance is not
      * clustered all services should use the node availability.
@@ -614,10 +548,10 @@ public class ReportingTaskResource extends ApplicationResource {
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}/state/clear-requests")
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}/state/clear-requests")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Clears the state for a reporting task",
         response = ComponentStateDTO.class,
@@ -637,15 +571,10 @@ public class ReportingTaskResource extends ApplicationResource {
     public Response clearState(
         @Context HttpServletRequest httpServletRequest,
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
-            value = "The revision is used to verify the client is working with the latest version of the flow.",
+            value = "The revision used to verify the client is working with the latest version of the flow.",
             required = true
         )
-        @FormParam(VERSION) LongParameter version,
+        Entity revisionEntity,
         @ApiParam(
             value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
             allowableValues = "NCM, NODE",
@@ -672,133 +601,21 @@ public class ReportingTaskResource extends ApplicationResource {
             return generateContinueResponse().build();
         }
 
-        // get the revision specified by the user
-        Long revision = null;
-        if (version != null) {
-            revision = version.getLong();
-        }
-
         // get the component state
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearReportingTaskState(new Revision(revision, clientId.getClientId()), id);
+        final RevisionDTO requestRevision = revisionEntity.getRevision();
+        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearReportingTaskState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
 
         // create the revision
-        final RevisionDTO revisionDTO = new RevisionDTO();
-        revisionDTO.setClientId(clientId.getClientId());
-        revisionDTO.setVersion(snapshot.getVersion());
+        final RevisionDTO responseRevision = new RevisionDTO();
+        responseRevision.setClientId(requestRevision.getClientId());
+        responseRevision.setVersion(snapshot.getVersion());
 
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(revisionDTO);
+        entity.setRevision(responseRevision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Updates the specified reporting task.
-     *
-     * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
-     * @param id The id of the reporting task to update.
-     * @param name The name of the reporting task
-     * @param annotationData The annotation data for the reporting task
-     * @param markedForDeletion Array of property names whose value should be
-     * removed.
-     * @param state The updated scheduled state
-     * @param schedulingStrategy The scheduling strategy for this reporting task
-     * @param schedulingPeriod The scheduling period for this reporting task
-     * @param comments The comments for this reporting task
-     * @param formParams Additionally, the processor properties and styles are
-     * specified in the form parameters. Because the property names and styles
-     * differ from processor to processor they are specified in a map-like
-     * fashion:
-     * <br>
-     * <ul>
-     * <li>properties[required.file.path]=/path/to/file</li>
-     * <li>properties[required.hostname]=localhost</li>
-     * <li>properties[required.port]=80</li>
-     * <li>properties[optional.file.path]=/path/to/file</li>
-     * <li>properties[optional.hostname]=localhost</li>
-     * <li>properties[optional.port]=80</li>
-     * <li>properties[user.defined.pattern]=^.*?s.*$</li>
-     * </ul>
-     * @return A reportingTaskEntity.
-     */
-    @PUT
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
-    public Response updateReportingTask(
-            @Context HttpServletRequest httpServletRequest,
-            @FormParam(VERSION) LongParameter version,
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("availability") String availability, @PathParam("id") String id, @FormParam("name") String name,
-            @FormParam("annotationData") String annotationData, @FormParam("markedForDeletion[]") List<String> markedForDeletion,
-            @FormParam("state") String state, @FormParam("schedulingStrategy") String schedulingStrategy,
-            @FormParam("schedulingPeriod") String schedulingPeriod, @FormParam("comments") String comments,
-            MultivaluedMap<String, String> formParams) {
-
-        // create collections for holding the reporting task properties
-        final Map<String, String> updatedProperties = new LinkedHashMap<>();
-
-        // go through each parameter and look for processor properties
-        for (String parameterName : formParams.keySet()) {
-            if (StringUtils.isNotBlank(parameterName)) {
-                // see if the parameter name starts with an expected parameter type...
-                // if so, store the parameter name and value in the corresponding collection
-                if (parameterName.startsWith("properties")) {
-                    final int startIndex = StringUtils.indexOf(parameterName, "[");
-                    final int endIndex = StringUtils.lastIndexOf(parameterName, "]");
-                    if (startIndex != -1 && endIndex != -1) {
-                        final String propertyName = StringUtils.substring(parameterName, startIndex + 1, endIndex);
-                        updatedProperties.put(propertyName, formParams.getFirst(parameterName));
-                    }
-                }
-            }
-        }
-
-        // set the properties to remove
-        for (String propertyToDelete : markedForDeletion) {
-            updatedProperties.put(propertyToDelete, null);
-        }
-
-        // create the reporting task DTO
-        final ReportingTaskDTO reportingTaskDTO = new ReportingTaskDTO();
-        reportingTaskDTO.setId(id);
-        reportingTaskDTO.setName(name);
-        reportingTaskDTO.setState(state);
-        reportingTaskDTO.setSchedulingStrategy(schedulingStrategy);
-        reportingTaskDTO.setSchedulingPeriod(schedulingPeriod);
-        reportingTaskDTO.setAnnotationData(annotationData);
-        reportingTaskDTO.setComments(comments);
-
-        // only set the properties when appropriate
-        if (!updatedProperties.isEmpty()) {
-            reportingTaskDTO.setProperties(updatedProperties);
-        }
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        if (version != null) {
-            revision.setVersion(version.getLong());
-        }
-
-        // create the reporting task entity
-        final ReportingTaskEntity reportingTaskEntity = new ReportingTaskEntity();
-        reportingTaskEntity.setRevision(revision);
-        reportingTaskEntity.setReportingTask(reportingTaskDTO);
-
-        // update the reporting task
-        return updateReportingTask(httpServletRequest, availability, id, reportingTaskEntity);
     }
 
     /**
@@ -813,10 +630,10 @@ public class ReportingTaskResource extends ApplicationResource {
      * @return A reportingTaskEntity.
      */
     @PUT
-    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a reporting task",
             response = ReportingTaskEntity.class,
@@ -870,12 +687,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(reportingTaskEntity), getHeaders(headersToOverride)).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(reportingTaskEntity), getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -927,9 +739,9 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a reporting task",
             response = ReportingTaskEntity.class,

@@ -253,7 +253,14 @@ nf.Funnel = (function () {
                 set(funnels);
             }
         },
-        
+
+        /**
+         * Returns the entity key when marshalling an entity of this type.
+         */
+        getEntityKey: function (d) {
+            return 'funnel';
+        },
+
         /**
          * Removes the specified funnel.
          * 

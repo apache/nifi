@@ -1038,6 +1038,13 @@ nf.ProcessGroup = (function () {
             // update the visible process groups
             d3.selectAll('g.process-group.visible').call(updateProcessGroupStatus);
         },
+
+        /**
+         * Returns the entity key when marshalling an entity of this type.
+         */
+        getEntityKey: function (d) {
+            return 'processGroup';
+        },
         
         /**
          * Removes the specified process group.

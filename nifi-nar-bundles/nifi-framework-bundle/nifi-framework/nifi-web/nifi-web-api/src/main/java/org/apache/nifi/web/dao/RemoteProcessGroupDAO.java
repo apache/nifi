@@ -16,22 +16,22 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+
+import java.util.Set;
 
 public interface RemoteProcessGroupDAO {
 
     /**
      * Determines if the specified remote process group exists.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId group id
      * @return true if the specified remote process group exists
      */
-    boolean hasRemoteProcessGroup(String groupId, String remoteProcessGroupId);
+    boolean hasRemoteProcessGroup(String remoteProcessGroupId);
 
     /**
      * Creates a remote process group reference.
@@ -45,11 +45,10 @@ public interface RemoteProcessGroupDAO {
     /**
      * Gets the specified remote process group.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId The remote process group id
      * @return The remote process group
      */
-    RemoteProcessGroup getRemoteProcessGroup(String groupId, String remoteProcessGroupId);
+    RemoteProcessGroup getRemoteProcessGroup(String remoteProcessGroupId);
 
     /**
      * Gets all of the remote process groups.
@@ -62,71 +61,63 @@ public interface RemoteProcessGroupDAO {
     /**
      * Verifies the specified remote process group can be updated.
      *
-     * @param groupId group id
      * @param remoteProcessGroup group
      */
-    void verifyUpdate(String groupId, RemoteProcessGroupDTO remoteProcessGroup);
+    void verifyUpdate(RemoteProcessGroupDTO remoteProcessGroup);
 
     /**
      * Verifies the specified remote process group input port can be updated.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId process group id
      * @param remoteProcessGroupPort port
      */
-    void verifyUpdateInputPort(String groupId, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
+    void verifyUpdateInputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
 
     /**
      * Verifies the specified remote process group input port can be updated.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId group id
      * @param remoteProcessGroupPort group port
      */
-    void verifyUpdateOutputPort(String groupId, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
+    void verifyUpdateOutputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
 
     /**
      * Updates the specified remote process group.
      *
-     * @param groupId id
      * @param remoteProcessGroup The remote process group
      * @return The remote process group
      */
-    RemoteProcessGroup updateRemoteProcessGroup(String groupId, RemoteProcessGroupDTO remoteProcessGroup);
+    RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroupDTO remoteProcessGroup);
 
     /**
      * Updates the specified remote process group input port.
      *
-     * @param groupId id
      * @param remoteProcessGroupId id
      * @param remoteProcessGroupPort port
      * @return updated group port
      */
-    RemoteGroupPort updateRemoteProcessGroupInputPort(String groupId, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
+    RemoteGroupPort updateRemoteProcessGroupInputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
 
     /**
      * Updates the specified remote process group output port.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId group id
      * @param remoteProcessGroupPort port
      * @return group port
      */
-    RemoteGroupPort updateRemoteProcessGroupOutputPort(String groupId, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
+    RemoteGroupPort updateRemoteProcessGroupOutputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
 
     /**
      * Verifies the specified remote process group can be removed.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId group id
      */
-    void verifyDelete(String groupId, String remoteProcessGroupId);
+    void verifyDelete(String remoteProcessGroupId);
 
     /**
      * Deletes the specified remote process group.
      *
-     * @param groupId group id
      * @param remoteProcessGroupId The remote process group id
      */
-    void deleteRemoteProcessGroup(String groupId, String remoteProcessGroupId);
+    void deleteRemoteProcessGroup(String remoteProcessGroupId);
 }

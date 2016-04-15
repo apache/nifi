@@ -22,7 +22,7 @@ nf.ClusterSearch = (function () {
         search: 'Search nodes',
         urls: {
             clusterSearch: '../nifi-api/cluster/search-results',
-            status: '../nifi-api/controller/process-groups/root/status',
+            status: '../nifi-api/process-groups/root/status',
             systemDiagnostics: '../nifi-api/system-diagnostics'
         }
     };

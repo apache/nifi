@@ -81,7 +81,7 @@
     </bean>
     <bean id="connectionDAO" class="org.apache.nifi.web.dao.impl.StandardConnectionDAO">
         <property name="flowController" ref="flowController"/>
-        <property name="userService" ref="userService"/>
+        <property name="keyService" ref="keyService"/>
     </bean>
     <bean id="processorDAO" class="org.apache.nifi.web.dao.impl.StandardProcessorDAO">
         <property name="flowController" ref="flowController"/>
@@ -110,7 +110,7 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="flowController" ref="flowController"/>
         <property name="flowService" ref="flowService"/>
-        <property name="userService" ref="userService"/>
+        <property name="keyService" ref="keyService"/>
         <property name="dtoFactory" ref="dtoFactory"/>
     </bean>
     <bean id="serviceFacade" class="org.apache.nifi.web.StandardNiFiServiceFacade">
@@ -129,7 +129,7 @@
         <property name="templateDAO" ref="templateDAO"/>
         <property name="snippetDAO" ref="snippetDAO"/>
         <property name="auditService" ref="auditService"/>
-        <property name="userService" ref="userService"/>
+        <property name="keyService" ref="keyService"/>
         <property name="snippetUtils" ref="snippetUtils"/>
         <property name="optimisticLockingManager" ref="webOptimisticLockingManager"/>
         <property name="dtoFactory" ref="dtoFactory"/>
@@ -181,42 +181,49 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
-    <bean id="processGroupResource" class="org.apache.nifi.web.api.ProcessGroupResource" scope="prototype">
+    <bean id="processGroupResource" class="org.apache.nifi.web.api.ProcessGroupResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterManager" ref="clusterManager"/>
+        <property name="processorResource" ref="processorResource"/>
+        <property name="inputPortResource" ref="inputPortResource"/>
+        <property name="outputPortResource" ref="outputPortResource"/>
+        <property name="funnelResource" ref="funnelResource"/>
+        <property name="labelResource" ref="labelResource"/>
+        <property name="remoteProcessGroupResource" ref="remoteProcessGroupResource"/>
+        <property name="connectionResource" ref="connectionResource"/>
+    </bean>
+    <bean id="processorResource" class="org.apache.nifi.web.api.ProcessorResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
-    <bean id="processorResource" class="org.apache.nifi.web.api.ProcessorResource" scope="prototype">
+    <bean id="connectionResource" class="org.apache.nifi.web.api.ConnectionResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
-    <bean id="connectionResource" class="org.apache.nifi.web.api.ConnectionResource" scope="prototype">
+    <bean id="remoteProcessGroupResource" class="org.apache.nifi.web.api.RemoteProcessGroupResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
-    <bean id="remoteProcessGroupResource" class="org.apache.nifi.web.api.RemoteProcessGroupResource" scope="prototype">
+    <bean id="inputPortResource" class="org.apache.nifi.web.api.InputPortResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
-    <bean id="inputPortResource" class="org.apache.nifi.web.api.InputPortResource" scope="prototype">
+    <bean id="outputPortResource" class="org.apache.nifi.web.api.OutputPortResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
-    <bean id="outputPortResource" class="org.apache.nifi.web.api.OutputPortResource" scope="prototype">
+    <bean id="labelResource" class="org.apache.nifi.web.api.LabelResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
-    <bean id="labelResource" class="org.apache.nifi.web.api.LabelResource" scope="prototype">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="properties" ref="nifiProperties"/>
-        <property name="clusterManager" ref="clusterManager"/>
-    </bean>
-    <bean id="funnelResource" class="org.apache.nifi.web.api.FunnelResource" scope="prototype">
+    <bean id="funnelResource" class="org.apache.nifi.web.api.FunnelResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
@@ -225,21 +232,19 @@
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
+        <property name="processorResource" ref="processorResource"/>
+        <property name="inputPortResource" ref="inputPortResource"/>
+        <property name="outputPortResource" ref="outputPortResource"/>
+        <property name="funnelResource" ref="funnelResource"/>
+        <property name="labelResource" ref="labelResource"/>
+        <property name="remoteProcessGroupResource" ref="remoteProcessGroupResource"/>
+        <property name="connectionResource" ref="connectionResource"/>
+        <property name="processGroupResource" ref="processGroupResource"/>
     </bean>
     <bean id="historyResource" class="org.apache.nifi.web.api.HistoryResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
     </bean>
     <bean id="provenanceResource" class="org.apache.nifi.web.api.ProvenanceResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="properties" ref="nifiProperties"/>
-        <property name="clusterManager" ref="clusterManager"/>
-    </bean>
-    <bean id="userResource" class="org.apache.nifi.web.api.UserResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="properties" ref="nifiProperties"/>
-        <property name="clusterManager" ref="clusterManager"/>
-    </bean>
-    <bean id="userGroupResource" class="org.apache.nifi.web.api.UserGroupResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
@@ -265,7 +270,6 @@
         <property name="jwtService" ref="jwtService"/>
         <property name="otpService" ref="otpService"/>
         <property name="kerberosService" ref="kerberosService"/>
-        <property name="userDetailsService" ref="userDetailsService"/>
     </bean>
 
     <!-- configuration for jaxb serialization -->
@@ -275,7 +279,6 @@
     <bean class="org.apache.nifi.web.api.config.AccessDeniedExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.InvalidAuthenticationExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.AccountNotFoundExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.AdministrationExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.ClusterExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.IllegalArgumentExceptionMapper" scope="singleton"/>

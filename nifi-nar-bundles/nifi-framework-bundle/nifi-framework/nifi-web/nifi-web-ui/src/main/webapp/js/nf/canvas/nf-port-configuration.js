@@ -30,37 +30,44 @@ nf.PortConfiguration = (function () {
                     buttonText: 'Apply',
                     handler: {
                         click: function () {
-                            var revision = nf.Client.getRevision();
-
                             // get the port data to reference the uri
                             var portId = $('#port-id').text();
                             var portData = d3.select('#id-' + portId).datum();
 
-                            var data = {
-                                version: revision.version,
-                                clientId: revision.clientId,
-                                name: $('#port-name').val(),
-                                comments: $('#port-comments').val()
+                            // build the updated port
+                            var port = {
+                                'id': portId,
+                                'name': $('#port-name').val(),
+                                'comments': $('#port-comments').val()
                             };
 
                             // include the concurrent tasks if appropriate
                             if ($('#port-concurrent-task-container').is(':visible')) {
-                                data['concurrentlySchedulableTaskCount'] = $('#port-concurrent-tasks').val();
+                                port['concurrentlySchedulableTaskCount'] = $('#port-concurrent-tasks').val();
                             }
 
                             // mark the processor disabled if appropriate
                             if ($('#port-enabled').hasClass('checkbox-unchecked')) {
-                                data['state'] = 'DISABLED';
+                                port['state'] = 'DISABLED';
                             } else if ($('#port-enabled').hasClass('checkbox-checked')) {
-                                data['state'] = 'STOPPED';
+                                port['state'] = 'STOPPED';
                             }
+                            
+                            // build the port entity
+                            var portEntity = {
+                                'revision': nf.Client.getRevision()
+                            };
 
+                            // use bracket notation to set the key based on the type
+                            portEntity[nf[portData.type].getEntityKey(portData)] = port;
+                            
                             // update the selected component
                             $.ajax({
                                 type: 'PUT',
-                                data: data,
+                                data: JSON.stringify(portEntity),
                                 url: portData.component.uri,
-                                dataType: 'json'
+                                dataType: 'json',
+                                contentType: 'application/json'
                             }).done(function (response) {
                                 // update the revision
                                 nf.Client.setRevision(response.revision);

@@ -16,19 +16,18 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
-
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.web.api.dto.FunnelDTO;
+
+import java.util.Set;
 
 public interface FunnelDAO {
 
     /**
-     * @param groupId group id
      * @param funnelId funnel id
      * @return Determines if the specified funnel exists in the specified group
      */
-    boolean hasFunnel(String groupId, String funnelId);
+    boolean hasFunnel(String funnelId);
 
     /**
      * Creates a funnel in the specified group.
@@ -40,13 +39,12 @@ public interface FunnelDAO {
     Funnel createFunnel(String groupId, FunnelDTO funnelDTO);
 
     /**
-     * Gets the specified funnel in the specified group.
+     * Gets the specified funnel.
      *
-     * @param groupId group id
      * @param funnelId The funnel id
      * @return The funnel
      */
-    Funnel getFunnel(String groupId, String funnelId);
+    Funnel getFunnel(String funnelId);
 
     /**
      * Gets all of the funnels in the specified group.
@@ -57,27 +55,24 @@ public interface FunnelDAO {
     Set<Funnel> getFunnels(String groupId);
 
     /**
-     * Updates the specified funnel in the specified group.
+     * Updates the specified funnel.
      *
-     * @param groupId group id
      * @param funnelDTO The funnel DTO
      * @return The funnel
      */
-    Funnel updateFunnel(String groupId, FunnelDTO funnelDTO);
+    Funnel updateFunnel(FunnelDTO funnelDTO);
 
     /**
      * Determines whether this funnel can be removed.
      *
-     * @param groupId group id
      * @param funnelId funnel id
      */
-    void verifyDelete(String groupId, String funnelId);
+    void verifyDelete(String funnelId);
 
     /**
-     * Deletes the specified Funnel in the specified group.
+     * Deletes the specified Funnel.
      *
-     * @param groupId group id
      * @param funnelId The funnel id
      */
-    void deleteFunnel(String groupId, String funnelId);
+    void deleteFunnel(String funnelId);
 }

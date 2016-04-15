@@ -19,7 +19,6 @@ package org.apache.nifi.admin.service.action;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.dao.ActionDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.authorization.AuthorityProvider;
 
 import java.util.Collection;
 
@@ -35,7 +34,7 @@ public class AddActionsAction implements AdministrationAction<Void> {
     }
 
     @Override
-    public Void execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
+    public Void execute(DAOFactory daoFactory) {
         ActionDAO actionDao = daoFactory.getActionDAO();
 
         // add each action

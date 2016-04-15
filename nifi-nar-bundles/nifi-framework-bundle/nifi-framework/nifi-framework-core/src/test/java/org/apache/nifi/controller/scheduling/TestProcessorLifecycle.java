@@ -37,7 +37,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -640,7 +640,7 @@ public class TestProcessorLifecycle {
         properties.setProperty("nifi.remote.input.secure", "");
 
         return FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), properties,
-                mock(UserService.class), mock(AuditService.class), null);
+                mock(KeyService.class), mock(AuditService.class), null);
     }
 
     /**

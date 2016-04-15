@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import org.apache.nifi.admin.service.UserService;
-import org.apache.nifi.authorization.DownloadAuthorization;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -48,7 +46,6 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 
 import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
@@ -56,7 +53,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,32 +63,39 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectionDAO.class);
 
     private FlowController flowController;
-    private UserService userService;
+    private KeyService keyService;
 
-    private Connection locateConnection(final String groupId, final String id) {
-        return locateConnection(locateProcessGroup(flowController, groupId), id);
-    }
+    private Connection locateConnection(final String connectionId) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final Connection connection = rootGroup.findConnection(connectionId);
 
-    private Connection locateConnection(final ProcessGroup group, final String id) {
-        // get the connection
-        final Connection connection = group.getConnection(id);
-
-        // ensure the connection exists
         if (connection == null) {
-            throw new ResourceNotFoundException(String.format("Unable to find connection with id '%s'.", id));
+            throw new ResourceNotFoundException(String.format("Unable to find connection with id '%s'.", connectionId));
+        } else {
+            return connection;
         }
-
-        return connection;
     }
 
     @Override
-    public Connection getConnection(final String groupId, final String id) {
-        return locateConnection(groupId, id);
+    public boolean hasConnection(String id) {
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        return rootGroup.findConnection(id) != null;
     }
 
     @Override
-    public DropFlowFileStatus getFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
-        final Connection connection = locateConnection(groupId, connectionId);
+    public Connection getConnection(final String id) {
+        return locateConnection(id);
+    }
+
+    @Override
+    public Set<Connection> getConnections(final String groupId) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+        return group.getConnections();
+    }
+
+    @Override
+    public DropFlowFileStatus getFlowFileDropRequest(String connectionId, String dropRequestId) {
+        final Connection connection = locateConnection(connectionId);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         final DropFlowFileStatus dropRequest = queue.getDropFlowFileStatus(dropRequestId);
@@ -104,8 +107,8 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public ListFlowFileStatus getFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
-        final Connection connection = locateConnection(groupId, connectionId);
+    public ListFlowFileStatus getFlowFileListingRequest(String connectionId, String listingRequestId) {
+        final Connection connection = locateConnection(connectionId);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         final ListFlowFileStatus listRequest = queue.getListFlowFileStatus(listingRequestId);
@@ -117,9 +120,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public FlowFileRecord getFlowFile(String groupId, String id, String flowFileUuid) {
+    public FlowFileRecord getFlowFile(String id, String flowFileUuid) {
         try {
-            final Connection connection = locateConnection(groupId, id);
+            final Connection connection = locateConnection(id);
             final FlowFileQueue queue = connection.getFlowFileQueue();
             final FlowFileRecord flowFile = queue.getFlowFile(flowFileUuid);
 
@@ -132,36 +135,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             logger.error(String.format("Unable to get the flowfile (%s) at this time.", flowFileUuid), ioe);
             throw new IllegalStateException("Unable to get the FlowFile at this time.");
         }
-    }
-
-    @Override
-    public Set<Connection> getConnectionsForSource(final String groupId, final String processorId) {
-        final Set<Connection> connections = new HashSet<>(getConnections(groupId));
-        for (final Iterator<Connection> connectionIter = connections.iterator(); connectionIter.hasNext();) {
-            final Connection connection = connectionIter.next();
-            final Connectable source = connection.getSource();
-            if (!(source instanceof ProcessorNode) || !source.getIdentifier().equals(processorId)) {
-                connectionIter.remove();
-            }
-        }
-        return connections;
-    }
-
-    @Override
-    public boolean hasConnection(final String groupId, final String id) {
-        final ProcessGroup group = flowController.getGroup(groupId);
-
-        if (group == null) {
-            return false;
-        }
-
-        return group.getConnection(id) != null;
-    }
-
-    @Override
-    public Set<Connection> getConnections(final String groupId) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        return group.getConnections();
     }
 
     /**
@@ -360,8 +333,8 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public DropFlowFileStatus createFlowFileDropRequest(String groupId, String id, String dropRequestId) {
-        final Connection connection = locateConnection(groupId, id);
+    public DropFlowFileStatus createFlowFileDropRequest(String id, String dropRequestId) {
+        final Connection connection = locateConnection(id);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -373,8 +346,8 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public ListFlowFileStatus createFlowFileListingRequest(String groupId, String id, String listingRequestId) {
-        final Connection connection = locateConnection(groupId, id);
+    public ListFlowFileStatus createFlowFileListingRequest(String id, String listingRequestId) {
+        final Connection connection = locateConnection(id);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         // ensure we can list
@@ -399,16 +372,15 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public void verifyList(String groupId, String id) {
-        final Connection connection = locateConnection(groupId, id);
+    public void verifyList(String id) {
+        final Connection connection = locateConnection(id);
         final FlowFileQueue queue = connection.getFlowFileQueue();
         verifyList(queue);
     }
 
     @Override
-    public void verifyUpdate(String groupId, ConnectionDTO connectionDTO) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        verifyUpdate(locateConnection(group, connectionDTO.getId()), connectionDTO);
+    public void verifyUpdate(ConnectionDTO connectionDTO) {
+        verifyUpdate(locateConnection(connectionDTO.getId()), connectionDTO);
     }
 
     private void verifyUpdate(final Connection connection, final ConnectionDTO connectionDTO) {
@@ -436,9 +408,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public Connection updateConnection(final String groupId, final ConnectionDTO connectionDTO) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        final Connection connection = locateConnection(group, connectionDTO.getId());
+    public Connection updateConnection(final ConnectionDTO connectionDTO) {
+        final Connection connection = locateConnection(connectionDTO.getId());
+        final ProcessGroup group = connection.getProcessGroup();
 
         // ensure we can update
         verifyUpdate(connection, connectionDTO);
@@ -494,7 +466,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
                 // if the destination is changing or the previous destination was a different remote process group
                 if (!proposedDestination.getId().equals(currentDestination.getIdentifier()) || isDifferentRemoteProcessGroup) {
-                    final ProcessGroup destinationParentGroup = locateProcessGroup(flowController, groupId);
+                    final ProcessGroup destinationParentGroup = locateProcessGroup(flowController, group.getIdentifier());
                     final RemoteProcessGroup remoteProcessGroup = destinationParentGroup.getRemoteProcessGroup(proposedDestination.getGroupId());
 
                     // ensure the remote process group was found
@@ -521,7 +493,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                 if (!proposedDestination.getId().equals(currentDestination.getIdentifier())) {
                     // if the destination connectable's group id has not been set, its inferred to be the current group
                     if (proposedDestination.getGroupId() == null) {
-                        proposedDestination.setGroupId(groupId);
+                        proposedDestination.setGroupId(group.getIdentifier());
                     }
 
                     final ProcessGroup destinationGroup = locateProcessGroup(flowController, proposedDestination.getGroupId());
@@ -552,22 +524,20 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public void verifyDelete(String groupId, String id) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        final Connection connection = locateConnection(group, id);
+    public void verifyDelete(String id) {
+        final Connection connection = locateConnection(id);
         connection.verifyCanDelete();
     }
 
     @Override
-    public void deleteConnection(final String groupId, final String id) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        final Connection connection = locateConnection(group, id);
-        group.removeConnection(connection);
+    public void deleteConnection(final String id) {
+        final Connection connection = locateConnection(id);
+        connection.getProcessGroup().removeConnection(connection);
     }
 
     @Override
-    public DropFlowFileStatus deleteFlowFileDropRequest(String groupId, String connectionId, String dropRequestId) {
-        final Connection connection = locateConnection(groupId, connectionId);
+    public DropFlowFileStatus deleteFlowFileDropRequest(String connectionId, String dropRequestId) {
+        final Connection connection = locateConnection(connectionId);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         final DropFlowFileStatus dropFlowFileStatus = queue.cancelDropFlowFileRequest(dropRequestId);
@@ -579,8 +549,8 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public ListFlowFileStatus deleteFlowFileListingRequest(String groupId, String connectionId, String listingRequestId) {
-        final Connection connection = locateConnection(groupId, connectionId);
+    public ListFlowFileStatus deleteFlowFileListingRequest(String connectionId, String listingRequestId) {
+        final Connection connection = locateConnection(connectionId);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         final ListFlowFileStatus listFlowFileStatus = queue.cancelListFlowFileRequest(listingRequestId);
@@ -592,14 +562,14 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public DownloadableContent getContent(String groupId, String id, String flowFileUuid, String requestUri) {
+    public DownloadableContent getContent(String id, String flowFileUuid, String requestUri) {
         try {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
             if (user == null) {
                 throw new WebApplicationException(new Throwable("Unable to access details for current user."));
             }
 
-            final Connection connection = locateConnection(groupId, id);
+            final Connection connection = locateConnection(id);
             final FlowFileQueue queue = connection.getFlowFileQueue();
             final FlowFileRecord flowFile = queue.getFlowFile(flowFileUuid);
 
@@ -610,12 +580,12 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             // calculate the dn chain
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
 
-            // ensure the users in this chain are allowed to download this content
+            // TODO - ensure the users in this chain are allowed to download this content
             final Map<String, String> attributes = flowFile.getAttributes();
-            final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
-            if (!downloadAuthorization.isApproved()) {
-                throw new AccessDeniedException(downloadAuthorization.getExplanation());
-            }
+//            final DownloadAuthorization downloadAuthorization = keyService.authorizeDownload(dnChain, attributes);
+//            if (!downloadAuthorization.isApproved()) {
+//                throw new AccessDeniedException(downloadAuthorization.getExplanation());
+//            }
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());
@@ -642,7 +612,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         this.flowController = flowController;
     }
 
-    public void setUserService(UserService userService) {
-        this.userService = userService;
+    public void setKeyService(KeyService keyService) {
+        this.keyService = keyService;
     }
 }

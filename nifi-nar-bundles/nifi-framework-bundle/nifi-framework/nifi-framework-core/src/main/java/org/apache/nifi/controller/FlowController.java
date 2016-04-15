@@ -53,7 +53,7 @@ import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
@@ -257,7 +257,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ControllerServiceProvider controllerServiceProvider;
-    private final UserService userService;
+    private final KeyService keyService;
     private final AuditService auditService;
     private final EventDrivenWorkerQueue eventDrivenWorkerQueue;
     private final ComponentStatusRepository componentStatusRepository;
@@ -354,13 +354,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public static FlowController createStandaloneInstance(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final UserService userService,
+        final KeyService keyService,
         final AuditService auditService,
         final StringEncryptor encryptor) {
         return new FlowController(
             flowFileEventRepo,
             properties,
-            userService,
+            keyService,
             auditService,
             encryptor,
             /* configuredForClustering */ false,
@@ -370,14 +370,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public static FlowController createClusteredInstance(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final UserService userService,
+        final KeyService keyService,
         final AuditService auditService,
         final StringEncryptor encryptor,
         final NodeProtocolSender protocolSender) {
         final FlowController flowController = new FlowController(
             flowFileEventRepo,
             properties,
-            userService,
+            keyService,
             auditService,
             encryptor,
             /* configuredForClustering */ true,
@@ -391,7 +391,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private FlowController(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final UserService userService,
+        final KeyService keyService,
         final AuditService auditService,
         final StringEncryptor encryptor,
         final boolean configuredForClustering,
@@ -447,7 +447,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         startConnectablesAfterInitialization = new ArrayList<>();
         startRemoteGroupPortsAfterInitialization = new ArrayList<>();
-        this.userService = userService;
+        this.keyService = keyService;
         this.auditService = auditService;
 
         final String gracefulShutdownSecondsVal = properties.getProperty(GRACEFUL_SHUTDOWN_PERIOD);
@@ -1032,7 +1032,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
         return new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT,
-            userService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
+            keyService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
     }
 
     /**
@@ -1049,7 +1049,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
         return new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT,
-            userService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
+            keyService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
     }
 
     /**

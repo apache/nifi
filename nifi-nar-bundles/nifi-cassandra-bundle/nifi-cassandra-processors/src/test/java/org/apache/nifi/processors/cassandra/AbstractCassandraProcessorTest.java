@@ -22,7 +22,7 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.Sets;
-import org.apache.nifi.authorization.exception.ProviderCreationException;
+import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;

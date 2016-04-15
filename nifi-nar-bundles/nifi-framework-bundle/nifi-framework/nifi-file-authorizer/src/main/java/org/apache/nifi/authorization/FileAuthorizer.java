@@ -19,7 +19,7 @@ package org.apache.nifi.authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
-import org.apache.nifi.authorization.exception.ProviderCreationException;
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.generated.Authorization;
 import org.apache.nifi.authorization.generated.Resource;
 import org.apache.nifi.authorization.generated.Resources;
@@ -85,21 +85,21 @@ public class FileAuthorizer implements Authorizer {
     private final AtomicReference<Map<String, Map<String, Set<RequestAction>>>> authorizations = new AtomicReference<>();
 
     @Override
-    public void initialize(final AuthorizerInitializationContext initializationContext) throws ProviderCreationException {
+    public void initialize(final AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
     }
 
     @Override
-    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws ProviderCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         try {
             final PropertyValue authorizationsPath = configurationContext.getProperty("Authorizations File");
             if (StringUtils.isBlank(authorizationsPath.getValue())) {
-                throw new ProviderCreationException("The authorizations file must be specified.");
+                throw new AuthorizerCreationException("The authorizations file must be specified.");
             }
 
             // get the authorizations file and ensure it exists
             authorizationsFile = new File(authorizationsPath.getValue());
             if (!authorizationsFile.exists()) {
-                throw new ProviderCreationException("The authorizations file must exist.");
+                throw new AuthorizerCreationException("The authorizations file must exist.");
             }
 
             final File authorizationsFileDirectory = authorizationsFile.getAbsoluteFile().getParentFile();
@@ -112,7 +112,7 @@ public class FileAuthorizer implements Authorizer {
 
                 // check that restore directory is not the same as the primary directory
                 if (authorizationsFileDirectory.getAbsolutePath().equals(restoreDirectory.getAbsolutePath())) {
-                    throw new ProviderCreationException(String.format("Authorizations file directory '%s' is the same as restore directory '%s' ",
+                    throw new AuthorizerCreationException(String.format("Authorizations file directory '%s' is the same as restore directory '%s' ",
                             authorizationsFileDirectory.getAbsolutePath(), restoreDirectory.getAbsolutePath()));
                 }
 
@@ -123,7 +123,7 @@ public class FileAuthorizer implements Authorizer {
                     // sync the primary copy with the restore copy
                     FileUtils.syncWithRestore(authorizationsFile, restoreAuthorizationsFile, logger);
                 } catch (final IOException | IllegalStateException ioe) {
-                    throw new ProviderCreationException(ioe);
+                    throw new AuthorizerCreationException(ioe);
                 }
             }
 
@@ -160,8 +160,8 @@ public class FileAuthorizer implements Authorizer {
                     }
                 }
             }, reloadInterval, reloadInterval, TimeUnit.MILLISECONDS);
-        } catch (IOException | ProviderCreationException | SAXException | JAXBException | IllegalStateException e) {
-            throw new ProviderCreationException(e);
+        } catch (IOException | AuthorizerCreationException | SAXException | JAXBException | IllegalStateException e) {
+            throw new AuthorizerCreationException(e);
         }
 
     }

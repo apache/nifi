@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
@@ -38,7 +37,6 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
-import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
@@ -46,23 +44,19 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
-import org.apache.nifi.web.api.entity.ProcessorsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.DoubleParameter;
-import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -71,26 +65,19 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * RESTful endpoint for managing a Processor.
  */
-@Api(hidden = true)
+@Path("processors")
 public class ProcessorResource extends ApplicationResource {
 
     private static final List<Long> POSSIBLE_RUN_DURATIONS = Arrays.asList(0L, 25L, 50L, 100L, 250L, 500L, 1000L, 2000L);
@@ -98,7 +85,6 @@ public class ProcessorResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
-    private String groupId;
 
     @Context
     private ServletContext servletContext;
@@ -119,9 +105,9 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Populate the uri's for the specified processor and its relationships.
      */
-    private ProcessorDTO populateRemainingProcessorContent(ProcessorDTO processor) {
+    public ProcessorDTO populateRemainingProcessorContent(ProcessorDTO processor) {
         // populate the remaining properties
-        processor.setUri(generateResourceUri("controller", "process-groups", processor.getParentGroupId(), "processors", processor.getId()));
+        processor.setUri(generateResourceUri("processors", processor.getId()));
 
         // get the config details and see if there is a custom ui for this processor type
         ProcessorConfigDTO config = processor.getConfig();
@@ -148,216 +134,6 @@ public class ProcessorResource extends ApplicationResource {
     }
 
     /**
-     * Retrieves all the processors in this NiFi.
-     *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @return A processorsEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-            value = "Gets all processors",
-            response = ProcessorsEntity.class,
-            authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getProcessors(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // get the processors
-        final Set<ProcessorDTO> processorDTOs = serviceFacade.getProcessors(groupId);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final ProcessorsEntity entity = new ProcessorsEntity();
-        entity.setRevision(revision);
-        entity.setProcessors(populateRemainingProcessorsContent(processorDTOs));
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Creates a new processor.
-     *
-     * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param name The name of the new processor.
-     * @param type The type of the new processor. This type should refer to one of the types in the GET /controller/processor-types response.
-     * @param x The x coordinate for this funnels position.
-     * @param y The y coordinate for this funnels position.
-     * @return A processorEntity.
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasRole('ROLE_DFM')")
-    public Response createProcessor(
-            @Context HttpServletRequest httpServletRequest,
-            @FormParam(VERSION) LongParameter version,
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @FormParam("name") String name, @FormParam("type") String type,
-            @FormParam("x") DoubleParameter x, @FormParam("y") DoubleParameter y) {
-
-        // ensure the position has been specified
-        if (x == null || y == null) {
-            throw new IllegalArgumentException("The position (x, y) must be specified");
-        }
-
-        // create the processor dto
-        final ProcessorDTO processorDTO = new ProcessorDTO();
-        processorDTO.setName(name);
-        processorDTO.setType(type);
-        processorDTO.setPosition(new PositionDTO(x.getDouble(), y.getDouble()));
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        if (version != null) {
-            revision.setVersion(version.getLong());
-        }
-
-        // create the entity dto
-        final ProcessorEntity processorEntity = new ProcessorEntity();
-        processorEntity.setRevision(revision);
-        processorEntity.setProcessor(processorDTO);
-
-        // create the processor
-        return createProcessor(httpServletRequest, processorEntity);
-    }
-
-    /**
-     * Creates a new processor.
-     *
-     * @param httpServletRequest request
-     * @param processorEntity A processorEntity.
-     * @return A processorEntity.
-     */
-    @POST
-    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasRole('ROLE_DFM')")
-    @ApiOperation(
-            value = "Creates a new processor",
-            response = ProcessorEntity.class,
-            authorizations = {
-                @Authorization(value = "ROLE_DFM", type = "ROLE_DFM")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response createProcessor(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The processor configuration details.",
-                    required = true
-            )
-            ProcessorEntity processorEntity) {
-
-        if (processorEntity == null || processorEntity.getProcessor() == null) {
-            throw new IllegalArgumentException("Processor details must be specified.");
-        }
-
-        if (processorEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
-        if (processorEntity.getProcessor().getId() != null) {
-            throw new IllegalArgumentException("Processor ID cannot be specified.");
-        }
-
-        if (StringUtils.isBlank(processorEntity.getProcessor().getType())) {
-            throw new IllegalArgumentException("The type of processor to create must be specified.");
-        }
-
-        // if cluster manager, convert POST to PUT (to maintain same ID across nodes) and replicate
-        if (properties.isClusterManager()) {
-
-            // create ID for resource
-            final String id = UUID.randomUUID().toString();
-
-            // set ID for resource
-            processorEntity.getProcessor().setId(id);
-
-            // convert POST request to PUT request to force entity ID to be the same across nodes
-            URI putUri = null;
-            try {
-                putUri = new URI(getAbsolutePath().toString() + "/" + id);
-            } catch (final URISyntaxException e) {
-                throw new WebApplicationException(e);
-            }
-
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate put request
-            return clusterManager.applyRequest(HttpMethod.PUT, putUri, updateClientId(processorEntity), getHeaders(headersToOverride)).getResponse();
-
-        }
-
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            return generateContinueResponse().build();
-        }
-
-        // create the new processor
-        final RevisionDTO revision = processorEntity.getRevision();
-        final ConfigurationSnapshot<ProcessorDTO> controllerResponse = serviceFacade.createProcessor(
-                new Revision(revision.getVersion(), revision.getClientId()), groupId, processorEntity.getProcessor());
-        final ProcessorDTO processor = controllerResponse.getConfiguration();
-        populateRemainingProcessorContent(processor);
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // generate the response entity
-        final ProcessorEntity entity = new ProcessorEntity();
-        entity.setRevision(updatedRevision);
-        entity.setProcessor(processor);
-
-        // generate a 201 created response
-        String uri = processor.getUri();
-        return clusterContext(generateCreatedResponse(URI.create(uri), entity)).build();
-    }
-
-    /**
      * Retrieves the specified processor.
      *
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
@@ -366,9 +142,9 @@ public class ProcessorResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a processor",
             response = ProcessorEntity.class,
@@ -405,7 +181,7 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // get the specified processor
-        final ProcessorDTO processor = serviceFacade.getProcessor(groupId, id);
+        final ProcessorDTO processor = serviceFacade.getProcessor(id);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -429,9 +205,9 @@ public class ProcessorResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}/status")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
         value = "Gets status for a processor",
         response = ProcessorStatusEntity.class,
@@ -505,7 +281,7 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // get the specified processor status
-        final ProcessorStatusDTO processorStatus = serviceFacade.getProcessorStatus(groupId, id);
+        final ProcessorStatusDTO processorStatus = serviceFacade.getProcessorStatus(id);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -529,9 +305,9 @@ public class ProcessorResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}/status/history")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets status history for a processor",
             response = StatusHistoryEntity.class,
@@ -568,7 +344,7 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO processorStatusHistory = serviceFacade.getProcessorStatusHistory(groupId, id);
+        final StatusHistoryDTO processorStatusHistory = serviceFacade.getProcessorStatusHistory(id);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -593,9 +369,9 @@ public class ProcessorResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}/descriptors")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the descriptor for a processor property",
             response = PropertyDescriptorEntity.class,
@@ -642,7 +418,7 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // get the property descriptor
-        final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(groupId, id, propertyName);
+        final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(id, propertyName);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -666,9 +442,9 @@ public class ProcessorResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}/state")
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Gets the state for a processor",
         response = ComponentStateDTO.class,
@@ -703,7 +479,7 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // get the component state
-        final ComponentStateDTO state = serviceFacade.getProcessorState(groupId, id);
+        final ComponentStateDTO state = serviceFacade.getProcessorState(id);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -722,16 +498,15 @@ public class ProcessorResource extends ApplicationResource {
      * Clears the state for a processor.
      *
      * @param httpServletRequest servlet request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
      * @param id The id of the processor
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}/state/clear-requests")
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Clears the state for a processor",
         response = ComponentStateDTO.class,
@@ -751,20 +526,20 @@ public class ProcessorResource extends ApplicationResource {
     public Response clearState(
         @Context HttpServletRequest httpServletRequest,
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
-            value = "The revision is used to verify the client is working with the latest version of the flow.",
+            value = "The revision used to verify the client is working with the latest version of the flow.",
             required = true
         )
-        @FormParam(VERSION) LongParameter version,
+        Entity revisionEntity,
         @ApiParam(
             value = "The processor id.",
             required = true
         )
         @PathParam("id") String id) {
+
+        // ensure the revision was specified
+        if (revisionEntity == null || revisionEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -774,183 +549,25 @@ public class ProcessorResource extends ApplicationResource {
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
-            serviceFacade.verifyCanClearProcessorState(groupId, id);
+            serviceFacade.verifyCanClearProcessorState(id);
             return generateContinueResponse().build();
         }
 
-        // get the revision specified by the user
-        Long revision = null;
-        if (version != null) {
-            revision = version.getLong();
-        }
-
         // get the component state
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearProcessorState(new Revision(revision, clientId.getClientId()), groupId, id);
+        final RevisionDTO requestRevision = revisionEntity.getRevision();
+        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearProcessorState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
 
         // create the revision
-        final RevisionDTO revisionDTO = new RevisionDTO();
-        revisionDTO.setClientId(clientId.getClientId());
-        revisionDTO.setVersion(snapshot.getVersion());
+        final RevisionDTO responseRevision = new RevisionDTO();
+        responseRevision.setClientId(requestRevision.getClientId());
+        responseRevision.setVersion(snapshot.getVersion());
 
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(revisionDTO);
+        entity.setRevision(responseRevision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Updates the specified processor with the specified values.
-     *
-     * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id The id of the processor to update.
-     * @param x The x coordinate for this processors position.
-     * @param y The y coordinate for this processors position.
-     * @param name The name of the processor.
-     * @param concurrentlySchedulableTaskCount The number of concurrentlySchedulableTasks
-     * @param schedulingPeriod The scheduling period
-     * @param schedulingStrategy The scheduling strategy
-     * @param penaltyDuration The penalty duration
-     * @param yieldDuration The yield duration
-     * @param runDurationMillis The run duration in milliseconds
-     * @param bulletinLevel The bulletin level
-     * @param comments Any comments about this processor.
-     * @param markedForDeletion Array of property names whose value should be removed.
-     * @param state The processors state.
-     * @param formParams Additionally, the processor properties and styles are specified in the form parameters. Because the property names and styles differ from processor to processor they are
-     * specified in a map-like fashion:
-     * <br>
-     * <ul>
-     * <li>properties[required.file.path]=/path/to/file</li>
-     * <li>properties[required.hostname]=localhost</li>
-     * <li>properties[required.port]=80</li>
-     * <li>properties[optional.file.path]=/path/to/file</li>
-     * <li>properties[optional.hostname]=localhost</li>
-     * <li>properties[optional.port]=80</li>
-     * <li>properties[user.defined.pattern]=^.*?s.*$</li>
-     * <li>style[background-color]=#aaaaaa</li>
-     * </ul>
-     *
-     * @return A processorEntity.
-     */
-    @PUT
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
-    public Response updateProcessor(
-            @Context HttpServletRequest httpServletRequest,
-            @FormParam(VERSION) LongParameter version,
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("id") String id,
-            @FormParam("x") DoubleParameter x,
-            @FormParam("y") DoubleParameter y,
-            @FormParam("name") String name,
-            @FormParam("concurrentlySchedulableTaskCount") IntegerParameter concurrentlySchedulableTaskCount,
-            @FormParam("schedulingPeriod") String schedulingPeriod,
-            @FormParam("penaltyDuration") String penaltyDuration,
-            @FormParam("yieldDuration") String yieldDuration,
-            @FormParam("runDurationMillis") LongParameter runDurationMillis,
-            @FormParam("bulletinLevel") String bulletinLevel,
-            @FormParam("schedulingStrategy") String schedulingStrategy,
-            @FormParam("comments") String comments,
-            @FormParam("markedForDeletion[]") List<String> markedForDeletion,
-            @FormParam("state") String state,
-            MultivaluedMap<String, String> formParams) {
-
-        // create collections for holding the processor settings/properties
-        final Map<String, String> processorProperties = new LinkedHashMap<>();
-        final Map<String, String> processorStyle = new LinkedHashMap<>();
-
-        // go through each parameter and look for processor properties
-        for (String parameterName : formParams.keySet()) {
-            if (StringUtils.isNotBlank(parameterName)) {
-                // see if the parameter name starts with an expected parameter type...
-                // if so, store the parameter name and value in the corresponding collection
-                if (parameterName.startsWith("properties")) {
-                    final int startIndex = StringUtils.indexOf(parameterName, "[");
-                    final int endIndex = StringUtils.lastIndexOf(parameterName, "]");
-                    if (startIndex != -1 && endIndex != -1) {
-                        final String propertyName = StringUtils.substring(parameterName, startIndex + 1, endIndex);
-                        processorProperties.put(propertyName, formParams.getFirst(parameterName));
-                    }
-                } else if (parameterName.startsWith("style")) {
-                    final int startIndex = StringUtils.indexOf(parameterName, "[");
-                    final int endIndex = StringUtils.lastIndexOf(parameterName, "]");
-                    if (startIndex != -1 && endIndex != -1) {
-                        final String styleName = StringUtils.substring(parameterName, startIndex + 1, endIndex);
-                        processorStyle.put(styleName, formParams.getFirst(parameterName));
-                    }
-                }
-            }
-        }
-
-        // set the properties to remove
-        for (String propertyToDelete : markedForDeletion) {
-            processorProperties.put(propertyToDelete, null);
-        }
-
-        // create the processor config dto
-        final ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
-        configDTO.setSchedulingPeriod(schedulingPeriod);
-        configDTO.setPenaltyDuration(penaltyDuration);
-        configDTO.setYieldDuration(yieldDuration);
-        configDTO.setBulletinLevel(bulletinLevel);
-        configDTO.setComments(comments);
-
-        // if the run duration is specified
-        if (runDurationMillis != null) {
-            // ensure the value is supported
-            if (!POSSIBLE_RUN_DURATIONS.contains(runDurationMillis.getLong())) {
-                throw new IllegalArgumentException("The run duration must be one of: " + StringUtils.join(POSSIBLE_RUN_DURATIONS, ", ") + " millis.");
-            }
-            configDTO.setRunDurationMillis(runDurationMillis.getLong());
-        }
-
-        if (concurrentlySchedulableTaskCount != null) {
-            configDTO.setConcurrentlySchedulableTaskCount(concurrentlySchedulableTaskCount.getInteger());
-        }
-
-        // only set the properties when appropriate
-        if (!processorProperties.isEmpty()) {
-            configDTO.setProperties(processorProperties);
-        }
-
-        // create the processor dto
-        final ProcessorDTO processorDTO = new ProcessorDTO();
-        processorDTO.setId(id);
-        processorDTO.setName(name);
-        processorDTO.setState(state);
-        processorDTO.setConfig(configDTO);
-
-        // only set the styles when appropriate
-        if (!processorStyle.isEmpty()) {
-            processorDTO.setStyle(processorStyle);
-        }
-
-        // require both coordinates to be specified
-        if (x != null && y != null) {
-            processorDTO.setPosition(new PositionDTO(x.getDouble(), y.getDouble()));
-        }
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        if (version != null) {
-            revision.setVersion(version.getLong());
-        }
-
-        // create the entity dto
-        final ProcessorEntity dtoEntity = new ProcessorEntity();
-        dtoEntity.setRevision(revision);
-        dtoEntity.setProcessor(processorDTO);
-
-        // update the processor
-        return updateProcessor(httpServletRequest, id, dtoEntity);
     }
 
     /**
@@ -962,10 +579,10 @@ public class ProcessorResource extends ApplicationResource {
      * @return A processorEntity.
      */
     @PUT
-    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a processor",
             response = ProcessorEntity.class,
@@ -1021,25 +638,21 @@ public class ProcessorResource extends ApplicationResource {
                 }
             }
 
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(processorEntity), getHeaders(headersToOverride)).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(processorEntity), getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
-            serviceFacade.verifyUpdateProcessor(groupId, requestProcessorDTO);
+            serviceFacade.verifyUpdateProcessor(requestProcessorDTO);
             return generateContinueResponse().build();
         }
 
         // update the processor
         final RevisionDTO revision = processorEntity.getRevision();
         final ConfigurationSnapshot<ProcessorDTO> controllerResponse = serviceFacade.updateProcessor(
-                new Revision(revision.getVersion(), revision.getClientId()), groupId, requestProcessorDTO);
+                new Revision(revision.getVersion(), revision.getClientId()), requestProcessorDTO);
 
         // get the processor dto
         final ProcessorDTO responseProcessorDTO = controllerResponse.getConfiguration();
@@ -1073,9 +686,9 @@ public class ProcessorResource extends ApplicationResource {
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a processor",
             response = ProcessorEntity.class,
@@ -1118,7 +731,7 @@ public class ProcessorResource extends ApplicationResource {
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
-            serviceFacade.verifyDeleteProcessor(groupId, id);
+            serviceFacade.verifyDeleteProcessor(id);
             return generateContinueResponse().build();
         }
 
@@ -1129,7 +742,7 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // delete the processor
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteProcessor(new Revision(clientVersion, clientId.getClientId()), groupId, id);
+        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteProcessor(new Revision(clientVersion, clientId.getClientId()), id);
 
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
@@ -1147,10 +760,6 @@ public class ProcessorResource extends ApplicationResource {
     // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
     }
 
     public void setClusterManager(WebClusterManager clusterManager) {

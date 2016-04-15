@@ -76,12 +76,13 @@ nf.Canvas = (function () {
 
     var config = {
         urls: {
+            api: '../nifi-api',
             identity: '../nifi-api/controller/identity',
             authorities: '../nifi-api/controller/authorities',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/controller/revision',
             status: '../nifi-api/controller/status',
-            bulletinBoard: '../nifi-api/controller/bulletin-board',
+            bulletinBoard: '../nifi-api/bulletin-board',
             banners: '../nifi-api/controller/banners',
             controller: '../nifi-api/controller',
             controllerConfig: '../nifi-api/controller/config',
@@ -782,7 +783,7 @@ nf.Canvas = (function () {
         // load the controller
         return $.ajax({
             type: 'GET',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(processGroupId),
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupId),
             data: {
                 verbose: true
             },
@@ -833,7 +834,7 @@ nf.Canvas = (function () {
         return $.Deferred(function (deferred) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(processGroupId) + '/status',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupId) + '/status',
                 data: {
                     recursive: false
                 },
@@ -1108,12 +1109,10 @@ nf.Canvas = (function () {
                             nf.RemoteProcessGroupConfiguration.init();
                             nf.RemoteProcessGroupPorts.init();
                             nf.PortConfiguration.init();
-                            nf.SecurePortConfiguration.init();
                             nf.LabelConfiguration.init();
                             nf.ProcessorDetails.init();
                             nf.ProcessGroupDetails.init();
                             nf.PortDetails.init();
-                            nf.SecurePortDetails.init();
                             nf.ConnectionDetails.init();
                             nf.RemoteProcessGroupDetails.init();
                             nf.GoTo.init();
