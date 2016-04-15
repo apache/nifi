@@ -79,10 +79,6 @@ nf.CanvasHeader = (function () {
 
                 // show the connected nodes
                 $('#connected-nodes-element').show();
-
-                // show the cluster indicator
-                $('#cluster-indicator').show();
-                $('#data-flow-title-viewport').css('left', '113px');
             } else {
                 $('#cluster-link').hide();
             }
