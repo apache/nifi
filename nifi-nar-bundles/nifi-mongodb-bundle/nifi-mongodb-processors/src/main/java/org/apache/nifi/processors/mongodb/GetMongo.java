@@ -100,35 +100,34 @@ public class GetMongo extends AbstractMongoProcessor {
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
 
-    private final List<PropertyDescriptor> descriptors;
+    private final static Set<Relationship> relationships;
+    private final static List<PropertyDescriptor> propertyDescriptors;
 
-    private final Set<Relationship> relationships;
+    static {
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.addAll(descriptors);
+        _propertyDescriptors.add(QUERY);
+        _propertyDescriptors.add(PROJECTION);
+        _propertyDescriptors.add(SORT);
+        _propertyDescriptors.add(LIMIT);
+        _propertyDescriptors.add(BATCH_SIZE);
+        _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
+        _propertyDescriptors.add(CLIENT_AUTH);
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
-    public GetMongo() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(URI);
-        descriptors.add(DATABASE_NAME);
-        descriptors.add(COLLECTION_NAME);
-        descriptors.add(QUERY);
-        descriptors.add(PROJECTION);
-        descriptors.add(SORT);
-        descriptors.add(LIMIT);
-        descriptors.add(BATCH_SIZE);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        final Set<Relationship> _relationships = new HashSet<>();
+        _relationships.add(REL_SUCCESS);
+        relationships = Collections.unmodifiableSet(_relationships);
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return relationships;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return propertyDescriptors;
     }
 
     @Override
