@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cluster.manager.impl;
+
+package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import static org.junit.Assert.assertEquals;
 
@@ -26,8 +27,7 @@ import java.util.Locale;
 
 import org.junit.Test;
 
-public class TestWebClusterManager {
-
+public class TestStatusHistoryEndpointMerger {
     @Test
     public void testNormalizedStatusSnapshotDate() throws ParseException {
         final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:SS.SSS", Locale.US);
@@ -36,17 +36,16 @@ public class TestWebClusterManager {
         final Date date3 = df.parse("2014/01/01 00:05:00.000");
         final Date date4 = df.parse("2014/01/01 00:05:00.001");
 
-        final Date normalized1 = WebClusterManager.normalizeStatusSnapshotDate(date1, 300000);
+        final Date normalized1 = StatusHistoryEndpointMerger.normalizeStatusSnapshotDate(date1, 300000);
         assertEquals(date1, normalized1);
 
-        final Date normalized2 = WebClusterManager.normalizeStatusSnapshotDate(date2, 300000);
+        final Date normalized2 = StatusHistoryEndpointMerger.normalizeStatusSnapshotDate(date2, 300000);
         assertEquals(date1, normalized2);
 
-        final Date normalized3 = WebClusterManager.normalizeStatusSnapshotDate(date3, 300000);
+        final Date normalized3 = StatusHistoryEndpointMerger.normalizeStatusSnapshotDate(date3, 300000);
         assertEquals(date3, normalized3);
 
-        final Date normalized4 = WebClusterManager.normalizeStatusSnapshotDate(date4, 300000);
+        final Date normalized4 = StatusHistoryEndpointMerger.normalizeStatusSnapshotDate(date4, 300000);
         assertEquals(date3, normalized4);
     }
-
 }
