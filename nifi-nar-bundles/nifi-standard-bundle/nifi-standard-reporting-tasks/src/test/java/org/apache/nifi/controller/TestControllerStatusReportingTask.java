@@ -39,7 +39,7 @@ public class TestControllerStatusReportingTask {
     }
 
     private static Logger getLogger(String fieldName) throws Exception {
-        Field f = ControllerStatusReportingTask.class.getField(fieldName);
+        Field f = ControllerStatusReportingTask.class.getDeclaredField(fieldName);
         f.setAccessible(true);
         return (Logger) f.get(null);
     }
