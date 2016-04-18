@@ -226,17 +226,7 @@ public class NiFiSpout extends BaseRichSpout {
                             StreamUtils.fillBuffer(inStream, data);
 
                             final Map<String, String> attributes = dataPacket.getAttributes();
-                            final NiFiDataPacket niFiDataPacket = new NiFiDataPacket() {
-                                @Override
-                                public byte[] getContent() {
-                                    return data;
-                                }
-
-                                @Override
-                                public Map<String, String> getAttributes() {
-                                    return attributes;
-                                }
-                            };
+                            final NiFiDataPacket niFiDataPacket = new StandardNiFiDataPacket(data, attributes);
 
                             dataPackets.add(niFiDataPacket);
                             dataPacket = transaction.receive();
