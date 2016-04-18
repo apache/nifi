@@ -129,8 +129,8 @@ public class RunMiNiFi {
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
     private volatile int gracefulShutdownSeconds;
 
-    private final Set<ConfigurationChangeNotifier> changeNotifiers;
-    private final ConfigurationChangeListener changeListener;
+    private Set<ConfigurationChangeNotifier> changeNotifiers;
+    private ConfigurationChangeListener changeListener;
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
@@ -146,9 +146,6 @@ public class RunMiNiFi {
                 return t;
             }
         });
-
-        this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
-        this.changeNotifiers = initializeNotifiers();
     }
 
     private static void printUsage() {
@@ -1043,6 +1040,11 @@ public class RunMiNiFi {
             cmdLogger.info("Start method returned null, ending start command.");
             return;
         }
+
+        // Instantiate configuration listener and configured notifiers
+        this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
+        this.changeNotifiers = initializeNotifiers(this.changeListener);
+
         ProcessBuilder builder = tuple.getKey();
         Process process = tuple.getValue();
 
@@ -1282,7 +1284,7 @@ public class RunMiNiFi {
         return Collections.unmodifiableSet(changeNotifiers);
     }
 
-    private Set<ConfigurationChangeNotifier> initializeNotifiers() throws IOException {
+    private Set<ConfigurationChangeNotifier> initializeNotifiers(ConfigurationChangeListener configChangeListener) throws IOException {
         final Set<ConfigurationChangeNotifier> changeNotifiers = new HashSet<>();
 
         final Properties bootstrapProperties = getBootstrapProperties();
@@ -1295,7 +1297,7 @@ public class RunMiNiFi {
                     ConfigurationChangeNotifier notifier = (ConfigurationChangeNotifier) notifierClass.newInstance();
                     notifier.initialize(bootstrapProperties);
                     changeNotifiers.add(notifier);
-                    notifier.registerListener(changeListener);
+                    notifier.registerListener(configChangeListener);
                     notifier.start();
                 } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
                     throw new RuntimeException("Issue instantiating notifier " + notifierClassname, e);
