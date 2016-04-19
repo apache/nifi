@@ -103,6 +103,13 @@ public class BootstrapCodec {
                 writer.flush();
             }
             break;
+            case "SHUTDOWN": {
+                runner.shutdownChangeNotifiers();
+                writer.write("OK");
+                writer.newLine();
+                writer.flush();
+            }
+            break;
         }
     }
 }

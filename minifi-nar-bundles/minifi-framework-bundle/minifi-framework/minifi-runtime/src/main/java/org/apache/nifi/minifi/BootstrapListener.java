@@ -83,10 +83,11 @@ public class BootstrapListener {
         sendCommand("PORT", new String[]{String.valueOf(localPort), secretKey});
     }
 
-    public void stop() {
+    public void stop() throws IOException {
         if (listener != null) {
             listener.stop();
         }
+        sendCommand("SHUTDOWN", new String[]{});
     }
 
     public void sendStartedStatus(boolean status) throws IOException {

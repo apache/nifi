@@ -1280,6 +1280,16 @@ public class RunMiNiFi {
         }
     }
 
+    public void shutdownChangeNotifiers() {
+        for (ConfigurationChangeNotifier notifier : getChangeNotifiers()) {
+            try {
+                notifier.close();
+            } catch (IOException e) {
+                defaultLogger.warn("Could not successfully stop notifier {}", notifier.getClass(), e);
+            }
+        }
+    }
+
     public Set<ConfigurationChangeNotifier> getChangeNotifiers() {
         return Collections.unmodifiableSet(changeNotifiers);
     }
