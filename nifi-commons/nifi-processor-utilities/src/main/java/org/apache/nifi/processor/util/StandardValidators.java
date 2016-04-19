@@ -127,10 +127,27 @@ public class StandardValidators {
 
     public static final Validator PORT_VALIDATOR = createLongValidator(1, 65535, true);
 
+    /**
+     * {@link Validator} that ensures that value's length > 0
+     */
     public static final Validator NON_EMPTY_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             return new ValidationResult.Builder().subject(subject).input(value).valid(value != null && !value.isEmpty()).explanation(subject + " cannot be empty").build();
+        }
+    };
+
+    /**
+     * {@link Validator} that ensures that value has 1+ non-whitespace
+     * characters
+     */
+    public static final Validator NON_BLANK_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            return new ValidationResult.Builder().subject(subject).input(value)
+                    .valid(value != null && !value.trim().isEmpty())
+                    .explanation(subject
+                    + " must contain at least one character that is not white space").build();
         }
     };
 
