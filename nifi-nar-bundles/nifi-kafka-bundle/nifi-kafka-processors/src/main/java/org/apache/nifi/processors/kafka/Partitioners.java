@@ -41,8 +41,8 @@ final public class Partitioners {
         }
 
         private int next(int numberOfPartitions) {
-            if (index == numberOfPartitions) {
-                index = 0;
+            if (this.index == numberOfPartitions) {
+                this.index = 0;
             }
             int indexToReturn = index++;
             return indexToReturn;
