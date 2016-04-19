@@ -91,13 +91,15 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .defaultValue("0.9.1")
             .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
+            .name("ssl-context-service")
+            .displayName("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-            .name("Client Auth")
+            .name("ssl-client-auth")
+            .displayName("Client Auth")
             .description("Client authentication policy when connecting to secure (TLS/SSL) AMQP broker. "
                     + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
                     + "has been defined and enabled.")
