@@ -174,23 +174,20 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        if(!stateful){
-            return new PropertyDescriptor.Builder()
-                    .name(propertyDescriptorName)
-                    .required(false)
-                    .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .expressionLanguageSupported(true)
-                    .dynamic(true)
+        PropertyDescriptor.Builder propertyBuilder = new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true);
+
+        if (stateful) {
+            return propertyBuilder
+                    .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                     .build();
         } else {
-            return new PropertyDescriptor.Builder()
-                    .name(propertyDescriptorName)
-                    .required(false)
-                    .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                    .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                    .expressionLanguageSupported(true)
-                    .dynamic(true)
+            return propertyBuilder
+                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .build();
         }
     }
@@ -200,11 +197,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         super.onPropertyModified(descriptor, oldValue, newValue);
 
         if (descriptor.equals(STORE_STATE)) {
-            if ("true".equalsIgnoreCase(newValue)) {
-                stateful = true;
-            } else {
-                stateful = false;
-            }
+            stateful = "true".equalsIgnoreCase(newValue);
         }
     }
 
