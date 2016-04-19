@@ -19,10 +19,10 @@
     must be specified in the nifi.properties file.
 -->
 <authorizers>
-    <provider>
+    <authorizer>
         <identifier>file-provider</identifier>
         <class>org.apache.nifi.authorization.FileAuthorizer</class>
         <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Reload Interval">30 secs</property>
-    </provider>
+    </authorizer>
 </authorizers>

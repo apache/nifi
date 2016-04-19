@@ -41,7 +41,7 @@
                             <goal>xjc</goal>
                         </goals>
                         <configuration>
-                            <packageName>org.apache.nifi.authorization.generated</packageName>
+                            <packageName>org.apache.nifi.authorization.file.generated</packageName>
                         </configuration>
                     </execution>
                 </executions>
@@ -53,10 +53,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <excludes>**/authorization/generated/*.java</excludes>
+                    <excludes>**/authorization/file/generated/*.java</excludes>
                 </configuration>
             </plugin>            
-
         </plugins>
     </build>
     <dependencies>
