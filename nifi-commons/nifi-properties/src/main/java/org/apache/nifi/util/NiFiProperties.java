@@ -28,14 +28,10 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 public class NiFiProperties extends Properties {
 
@@ -48,7 +44,7 @@ public class NiFiProperties extends Properties {
     public static final String PROPERTIES_FILE_PATH = "nifi.properties.file.path";
     public static final String FLOW_CONFIGURATION_FILE = "nifi.flow.configuration.file";
     public static final String FLOW_CONFIGURATION_ARCHIVE_FILE = "nifi.flow.configuration.archive.file";
-    public static final String AUTHORITY_PROVIDER_CONFIGURATION_FILE = "nifi.authority.provider.configuration.file";
+    public static final String AUTHORIZER_CONFIGURATION_FILE = "nifi.authorizer.configuration.file";
     public static final String LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "nifi.login.identity.provider.configuration.file";
     public static final String REPOSITORY_DATABASE_DIRECTORY = "nifi.database.directory";
     public static final String RESTORE_DIRECTORY = "nifi.restore.directory";
@@ -131,13 +127,10 @@ public class NiFiProperties extends Properties {
     public static final String SECURITY_TRUSTSTORE_TYPE = "nifi.security.truststoreType";
     public static final String SECURITY_TRUSTSTORE_PASSWD = "nifi.security.truststorePasswd";
     public static final String SECURITY_NEED_CLIENT_AUTH = "nifi.security.needClientAuth";
-    public static final String SECURITY_USER_AUTHORITY_PROVIDER = "nifi.security.user.authority.provider";
+    public static final String SECURITY_USER_AUTHORIZER = "nifi.security.user.authorizer";
     public static final String SECURITY_USER_LOGIN_IDENTITY_PROVIDER = "nifi.security.user.login.identity.provider";
     public static final String SECURITY_CLUSTER_AUTHORITY_PROVIDER_PORT = "nifi.security.cluster.authority.provider.port";
     public static final String SECURITY_CLUSTER_AUTHORITY_PROVIDER_THREADS = "nifi.security.cluster.authority.provider.threads";
-    public static final String SECURITY_USER_CREDENTIAL_CACHE_DURATION = "nifi.security.user.credential.cache.duration";
-    public static final String SECURITY_SUPPORT_NEW_ACCOUNT_REQUESTS = "nifi.security.support.new.account.requests";
-    public static final String SECURITY_ANONYMOUS_AUTHORITIES = "nifi.security.anonymous.authorities";
     public static final String SECURITY_OCSP_RESPONDER_URL = "nifi.security.ocsp.responder.url";
     public static final String SECURITY_OCSP_RESPONDER_CERTIFICATE = "nifi.security.ocsp.responder.certificate";
 
@@ -504,10 +497,10 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * @return the user authorities file
+     * @return the user authorizers file
      */
-    public File getAuthorityProviderConfiguraitonFile() {
-        final String value = getProperty(AUTHORITY_PROVIDER_CONFIGURATION_FILE);
+    public File getAuthorizerConfiguraitonFile() {
+        final String value = getProperty(AUTHORIZER_CONFIGURATION_FILE);
         if (StringUtils.isBlank(value)) {
             return new File(DEFAULT_AUTHORITY_PROVIDER_CONFIGURATION_FILE);
         } else {
@@ -539,40 +532,6 @@ public class NiFiProperties extends Properties {
             needClientAuth = false;
         }
         return needClientAuth;
-    }
-
-    public String getUserCredentialCacheDuration() {
-        return getProperty(SECURITY_USER_CREDENTIAL_CACHE_DURATION,
-                DEFAULT_USER_CREDENTIAL_CACHE_DURATION);
-    }
-
-    public boolean getSupportNewAccountRequests() {
-        boolean shouldSupport = true;
-        String rawShouldSupport = getProperty(SECURITY_SUPPORT_NEW_ACCOUNT_REQUESTS);
-        if ("false".equalsIgnoreCase(rawShouldSupport)) {
-            shouldSupport = false;
-        }
-        return shouldSupport;
-    }
-
-    @SuppressWarnings("unchecked")
-    public Set<String> getAnonymousAuthorities() {
-        final Set<String> authorities;
-
-        final String rawAnonymousAuthorities = getProperty(SECURITY_ANONYMOUS_AUTHORITIES);
-        if (!StringUtils.isEmpty(rawAnonymousAuthorities)) {
-            authorities = new HashSet<>();
-
-            // parse the raw authorities and trim them
-            final List<String> authoritiesList = Arrays.asList(rawAnonymousAuthorities.split(","));
-            for (final String authority : authoritiesList) {
-                authorities.add(authority.trim());
-            }
-        } else {
-            authorities = Collections.EMPTY_SET;
-        }
-
-        return authorities;
     }
 
     // getters for web properties //
@@ -922,7 +881,7 @@ public class NiFiProperties extends Properties {
      * @return true if client certificates are required for access to the REST API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && getAnonymousAuthorities().isEmpty() && !isKerberosServiceSupportEnabled();
+        return StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && !isKerberosServiceSupportEnabled();
     }
 
     public InetSocketAddress getNodeApiAddress() {

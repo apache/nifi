@@ -16,12 +16,8 @@
  */
 package org.apache.nifi.audit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
-
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -38,7 +34,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -56,14 +51,18 @@ import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
-
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  *
@@ -273,7 +272,7 @@ public class SnippetAuditor extends NiFiAuditor {
             final Collection<Action> actions = new ArrayList<>();
 
             for (String id : snippet.getProcessors()) {
-                final ProcessorNode processor = processorDAO.getProcessor(groupId, id);
+                final ProcessorNode processor = processorDAO.getProcessor(id);
                 final Action action = processorAuditor.generateAuditRecord(processor, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
                     actions.add(action);
@@ -281,7 +280,7 @@ public class SnippetAuditor extends NiFiAuditor {
             }
 
             for (String id : snippet.getFunnels()) {
-                final Funnel funnel = funnelDAO.getFunnel(groupId, id);
+                final Funnel funnel = funnelDAO.getFunnel(id);
                 final Action action = funnelAuditor.generateAuditRecord(funnel, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
                     actions.add(action);
@@ -289,7 +288,7 @@ public class SnippetAuditor extends NiFiAuditor {
             }
 
             for (String id : snippet.getInputPorts()) {
-                final Port port = inputPortDAO.getPort(groupId, id);
+                final Port port = inputPortDAO.getPort(id);
                 final Action action = portAuditor.generateAuditRecord(port, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
                     actions.add(action);
@@ -297,7 +296,7 @@ public class SnippetAuditor extends NiFiAuditor {
             }
 
             for (String id : snippet.getOutputPorts()) {
-                final Port port = outputPortDAO.getPort(groupId, id);
+                final Port port = outputPortDAO.getPort(id);
                 final Action action = portAuditor.generateAuditRecord(port, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
                     actions.add(action);
@@ -305,7 +304,7 @@ public class SnippetAuditor extends NiFiAuditor {
             }
 
             for (String id : snippet.getRemoteProcessGroups()) {
-                final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(groupId, id);
+                final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(id);
                 final Action action = remoteProcessGroupAuditor.generateAuditRecord(remoteProcessGroup, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
                     actions.add(action);
@@ -322,7 +321,7 @@ public class SnippetAuditor extends NiFiAuditor {
             }
 
             for (String id : snippet.getConnections()) {
-                final Connection connection = connectionDAO.getConnection(groupId, id);
+                final Connection connection = connectionDAO.getConnection(id);
                 final Action action = relationshipAuditor.generateAuditRecordForConnection(connection, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
                 if (action != null) {
                     actions.add(action);
@@ -355,27 +354,25 @@ public class SnippetAuditor extends NiFiAuditor {
         final Snippet snippet = snippetDAO.getSnippet(snippetId);
 
         if (snippet.isLinked()) {
-            final String groupId = snippet.getParentGroupId();
-
             // locate all the components being removed
             final Set<Funnel> funnels = new HashSet<>();
             for (String id : snippet.getFunnels()) {
-                funnels.add(funnelDAO.getFunnel(groupId, id));
+                funnels.add(funnelDAO.getFunnel(id));
             }
 
             final Set<Port> inputPorts = new HashSet<>();
             for (String id : snippet.getInputPorts()) {
-                inputPorts.add(inputPortDAO.getPort(groupId, id));
+                inputPorts.add(inputPortDAO.getPort(id));
             }
 
             final Set<Port> outputPorts = new HashSet<>();
             for (String id : snippet.getOutputPorts()) {
-                outputPorts.add(outputPortDAO.getPort(groupId, id));
+                outputPorts.add(outputPortDAO.getPort(id));
             }
 
             final Set<RemoteProcessGroup> remoteProcessGroups = new HashSet<>();
             for (String id : snippet.getRemoteProcessGroups()) {
-                remoteProcessGroups.add(remoteProcessGroupDAO.getRemoteProcessGroup(groupId, id));
+                remoteProcessGroups.add(remoteProcessGroupDAO.getRemoteProcessGroup(id));
             }
 
             final Set<ProcessGroup> processGroups = new HashSet<>();
@@ -386,12 +383,12 @@ public class SnippetAuditor extends NiFiAuditor {
 
             final Set<ProcessorNode> processors = new HashSet<>();
             for (String id : snippet.getProcessors()) {
-                processors.add(processorDAO.getProcessor(groupId, id));
+                processors.add(processorDAO.getProcessor(id));
             }
 
             final Set<Connection> connections = new HashSet<>();
             for (String id : snippet.getConnections()) {
-                connections.add(connectionDAO.getConnection(groupId, id));
+                connections.add(connectionDAO.getConnection(id));
             }
 
             // remove the snippet and components

@@ -56,23 +56,21 @@ nf.Actions = (function () {
     
 
     /**
-     * Updates the resource with the specified data.
+     * Updates the resource with the specified entity.
      * 
      * @param {string} uri
-     * @param {object} data
+     * @param {object} entity
      */
-    var updateResource = function (uri, data) {
-        var revision = nf.Client.getRevision();
-
-        // ensure the version and client ids are specified
-        data.version = revision.version;
-        data.clientId = revision.clientId;
+    var updateResource = function (uri, entity) {
+        // add the revision
+        entity['revision'] = nf.Client.getRevision();
 
         return $.ajax({
             type: 'PUT',
             url: uri,
-            data: data,
-            dataType: 'json'
+            data: JSON.stringify(entity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             // update the revision
             nf.Client.setRevision(response.revision);
@@ -412,7 +410,15 @@ nf.Actions = (function () {
                 // enable the selected processors
                 componentsToEnable.each(function (d) {
                     var selected = d3.select(this);
-                    enableRequests.push(updateResource(d.component.uri, {state: 'STOPPED'}).done(function (response) {
+
+                    // build the entity
+                    var entity = {};
+                    entity[nf[d.type].getEntityKey()] = {
+                        'id': d.component.id,
+                        'state': 'STOPPED'
+                    };
+
+                    enableRequests.push(updateResource(d.component.uri, entity).done(function (response) {
                         if (nf.CanvasUtils.isProcessor(selected)) {
                             nf.Processor.set(response.processor);
                         } else if (nf.CanvasUtils.isInputPort(selected)) {
@@ -451,7 +457,15 @@ nf.Actions = (function () {
                 // disable the selected components
                 componentsToDisable.each(function (d) {
                     var selected = d3.select(this);
-                    disableRequests.push(updateResource(d.component.uri, {state: 'DISABLED'}).done(function (response) {
+
+                    // build the entity
+                    var entity = {};
+                    entity[nf[d.type].getEntityKey()] = {
+                        'id': d.component.id,
+                        'state': 'DISABLED'
+                    };
+
+                    disableRequests.push(updateResource(d.component.uri, entity).done(function (response) {
                         if (nf.CanvasUtils.isProcessor(selected)) {
                             nf.Processor.set(response.processor);
                         } else if (nf.CanvasUtils.isInputPort(selected)) {
@@ -494,7 +508,15 @@ nf.Actions = (function () {
          */
         start: function (selection) {
             if (selection.empty()) {
-                updateResource(config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), {running: true}).done(updateProcessGroup);
+                // build the entity
+                var entity = {
+                    'processGroup': {
+                        'id': nf.Canvas.getGroupId(),
+                        'running': true
+                    }
+                };
+
+                updateResource(config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
             } else {
                 var componentsToStart = selection.filter(function (d) {
                     return nf.CanvasUtils.isRunnable(d3.select(this));
@@ -514,14 +536,20 @@ nf.Actions = (function () {
                         var selected = d3.select(this);
 
                         // processor endpoint does not use running flag...
-                        var data = {};
+                        var component = {
+                            'id': d.component.id,
+                        };
                         if (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) {
-                            data['state'] = 'RUNNING';
+                            component['state'] = 'RUNNING';
                         } else {
-                            data['running'] = true;
+                            component['running'] = true;
                         }
 
-                        startRequests.push(updateResource(d.component.uri, data).done(function (response) {
+                        // build the entity
+                        var entity = {};
+                        entity[nf[d.type].getEntityKey()] = component;
+
+                        startRequests.push(updateResource(d.component.uri, entity).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
                                 nf.Processor.set(response.processor);
                             } else if (nf.CanvasUtils.isProcessGroup(selected)) {
@@ -557,7 +585,15 @@ nf.Actions = (function () {
          */
         stop: function (selection) {
             if (selection.empty()) {
-                updateResource(config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), {running: false}).done(updateProcessGroup);
+                // build the entity
+                var entity = {
+                    'processGroup': {
+                        'id': nf.Canvas.getGroupId(),
+                        'running': false
+                    }
+                };
+
+                updateResource(config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
             } else {
                 var componentsToStop = selection.filter(function (d) {
                     return nf.CanvasUtils.isStoppable(d3.select(this));
@@ -577,14 +613,20 @@ nf.Actions = (function () {
                         var selected = d3.select(this);
 
                         // processor endpoint does not use running flag...
-                        var data = {};
+                        var component = {
+                            'id': d.component.id,
+                        };
                         if (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) {
-                            data['state'] = 'STOPPED';
+                            component['state'] = 'STOPPED';
                         } else {
-                            data['running'] = false;
+                            component['running'] = false;
                         }
 
-                        stopRequests.push(updateResource(d.component.uri, data).done(function (response) {
+                        // build the entity
+                        var entity = {};
+                        entity[nf[d.type].getEntityKey()] = component;
+
+                        stopRequests.push(updateResource(d.component.uri, entity).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
                                 nf.Processor.set(response.processor);
                             } else if (nf.CanvasUtils.isProcessGroup(selected)) {
@@ -625,7 +667,15 @@ nf.Actions = (function () {
 
             // start each selected component
             componentsToEnable.each(function (d) {
-                updateResource(d.component.uri, {transmitting: true}).done(function (response) {
+                // build the entity
+                var entity = {};
+                entity[nf[d.type].getEntityKey()] = {
+                    'id': d.component.id,
+                    'transmitting': true
+                };
+
+                // start transmitting
+                updateResource(d.component.uri, entity).done(function (response) {
                     nf.RemoteProcessGroup.set(response.remoteProcessGroup);
                 });
             });
@@ -643,7 +693,14 @@ nf.Actions = (function () {
 
             // stop each selected component
             componentsToDisable.each(function (d) {
-                updateResource(d.component.uri, {transmitting: false}).done(function (response) {
+                // build the entity
+                var entity = {};
+                entity[nf[d.type].getEntityKey()] = {
+                    'id': d.component.id,
+                    'transmitting': false
+                };
+
+                updateResource(d.component.uri, entity).done(function (response) {
                     nf.RemoteProcessGroup.set(response.remoteProcessGroup);
                 });
             });
@@ -665,12 +722,7 @@ nf.Actions = (function () {
                 } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
                     nf.RemoteProcessGroupConfiguration.showConfiguration(selection);
                 } else if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
-                    // ports in the root group can be configured for access control
-                    if (nf.Canvas.getParentGroupId() === null && nf.Canvas.isSecureSiteToSite()) {
-                        nf.SecurePortConfiguration.showConfiguration(selection);
-                    } else {
-                        nf.PortConfiguration.showConfiguration(selection);
-                    }
+                    nf.PortConfiguration.showConfiguration(selection);
                 } else if (nf.CanvasUtils.isConnection(selection)) {
                     nf.ConnectionConfiguration.showConfiguration(selection);
                 }
@@ -688,12 +740,7 @@ nf.Actions = (function () {
                 } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
                     nf.RemoteProcessGroupDetails.showDetails(selection);
                 } else if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
-                    // ports in the root group can be configured for access control
-                    if (nf.Canvas.getParentGroupId() === null && nf.Canvas.isSecureSiteToSite()) {
-                        nf.SecurePortDetails.showDetails(selection);
-                    } else {
-                        nf.PortDetails.showDetails(selection);
-                    }
+                    nf.PortDetails.showDetails(selection);
                 } else if (nf.CanvasUtils.isConnection(selection)) {
                     nf.ConnectionDetails.showDetails(nf.Canvas.getGroupId(), selectionData.component.id);
                 }
@@ -1018,7 +1065,8 @@ nf.Actions = (function () {
                     $.ajax({
                         type: 'POST',
                         url: connection.component.uri + '/drop-requests',
-                        dataType: 'json'
+                        dataType: 'json',
+                        contentType: 'application/json'
                     }).done(function(response) {
                         // initialize the progress bar value
                         updateProgress(0);
@@ -1383,18 +1431,22 @@ nf.Actions = (function () {
                 // use one higher
                 var zIndex = maxZIndex + 1;
 
-                var revision = nf.Client.getRevision();
+                // build the connection entity
+                var connectionEntity = {
+                    'revision': nf.Client.getRevision(),
+                    'connection': {
+                        'id': connection.component.id,
+                        'zIndex': zIndex
+                    }
+                };
 
                 // update the edge in question
                 $.ajax({
                     type: 'PUT',
                     url: connection.component.uri,
-                    data: {
-                        version: revision.version,
-                        clientId: revision.clientId,
-                        zIndex: zIndex
-                    },
-                    dataType: 'json'
+                    data: JSON.stringify(connectionEntity),
+                    dataType: 'json',
+                    contentType: 'application/json'
                 }).done(function (response) {
                     // update the edge's zIndex
                     nf.Connection.set(response.connection);

@@ -17,121 +17,54 @@
 package org.apache.nifi.user;
 
 import java.io.Serializable;
-import java.util.Date;
-import java.util.EnumSet;
 import java.util.Objects;
-import java.util.Set;
-import org.apache.nifi.authorization.Authority;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * An NiFiUser.
  */
 public class NiFiUser implements Serializable {
 
-    public static final String ANONYMOUS_USER_IDENTITY = "anonymous";
+    public static final NiFiUser ANONYMOUS = new NiFiUser("anonymous");
 
-    private String id;
     private String identity;
     private String userName;
-    private String userGroup;
-    private String justification;
-
-    private Date creation;
-    private Date lastVerified;
-    private Date lastAccessed;
-
-    private AccountStatus status;
-    private EnumSet<Authority> authorities;
 
     private NiFiUser chain;
 
-    /* getters / setters */
-    public Date getCreation() {
-        return creation;
+    public NiFiUser(String identity) {
+        this(identity, identity, null);
     }
 
-    public void setCreation(Date creation) {
-        this.creation = creation;
+    public NiFiUser(String identity, String userName) {
+        this(identity, userName, null);
     }
+
+    public NiFiUser(String identity, NiFiUser chain) {
+        this(identity, identity, chain);
+    }
+
+    public NiFiUser(String identity, String userName, NiFiUser chain) {
+        this.identity = identity;
+        this.userName = userName;
+        this.chain = chain;
+    }
+
+    /* getters / setters */
 
     public String getIdentity() {
         return identity;
-    }
-
-    public void setIdentity(String identity) {
-        this.identity = identity;
     }
 
     public String getUserName() {
         return userName;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getUserGroup() {
-        return userGroup;
-    }
-
-    public void setUserGroup(String userGroup) {
-        this.userGroup = userGroup;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getJustification() {
-        return justification;
-    }
-
-    public void setJustification(String justification) {
-        this.justification = justification;
-    }
-
-    public AccountStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(AccountStatus status) {
-        this.status = status;
-    }
-
-    public Date getLastVerified() {
-        return lastVerified;
-    }
-
-    public void setLastVerified(Date lastVerified) {
-        this.lastVerified = lastVerified;
-    }
-
-    public Date getLastAccessed() {
-        return lastAccessed;
-    }
-
-    public void setLastAccessed(Date lastAccessed) {
-        this.lastAccessed = lastAccessed;
-    }
-
     public NiFiUser getChain() {
         return chain;
     }
 
-    public void setChain(NiFiUser chain) {
-        this.chain = chain;
-    }
-
-    public Set<Authority> getAuthorities() {
-        if (authorities == null) {
-            authorities = EnumSet.noneOf(Authority.class);
-        }
-        return authorities;
+    public boolean isAnonymous() {
+        return this == ANONYMOUS;
     }
 
     @Override
@@ -158,7 +91,7 @@ public class NiFiUser implements Serializable {
 
     @Override
     public String toString() {
-        return String.format("identity[%s], userName[%s], justification[%s], authorities[%s]", getIdentity(), getUserName(), getJustification(), StringUtils.join(getAuthorities(), ", "));
+        return String.format("identity[%s], userName[%s]", getIdentity(), getUserName(), ", ");
     }
 
 }

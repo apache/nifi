@@ -19,6 +19,25 @@
 
 $(document).ready(function () {
     if (nf.Canvas.SUPPORTS_SVG) {
+        //Create App
+        var app = angular.module('ngCanvasApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngSanitize', 'ngMessages']);
+
+        //Configure App
+        app.config(nf.ng.Canvas.AppConfig);
+
+        //App Controllers
+        app.controller('ngCanvasAppCtrl', nf.ng.Canvas.AppCtrl);
+
+        //App Services
+        app.factory('ServiceProvider', nf.ng.ServiceProvider);
+        app.factory('BreadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
+
+        //App Directives
+        app.directive('breadcrumbsDirective', nf.ng.BreadcrumbsDirective);
+
+        //Manually Boostrap App
+        angular.bootstrap($('body'), ['ngCanvasApp'], { strictDi: true });
+
         // initialize the NiFi
         nf.Canvas.init();
     } else {
@@ -57,12 +76,13 @@ nf.Canvas = (function () {
 
     var config = {
         urls: {
+            api: '../nifi-api',
             identity: '../nifi-api/controller/identity',
             authorities: '../nifi-api/controller/authorities',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/controller/revision',
             status: '../nifi-api/controller/status',
-            bulletinBoard: '../nifi-api/controller/bulletin-board',
+            bulletinBoard: '../nifi-api/bulletin-board',
             banners: '../nifi-api/controller/banners',
             controller: '../nifi-api/controller',
             controllerConfig: '../nifi-api/controller/config',
@@ -71,37 +91,7 @@ nf.Canvas = (function () {
             d3Script: 'js/d3/d3.min.js'
         }
     };
-
-    /**
-     * Generates the breadcrumbs.
-     *
-     * @argument {object} processGroup      The process group
-     */
-    var generateBreadcrumbs = function (processGroup) {
-        // create the link for loading the correct group
-        var groupLink = $('<span class="link"></span>').text(processGroup.name).click(function () {
-            nf.CanvasUtils.enterGroup(processGroup.id);
-        });
-
-        // make the current group bold
-        if (nf.Canvas.getGroupId() === processGroup.id) {
-            groupLink.css('font-weight', 'bold');
-        }
-
-        // if there is a parent, create the appropriate mark up
-        if (nf.Common.isDefinedAndNotNull(processGroup.parent)) {
-            var separator = $('<span>&raquo;</span>').css({
-                'color': '#598599',
-                'margin': '0 10px'
-            });
-            $('#data-flow-title-container').append(generateBreadcrumbs(processGroup.parent)).append(separator);
-        }
-
-        // append this link
-        $('#data-flow-title-container').append(groupLink);
-        return groupLink;
-    };
-
+    
     /**
      * Loads D3.
      */
@@ -524,6 +514,11 @@ nf.Canvas = (function () {
                 'width': canvasContainer.width()
             });
 
+            //breadcrumbs
+            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
+                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.updateBreadcrumbsCss',
+                {'bottom': bottom + 'px'});
+
             // body
             $('#canvas-body').css({
                 'height': windowHeight + 'px',
@@ -788,7 +783,7 @@ nf.Canvas = (function () {
         // load the controller
         return $.ajax({
             type: 'GET',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(processGroupId),
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupId),
             data: {
                 verbose: true
             },
@@ -805,8 +800,11 @@ nf.Canvas = (function () {
             nf.Canvas.setGroupName(processGroup.name);
 
             // update the breadcrumbs
-            $('#data-flow-title-container').empty();
-            generateBreadcrumbs(processGroup);
+            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
+                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetBreadcrumbs');
+            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
+                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.generateBreadcrumbs',
+                processGroup);
 
             // set the parent id if applicable
             if (nf.Common.isDefinedAndNotNull(processGroup.parent)) {
@@ -836,7 +834,7 @@ nf.Canvas = (function () {
         return $.Deferred(function (deferred) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(processGroupId) + '/status',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupId) + '/status',
                 data: {
                     recursive: false
                 },
@@ -912,23 +910,8 @@ nf.Canvas = (function () {
                 var settingsXhr = nf.Settings.loadSettings(false); // don't reload the status as we want to wait for deferreds to complete
                 $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
                     // adjust breadcrumbs if necessary
-                    var title = $('#data-flow-title-container');
-                    var titlePosition = title.position();
-                    var titleWidth = title.outerWidth();
-                    var titleRight = titlePosition.left + titleWidth;
-
-                    var padding = $('#breadcrumbs-right-border').width();
-                    var viewport = $('#data-flow-title-viewport');
-                    var viewportWidth = viewport.width();
-                    var viewportRight = viewportWidth - padding;
-
-                    // if the title's right is past the viewport's right, shift accordingly
-                    if (titleRight > viewportRight) {
-                        // adjust the position
-                        title.css('left', (titlePosition.left - (titleRight - viewportRight)) + 'px');
-                    } else {
-                        title.css('left', '10px');
-                    }
+                    nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
+                        'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetScrollPosition');
 
                     // don't load the status until the graph is loaded
                     reloadStatus(nf.Canvas.getGroupId()).done(function () {
@@ -1126,12 +1109,10 @@ nf.Canvas = (function () {
                             nf.RemoteProcessGroupConfiguration.init();
                             nf.RemoteProcessGroupPorts.init();
                             nf.PortConfiguration.init();
-                            nf.SecurePortConfiguration.init();
                             nf.LabelConfiguration.init();
                             nf.ProcessorDetails.init();
                             nf.ProcessGroupDetails.init();
                             nf.PortDetails.init();
-                            nf.SecurePortDetails.init();
                             nf.ConnectionDetails.init();
                             nf.RemoteProcessGroupDetails.init();
                             nf.GoTo.init();

@@ -16,18 +16,15 @@
  */
 package org.apache.nifi.web.security.x509;
 
-import java.security.cert.X509Certificate;
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
-import org.apache.nifi.authentication.AuthenticationResponse;
-import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.token.NewAccountAuthorizationRequestToken;
-import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
-import org.apache.nifi.web.security.user.NewAccountRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
+
+import javax.servlet.http.HttpServletRequest;
+import java.security.cert.X509Certificate;
 
 /**
  * Custom X509 filter that will inspect the HTTP headers for a proxied user before extracting the user details from the client certificate.
@@ -37,10 +34,10 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
     private static final Logger logger = LoggerFactory.getLogger(X509AuthenticationFilter.class);
 
     private X509CertificateExtractor certificateExtractor;
-    private X509IdentityProvider certificateIdentityProvider;
+    private X509PrincipalExtractor principalExtractor;
 
     @Override
-    public NiFiAuthorizationRequestToken attemptAuthentication(final HttpServletRequest request) {
+    public Authentication attemptAuthentication(final HttpServletRequest request) {
         // only suppport x509 login when running securely
         if (!request.isSecure()) {
             return null;
@@ -52,20 +49,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
             return null;
         }
 
-        // attempt to authenticate if certificates were found
-        final AuthenticationResponse authenticationResponse;
-        try {
-            authenticationResponse = certificateIdentityProvider.authenticate(certificates);
-        } catch (final IllegalArgumentException iae) {
-            throw new InvalidAuthenticationException(iae.getMessage(), iae);
-        }
-
-        final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(request, authenticationResponse.getIdentity());
-        if (isNewAccountRequest(request)) {
-            return new NewAccountAuthorizationRequestToken(new NewAccountRequest(proxyChain, getJustification(request)));
-        } else {
-            return new NiFiAuthorizationRequestToken(proxyChain);
-        }
+        return new X509AuthenticationRequestToken(request.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), principalExtractor, certificates);
     }
 
     /* setters */
@@ -73,8 +57,8 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
         this.certificateExtractor = certificateExtractor;
     }
 
-    public void setCertificateIdentityProvider(X509IdentityProvider certificateIdentityProvider) {
-        this.certificateIdentityProvider = certificateIdentityProvider;
+    public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
+        this.principalExtractor = principalExtractor;
     }
 
 }

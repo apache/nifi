@@ -121,9 +121,8 @@ public class OcspCertificateValidator {
                     trustedCAs.put(ocspCertificate.getSubjectX500Principal().getName(), ocspCertificate);
                 }
 
-                // determine how long to cache the ocsp responses for
-                final String rawCacheDurationDuration = properties.getUserCredentialCacheDuration();
-                final long cacheDurationMillis = FormatUtils.getTimeDuration(rawCacheDurationDuration, TimeUnit.MILLISECONDS);
+                // TODO - determine how long to cache the ocsp responses for
+                final long cacheDurationMillis = FormatUtils.getTimeDuration("12 hours", TimeUnit.MILLISECONDS);
 
                 // build the ocsp cache
                 ocspCache = CacheBuilder.newBuilder().expireAfterWrite(cacheDurationMillis, TimeUnit.MILLISECONDS).build(new CacheLoader<OcspRequest, OcspStatus>() {

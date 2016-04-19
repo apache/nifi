@@ -18,41 +18,34 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-    <!-- user authority provider -->
-    <bean id="authorityProvider" class="org.apache.nifi.authorization.AuthorityProviderFactoryBean" depends-on="clusterManager">
-        <property name="properties" ref="nifiProperties"/>
-    </bean>
-
     <!-- user/entity authorizer -->
-    <bean id="authorizer" class="org.apache.nifi.authorization.AuthorizerFactoryBean" depends-on="clusterManager">
+    <bean id="authorizer" class="org.apache.nifi.authorization.AuthorizerFactoryBean">
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
-    <!-- initialize the user data source -->
-    <bean id="userDataSource" class="org.apache.nifi.admin.UserDataSourceFactoryBean" destroy-method="shutdown">
+    <!-- initialize the user key data source -->
+    <bean id="keyDataSource" class="org.apache.nifi.admin.KeyDataSourceFactoryBean" destroy-method="shutdown">
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
-    <!-- initialize the data source -->
-    <bean id="auditDataSource" class="org.apache.nifi.admin.AuditDataSourceFactoryBean" destroy-method="shutdown" depends-on="userDataSource">
+    <!-- initialize the audit data source -->
+    <bean id="auditDataSource" class="org.apache.nifi.admin.AuditDataSourceFactoryBean" destroy-method="shutdown">
         <property name="properties" ref="nifiProperties"/>
     </bean>
-    
-    <!-- initialize the user transaction builder -->
-    <bean id="userTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
-        <property name="authorityProvider" ref="authorityProvider"/>
-        <property name="dataSource" ref="userDataSource"/>
+
+    <!-- initialize the user key transaction builder -->
+    <bean id="keyTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
+        <property name="dataSource" ref="keyDataSource"/>
     </bean>
-    
+
     <!-- initialize the audit transaction builder -->
     <bean id="auditTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
-        <property name="authorityProvider" ref="authorityProvider"/>
         <property name="dataSource" ref="auditDataSource"/>
     </bean>
-    
+
     <!-- administration service -->
-    <bean id="userService" class="org.apache.nifi.admin.service.impl.StandardUserService" init-method="seedUserAccounts">
-        <property name="transactionBuilder" ref="userTransactionBuilder"/>
+    <bean id="keyService" class="org.apache.nifi.admin.service.impl.StandardKeyService">
+        <property name="transactionBuilder" ref="keyTransactionBuilder"/>
         <property name="properties" ref="nifiProperties"/>
     </bean>
 

@@ -823,6 +823,13 @@ nf.Processor = (function () {
             // update the visible processor status
             d3.selectAll('g.processor.visible').call(updateProcessorStatus);
         },
+
+        /**
+         * Returns the entity key when marshalling an entity of this type.
+         */
+        getEntityKey: function (d) {
+            return 'processor';
+        },
         
         /**
          * Returns the default color that should be used when drawing a processor.

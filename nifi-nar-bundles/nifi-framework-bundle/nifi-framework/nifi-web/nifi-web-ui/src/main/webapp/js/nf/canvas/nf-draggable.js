@@ -27,7 +27,6 @@ nf.Draggable = (function () {
      * @param {selection} dragSelection The current drag selection
      */
     var updateComponentsPosition = function (dragSelection) {
-        var revision = nf.Client.getRevision();
         var updates = d3.map();
 
         // determine the drag delta
@@ -44,8 +43,19 @@ nf.Draggable = (function () {
         
         var updateComponentPosition = function(d) {
             var newPosition = {
-                x: d.component.position.x + delta.x,
-                y: d.component.position.y + delta.y
+                'x': d.component.position.x + delta.x,
+                'y': d.component.position.y + delta.y
+            };
+
+            // build the entity
+            var entity = {
+                'revision': nf.Client.getRevision()
+            };
+
+            // use bracket notation to dynamic get the key based on the entity type
+            entity[nf[d.type].getEntityKey(d)] = {
+                'id': d.component.id,
+                'position': newPosition
             };
 
             // update the component positioning
@@ -53,13 +63,9 @@ nf.Draggable = (function () {
                 $.ajax({
                     type: 'PUT',
                     url: d.component.uri,
-                    data: {
-                        version: revision.version,
-                        clientId: revision.clientId,
-                        x: newPosition.x,
-                        y: newPosition.y
-                    },
-                    dataType: 'json'
+                    data: JSON.stringify(entity),
+                    dataType: 'json',
+                    contentType: 'application/json'
                 }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);

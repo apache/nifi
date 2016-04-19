@@ -20,7 +20,7 @@ import io.jsonwebtoken.JwtException;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.admin.service.AdministrationException;
-import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.key.Key;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.codehaus.jettison.json.JSONObject;
@@ -131,7 +131,7 @@ public class JwtServiceTest {
 
     private static final String HMAC_SECRET = "test_hmac_shared_secret";
 
-    private UserService mockUserService;
+    private KeyService mockKeyService;
 
     // Class under test
     private JwtService jwtService;
@@ -177,10 +177,10 @@ public class JwtServiceTest {
         key.setIdentity(DEFAULT_IDENTITY);
         key.setKey(HMAC_SECRET);
 
-        mockUserService = Mockito.mock(UserService.class);
-        when(mockUserService.getKey(anyInt())).thenReturn(key);
-        when(mockUserService.getOrCreateKey(anyString())).thenReturn(key);
-        jwtService = new JwtService(mockUserService);
+        mockKeyService = Mockito.mock(KeyService.class);
+        when(mockKeyService.getKey(anyInt())).thenReturn(key);
+        when(mockKeyService.getOrCreateKey(anyString())).thenReturn(key);
+        jwtService = new JwtService(mockKeyService);
     }
 
     @After
@@ -431,7 +431,7 @@ public class JwtServiceTest {
         logger.debug("Generating token for " + loginAuthenticationToken);
 
         // Set up the bad key service
-        UserService missingKeyService = Mockito.mock(UserService.class);
+        KeyService missingKeyService = Mockito.mock(KeyService.class);
         when(missingKeyService.getOrCreateKey(anyString())).thenThrow(new AdministrationException("Could not find a "
                 + "key for that user"));
         jwtService = new JwtService(missingKeyService);

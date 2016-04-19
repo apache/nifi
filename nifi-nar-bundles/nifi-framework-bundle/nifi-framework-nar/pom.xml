@@ -33,11 +33,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cluster-authorization-provider</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-file-authorization-provider</artifactId>
+            <artifactId>nifi-file-authorizer</artifactId>
         </dependency>
 
         <!-- mark these nifi artifacts as provided since it is included in the lib -->

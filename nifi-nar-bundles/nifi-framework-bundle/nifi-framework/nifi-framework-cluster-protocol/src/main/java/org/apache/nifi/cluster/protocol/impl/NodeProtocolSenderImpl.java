@@ -18,10 +18,7 @@ package org.apache.nifi.cluster.protocol.impl;
 
 import java.io.IOException;
 import java.net.Socket;
-
-import javax.net.ssl.SSLSocket;
-import javax.security.cert.X509Certificate;
-
+import java.security.cert.CertificateException;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
@@ -38,6 +35,7 @@ import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
+import org.apache.nifi.security.util.CertificateUtils;
 
 public class NodeProtocolSenderImpl implements NodeProtocolSender {
 
@@ -46,7 +44,7 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
     private final ProtocolContext<ProtocolMessage> protocolContext;
 
     public NodeProtocolSenderImpl(final ClusterServiceLocator clusterManagerProtocolServiceLocator,
-            final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
+                                  final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
         if (clusterManagerProtocolServiceLocator == null) {
             throw new IllegalArgumentException("Protocol Service Locator may not be null.");
         } else if (socketConfiguration == null) {
@@ -66,20 +64,7 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
         try {
             socket = createSocket();
 
-            String ncmDn = null;
-            if (socket instanceof SSLSocket) {
-                final SSLSocket sslSocket = (SSLSocket) socket;
-                try {
-                    final X509Certificate[] certChains = sslSocket.getSession().getPeerCertificateChain();
-                    if (certChains != null && certChains.length > 0) {
-                        ncmDn = certChains[0].getSubjectDN().getName();
-                    }
-                } catch (final ProtocolException pe) {
-                    throw pe;
-                } catch (final Exception e) {
-                    throw new ProtocolException(e);
-                }
-            }
+            String ncmDn = getNCMDN(socket);
 
             try {
                 // marshal message to output stream
@@ -107,6 +92,14 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
             }
         } finally {
             SocketUtils.closeQuietly(socket);
+        }
+    }
+
+    private String getNCMDN(Socket socket) {
+        try {
+            return CertificateUtils.extractClientDNFromSSLSocket(socket);
+        } catch (CertificateException e) {
+            throw new ProtocolException(e);
         }
     }
 

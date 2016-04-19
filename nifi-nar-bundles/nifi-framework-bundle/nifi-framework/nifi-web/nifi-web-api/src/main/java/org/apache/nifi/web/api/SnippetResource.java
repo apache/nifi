@@ -23,13 +23,21 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.ConfigurationSnapshot;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.SnippetDTO;
+import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -47,21 +55,13 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.SnippetDTO;
-import org.apache.nifi.web.api.entity.SnippetEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.access.prepost.PreAuthorize;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * RESTful endpoint for managing a Snippet.
@@ -80,94 +80,14 @@ public class SnippetResource extends ApplicationResource {
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
 
-    /**
-     * Get the processor resource within the specified group.
-     *
-     * @return the processor resource within the specified group
-     */
-    private ProcessorResource getProcessorResource(final String groupId) {
-        ProcessorResource processorResource = resourceContext.getResource(ProcessorResource.class);
-        processorResource.setGroupId(groupId);
-        return processorResource;
-    }
-
-    /**
-     * Get the connection sub-resource within the specified group.
-     *
-     * @return the connection sub-resource within the specified group
-     */
-    private ConnectionResource getConnectionResource(final String groupId) {
-        ConnectionResource connectionResource = resourceContext.getResource(ConnectionResource.class);
-        connectionResource.setGroupId(groupId);
-        return connectionResource;
-    }
-
-    /**
-     * Get the input ports sub-resource within the specified group.
-     *
-     * @return the input ports sub-resource within the specified group
-     */
-    private InputPortResource getInputPortResource(final String groupId) {
-        InputPortResource inputPortResource = resourceContext.getResource(InputPortResource.class);
-        inputPortResource.setGroupId(groupId);
-        return inputPortResource;
-    }
-
-    /**
-     * Get the output ports sub-resource within the specified group.
-     *
-     * @return the output ports sub-resource within the specified group
-     */
-    private OutputPortResource getOutputPortResource(final String groupId) {
-        OutputPortResource outputPortResource = resourceContext.getResource(OutputPortResource.class);
-        outputPortResource.setGroupId(groupId);
-        return outputPortResource;
-    }
-
-    /**
-     * Locates the label sub-resource within the specified group.
-     *
-     * @return the label sub-resource within the specified group
-     */
-    private LabelResource getLabelResource(final String groupId) {
-        LabelResource labelResource = resourceContext.getResource(LabelResource.class);
-        labelResource.setGroupId(groupId);
-        return labelResource;
-    }
-
-    /**
-     * Locates the funnel sub-resource within the specified group.
-     *
-     * @return the funnel sub-resource within the specified group
-     */
-    private FunnelResource getFunnelResource(final String groupId) {
-        FunnelResource funnelResource = resourceContext.getResource(FunnelResource.class);
-        funnelResource.setGroupId(groupId);
-        return funnelResource;
-    }
-
-    /**
-     * Locates the remote process group sub-resource within the specified group.
-     *
-     * @return the remote process group sub-resource within the specified group
-     */
-    private RemoteProcessGroupResource getRemoteProcessGroupResource(final String groupId) {
-        RemoteProcessGroupResource remoteProcessGroupResource = resourceContext.getResource(RemoteProcessGroupResource.class);
-        remoteProcessGroupResource.setGroupId(groupId);
-        return remoteProcessGroupResource;
-    }
-
-    /**
-     * Locates the process group sub-resource within the specified group.
-     *
-     * @param groupId group id
-     * @return the process group sub-resource within the specified group
-     */
-    private ProcessGroupResource getProcessGroupResource(final String groupId) {
-        ProcessGroupResource processGroupResource = resourceContext.getResource(ProcessGroupResource.class);
-        processGroupResource.setGroupId(groupId);
-        return processGroupResource;
-    }
+    private ProcessorResource processorResource;
+    private InputPortResource inputPortResource;
+    private OutputPortResource outputPortResource;
+    private FunnelResource funnelResource;
+    private LabelResource labelResource;
+    private RemoteProcessGroupResource remoteProcessGroupResource;
+    private ConnectionResource connectionResource;
+    private ProcessGroupResource processGroupResource;
 
     /**
      * Populates the uri for the specified snippet.
@@ -181,14 +101,14 @@ public class SnippetResource extends ApplicationResource {
 
         // populate the snippet content uris
         if (snippet.getContents() != null) {
-            getProcessorResource(snippetGroupId).populateRemainingProcessorsContent(snippetContents.getProcessors());
-            getConnectionResource(snippetGroupId).populateRemainingConnectionsContent(snippetContents.getConnections());
-            getInputPortResource(snippetGroupId).populateRemainingInputPortsContent(snippetContents.getInputPorts());
-            getOutputPortResource(snippetGroupId).populateRemainingOutputPortsContent(snippetContents.getOutputPorts());
-            getRemoteProcessGroupResource(snippetGroupId).populateRemainingRemoteProcessGroupsContent(snippetContents.getRemoteProcessGroups());
-            getFunnelResource(snippetGroupId).populateRemainingFunnelsContent(snippetContents.getFunnels());
-            getLabelResource(snippetGroupId).populateRemainingLabelsContent(snippetContents.getLabels());
-            getProcessGroupResource(snippetGroupId).populateRemainingProcessGroupsContent(snippetContents.getProcessGroups());
+            processorResource.populateRemainingProcessorsContent(snippetContents.getProcessors());
+            connectionResource.populateRemainingConnectionsContent(snippetContents.getConnections());
+            inputPortResource.populateRemainingInputPortsContent(snippetContents.getInputPorts());
+            outputPortResource.populateRemainingOutputPortsContent(snippetContents.getOutputPorts());
+            remoteProcessGroupResource.populateRemainingRemoteProcessGroupsContent(snippetContents.getRemoteProcessGroups());
+            funnelResource.populateRemainingFunnelsContent(snippetContents.getFunnels());
+            labelResource.populateRemainingLabelsContent(snippetContents.getLabels());
+            processGroupResource.populateRemainingProcessGroupsContent(snippetContents.getProcessGroups());
         }
 
         return snippet;
@@ -222,7 +142,7 @@ public class SnippetResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     public Response createSnippet(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -279,7 +199,7 @@ public class SnippetResource extends ApplicationResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("") // necessary due to bug in swagger
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates a snippet",
             response = SnippetEntity.class,
@@ -393,7 +313,7 @@ public class SnippetResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a snippet",
             response = SnippetEntity.class,
@@ -477,7 +397,7 @@ public class SnippetResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     public Response updateSnippet(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -523,7 +443,7 @@ public class SnippetResource extends ApplicationResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a snippet",
             response = SnippetEntity.class,
@@ -629,7 +549,7 @@ public class SnippetResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a snippet",
             response = SnippetEntity.class,
@@ -704,6 +624,38 @@ public class SnippetResource extends ApplicationResource {
 
     public void setClusterManager(WebClusterManager clusterManager) {
         this.clusterManager = clusterManager;
+    }
+
+    public void setProcessorResource(ProcessorResource processorResource) {
+        this.processorResource = processorResource;
+    }
+
+    public void setInputPortResource(InputPortResource inputPortResource) {
+        this.inputPortResource = inputPortResource;
+    }
+
+    public void setOutputPortResource(OutputPortResource outputPortResource) {
+        this.outputPortResource = outputPortResource;
+    }
+
+    public void setFunnelResource(FunnelResource funnelResource) {
+        this.funnelResource = funnelResource;
+    }
+
+    public void setLabelResource(LabelResource labelResource) {
+        this.labelResource = labelResource;
+    }
+
+    public void setRemoteProcessGroupResource(RemoteProcessGroupResource remoteProcessGroupResource) {
+        this.remoteProcessGroupResource = remoteProcessGroupResource;
+    }
+
+    public void setConnectionResource(ConnectionResource connectionResource) {
+        this.connectionResource = connectionResource;
+    }
+
+    public void setProcessGroupResource(ProcessGroupResource processGroupResource) {
+        this.processGroupResource = processGroupResource;
     }
 
     public void setProperties(NiFiProperties properties) {

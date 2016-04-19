@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.components.PropertyValue;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,8 +47,8 @@ public class StandardAuthorizerConfigurationContext implements AuthorizerConfigu
     }
 
     @Override
-    public String getProperty(String property) {
-        return properties.get(property);
+    public PropertyValue getProperty(String property) {
+        return new StandardPropertyValue(properties.get(property), null);
     }
 
 }

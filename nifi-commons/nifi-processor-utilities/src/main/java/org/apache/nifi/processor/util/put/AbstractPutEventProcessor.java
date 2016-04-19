@@ -71,20 +71,6 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .defaultValue("1 MB")
             .required(true)
             .build();
-    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("Character Set")
-            .description("Specifies the character set of the data being sent.")
-            .required(true)
-            .defaultValue("UTF-8")
-            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Timeout")
-            .description("The timeout for connecting to and communicating with the destination. Does not apply to UDP")
-            .required(false)
-            .defaultValue("10 seconds")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
     public static final PropertyDescriptor IDLE_EXPIRATION = new PropertyDescriptor
             .Builder().name("Idle Connection Expiration")
             .description("The amount of time a connection should be held open without being used before closing the connection.")
@@ -119,6 +105,20 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .name("Character Set")
+            .description("Specifies the character set of the data being sent.")
+            .required(true)
+            .defaultValue("UTF-8")
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Timeout")
+            .description("The timeout for connecting to and communicating with the destination. Does not apply to UDP")
+            .required(false)
+            .defaultValue("10 seconds")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -144,8 +144,6 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         descriptors.add(HOSTNAME);
         descriptors.add(PORT);
         descriptors.add(MAX_SOCKET_SEND_BUFFER_SIZE);
-        descriptors.add(CHARSET);
-        descriptors.add(TIMEOUT);
         descriptors.add(IDLE_EXPIRATION);
         descriptors.addAll(getAdditionalProperties());
         this.descriptors = Collections.unmodifiableList(descriptors);
@@ -286,6 +284,61 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         sender.setTimeout(timeout);
         sender.open();
         return sender;
+    }
+
+    /**
+     * Helper method to acquire an available ChannelSender from the pool. If the pool is empty then the a new sender is created.
+     *
+     * @param context
+     *            - the current process context.
+     *
+     * @param session
+     *            - the current process session.
+     * @param flowFile
+     *            - the FlowFile being processed in this session.
+     *
+     * @return ChannelSender - the sender that has been acquired or null if no sender is available and a new sender cannot be created.
+     */
+    protected ChannelSender acquireSender(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
+        ChannelSender sender = senderPool.poll();
+        if (sender == null) {
+            try {
+                getLogger().debug("No available connections, creating a new one...");
+                sender = createSender(context);
+            } catch (IOException e) {
+                getLogger().error("No available connections, and unable to create a new one, transferring {} to failure",
+                        new Object[]{flowFile}, e);
+                session.transfer(flowFile, REL_FAILURE);
+                session.commit();
+                context.yield();
+                sender = null;
+            }
+        }
+
+        return sender;
+    }
+
+
+    /**
+     * Helper method to relinquish the ChannelSender back to the pool. If the sender is disconnected or the pool is full
+     * then the sender is closed and discarded.
+     *
+     * @param sender the sender to return or close
+     */
+    protected void relinquishSender(final ChannelSender sender) {
+        if (sender != null) {
+            // if the connection is still open then then try to return the sender to the pool.
+            if (sender.isConnected()) {
+                boolean returned = senderPool.offer(sender);
+                // if the pool is full then close the sender.
+                if (!returned) {
+                    sender.close();
+                }
+            } else {
+                // probably already closed here, but quietly close anyway to be safe.
+                sender.close();
+            }
+        }
     }
 
     /**

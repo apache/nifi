@@ -16,6 +16,42 @@
  */
 package org.apache.nifi.web;
 
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.action.Action;
+import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
+import org.apache.nifi.action.Operation;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.reporting.ReportingTaskProvider;
+import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.security.user.NiFiUserDetails;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
+import org.apache.nifi.web.util.ClientResponseUtils;
+import org.apache.nifi.web.util.WebUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -27,46 +63,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-
-import org.apache.nifi.action.Action;
-import org.apache.nifi.action.Component;
-import org.apache.nifi.action.FlowChangeAction;
-import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
-import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.web.security.user.NiFiUserDetails;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
-import org.apache.nifi.user.NiFiUser;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.util.WebUtils;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.controller.reporting.ReportingTaskProvider;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.apache.nifi.web.util.ClientResponseUtils;
 
 /**
  * Implements the NiFiWebConfigurationContext interface to support a context in both standalone and clustered environments.
@@ -86,13 +82,13 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private AuditService auditService;
 
     @Override
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public ControllerService getControllerService(String serviceIdentifier) {
         return controllerServiceLookup.getControllerService(serviceIdentifier);
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     public void saveActions(final NiFiWebRequestContext requestContext, final Collection<ConfigurationAction> configurationActions) {
         Objects.requireNonNull(configurationActions, "Actions cannot be null.");
 
@@ -158,9 +154,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserDn() {
-        String userIdentity = NiFiUser.ANONYMOUS_USER_IDENTITY;
+        String userIdentity = NiFiUser.ANONYMOUS.getIdentity();
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
@@ -171,9 +167,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserName() {
-        String userName = NiFiUser.ANONYMOUS_USER_IDENTITY;
+        String userName = NiFiUser.ANONYMOUS.getIdentity();
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
@@ -184,7 +180,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException {
         final String id = requestContext.getId();
 
@@ -219,7 +215,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData)
             throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException {
 

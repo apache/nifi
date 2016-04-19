@@ -42,7 +42,6 @@ import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -115,7 +114,7 @@ public class ClusterResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the contents of the cluster",
             notes = "Returns the contents of the cluster including all nodes and their status.",
@@ -171,7 +170,7 @@ public class ClusterResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/search-results")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Searches the cluster for a node with the specified address",
             response = ClusterSearchResultsEntity.class,
@@ -245,7 +244,7 @@ public class ClusterResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/processors/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the specified processor",
             response = ProcessorEntity.class,
@@ -310,7 +309,7 @@ public class ClusterResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/processors/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     public Response updateProcessor(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -360,7 +359,7 @@ public class ClusterResource extends ApplicationResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/processors/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates processor annotation data",
             response = ProcessorEntity.class,

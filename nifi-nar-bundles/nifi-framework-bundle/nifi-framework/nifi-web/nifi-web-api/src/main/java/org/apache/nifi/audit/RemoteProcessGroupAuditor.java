@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.audit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -30,17 +25,23 @@ import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Audits remote process group creation/removal and configuration changes.
@@ -82,19 +83,18 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
      * Audits the update of remote process group configuration.
      *
      * @param proceedingJoinPoint join point
-     * @param groupId group id
      * @param remoteProcessGroupDTO dto
      * @param remoteProcessGroupDAO dao
      * @return group
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.RemoteProcessGroupDAO+) && "
-            + "execution(org.apache.nifi.groups.RemoteProcessGroup updateRemoteProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.RemoteProcessGroupDTO)) && "
-            + "args(groupId, remoteProcessGroupDTO) && "
+            + "execution(org.apache.nifi.groups.RemoteProcessGroup updateRemoteProcessGroup(org.apache.nifi.web.api.dto.RemoteProcessGroupDTO)) && "
+            + "args(remoteProcessGroupDTO) && "
             + "target(remoteProcessGroupDAO)")
     public RemoteProcessGroup auditUpdateProcessGroupConfiguration(
-            ProceedingJoinPoint proceedingJoinPoint, String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
-        final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(groupId, remoteProcessGroupDTO.getId());
+            ProceedingJoinPoint proceedingJoinPoint, RemoteProcessGroupDTO remoteProcessGroupDTO, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
+        final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupDTO.getId());
 
         // record the current value of this remoteProcessGroups configuration for comparisons later
         final boolean transmissionState = remoteProcessGroup.isTransmitting();
@@ -298,18 +298,17 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
      * Audits the removal of a process group via deleteProcessGroup().
      *
      * @param proceedingJoinPoint join point
-     * @param groupId group id
      * @param remoteProcessGroupId remote group id
      * @param remoteProcessGroupDAO remote group dao
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.RemoteProcessGroupDAO+) && "
-            + "execution(void deleteRemoteProcessGroup(java.lang.String, java.lang.String)) && "
-            + "args(groupId, remoteProcessGroupId) && "
+            + "execution(void deleteRemoteProcessGroup(java.lang.String)) && "
+            + "args(remoteProcessGroupId) && "
             + "target(remoteProcessGroupDAO)")
-    public void removeRemoteProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, String remoteProcessGroupId, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
+    public void removeRemoteProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint, String remoteProcessGroupId, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
         // get the remote process group before removing it
-        RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(groupId, remoteProcessGroupId);
+        RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
 
         // remove the remote process group
         proceedingJoinPoint.proceed();

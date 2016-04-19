@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.web.security.otp;
 
-import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
-import org.apache.nifi.web.security.token.NiFiAuthorizationRequestToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
 import java.util.regex.Pattern;
 
 /**
@@ -41,10 +39,8 @@ public class OtpAuthenticationFilter extends NiFiAuthenticationFilter {
 
     protected static final String ACCESS_TOKEN = "access_token";
 
-    private OtpService otpService;
-
     @Override
-    public NiFiAuthorizationRequestToken attemptAuthentication(final HttpServletRequest request) {
+    public Authentication attemptAuthentication(final HttpServletRequest request) {
         // only support otp login when running securely
         if (!request.isSecure()) {
             return null;
@@ -57,36 +53,23 @@ public class OtpAuthenticationFilter extends NiFiAuthenticationFilter {
         if (accessToken == null) {
             return null;
         } else {
-            try {
-                String identity = null;
-                if (request.getContextPath().equals("/nifi-api")) {
-                    if (isDownloadRequest(request.getPathInfo())) {
-                        // handle download requests
-                        identity = otpService.getAuthenticationFromDownloadToken(accessToken);
-                    }
-                } else {
-                    // handle requests to other context paths (other UI extensions)
-                    identity = otpService.getAuthenticationFromUiExtensionToken(accessToken);
+            if (request.getContextPath().equals("/nifi-api")) {
+                if (isDownloadRequest(request.getPathInfo())) {
+                    // handle download requests
+                    return new OtpAuthenticationRequestToken(accessToken, true);
                 }
-
-                // the path is a support path for otp tokens
-                if (identity == null) {
-                    return null;
-                }
-
-                return new NiFiAuthorizationRequestToken(Arrays.asList(identity));
-            } catch (final OtpAuthenticationException oae) {
-                throw new InvalidAuthenticationException(oae.getMessage(), oae);
+            } else {
+                // handle requests to other context paths (other UI extensions)
+                return new OtpAuthenticationRequestToken(accessToken, false);
             }
+
+            // the path is a support path for otp tokens
+            return null;
         }
     }
 
     private boolean isDownloadRequest(final String pathInfo) {
         return PROVENANCE_DOWNLOAD_PATTERN.matcher(pathInfo).matches() || QUEUE_DOWNLOAD_PATTERN.matcher(pathInfo).matches() || TEMPLATE_DOWNLOAD_PATTERN.matcher(pathInfo).matches();
-    }
-
-    public void setOtpService(OtpService otpService) {
-        this.otpService = otpService;
     }
 
 }

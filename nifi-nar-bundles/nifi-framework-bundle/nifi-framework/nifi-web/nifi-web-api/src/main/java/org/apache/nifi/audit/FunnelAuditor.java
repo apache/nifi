@@ -67,18 +67,17 @@ public class FunnelAuditor extends NiFiAuditor {
      * Audits the removal of a funnel.
      *
      * @param proceedingJoinPoint join point
-     * @param groupId group id
      * @param funnelId funnel id
      * @param funnelDAO funnel dao
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.FunnelDAO+) && "
-            + "execution(void deleteFunnel(java.lang.String, java.lang.String)) && "
-            + "args(groupId, funnelId) && "
+            + "execution(void deleteFunnel(java.lang.String)) && "
+            + "args(funnelId) && "
             + "target(funnelDAO)")
-    public void removeFunnelAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, String funnelId, FunnelDAO funnelDAO) throws Throwable {
+    public void removeFunnelAdvice(ProceedingJoinPoint proceedingJoinPoint, String funnelId, FunnelDAO funnelDAO) throws Throwable {
         // get the funnel before removing it
-        Funnel funnel = funnelDAO.getFunnel(groupId, funnelId);
+        Funnel funnel = funnelDAO.getFunnel(funnelId);
 
         // remove the funnel
         proceedingJoinPoint.proceed();

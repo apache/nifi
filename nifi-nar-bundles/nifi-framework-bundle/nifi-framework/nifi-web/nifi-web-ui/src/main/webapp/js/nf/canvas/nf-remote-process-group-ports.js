@@ -60,7 +60,6 @@ nf.RemoteProcessGroupPorts = (function () {
                                     data: JSON.stringify(remoteProcessGroupPortEntity),
                                     url: remoteProcessGroupData.component.uri + portContextPath + encodeURIComponent(remotePortId),
                                     dataType: 'json',
-                                    processData: false,
                                     contentType: 'application/json'
                                 }).done(function (response) {
                                     // update the revision
@@ -279,7 +278,6 @@ nf.RemoteProcessGroupPorts = (function () {
                         data: JSON.stringify(remoteProcessGroupPortEntity),
                         url: remoteProcessGroupData.component.uri + portContextPath + encodeURIComponent(port.id),
                         dataType: 'json',
-                        processData: false,
                         contentType: 'application/json'
                     }).done(function (response) {
                         // update the revision

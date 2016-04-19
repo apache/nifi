@@ -606,7 +606,14 @@ nf.Port = (function () {
             // update the visible ports
             d3.selectAll('g.input-port.visible, g.output-port.visible').call(updatePortStatus);
         },
-        
+
+        /**
+         * Returns the entity key when marshalling an entity of this type.
+         */
+        getEntityKey: function (d) {
+            return d.component.type === 'INPUT_PORT' ? 'inputPort' : 'outputPort';
+        },
+
         /**
          * Removes the specified port.
          *

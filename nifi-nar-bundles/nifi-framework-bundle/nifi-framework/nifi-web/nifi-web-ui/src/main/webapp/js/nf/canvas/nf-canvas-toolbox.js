@@ -36,6 +36,7 @@ nf.CanvasToolbox = (function () {
             filterList: 'filter-list'
         },
         urls: {
+            api: '../nifi-api',
             controller: '../nifi-api/controller',
             processorTypes: '../nifi-api/controller/processor-types',
             templates: '../nifi-api/controller/templates'
@@ -361,21 +362,25 @@ nf.CanvasToolbox = (function () {
      * @argument {object} pt                The point that the processor was dropped
      */
     var createProcessor = function (name, processorType, pt) {
-        var revision = nf.Client.getRevision();
+        var processorEntity = {
+            'revision': nf.Client.getRevision(),
+            'processor': {
+                'type': processorType,
+                'name': name,
+                'position': {
+                    'x': pt.x,
+                    'y': pt.y
+                }
+            }
+        };
 
         // create a new processor of the defined type
         $.ajax({
             type: 'POST',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/processors',
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                name: name,
-                type: processorType,
-                x: pt.x,
-                y: pt.y
-            },
-            dataType: 'json'
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/processors',
+            data: JSON.stringify(processorEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.processor)) {
                 // update the revision
@@ -448,20 +453,24 @@ nf.CanvasToolbox = (function () {
      * @argument {object} pt                The point that the input port was dropped
      */
     var createInputPort = function (portName, pt) {
-        var revision = nf.Client.getRevision();
-
+        var inputPortEntity = {
+            'revision': nf.Client.getRevision(),
+            'inputPort': {
+                'name': portName,
+                'position': {
+                    'x': pt.x,
+                    'y': pt.y
+                }
+            }
+        };
+        
         // create a new processor of the defined type
         $.ajax({
             type: 'POST',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/input-ports',
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                name: portName,
-                x: pt.x,
-                y: pt.y
-            },
-            dataType: 'json'
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/input-ports',
+            data: JSON.stringify(inputPortEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.inputPort)) {
                 // update the revision
@@ -534,20 +543,24 @@ nf.CanvasToolbox = (function () {
      * @argument {object} pt                The point that the output port was dropped
      */
     var createOutputPort = function (portName, pt) {
-        var revision = nf.Client.getRevision();
+        var outputPortEntity = {
+            'revision': nf.Client.getRevision(),
+            'outputPort': {
+                'name': portName,
+                'position': {
+                    'x': pt.x,
+                    'y': pt.y
+                }
+            }
+        };
 
         // create a new processor of the defined type
         $.ajax({
             type: 'POST',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/output-ports',
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                name: portName,
-                x: pt.x,
-                y: pt.y
-            },
-            dataType: 'json'
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/output-ports',
+            data: JSON.stringify(outputPortEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.outputPort)) {
                 // update the revision
@@ -574,20 +587,24 @@ nf.CanvasToolbox = (function () {
      * @argument {object} pt        The point that the group was dropped
      */
     var createGroup = function (groupName, pt) {
-        var revision = nf.Client.getRevision();
+        var processGroupEntity = {
+            'revision': nf.Client.getRevision(),
+            'processGroup': {
+                'name': groupName,
+                'position': {
+                    'x': pt.x,
+                    'y': pt.y
+                }
+            }
+        };
 
         // create a new processor of the defined type
         return $.ajax({
             type: 'POST',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/process-group-references',
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                name: groupName,
-                x: pt.x,
-                y: pt.y
-            },
-            dataType: 'json'
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/process-groups',
+            data: JSON.stringify(processGroupEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.processGroup)) {
                 // update the revision
@@ -657,20 +674,24 @@ nf.CanvasToolbox = (function () {
      * @argument {object} pt                            The point that the remote group was dropped
      */
     var createRemoteProcessGroup = function (remoteProcessGroupUri, pt) {
-        var revision = nf.Client.getRevision();
+        var remoteProcessGroupEntity = {
+            'revision': nf.Client.getRevision(),
+            'remoteProcessGroup': {
+                'targetUri': remoteProcessGroupUri,
+                'position': {
+                    'x': pt.x,
+                    'y': pt.y
+                }
+            }
+        };
 
         // create a new processor of the defined type
         $.ajax({
             type: 'POST',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/remote-process-groups',
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                uri: remoteProcessGroupUri,
-                x: pt.x,
-                y: pt.y
-            },
-            dataType: 'json'
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/remote-process-groups',
+            data: JSON.stringify(remoteProcessGroupEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.remoteProcessGroup)) {
                 // update the revision
@@ -696,19 +717,23 @@ nf.CanvasToolbox = (function () {
      * @argument {object} pt        The point that the funnel was dropped
      */
     var createFunnel = function (pt) {
-        var revision = nf.Client.getRevision();
+        var outputPortEntity = {
+            'revision': nf.Client.getRevision(),
+            'funnel': {
+                'position': {
+                    'x': pt.x,
+                    'y': pt.y
+                }
+            }
+        };
 
         // create a new funnel
         $.ajax({
             type: 'POST',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/funnels',
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                x: pt.x,
-                y: pt.y
-            },
-            dataType: 'json'
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/funnels',
+            data: JSON.stringify(outputPortEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.funnel)) {
                 // update the revision
@@ -803,7 +828,7 @@ nf.CanvasToolbox = (function () {
         // create a new instance of the new template
         $.ajax({
             type: 'POST',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/template-instance',
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/template-instance',
             data: {
                 version: revision.version,
                 clientId: revision.clientId,
@@ -833,21 +858,25 @@ nf.CanvasToolbox = (function () {
      * @argument {object} pt        The point that the label was dropped
      */
     var createLabel = function (pt) {
-        var revision = nf.Client.getRevision();
+        var labelEntity = {
+            'revision': nf.Client.getRevision(),
+            'label': {
+                'width': nf.Label.config.width,
+                'height': nf.Label.config.height,
+                'position': {
+                    'x': pt.x,
+                    'y': pt.y
+                }
+            }
+        };
 
         // create a new label
         $.ajax({
             type: 'POST',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/labels',
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                x: pt.x,
-                y: pt.y,
-                width: nf.Label.config.width,
-                height: nf.Label.config.height
-            },
-            dataType: 'json'
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/labels',
+            data: JSON.stringify(labelEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.label)) {
                 // update the revision

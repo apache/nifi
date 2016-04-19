@@ -16,30 +16,7 @@
  */
 package org.apache.nifi.remote;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.nifi.admin.service.AccountDisabledException;
-import org.apache.nifi.admin.service.AccountNotFoundException;
-import org.apache.nifi.admin.service.AccountPendingException;
-import org.apache.nifi.admin.service.AdministrationException;
-import org.apache.nifi.admin.service.UserService;
-import org.apache.nifi.authorization.Authority;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.AbstractPort;
@@ -64,9 +41,26 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.user.NiFiUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static java.util.Objects.requireNonNull;
 
 public class StandardRootGroupPort extends AbstractPort implements RootGroupPort {
 
@@ -78,7 +72,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     private final AtomicReference<Set<String>> userAccessControl = new AtomicReference<Set<String>>(new HashSet<String>());
     private final ProcessScheduler processScheduler;
     private final boolean secure;
-    private final UserService userService;
+    private final KeyService keyService;
     @SuppressWarnings("unused")
     private final BulletinRepository bulletinRepository;
     private final EventReporter eventReporter;
@@ -92,13 +86,13 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     private boolean shutdown = false;   // guarded by requestLock
 
     public StandardRootGroupPort(final String id, final String name, final ProcessGroup processGroup,
-            final TransferDirection direction, final ConnectableType type, final UserService userService,
+            final TransferDirection direction, final ConnectableType type, final KeyService keyService,
             final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure) {
         super(id, name, processGroup, type, scheduler);
 
         this.processScheduler = scheduler;
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
-        this.userService = userService;
+        this.keyService = keyService;
         this.secure = secure;
         this.bulletinRepository = bulletinRepository;
         this.scheduler = scheduler;
@@ -355,67 +349,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return new StandardPortAuthorizationResult(false, "User DN is not known");
         }
 
-        try {
-            final NiFiUser user = userService.checkAuthorization(dn);
-
-            final Set<Authority> authorities = user.getAuthorities();
-            if (!authorities.contains(Authority.ROLE_NIFI)) {
-                final String message = String.format("%s authorization failed for user %s because the user does not have Role NiFi", this, dn);
-                logger.warn(message);
-                eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-                return new StandardPortAuthorizationResult(false, "User does not contain required Role: NiFi");
-            }
-
-            final Set<String> allowedUsers = userAccessControl.get();
-            if (allowedUsers.contains(dn)) {
-                return new StandardPortAuthorizationResult(true, "User is Authorized");
-            }
-
-            final String userGroup = user.getUserGroup();
-            if (userGroup == null) {
-                final String message = String.format("%s authorization failed for user %s because the user does not have a group and is not in the set of Allowed Users for this Port", this, dn);
-                logger.warn(message);
-                eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-                return new StandardPortAuthorizationResult(false, "User is not Authorized to communicate with " + this.toString());
-            }
-
-            final Set<String> allowedGroups = groupAccessControl.get();
-            final boolean allowed = allowedGroups.contains(userGroup);
-            if (!allowed) {
-                final String message = String.format("%s authorization failed for user %s because the user "
-                        + "is not in the set of Allowed Users, and the user's group is not in the set of Allowed Groups for this Port", this, dn);
-                logger.warn(message);
-                eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-                return new StandardPortAuthorizationResult(false, "User is not Authorized to communicate with " + this.toString());
-            }
-
-            return new StandardPortAuthorizationResult(true, "User is part of group '" + userGroup + "', which is Authorized to communicate with " + this.toString());
-        } catch (final AccountNotFoundException anfe) {
-            final String message = String.format("%s authorization failed for user %s because the DN is unknown", this, dn);
-            logger.warn(message);
-            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-            return new StandardPortAuthorizationResult(false, "User DN is not known");
-        } catch (final AccountDisabledException ade) {
-            final String message = String.format("%s authorization failed for user %s because the User Status is not 'ACTIVE' but instead is 'DISABLED'", this, dn);
-            logger.warn(message);
-            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-            return new StandardPortAuthorizationResult(false, "User Status is 'DISABLED' rather than 'ACTIVE'");
-        } catch (final AccountPendingException ape) {
-            final String message = String.format("%s authorization failed for user %s because the User Status is not 'ACTIVE' but instead is 'PENDING'", this, dn);
-            logger.warn(message);
-            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-            return new StandardPortAuthorizationResult(false, "User Status is 'PENDING' rather than 'ACTIVE'");
-        } catch (final AdministrationException ae) {
-            final String message = String.format("%s authorization failed for user %s because ", this, dn, ae);
-            logger.warn(message);
-            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-            return new StandardPortAuthorizationResult(false, "Authorization failed because " + ae);
-        } catch (final Exception e) {
-            final String message = String.format("%s authorization failed for user %s because ", this, dn, e);
-            logger.warn(message);
-            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-            return new StandardPortAuthorizationResult(false, "Authorization failed because " + e);
-        }
+        // TODO - Replace with call to Authorizer to authorize site to site data transfer
+        return new StandardPortAuthorizationResult(true, "User is Authorized");
     }
 
     public static class StandardPortAuthorizationResult implements PortAuthorizationResult {

@@ -48,7 +48,7 @@ nf.ConnectionDetails = (function () {
     var initializeSourceProcessor = function (groupId, groupName, source) {
         return $.ajax({
             type: 'GET',
-            url: '../nifi-api/controller/process-groups/' + encodeURIComponent(groupId) + '/processors/' + encodeURIComponent(source.id),
+            url: '../nifi-api/processors/' + encodeURIComponent(source.id),
             dataType: 'json'
         }).done(function (response) {
             var processor = response.processor;
@@ -88,7 +88,7 @@ nf.ConnectionDetails = (function () {
     var initializeRemoteSourcePort = function (groupId, groupName, source) {
         return $.ajax({
             type: 'GET',
-            url: '../nifi-api/controller/process-groups/' + encodeURIComponent(groupId) + '/remote-process-groups/' + encodeURIComponent(source.groupId),
+            url: '../nifi-api/remote-process-groups/' + encodeURIComponent(source.groupId),
             data: {
                 verbose: true
             },
@@ -122,7 +122,7 @@ nf.ConnectionDetails = (function () {
             } else {
                 $.ajax({
                     type: 'GET',
-                    url: '../nifi-api/controller/process-groups/' + encodeURIComponent(source.groupId),
+                    url: '../nifi-api/process-groups/' + encodeURIComponent(source.groupId),
                     data: {
                         verbose: true
                     },
@@ -173,7 +173,7 @@ nf.ConnectionDetails = (function () {
         return $.Deferred(function (deferred) {
             $.ajax({
                 type: 'GET',
-                url: '../nifi-api/controller/process-groups/' + encodeURIComponent(groupId) + '/processors/' + encodeURIComponent(destination.id),
+                url: '../nifi-api/processors/' + encodeURIComponent(destination.id),
                 dataType: 'json'
             }).done(function (response) {
                 var processor = response.processor;
@@ -218,7 +218,7 @@ nf.ConnectionDetails = (function () {
     var initializeDestinationRemotePort = function (groupId, groupName, destination) {
         return $.ajax({
             type: 'GET',
-            url: '../nifi-api/controller/process-groups/' + encodeURIComponent(groupId) + '/remote-process-groups/' + encodeURIComponent(destination.groupId),
+            url: '../nifi-api/remote-process-groups/' + encodeURIComponent(destination.groupId),
             data: {
                 verbose: true
             },
@@ -252,7 +252,7 @@ nf.ConnectionDetails = (function () {
             } else {
                 $.ajax({
                     type: 'GET',
-                    url: '../nifi-api/controller/process-groups/' + encodeURIComponent(destination.groupId),
+                    url: '../nifi-api/process-groups/' + encodeURIComponent(destination.groupId),
                     data: {
                         verbose: true
                     },
@@ -367,14 +367,14 @@ nf.ConnectionDetails = (function () {
             // get the group details
             var groupXhr = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/controller/process-groups/' + encodeURIComponent(groupId),
+                url: '../nifi-api/process-groups/' + encodeURIComponent(groupId),
                 dataType: 'json'
             });
 
             // get the connection details
             var connectionXhr = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/controller/process-groups/' + encodeURIComponent(groupId) + '/connections/' + encodeURIComponent(connectionId),
+                url: '../nifi-api/connections/' + encodeURIComponent(connectionId),
                 dataType: 'json'
             });
 

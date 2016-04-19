@@ -1168,18 +1168,20 @@ nf.Connection = (function () {
                                     connection.call(updateConnections, true, false);
                                 });
                             } else {
-                                var revision = nf.Client.getRevision();
-
                                 // get the destination details
                                 var destinationData = destination.datum();
                                 var destinationType = nf.CanvasUtils.getConnectableTypeForDestination(destination);
 
-                                var updatedConnectionData = {
-                                    version: revision.version,
-                                    clientId: revision.clientId,
-                                    destinationId: destinationData.component.id,
-                                    destinationType: destinationType,
-                                    destinationGroupId: nf.Canvas.getGroupId()
+                                var connectionEntity = {
+                                    'revision': nf.Client.getRevision(),
+                                    'connection': {
+                                        'id': connectionData.component.id,
+                                        'destination': {
+                                            'id': destinationData.component.id,
+                                            'groupId': nf.Canvas.getGroupId(),
+                                            'type': destinationType
+                                        }
+                                    }
                                 };
 
                                 // if this is a self loop and there are less than 2 bends, add them
@@ -1191,16 +1193,23 @@ nf.Connection = (function () {
                                     var xOffset = nf.Connection.config.selfLoopXOffset;
                                     var yOffset = nf.Connection.config.selfLoopYOffset;
 
-                                    updatedConnectionData.bends = [];
-                                    updatedConnectionData.bends.push((rightCenter.x + xOffset) + ',' + (rightCenter.y - yOffset));
-                                    updatedConnectionData.bends.push((rightCenter.x + xOffset) + ',' + (rightCenter.y + yOffset));
+                                    connectionEntity.connection.bends = [];
+                                    connectionEntity.connection.bends.push({
+                                        'x': (rightCenter.x + xOffset),
+                                        'y': (rightCenter.y - yOffset)
+                                    });
+                                    connectionEntity.connection.bends.push({
+                                        'x': (rightCenter.x + xOffset),
+                                        'y': (rightCenter.y + yOffset)
+                                    });
                                 }
 
                                 $.ajax({
                                     type: 'PUT',
                                     url: connectionData.component.uri,
-                                    data: updatedConnectionData,
-                                    dataType: 'json'
+                                    data: JSON.stringify(connectionEntity),
+                                    dataType: 'json',
+                                    contentType: 'application/json'
                                 }).done(function (response) {
                                     var updatedConnectionData = response.connection;
 
