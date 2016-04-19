@@ -63,23 +63,23 @@ public class NiFiBolt extends BaseRichBolt {
     private long lastBatchProcessTimeSeconds = 0;
 
     public NiFiBolt(final SiteToSiteClientConfig clientConfig, final NiFiDataPacketBuilder builder, final int tickFrequencySeconds) {
+        Validate.notNull(clientConfig);
+        Validate.notNull(builder);
+        Validate.isTrue(tickFrequencySeconds > 0);
         this.clientConfig = clientConfig;
         this.builder = builder;
         this.tickFrequencySeconds = tickFrequencySeconds;
-        Validate.notNull(this.clientConfig);
-        Validate.notNull(this.builder);
-        Validate.isTrue(this.tickFrequencySeconds > 0);
     }
 
     public NiFiBolt withBatchSize(int batchSize) {
+        Validate.isTrue(batchSize > 0);
         this.batchSize = batchSize;
-        Validate.isTrue(this.batchSize > 0);
         return this;
     }
 
     public NiFiBolt withBatchInterval(int batchIntervalInSec) {
+        Validate.isTrue(batchIntervalInSec > 0);
         this.batchIntervalInSec = batchIntervalInSec;
-        Validate.isTrue(this.batchIntervalInSec > 0);
         return this;
     }
 
@@ -113,7 +113,9 @@ public class NiFiBolt extends BaseRichBolt {
             this.queue.add(tuple);
 
             int queueSize = this.queue.size();
-            LOGGER.debug("Current queue size is " + queueSize + ", and batch size is " + batchSize);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Current queue size is " + queueSize + ", and batch size is " + batchSize);
+            }
 
             if (queueSize >= batchSize) {
                 LOGGER.debug("Queue Size is greater than or equal to batch size, executing batch");
@@ -123,7 +125,10 @@ public class NiFiBolt extends BaseRichBolt {
     }
 
     private void finishBatch() {
-        LOGGER.debug("Finishing batch of size " + queue.size());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Finishing batch of size " + queue.size());
+        }
+
         lastBatchProcessTimeSeconds = System.currentTimeMillis() / 1000;
 
         final List<Tuple> tuples = new ArrayList<>();
