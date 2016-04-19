@@ -20,9 +20,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
-import org.apache.nifi.authorization.generated.Authorization;
-import org.apache.nifi.authorization.generated.Resource;
-import org.apache.nifi.authorization.generated.Resources;
+import org.apache.nifi.authorization.file.generated.Authorization;
+import org.apache.nifi.authorization.file.generated.Resources;
+import org.apache.nifi.authorization.file.generated.Resource;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -62,7 +62,7 @@ public class FileAuthorizer implements Authorizer {
     private static final String READ_CODE = "R";
     private static final String WRITE_CODE = "W";
     private static final String USERS_XSD = "/authorizations.xsd";
-    private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authorization.generated";
+    private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authorization.file.generated";
     private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
 
     /**
