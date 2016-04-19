@@ -90,6 +90,6 @@ class PutS3ObjectTest extends GroovyTestCase {
 
         // Assert
         assert ssePropertyDescriptor
-        assert ssePropertyDescriptor.allowableValues*.toString() == [putS3Object.NO_SERVER_SIDE_ENCRYPTION, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION]
+        assert ssePropertyDescriptor.allowableValues*.toString() == [putS3Object.NO_SERVER_SIDE_ENCRYPTION, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, putS3Object.KMS_MANAGED]
     }
 }
