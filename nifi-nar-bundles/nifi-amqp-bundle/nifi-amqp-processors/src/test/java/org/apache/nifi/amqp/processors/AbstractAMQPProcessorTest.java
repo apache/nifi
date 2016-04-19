@@ -19,7 +19,7 @@ package org.apache.nifi.amqp.processors;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.apache.nifi.authorization.exception.ProviderCreationException;
+import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
