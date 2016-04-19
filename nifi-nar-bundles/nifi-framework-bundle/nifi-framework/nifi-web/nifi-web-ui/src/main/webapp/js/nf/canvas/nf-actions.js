@@ -413,7 +413,7 @@ nf.Actions = (function () {
 
                     // build the entity
                     var entity = {};
-                    entity[nf[d.type].getEntityKey()] = {
+                    entity[nf[d.type].getEntityKey(d)] = {
                         'id': d.component.id,
                         'state': 'STOPPED'
                     };
@@ -460,7 +460,7 @@ nf.Actions = (function () {
 
                     // build the entity
                     var entity = {};
-                    entity[nf[d.type].getEntityKey()] = {
+                    entity[nf[d.type].getEntityKey(d)] = {
                         'id': d.component.id,
                         'state': 'DISABLED'
                     };
@@ -547,7 +547,7 @@ nf.Actions = (function () {
 
                         // build the entity
                         var entity = {};
-                        entity[nf[d.type].getEntityKey()] = component;
+                        entity[nf[d.type].getEntityKey(d)] = component;
 
                         startRequests.push(updateResource(d.component.uri, entity).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
@@ -624,7 +624,7 @@ nf.Actions = (function () {
 
                         // build the entity
                         var entity = {};
-                        entity[nf[d.type].getEntityKey()] = component;
+                        entity[nf[d.type].getEntityKey(d)] = component;
 
                         stopRequests.push(updateResource(d.component.uri, entity).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
