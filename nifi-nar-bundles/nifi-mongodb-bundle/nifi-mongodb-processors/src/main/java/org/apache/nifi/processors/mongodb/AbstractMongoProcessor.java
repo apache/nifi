@@ -63,14 +63,16 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-        .name("SSL Context Service")
+    	.name("ssl-context-service")
+        .displayName("SSL Context Service")
         .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                 + "connections.")
         .required(false)
         .identifiesControllerService(SSLContextService.class)
         .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-        .name("Client Auth")
+    	.name("ssl-client-auth")
+        .displayName("Client Auth")
         .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
                 + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
                 + "has been defined and enabled.")
