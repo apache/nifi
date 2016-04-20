@@ -83,7 +83,7 @@ public class RouteOnAttribute extends AbstractProcessor {
     // keep the word 'match' instead of 'matched' to maintain backward compatibility (there was a typo originally)
     public static final AllowableValue ROUTE_ANY_MATCHES = new AllowableValue(routeAnyMatches,
             "Route to 'matched' if any matches",
-            "Requires that at least one user-defined expression evaluate to 'true' for hte FlowFile to be considered a match");
+            "Requires that at least one user-defined expression evaluate to 'true' for the FlowFile to be considered a match");
 
     public static final PropertyDescriptor ROUTE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Routing Strategy")
