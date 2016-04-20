@@ -67,7 +67,7 @@ public class MiNiFi {
             @Override
             public void run() {
                 // shutdown the jetty server
-                shutdownHook();
+                shutdownHook(true);
             }
         }));
 
@@ -146,7 +146,7 @@ public class MiNiFi {
         }
     }
 
-    protected void shutdownHook() {
+    protected void shutdownHook(boolean isReload) {
         try {
             this.shutdown = true;
 
@@ -155,11 +155,15 @@ public class MiNiFi {
                 nifiServer.stop();
             }
             if (bootstrapListener != null) {
-                bootstrapListener.stop();
+                if (isReload) {
+                    bootstrapListener.reload();
+                } else {
+                    bootstrapListener.stop();
+                }
             }
             logger.info("Jetty web server shutdown completed (nicely or otherwise).");
         } catch (final Throwable t) {
-            logger.warn("Problem occured ensuring Jetty web server was properly terminated due to " + t);
+            logger.warn("Problem occurred ensuring Jetty web server was properly terminated due to " + t);
         }
     }
 

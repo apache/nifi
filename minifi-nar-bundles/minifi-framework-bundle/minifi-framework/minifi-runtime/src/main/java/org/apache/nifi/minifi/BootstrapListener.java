@@ -83,6 +83,13 @@ public class BootstrapListener {
         sendCommand("PORT", new String[]{String.valueOf(localPort), secretKey});
     }
 
+    public void reload() throws IOException {
+        if (listener != null) {
+            listener.stop();
+        }
+        sendCommand("RELOAD", new String[]{});
+    }
+
     public void stop() throws IOException {
         if (listener != null) {
             listener.stop();
@@ -190,12 +197,12 @@ public class BootstrapListener {
                                     case RELOAD:
                                         logger.info("Received RELOAD request from Bootstrap");
                                         echoReload(socket.getOutputStream());
-                                        nifi.shutdownHook();
+                                        nifi.shutdownHook(true);
                                         return;
                                     case SHUTDOWN:
                                         logger.info("Received SHUTDOWN request from Bootstrap");
                                         echoShutdown(socket.getOutputStream());
-                                        nifi.shutdownHook();
+                                        nifi.shutdownHook(false);
                                         return;
                                     case DUMP:
                                         logger.info("Received DUMP request from Bootstrap");
@@ -379,7 +386,7 @@ public class BootstrapListener {
 
     private static class BootstrapRequest {
 
-        public static enum RequestType {
+        public enum RequestType {
             RELOAD,
             SHUTDOWN,
             DUMP,
