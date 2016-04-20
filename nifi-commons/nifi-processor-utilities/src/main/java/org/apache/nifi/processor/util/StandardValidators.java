@@ -760,4 +760,32 @@ public class StandardValidators {
             }
         };
     }
+
+    /**
+     * Validates that one or more files exist, as specified in a single property.
+     */
+    public static Validator createMultipleFilesExistValidator() {
+        return new Validator() {
+
+            @Override
+            public ValidationResult validate(String subject, String input, ValidationContext context) {
+                final String[] files = input.split(",");
+                for (String filename : files) {
+                    try {
+                        final File file = new File(filename.trim());
+                        final boolean valid = file.exists() && file.isFile();
+                        if (!valid) {
+                            final String message = "File " + file + " does not exist or is not a file";
+                            return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(message).build();
+                        }
+                    } catch (SecurityException e) {
+                        final String message = "Unable to access " + filename + " due to " + e.getMessage();
+                        return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(message).build();
+                    }
+                }
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+            }
+
+        };
+    }
 }
