@@ -90,7 +90,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
     static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
             .name("compression type")
             .description("Type of compression to use when creating Sequence File")
-            .allowableValues(CompressionType.values())
+            .allowableValues(SequenceFile.CompressionType.values())
             .build();
 
     // Default Values.

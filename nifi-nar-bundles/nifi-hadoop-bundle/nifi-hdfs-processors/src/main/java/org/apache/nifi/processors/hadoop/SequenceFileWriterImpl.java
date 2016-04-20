@@ -94,8 +94,10 @@ public class SequenceFileWriterImpl implements SequenceFileWriter {
 
                 try (final FSDataOutputStream fsDataOutputStream = new FSDataOutputStream(bwos, new Statistics(""));
                         final SequenceFile.Writer writer = SequenceFile.createWriter(configuration,
-                                fsDataOutputStream, Text.class, InputStreamWritable.class, compressionType,
-                                new DefaultCodec())) {
+                                SequenceFile.Writer.stream(fsDataOutputStream),
+                                SequenceFile.Writer.keyClass(Text.class),
+                                SequenceFile.Writer.valueClass(InputStreamWritable.class),
+                                SequenceFile.Writer.compression(compressionType, new DefaultCodec()))) {
 
                     processInputStream(in, flowFile, writer);
 
