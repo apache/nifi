@@ -86,7 +86,8 @@ zeroArgBool : (IS_NULL | NOT_NULL | IS_EMPTY | NOT) LPAREN! RPAREN!;
 oneArgBool	: ((FIND | MATCHES | EQUALS_IGNORE_CASE) LPAREN! anyArg RPAREN!) |
 			  (GREATER_THAN | LESS_THAN | GREATER_THAN_OR_EQUAL | LESS_THAN_OR_EQUAL) LPAREN! anyArg RPAREN! |
 			  (EQUALS) LPAREN! anyArg RPAREN! |
-			  (AND | OR) LPAREN! anyArg RPAREN!;
+			  (AND | OR) LPAREN! anyArg RPAREN! |
+			  (GREATER_THAN_DECIMAL | LESS_THAN_DECIMAL | GREATER_THAN_OR_EQUAL_DECIMAL | LESS_THAN_OR_EQUAL_DECIMAL) LPAREN! anyArg RPAREN!;
 
 
 // functions that return Numbers
@@ -95,13 +96,21 @@ oneArgNum	: ((INDEX_OF | LAST_INDEX_OF) LPAREN! anyArg RPAREN!) |
 			  (TO_DATE LPAREN! anyArg? RPAREN!) |
 			  ((MOD | PLUS | MINUS | MULTIPLY | DIVIDE) LPAREN! anyArg RPAREN!);
 
+
+// functions that return Decimals
+zeroArgDec  : (TO_DECIMAL) LPAREN! RPAREN!;
+oneArgDec	: ((MOD_DECIMAL | PLUS_DECIMAL | MINUS_DECIMAL | MULTIPLY_DECIMAL | DIVIDE_DECIMAL) LPAREN! anyArg RPAREN!)|
+            (MATH LPAREN! anyArg (COMMA! anyArg)? RPAREN!);
+
+
 stringFunctionRef : zeroArgString | oneArgString | twoArgString | fiveArgString;
 booleanFunctionRef : zeroArgBool | oneArgBool;
 numberFunctionRef : zeroArgNum | oneArgNum;
+decimalFunctionRef : zeroArgDec | oneArgDec;
 
-anyArg : NUMBER | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | expression;
+anyArg : NUMBER | numberFunctionRef | decimalFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | expression ;
 stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression;
-functionRef : stringFunctionRef | booleanFunctionRef | numberFunctionRef;
+functionRef : stringFunctionRef | booleanFunctionRef | numberFunctionRef | decimalFunctionRef;
 
 
 

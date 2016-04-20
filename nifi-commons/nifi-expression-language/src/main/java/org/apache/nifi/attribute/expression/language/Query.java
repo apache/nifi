@@ -31,12 +31,14 @@ import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLe
 import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.BooleanCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DateCastEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.cast.DecimalCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.NumberCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.StringCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.AndEvaluator;
@@ -44,6 +46,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Append
 import org.apache.nifi.attribute.expression.language.evaluation.functions.AttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ContainsEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.DateToNumberEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.DecimalToNumberEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.DivideDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.DivideEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EndsWithEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EqualsEvaluator;
@@ -51,7 +55,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Equals
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDelimitedFieldEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
@@ -60,18 +66,26 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmpt
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanOrEqualDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanOrEqualEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MatchesEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.MathEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.ModDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ModEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.MultiplyDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MultiplyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NotEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NotNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NowEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NumberToDateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.NumberToDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OneUpSequenceEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OrEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusDecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PrependEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
@@ -86,7 +100,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Substr
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringBeforeLastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToLowerEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ToNumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
@@ -119,6 +132,16 @@ import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
 
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.DIVIDE_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.GREATER_THAN_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.GREATER_THAN_OR_EQUAL_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.LESS_THAN_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.LESS_THAN_OR_EQUAL_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.MATH;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.MINUS_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.MOD_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.MULTIPLY_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.PLUS_DECIMAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_MATCHING_ATTRIBUTES;
@@ -177,6 +200,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE_LAST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DATE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DECIMAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LITERAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LOWER;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_NUMBER;
@@ -1040,9 +1064,31 @@ public class Query {
                 return addToken(new NumberCastEvaluator(evaluator), evaluator.getToken());
             case DATE:
                 return addToken(new DateToNumberEvaluator((DateEvaluator) evaluator), evaluator.getToken());
+            case DECIMAL:
+                return addToken(new NumberCastEvaluator(evaluator), evaluator.getToken());
             default:
                 throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.NUMBER
                     + (location == null ? "" : " at location [" + location + "]"));
+        }
+    }
+
+    private static Evaluator<Double> toDecimalEvaluator(final Evaluator<?> evaluator) {
+        return toDecimalEvaluator(evaluator, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Evaluator<Double> toDecimalEvaluator(final Evaluator<?> evaluator, final String location) {
+        switch (evaluator.getResultType()) {
+            case DECIMAL:
+                return (Evaluator<Double>) evaluator;
+            case NUMBER:
+                return addToken(new DecimalCastEvaluator(evaluator), evaluator.getToken());
+            case STRING:
+                return addToken(new DecimalCastEvaluator(evaluator), evaluator.getToken());
+            case DATE:
+            default:
+                throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.DECIMAL
+                        + (location == null ? "" : " at location [" + location + "]"));
         }
     }
 
@@ -1222,6 +1268,26 @@ public class Query {
                 return addToken(new LessThanOrEqualEvaluator(toNumberEvaluator(subjectEvaluator),
                     toNumberEvaluator(argEvaluators.get(0), "first argument to le")), "le");
             }
+            case GREATER_THAN_DECIMAL: {
+                verifyArgCount(argEvaluators, 1, "gtDecimal");
+                return addToken(new GreaterThanDecimalEvaluator(toDecimalEvaluator(subjectEvaluator),
+                        toDecimalEvaluator(argEvaluators.get(0), "first argument to gtDecimal")), "gtDecimal");
+            }
+            case GREATER_THAN_OR_EQUAL_DECIMAL: {
+                verifyArgCount(argEvaluators, 1, "geDecimal");
+                return addToken(new GreaterThanOrEqualDecimalEvaluator(toDecimalEvaluator(subjectEvaluator),
+                        toDecimalEvaluator(argEvaluators.get(0), "first argument to geDecimal")), "geDecimal");
+            }
+            case LESS_THAN_DECIMAL: {
+                verifyArgCount(argEvaluators, 1, "ltDecimal");
+                return addToken(new LessThanDecimalEvaluator(toDecimalEvaluator(subjectEvaluator),
+                        toDecimalEvaluator(argEvaluators.get(0), "first argument to ltDecimal")), "ltDecimal");
+            }
+            case LESS_THAN_OR_EQUAL_DECIMAL: {
+                verifyArgCount(argEvaluators, 1, "leDecimal");
+                return addToken(new LessThanOrEqualDecimalEvaluator(toDecimalEvaluator(subjectEvaluator),
+                        toDecimalEvaluator(argEvaluators.get(0), "first argument to leDecimal")), "leDecimal");
+            }
             case LENGTH: {
                 verifyArgCount(argEvaluators, 0, "length");
                 return addToken(new LengthEvaluator(toStringEvaluator(subjectEvaluator)), "length");
@@ -1238,10 +1304,24 @@ public class Query {
             case TO_NUMBER: {
                 verifyArgCount(argEvaluators, 0, "toNumber");
                 switch (subjectEvaluator.getResultType()) {
+                    case DECIMAL:
+                        return addToken(new DecimalToNumberEvaluator((DecimalEvaluator) subjectEvaluator), "toNumber");
                     case STRING:
-                        return addToken(new ToNumberEvaluator((StringEvaluator) subjectEvaluator), "toNumber");
+                        return addToken(new NumberCastEvaluator(subjectEvaluator), "toNumber");
                     case DATE:
                         return addToken(new DateToNumberEvaluator((DateEvaluator) subjectEvaluator), "toNumber");
+                    default:
+                        throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING);
+                }
+            }
+            case TO_DECIMAL: {
+                verifyArgCount(argEvaluators, 0, "toDecimal");
+                switch (subjectEvaluator.getResultType()) {
+                    case NUMBER:
+                        return addToken(new NumberToDecimalEvaluator((NumberEvaluator) subjectEvaluator), "toNumber");
+                    case STRING:
+                        return addToken(new DecimalCastEvaluator(subjectEvaluator), "toDecimal");
+                    case DATE:
                     default:
                         throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING);
                 }
@@ -1267,6 +1347,28 @@ public class Query {
             }
             case DIVIDE: {
                 return addToken(new DivideEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0))), "divide");
+            }
+            case PLUS_DECIMAL: {
+                return addToken(new PlusDecimalEvaluator(toDecimalEvaluator(subjectEvaluator), toDecimalEvaluator(argEvaluators.get(0))), "plusDecimal");
+            }
+            case MINUS_DECIMAL: {
+                return addToken(new MinusDecimalEvaluator(toDecimalEvaluator(subjectEvaluator), toDecimalEvaluator(argEvaluators.get(0))), "minusDecimal");
+            }
+            case MULTIPLY_DECIMAL: {
+                return addToken(new MultiplyDecimalEvaluator(toDecimalEvaluator(subjectEvaluator), toDecimalEvaluator(argEvaluators.get(0))), "multiplyDecimal");
+            }
+            case DIVIDE_DECIMAL: {
+                return addToken(new DivideDecimalEvaluator(toDecimalEvaluator(subjectEvaluator), toDecimalEvaluator(argEvaluators.get(0))), "divideDecimal");
+            }
+            case MOD_DECIMAL: {
+                return addToken(new ModDecimalEvaluator(toDecimalEvaluator(subjectEvaluator), toDecimalEvaluator(argEvaluators.get(0))), "modDecimal");
+            }
+            case MATH: {
+                if (argEvaluators.size() == 1) {
+                    return addToken(new MathEvaluator(toDecimalEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), null), "math");
+                } else {
+                    return addToken(new MathEvaluator(toDecimalEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toDecimalEvaluator(argEvaluators.get(1))), "math");
+                }
             }
             case INDEX_OF: {
                 verifyArgCount(argEvaluators, 1, "indexOf");
