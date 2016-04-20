@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import static org.apache.nifi.util.verifier.ConditionsBuilder.attributeEqual;
-import static org.apache.nifi.util.verifier.ConditionsBuilder.contentEqual;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
@@ -25,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.flowfile.FlowFile;
@@ -58,7 +57,24 @@ public class TestStandardProcessorTestRunner {
     }
 
     @Test
-    public void testVerifyFlowFiles() {
+    public void testAllConditionsMet() {
+        TestRunner runner = new StandardProcessorTestRunner(new GoodProcessor());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("GROUP_ATTRIBUTE_KEY", "1");
+        attributes.put("KeyB", "hihii");
+        runner.enqueue("1,hello\n1,good-bye".getBytes(), attributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GoodProcessor.REL_SUCCESS, 1);
+
+        runner.assertAllConditionsMet("success",
+            mff -> mff.isAttributeEqual("GROUP_ATTRIBUTE_KEY", "1") && mff.isContentEqual("1,hello\n1,good-bye")
+            );
+    }
+
+    @Test
+    public void testAllConditionsMetComplex() {
         TestRunner runner = new StandardProcessorTestRunner(new GoodProcessor());
 
         final Map<String, String> attributes = new HashMap<>();
@@ -73,9 +89,10 @@ public class TestStandardProcessorTestRunner {
         runner.run();
         runner.assertAllFlowFilesTransferred(GoodProcessor.REL_SUCCESS, 2);
 
-        runner.assertAllConditionsMet("success",
-                attributeEqual("GROUP_ATTRIBUTE_KEY", "1").andContentEqual("1,hello\n1,good-bye").andAttributeEqual("KeyB", "hihii"),
-                contentEqual("May Andersson").andAttributeEqual("age", "34")
+        Predicate<MockFlowFile> firstPredicate = mff -> mff.isAttributeEqual("GROUP_ATTRIBUTE_KEY", "1");
+        Predicate<MockFlowFile> either = firstPredicate.or(mff -> mff.isAttributeEqual("age", "34"));
+
+        runner.assertAllConditionsMet("success", either
                 );
     }
 

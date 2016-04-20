@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -36,7 +37,6 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
-import org.apache.nifi.util.verifier.ConditionsBuilder;
 
 public interface TestRunner {
 
@@ -868,19 +868,18 @@ public interface TestRunner {
     MockStateManager getStateManager(ControllerService service);
 
     /**
-     *  Maybe we should add possibility to be more precise:
-     *      "All FlowFiles must meet all conditions"
-     *  or
-     *      "At least one FlowFile must meet all conditions"
-     *  or
-     *      "Each FlowFile should meet at least one condition"
+     * Asserts that all FlowFiles meet all conditions.
      *
-     *  Current functionality is: "Each FlowFile should meet at least one condition"
-     *  So instead of assertAllConditionsMet we should use something like assertFlowFileMeetAnyCondition
-     *  Or add extra parameter which specifies how FlowFile must meet conditions.
-     *
+     * @param relationshipName relationship name
+     * @param predicate conditions
      */
-    void assertAllConditionsMet(final String relationshipName, ConditionsBuilder... andContentEqual);
+    void assertAllConditionsMet(final String relationshipName, Predicate<MockFlowFile> predicate);
 
-    void assertAllConditionsMet(final Relationship relationship, ConditionsBuilder... andContentEqual);
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationship relationship
+     * @param predicate conditions
+     */
+    void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate);
 }
