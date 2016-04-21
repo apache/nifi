@@ -19,14 +19,15 @@ package org.apache.nifi.processors.standard;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.concurrent.ArrayBlockingQueue;
-
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestPutUDP {
@@ -141,6 +142,7 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
+    @Ignore("This test is failing incorrectly as documented in NIFI-1795")
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testUnknownHostname() throws Exception {
         configureProperties(UNKNOWN_HOST, true);
