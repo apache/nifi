@@ -39,6 +39,9 @@ Content Repository:
     content claim max flow files: 100
     always sync: false
 
+Provenance Repository:
+    provenance rollover time: 1 min
+
 Component Status Repository:
     buffer size: 1440
     snapshot frequency: 1 min

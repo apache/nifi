@@ -50,7 +50,6 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-runtime</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

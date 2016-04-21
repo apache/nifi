@@ -94,6 +94,12 @@ content claim max appendable size | The maximum size for a content claim. The de
 content claim max flow files      | The maximum number of FlowFiles to assign to one content claim. The default value is 100.
 always sync                       | If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
 
+## Provenance Repository
+
+*Property*                        | *Description*
+--------------------------------  | -------------
+provenance rollover time          | The amount of time to wait before rolling over the latest data provenance information so that it is available to be accessed by components. The default value is 1 min.
+
 ## *Component Status Repository*
 
 The Component Status Repository contains the information for the Component Status History tool in the User Interface. These

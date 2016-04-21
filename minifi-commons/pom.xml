@@ -25,7 +25,11 @@ limitations under the License.
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-commons</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>minifi-utils</module>
+    </modules>
 
 
 </project>

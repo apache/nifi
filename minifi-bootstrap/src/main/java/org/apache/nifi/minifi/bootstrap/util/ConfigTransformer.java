@@ -83,6 +83,9 @@ public final class ConfigTransformer {
     public static final String OUT_THREADS_KEY = "out threads";
 
 
+    public static final String PROVENANCE_REPO_KEY = "Provenance Repository";
+    public static final String PROVENANCE_REPO_ROLLOVER_TIME_KEY = "provenance rollover time";
+
     public static final String CONTENT_REPO_KEY = "Content Repository";
     public static final String CONTENT_CLAIM_MAX_APPENDABLE_SIZE_KEY = "content claim max appendable size";
     public static final String CONTENT_CLAIM_MAX_FLOW_FILES_KEY = "content claim max flow files";
@@ -216,6 +219,7 @@ public final class ConfigTransformer {
             Map<String, Object> flowfileRepo = (Map<String, Object>) topLevelYaml.get(FLOWFILE_REPO_KEY);
             Map<String, Object> swapProperties = (Map<String, Object>) flowfileRepo.get(SWAP_PROPS_KEY);
             Map<String, Object> contentRepo = (Map<String, Object>) topLevelYaml.get(CONTENT_REPO_KEY);
+            Map<String, Object> provenanceRepo = (Map<String, Object>) topLevelYaml.get(PROVENANCE_REPO_KEY);
             Map<String, Object> componentStatusRepo = (Map<String, Object>) topLevelYaml.get(COMPONENT_STATUS_REPO_KEY);
             Map<String, Object> securityProperties = (Map<String, Object>) topLevelYaml.get(SECURITY_PROPS_KEY);
             Map<String, Object> sensitiveProperties = (Map<String, Object>) securityProperties.get(SENSITIVE_PROPS_KEY);
@@ -278,7 +282,8 @@ public final class ConfigTransformer {
             writer.println("nifi.content.repository.always.sync=" + getValueString(contentRepo, ALWAYS_SYNC_KEY));
             writer.println();
             writer.println("# Provenance Repository Properties");
-            writer.println("nifi.provenance.repository.implementation=org.apache.nifi.provenance.VolatileProvenanceRepository");
+            writer.println("nifi.provenance.repository.implementation=org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository");
+            writer.println("nifi.provenance.repository.rollover.time=" + getValueString(provenanceRepo, PROVENANCE_REPO_ROLLOVER_TIME_KEY));
             writer.println();
             writer.println("# Volatile Provenance Respository Properties");
             writer.println("nifi.provenance.repository.buffer.size=100000");

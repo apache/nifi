@@ -20,17 +20,38 @@ limitations under the License.
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>minifi</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
+        <artifactId>minifi-provenance-repository-bundle</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>minifi-api</artifactId>
-    <packaging>jar</packaging>
+
+    <artifactId>minifi-persistent-provenance-repository</artifactId>
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-properties</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-data-provenance-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-persistent-provenance-repository</artifactId>
+            <version>0.6.0</version>
         </dependency>
     </dependencies>
 </project>

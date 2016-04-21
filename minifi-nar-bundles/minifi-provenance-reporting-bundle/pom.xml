@@ -28,9 +28,14 @@
         <module>minifi-provenance-reporting-task</module>
         <module>minifi-provenance-reporting-nar</module>
     </modules>
-    
+
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.apache.nifi.minifi</groupId>
+                <artifactId>minifi-provenance-reporting-task</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>
                 <artifactId>jersey-client</artifactId>

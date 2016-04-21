@@ -30,7 +30,6 @@
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-provenance-reporting-task</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

@@ -25,6 +25,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>minifi-framework-bundle</module>
+        <module>minifi-provenance-repository-bundle</module>
         <module>minifi-provenance-reporting-bundle</module>
     </modules>
 </project>
