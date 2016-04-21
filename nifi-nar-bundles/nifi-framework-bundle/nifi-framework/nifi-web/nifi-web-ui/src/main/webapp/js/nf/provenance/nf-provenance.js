@@ -30,9 +30,8 @@ nf.Provenance = (function () {
     var config = {
         urls: {
             cluster: '../nifi-api/cluster',
-            banners: '../nifi-api/controller/banners',
-            config: '../nifi-api/controller/config',
-            controllerAbout: '../nifi-api/controller/about',
+            banners: '../nifi-api/flow/banners',
+            about: '../nifi-api/flow/about',
             authorities: '../nifi-api/controller/authorities'
         }
     };
@@ -68,21 +67,27 @@ nf.Provenance = (function () {
     /**
      * Loads the controller configuration.
      */
-    var loadControllerConfig = function () {
-        return $.ajax({
+    var loadAbout = function () {
+        // get the about details
+        $.ajax({
             type: 'GET',
-            url: config.urls.config,
+            url: config.urls.about,
             dataType: 'json'
         }).done(function (response) {
-            var config = response.config;
+            var aboutDetails = response.about;
+            var provenanceTitle = aboutDetails.title + ' Data Provenance';
 
             // store the controller name
-            $('#nifi-controller-uri').text(config.uri);
+            $('#nifi-controller-uri').text(aboutDetails.uri);
 
             // store the content viewer url if available
-            if (!nf.Common.isBlank(config.contentViewerUrl)) {
-                $('#nifi-content-viewer-url').text(config.contentViewerUrl);
+            if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
+                $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
             }
+
+            // set the document title and the about title
+            document.title = provenanceTitle;
+            $('#provenance-header-text').text(provenanceTitle);
         }).fail(nf.Common.handleAjaxError);
     };
 
@@ -177,10 +182,10 @@ nf.Provenance = (function () {
             nf.Storage.init();
             
             // load the users authorities and detect if the NiFi is clustered
-            $.when(loadControllerConfig(), loadAuthorities(), detectedCluster()).done(function () {
+            $.when(loadAbout(), loadAuthorities(), detectedCluster()).done(function () {
                 // create the provenance table
                 nf.ProvenanceTable.init(isClustered).done(function () {
-                    var search = {};
+                    var searchTerms = {};
                     
                     // look for a processor id in the query search
                     var initialComponentId = $('#intial-component-query').text();
@@ -189,9 +194,7 @@ nf.Provenance = (function () {
                         $('input.searchable-component-id').val(initialComponentId);
                         
                         // build the search criteria
-                        search = $.extend(search, {
-                            'search[ProcessorID]': initialComponentId
-                        });
+                        searchTerms['ProcessorID'] = initialComponentId;
                     }
 
                     // look for a flowfile uuid in the query search
@@ -201,32 +204,24 @@ nf.Provenance = (function () {
                         $('input.searchable-flowfile-uuid').val(initialFlowFileUuid);
 
                         // build the search criteria
-                        search = $.extend(search, {
-                            'search[FlowFileUUID]': initialFlowFileUuid
+                        searchTerms['FlowFileUUID'] = initialFlowFileUuid;
+                    }
+                    
+                    // load the provenance table
+                    if ($.isEmptyObject(searchTerms)) {
+                        // load the provenance table
+                        nf.ProvenanceTable.loadProvenanceTable();
+                    } else {
+                        // load the provenance table
+                        nf.ProvenanceTable.loadProvenanceTable({
+                            'searchTerms': searchTerms
                         });
                     }
-
-                    // load the provenance table
-                    nf.ProvenanceTable.loadProvenanceTable(search);
 
                     // once the table is initialized, finish initializing the page
                     initializeProvenancePage().done(function () {
                         // configure the initial grid height
                         nf.ProvenanceTable.resetTableSize();
-
-                        // get the about details
-                        $.ajax({
-                            type: 'GET',
-                            url: config.urls.controllerAbout,
-                            dataType: 'json'
-                        }).done(function (response) {
-                            var aboutDetails = response.about;
-                            var provenanceTitle = aboutDetails.title + ' Data Provenance';
-
-                            // set the document title and the about title
-                            document.title = provenanceTitle;
-                            $('#provenance-header-text').text(provenanceTitle);
-                        }).fail(nf.Common.handleAjaxError);
                     });
                 });
             });

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
@@ -48,7 +49,11 @@ import javax.ws.rs.core.Response;
 /**
  * RESTful endpoint for querying the history of this Controller.
  */
-@Path("history")
+@Path("/history")
+@Api(
+    value = "/history",
+    description = "Endpoint for accessing flow history."
+)
 public class HistoryResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;

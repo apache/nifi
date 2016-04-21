@@ -24,6 +24,7 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
@@ -97,6 +98,7 @@ import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
@@ -1529,6 +1531,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return dtoFactory.createSystemDiagnosticsDto(sysDiagnostics);
     }
 
+    @Override
+    public List<ResourceDTO> getResources() {
+        final List<Resource> resources = controllerFacade.getResources();
+        final List<ResourceDTO> resourceDtos = new ArrayList<>(resources.size());
+        for (final Resource resource : resources) {
+            resourceDtos.add(dtoFactory.createResourceDto(resource));
+        }
+        return resourceDtos;
+    }
+
     /**
      * Ensures the specified user has permission to access the specified port.
      */
@@ -1623,9 +1635,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // get the refresh interval
         final long refreshInterval = FormatUtils.getTimeDuration(properties.getAutoRefreshInterval(), TimeUnit.SECONDS);
         controllerConfig.setAutoRefreshIntervalSeconds(refreshInterval);
-
-        // get the content viewer url
-        controllerConfig.setContentViewerUrl(properties.getProperty(NiFiProperties.CONTENT_VIEWER_URL));
 
         final Date now = new Date();
         controllerConfig.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));

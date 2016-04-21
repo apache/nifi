@@ -39,9 +39,6 @@ public class ControllerConfigurationDTO {
     private Date currentTime;
     private Integer timeOffset;
 
-    private String contentViewerUrl;
-    private String uri;
-
     /**
      * @return maximum number of timer driven threads this NiFi has available
      */
@@ -155,33 +152,5 @@ public class ControllerConfigurationDTO {
 
     public void setTimeOffset(Integer timeOffset) {
         this.timeOffset = timeOffset;
-    }
-
-    /**
-     * @return the URL for the content viewer if configured
-     */
-    @ApiModelProperty(
-            value = "The URL for the content viewer if configured."
-    )
-    public String getContentViewerUrl() {
-        return contentViewerUrl;
-    }
-
-    public void setContentViewerUrl(String contentViewerUrl) {
-        this.contentViewerUrl = contentViewerUrl;
-    }
-
-    /**
-     * @return URI for this NiFi controller
-     */
-    @ApiModelProperty(
-            value = "The URI for the NiFi."
-    )
-    public String getUri() {
-        return uri;
-    }
-
-    public void setUri(String uri) {
-        this.uri = uri;
     }
 }

@@ -124,19 +124,6 @@ nf.Common = (function () {
         },
 
         /**
-         * Loads a script at the specified URL. Supports caching the script on the browser.
-         * 
-         * @param {string} url
-         */
-        cachedScript: function (url) {
-            return $.ajax({
-                dataType: 'script',
-                cache: true,
-                url: url
-            });
-        },
-
-        /**
          * Automatically refresh tokens by checking once an hour if its going to expire soon.
          */
         scheduleTokenRefresh: function () {

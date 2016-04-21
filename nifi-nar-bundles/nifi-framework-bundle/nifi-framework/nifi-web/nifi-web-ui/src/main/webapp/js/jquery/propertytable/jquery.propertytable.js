@@ -810,7 +810,7 @@
     var promptForNewControllerService = function (gridContainer, grid, item, serviceType, configurationOptions) {
         $.ajax({
             type: 'GET',
-            url: '../nifi-api/controller/controller-service-types',
+            url: '../nifi-api/flow/controller-service-types',
             data: {
                 serviceType: serviceType
             },

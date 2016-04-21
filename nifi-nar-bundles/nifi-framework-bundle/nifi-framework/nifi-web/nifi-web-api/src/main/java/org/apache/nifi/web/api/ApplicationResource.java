@@ -337,6 +337,12 @@ public abstract class ApplicationResource {
         return params;
     }
 
+    /**
+     * Used when replicating requests to ensure the client id is the same on each node.
+     *
+     * @param entity entity
+     * @return entity with the client id set
+     */
     protected Entity updateClientId(final Entity entity) {
         if (entity != null && entity.getRevision() != null && StringUtils.isBlank(entity.getRevision().getClientId())) {
             entity.getRevision().setClientId(new ClientIdParameter().getClientId());

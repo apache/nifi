@@ -507,6 +507,13 @@ public interface ProcessGroup {
     ProcessGroup findProcessGroup(String id);
 
     /**
+     * @return a List of all ProcessGroups that are children or descendants of this
+     * ProcessGroup. This performs a recursive search of all descendant
+     * ProcessGroups
+     */
+    List<ProcessGroup> findAllProcessGroups();
+
+    /**
      * @param id of the group
      * @return the RemoteProcessGroup with the given ID, if it exists as a child
      * or descendant of this ProcessGroup. This performs a recursive search of
@@ -560,6 +567,13 @@ public interface ProcessGroup {
     Port findInputPort(String id);
 
     /**
+     * @return a List of all InputPorts that are children or descendants of this
+     * ProcessGroup. This performs a recursive search of all descendant
+     * ProcessGroups
+     */
+    List<Port> findAllInputPorts();
+
+    /**
      * @param name of port
      * @return the input port with the given name, if it exists; otherwise
      * returns null
@@ -573,6 +587,13 @@ public interface ProcessGroup {
      * descendant ProcessGroups
      */
     Port findOutputPort(String id);
+
+    /**
+     * @return a List of all OutputPorts that are children or descendants of this
+     * ProcessGroup. This performs a recursive search of all descendant
+     * ProcessGroups
+     */
+    List<Port> findAllOutputPorts();
 
     /**
      * @param name of the port

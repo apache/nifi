@@ -23,17 +23,12 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
-import org.apache.nifi.web.api.entity.SystemDiagnosticsEntity;
+import org.apache.nifi.web.api.entity.ResourcesEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 
 import javax.ws.rs.Consumes;
@@ -45,39 +40,37 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 /**
  * RESTful endpoint for retrieving system diagnostics.
  */
-@Path("/system-diagnostics")
+@Path("/resources")
 @Api(
-    value = "/system-diagnostics",
-    description = "Endpoint for accessing system diagnostics."
+    value = "/resources",
+    description = "Provides the resources in this NiFi that can have access/authorization policies."
 )
-public class SystemDiagnosticsResource extends ApplicationResource {
+public class ResourceResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
-    private Authorizer authorizer;
 
     /**
-     * Gets the system diagnostics for this NiFi instance.
+     * Gets the available resources that support access/authorization policies.
      *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @return A systemDiagnosticsEntity.
+     * @return A resourcesEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-            value = "Gets the diagnostics for the system NiFi is running on",
-            response = SystemDiagnosticsEntity.class,
+            value = "Gets the available resources that support access/authorization policies",
+            response = ResourcesEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
@@ -89,65 +82,29 @@ public class SystemDiagnosticsResource extends ApplicationResource {
                 @ApiResponse(code = 401, message = "Client could not be authenticated."),
                 @ApiResponse(code = 403, message = "Client is not authorized to make this request."),}
     )
-    public Response getSystemDiagnostics(
+    public Response getResources(
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                value = "Whether or not to include the breakdown per node. Optional, defaults to false",
-                required = false
-            )
-            @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                value = "The id of the node where to get the status.",
-                required = false
-            )
-            @QueryParam("clusterNodeId") String clusterNodeId) {
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
-        // ensure a valid request
-        if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
-            throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
-        }
-
+        // replicate if the cluster manager
         if (properties.isClusterManager()) {
-            // determine where this request should be sent
-            if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
-                final SystemDiagnosticsEntity entity = (SystemDiagnosticsEntity) nodeResponse.getUpdatedEntity();
-
-                // ensure there is an updated entity (result of merging) and prune the response as necessary
-                if (entity != null && !nodewise) {
-                    entity.getSystemDiagnostics().setNodeSnapshots(null);
-                }
-
-                return nodeResponse.getResponse();
-            } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
-            }
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        final SystemDiagnosticsDTO systemDiagnosticsDto = serviceFacade.getSystemDiagnostics();
+        // TODO - if unsecure, return no resources?
+        final List<ResourceDTO> resources = serviceFacade.getResources();
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
 
         // create the response
-        final SystemDiagnosticsEntity entity = new SystemDiagnosticsEntity();
+        final ResourcesEntity entity = new ResourcesEntity();
         entity.setRevision(revision);
-        entity.setSystemDiagnostics(systemDiagnosticsDto);
+        entity.setResources(resources);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -160,10 +117,6 @@ public class SystemDiagnosticsResource extends ApplicationResource {
 
     public void setClusterManager(WebClusterManager clusterManager) {
         this.clusterManager = clusterManager;
-    }
-
-    public void setAuthorizer(Authorizer authorizer) {
-        this.authorizer = authorizer;
     }
 
     public void setProperties(NiFiProperties properties) {

@@ -27,12 +27,12 @@ nf.Settings = (function () {
             filterList: 'filter-list'
         },
         urls: {
+            api: '../nifi-api',
             controllerConfig: '../nifi-api/controller/config',
             controllerArchive: '../nifi-api/controller/archive',
-            controllerServiceTypes: '../nifi-api/controller/controller-service-types',
-            controllerServices: '../nifi-api/controller-services',
-            reportingTaskTypes: '../nifi-api/controller/reporting-task-types',
-            reportingTasks: '../nifi-api/reporting-tasks'
+            controllerServiceTypes: '../nifi-api/flow/controller-service-types',
+            reportingTaskTypes: '../nifi-api/flow/reporting-task-types',
+            reportingTasks: '../nifi-api/controller/reporting-tasks'
         }
     };
 
@@ -80,19 +80,20 @@ nf.Settings = (function () {
 
             // register the click listener for the save button
             $('#settings-save').click(function () {
-                var revision = nf.Client.getRevision();
-
                 // marshal the configuration details
                 var configuration = marshalConfiguration();
-                configuration['version'] = revision.version;
-                configuration['clientId'] = revision.clientId;
+                var entity = {
+                    'revision': nf.Client.getRevision(),
+                    'config': configuration
+                };
 
                 // save the new configuration details
                 $.ajax({
                     type: 'PUT',
                     url: config.urls.controllerConfig,
-                    data: configuration,
-                    dataType: 'json'
+                    data: JSON.stringify(entity),
+                    dataType: 'json',
+                    contentType: 'application/json'
                 }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
@@ -316,7 +317,7 @@ nf.Settings = (function () {
         // add the new controller service
         var addService = $.ajax({
             type: 'POST',
-            url: config.urls.controllerServices + '/' + encodeURIComponent(availability),
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(availability),
             data: JSON.stringify(controllerServiceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -863,7 +864,7 @@ nf.Settings = (function () {
         // get the controller services that are running on the nodes
         var nodeControllerServices = $.ajax({
             type: 'GET',
-            url: config.urls.controllerServices + '/' + encodeURIComponent(config.node),
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(config.node),
             dataType: 'json'
         }).done(function (response) {
             var nodeServices = response.controllerServices;
@@ -881,7 +882,7 @@ nf.Settings = (function () {
             if (nf.Canvas.isClustered()) {
                 $.ajax({
                     type: 'GET',
-                    url: config.urls.controllerServices + '/' + encodeURIComponent(config.ncm),
+                    url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(config.ncm),
                     dataType: 'json'
                 }).done(function (response) {
                     var ncmServices = response.controllerServices;

@@ -25,8 +25,8 @@ nf.ProvenanceLineage = (function () {
     var config = {
         sliderTickCount: 75,
         urls: {
-            lineage: '../nifi-api/controller/provenance/lineage',
-            events: '../nifi-api/controller/provenance/events/'
+            lineage: '../nifi-api/provenance/lineage',
+            events: '../nifi-api/provenance/events/'
         }
     };
 
@@ -123,11 +123,18 @@ nf.ProvenanceLineage = (function () {
      * @returns {deferred}
      */
     var submitLineage = function (lineageRequest) {
+        var lineageEntity = {
+            'lineage': {
+                'request': lineageRequest
+            }
+        };
+        
         return $.ajax({
             type: 'POST',
             url: config.urls.lineage,
-            data: lineageRequest,
-            dataType: 'json'
+            data: JSON.stringify(lineageEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).fail(nf.Common.handleAjaxError);
     };
 

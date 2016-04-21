@@ -77,28 +77,22 @@ nf.Canvas = (function () {
     var config = {
         urls: {
             api: '../nifi-api',
-            identity: '../nifi-api/controller/identity',
+            identity: '../nifi-api/flow/identity',
             authorities: '../nifi-api/controller/authorities',
             kerberos: '../nifi-api/access/kerberos',
-            revision: '../nifi-api/controller/revision',
-            status: '../nifi-api/controller/status',
-            bulletinBoard: '../nifi-api/bulletin-board',
-            banners: '../nifi-api/controller/banners',
+            revision: '../nifi-api/flow/revision',
+            status: '../nifi-api/flow/status',
+            bulletinBoard: '../nifi-api/flow/bulletin-board',
+            banners: '../nifi-api/flow/banners',
             controller: '../nifi-api/controller',
             controllerConfig: '../nifi-api/controller/config',
+            about: '../nifi-api/flow/about',
             accessConfig: '../nifi-api/access/config',
             cluster: '../nifi-api/cluster',
             d3Script: 'js/d3/d3.min.js'
         }
     };
     
-    /**
-     * Loads D3.
-     */
-    var loadD3 = function () {
-        return nf.Common.cachedScript(config.urls.d3Script);
-    };
-
     /**
      * Starts polling for the revision.
      *
@@ -834,7 +828,7 @@ nf.Canvas = (function () {
         return $.Deferred(function (deferred) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupId) + '/status',
+                url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId) + '/status',
                 data: {
                     recursive: false
                 },
@@ -1020,6 +1014,15 @@ nf.Canvas = (function () {
                     dataType: 'json'
                 });
 
+                // get the about details
+                var aboutXhr = $.ajax({
+                    type: 'GET',
+                    url: config.urls.about,
+                    dataType: 'json'
+                }).done(function (response) {
+                    
+                }).fail(nf.Common.handleAjaxError);
+
                 // get the login config
                 var loginXhr = $.ajax({
                     type: 'GET',
@@ -1046,9 +1049,10 @@ nf.Canvas = (function () {
                 }).promise();
 
                 // ensure the config requests are loaded
-                $.when(configXhr, loginXhr, userXhr).done(function (configResult, loginResult) {
+                $.when(configXhr, loginXhr, aboutXhr, userXhr).done(function (configResult, loginResult, aboutResult) {
                     var configResponse = configResult[0];
                     var loginResponse = loginResult[0];
+                    var aboutResponse = aboutResult[0];
 
                     // calculate the canvas offset
                     var canvasContainer = $('#canvas-container');
@@ -1057,10 +1061,15 @@ nf.Canvas = (function () {
                     // get the config details
                     var configDetails = configResponse.config;
                     var loginDetails = loginResponse.config;
-
+                    var aboutDetails = aboutResponse.about;
+                    
+                    // set the document title and the about title
+                    document.title = aboutDetails.title;
+                    $('#nf-version').text(aboutDetails.version);
+                    
                     // store the content viewer url if available
-                    if (!nf.Common.isBlank(configDetails.contentViewerUrl)) {
-                        $('#nifi-content-viewer-url').text(configDetails.contentViewerUrl);
+                    if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
+                        $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
                     }
 
                     // when both request complete, load the application
@@ -1071,64 +1080,62 @@ nf.Canvas = (function () {
                         // initialize whether site to site is secure
                         secureSiteToSite = configDetails.siteToSiteSecure;
 
-                        // load d3
-                        loadD3().done(function () {
-                            nf.Storage.init();
+                        // init storage
+                        nf.Storage.init();
 
-                            // initialize the application
-                            initCanvas();
-                            nf.Canvas.View.init();
-                            nf.ContextMenu.init();
-                            nf.CanvasToolbar.init();
-                            nf.CanvasToolbox.init();
-                            nf.CanvasHeader.init(loginDetails.supportsLogin);
-                            nf.GraphControl.init();
-                            nf.Search.init();
-                            nf.Settings.init();
-                            nf.Actions.init();
-                            nf.QueueListing.init();
-                            nf.ComponentState.init();
+                        // initialize the application
+                        initCanvas();
+                        nf.Canvas.View.init();
+                        nf.ContextMenu.init();
+                        nf.CanvasToolbar.init();
+                        nf.CanvasToolbox.init();
+                        nf.CanvasHeader.init(loginDetails.supportsLogin);
+                        nf.GraphControl.init();
+                        nf.Search.init();
+                        nf.Settings.init();
+                        nf.Actions.init();
+                        nf.QueueListing.init();
+                        nf.ComponentState.init();
 
-                            // initialize the component behaviors
-                            nf.Draggable.init();
-                            nf.Selectable.init();
-                            nf.Connectable.init();
+                        // initialize the component behaviors
+                        nf.Draggable.init();
+                        nf.Selectable.init();
+                        nf.Connectable.init();
 
-                            // initialize the chart
-                            nf.StatusHistory.init(configDetails.timeOffset);
+                        // initialize the chart
+                        nf.StatusHistory.init(configDetails.timeOffset);
 
-                            // initialize the birdseye
-                            nf.Birdseye.init();
+                        // initialize the birdseye
+                        nf.Birdseye.init();
 
-                            // initialize components
-                            nf.ConnectionConfiguration.init();
-                            nf.ControllerService.init();
-                            nf.ReportingTask.init();
-                            nf.ProcessorConfiguration.init();
-                            nf.ProcessGroupConfiguration.init();
-                            nf.RemoteProcessGroupConfiguration.init();
-                            nf.RemoteProcessGroupPorts.init();
-                            nf.PortConfiguration.init();
-                            nf.LabelConfiguration.init();
-                            nf.ProcessorDetails.init();
-                            nf.ProcessGroupDetails.init();
-                            nf.PortDetails.init();
-                            nf.ConnectionDetails.init();
-                            nf.RemoteProcessGroupDetails.init();
-                            nf.GoTo.init();
-                            nf.Graph.init().done(function () {
-                                // determine the split between the polling
-                                var pollingSplit = autoRefreshIntervalSeconds / 2;
+                        // initialize components
+                        nf.ConnectionConfiguration.init();
+                        nf.ControllerService.init();
+                        nf.ReportingTask.init();
+                        nf.ProcessorConfiguration.init();
+                        nf.ProcessGroupConfiguration.init();
+                        nf.RemoteProcessGroupConfiguration.init();
+                        nf.RemoteProcessGroupPorts.init();
+                        nf.PortConfiguration.init();
+                        nf.LabelConfiguration.init();
+                        nf.ProcessorDetails.init();
+                        nf.ProcessGroupDetails.init();
+                        nf.PortDetails.init();
+                        nf.ConnectionDetails.init();
+                        nf.RemoteProcessGroupDetails.init();
+                        nf.GoTo.init();
+                        nf.Graph.init().done(function () {
+                            // determine the split between the polling
+                            var pollingSplit = autoRefreshIntervalSeconds / 2;
 
-                                // register the revision and status polling
-                                startRevisionPolling(autoRefreshIntervalSeconds);
-                                setTimeout(function () {
-                                    startStatusPolling(autoRefreshIntervalSeconds);
-                                }, pollingSplit * 1000);
+                            // register the revision and status polling
+                            startRevisionPolling(autoRefreshIntervalSeconds);
+                            setTimeout(function () {
+                                startStatusPolling(autoRefreshIntervalSeconds);
+                            }, pollingSplit * 1000);
 
-                                // hide the splash screen
-                                nf.Canvas.hideSplash();
-                            }).fail(nf.Common.handleAjaxError);
+                            // hide the splash screen
+                            nf.Canvas.hideSplash();
                         }).fail(nf.Common.handleAjaxError);
                     }).fail(nf.Common.handleAjaxError);
                 }).fail(nf.Common.handleAjaxError);

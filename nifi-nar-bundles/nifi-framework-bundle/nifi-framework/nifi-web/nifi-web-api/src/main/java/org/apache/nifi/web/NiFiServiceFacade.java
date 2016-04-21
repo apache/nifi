@@ -46,6 +46,7 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
@@ -67,6 +68,7 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -1400,4 +1402,12 @@ public interface NiFiServiceFacade {
      * @return the system diagnostics
      */
     SystemDiagnosticsDTO getSystemDiagnostics();
+
+    // ----------------------------------------
+    // Resources
+    // ----------------------------------------
+    /**
+     * @return the resources
+     */
+    List<ResourceDTO> getResources();
 }

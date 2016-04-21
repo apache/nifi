@@ -56,10 +56,10 @@ public class StandardNiFiContentAccess implements ContentAccess {
     public static final String CLIENT_ID_PARAM = "clientId";
 
     private static final Pattern FLOWFILE_CONTENT_URI_PATTERN = Pattern
-        .compile("/controller/process-groups/((?:root)|(?:[a-f0-9\\-]{36}))/connections/([a-f0-9\\-]{36})/flowfiles/([a-f0-9\\-]{36})/content.*");
+        .compile("/flowfile-queues/([a-f0-9\\-]{36})/flowfiles/([a-f0-9\\-]{36})/content.*");
 
     private static final Pattern PROVENANCE_CONTENT_URI_PATTERN = Pattern
-        .compile("/controller/provenance/events/([0-9]+)/content/((?:input)|(?:output)).*");
+        .compile("/provenance/events/([0-9]+)/content/((?:input)|(?:output)).*");
 
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
@@ -140,8 +140,8 @@ public class StandardNiFiContentAccess implements ContentAccess {
             return new DownloadableContent(filename, contentType, clientResponse.getEntityInputStream());
         } else {
             // example URIs:
-            // http://localhost:8080/nifi-api/controller/provenance/events/{id}/content/{input|output}
-            // http://localhost:8080/nifi-api/controller/process-groups/{root|uuid}/connections/{uuid}/flowfiles/{uuid}/content
+            // http://localhost:8080/nifi-api/provenance/events/{id}/content/{input|output}
+            // http://localhost:8080/nifi-api/flowfile-queues/{uuid}/flowfiles/{uuid}/content
 
             // get just the context path for comparison
             final String dataUri = StringUtils.substringAfter(request.getDataUri(), "/nifi-api");
@@ -152,11 +152,10 @@ public class StandardNiFiContentAccess implements ContentAccess {
             // flowfile listing content
             final Matcher flowFileMatcher = FLOWFILE_CONTENT_URI_PATTERN.matcher(dataUri);
             if (flowFileMatcher.matches()) {
-                final String groupId = flowFileMatcher.group(1);
-                final String connectionId = flowFileMatcher.group(2);
-                final String flowfileId = flowFileMatcher.group(3);
+                final String connectionId = flowFileMatcher.group(1);
+                final String flowfileId = flowFileMatcher.group(2);
 
-                return getFlowFileContent(groupId, connectionId, flowfileId, dataUri);
+                return getFlowFileContent(connectionId, flowfileId, dataUri);
             }
 
             // provenance event content
@@ -177,7 +176,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
         }
     }
 
-    private DownloadableContent getFlowFileContent(final String groupId, final String connectionId, final String flowfileId, final String dataUri) {
+    private DownloadableContent getFlowFileContent(final String connectionId, final String flowfileId, final String dataUri) {
         // TODO - ensure the user is authorized - not checking with @PreAuthorized annotation as aspect not trigger on call within a class
 //        if (!NiFiUserUtils.getAuthorities().contains(Authority.ROLE_DFM.toString())) {
 //            throw new AccessDeniedException("Access is denied.");

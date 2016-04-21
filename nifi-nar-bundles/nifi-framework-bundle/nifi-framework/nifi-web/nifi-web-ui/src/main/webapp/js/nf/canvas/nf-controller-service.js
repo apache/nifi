@@ -548,7 +548,7 @@ nf.ControllerService = (function () {
         
         return $.ajax({
             type: 'GET',
-            url: '../nifi-api/bulletin-board',
+            url: '../nifi-api/flow/bulletin-board',
             data: {
                 sourceId: ids
             },

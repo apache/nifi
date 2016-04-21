@@ -66,7 +66,7 @@ import java.util.List;
 @Path("/cluster")
 @Api(
         value = "/cluster",
-        description = "Provides access to the cluster of Nodes that comprise this NiFi"
+        description = "Endpoint for managing the cluster."
 )
 public class ClusterResource extends ApplicationResource {
 

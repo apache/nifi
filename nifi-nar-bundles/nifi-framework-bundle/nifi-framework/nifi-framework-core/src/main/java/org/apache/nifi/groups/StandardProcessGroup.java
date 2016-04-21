@@ -1381,6 +1381,19 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public List<ProcessGroup> findAllProcessGroups() {
+        return findAllProcessGroups(this);
+    }
+
+    private List<ProcessGroup> findAllProcessGroups(final ProcessGroup start) {
+        final List<ProcessGroup> allProcessGroups = new ArrayList<>(start.getProcessGroups());
+        for (final ProcessGroup childGroup : start.getProcessGroups()) {
+            allProcessGroups.addAll(findAllProcessGroups(childGroup));
+        }
+        return allProcessGroups;
+    }
+
+    @Override
     public List<RemoteProcessGroup> findAllRemoteProcessGroups() {
         return findAllRemoteProcessGroups(this);
     }
@@ -1536,8 +1549,34 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public List<Port> findAllInputPorts() {
+        return findAllInputPorts(this);
+    }
+
+    private List<Port> findAllInputPorts(final ProcessGroup start) {
+        final List<Port> allOutputPorts = new ArrayList<>(start.getInputPorts());
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            allOutputPorts.addAll(findAllInputPorts(group));
+        }
+        return allOutputPorts;
+    }
+
+    @Override
     public Port findOutputPort(final String id) {
         return findPort(id, this, new OutputPortRetriever());
+    }
+
+    @Override
+    public List<Port> findAllOutputPorts() {
+        return findAllOutputPorts(this);
+    }
+
+    private List<Port> findAllOutputPorts(final ProcessGroup start) {
+        final List<Port> allOutputPorts = new ArrayList<>(start.getOutputPorts());
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            allOutputPorts.addAll(findAllOutputPorts(group));
+        }
+        return allOutputPorts;
     }
 
     @Override

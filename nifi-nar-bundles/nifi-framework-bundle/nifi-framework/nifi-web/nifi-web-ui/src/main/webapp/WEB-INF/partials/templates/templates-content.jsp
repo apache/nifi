@@ -15,7 +15,9 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <div id="templates">
+    <span id="template-group-id" class="hidden"><c:out value="${param.groupId}"/></span>
     <div id="templates-header-and-filter">
         <div id="templates-header-text">NiFi Templates</div>
         <div id="templates-filter-controls">
@@ -39,7 +41,7 @@
                 <div id="template-browse-container">
                     <div id="select-template-button" class="template-button">
                         <span>Browse</span>
-                        <form id="template-upload-form" enctype="multipart/form-data" method="post" action="../nifi-api/controller/templates">
+                        <form id="template-upload-form" enctype="multipart/form-data" method="post">
                             <input type="file" name="template" id="template-file-field"/>
                         </form>
                     </div>

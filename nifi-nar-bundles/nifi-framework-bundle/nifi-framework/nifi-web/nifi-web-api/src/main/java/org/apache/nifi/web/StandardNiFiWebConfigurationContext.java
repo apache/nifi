@@ -415,7 +415,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller/controller-services/node/" + URLEncoder.encode(id, "UTF-8");
+                    String path = "/nifi-api/controller-services/node/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
@@ -471,7 +471,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller/controller-services/node/" + URLEncoder.encode(id, "UTF-8");
+                    String path = "/nifi-api/controller-services/node/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
@@ -550,7 +550,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller/reporting-tasks/node/" + URLEncoder.encode(id, "UTF-8");
+                    String path = "/nifi-api/reporting-tasks/node/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
@@ -606,7 +606,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller/reporting-tasks/node/" + URLEncoder.encode(id, "UTF-8");
+                    String path = "/nifi-api/reporting-tasks/node/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);

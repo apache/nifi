@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
@@ -57,7 +58,11 @@ import java.util.Set;
 /**
  * RESTful endpoint for managing a Label.
  */
-@Path("labels")
+@Path("/labels")
+@Api(
+    value = "/labels",
+    description = "Endpoint for managing a Label."
+)
 public class LabelResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(LabelResource.class);

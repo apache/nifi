@@ -32,9 +32,9 @@ nf.BulletinBoard = (function () {
         maxBulletins: 1000,
         defaultFilterText: 'Filter',
         urls: {
-            banners: '../nifi-api/controller/banners',
-            controllerAbout: '../nifi-api/controller/about',
-            bulletinBoard: '../nifi-api/bulletin-board'
+            banners: '../nifi-api/flow/banners',
+            about: '../nifi-api/flow/about',
+            bulletinBoard: '../nifi-api/flow/bulletin-board'
         },
         styles: {
             filterList: 'bulletin-board-filter-list',
@@ -113,7 +113,7 @@ nf.BulletinBoard = (function () {
         // get the about details
         var getTitle = $.ajax({
             type: 'GET',
-            url: config.urls.controllerAbout,
+            url: config.urls.about,
             dataType: 'json'
         }).done(function (response) {
             var aboutDetails = response.about;
