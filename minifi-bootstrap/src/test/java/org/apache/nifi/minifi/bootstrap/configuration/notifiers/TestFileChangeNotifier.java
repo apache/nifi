@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.bootstrap.configuration;
+package org.apache.nifi.minifi.bootstrap.configuration.notifiers;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static org.mockito.Mockito.verify;
@@ -30,6 +30,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+import org.apache.nifi.minifi.bootstrap.configuration.notifiers.FileChangeNotifier;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration.util;
+package org.apache.nifi.minifi.bootstrap.configuration.notifiers.util;
 
 import com.squareup.okhttp.Headers;
 import com.squareup.okhttp.MediaType;
@@ -23,7 +23,7 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
-import org.apache.nifi.minifi.bootstrap.configuration.RestChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.configuration.notifiers.RestChangeNotifier;
 import org.junit.Test;
 
 import java.io.File;
@@ -82,7 +82,7 @@ public abstract class TestRestChangeNotifierCommon {
             System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
         }
 
-        assertEquals(RestChangeNotifier.POST_TEXT, response.body().string());
+        assertEquals("The result of notifying listeners:\nMockChangeListener successfully handled the configuration change\n", response.body().string());
 
         assertEquals(new String(Files.readAllBytes(file.toPath())), mockChangeListener.getConfFile());
     }

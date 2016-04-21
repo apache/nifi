@@ -17,6 +17,7 @@
 package org.apache.nifi.minifi.bootstrap.configuration;
 
 import java.io.Closeable;
+import java.util.Collection;
 import java.util.Properties;
 import java.util.Set;
 
@@ -52,6 +53,5 @@ public interface ConfigurationChangeNotifier extends Closeable {
     /**
      * Provide the mechanism by which listeners are notified
      */
-    void notifyListeners();
-
+    Collection<ListenerHandleResult> notifyListeners();
 }

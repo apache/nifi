@@ -15,32 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration.util;
+package org.apache.nifi.minifi.bootstrap.configuration;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+/**
+ * Exception to indicate there was a problem handling a change to the configuration
+ */
 
-import java.io.IOException;
-import java.io.InputStream;
+public class ConfigurationChangeException extends Exception {
 
-public class MockChangeListener implements ConfigurationChangeListener {
-    String confFile;
-
-    @Override
-    public void handleChange(InputStream inputStream) {
-        try {
-            confFile = IOUtils.toString(inputStream, "UTF-8");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public ConfigurationChangeException() {
+        super();
     }
 
-    public String getConfFile() {
-        return confFile;
+    public ConfigurationChangeException(String message) {
+        super(message);
     }
 
-    public void setConfFile(String confFile) {
-        this.confFile = confFile;
+    public ConfigurationChangeException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public ConfigurationChangeException(Throwable cause) {
+        super(cause);
     }
 
 }

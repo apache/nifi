@@ -29,6 +29,10 @@ public interface ConfigurationChangeListener {
      *
      * @param is stream of the detected content received from the change notifier
      */
-    void handleChange(InputStream is);
+    void handleChange(InputStream is) throws ConfigurationChangeException;
 
+    /**
+     * Returns a succinct string identifying this particular listener
+     */
+    String getDescriptor();
 }

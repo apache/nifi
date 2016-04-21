@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration;
+package org.apache.nifi.minifi.bootstrap.configuration.notifiers;
 
 
 import com.squareup.okhttp.OkHttpClient;
-import org.apache.nifi.minifi.bootstrap.configuration.util.TestRestChangeNotifierCommon;
+import org.apache.nifi.minifi.bootstrap.configuration.notifiers.util.TestRestChangeNotifierCommon;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 

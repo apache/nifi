@@ -101,5 +101,7 @@ public class ShutdownHook extends Thread {
         if (!statusFile.delete()) {
             System.err.println("Failed to delete status file " + statusFile.getAbsolutePath() + "; this file should be cleaned up manually");
         }
+
+        System.out.println("MiNiFi is done shutting down");
     }
 }
