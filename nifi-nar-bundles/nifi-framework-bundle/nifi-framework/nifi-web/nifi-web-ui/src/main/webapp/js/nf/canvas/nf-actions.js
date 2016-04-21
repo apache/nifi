@@ -21,6 +21,7 @@ nf.Actions = (function () {
 
     var config = {
         urls: {
+            api: '../nifi-api',
             controller: '../nifi-api/controller'
         }
     };
@@ -516,7 +517,7 @@ nf.Actions = (function () {
                     }
                 };
 
-                updateResource(config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
+                updateResource(config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
             } else {
                 var componentsToStart = selection.filter(function (d) {
                     return nf.CanvasUtils.isRunnable(d3.select(this));
@@ -593,7 +594,7 @@ nf.Actions = (function () {
                     }
                 };
 
-                updateResource(config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
+                updateResource(config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
             } else {
                 var componentsToStop = selection.filter(function (d) {
                     return nf.CanvasUtils.isStoppable(d3.select(this));
@@ -1064,7 +1065,7 @@ nf.Actions = (function () {
                     // issue the request to delete the flow files
                     $.ajax({
                         type: 'POST',
-                        url: connection.component.uri + '/drop-requests',
+                        url: '../nifi-api/flowfile-queues/' + connection.component.id + '/drop-requests',
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function(response) {
@@ -1251,17 +1252,19 @@ nf.Actions = (function () {
                             // create the snippet
                             nf.Snippet.create(snippetDetails).done(function (response) {
                                 var snippet = response.snippet;
+                                var createSnippetEntity = {
+                                    'name': templateName,
+                                    'description': templateDescription,
+                                    'snippetId': snippet.id
+                                };
 
                                 // create the template
                                 $.ajax({
                                     type: 'POST',
-                                    url: config.urls.controller + '/templates',
-                                    data: {
-                                        name: templateName,
-                                        description: templateDescription,
-                                        snippetId: snippet.id
-                                    },
-                                    dataType: 'json'
+                                    url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/templates',
+                                    data: JSON.stringify(createSnippetEntity),
+                                    dataType: 'json',
+                                    contentType: 'application/json'
                                 }).done(function () {
                                     // show the confirmation dialog
                                     nf.Dialog.showOkDialog({
@@ -1361,7 +1364,7 @@ nf.Actions = (function () {
                         }
 
                         // copy the snippet to the new location
-                        nf.Snippet.copy(snippet.id, nf.Canvas.getGroupId(), origin).done(function (copyResponse) {
+                        nf.Snippet.copy(snippet.id, origin).done(function (copyResponse) {
                             var snippetContents = copyResponse.contents;
 
                             // update the graph accordingly

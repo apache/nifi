@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -40,7 +39,6 @@ import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.Availability;
@@ -62,15 +60,17 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * RESTful endpoint for managing a Reporting Task.
  */
-@Path("reporting-tasks")
+@Path("/reporting-tasks")
+@Api(
+    value = "/reporting-tasks",
+    description = "Endpoint for managing a Reporting Task."
+)
 public class ReportingTaskResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -86,7 +86,7 @@ public class ReportingTaskResource extends ApplicationResource {
      * @param reportingTasks tasks
      * @return tasks
      */
-    private Set<ReportingTaskDTO> populateRemainingReportingTasksContent(final String availability, final Set<ReportingTaskDTO> reportingTasks) {
+    public Set<ReportingTaskDTO> populateRemainingReportingTasksContent(final String availability, final Set<ReportingTaskDTO> reportingTasks) {
         for (ReportingTaskDTO reportingTask : reportingTasks) {
             populateRemainingReportingTaskContent(availability, reportingTask);
         }
@@ -96,7 +96,7 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Populates the uri for the specified reporting task.
      */
-    private ReportingTaskDTO populateRemainingReportingTaskContent(final String availability, final ReportingTaskDTO reportingTask) {
+    public ReportingTaskDTO populateRemainingReportingTaskContent(final String availability, final ReportingTaskDTO reportingTask) {
         // populate the reporting task href
         reportingTask.setUri(generateResourceUri("reporting-tasks", availability, reportingTask.getId()));
         reportingTask.setAvailability(availability);
@@ -119,7 +119,7 @@ public class ReportingTaskResource extends ApplicationResource {
      * Parses the availability and ensure that the specified availability makes
      * sense for the given NiFi instance.
      */
-    private Availability parseAvailability(final String availability) {
+    public Availability parseAvailability(final String availability) {
         final Availability avail;
         try {
             avail = Availability.valueOf(availability.toUpperCase());
@@ -133,176 +133,6 @@ public class ReportingTaskResource extends ApplicationResource {
         }
 
         return avail;
-    }
-
-    /**
-     * Retrieves all the of reporting tasks in this NiFi.
-     *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
-     * @return A reportingTasksEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-            value = "Gets all reporting tasks",
-            response = ReportingTasksEntity.class,
-            authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getReportingTasks(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability) {
-
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // get all the reporting tasks
-        final Set<ReportingTaskDTO> reportingTasks = populateRemainingReportingTasksContent(availability, serviceFacade.getReportingTasks());
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final ReportingTasksEntity entity = new ReportingTasksEntity();
-        entity.setRevision(revision);
-        entity.setReportingTasks(reportingTasks);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Creates a new Reporting Task.
-     *
-     * @param httpServletRequest request
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
-     * @param reportingTaskEntity A reportingTaskEntity.
-     * @return A reportingTaskEntity.
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
-    @ApiOperation(
-            value = "Creates a new reporting task",
-            response = ReportingTaskEntity.class,
-            authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response createReportingTask(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability,
-            @ApiParam(
-                    value = "The reporting task configuration details.",
-                    required = true
-            ) ReportingTaskEntity reportingTaskEntity) {
-
-        final Availability avail = parseAvailability(availability);
-
-        if (reportingTaskEntity == null || reportingTaskEntity.getReportingTask() == null) {
-            throw new IllegalArgumentException("Reporting task details must be specified.");
-        }
-
-        if (reportingTaskEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
-        if (reportingTaskEntity.getReportingTask().getId() != null) {
-            throw new IllegalArgumentException("Reporting task ID cannot be specified.");
-        }
-
-        if (StringUtils.isBlank(reportingTaskEntity.getReportingTask().getType())) {
-            throw new IllegalArgumentException("The type of reporting task to create must be specified.");
-        }
-
-        // get the revision
-        final RevisionDTO revision = reportingTaskEntity.getRevision();
-
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(reportingTaskEntity), getHeaders()).getResponse();
-        }
-
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            return generateContinueResponse().build();
-        }
-
-        // set the processor id as appropriate
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            reportingTaskEntity.getReportingTask().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
-        } else {
-            reportingTaskEntity.getReportingTask().setId(UUID.randomUUID().toString());
-        }
-
-        // create the reporting task and generate the json
-        final ConfigurationSnapshot<ReportingTaskDTO> controllerResponse = serviceFacade.createReportingTask(
-                new Revision(revision.getVersion(), revision.getClientId()), reportingTaskEntity.getReportingTask());
-        final ReportingTaskDTO reportingTask = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ReportingTaskEntity entity = new ReportingTaskEntity();
-        entity.setRevision(updatedRevision);
-        entity.setReportingTask(populateRemainingReportingTaskContent(availability, reportingTask));
-
-        // build the response
-        return clusterContext(generateCreatedResponse(URI.create(reportingTask.getUri()), entity)).build();
     }
 
     /**

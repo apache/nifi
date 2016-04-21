@@ -14,27 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization.resource;
+package org.apache.nifi.web.api.entity;
 
-public enum ResourceType {
-    Processor("/processors"),
-    InputPort("/input-ports"),
-    OutputPort("/output-ports"),
-    Connection("/connections"),
-    ProcessGroup("/process-groups"),
-    RemoteProcessGroup("/remote-process-groups"),
-    Label("/labels"),
-    ControllerService("/controller-services"),
-    ReportingTask("/reporting-tasks"),
-    Template("/templates");
+import org.apache.nifi.web.api.dto.ResourceDTO;
 
-    final String value;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.List;
 
-    private ResourceType(final String value) {
-        this.value = value;
+/**
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds references to ResourceDTOs.
+ */
+@XmlRootElement(name = "resourcesEntity")
+public class ResourcesEntity extends Entity {
+
+    private List<ResourceDTO> resources;
+
+    /**
+     * The AboutDTO that is being serialized.
+     *
+     * @return The AboutDTO object
+     */
+    public List<ResourceDTO> getResources() {
+        return resources;
     }
 
-    public String getValue() {
-        return value;
+    public void setResources(List<ResourceDTO> resources) {
+        this.resources = resources;
     }
+
 }

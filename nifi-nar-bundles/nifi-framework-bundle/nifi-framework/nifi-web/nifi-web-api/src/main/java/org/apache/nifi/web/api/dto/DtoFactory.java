@@ -34,6 +34,7 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.manager.StatusMerger;
@@ -1479,6 +1480,7 @@ public final class DtoFactory {
         final FlowSnippetDTO dto = new FlowSnippetDTO();
 
         for (final ProcessorNode procNode : group.getProcessors()) {
+            // authorization check
             dto.getProcessors().add(createProcessorDto(procNode));
         }
 
@@ -1957,6 +1959,19 @@ public final class DtoFactory {
         dto.setCollectionCount(garbageCollection.getCollectionCount());
         dto.setCollectionTime(FormatUtils.formatHoursMinutesSeconds(garbageCollection.getCollectionTime(), TimeUnit.MILLISECONDS));
         dto.setCollectionMillis(garbageCollection.getCollectionTime());
+        return dto;
+    }
+
+    /**
+     * Creates a ResourceDTO from the specified Resource.
+     *
+     * @param resource resource
+     * @return dto
+     */
+    public ResourceDTO createResourceDto(final Resource resource) {
+        final ResourceDTO dto = new ResourceDTO();
+        dto.setIdentifier(resource.getIdentifier());
+        dto.setName(resource.getName());
         return dto;
     }
 

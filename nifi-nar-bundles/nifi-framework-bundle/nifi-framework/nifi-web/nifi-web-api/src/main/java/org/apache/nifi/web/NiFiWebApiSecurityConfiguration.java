@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
@@ -54,7 +53,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private static final Logger logger = LoggerFactory.getLogger(NiFiWebApiSecurityConfiguration.class);
 
     private NiFiProperties properties;
-    private KeyService keyService;
 
     private NodeAuthorizedUserFilter nodeAuthorizedUserFilter;
 
@@ -174,14 +172,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     public NiFiAnonymousUserFilter anonymousFilterBean() throws Exception {
         if (anonymousAuthenticationFilter == null) {
             anonymousAuthenticationFilter = new NiFiAnonymousUserFilter();
-            anonymousAuthenticationFilter.setKeyService(keyService);
         }
         return anonymousAuthenticationFilter;
-    }
-
-    @Autowired
-    public void setKeyService(KeyService keyService) {
-        this.keyService = keyService;
     }
 
     @Autowired

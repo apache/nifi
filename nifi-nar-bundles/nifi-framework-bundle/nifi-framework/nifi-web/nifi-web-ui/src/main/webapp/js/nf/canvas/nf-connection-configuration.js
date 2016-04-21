@@ -25,7 +25,7 @@ nf.ConnectionConfiguration = (function () {
     var config = {
         urls: {
             api: '../nifi-api',
-            prioritizers: '../nifi-api/controller/prioritizers'
+            prioritizers: '../nifi-api/flow/prioritizers'
         }
     };
 

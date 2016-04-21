@@ -29,11 +29,16 @@ nf.Templates = (function () {
      */
     var config = {
         urls: {
-            banners: '../nifi-api/controller/banners',
-            controllerAbout: '../nifi-api/controller/about',
+            banners: '../nifi-api/flow/banners',
+            about: '../nifi-api/flow/about',
             authorities: '../nifi-api/controller/authorities'
         }
     };
+
+    /**
+     * the current group id
+     */
+    var groupId;
 
     /**
      * Loads the current users authorities.
@@ -102,6 +107,7 @@ nf.Templates = (function () {
 
         // initialize the form
         var templateForm = $('#template-upload-form').ajaxForm({
+            url: '../nifi-api/process-groups/' + encodeURIComponent(groupId) + '/templates/upload',
             dataType: 'xml',
             success: function (response, statusText, xhr, form) {
                 // see if the import was successful
@@ -205,6 +211,15 @@ nf.Templates = (function () {
          */
         init: function () {
             nf.Storage.init();
+
+            // ensure the group id is specified
+            groupId = $('#template-group-id').text();
+            if (nf.Common.isUndefined(groupId) || nf.Common.isNull(groupId)) {
+                nf.Dialog.showOkDialog({
+                    overlayBackground: false,
+                    content: 'Group id not specified.'
+                });
+            }
             
             // load the users authorities
             loadAuthorities().done(function () {
@@ -222,7 +237,7 @@ nf.Templates = (function () {
                         // get the about details
                         $.ajax({
                             type: 'GET',
-                            url: config.urls.controllerAbout,
+                            url: config.urls.about,
                             dataType: 'json'
                         }).done(function (response) {
                             var aboutDetails = response.about;

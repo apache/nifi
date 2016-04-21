@@ -38,8 +38,7 @@ nf.CanvasToolbox = (function () {
         urls: {
             api: '../nifi-api',
             controller: '../nifi-api/controller',
-            processorTypes: '../nifi-api/controller/processor-types',
-            templates: '../nifi-api/controller/templates'
+            processorTypes: '../nifi-api/flow/processor-types'
         }
     };
 
@@ -758,7 +757,7 @@ nf.CanvasToolbox = (function () {
     var promptForTemplate = function (pt) {
         $.ajax({
             type: 'GET',
-            url: config.urls.templates,
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/templates',
             dataType: 'json'
         }).done(function (response) {
             var templates = response.templates;
@@ -823,20 +822,20 @@ nf.CanvasToolbox = (function () {
      * @argument {object} pt                The point that the template was dropped
      */
     var createTemplate = function (templateId, pt) {
-        var revision = nf.Client.getRevision();
+        var instantiateTemplateInstance = {
+            'revision': nf.Client.getRevision(),
+            'templateId': templateId,
+            'originX': pt.x,
+            'originY': pt.y
+        };
 
         // create a new instance of the new template
         $.ajax({
             type: 'POST',
             url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/template-instance',
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                templateId: templateId,
-                originX: pt.x,
-                originY: pt.y
-            },
-            dataType: 'json'
+            data: JSON.stringify(instantiateTemplateInstance),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             // update the revision
             nf.Client.setRevision(response.revision);

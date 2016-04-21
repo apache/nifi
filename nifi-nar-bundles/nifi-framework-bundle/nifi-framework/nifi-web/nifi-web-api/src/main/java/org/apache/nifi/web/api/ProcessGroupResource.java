@@ -17,6 +17,8 @@
 package org.apache.nifi.web.api;
 
 import com.sun.jersey.api.core.ResourceContext;
+import com.sun.jersey.multipart.FormDataParam;
+import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
@@ -25,16 +27,13 @@ import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -43,38 +42,43 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.api.dto.SnippetDTO;
+import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionsEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
+import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.FlowSnippetEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.FunnelsEntity;
 import org.apache.nifi.web.api.entity.InputPortEntity;
 import org.apache.nifi.web.api.entity.InputPortsEntity;
+import org.apache.nifi.web.api.entity.InstantiateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.LabelsEntity;
 import org.apache.nifi.web.api.entity.OutputPortEntity;
 import org.apache.nifi.web.api.entity.OutputPortsEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorsEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
-import org.apache.nifi.web.api.entity.StatusHistoryEntity;
+import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.TemplateEntity;
+import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.DoubleParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.util.Availability;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -83,13 +87,21 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -97,8 +109,14 @@ import java.util.UUID;
 /**
  * RESTful endpoint for managing a Group.
  */
-@Path("process-groups")
+@Path("/process-groups")
+@Api(
+    value = "/process-groups",
+    description = "Endpoint for managing a Process Group."
+)
 public class ProcessGroupResource extends ApplicationResource {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResource.class);
 
     private static final String VERBOSE = "false";
     private static final String RECURSIVE = "false";
@@ -117,6 +135,8 @@ public class ProcessGroupResource extends ApplicationResource {
     private LabelResource labelResource;
     private RemoteProcessGroupResource remoteProcessGroupResource;
     private ConnectionResource connectionResource;
+    private TemplateResource templateResource;
+    private ControllerServiceResource controllerServiceResource;
 
     /**
      * Populates the remaining fields in the specified process groups.
@@ -172,240 +192,21 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     /**
-     * Copies the specified snippet within this ProcessGroup. The snippet instance that is instantiated cannot be referenced at a later time, therefore there is no
-     * corresponding URI. Instead the request URI is returned.
-     *
-     * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
-     *
-     * @param httpServletRequest request
-     * @param groupId The group id
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param snippetId The id of the snippet to copy.
-     * @param originX The x coordinate of the origin of the bounding box.
-     * @param originY The y coordinate of the origin of the bounding box.
-     * @return A flowSnippetEntity.
+     * Populates the uri for the specified snippet.
      */
-    @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/snippet-instance")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
-    @ApiOperation(
-            value = "Copies a snippet",
-            response = FlowSnippetEntity.class,
-            authorizations = {
-                @Authorization(value = "ROLE_DFM", type = "ROLE_DFM")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response copySnippet(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                value = "The process group id.",
-                required = true
-            )
-            @PathParam("id") String groupId,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
-            )
-            @FormParam(VERSION) LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "The snippet id.",
-                    required = true
-            )
-            @FormParam("snippetId") String snippetId,
-            @ApiParam(
-                    value = "The x coordinate of the origin of the bounding box where the new components will be placed.",
-                    required = true
-            )
-            @FormParam("originX") DoubleParameter originX,
-            @ApiParam(
-                    value = "The y coordinate of the origin of the bounding box where the new components will be placed.",
-                    required = true
-            )
-            @FormParam("originY") DoubleParameter originY) {
+    private SnippetDTO populateRemainingSnippetContent(SnippetDTO snippet) {
+        String snippetGroupId = snippet.getParentGroupId();
+        FlowSnippetDTO snippetContents = snippet.getContents();
 
-        // ensure the position has been specified
-        if (originX == null || originY == null) {
-            throw new IllegalArgumentException("The  origin position (x, y) must be specified");
+        // populate the snippet href
+        snippet.setUri(generateResourceUri("process-groups", snippetGroupId, "snippets", snippet.getId()));
+
+        // populate the snippet content uris
+        if (snippet.getContents() != null) {
+            populateRemainingSnippetContent(snippetContents);
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            return generateContinueResponse().build();
-        }
-
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
-        // copy the specified snippet
-        final ConfigurationSnapshot<FlowSnippetDTO> controllerResponse = serviceFacade.copySnippet(
-                new Revision(clientVersion, clientId.getClientId()),
-                groupId, snippetId, originX.getDouble(), originY.getDouble());
-
-        // get the snippet
-        final FlowSnippetDTO flowSnippet = controllerResponse.getConfiguration();
-
-        // prune response as necessary
-        for (ProcessGroupDTO group : flowSnippet.getProcessGroups()) {
-            if (group.getContents() != null) {
-                group.setContents(null);
-            }
-        }
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // create the response entity
-        final FlowSnippetEntity entity = new FlowSnippetEntity();
-        entity.setRevision(revision);
-        entity.setContents(populateRemainingSnippetContent(flowSnippet));
-
-        // generate the response
-        return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
-    }
-
-    /**
-     * Instantiates the specified template within this ProcessGroup. The template instance that is instantiated cannot be referenced at a later time, therefore there is no
-     * corresponding URI. Instead the request URI is returned.
-     *
-     * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
-     *
-     * @param httpServletRequest request
-     * @param groupId The group id
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param templateId The id of the template to instantiate.
-     * @param originX The x coordinate of the origin of the bounding box.
-     * @param originY The y coordinate of the origin of the bounding box.
-     * @return A flowSnippetEntity.
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/template-instance")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
-    @ApiOperation(
-            value = "Instantiates a template",
-            response = FlowSnippetEntity.class,
-            authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response instantiateTemplate(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                value = "The process group id.",
-                required = true
-            )
-            @PathParam("id") String groupId,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
-            )
-            @FormParam(VERSION) LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "The id of the template",
-                    required = false
-            )
-            @FormParam("templateId") String templateId,
-            @ApiParam(
-                    value = "The x coordinate of the origin of the bounding box where the new components will be placed.",
-                    required = true
-            )
-            @FormParam("originX") DoubleParameter originX,
-            @ApiParam(
-                    value = "The y coordinate of the origin of the bounding box where the new components will be placed.",
-                    required = true
-            )
-            @FormParam("originY") DoubleParameter originY) {
-
-        // ensure the position has been specified
-        if (originX == null || originY == null) {
-            throw new IllegalArgumentException("The  origin position (x, y) must be specified");
-        }
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            return generateContinueResponse().build();
-        }
-
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
-        // create the template and generate the json
-        final ConfigurationSnapshot<FlowSnippetDTO> response = serviceFacade.createTemplateInstance(
-                new Revision(clientVersion, clientId.getClientId()), groupId, originX.getDouble(), originY.getDouble(), templateId);
-        final FlowSnippetDTO flowSnippet = response.getConfiguration();
-
-        // prune response as necessary
-        for (ProcessGroupDTO group : flowSnippet.getProcessGroups()) {
-            if (group.getContents() != null) {
-                group.setContents(null);
-            }
-        }
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(response.getVersion());
-
-        // create the response entity
-        final FlowSnippetEntity entity = new FlowSnippetEntity();
-        entity.setRevision(revision);
-        entity.setContents(populateRemainingSnippetContent(flowSnippet));
-
-        // generate the response
-        return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
+        return snippet;
     }
 
     /**
@@ -521,7 +322,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response updateProcessGroupReference(
+    public Response updateProcessGroup(
             @Context HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The process group id.",
@@ -662,195 +463,6 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setRevision(revision);
 
         // create the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Retrieves the status report for this NiFi.
-     *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendant groups and the status of their content will be included.
-     * @param groupId The group id
-     * @return A processGroupStatusEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/status")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_NIFI')")
-    @ApiOperation(
-            value = "Gets the status for a process group",
-            notes = "The status for a process group includes status for all descendent components. When invoked on the root group with "
-            + "recursive set to true, it will return the current status of every component in the flow.",
-            response = ProcessGroupStatusEntity.class,
-            authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN"),
-                @Authorization(value = "NiFi", type = "ROLE_NIFI")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getProcessGroupStatus(
-            @ApiParam(
-                value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                value = "Whether all descendant groups and the status of their content will be included. Optional, defaults to false",
-                required = false
-            )
-            @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive,
-            @ApiParam(
-                value = "Whether or not to include the breakdown per node. Optional, defaults to false",
-                required = false
-            )
-            @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                value = "The id of the node where to get the status.",
-                required = false
-            )
-            @QueryParam("clusterNodeId") String clusterNodeId,
-            @ApiParam(
-                value = "The process group id.",
-                required = true
-            )
-            @PathParam("id") String groupId) {
-
-        // ensure a valid request
-        if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
-            throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
-        }
-
-        if (properties.isClusterManager()) {
-            // determine where this request should be sent
-            if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
-                final ProcessGroupStatusEntity entity = (ProcessGroupStatusEntity) nodeResponse.getUpdatedEntity();
-
-                // ensure there is an updated entity (result of merging) and prune the response as necessary
-                if (entity != null && !nodewise) {
-                    entity.getProcessGroupStatus().setNodeSnapshots(null);
-                }
-
-                return nodeResponse.getResponse();
-            } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
-            }
-        }
-
-        // get the status
-        final ProcessGroupStatusDTO statusReport = serviceFacade.getProcessGroupStatus(groupId);
-
-        // prune the response as necessary
-        if (!recursive) {
-            pruneChildGroups(statusReport.getAggregateSnapshot());
-            if (statusReport.getNodeSnapshots() != null) {
-                for (final NodeProcessGroupStatusSnapshotDTO nodeSnapshot : statusReport.getNodeSnapshots()) {
-                    pruneChildGroups(nodeSnapshot.getStatusSnapshot());
-                }
-            }
-        }
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final ProcessGroupStatusEntity entity = new ProcessGroupStatusEntity();
-        entity.setRevision(revision);
-        entity.setProcessGroupStatus(statusReport);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    private void pruneChildGroups(final ProcessGroupStatusSnapshotDTO snapshot) {
-        for (final ProcessGroupStatusSnapshotDTO childProcessGroupStatus : snapshot.getProcessGroupStatusSnapshots()) {
-            childProcessGroupStatus.setConnectionStatusSnapshots(null);
-            childProcessGroupStatus.setProcessGroupStatusSnapshots(null);
-            childProcessGroupStatus.setInputPortStatusSnapshots(null);
-            childProcessGroupStatus.setOutputPortStatusSnapshots(null);
-            childProcessGroupStatus.setProcessorStatusSnapshots(null);
-            childProcessGroupStatus.setRemoteProcessGroupStatusSnapshots(null);
-        }
-    }
-
-    /**
-     * Retrieves the specified remote process groups status history.
-     *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param groupId The group id
-     * @return A processorEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/status/history")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-            value = "Gets status history for a remote process group",
-            response = StatusHistoryEntity.class,
-            authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getProcessGroupStatusHistory(
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") String groupId) {
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // get the specified processor status history
-        final StatusHistoryDTO processGroupStatusHistory = serviceFacade.getProcessGroupStatusHistory(groupId);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setRevision(revision);
-        entity.setStatusHistory(processGroupStatusHistory);
-
-        // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1004,6 +616,10 @@ public class ProcessGroupResource extends ApplicationResource {
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
+
+    // ----------
+    // processors
+    // ----------
 
     /**
      * Creates a new processor.
@@ -1161,6 +777,10 @@ public class ProcessGroupResource extends ApplicationResource {
         return clusterContext(generateOkResponse(entity)).build();
     }
 
+    // -----------
+    // input ports
+    // -----------
+
     /**
      * Creates a new input port.
      *
@@ -1315,6 +935,10 @@ public class ProcessGroupResource extends ApplicationResource {
         return clusterContext(generateOkResponse(entity)).build();
     }
 
+    // ------------
+    // output ports
+    // ------------
+
     /**
      * Creates a new output port.
      *
@@ -1468,6 +1092,10 @@ public class ProcessGroupResource extends ApplicationResource {
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
+
+    // -------
+    // funnels
+    // -------
 
     /**
      * Creates a new Funnel.
@@ -1630,6 +1258,10 @@ public class ProcessGroupResource extends ApplicationResource {
         return clusterContext(generateOkResponse(entity)).build();
     }
 
+    // ------
+    // labels
+    // ------
+
     /**
      * Creates a new Label.
      *
@@ -1783,6 +1415,10 @@ public class ProcessGroupResource extends ApplicationResource {
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
+
+    // ---------------------
+    // remote process groups
+    // ---------------------
 
     /**
      * Creates a new remote process group.
@@ -1990,6 +1626,10 @@ public class ProcessGroupResource extends ApplicationResource {
         return clusterContext(generateOkResponse(entity)).build();
     }
 
+    // -----------
+    // connections
+    // -----------
+
     /**
      * Creates a new connection.
      *
@@ -2157,6 +1797,1039 @@ public class ProcessGroupResource extends ApplicationResource {
         return clusterContext(generateOkResponse(entity)).build();
     }
 
+    // --------
+    // snippets
+    // --------
+
+    /**
+     * Creates a snippet based off the specified configuration.
+     *
+     * @param httpServletRequest request
+     * @param snippetEntity A snippetEntity
+     * @return A snippetEntity
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/snippets")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Creates a snippet",
+        response = SnippetEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response createSnippet(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "The snippet configuration details.",
+            required = true
+        )
+        final SnippetEntity snippetEntity) {
+
+        if (snippetEntity == null || snippetEntity.getSnippet() == null) {
+            throw new IllegalArgumentException("Snippet details must be specified.");
+        }
+
+        if (snippetEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        if (snippetEntity.getSnippet().getId() != null) {
+            throw new IllegalArgumentException("Snippet ID cannot be specified.");
+        }
+
+        // ensure the group id has been specified
+        if (snippetEntity.getSnippet().getParentGroupId() == null) {
+            throw new IllegalArgumentException("The group id must be specified when creating a snippet.");
+        }
+
+        if (properties.isClusterManager()) {
+            return (Response) clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(snippetEntity), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            return generateContinueResponse().build();
+        }
+
+        // set the processor id as appropriate
+        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
+        if (clusterContext != null) {
+            snippetEntity.getSnippet().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
+        } else {
+            snippetEntity.getSnippet().setId(UUID.randomUUID().toString());
+        }
+
+        // create the snippet
+        final RevisionDTO revision = snippetEntity.getRevision();
+        final ConfigurationSnapshot<SnippetDTO> response = serviceFacade.createSnippet(new Revision(revision.getVersion(), revision.getClientId()), snippetEntity.getSnippet());
+
+        // get the snippet
+        final SnippetDTO snippet = response.getConfiguration();
+
+        // always prune the response when creating
+        snippet.setContents(null);
+
+        // get the updated revision
+        final RevisionDTO updatedRevision = new RevisionDTO();
+        updatedRevision.setClientId(revision.getClientId());
+        updatedRevision.setVersion(response.getVersion());
+
+        // build the response entity
+        SnippetEntity entity = new SnippetEntity();
+        entity.setRevision(updatedRevision);
+        entity.setSnippet(populateRemainingSnippetContent(snippet));
+
+        // build the response
+        return clusterContext(generateCreatedResponse(URI.create(snippet.getUri()), entity)).build();
+    }
+
+    /**
+     * Retrieves the specified snippet.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param verbose Whether or not to include the contents of the snippet in
+     * the response.
+     * @param id The id of the snippet to retrieve.
+     * @return A snippetEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/snippets/{snippet-id}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Gets a snippet",
+        response = SnippetEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getSnippet(
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @ApiParam(
+            value = "Whether to include configuration details for the components specified in the snippet.",
+            required = false
+        )
+        @QueryParam("verbose") @DefaultValue(VERBOSE) Boolean verbose,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "The snippet id.",
+            required = true
+        )
+        @PathParam("snippet-id") String id) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get the snippet
+        final SnippetDTO snippet = serviceFacade.getSnippet(id);
+
+        // prune the response if necessary
+        if (!verbose) {
+            snippet.setContents(null);
+        }
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create the response entity
+        final SnippetEntity entity = new SnippetEntity();
+        entity.setRevision(revision);
+        entity.setSnippet(populateRemainingSnippetContent(snippet));
+
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**
+     * Updates the specified snippet. The contents of the snippet (component
+     * ids) cannot be updated once the snippet is created.
+     *
+     * @param httpServletRequest request
+     * @param id The id of the snippet.
+     * @param snippetEntity A snippetEntity
+     * @return A snippetEntity
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/snippets/{snippet-id}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Updates a snippet",
+        response = SnippetEntity.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response updateSnippet(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "The snippet id.",
+            required = true
+        )
+        @PathParam("snippet-id") String id,
+        @ApiParam(
+            value = "The snippet configuration details.",
+            required = true
+        ) final SnippetEntity snippetEntity) {
+
+        if (snippetEntity == null || snippetEntity.getSnippet() == null) {
+            throw new IllegalArgumentException("Snippet details must be specified.");
+        }
+
+        if (snippetEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        // ensure the ids are the same
+        final SnippetDTO requestSnippetDTO = snippetEntity.getSnippet();
+        if (!id.equals(requestSnippetDTO.getId())) {
+            throw new IllegalArgumentException(String.format("The snippet id (%s) in the request body does not equal the "
+                + "snippet id of the requested resource (%s).", requestSnippetDTO.getId(), id));
+        }
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(snippetEntity), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            serviceFacade.verifyUpdateSnippet(requestSnippetDTO);
+            return generateContinueResponse().build();
+        }
+
+        // update the snippet
+        final RevisionDTO revision = snippetEntity.getRevision();
+        final ConfigurationSnapshot<SnippetDTO> controllerResponse = serviceFacade.updateSnippet(
+            new Revision(revision.getVersion(), revision.getClientId()), snippetEntity.getSnippet());
+
+        // get the results
+        final SnippetDTO snippet = controllerResponse.getConfiguration();
+
+        // always prune update responses
+        snippet.setContents(null);
+
+        // get the updated revision
+        final RevisionDTO updatedRevision = new RevisionDTO();
+        updatedRevision.setClientId(revision.getClientId());
+        updatedRevision.setVersion(controllerResponse.getVersion());
+
+        // build the response entity
+        SnippetEntity entity = new SnippetEntity();
+        entity.setRevision(updatedRevision);
+        entity.setSnippet(populateRemainingSnippetContent(snippet));
+
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(snippet.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
+    }
+
+    /**
+     * Removes the specified snippet.
+     *
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with
+     * the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param id The id of the snippet to remove.
+     * @return A entity containing the client id and an updated revision.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/snippets/{snippet-id}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Deletes a snippet",
+        response = SnippetEntity.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response removeSnippet(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The revision is used to verify the client is working with the latest version of the flow.",
+            required = false
+        )
+        @QueryParam(VERSION) LongParameter version,
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "The snippet id.",
+            required = true
+        )
+        @PathParam("snippet-id") String id) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            serviceFacade.verifyDeleteSnippet(id);
+            return generateContinueResponse().build();
+        }
+
+        // determine the specified version
+        Long clientVersion = null;
+        if (version != null) {
+            clientVersion = version.getLong();
+        }
+
+        // delete the specified snippet
+        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteSnippet(new Revision(clientVersion, clientId.getClientId()), id);
+
+        // get the updated revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+        revision.setVersion(controllerResponse.getVersion());
+
+        // build the response entity
+        SnippetEntity entity = new SnippetEntity();
+        entity.setRevision(revision);
+
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    // ----------------
+    // snippet instance
+    // ----------------
+
+    /**
+     * Copies the specified snippet within this ProcessGroup. The snippet instance that is instantiated cannot be referenced at a later time, therefore there is no
+     * corresponding URI. Instead the request URI is returned.
+     *
+     * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
+     *
+     * @param httpServletRequest request
+     * @param groupId The group id
+     * @param copySnippetEntity The copy snippet request
+     * @return A flowSnippetEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/snippet-instance")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Copies a snippet",
+        response = FlowSnippetEntity.class,
+        authorizations = {
+            @Authorization(value = "ROLE_DFM", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response copySnippet(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "The copy snippet request.",
+            required = true
+        ) CopySnippetRequestEntity copySnippetEntity) {
+
+        // ensure the position has been specified
+        if (copySnippetEntity == null || copySnippetEntity.getOriginX() == null || copySnippetEntity.getOriginY() == null) {
+            throw new IllegalArgumentException("The  origin position (x, y) must be specified");
+        }
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(copySnippetEntity), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            return generateContinueResponse().build();
+        }
+
+        // copy the specified snippet
+        final RevisionDTO requestRevision = copySnippetEntity.getRevision();
+        final ConfigurationSnapshot<FlowSnippetDTO> controllerResponse = serviceFacade.copySnippet(
+            new Revision(requestRevision.getVersion(), requestRevision.getClientId()),
+            groupId, copySnippetEntity.getSnippetId(), copySnippetEntity.getOriginX(), copySnippetEntity.getOriginY());
+
+        // get the snippet
+        final FlowSnippetDTO flowSnippet = controllerResponse.getConfiguration();
+
+        // prune response as necessary
+        for (ProcessGroupDTO group : flowSnippet.getProcessGroups()) {
+            if (group.getContents() != null) {
+                group.setContents(null);
+            }
+        }
+
+        // get the updated revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(requestRevision.getClientId());
+        revision.setVersion(controllerResponse.getVersion());
+
+        // create the response entity
+        final FlowSnippetEntity entity = new FlowSnippetEntity();
+        entity.setRevision(revision);
+        entity.setContents(populateRemainingSnippetContent(flowSnippet));
+
+        // generate the response
+        return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
+    }
+
+    // -----------------
+    // template instance
+    // -----------------
+
+    /**
+     * Instantiates the specified template within this ProcessGroup. The template instance that is instantiated cannot be referenced at a later time, therefore there is no
+     * corresponding URI. Instead the request URI is returned.
+     *
+     * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
+     *
+     * @param httpServletRequest request
+     * @param groupId The group id
+     * @param instantiateTemplateRequestEntity The instantiate template request
+     * @return A flowSnippetEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/template-instance")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Instantiates a template",
+        response = FlowSnippetEntity.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response instantiateTemplate(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "The instantiate template request.",
+            required = true
+        ) InstantiateTemplateRequestEntity instantiateTemplateRequestEntity) {
+
+        // ensure the position has been specified
+        if (instantiateTemplateRequestEntity == null || instantiateTemplateRequestEntity.getOriginX() == null || instantiateTemplateRequestEntity.getOriginY() == null) {
+            throw new IllegalArgumentException("The  origin position (x, y) must be specified");
+        }
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(instantiateTemplateRequestEntity), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            return generateContinueResponse().build();
+        }
+
+        // create the template and generate the json
+        final RevisionDTO requestRevision = instantiateTemplateRequestEntity.getRevision();
+        final ConfigurationSnapshot<FlowSnippetDTO> response = serviceFacade.createTemplateInstance(
+            new Revision(requestRevision.getVersion(), requestRevision.getClientId()), groupId, instantiateTemplateRequestEntity.getOriginX(),
+            instantiateTemplateRequestEntity.getOriginY(), instantiateTemplateRequestEntity.getTemplateId());
+
+        final FlowSnippetDTO flowSnippet = response.getConfiguration();
+
+        // prune response as necessary
+        for (ProcessGroupDTO group : flowSnippet.getProcessGroups()) {
+            if (group.getContents() != null) {
+                group.setContents(null);
+            }
+        }
+
+        // get the updated revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(requestRevision.getClientId());
+        revision.setVersion(response.getVersion());
+
+        // create the response entity
+        final FlowSnippetEntity entity = new FlowSnippetEntity();
+        entity.setRevision(revision);
+        entity.setContents(populateRemainingSnippetContent(flowSnippet));
+
+        // generate the response
+        return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
+    }
+
+    // ---------
+    // templates
+    // ---------
+
+    /**
+     * Retrieves all the of templates in this NiFi.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @return A templatesEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/templates")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Gets all templates",
+        response = TemplatesEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getTemplates(
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get all the templates
+        final Set<TemplateDTO> templates = templateResource.populateRemainingTemplatesContent(serviceFacade.getTemplates());
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create the response entity
+        final TemplatesEntity entity = new TemplatesEntity();
+        entity.setRevision(revision);
+        entity.setTemplates(templates);
+        entity.setGenerated(new Date());
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**
+     * Creates a new template based off of the specified template.
+     *
+     * @param httpServletRequest request
+     * @param createTemplateRequestEntity request to create the template
+     * @return A templateEntity
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/templates")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Creates a template",
+        response = TemplateEntity.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response createTemplate(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "The create template request.",
+            required = true
+        ) CreateTemplateRequestEntity createTemplateRequestEntity) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(createTemplateRequestEntity), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            return generateContinueResponse().build();
+        }
+
+        // create the template and generate the json
+        final RevisionDTO revisionDTO = createTemplateRequestEntity.getRevision();
+        final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(), createTemplateRequestEntity.getSnippetId());
+        templateResource.populateRemainingTemplateContent(template);
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(revisionDTO.getClientId());
+
+        // build the response entity
+        final TemplateEntity entity = new TemplateEntity();
+        entity.setRevision(revision);
+        entity.setTemplate(template);
+
+        // build the response
+        return clusterContext(generateCreatedResponse(URI.create(template.getUri()), entity)).build();
+    }
+
+    /**
+     * Imports the specified template.
+     *
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param in The template stream
+     * @return A templateEntity or an errorResponse XML snippet.
+     */
+    @POST
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_XML)
+    @Path("{id}/templates/upload")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    public Response uploadTemplate(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @FormDataParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @FormDataParam("template") InputStream in) {
+
+        // unmarshal the template
+        final TemplateDTO template;
+        try {
+            JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
+            Unmarshaller unmarshaller = context.createUnmarshaller();
+            JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(new StreamSource(in), TemplateDTO.class);
+            template = templateElement.getValue();
+        } catch (JAXBException jaxbe) {
+            logger.warn("An error occurred while parsing a template.", jaxbe);
+            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"The specified template is not in a valid format.\"/>", Response.Status.BAD_REQUEST.getStatusCode());
+            return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
+        } catch (IllegalArgumentException iae) {
+            logger.warn("Unable to import template.", iae);
+            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"%s\"/>", Response.Status.BAD_REQUEST.getStatusCode(), iae.getMessage());
+            return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
+        } catch (Exception e) {
+            logger.warn("An error occurred while importing a template.", e);
+            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>",
+                Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
+            return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
+        }
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // build the response entity
+        TemplateEntity entity = new TemplateEntity();
+        entity.setRevision(revision);
+        entity.setTemplate(template);
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            // convert request accordingly
+            URI importUri = null;
+            try {
+                importUri = new URI(generateResourceUri("process-groups", groupId, "templates", "import"));
+            } catch (final URISyntaxException e) {
+                throw new WebApplicationException(e);
+            }
+
+            // change content type to JSON for serializing entity
+            final Map<String, String> headersToOverride = new HashMap<>();
+            headersToOverride.put("content-type", MediaType.APPLICATION_XML);
+
+            // replicate the request
+            return clusterManager.applyRequest(HttpMethod.POST, importUri, updateClientId(entity), getHeaders(headersToOverride)).getResponse();
+        }
+
+        // otherwise import the template locally
+        return importTemplate(httpServletRequest, groupId, entity);
+    }
+
+    /**
+     * Imports the specified template.
+     *
+     * @param httpServletRequest request
+     * @param templateEntity A templateEntity.
+     * @return A templateEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_XML)
+    @Produces(MediaType.APPLICATION_XML)
+    @Path("{id}/templates/import")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    public Response importTemplate(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        TemplateEntity templateEntity) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(templateEntity), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            return generateContinueResponse().build();
+        }
+
+        try {
+            // verify the template was specified
+            if (templateEntity == null || templateEntity.getTemplate() == null) {
+                throw new IllegalArgumentException("Template details must be specified.");
+            }
+
+            // import the template
+            final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate());
+            templateResource.populateRemainingTemplateContent(template);
+
+            // create the revision
+            final RevisionDTO revision = new RevisionDTO();
+            if (templateEntity.getRevision() == null) {
+                revision.setClientId(new ClientIdParameter().getClientId());
+            } else {
+                revision.setClientId(templateEntity.getRevision().getClientId());
+            }
+
+            // build the response entity
+            TemplateEntity entity = new TemplateEntity();
+            entity.setRevision(revision);
+            entity.setTemplate(template);
+
+            // build the response
+            return clusterContext(generateCreatedResponse(URI.create(template.getUri()), entity)).build();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            logger.info("Unable to import template: " + e);
+            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"%s\"/>", Response.Status.BAD_REQUEST.getStatusCode(), e.getMessage());
+            return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
+        } catch (Exception e) {
+            logger.warn("An error occurred while importing a template.", e);
+            String responseXml
+                = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
+            return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
+        }
+    }
+
+    // -------------------
+    // controller services
+    // -------------------
+
+    /**
+     * Creates a new Controller Service.
+     *
+     * @param httpServletRequest request
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
+     * @param controllerServiceEntity A controllerServiceEntity.
+     * @return A controllerServiceEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/controller-services/{availability}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Creates a new controller service",
+        response = ControllerServiceEntity.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response createControllerService(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+            allowableValues = "NCM, NODE",
+            required = true
+        )
+        @PathParam("availability") String availability,
+        @ApiParam(
+            value = "The controller service configuration details.",
+            required = true
+        ) ControllerServiceEntity controllerServiceEntity) {
+
+        final Availability avail = controllerServiceResource.parseAvailability(availability);
+
+        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
+            throw new IllegalArgumentException("Controller service details must be specified.");
+        }
+
+        if (controllerServiceEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        if (controllerServiceEntity.getControllerService().getId() != null) {
+            throw new IllegalArgumentException("Controller service ID cannot be specified.");
+        }
+
+        if (StringUtils.isBlank(controllerServiceEntity.getControllerService().getType())) {
+            throw new IllegalArgumentException("The type of controller service to create must be specified.");
+        }
+
+        // get the revision
+        final RevisionDTO revision = controllerServiceEntity.getRevision();
+
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(controllerServiceEntity), getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        if (expects != null) {
+            return generateContinueResponse().build();
+        }
+
+        // set the processor id as appropriate
+        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
+        if (clusterContext != null) {
+            controllerServiceEntity.getControllerService().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
+        } else {
+            controllerServiceEntity.getControllerService().setId(UUID.randomUUID().toString());
+        }
+
+        // create the controller service and generate the json
+        final ConfigurationSnapshot<ControllerServiceDTO> controllerResponse = serviceFacade.createControllerService(
+            new Revision(revision.getVersion(), revision.getClientId()), controllerServiceEntity.getControllerService());
+        final ControllerServiceDTO controllerService = controllerResponse.getConfiguration();
+
+        // get the updated revision
+        final RevisionDTO updatedRevision = new RevisionDTO();
+        updatedRevision.setClientId(revision.getClientId());
+        updatedRevision.setVersion(controllerResponse.getVersion());
+
+        // build the response entity
+        final ControllerServiceEntity entity = new ControllerServiceEntity();
+        entity.setRevision(updatedRevision);
+        entity.setControllerService(controllerServiceResource.populateRemainingControllerServiceContent(availability, controllerService));
+
+        // build the response
+        return clusterContext(generateCreatedResponse(URI.create(controllerService.getUri()), entity)).build();
+    }
+
+    /**
+     * Retrieves all the of controller services in this NiFi.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
+     * @return A controllerServicesEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/controller-services/{availability}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Gets all controller services",
+        response = ControllerServicesEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getControllerServices(
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+            allowableValues = "NCM, NODE",
+            required = true
+        )
+        @PathParam("availability") String availability) {
+
+        final Availability avail = controllerServiceResource.parseAvailability(availability);
+
+        // replicate if cluster manager
+        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get all the controller services
+        final Set<ControllerServiceDTO> controllerServices = controllerServiceResource.populateRemainingControllerServicesContent(availability, serviceFacade.getControllerServices());
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create the response entity
+        final ControllerServicesEntity entity = new ControllerServicesEntity();
+        entity.setRevision(revision);
+        entity.setControllerServices(controllerServices);
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
     // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
@@ -2192,6 +2865,14 @@ public class ProcessGroupResource extends ApplicationResource {
 
     public void setConnectionResource(ConnectionResource connectionResource) {
         this.connectionResource = connectionResource;
+    }
+
+    public void setTemplateResource(TemplateResource templateResource) {
+        this.templateResource = templateResource;
+    }
+
+    public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
+        this.controllerServiceResource = controllerServiceResource;
     }
 
     public void setProperties(NiFiProperties properties) {

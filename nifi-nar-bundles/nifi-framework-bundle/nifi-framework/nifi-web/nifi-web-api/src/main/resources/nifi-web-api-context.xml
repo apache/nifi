@@ -156,12 +156,23 @@
     </bean>
 
     <!-- rest endpoints -->
-    <bean id="controllerResource" class="org.apache.nifi.web.api.ControllerResource" scope="singleton">
+    <bean id="flowResource" class="org.apache.nifi.web.api.FlowResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
-    <bean id="bulletinBoardResource" class="org.apache.nifi.web.api.BulletinBoardResource" scope="singleton">
+    <bean id="resourceResource" class="org.apache.nifi.web.api.ResourceResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterManager" ref="clusterManager"/>
+    </bean>
+    <bean id="controllerResource" class="org.apache.nifi.web.api.ControllerResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterManager" ref="clusterManager"/>
+        <property name="reportingTaskResource" ref="reportingTaskResource"/>
+    </bean>
+    <bean id="siteToSiteResource" class="org.apache.nifi.web.api.SiteToSiteResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
@@ -192,6 +203,8 @@
         <property name="labelResource" ref="labelResource"/>
         <property name="remoteProcessGroupResource" ref="remoteProcessGroupResource"/>
         <property name="connectionResource" ref="connectionResource"/>
+        <property name="templateResource" ref="templateResource"/>
+        <property name="controllerServiceResource" ref="controllerServiceResource"/>
     </bean>
     <bean id="processorResource" class="org.apache.nifi.web.api.ProcessorResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -199,6 +212,11 @@
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
     <bean id="connectionResource" class="org.apache.nifi.web.api.ConnectionResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterManager" ref="clusterManager"/>
+    </bean>
+    <bean id="flowfileQueueResource" class="org.apache.nifi.web.api.FlowFileQueueResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
@@ -227,19 +245,6 @@
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
-    </bean>
-    <bean id="snippetResource" class="org.apache.nifi.web.api.SnippetResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="properties" ref="nifiProperties"/>
-        <property name="clusterManager" ref="clusterManager"/>
-        <property name="processorResource" ref="processorResource"/>
-        <property name="inputPortResource" ref="inputPortResource"/>
-        <property name="outputPortResource" ref="outputPortResource"/>
-        <property name="funnelResource" ref="funnelResource"/>
-        <property name="labelResource" ref="labelResource"/>
-        <property name="remoteProcessGroupResource" ref="remoteProcessGroupResource"/>
-        <property name="connectionResource" ref="connectionResource"/>
-        <property name="processGroupResource" ref="processGroupResource"/>
     </bean>
     <bean id="historyResource" class="org.apache.nifi.web.api.HistoryResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>

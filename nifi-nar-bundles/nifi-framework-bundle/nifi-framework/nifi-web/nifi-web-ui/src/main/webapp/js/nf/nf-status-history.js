@@ -33,8 +33,7 @@ nf.StatusHistory = (function () {
             label: 'Label'
         },
         urls: {
-            api: '../nifi-api',
-            processGroups: '../nifi-api/process-groups/'
+            api: '../nifi-api'
         }
     };
 
@@ -1100,7 +1099,7 @@ nf.StatusHistory = (function () {
         showConnectionChart: function (groupId, connectionId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/connections/' + encodeURIComponent(connectionId) + '/status/history',
+                url: config.urls.api + '/flow/connections/' + encodeURIComponent(connectionId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
                 handleStatusHistoryResponse(groupId, connectionId, response.statusHistory, config.type.connection, selectedDescriptor);
@@ -1117,7 +1116,7 @@ nf.StatusHistory = (function () {
         showProcessorChart: function (groupId, processorId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/processors/' + encodeURIComponent(processorId) + '/status/history',
+                url: config.urls.api + '/flow/processors/' + encodeURIComponent(processorId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
                 handleStatusHistoryResponse(groupId, processorId, response.statusHistory, config.type.processor, selectedDescriptor);
@@ -1134,7 +1133,7 @@ nf.StatusHistory = (function () {
         showProcessGroupChart: function (groupId, processGroupId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.processGroups + encodeURIComponent(processGroupId) + '/status/history',
+                url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
                 handleStatusHistoryResponse(groupId, processGroupId, response.statusHistory, config.type.processGroup, selectedDescriptor);
@@ -1151,7 +1150,7 @@ nf.StatusHistory = (function () {
         showRemoteProcessGroupChart: function (groupId, remoteProcessGroupId, selectedDescriptor) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status/history',
+                url: config.urls.api + '/flow/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status/history',
                 dataType: 'json'
             }).done(function (response) {
                 handleStatusHistoryResponse(groupId, remoteProcessGroupId, response.statusHistory, config.type.remoteProcessGroup, selectedDescriptor);

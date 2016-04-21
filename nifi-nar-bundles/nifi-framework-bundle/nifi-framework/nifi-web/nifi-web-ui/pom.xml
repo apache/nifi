@@ -347,6 +347,7 @@
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance-table.js</include>
+                                                <include>${staging.dir}/js/nf/provenance/nf-provenance-lineage.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
@@ -361,6 +362,7 @@
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/nf-processor-details.js</include>
                                                 <include>${staging.dir}/js/nf/nf-connection-details.js</include>
+                                                <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-summary.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-summary-table.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-cluster-search.js</include>

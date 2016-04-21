@@ -136,7 +136,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 final JAXBElement<Authorizers> element = unmarshaller.unmarshal(new StreamSource(authorizersConfigurationFile), Authorizers.class);
                 return element.getValue();
             } catch (SAXException | JAXBException e) {
-                throw new Exception("Unable to load the authorizer configuration file at: " + authorizersConfigurationFile.getAbsolutePath());
+                throw new Exception("Unable to load the authorizer configuration file at: " + authorizersConfigurationFile.getAbsolutePath(), e);
             }
         } else {
             throw new Exception("Unable to find the authorizer configuration file at " + authorizersConfigurationFile.getAbsolutePath());

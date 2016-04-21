@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.anonymous;
 
-import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
@@ -28,15 +27,13 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * Custom AnonymouseAuthenticationFilter used to grant additional authorities depending on the current operating mode.
+ * Custom AnonymousAuthenticationFilter used to grant additional authorities depending on the current operating mode.
  */
 public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
 
     private static final Logger anonymousUserFilterLogger = LoggerFactory.getLogger(NiFiAnonymousUserFilter.class);
 
     private static final String ANONYMOUS_KEY = "anonymousNifiKey";
-
-    private KeyService keyService;
 
     public NiFiAnonymousUserFilter() {
         super(ANONYMOUS_KEY);
@@ -45,11 +42,6 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
     @Override
     protected Authentication createAuthentication(HttpServletRequest request) {
         return new NiFiAuthenticationToken(new NiFiUserDetails(NiFiUser.ANONYMOUS));
-    }
-
-    /* setters */
-    public void setKeyService(KeyService keyService) {
-        this.keyService = keyService;
     }
 
 }

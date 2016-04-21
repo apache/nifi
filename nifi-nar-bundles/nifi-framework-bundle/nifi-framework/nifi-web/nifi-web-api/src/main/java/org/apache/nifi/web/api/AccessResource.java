@@ -79,12 +79,12 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * RESTful endpoint for managing a cluster.
+ * RESTful endpoint for managing access.
  */
 @Path("/access")
 @Api(
-        value = "/access",
-        description = "Endpoints for obtaining an access token or checking access status"
+    value = "/access",
+    description = "Endpoints for obtaining an access token or checking access status."
 )
 public class AccessResource extends ApplicationResource {
 

@@ -29,8 +29,8 @@ nf.Summary = (function () {
      */
     var config = {
         urls: {
-            banners: '../nifi-api/controller/banners',
-            controllerAbout: '../nifi-api/controller/about',
+            banners: '../nifi-api/flow/banners',
+            about: '../nifi-api/flow/about',
             cluster: '../nifi-api/cluster'
         }
     };
@@ -142,7 +142,7 @@ nf.Summary = (function () {
                         // get the about details
                         $.ajax({
                             type: 'GET',
-                            url: config.urls.controllerAbout,
+                            url: config.urls.about,
                             dataType: 'json'
                         }).done(function (response) {
                             var aboutDetails = response.about;

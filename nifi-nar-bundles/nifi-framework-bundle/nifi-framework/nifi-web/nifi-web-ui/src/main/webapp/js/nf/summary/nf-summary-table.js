@@ -28,47 +28,10 @@ nf.SummaryTable = (function () {
         },
         urls: {
             api: '../nifi-api',
-            status: '../nifi-api/process-groups/root/status',
-            processGroups: '../nifi-api/process-groups/',
+            status: '../nifi-api/flow/process-groups/root/status',
             systemDiagnostics: '../nifi-api/system-diagnostics',
-            controllerConfig: '../nifi-api/controller/config',
-            d3Script: 'js/d3/d3.min.js',
-            statusHistory: 'js/nf/nf-status-history.js'
+            controllerConfig: '../nifi-api/controller/config'
         }
-    };
-
-    /**
-     * Loads the lineage capabilities when the current browser supports SVG.
-     */
-    var loadChartCapabilities = function () {
-        return $.Deferred(function (deferred) {
-            if (nf.Common.SUPPORTS_SVG) {
-                nf.Common.cachedScript(config.urls.d3Script).done(function () {
-                    // get the controller config to get the server offset
-                    var configRequest = $.ajax({
-                        type: 'GET',
-                        url: config.urls.controllerConfig,
-                        dataType: 'json'
-                    });
-
-                    // get the config details and load the chart script
-                    $.when(configRequest, nf.Common.cachedScript(config.urls.statusHistory)).done(function (response) {
-                        var configResponse = response[0];
-                        var configDetails = configResponse.config;
-
-                        // initialize the chart
-                        nf.StatusHistory.init(configDetails.timeOffset);
-                        deferred.resolve();
-                    }).fail(function () {
-                        deferred.reject();
-                    });
-                }).fail(function () {
-                    deferred.reject();
-                });
-            } else {
-                deferred.resolve();
-            }
-        }).promise();
     };
 
     /**
@@ -2162,7 +2125,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.api + '/processors/' + encodeURIComponent(processorId) + '/status',
+            url: config.urls.api + '/flow/processors/' + encodeURIComponent(processorId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2219,7 +2182,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.api + '/connections/' + encodeURIComponent(connectionId) + '/status',
+            url: config.urls.api + '/flow/connections/' + encodeURIComponent(connectionId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2272,7 +2235,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.processGroups + encodeURIComponent(processGroupId) + '/status',
+            url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId) + '/status',
             data: {
                 nodewise: true,
                 recursive: false
@@ -2332,7 +2295,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.api + '/input-ports/' + encodeURIComponent(inputPortId) + '/status',
+            url: config.urls.api + '/flow/input-ports/' + encodeURIComponent(inputPortId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2384,7 +2347,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.api + '/output-ports/' + encodeURIComponent(outputPortId) + '/status',
+            url: config.urls.api + '/flow/output-ports/' + encodeURIComponent(outputPortId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2436,7 +2399,7 @@ nf.SummaryTable = (function () {
         // get the summary
         $.ajax({
             type: 'GET',
-            url: config.urls.api + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status',
+            url: config.urls.api + '/flow/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status',
             data: {
                 nodewise: true
             },
@@ -2492,7 +2455,17 @@ nf.SummaryTable = (function () {
          */
         init: function (isClustered) {
             return $.Deferred(function (deferred) {
-                loadChartCapabilities().done(function () {
+                // get the controller config to get the server offset
+                var configRequest = $.ajax({
+                    type: 'GET',
+                    url: config.urls.controllerConfig,
+                    dataType: 'json'
+                }).done(function (configResponse) {
+                    var configDetails = configResponse.config;
+
+                    // initialize the chart
+                    nf.StatusHistory.init(configDetails.timeOffset);
+                    
                     // initialize the processor/connection details dialog
                     nf.ProcessorDetails.init(false);
                     nf.ConnectionDetails.init(false);

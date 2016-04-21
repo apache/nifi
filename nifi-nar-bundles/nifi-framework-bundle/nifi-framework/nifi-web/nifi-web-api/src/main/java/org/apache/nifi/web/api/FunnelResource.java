@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
@@ -57,7 +58,11 @@ import java.util.Set;
 /**
  * RESTful endpoint for managing a Funnel.
  */
-@Path("funnels")
+@Path("/funnels")
+@Api(
+    value = "/funnel",
+    description = "Endpoint for managing a Funnel."
+)
 public class FunnelResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(FunnelResource.class);

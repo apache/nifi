@@ -65,16 +65,6 @@ public class NodeRequestFilter implements Filter {
         HttpServletRequest httpReq = (HttpServletRequest) req;
         HttpServletResponse httpResp = (HttpServletResponse) resp;
 
-        /*
-         * If we're the cluster manager or we're sent head requests, continue.
-         * Head requests are included because there exists a AJAX/XHR race
-         * condition between the following requests:
-         *      HEAD /nifi-api/cluster
-         *      GET  /nifi-api/controller/config
-         * If the head request finishes first, then the UI JavaScript will display
-         * a default error message and not display the error message given in this
-         * filter for directly accessing connected nodes.
-         */
         if (properties.isClusterManager() || "HEAD".equalsIgnoreCase(httpReq.getMethod())) {
             filterChain.doFilter(req, resp);
         } else {

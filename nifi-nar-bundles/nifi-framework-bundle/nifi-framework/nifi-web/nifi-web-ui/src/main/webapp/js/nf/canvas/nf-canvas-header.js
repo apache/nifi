@@ -23,8 +23,7 @@ nf.CanvasHeader = (function () {
 
     var config = {
         urls: {
-            helpDocument: '../nifi-docs/documentation',
-            controllerAbout: '../nifi-api/controller/about'
+            helpDocument: '../nifi-docs/documentation'
         }
     };
 
@@ -61,7 +60,9 @@ nf.CanvasHeader = (function () {
 
             // mouse over for the templates link
             nf.Common.addHoverEffect('#templates-link', 'templates-link', 'templates-link-hover').click(function () {
-                nf.Shell.showPage('templates');
+                nf.Shell.showPage('templates?' + $.param({
+                    groupId: nf.Canvas.getGroupId()
+                }));
             });
 
             // mouse over for the flow settings link
@@ -92,18 +93,6 @@ nf.CanvasHeader = (function () {
             $('#refresh-required-link').click(function () {
                 nf.CanvasHeader.reloadAndClearWarnings();
             });
-
-            // get the about details
-            $.ajax({
-                type: 'GET',
-                url: config.urls.controllerAbout,
-                dataType: 'json'
-            }).done(function (response) {
-                var aboutDetails = response.about;
-                // set the document title and the about title
-                document.title = aboutDetails.title;
-                $('#nf-version').text(aboutDetails.version);
-            }).fail(nf.Common.handleAjaxError);
 
             // configure the about dialog
             $('#nf-about').modal({
