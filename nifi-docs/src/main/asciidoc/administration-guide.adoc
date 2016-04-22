@@ -1224,7 +1224,7 @@ The Provenance Repository contains the information related to Data Provenance. T
 
 |====
 |*Property*|*Description*
-|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository and should only be changed with caution. To store provenance events in memory instead of disk (at the risk of provenance data loss), set this property to org.apache.nifi.provenance.VolatileProvenanceRepository.
+|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository and should only be changed with caution. To store provenance events in memory instead of on disk (at the risk of provenance data loss), set this property to org.apache.nifi.provenance.VolatileProvenanceRepository.
 |====
 
 *Persistent Provenance Repository Properties* +
