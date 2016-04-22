@@ -2216,6 +2216,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             connStatus.setSourceName(conn.getSource().getName());
             connStatus.setDestinationId(conn.getDestination().getIdentifier());
             connStatus.setDestinationName(conn.getDestination().getName());
+            connStatus.setBackPressureDataSizeThreshold(conn.getFlowFileQueue().getBackPressureDataSizeThreshold());
+            connStatus.setBackPressureObjectThreshold(conn.getFlowFileQueue().getBackPressureObjectThreshold());
 
             final FlowFileEvent connectionStatusReport = statusReport.getReportEntry(conn.getIdentifier());
             if (connectionStatusReport != null) {
