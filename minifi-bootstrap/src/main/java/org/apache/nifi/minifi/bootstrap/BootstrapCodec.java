@@ -17,6 +17,8 @@
 package org.apache.nifi.minifi.bootstrap;
 
 import org.apache.nifi.minifi.bootstrap.exception.InvalidCommandException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -32,6 +34,7 @@ public class BootstrapCodec {
     private final RunMiNiFi runner;
     private final BufferedReader reader;
     private final BufferedWriter writer;
+    private final Logger logger = LoggerFactory.getLogger(BootstrapCodec.class);
 
     public BootstrapCodec(final RunMiNiFi runner, final InputStream in, final OutputStream out) {
         this.runner = runner;
@@ -64,6 +67,7 @@ public class BootstrapCodec {
     private void processRequest(final String cmd, final String[] args) throws InvalidCommandException, IOException {
         switch (cmd) {
             case "PORT": {
+                logger.debug("Received 'PORT' command from MINIFI");
                 if (args.length != 2) {
                     throw new InvalidCommandException();
                 }
@@ -88,6 +92,7 @@ public class BootstrapCodec {
             }
             break;
             case "STARTED": {
+                logger.debug("Received 'STARTED' command from MINIFI");
                 if (args.length != 1) {
                     throw new InvalidCommandException("STARTED command must contain a status argument");
                 }
@@ -104,6 +109,7 @@ public class BootstrapCodec {
             }
             break;
             case "SHUTDOWN": {
+                logger.debug("Received 'SHUTDOWN' command from MINIFI");
                 runner.shutdownChangeNotifiers();
                 writer.write("OK");
                 writer.newLine();
