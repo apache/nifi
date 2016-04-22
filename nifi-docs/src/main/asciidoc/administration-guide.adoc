@@ -1163,7 +1163,7 @@ to configure it on a separate drive if available.
 
 |====
 |*Property*|*Description*
-|nifi.flowfile.repository.implementation|The FlowFile Repository implementation. The default value is org.apache.nifi.controller.repository.WriteAheadFlowFileRepository and should not be changed.
+|nifi.flowfile.repository.implementation|The FlowFile Repository implementation. The default value is org.apache.nifi.controller.repository.WriteAheadFlowFileRepository and should only be changed with caution. To store flowfiles in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.controller.repository.VolatileFlowFileRepository.
 |nifi.flowfile.repository.directory*|The location of the FlowFile Repository. The default value is ./flowfile_repository.
 |nifi.flowfile.repository.partitions|The number of partitions. The default value is 256.
 |nifi.flowfile.repository.checkpoint.interval| The FlowFile Repository checkpoint interval. The default value is 2 mins.
@@ -1197,7 +1197,7 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 
 |====
 |*Property*|*Description*
-|nifi.content.repository.implementation|The Content Repository implementation. The default value is org.apache.nifi.controller.repository.FileSystemRepository and should not be changed.
+|nifi.content.repository.implementation|The Content Repository implementation. The default value is org.apache.nifi.controller.repository.FileSystemRepository and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.controller.repository.VolatileContentRepository.
 |nifi.content.claim.max.appendable.size|The maximum size for a content claim. The default value is 10 MB.
 |nifi.content.claim.max.flow.files|The maximum number of FlowFiles to assign to one content claim. The default value is 100.
 |nifi.content.repository.directory.default*|The location of the Content Repository. The default value is ./content_repository. +
@@ -1224,7 +1224,7 @@ The Provenance Repository contains the information related to Data Provenance. T
 
 |====
 |*Property*|*Description*
-|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository and should not be changed.
+|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository and should only be changed with caution. To store provenance events in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.provenance.VolatileProvenanceRepository.
 |====
 
 *Persistent Provenance Repository Properties* +
