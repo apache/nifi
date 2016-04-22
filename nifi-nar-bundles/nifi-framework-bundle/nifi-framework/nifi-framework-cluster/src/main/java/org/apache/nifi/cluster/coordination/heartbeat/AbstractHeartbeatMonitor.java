@@ -76,11 +76,13 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     public final void stop() {
         this.stopped = true;
 
-        if (future != null) {
-            future.cancel(true);
+        try {
+            if (future != null) {
+                future.cancel(true);
+            }
+        } finally {
+            onStop();
         }
-
-        onStop();
     }
 
     protected boolean isStopped() {
@@ -131,10 +133,9 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         logger.info("Finished processing {} heartbeats in {}", latestHeartbeats.size(), procStopWatch.getDuration());
 
         // Disconnect any node that hasn't sent a heartbeat in a long time (8 times the heartbeat interval)
+        final long maxMillis = heartbeatIntervalMillis * 1000L * 8;
+        final long threshold = latestHeartbeatTime - maxMillis;
         for (final NodeHeartbeat heartbeat : latestHeartbeats.values()) {
-            final long maxMillis = heartbeatIntervalMillis * 1000L * 8;
-            final long threshold = latestHeartbeatTime - maxMillis;
-
             if (heartbeat.getTimestamp() < threshold) {
                 clusterCoordinator.requestNodeDisconnect(heartbeat.getNodeIdentifier(), DisconnectionCode.LACK_OF_HEARTBEAT,
                     "Latest heartbeat from Node has expired");

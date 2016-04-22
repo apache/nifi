@@ -26,9 +26,6 @@ public class AdaptedNodeConnectionStatus {
     private String disconnectReason;
     private Long connectionRequestTime;
 
-    public AdaptedNodeConnectionStatus() {
-    }
-
     public NodeConnectionState getState() {
         return state;
     }

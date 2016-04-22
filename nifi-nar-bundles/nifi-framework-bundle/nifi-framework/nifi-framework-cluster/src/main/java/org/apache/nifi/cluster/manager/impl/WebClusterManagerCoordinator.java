@@ -17,7 +17,6 @@
 
 package org.apache.nifi.cluster.manager.impl;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -121,12 +120,9 @@ public class WebClusterManagerCoordinator implements ClusterCoordinator {
     public Set<NodeIdentifier> getNodeIdentifiers(final NodeConnectionState state) {
         final Status status = Status.valueOf(state.name());
         final Set<Node> nodes = clusterManager.getNodes(status);
-        final Set<NodeIdentifier> nodeIds = new HashSet<>(nodes.size());
-        for (final Node node : nodes) {
-            nodeIds.add(node.getNodeId());
-        }
-
-        return nodeIds;
+        return nodes.stream()
+            .map(node -> node.getNodeId())
+            .collect(Collectors.toSet());
     }
 
     @Override

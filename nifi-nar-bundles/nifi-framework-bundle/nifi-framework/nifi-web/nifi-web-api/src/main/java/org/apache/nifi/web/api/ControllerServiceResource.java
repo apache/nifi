@@ -620,7 +620,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(updateReferenceRequest), getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
