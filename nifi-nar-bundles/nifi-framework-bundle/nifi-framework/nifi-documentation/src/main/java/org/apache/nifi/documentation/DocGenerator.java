@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
@@ -82,7 +81,7 @@ public class DocGenerator {
     }
 
     /**
-     * Generates the documentation for a particular configurable comopnent. Will
+     * Generates the documentation for a particular configurable component. Will
      * check to see if an "additionalDetails.html" file exists and will link
      * that from the generated documentation.
      *
