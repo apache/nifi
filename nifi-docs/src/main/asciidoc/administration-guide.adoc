@@ -1198,6 +1198,13 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 |====
 |*Property*|*Description*
 |nifi.content.repository.implementation|The Content Repository implementation. The default value is org.apache.nifi.controller.repository.FileSystemRepository and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.controller.repository.VolatileContentRepository.
+|====
+
+*File System Content Repository Properties* +
+
+|====
+|*Property*|*Description*
+|nifi.content.repository.implementation|The Content Repository implementation. The default value is org.apache.nifi.controller.repository.FileSystemRepository and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.controller.repository.VolatileContentRepository.
 |nifi.content.claim.max.appendable.size|The maximum size for a content claim. The default value is 10 MB.
 |nifi.content.claim.max.flow.files|The maximum number of FlowFiles to assign to one content claim. The default value is 100.
 |nifi.content.repository.directory.default*|The location of the Content Repository. The default value is ./content_repository. +
@@ -1216,6 +1223,14 @@ this property specifies the maximum amount of time to keep the archived data. It
 |nifi.content.repository.archive.enabled|To enable archiving, set this to _true_ and specify a value for the nifi.content.repository.archive.max.usage.percentage property above. By default, archiving is enabled.
 |nifi.content.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
 |nifi.content.viewer.url|The URL for a web-based content viewer if one is available. It is blank by default.
+|====
+
+*Volatile Content Repository Properties* +
+
+|====
+|*Property*|*Description*
+|nifi.volatile.content.repository.max.size|The Content Repository maximum size in memory. The default value is 100MB.
+|nifi.volatile.content.repository.block.size|The Content Repository block size. The default value is 32KB.
 |====
 
 *Provenance Repository* +
