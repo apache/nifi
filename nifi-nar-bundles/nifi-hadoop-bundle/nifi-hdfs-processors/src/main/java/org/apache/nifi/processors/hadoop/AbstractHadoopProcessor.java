@@ -33,7 +33,6 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -45,7 +44,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.SocketFactory;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -93,7 +91,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder().name("Hadoop Configuration Resources")
             .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
-            .required(false).addValidator(createMultipleFilesExistValidator()).build();
+            .required(false).addValidator(StandardValidators.createMultipleFilesExistValidator()).build();
 
     public static final String DIRECTORY_PROP_NAME = "Directory";
 
@@ -329,34 +327,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         } finally {
             IOUtils.closeQuietly(socket);
         }
-    }
-
-    /*
-     * Validates that one or more files exist, as specified in a single property.
-     */
-    public static final Validator createMultipleFilesExistValidator() {
-        return new Validator() {
-
-            @Override
-            public ValidationResult validate(String subject, String input, ValidationContext context) {
-                final String[] files = input.split(",");
-                for (String filename : files) {
-                    try {
-                        final File file = new File(filename.trim());
-                        final boolean valid = file.exists() && file.isFile();
-                        if (!valid) {
-                            final String message = "File " + file + " does not exist or is not a file";
-                            return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(message).build();
-                        }
-                    } catch (SecurityException e) {
-                        final String message = "Unable to access " + filename + " due to " + e.getMessage();
-                        return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(message).build();
-                    }
-                }
-                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-            }
-
-        };
     }
 
     /**
