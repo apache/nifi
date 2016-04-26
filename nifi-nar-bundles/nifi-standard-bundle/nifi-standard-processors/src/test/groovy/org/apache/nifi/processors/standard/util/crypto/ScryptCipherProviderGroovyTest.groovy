@@ -530,7 +530,7 @@ public class ScryptCipherProviderGroovyTest {
         // Arrange
         ScryptCipherProvider testCipherProvider = new ScryptCipherProvider()
 
-        /** See this Stack Overflow answer for a good visualization of the interplay between N, r, p {@link http://stackoverflow.com/a/30308723} */
+        /** See this Stack Overflow answer for a good visualization of the interplay between N, r, p <a href="http://stackoverflow.com/a/30308723" rel="noopener">http://stackoverflow.com/a/30308723</a> */
 
         // Act
         int n = testCipherProvider.getN()
