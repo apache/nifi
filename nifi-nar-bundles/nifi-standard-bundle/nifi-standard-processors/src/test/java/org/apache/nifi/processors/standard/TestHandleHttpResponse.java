@@ -38,6 +38,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -53,7 +54,7 @@ public class TestHandleHttpResponse {
     public void testEnsureCompleted() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
 
-        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id");
+        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", false);
         runner.addControllerService("http-context-map", contextMap);
         runner.enableControllerService(contextMap);
         runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
@@ -80,18 +81,44 @@ public class TestHandleHttpResponse {
         assertTrue(contextMap.headersWithNoValue.isEmpty());
     }
 
+    @Test
+    public void testWithExceptionThrown() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", true);
+        runner.addControllerService("http-context-map", contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
+        runner.setProperty("my-attr", "${my-attr}");
+        runner.setProperty("no-valid-attr", "${no-valid-attr}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(HandleHttpResponse.HTTP_CONTEXT_ID, "my-id");
+        attributes.put("my-attr", "hello");
+        attributes.put("status.code", "201");
+
+        runner.enqueue("hello".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_FAILURE, 1);
+    }
+
     private static class MockHttpContextMap extends AbstractControllerService implements HttpContextMap {
 
         private final String id;
         private final AtomicInteger completedCount = new AtomicInteger(0);
         private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         private final ConcurrentMap<String, String> headersSent = new ConcurrentHashMap<>();
+        private final boolean shouldThrowException;
         private volatile int statusCode = -1;
 
         private final List<String> headersWithNoValue = new CopyOnWriteArrayList<>();
 
-        public MockHttpContextMap(final String expectedIdentifier) {
+        public MockHttpContextMap(final String expectedIdentifier, final boolean shouldThrowException) {
             this.id = expectedIdentifier;
+            this.shouldThrowException = shouldThrowException;
         }
 
         @Override
@@ -107,31 +134,35 @@ public class TestHandleHttpResponse {
 
             try {
                 final HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
-                Mockito.when(response.getOutputStream()).thenReturn(new ServletOutputStream() {
-                    @Override
-                    public boolean isReady() {
-                        return true;
-                    }
+                if(shouldThrowException) {
+                    Mockito.when(response.getOutputStream()).thenThrow(new FlowFileAccessException("exception"));
+                } else {
+                    Mockito.when(response.getOutputStream()).thenReturn(new ServletOutputStream() {
+                        @Override
+                        public boolean isReady() {
+                            return true;
+                        }
 
-                    @Override
-                    public void setWriteListener(WriteListener writeListener) {
-                    }
+                        @Override
+                        public void setWriteListener(WriteListener writeListener) {
+                        }
 
-                    @Override
-                    public void write(int b) throws IOException {
-                        baos.write(b);
-                    }
+                        @Override
+                        public void write(int b) throws IOException {
+                            baos.write(b);
+                        }
 
-                    @Override
-                    public void write(byte[] b) throws IOException {
-                        baos.write(b);
-                    }
+                        @Override
+                        public void write(byte[] b) throws IOException {
+                            baos.write(b);
+                        }
 
-                    @Override
-                    public void write(byte[] b, int off, int len) throws IOException {
-                        baos.write(b, off, len);
-                    }
-                });
+                        @Override
+                        public void write(byte[] b, int off, int len) throws IOException {
+                            baos.write(b, off, len);
+                        }
+                    });
+                }
 
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
