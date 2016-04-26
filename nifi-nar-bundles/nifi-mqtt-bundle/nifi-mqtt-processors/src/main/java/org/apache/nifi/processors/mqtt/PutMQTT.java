@@ -33,7 +33,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.commons.io.IOUtils;
@@ -67,7 +66,7 @@ public class PutMQTT extends AbstractProcessor implements MqttCallback {
     
     public static final PropertyDescriptor PROPERTY_BROKER_ADDRESS = new PropertyDescriptor
             .Builder().name("Broker address")
-            .description("MQTT broker address (tcp://<host>:<port>")
+            .description("MQTT broker address (e.g. tcp://localhost:1883)")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -152,7 +151,7 @@ public class PutMQTT extends AbstractProcessor implements MqttCallback {
 
         // get the MQTT topic
         
-        String topic = flowfile.getAttribute("destination");
+        String topic = flowfile.getAttribute("topic");
 
         if (topic == null) {
             getLogger().error("No topic attribute on flowfile");

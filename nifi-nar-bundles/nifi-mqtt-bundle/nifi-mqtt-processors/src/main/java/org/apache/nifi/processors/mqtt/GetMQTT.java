@@ -64,11 +64,11 @@ public class GetMQTT extends AbstractProcessor implements MqttCallback {
     MemoryPersistence persistence = new MemoryPersistence();
     MqttClient mqttClient;
     
-    LinkedBlockingQueue<MQTTQueueMessage> mqttQueue = new LinkedBlockingQueue<MQTTQueueMessage>();
+    LinkedBlockingQueue<MQTTQueueMessage> mqttQueue = new LinkedBlockingQueue<>();
 
     public static final PropertyDescriptor PROPERTY_BROKER_ADDRESS = new PropertyDescriptor
             .Builder().name("Broker address")
-            .description("MQTT broker address (tcp://<host>:<port>")
+            .description("MQTT broker address (e.g. tcp://localhost:1883)")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
