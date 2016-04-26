@@ -16,6 +16,10 @@ rem    See the License for the specific language governing permissions and
 rem    limitations under the License.
 rem
 
+rem Set environment variables
+
+call nifi-env.bat
+
 rem Use JAVA_HOME if it's set; otherwise, just use java
 
 if "%JAVA_HOME%" == "" goto noJavaHome
@@ -31,13 +35,12 @@ set JAVA_EXE=java
 goto startNifi
 
 :startNifi
-set NIFI_ROOT=%~dp0..\
 pushd "%NIFI_ROOT%"
 set LIB_DIR=lib\bootstrap
 set CONF_DIR=conf
 
 set BOOTSTRAP_CONF_FILE=%CONF_DIR%\bootstrap.conf
-set JAVA_ARGS=-Dorg.apache.nifi.bootstrap.config.file=%BOOTSTRAP_CONF_FILE%
+set JAVA_ARGS=-Dorg.apache.nifi.bootstrap.config.log.dir=%NIFI_LOG_DIR% -Dorg.apache.nifi.bootstrap.config.pid.dir=%NIFI_PID_DIR% -Dorg.apache.nifi.bootstrap.config.file=%BOOTSTRAP_CONF_FILE%
 
 SET JAVA_PARAMS=-cp %CONF_DIR%;%LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.bootstrap.RunNiFi
 set BOOTSTRAP_ACTION=run
