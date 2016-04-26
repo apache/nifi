@@ -50,6 +50,7 @@ flow controller graceful shutdown period | Indicates the shutdown period. The de
 flow service write delay interval        | When many changes are made to the flow.xml, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is 500 ms.
 administrative yield duration            | If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is 30 sec.
 bored yield duration                     | When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is 10 millis.
+max concurrent threads                   | The maximum number of threads any processor can have running at one time.
 
 ## FlowFile Repository
 
@@ -142,9 +143,9 @@ key        | This is the password used to encrypt any sensitive property values 
 algorithm  | The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
 provider   | The sensitive property provider. The default value is BC.
 
-## Processor Configuration
+## Processors
 
-The current implementation of MiNiFi supports one source processor. These properties are the basic configuration general to all processor implementations.
+The current implementation of MiNiFi supports multiple processors. the "Processors" subsection is a list of these processors. Each processor must specify these properties. They are the basic configuration general to all processor implementations. Make sure that all relationships for a processor are accounted for in the auto-terminated relationship list or are used in a connection.
 
 *Property*                          | *Description*
 ----------------------------------- | -------------
@@ -168,21 +169,24 @@ Within the Processor Configuration section, there is the `Properties` subsection
         State File: ./conf/state/tail-file
         Initial Start Position: Beginning of File
 
-## Connection Properties
+## Connections
 
-There is only one connection in this initial version of MiNiFi, between the source processor and the Remote Processing Group. These properties allow for customization of the of the connection.
+There can be multiple connections in this version of MiNiFi. The "Connections" subsection is a list of connections. Each connection must specify these properties.
 
 *Property*               | *Description*
 --------------------     | -------------
-name                     | The name of what this connection will do. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
+name                     | The name of what this connection will do. This is used for the id of the connection so it must be unique.
+source name              | The name of what of the processor that is the source for this connection.
+source relationship name | The name of the processors relationship to route to this connection
+destination name         | The name of the component to receive this connection.
 max work queue size      | This property is the max number of FlowFiles that can be in the queue before back pressure is applied. When back pressure is applied the source processor will no longer be scheduled to run.
 max work queue data size | This property specifies the maximum amount of data (in size) that should be queued up before applying back pressure.  When back pressure is applied the source processor will no longer be scheduled to run.
 flowfile expiration      | Indicates how long FlowFiles are allowed to exist in the connection before be expired (automatically removed from the flow).
 queue prioritizer class  | This configuration option specifies the fully qualified java class path of a queue prioritizer to use. If no special prioritizer is desired then it should be left blank. An example value of this property is: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
 
-## Remote Processing Group
+## Remote Processing Groups
 
-MiNiFi is currently designed only to send back data to core NiFi instances using the Site to Site protocol. These properties configure the Remote Processing Group that links to that core instance.
+MiNiFi can be used to send data using the Site to Site protocol (via a Remote Processing Group) or a Processor. These properties configure the Remote Processing Groups that use Site-To-Site to send data to a core instance.
 
 *Property*   | *Description*
 ------------ | -------------
@@ -193,7 +197,7 @@ timeout      | How long MiNiFi should wait before timing out the connection.
 yield period | When communication with this Remote Processing Group fails, it will not be scheduled again for this amount of time.
 
 
-#### Input Port Subsection
+#### Input Ports Subsection
 
 When connecting via Site to Site, MiNiFi needs to know which input port to communicate to of the core NiFi instance. These properties designate and configure communication with that port.
 
@@ -225,7 +229,7 @@ batch size           | Specifies how many records to send in a single batch, at 
 
 # Example Config File
 
-Below is an example config YAML file to tail the minifi-app.log send it and provenance data back to a secure instance of NiFi.
+Below are two example config YAML files. The first tails the minifi-app.log, send the tailed log and provenance data back to a secure instance of NiFi. The second uses a series of processors to tail the app log, routes off only lines that contain "WriteAheadFlowFileRepository" and puts it as a file in the "./" directory.
 
 
 ``` yaml
@@ -238,6 +242,106 @@ Core Properties:
     flow service write delay interval: 500 ms
     administrative yield duration: 30 sec
     bored yield duration: 10 millis
+
+FlowFile Repository:
+    partitions: 256
+    checkpoint interval: 2 mins
+    always sync: false
+    Swap:
+        threshold: 20000
+        in period: 5 sec
+        in threads: 1
+        out period: 5 sec
+        out threads: 4
+
+Provenance Repository:
+    provenance rollover time: 1 min
+
+Content Repository:
+    content claim max appendable size: 10 MB
+    content claim max flow files: 100
+    always sync: false
+
+Component Status Repository:
+    buffer size: 1440
+    snapshot frequency: 1 min
+
+Security Properties:
+    keystore: /tmp/ssl/localhost-ks.jks
+    keystore type: JKS
+    keystore password: localtest
+    key password: localtest
+    truststore: /tmp/ssl/localhost-ts.jks
+    truststore type: JKS
+    truststore password: localtest
+    ssl protocol: TLS
+    Sensitive Props:
+        key:
+        algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+        provider: BC
+
+Processors:
+    - name: TailFile
+      class: org.apache.nifi.processors.standard.TailFile
+      max concurrent tasks: 1
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 1 sec
+      penalization period: 30 sec
+      yield period: 1 sec
+      run duration nanos: 0
+      auto-terminated relationships list:
+      Properties:
+          File to Tail: logs/minifi-app.log
+          Rolling Filename Pattern: minifi-app*
+          Initial Start Position: Beginning of File
+
+Connections:
+    - name: TailToS2S
+      source name: TailFile
+      source relationship name: success
+      destination name: 8644cbcc-a45c-40e0-964d-5e536e2ada61
+      max work queue size: 0
+      max work queue data size: 1 MB
+      flowfile expiration: 60 sec
+      queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
+
+Remote Processing Groups:
+    - name: NiFi Flow
+      comment:
+      url: https://localhost:8090/nifi
+      timeout: 30 secs
+      yield period: 10 sec
+      Input Ports:
+          - id: 8644cbcc-a45c-40e0-964d-5e536e2ada61
+            name: tailed log
+            comments:
+            max concurrent tasks: 1
+            use compression: false
+
+Provenance Reporting:
+    comment:
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 30 sec
+    destination url: https://localhost:8090/
+    port name: provenance
+    originating url: http://${hostname(true)}:8081/nifi
+    use compression: true
+    timeout: 30 secs
+    batch size: 1000
+```
+
+
+``` yaml
+Flow Controller:
+    name: MiNiFi Flow
+    comment:
+
+Core Properties:
+    flow controller graceful shutdown period: 10 sec
+    flow service write delay interval: 500 ms
+    administrative yield duration: 30 sec
+    bored yield duration: 10 millis
+    max concurrent threads: 1
 
 FlowFile Repository:
     partitions: 256
@@ -273,46 +377,106 @@ Security Properties:
         algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
         provider: BC
 
-Processor Configuration:
-    name: TailFile
-    class: org.apache.nifi.processors.standard.TailFile
-    max concurrent tasks: 1
-    scheduling strategy: TIMER_DRIVEN
-    scheduling period: 1 sec
-    penalization period: 30 sec
-    yield period: 1 sec
-    run duration nanos: 0
-    auto-terminated relationships list:
-    Properties:
-        File to Tail: logs/minifi-app.log
-        Rolling Filename Pattern: minifi-app*
-        Initial Start Position: Beginning of File
+Processors:
+    - name: TailAppLog
+      class: org.apache.nifi.processors.standard.TailFile
+      max concurrent tasks: 1
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 10 sec
+      penalization period: 30 sec
+      yield period: 1 sec
+      run duration nanos: 0
+      auto-terminated relationships list:
+      Properties:
+          File to Tail: logs/minifi-app.log
+          Rolling Filename Pattern: minifi-app*
+          Initial Start Position: Beginning of File
+    - name: SplitIntoSingleLines
+      class: org.apache.nifi.processors.standard.SplitText
+      max concurrent tasks: 1
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 0 sec
+      penalization period: 30 sec
+      yield period: 1 sec
+      run duration nanos: 0
+      auto-terminated relationships list:
+          - failure
+          - original
+      Properties:
+          Line Split Count: 1
+          Header Line Count: 0
+          Remove Trailing Newlines: true
+    - name: RouteErrors
+      class: org.apache.nifi.processors.standard.RouteText
+      max concurrent tasks: 1
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 0 sec
+      penalization period: 30 sec
+      yield period: 1 sec
+      run duration nanos: 0
+      auto-terminated relationships list:
+          - unmatched
+          - original
+      Properties:
+          Routing Strategy: Route to 'matched' if line matches all conditions
+          Matching Strategy: Contains
+          Character Set: UTF-8
+          Ignore Leading/Trailing Whitespace: true
+          Ignore Case: true
+          Grouping Regular Expression:
+          WALFFR: WriteAheadFlowFileRepository
+    - name: PutFile
+      class: org.apache.nifi.processors.standard.PutFile
+      max concurrent tasks: 1
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 0 sec
+      penalization period: 30 sec
+      yield period: 1 sec
+      run duration nanos: 0
+      auto-terminated relationships list:
+          - failure
+          - success
+      Properties:
+          Directory: ./
+          Conflict Resolution Strategy: replace
+          Create Missing Directories: true
+          Maximum File Count:
+          Last Modified Time:
+          Permissions:
+          Owner:
+          Group:
 
-Connection Properties:
-    name:
-    max work queue size: 0
-    max work queue data size: 0 MB
-    flowfile expiration: 0 sec
-    queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
-
-Remote Processing Group:
-    name: NiFi Flow
-    comment:
-    url: https://localhost:8090/nifi
-    timeout: 30 secs
-    yield period: 10 sec
-    Input Port:
-        id: 8644cbcc-a45c-40e0-964d-5e536e2ada61
-        name: tailed log
-        comments:
-        max concurrent tasks: 1
-        use compression: false
+Connections:
+    - name: TailToSplit
+      source name: TailAppLog
+      source relationship name: success
+      destination name: SplitIntoSingleLines
+      max work queue size: 0
+      max work queue data size: 1 MB
+      flowfile expiration: 60 sec
+      queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
+    - name: SplitToRoute
+      source name: SplitIntoSingleLines
+      source relationship name: splits
+      destination name: RouteErrors
+      max work queue size: 0
+      max work queue data size: 1 MB
+      flowfile expiration: 60 sec
+      queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
+    - name: RouteToS2S
+      source name: RouteErrors
+      source relationship name: matched
+      destination name: PutFile
+      max work queue size: 0
+      max work queue data size: 1 MB
+      flowfile expiration: 60 sec
+      queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
 
 Provenance Reporting:
     comment:
     scheduling strategy: TIMER_DRIVEN
     scheduling period: 30 sec
-    destination url: https://localhost:8090/
+    destination url: https://localhost:8080/
     port name: provenance
     originating url: http://${hostname(true)}:8081/nifi
     use compression: true

@@ -29,7 +29,8 @@ FlowFile Repository:
     checkpoint interval: 2 mins
     always sync: false
     Swap:
-        threshold: 20000
+        # Threshold should be a number
+        threshold: this is not a number
         in period: 5 sec
         in threads: 1
         out period: 5 sec
@@ -39,9 +40,6 @@ Content Repository:
     content claim max appendable size: 10 MB
     content claim max flow files: 100
     always sync: false
-
-Provenance Repository:
-    provenance rollover time: 1 min
 
 Component Status Repository:
     buffer size: 1440

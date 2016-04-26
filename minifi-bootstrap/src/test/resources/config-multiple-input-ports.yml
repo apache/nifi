@@ -40,9 +40,6 @@ Content Repository:
     content claim max flow files: 100
     always sync: false
 
-Provenance Repository:
-    provenance rollover time: 1 min
-
 Component Status Repository:
     buffer size: 1440
     snapshot frequency: 1 min
@@ -62,11 +59,11 @@ Security Properties:
         provider: BC
 
 Processors:
-    - name: TailFile
+    - name: TailAppLog
       class: org.apache.nifi.processors.standard.TailFile
       max concurrent tasks: 1
       scheduling strategy: TIMER_DRIVEN
-      scheduling period: 1 sec
+      scheduling period: 10 sec
       penalization period: 30 sec
       yield period: 1 sec
       run duration nanos: 0
@@ -78,6 +75,14 @@ Processors:
 
 Connections:
     - name: TailToS2S
+      source name: TailFile
+      source relationship name: success
+      destination name: dgs809qe-9qw7-q985-jl1u-y789ohi87g78
+      max work queue size: 0
+      max work queue data size: 1 MB
+      flowfile expiration: 60 sec
+      queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
+    - name: TailToS2S-2
       source name: TailFile
       source relationship name: success
       destination name: 8644cbcc-a45c-40e0-964d-5e536e2ada61
@@ -98,12 +103,17 @@ Remote Processing Groups:
             comments:
             max concurrent tasks: 1
             use compression: false
+          - id: dgs809qe-9qw7-q985-jl1u-y789ohi87g78
+            name: tailed log2
+            comments:
+            max concurrent tasks: 1
+            use compression: false
 
 Provenance Reporting:
     comment:
     scheduling strategy: TIMER_DRIVEN
     scheduling period: 30 sec
-    destination url: https://localhost:8090/
+    destination url: https://localhost:8080/
     port name: provenance
     originating url: http://${hostname(true)}:8081/nifi
     use compression: true

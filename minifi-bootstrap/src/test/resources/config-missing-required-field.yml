@@ -40,9 +40,6 @@ Content Repository:
     content claim max flow files: 100
     always sync: false
 
-Provenance Repository:
-    provenance rollover time: 1 min
-
 Component Status Repository:
     buffer size: 1440
     snapshot frequency: 1 min
@@ -63,7 +60,8 @@ Security Properties:
 
 Processors:
     - name: TailFile
-      class: org.apache.nifi.processors.standard.TailFile
+      # 'class' is a required field
+      # class: org.apache.nifi.processors.standard.TailFile
       max concurrent tasks: 1
       scheduling strategy: TIMER_DRIVEN
       scheduling period: 1 sec

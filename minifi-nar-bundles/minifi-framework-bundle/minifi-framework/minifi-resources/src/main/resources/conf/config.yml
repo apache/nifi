@@ -22,6 +22,7 @@ Core Properties:
     flow service write delay interval: 500 ms
     administrative yield duration: 30 sec
     bored yield duration: 10 millis
+    max concurrent threads: 1
 
 FlowFile Repository:
     partitions: 256
@@ -34,7 +35,7 @@ FlowFile Repository:
         out period: 5 sec
         out threads: 4
 
-Content Repository: 
+Content Repository:
     content claim max appendable size: 10 MB
     content claim max flow files: 100
     always sync: false
@@ -60,45 +61,10 @@ Security Properties:
         algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
         provider: BC
 
-Processor Configuration:
-    name:
-    class:
-    max concurrent tasks:
-    scheduling strategy:
-    scheduling period:
-    penalization period:
-    yield period:
-    run duration nanos:
-    auto-terminated relationships list:
-    Properties:
+Processors:
 
-Connection Properties:
-    name:
-    max work queue size: 0
-    max work queue data size: 0 MB
-    flowfile expiration: 0 sec
-    queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
+Connections:
 
-Remote Processing Group:
-    name:
-    comment: 
-    url:
-    timeout:
-    yield period:
-    Input Port:
-        id:
-        name:
-        comments:
-        max concurrent tasks:
-        use compression:
+Remote Processing Groups:
 
 Provenance Reporting:
-    comment:
-    scheduling strategy:
-    scheduling period:
-    destination url:
-    port name:
-    originating url:
-    use compression:
-    timeout:
-    batch size:

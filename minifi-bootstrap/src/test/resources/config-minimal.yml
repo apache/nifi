@@ -12,3 +12,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+Flow Controller:
+    name: MiNiFi Flow
+
+# When creating the Flow (not doing the transform) these processors will be invalid due to not having the necesary properties/auto-terminated relationships
+Processors:
+    - name: TailAppLog
+      class: org.apache.nifi.processors.standard.TailFile
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 10 sec
+    - name: PutFile
+      class: org.apache.nifi.processors.standard.PutFile
+      max concurrent tasks: 1
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 0 sec
+
+Connections:
+    - name: TailToSplit
+      source name: RouteErrors
+      source relationship name: success
+      destination name: PutFile

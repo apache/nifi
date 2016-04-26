@@ -17,12 +17,13 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
+import org.apache.nifi.minifi.bootstrap.exception.InvalidConfigurationException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -30,7 +31,6 @@ public class TestConfigTransformer {
 
     @Test
     public void doesTransformFile() throws Exception {
-
         ConfigTransformer.transformConfigFile("./src/test/resources/config.yml", "./target/");
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
@@ -66,7 +66,6 @@ public class TestConfigTransformer {
 
     @Test
     public void doesTransformOnDefaultFile() throws Exception {
-
         ConfigTransformer.transformConfigFile("./src/test/resources/default.yml", "./target/");
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
@@ -82,19 +81,122 @@ public class TestConfigTransformer {
         flowXml.deleteOnExit();
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void handleTransformInvalidFile() throws Exception {
+    @Test
+    public void doesTransformOnMultipleProcessors() throws Exception {
+        ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-processors.yml", "./target/");
+        File nifiPropertiesFile = new File("./target/nifi.properties");
 
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-invalid.yml", "./target/");
+        assertTrue(nifiPropertiesFile.exists());
+        assertTrue(nifiPropertiesFile.canRead());
 
-        Assert.fail("Invalid configuration file was not detected.");
+        nifiPropertiesFile.deleteOnExit();
+
+        File flowXml = new File("./target/flow.xml.gz");
+        assertTrue(flowXml.exists());
+        assertTrue(flowXml.canRead());
+
+        flowXml.deleteOnExit();
     }
 
-    @Test(expected = ConfigurationChangeException.class)
+    @Test
+    public void doesTransformOnMultipleRemoteProcessingGroups() throws Exception {
+        ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-RPGs.yml", "./target/");
+        File nifiPropertiesFile = new File("./target/nifi.properties");
+
+        assertTrue(nifiPropertiesFile.exists());
+        assertTrue(nifiPropertiesFile.canRead());
+
+        nifiPropertiesFile.deleteOnExit();
+
+        File flowXml = new File("./target/flow.xml.gz");
+        assertTrue(flowXml.exists());
+        assertTrue(flowXml.canRead());
+
+        flowXml.deleteOnExit();
+    }
+
+    @Test
+    public void doesTransformOnMultipleInputPorts() throws Exception {
+        ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-input-ports.yml", "./target/");
+        File nifiPropertiesFile = new File("./target/nifi.properties");
+
+        assertTrue(nifiPropertiesFile.exists());
+        assertTrue(nifiPropertiesFile.canRead());
+
+        nifiPropertiesFile.deleteOnExit();
+
+        File flowXml = new File("./target/flow.xml.gz");
+        assertTrue(flowXml.exists());
+        assertTrue(flowXml.canRead());
+
+        flowXml.deleteOnExit();
+    }
+
+    @Test
+    public void doesTransformOnMinimal() throws Exception {
+        ConfigTransformer.transformConfigFile("./src/test/resources/config-minimal.yml", "./target/");
+        File nifiPropertiesFile = new File("./target/nifi.properties");
+
+        assertTrue(nifiPropertiesFile.exists());
+        assertTrue(nifiPropertiesFile.canRead());
+
+        nifiPropertiesFile.deleteOnExit();
+
+        File flowXml = new File("./target/flow.xml.gz");
+        assertTrue(flowXml.exists());
+        assertTrue(flowXml.canRead());
+
+        flowXml.deleteOnExit();
+    }
+
+    @Test
+    public void handleTransformInvalidFile() throws Exception {
+        try {
+            ConfigTransformer.transformConfigFile("./src/test/resources/config-invalid.yml", "./target/");
+            Assert.fail("Invalid configuration file was not detected.");
+        } catch (InvalidConfigurationException e){
+            assertEquals("Provided YAML configuration is not a Map", e.getMessage());
+        }
+    }
+
+    @Test
+    public void handleTransformMalformedField() throws Exception {
+        try {
+            ConfigTransformer.transformConfigFile("./src/test/resources/config-malformed-field.yml", "./target/");
+            Assert.fail("Invalid configuration file was not detected.");
+        } catch (InvalidConfigurationException e){
+            assertEquals("Failed to transform config file due to:['threshold' in section 'Swap' because it is found but could not be parsed as a Number]", e.getMessage());
+        }
+    }
+
+    @Test
     public void handleTransformEmptyFile() throws Exception {
+        try {
+            ConfigTransformer.transformConfigFile("./src/test/resources/config-empty.yml", "./target/");
+            Assert.fail("Invalid configuration file was not detected.");
+        } catch (InvalidConfigurationException e){
+            assertEquals("Provided YAML configuration is not a Map", e.getMessage());
+        }
+    }
 
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-empty.yml", "./target/");
+    @Test
+    public void handleTransformFileMissingRequiredField() throws Exception {
+        try {
+            ConfigTransformer.transformConfigFile("./src/test/resources/config-missing-required-field.yml", "./target/");
+            Assert.fail("Invalid configuration file was not detected.");
+        } catch (InvalidConfigurationException e){
+            assertEquals("Failed to transform config file due to:['class' in section 'Processors' because it was not found and it is required]", e.getMessage());
+        }
+    }
 
-        Assert.fail("Invalid configuration file was not detected.");
+    @Test
+    public void handleTransformFileMultipleProblems() throws Exception {
+        try {
+            ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-problems.yml", "./target/");
+            Assert.fail("Invalid configuration file was not detected.");
+        } catch (InvalidConfigurationException e){
+            assertEquals("Failed to transform config file due to:['scheduling strategy' in section 'Provenance Reporting' because it is not a valid scheduling strategy], ['class' in section " +
+                    "'Processors' because it was not found and it is required], ['source name' in section 'Connections' because it was not found and it is required]", e.getMessage());
+        }
     }
 }
