@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -155,9 +154,9 @@ public class HandleHttpResponse extends AbstractProcessor {
         try {
             session.exportTo(flowFile, response.getOutputStream());
             response.flushBuffer();
-        } catch (final IOException ioe) {
+        } catch (final Exception e) {
             session.transfer(flowFile, REL_FAILURE);
-            getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, ioe});
+            getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
             return;
         }
 
