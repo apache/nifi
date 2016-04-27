@@ -164,7 +164,7 @@ run() {
     BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
     BOOTSTRAP_LIBS="${NIFI_HOME}/lib/bootstrap/*"
 
-    run_as=$(grep run.as "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
+    run_as=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
     if [ "$run_as" = "$(whoami)" ]; then
         unset run_as
