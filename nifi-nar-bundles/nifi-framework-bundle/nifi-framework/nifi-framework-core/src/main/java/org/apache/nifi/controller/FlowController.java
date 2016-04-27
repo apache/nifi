@@ -418,10 +418,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         try {
             this.provenanceEventRepository = createProvenanceRepository(properties);
             this.provenanceEventRepository.initialize(createEventReporter(bulletinRepository));
-
-            this.contentRepository = createContentRepository(properties);
         } catch (final Exception e) {
             throw new RuntimeException("Unable to create Provenance Repository", e);
+        }
+
+        try {
+            this.contentRepository = createContentRepository(properties);
+        } catch (final Exception e) {
+            throw new RuntimeException("Unable to create Content Repository", e);
         }
 
         try {
@@ -735,7 +739,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private ContentRepository createContentRepository(final NiFiProperties properties) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final String implementationClassName = properties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION, DEFAULT_CONTENT_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
-            throw new RuntimeException("Cannot create Provenance Repository because the NiFi Properties is missing the following property: "
+            throw new RuntimeException("Cannot create Content Repository because the NiFi Properties is missing the following property: "
                 + NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION);
         }
 
