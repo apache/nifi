@@ -540,6 +540,15 @@ public class FileSystemRepository implements ContentRepository {
                 resourceClaim = resourceClaimManager.newResourceClaim(containerName, section, claimId, lossTolerant);
                 resourceOffset = 0L;
                 LOG.debug("Creating new Resource Claim {}", resourceClaim);
+
+                // we always append because there may be another ContentClaim using the same resource claim.
+                // However, we know that we will never write to the same claim from two different threads
+                // at the same time because we will call create() to get the claim before we write to it,
+                // and when we call create(), it will remove it from the Queue, which means that no other
+                // thread will get the same Claim until we've finished writing to it.
+                final File file = getPath(resourceClaim).toFile();
+                ByteCountingOutputStream claimStream = new SynchronizedByteCountingOutputStream(new FileOutputStream(file, true), file.length());
+                writableClaimStreams.put(resourceClaim, claimStream);
             } else {
                 resourceClaim = pair.getClaim();
                 resourceOffset = pair.getLength();
@@ -841,25 +850,8 @@ public class FileSystemRepository implements ContentRepository {
 
         final ResourceClaim resourceClaim = claim.getResourceClaim();
 
-        // we always append because there may be another ContentClaim using the same resource claim.
-        // However, we know that we will never write to the same claim from two different threads
-        // at the same time because we will call create() to get the claim before we write to it,
-        // and when we call create(), it will remove it from the Queue, which means that no other
-        // thread will get the same Claim until we've finished writing to it.
-        ByteCountingOutputStream claimStream = writableClaimStreams.remove(scc.getResourceClaim());
-        final long initialLength;
-        if (claimStream == null) {
-            final File file = getPath(scc).toFile();
-            // use a synchronized stream because we want to pass this OutputStream out from one thread to another.
-            claimStream = new SynchronizedByteCountingOutputStream(new FileOutputStream(file, true), file.length());
-            initialLength = 0L;
-        } else {
-            if (append) {
-                initialLength = Math.max(0, scc.getLength());
-            } else {
-                initialLength = 0;
-            }
-        }
+        ByteCountingOutputStream claimStream = writableClaimStreams.get(scc.getResourceClaim());
+        final int initialLength = append ? (int) Math.max(0, scc.getLength()) : 0;
 
         activeResourceClaims.add(resourceClaim);
         final ByteCountingOutputStream bcos = claimStream;
@@ -963,9 +955,9 @@ public class FileSystemRepository implements ContentRepository {
                     final boolean enqueued = writableClaimQueue.offer(pair);
 
                     if (enqueued) {
-                        writableClaimStreams.put(scc.getResourceClaim(), bcos);
                         LOG.debug("Claim length less than max; Adding {} back to writableClaimStreams", this);
                     } else {
+                        writableClaimStreams.remove(scc.getResourceClaim());
                         bcos.close();
 
                         LOG.debug("Claim length less than max; Closing {} because could not add back to queue", this);
@@ -1114,6 +1106,19 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
 
+        // If the claim count is decremented to 0 (<= 0 as a 'defensive programming' strategy), ensure that
+        // we close the stream if there is one. There may be a stream open if create() is called and then
+        // claimant count is removed without writing to the claim (or more specifically, without closing the
+        // OutputStream that is returned when calling write() ).
+        final OutputStream out = writableClaimStreams.remove(claim);
+        if (out != null) {
+            try {
+                out.close();
+            } catch (final IOException ioe) {
+                LOG.warn("Unable to close Output Stream for " + claim, ioe);
+            }
+        }
+
         final Path curPath = getPath(claim);
         if (curPath == null) {
             return false;
@@ -1124,7 +1129,12 @@ public class FileSystemRepository implements ContentRepository {
         return archived;
     }
 
-    private boolean archive(final Path curPath) throws IOException {
+    protected int getOpenStreamCount() {
+        return writableClaimStreams.size();
+    }
+
+    // marked protected for visibility and ability to override for unit tests.
+    protected boolean archive(final Path curPath) throws IOException {
         // check if already archived
         final boolean alreadyArchived = ARCHIVE_DIR_NAME.equals(curPath.getParent().toFile().getName());
         if (alreadyArchived) {
