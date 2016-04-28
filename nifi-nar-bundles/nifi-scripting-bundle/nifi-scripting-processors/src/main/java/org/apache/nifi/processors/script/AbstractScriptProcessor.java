@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.processors.script;
 
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.StringUtils;
-
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -48,8 +33,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 /**
  * This class contains variables and methods common to scripting processors
@@ -102,7 +104,8 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
     protected String scriptBody;
     protected String[] modules;
     protected List<PropertyDescriptor> descriptors;
-    protected ScriptEngine scriptEngine;
+
+    protected BlockingQueue<ScriptEngine> engineQ = null;
 
     /**
      * Custom validation for ensuring exactly one of Script File or Script Body is populated
@@ -197,7 +200,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * Performs common setup operations when the processor is scheduled to run. This method assumes the member
      * variables associated with properties have been filled.
      */
-    public void setup() {
+    public void setup(int numberOfScriptEngines) {
 
         if (scriptEngineConfiguratorMap.isEmpty()) {
             ServiceLoader<ScriptEngineConfigurator> configuratorServiceLoader =
@@ -206,7 +209,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
                 scriptEngineConfiguratorMap.put(configurator.getScriptEngineName().toLowerCase(), configurator);
             }
         }
-        setupEngine();
+        setupEngines(numberOfScriptEngines);
     }
 
     /**
@@ -216,10 +219,15 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      *
      * @see org.apache.nifi.processors.script.ScriptEngineConfigurator
      */
-    protected void setupEngine() {
+    protected void setupEngines(int numberOfScriptEngines) {
+        engineQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
         ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             ProcessorLog log = getLogger();
+
+            if (StringUtils.isBlank(scriptEngineName)) {
+                throw new IllegalArgumentException("The script engine name cannot be null");
+            }
 
             ScriptEngineConfigurator configurator = scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
 
@@ -248,18 +256,21 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
                 Thread.currentThread().setContextClassLoader(scriptEngineModuleClassLoader);
             }
 
-            scriptEngine = createScriptEngine();
-            try {
-                if (configurator != null) {
-                    configurator.init(scriptEngine, modules);
-                }
-            } catch (ScriptException se) {
-                log.error("Error initializing script engine configurator {}", new Object[]{scriptEngineName});
-                if (log.isDebugEnabled()) {
-                    log.error("Error initializing script engine configurator", se);
+            for (int i = 0; i < numberOfScriptEngines; i++) {
+                ScriptEngine scriptEngine = createScriptEngine();
+                try {
+                    if (configurator != null) {
+                        configurator.init(scriptEngine, modules);
+                    }
+                    engineQ.offer(scriptEngine);
+
+                } catch (ScriptException se) {
+                    log.error("Error initializing script engine configurator {}", new Object[]{scriptEngineName});
+                    if (log.isDebugEnabled()) {
+                        log.error("Error initializing script engine configurator", se);
+                    }
                 }
             }
-
         } finally {
             // Restore original context class loader
             Thread.currentThread().setContextClassLoader(originalContextClassLoader);
@@ -299,5 +310,12 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
         }
 
         return new URLClassLoader(modules, thisClassLoader);
+    }
+
+    @OnStopped
+    public void stop() {
+        if (engineQ != null) {
+            engineQ.clear();
+        }
     }
 }

@@ -436,7 +436,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void enqueue(final String data) {
-        enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.<String, String> emptyMap());
+        enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.emptyMap());
     }
 
     @Override
@@ -565,6 +565,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         this.numThreads = threadCount;
+        this.context.setMaxConcurrentTasks(threadCount);
     }
 
     @Override
