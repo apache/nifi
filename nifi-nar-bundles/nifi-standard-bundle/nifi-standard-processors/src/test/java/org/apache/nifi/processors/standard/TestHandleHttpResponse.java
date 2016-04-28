@@ -39,6 +39,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -63,7 +65,12 @@ public class TestHandleHttpResponse {
         runner.setProperty("no-valid-attr", "${no-valid-attr}");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(HandleHttpResponse.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_REQUEST_URI, "/test");
+        attributes.put(HTTPUtils.HTTP_LOCAL_NAME, "server");
+        attributes.put(HTTPUtils.HTTP_PORT, "8443");
+        attributes.put(HTTPUtils.HTTP_REMOTE_HOST, "client");
+        attributes.put(HTTPUtils.HTTP_SSL_CERT, "sslDN");
         attributes.put("my-attr", "hello");
         attributes.put("status.code", "201");
 
@@ -72,6 +79,9 @@ public class TestHandleHttpResponse {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_SUCCESS, 1);
+        assertTrue(runner.getProvenanceEvents().size() == 1);
+        assertEquals(ProvenanceEventType.SEND, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals("https://client@server:8443/test", runner.getProvenanceEvents().get(0).getTransitUri());
 
         assertEquals("hello", contextMap.baos.toString());
         assertEquals("hello", contextMap.headersSent.get("my-attr"));
@@ -94,7 +104,7 @@ public class TestHandleHttpResponse {
         runner.setProperty("no-valid-attr", "${no-valid-attr}");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(HandleHttpResponse.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
         attributes.put("my-attr", "hello");
         attributes.put("status.code", "201");
 
