@@ -62,6 +62,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -80,20 +81,22 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 @CapabilityDescription("Starts an HTTP Server and listens for HTTP Requests. For each request, creates a FlowFile and transfers to 'success'. "
         + "This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service")
 @WritesAttributes({
-    @WritesAttribute(attribute = "http.context.identifier", description = "An identifier that allows the HandleHttpRequest and HandleHttpResponse "
+    @WritesAttribute(attribute = HTTPUtils.HTTP_CONTEXT_ID, description = "An identifier that allows the HandleHttpRequest and HandleHttpResponse "
             + "to coordinate which FlowFile belongs to which HTTP Request/Response."),
     @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the data, according to the HTTP Header \"Content-Type\""),
     @WritesAttribute(attribute = "http.servlet.path", description = "The part of the request URL that is considered the Servlet Path"),
     @WritesAttribute(attribute = "http.context.path", description = "The part of the request URL that is considered to be the Context Path"),
     @WritesAttribute(attribute = "http.method", description = "The HTTP Method that was used for the request, such as GET or POST"),
+    @WritesAttribute(attribute = HTTPUtils.HTTP_LOCAL_NAME, description = "IP address/hostname of the server"),
+    @WritesAttribute(attribute = HTTPUtils.HTTP_PORT, description = "Listening port of the server"),
     @WritesAttribute(attribute = "http.query.string", description = "The query string portion of hte Request URL"),
-    @WritesAttribute(attribute = "http.remote.host", description = "The hostname of the requestor"),
+    @WritesAttribute(attribute = HTTPUtils.HTTP_REMOTE_HOST, description = "The hostname of the requestor"),
     @WritesAttribute(attribute = "http.remote.addr", description = "The hostname:port combination of the requestor"),
     @WritesAttribute(attribute = "http.remote.user", description = "The username of the requestor"),
-    @WritesAttribute(attribute = "http.request.uri", description = "The full Request URL"),
+    @WritesAttribute(attribute = HTTPUtils.HTTP_REQUEST_URI, description = "The full Request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
-    @WritesAttribute(attribute = "http.subject.dn", description = "The Distinguished Name of the requestor. This value will not be populated "
+    @WritesAttribute(attribute = HTTPUtils.HTTP_SSL_CERT, description = "The Distinguished Name of the requestor. This value will not be populated "
             + "unless the Processor is configured to use an SSLContext Service"),
     @WritesAttribute(attribute = "http.issuer.dn", description = "The Distinguished Name of the entity that issued the Subject's certificate. "
             + "This value will not be populated unless the Processor is configured to use an SSLContext Service"),
@@ -104,7 +107,6 @@ import com.sun.jersey.api.client.ClientResponse.Status;
         classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
 public class HandleHttpRequest extends AbstractProcessor {
 
-    public static final String HTTP_CONTEXT_ID = "http.context.identifier";
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
 
     // Allowable values for client auth
@@ -493,20 +495,20 @@ public class HandleHttpRequest extends AbstractProcessor {
         final String contextIdentifier = UUID.randomUUID().toString();
         final Map<String, String> attributes = new HashMap<>();
         try {
-            putAttribute(attributes, HTTP_CONTEXT_ID, contextIdentifier);
+            putAttribute(attributes, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier);
             putAttribute(attributes, "mime.type", request.getContentType());
             putAttribute(attributes, "http.servlet.path", request.getServletPath());
             putAttribute(attributes, "http.context.path", request.getContextPath());
             putAttribute(attributes, "http.method", request.getMethod());
             putAttribute(attributes, "http.local.addr", request.getLocalAddr());
-            putAttribute(attributes, "http.local.name", request.getLocalName());
+            putAttribute(attributes, HTTPUtils.HTTP_LOCAL_NAME, request.getLocalName());
             if (request.getQueryString() != null) {
                 putAttribute(attributes, "http.query.string", URLDecoder.decode(request.getQueryString(), charset));
             }
-            putAttribute(attributes, "http.remote.host", request.getRemoteHost());
+            putAttribute(attributes, HTTPUtils.HTTP_REMOTE_HOST, request.getRemoteHost());
             putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
             putAttribute(attributes, "http.remote.user", request.getRemoteUser());
-            putAttribute(attributes, "http.request.uri", request.getRequestURI());
+            putAttribute(attributes, HTTPUtils.HTTP_REQUEST_URI, request.getRequestURI());
             putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
             putAttribute(attributes, "http.auth.type", request.getAuthType());
 
@@ -517,7 +519,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             putAttribute(attributes, "http.character.encoding", request.getCharacterEncoding());
             putAttribute(attributes, "http.locale", request.getLocale());
             putAttribute(attributes, "http.server.name", request.getServerName());
-            putAttribute(attributes, "http.server.port", request.getServerPort());
+            putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
 
             final Enumeration<String> paramEnumeration = request.getParameterNames();
             while (paramEnumeration.hasMoreElements()) {
@@ -585,7 +587,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             subjectDn = cert.getSubjectDN().getName();
             final String issuerDn = cert.getIssuerDN().getName();
 
-            putAttribute(attributes, "http.subject.dn", subjectDn);
+            putAttribute(attributes, HTTPUtils.HTTP_SSL_CERT, subjectDn);
             putAttribute(attributes, "http.issuer.dn", issuerDn);
         } else {
             subjectDn = null;
@@ -613,7 +615,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         }
 
         final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-        session.getProvenanceReporter().receive(flowFile, request.getRequestURI(), "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
+        session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(attributes), "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
         session.transfer(flowFile, REL_SUCCESS);
         getLogger().info("Transferring {} to 'success'; received from {}", new Object[]{flowFile, request.getRemoteAddr()});
     }
