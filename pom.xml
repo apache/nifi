@@ -1269,6 +1269,7 @@ language governing permissions and limitations under the License. -->
                     <configuration>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <argLine combine.children="append">-Xmx1G -Djava.net.preferIPv4Stack=true</argLine>
+                        <argLine combine.children="append">-Dfile.encoding=UTF-8</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
