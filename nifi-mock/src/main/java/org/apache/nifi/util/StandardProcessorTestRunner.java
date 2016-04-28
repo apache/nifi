@@ -43,6 +43,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
@@ -842,4 +843,39 @@ public class StandardProcessorTestRunner implements TestRunner {
         return controllerServiceLoggers.get(identifier);
     }
 
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationshipName relationship name
+     * @param predicate conditions
+     */
+    @Override
+    public void assertAllConditionsMet(final String relationshipName, Predicate<MockFlowFile> predicate) {
+        assertAllConditionsMet(new Relationship.Builder().name(relationshipName).build(), predicate);
+    }
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationship relationship
+     * @param predicate conditions
+     */
+    @Override
+    public void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate) {
+
+        if (predicate==null)
+            Assert.fail("predicate cannot be null");
+
+        final List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
+
+        // So how we should handle case when no FlowFiles are available?
+        // It seems to be error
+        if (flowFiles.isEmpty())
+            Assert.fail("Relationship " + relationship.getName() + " does not contain any FlowFile");
+
+        for (MockFlowFile flowFile : flowFiles) {
+            if (predicate.test(flowFile)==false)
+                Assert.fail("FlowFile " + flowFile + " does not meet all condition");
+        }
+    }
 }
