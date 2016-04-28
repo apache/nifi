@@ -908,7 +908,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     getAnnotationData());
 
             final Collection<ValidationResult> validationResults;
-            validationResults = getProcessor().validate(validationContext);
+            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                validationResults = getProcessor().validate(validationContext);
+            }
 
             for (final ValidationResult result : validationResults) {
                 if (!result.isValid()) {
@@ -1117,8 +1119,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
-        if (this.getScheduledState() == ScheduledState.RUNNING) {
-            throw new IllegalStateException(this + " cannot be started because it is already running");
+        final ScheduledState currentState = getPhysicalScheduledState();
+        if (currentState != ScheduledState.STOPPED && currentState != ScheduledState.DISABLED) {
+            throw new IllegalStateException(this + " cannot be started because it is not stopped. Current state is " + currentState.name());
         }
 
         verifyNoActiveThreads();

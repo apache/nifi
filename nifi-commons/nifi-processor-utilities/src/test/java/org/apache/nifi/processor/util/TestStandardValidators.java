@@ -18,6 +18,7 @@ package org.apache.nifi.processor.util;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +29,20 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TestStandardValidators {
+
+    @Test
+    public void testNonBlankValidator() {
+        Validator val = StandardValidators.NON_BLANK_VALIDATOR;
+        ValidationContext vc = mock(ValidationContext.class);
+        ValidationResult vr = val.validate("foo", "", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "    ", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "    h", vc);
+        assertTrue(vr.isValid());
+    }
 
     @Test
     public void testTimePeriodValidator() {

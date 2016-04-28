@@ -19,15 +19,12 @@ package org.apache.nifi.cluster.protocol.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
+import java.security.cert.CertificateException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLSocket;
-import javax.security.cert.X509Certificate;
-
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
@@ -41,8 +38,8 @@ import org.apache.nifi.io.socket.SocketListener;
 import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.util.StopWatch;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,20 +124,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             final String requestId = UUID.randomUUID().toString();
             logger.info("Received request {} from {}", requestId, hostname);
 
-            String requestorDn = null;
-            if (socket instanceof SSLSocket) {
-                final SSLSocket sslSocket = (SSLSocket) socket;
-                try {
-                    final X509Certificate[] certChains = sslSocket.getSession().getPeerCertificateChain();
-                    if (certChains != null && certChains.length > 0) {
-                        requestorDn = certChains[0].getSubjectDN().getName();
-                    }
-                } catch (final ProtocolException pe) {
-                    throw pe;
-                } catch (final Exception e) {
-                    throw new ProtocolException(e);
-                }
-            }
+            String requestorDn = getRequestorDN(socket);
 
             // unmarshall message
             final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
@@ -186,19 +170,21 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
 
             stopWatch.stop();
             logger.info("Finished processing request {} (type={}, length={} bytes) in {} millis", requestId, request.getType(), receivedMessage.length, stopWatch.getDuration(TimeUnit.MILLISECONDS));
-        } catch (final IOException e) {
+        } catch (final IOException | ProtocolException e) {
             logger.warn("Failed processing protocol message from " + hostname + " due to " + e, e);
 
             if (bulletinRepository != null) {
                 final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", String.format("Failed to process protocol message from %s due to: %s", hostname, e.toString()));
                 bulletinRepository.addBulletin(bulletin);
             }
-        } catch (final ProtocolException e) {
-            logger.warn("Failed processing protocol message from " + hostname + " due to " + e, e);
-            if (bulletinRepository != null) {
-                final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", String.format("Failed to process protocol message from %s due to: %s", hostname, e.toString()));
-                bulletinRepository.addBulletin(bulletin);
-            }
+        }
+    }
+
+    private String getRequestorDN(Socket socket) {
+        try {
+            return CertificateUtils.extractClientDNFromSSLSocket(socket);
+        } catch (CertificateException e) {
+            throw new ProtocolException(e);
         }
     }
 }

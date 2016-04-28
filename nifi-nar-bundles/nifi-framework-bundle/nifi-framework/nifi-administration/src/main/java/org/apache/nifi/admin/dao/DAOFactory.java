@@ -21,11 +21,7 @@ package org.apache.nifi.admin.dao;
  */
 public interface DAOFactory {
 
-    UserDAO getUserDAO();
-
     ActionDAO getActionDAO();
-
-    AuthorityDAO getAuthorityDAO();
 
     KeyDAO getKeyDAO();
 }

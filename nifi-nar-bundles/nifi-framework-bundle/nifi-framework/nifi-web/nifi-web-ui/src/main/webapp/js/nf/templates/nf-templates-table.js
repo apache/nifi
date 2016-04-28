@@ -28,10 +28,15 @@ nf.TemplatesTable = (function () {
             filterList: 'templates-filter-list'
         },
         urls: {
-            templates: '../nifi-api/controller/templates',
+            api: '../nifi-api',
             downloadToken: '../nifi-api/access/download-token'
         }
     };
+
+    /**
+     * the current group id
+     */
+    var groupId;
 
     /**
      * Sorts the specified data using the specified sort details.
@@ -68,7 +73,7 @@ nf.TemplatesTable = (function () {
             dialogContent: 'Delete template \'' + nf.Common.escapeHtml(template.name) + '\'?',
             overlayBackground: false,
             yesHandler: function () {
-                deleteTemplate(template.id);
+                deleteTemplate(template);
             }
         });
     };
@@ -76,17 +81,17 @@ nf.TemplatesTable = (function () {
     /**
      * Deletes the template with the specified id.
      * 
-     * @argument {string} templateId     The template id
+     * @argument {string} template     The template
      */
-    var deleteTemplate = function (templateId) {
+    var deleteTemplate = function (template) {
         $.ajax({
             type: 'DELETE',
-            url: config.urls.templates + '/' + encodeURIComponent(templateId),
+            url: template.uri,
             dataType: 'json'
         }).done(function () {
             var templatesGrid = $('#templates-table').data('gridInstance');
             var templatesData = templatesGrid.getData();
-            templatesData.deleteItem(templateId);
+            templatesData.deleteItem(template.id);
             
             // update the total number of templates
             $('#total-templates').text(templatesData.getItems().length);
@@ -167,9 +172,9 @@ nf.TemplatesTable = (function () {
 
             // open the url
             if ($.isEmptyObject(parameters)) {
-                window.open(config.urls.templates + '/' + encodeURIComponent(template.id));
+                window.open(template.uri + '/download');
             } else {
-                window.open(config.urls.templates + '/' + encodeURIComponent(template.id) + '?' + $.param(parameters));
+                window.open(template.uri + '/download' + '?' + $.param(parameters));
             }
         }).fail(function () {
             nf.Dialog.showOkDialog({
@@ -332,9 +337,17 @@ nf.TemplatesTable = (function () {
          * Load the processor templates table.
          */
         loadTemplatesTable: function () {
+            groupId = $('#template-group-id').text();
+            if (nf.Common.isUndefined(groupId) || nf.Common.isNull(groupId)) {
+                nf.Dialog.showOkDialog({
+                    overlayBackground: false,
+                    content: 'Group id not specified.'
+                });
+            }
+
             return $.ajax({
                 type: 'GET',
-                url: config.urls.templates,
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId) + '/templates',
                 data: {
                     verbose: false
                 },

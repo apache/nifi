@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.reporting.ReportingTask;
 import org.junit.Before;
 import org.junit.Test;
@@ -89,6 +90,18 @@ public class TestSimpleProcessLogger {
     public void validateDelegateLoggerReceivesThrowableToStringOnWarn() {
         componentLog.warn("Hello {}", e);
         verify(logger, times(1)).warn(anyString(), argThat(new MyVarargMatcher()));
+    }
+
+    @Test
+    public void validateDelegateLoggerReceivesThrowableToStringOnLogWithLevel() {
+        componentLog.log(LogLevel.WARN, "Hello {}", e);
+        verify(logger, times(1)).warn(anyString(), argThat(new MyVarargMatcher()));
+        componentLog.log(LogLevel.ERROR, "Hello {}", e);
+        verify(logger, times(1)).error(anyString(), argThat(new MyVarargMatcher()));
+        componentLog.log(LogLevel.INFO, "Hello {}", e);
+        verify(logger, times(1)).info(anyString(), argThat(new MyVarargMatcher()));
+        componentLog.log(LogLevel.TRACE, "Hello {}", e);
+        verify(logger, times(1)).trace(anyString(), argThat(new MyVarargMatcher()));
     }
 
     /**

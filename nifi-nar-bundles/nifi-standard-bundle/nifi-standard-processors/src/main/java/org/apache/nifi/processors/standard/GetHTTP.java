@@ -49,6 +49,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.config.Registry;
@@ -361,6 +362,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             requestConfigBuilder.setRedirectsEnabled(false);
             requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
             requestConfigBuilder.setRedirectsEnabled(context.getProperty(FOLLOW_REDIRECTS).asBoolean());
+            requestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD);
 
             // build the http client
             final HttpClientBuilder clientBuilder = HttpClientBuilder.create();

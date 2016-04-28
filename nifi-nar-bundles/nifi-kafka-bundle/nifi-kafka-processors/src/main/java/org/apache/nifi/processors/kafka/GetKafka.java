@@ -256,12 +256,13 @@ public class GetKafka extends AbstractProcessor {
             props.setProperty("consumer.timeout.ms", "1");
         }
 
+        int partitionCount = KafkaUtils.retrievePartitionCountForTopic(
+                context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue(), context.getProperty(TOPIC).getValue());
+
         final ConsumerConfig consumerConfig = new ConsumerConfig(props);
         consumer = Consumer.createJavaConsumerConnector(consumerConfig);
 
         final Map<String, Integer> topicCountMap = new HashMap<>(1);
-
-        int partitionCount = KafkaUtils.retrievePartitionCountForTopic(context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue(), context.getProperty(TOPIC).getValue());
 
         int concurrentTaskToUse = context.getMaxConcurrentTasks();
         if (context.getMaxConcurrentTasks() < partitionCount){
@@ -323,9 +324,6 @@ public class GetKafka extends AbstractProcessor {
     @OnScheduled
     public void schedule(ProcessContext context) {
         this.deadlockTimeout = context.getProperty(KAFKA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS) * 2;
-        if (this.executor == null || this.executor.isShutdown()) {
-            this.executor = Executors.newCachedThreadPool();
-        }
     }
 
     @Override
@@ -335,6 +333,9 @@ public class GetKafka extends AbstractProcessor {
          * of onTrigger. Will be reset to 'false' in the event of exception
          */
         synchronized (this.consumerStreamsReady) {
+            if (this.executor == null || this.executor.isShutdown()) {
+                this.executor = Executors.newCachedThreadPool();
+            }
             if (!this.consumerStreamsReady.get()) {
                 Future<Void> f = this.executor.submit(new Callable<Void>() {
                     @Override
@@ -346,14 +347,14 @@ public class GetKafka extends AbstractProcessor {
                 try {
                     f.get(this.deadlockTimeout, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
-                    this.consumerStreamsReady.set(false);
+                    shutdownConsumer();
                     f.cancel(true);
                     Thread.currentThread().interrupt();
                     getLogger().warn("Interrupted while waiting to get connection", e);
                 } catch (ExecutionException e) {
                     throw new IllegalStateException(e);
                 } catch (TimeoutException e) {
-                    this.consumerStreamsReady.set(false);
+                    shutdownConsumer();
                     f.cancel(true);
                     getLogger().warn("Timed out after " + this.deadlockTimeout + " milliseconds while waiting to get connection", e);
                 }
@@ -374,14 +375,14 @@ public class GetKafka extends AbstractProcessor {
             try {
                 consumptionFuture.get(this.deadlockTimeout, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
-                this.consumerStreamsReady.set(false);
+                shutdownConsumer();
                 consumptionFuture.cancel(true);
                 Thread.currentThread().interrupt();
                 getLogger().warn("Interrupted while consuming messages", e);
             } catch (ExecutionException e) {
                 throw new IllegalStateException(e);
             } catch (TimeoutException e) {
-                this.consumerStreamsReady.set(false);
+                shutdownConsumer();
                 consumptionFuture.cancel(true);
                 getLogger().warn("Timed out after " + this.deadlockTimeout + " milliseconds while consuming messages", e);
             }

@@ -17,6 +17,8 @@
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
@@ -26,7 +28,7 @@ public class AdaptedHeartbeat {
     private NodeIdentifier nodeIdentifier;
     private byte[] payload;
     private boolean primary;
-    private boolean connected;
+    private NodeConnectionStatus connectionStatus;
 
     public AdaptedHeartbeat() {
     }
@@ -48,12 +50,12 @@ public class AdaptedHeartbeat {
         this.primary = primary;
     }
 
-    public boolean isConnected() {
-        return connected;
+    public void setConnectionStatus(NodeConnectionStatus connectionStatus) {
+        this.connectionStatus = connectionStatus;
     }
 
-    public void setConnected(boolean connected) {
-        this.connected = connected;
+    public NodeConnectionStatus getConnectionStatus() {
+        return connectionStatus;
     }
 
     public byte[] getPayload() {

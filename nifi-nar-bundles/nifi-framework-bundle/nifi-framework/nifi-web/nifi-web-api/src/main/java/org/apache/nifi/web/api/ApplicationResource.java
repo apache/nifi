@@ -79,6 +79,8 @@ public abstract class ApplicationResource {
     private static final int CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES = (int) (0.75 * HEADER_BUFFER_SIZE);
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 
+    public static final String NODEWISE = "false";
+
     @Context
     private HttpServletRequest httpServletRequest;
 
@@ -335,6 +337,12 @@ public abstract class ApplicationResource {
         return params;
     }
 
+    /**
+     * Used when replicating requests to ensure the client id is the same on each node.
+     *
+     * @param entity entity
+     * @return entity with the client id set
+     */
     protected Entity updateClientId(final Entity entity) {
         if (entity != null && entity.getRevision() != null && StringUtils.isBlank(entity.getRevision().getClientId())) {
             entity.getRevision().setClientId(new ClientIdParameter().getClientId());

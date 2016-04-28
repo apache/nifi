@@ -189,16 +189,20 @@ nf.ReportingTask = (function () {
      * @param {boolean} running
      */
     var setRunning = function (reportingTask, running) {
-        var revision = nf.Client.getRevision();
+        var entity = {
+            'revision': nf.Client.getRevision(),
+            'reportingTask': {
+                'id': reportingTask.id,
+                'state': running === true ? 'RUNNING' : 'STOPPED'
+            }
+        };
+
         return $.ajax({
             type: 'PUT',
             url: reportingTask.uri,
-            data: {
-                clientId: revision.clientId,
-                version: revision.version,
-                state: running === true ? 'RUNNING' : 'STOPPED'
-            },
-            dataType: 'json'
+            data: JSON.stringify(entity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             // update the revision
             nf.Client.setRevision(response.revision);
@@ -258,7 +262,6 @@ nf.ReportingTask = (function () {
                 data: JSON.stringify(updatedReportingTask),
                 url: reportingTask.uri,
                 dataType: 'json',
-                processData: false,
                 contentType: 'application/json'
             }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.reportingTask)) {
@@ -395,7 +398,7 @@ nf.ReportingTask = (function () {
             // get the reporting task history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/controller/history/reporting-tasks/' + encodeURIComponent(reportingTask.id),
+                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTask.id),
                 dataType: 'json'
             });
             
@@ -589,7 +592,7 @@ nf.ReportingTask = (function () {
             // get the reporting task history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/controller/history/reporting-tasks/' + encodeURIComponent(reportingTask.id),
+                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTask.id),
                 dataType: 'json'
             });
             

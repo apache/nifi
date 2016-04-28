@@ -411,10 +411,26 @@ public interface ProcessGroup {
     Set<Connection> getConnections();
 
     /**
+     * @param id of the Connection
+     * @return the Connection with the given ID, if it exists as a child or
+     * descendant of this ProcessGroup. This performs a recursive search of all
+     * descendant ProcessGroups
+     */
+    Connection findConnection(String id);
+
+    /**
      * @return a List of all Connections contains within this ProcessGroup and
      * any child ProcessGroups
      */
     List<Connection> findAllConnections();
+
+    /**
+     * @param id of the Funnel
+     * @return the Funnel with the given ID, if it exists as a child or
+     * descendant of this ProcessGroup. This performs a recursive search of all
+     * descendant ProcessGroups
+     */
+    Funnel findFunnel(String id);
 
     /**
      * Adds the given RemoteProcessGroup to this ProcessGroup
@@ -491,6 +507,13 @@ public interface ProcessGroup {
     ProcessGroup findProcessGroup(String id);
 
     /**
+     * @return a List of all ProcessGroups that are children or descendants of this
+     * ProcessGroup. This performs a recursive search of all descendant
+     * ProcessGroups
+     */
+    List<ProcessGroup> findAllProcessGroups();
+
+    /**
      * @param id of the group
      * @return the RemoteProcessGroup with the given ID, if it exists as a child
      * or descendant of this ProcessGroup. This performs a recursive search of
@@ -521,6 +544,14 @@ public interface ProcessGroup {
     List<ProcessorNode> findAllProcessors();
 
     /**
+     * @param id of the Label
+     * @return the Label with the given ID, if it exists as a child or
+     * descendant of this ProcessGroup. This performs a recursive search of all
+     * descendant ProcessGroups
+     */
+    Label findLabel(String id);
+
+    /**
      * @return a List of all Labels that are children or descendants of this
      * ProcessGroup. This performsn a recursive search of all descendant
      * ProcessGroups
@@ -536,6 +567,13 @@ public interface ProcessGroup {
     Port findInputPort(String id);
 
     /**
+     * @return a List of all InputPorts that are children or descendants of this
+     * ProcessGroup. This performs a recursive search of all descendant
+     * ProcessGroups
+     */
+    List<Port> findAllInputPorts();
+
+    /**
      * @param name of port
      * @return the input port with the given name, if it exists; otherwise
      * returns null
@@ -549,6 +587,13 @@ public interface ProcessGroup {
      * descendant ProcessGroups
      */
     Port findOutputPort(String id);
+
+    /**
+     * @return a List of all OutputPorts that are children or descendants of this
+     * ProcessGroup. This performs a recursive search of all descendant
+     * ProcessGroups
+     */
+    List<Port> findAllOutputPorts();
 
     /**
      * @param name of the port

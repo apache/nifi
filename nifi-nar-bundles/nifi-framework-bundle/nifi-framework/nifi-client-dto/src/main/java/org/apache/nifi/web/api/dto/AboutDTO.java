@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -27,6 +28,9 @@ public class AboutDTO {
 
     private String title;
     private String version;
+
+    private String uri;
+    private String contentViewerUrl;
 
     /* getters / setters */
     /**
@@ -61,4 +65,31 @@ public class AboutDTO {
         this.version = version;
     }
 
+    /**
+     * @return URI for this NiFi controller
+     */
+    @ApiModelProperty(
+        value = "The URI for the NiFi."
+    )
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
+
+    /**
+     * @return the URL for the content viewer if configured
+     */
+    @ApiModelProperty(
+        value = "The URL for the content viewer if configured."
+    )
+    public String getContentViewerUrl() {
+        return contentViewerUrl;
+    }
+
+    public void setContentViewerUrl(String contentViewerUrl) {
+        this.contentViewerUrl = contentViewerUrl;
+    }
 }

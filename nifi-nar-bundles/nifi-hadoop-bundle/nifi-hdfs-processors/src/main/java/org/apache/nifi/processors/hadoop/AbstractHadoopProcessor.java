@@ -116,6 +116,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
     private final AtomicReference<HdfsResources> hdfsResources = new AtomicReference<>();
 
+    // Holder of cached Configuration information so validation does not reload the same config over and over
+    private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
+
     @Override
     protected void init(ProcessorInitializationContext context) {
         hdfsResources.set(new HdfsResources(null, null, null));
@@ -147,12 +150,21 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         final List<ValidationResult> results = new ArrayList<>();
 
         if (!StringUtils.isBlank(configResources)) {
-            Configuration conf = null;
             try {
-                conf = getConfigurationFromResources(configResources);
+                ValidationResources resources = validationResourceHolder.get();
 
+                // if no resources in the holder, or if the holder has different resources loaded,
+                // then load the Configuration and set the new resources in the holder
+                if (resources == null || !configResources.equals(resources.getConfigResources())) {
+                    getLogger().debug("Reloading validation resources");
+                    resources = new ValidationResources(configResources, getConfigurationFromResources(configResources));
+                    validationResourceHolder.set(resources);
+                }
+
+                final Configuration conf = resources.getConfiguration();
                 results.addAll(KerberosProperties.validatePrincipalAndKeytab(
                         this.getClass().getSimpleName(), conf, principal, keytab, getLogger()));
+
             } catch (IOException e) {
                 results.add(new ValidationResult.Builder()
                         .valid(false)
@@ -452,4 +464,23 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             return userGroupInformation;
         }
     }
+
+    static protected class ValidationResources {
+        private final String configResources;
+        private final Configuration configuration;
+
+        public ValidationResources(String configResources, Configuration configuration) {
+            this.configResources = configResources;
+            this.configuration = configuration;
+        }
+
+        public String getConfigResources() {
+            return configResources;
+        }
+
+        public Configuration getConfiguration() {
+            return configuration;
+        }
+    }
+
 }

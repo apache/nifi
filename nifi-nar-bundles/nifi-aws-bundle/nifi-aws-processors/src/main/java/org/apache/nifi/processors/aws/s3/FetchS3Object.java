@@ -61,6 +61,7 @@ import com.amazonaws.services.s3.model.S3Object;
     @WritesAttribute(attribute = "s3.etag", description = "The ETag that can be used to see if the file has changed"),
     @WritesAttribute(attribute = "s3.expirationTime", description = "If the file has an expiration date, this attribute will be set, containing the milliseconds since epoch in UTC time"),
     @WritesAttribute(attribute = "s3.expirationTimeRuleId", description = "The ID of the rule that dictates this object's expiration time"),
+    @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),})
 public class FetchS3Object extends AbstractS3Processor {
 
@@ -136,6 +137,9 @@ public class FetchS3Object extends AbstractS3Processor {
             }
             if (metadata.getUserMetadata() != null) {
                 attributes.putAll(metadata.getUserMetadata());
+            }
+            if (metadata.getSSEAlgorithm() != null) {
+                attributes.put("s3.sseAlgorithm", metadata.getSSEAlgorithm());
             }
             if (metadata.getVersionId() != null) {
                 attributes.put("s3.version", metadata.getVersionId());

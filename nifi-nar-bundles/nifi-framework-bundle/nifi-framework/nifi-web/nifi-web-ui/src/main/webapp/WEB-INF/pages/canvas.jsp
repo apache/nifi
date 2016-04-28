@@ -38,6 +38,7 @@
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
         <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
+        <script type="text/javascript" src="js/d3/d3.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
@@ -62,13 +63,23 @@
         <script type="text/javascript" src="js/jquery/slickgrid/slick.dataview.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.core.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.grid.js"></script>
+        <script type="text/javascript" src="js/angular/angular.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-messages/angular-messages.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-resource/angular-resource.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-route/angular-route.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-aria/angular-aria.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-animate/angular-animate.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-material/angular-material.min.js"></script>
+        <script type="text/javascript" src="js/angular/angular-sanitize/angular-sanitize.min.js"></script>
         <script type="text/javascript" src="js/json2.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/canvas/nf-ng-canvas-namespace.js?${project.version}"></script>
         ${nf.canvas.script.tags}
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
     </head>
-    <body id="canvas-body">
+    <body ng-controller="ngCanvasAppCtrl" id="canvas-body">
         <div id="splash">
             <img id="splash-img" src="images/loadAnimation.gif" alt="Loading..."/>
         </div>
@@ -114,8 +125,6 @@
         <jsp:include page="/WEB-INF/partials/canvas/remote-port-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/port-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/port-details.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/secure-port-configuration.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/secure-port-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/label-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/connection-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/drop-request-status-dialog.jsp"/>

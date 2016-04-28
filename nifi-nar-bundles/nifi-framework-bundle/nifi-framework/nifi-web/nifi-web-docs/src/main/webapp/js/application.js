@@ -135,7 +135,7 @@ $(document).ready(function () {
         if (top === window) {
             $.ajax({
                 type: 'GET',
-                url: '../nifi-api/controller/banners',
+                url: '../nifi-api/flow/banners',
                 dataType: 'json'
             }).then(function (response) {
                 // ensure the banners response is specified
@@ -184,7 +184,7 @@ $(document).ready(function () {
     // get the about details
     var about = $.ajax({
         type: 'GET',
-        url: '../nifi-api/controller/about',
+        url: '../nifi-api/flow/about',
         dataType: 'json'
     }).done(function (response) {
         var aboutDetails = response.about;

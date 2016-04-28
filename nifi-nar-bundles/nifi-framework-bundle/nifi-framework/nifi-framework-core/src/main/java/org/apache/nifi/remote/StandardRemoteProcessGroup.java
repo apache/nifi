@@ -80,8 +80,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardRemoteProcessGroup.class);
 
-    public static final String CONTROLLER_URI_PATH = "/controller";
-    public static final String ROOT_GROUP_STATUS_URI_PATH = "/controller/process-groups/root/status";
+    public static final String SITE_TO_SITE_URI_PATH = "/site-to-site";
+    public static final String ROOT_GROUP_STATUS_URI_PATH = "/flow/process-groups/root/status";
 
     // status codes
     public static final int OK_STATUS_CODE = Status.OK.getStatusCode();
@@ -749,7 +749,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
 
         final RemoteNiFiUtils utils = new RemoteNiFiUtils(isWebApiSecure() ? sslContext : null);
-        final String uriVal = apiUri.toString() + CONTROLLER_URI_PATH;
+        final String uriVal = apiUri.toString() + SITE_TO_SITE_URI_PATH;
         URI uri;
         try {
             uri = new URI(uriVal);
@@ -1080,7 +1080,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         public void run() {
             try {
                 final RemoteNiFiUtils utils = new RemoteNiFiUtils(isWebApiSecure() ? sslContext : null);
-                final ClientResponse response = utils.get(new URI(apiUri + CONTROLLER_URI_PATH), getCommunicationsTimeout(TimeUnit.MILLISECONDS));
+                final ClientResponse response = utils.get(new URI(apiUri + SITE_TO_SITE_URI_PATH), getCommunicationsTimeout(TimeUnit.MILLISECONDS));
 
                 final int statusCode = response.getStatus();
 

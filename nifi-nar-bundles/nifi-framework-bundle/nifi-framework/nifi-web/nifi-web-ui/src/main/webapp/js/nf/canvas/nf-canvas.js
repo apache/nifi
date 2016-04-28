@@ -19,6 +19,25 @@
 
 $(document).ready(function () {
     if (nf.Canvas.SUPPORTS_SVG) {
+        //Create App
+        var app = angular.module('ngCanvasApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngSanitize', 'ngMessages']);
+
+        //Configure App
+        app.config(nf.ng.Canvas.AppConfig);
+
+        //App Controllers
+        app.controller('ngCanvasAppCtrl', nf.ng.Canvas.AppCtrl);
+
+        //App Services
+        app.factory('ServiceProvider', nf.ng.ServiceProvider);
+        app.factory('BreadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
+
+        //App Directives
+        app.directive('breadcrumbsDirective', nf.ng.BreadcrumbsDirective);
+
+        //Manually Boostrap App
+        angular.bootstrap($('body'), ['ngCanvasApp'], { strictDi: true });
+
         // initialize the NiFi
         nf.Canvas.init();
     } else {
@@ -57,58 +76,23 @@ nf.Canvas = (function () {
 
     var config = {
         urls: {
-            identity: '../nifi-api/controller/identity',
+            api: '../nifi-api',
+            identity: '../nifi-api/flow/identity',
             authorities: '../nifi-api/controller/authorities',
             kerberos: '../nifi-api/access/kerberos',
-            revision: '../nifi-api/controller/revision',
-            status: '../nifi-api/controller/status',
-            bulletinBoard: '../nifi-api/controller/bulletin-board',
-            banners: '../nifi-api/controller/banners',
+            revision: '../nifi-api/flow/revision',
+            status: '../nifi-api/flow/status',
+            bulletinBoard: '../nifi-api/flow/bulletin-board',
+            banners: '../nifi-api/flow/banners',
             controller: '../nifi-api/controller',
             controllerConfig: '../nifi-api/controller/config',
+            about: '../nifi-api/flow/about',
             accessConfig: '../nifi-api/access/config',
             cluster: '../nifi-api/cluster',
             d3Script: 'js/d3/d3.min.js'
         }
     };
-
-    /**
-     * Generates the breadcrumbs.
-     *
-     * @argument {object} processGroup      The process group
-     */
-    var generateBreadcrumbs = function (processGroup) {
-        // create the link for loading the correct group
-        var groupLink = $('<span class="link"></span>').text(processGroup.name).click(function () {
-            nf.CanvasUtils.enterGroup(processGroup.id);
-        });
-
-        // make the current group bold
-        if (nf.Canvas.getGroupId() === processGroup.id) {
-            groupLink.css('font-weight', 'bold');
-        }
-
-        // if there is a parent, create the appropriate mark up
-        if (nf.Common.isDefinedAndNotNull(processGroup.parent)) {
-            var separator = $('<span>&raquo;</span>').css({
-                'color': '#598599',
-                'margin': '0 10px'
-            });
-            $('#data-flow-title-container').append(generateBreadcrumbs(processGroup.parent)).append(separator);
-        }
-
-        // append this link
-        $('#data-flow-title-container').append(groupLink);
-        return groupLink;
-    };
-
-    /**
-     * Loads D3.
-     */
-    var loadD3 = function () {
-        return nf.Common.cachedScript(config.urls.d3Script);
-    };
-
+    
     /**
      * Starts polling for the revision.
      *
@@ -524,6 +508,11 @@ nf.Canvas = (function () {
                 'width': canvasContainer.width()
             });
 
+            //breadcrumbs
+            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
+                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.updateBreadcrumbsCss',
+                {'bottom': bottom + 'px'});
+
             // body
             $('#canvas-body').css({
                 'height': windowHeight + 'px',
@@ -788,7 +777,7 @@ nf.Canvas = (function () {
         // load the controller
         return $.ajax({
             type: 'GET',
-            url: config.urls.controller + '/process-groups/' + encodeURIComponent(processGroupId),
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupId),
             data: {
                 verbose: true
             },
@@ -805,8 +794,11 @@ nf.Canvas = (function () {
             nf.Canvas.setGroupName(processGroup.name);
 
             // update the breadcrumbs
-            $('#data-flow-title-container').empty();
-            generateBreadcrumbs(processGroup);
+            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
+                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetBreadcrumbs');
+            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
+                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.generateBreadcrumbs',
+                processGroup);
 
             // set the parent id if applicable
             if (nf.Common.isDefinedAndNotNull(processGroup.parent)) {
@@ -836,7 +828,7 @@ nf.Canvas = (function () {
         return $.Deferred(function (deferred) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(processGroupId) + '/status',
+                url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId) + '/status',
                 data: {
                     recursive: false
                 },
@@ -845,9 +837,10 @@ nf.Canvas = (function () {
                 // report the updated stats
                 if (nf.Common.isDefinedAndNotNull(response.processGroupStatus)) {
                     var processGroupStatus = response.processGroupStatus;
+                    var aggregateSnapshot = processGroupStatus.aggregateSnapshot;
 
                     // update all the stats
-                    nf.Graph.setStatus(processGroupStatus);
+                    nf.Graph.setStatus(aggregateSnapshot);
 
                     // update the timestamp
                     $('#stats-last-refreshed').text(processGroupStatus.statsLastRefreshed);
@@ -911,23 +904,8 @@ nf.Canvas = (function () {
                 var settingsXhr = nf.Settings.loadSettings(false); // don't reload the status as we want to wait for deferreds to complete
                 $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
                     // adjust breadcrumbs if necessary
-                    var title = $('#data-flow-title-container');
-                    var titlePosition = title.position();
-                    var titleWidth = title.outerWidth();
-                    var titleRight = titlePosition.left + titleWidth;
-
-                    var padding = $('#breadcrumbs-right-border').width();
-                    var viewport = $('#data-flow-title-viewport');
-                    var viewportWidth = viewport.width();
-                    var viewportRight = viewportWidth - padding;
-
-                    // if the title's right is past the viewport's right, shift accordingly
-                    if (titleRight > viewportRight) {
-                        // adjust the position
-                        title.css('left', (titlePosition.left - (titleRight - viewportRight)) + 'px');
-                    } else {
-                        title.css('left', '10px');
-                    }
+                    nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
+                        'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetScrollPosition');
 
                     // don't load the status until the graph is loaded
                     reloadStatus(nf.Canvas.getGroupId()).done(function () {
@@ -1036,6 +1014,15 @@ nf.Canvas = (function () {
                     dataType: 'json'
                 });
 
+                // get the about details
+                var aboutXhr = $.ajax({
+                    type: 'GET',
+                    url: config.urls.about,
+                    dataType: 'json'
+                }).done(function (response) {
+                    
+                }).fail(nf.Common.handleAjaxError);
+
                 // get the login config
                 var loginXhr = $.ajax({
                     type: 'GET',
@@ -1062,9 +1049,10 @@ nf.Canvas = (function () {
                 }).promise();
 
                 // ensure the config requests are loaded
-                $.when(configXhr, loginXhr, userXhr).done(function (configResult, loginResult) {
+                $.when(configXhr, loginXhr, aboutXhr, userXhr).done(function (configResult, loginResult, aboutResult) {
                     var configResponse = configResult[0];
                     var loginResponse = loginResult[0];
+                    var aboutResponse = aboutResult[0];
 
                     // calculate the canvas offset
                     var canvasContainer = $('#canvas-container');
@@ -1073,10 +1061,15 @@ nf.Canvas = (function () {
                     // get the config details
                     var configDetails = configResponse.config;
                     var loginDetails = loginResponse.config;
-
+                    var aboutDetails = aboutResponse.about;
+                    
+                    // set the document title and the about title
+                    document.title = aboutDetails.title;
+                    $('#nf-version').text(aboutDetails.version);
+                    
                     // store the content viewer url if available
-                    if (!nf.Common.isBlank(configDetails.contentViewerUrl)) {
-                        $('#nifi-content-viewer-url').text(configDetails.contentViewerUrl);
+                    if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
+                        $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
                     }
 
                     // when both request complete, load the application
@@ -1087,66 +1080,62 @@ nf.Canvas = (function () {
                         // initialize whether site to site is secure
                         secureSiteToSite = configDetails.siteToSiteSecure;
 
-                        // load d3
-                        loadD3().done(function () {
-                            nf.Storage.init();
+                        // init storage
+                        nf.Storage.init();
 
-                            // initialize the application
-                            initCanvas();
-                            nf.Canvas.View.init();
-                            nf.ContextMenu.init();
-                            nf.CanvasToolbar.init();
-                            nf.CanvasToolbox.init();
-                            nf.CanvasHeader.init(loginDetails.supportsLogin);
-                            nf.GraphControl.init();
-                            nf.Search.init();
-                            nf.Settings.init();
-                            nf.Actions.init();
-                            nf.QueueListing.init();
-                            nf.ComponentState.init();
+                        // initialize the application
+                        initCanvas();
+                        nf.Canvas.View.init();
+                        nf.ContextMenu.init();
+                        nf.CanvasToolbar.init();
+                        nf.CanvasToolbox.init();
+                        nf.CanvasHeader.init(loginDetails.supportsLogin);
+                        nf.GraphControl.init();
+                        nf.Search.init();
+                        nf.Settings.init();
+                        nf.Actions.init();
+                        nf.QueueListing.init();
+                        nf.ComponentState.init();
 
-                            // initialize the component behaviors
-                            nf.Draggable.init();
-                            nf.Selectable.init();
-                            nf.Connectable.init();
+                        // initialize the component behaviors
+                        nf.Draggable.init();
+                        nf.Selectable.init();
+                        nf.Connectable.init();
 
-                            // initialize the chart
-                            nf.StatusHistory.init(configDetails.timeOffset);
+                        // initialize the chart
+                        nf.StatusHistory.init(configDetails.timeOffset);
 
-                            // initialize the birdseye
-                            nf.Birdseye.init();
+                        // initialize the birdseye
+                        nf.Birdseye.init();
 
-                            // initialize components
-                            nf.ConnectionConfiguration.init();
-                            nf.ControllerService.init();
-                            nf.ReportingTask.init();
-                            nf.ProcessorConfiguration.init();
-                            nf.ProcessGroupConfiguration.init();
-                            nf.RemoteProcessGroupConfiguration.init();
-                            nf.RemoteProcessGroupPorts.init();
-                            nf.PortConfiguration.init();
-                            nf.SecurePortConfiguration.init();
-                            nf.LabelConfiguration.init();
-                            nf.ProcessorDetails.init();
-                            nf.ProcessGroupDetails.init();
-                            nf.PortDetails.init();
-                            nf.SecurePortDetails.init();
-                            nf.ConnectionDetails.init();
-                            nf.RemoteProcessGroupDetails.init();
-                            nf.GoTo.init();
-                            nf.Graph.init().done(function () {
-                                // determine the split between the polling
-                                var pollingSplit = autoRefreshIntervalSeconds / 2;
+                        // initialize components
+                        nf.ConnectionConfiguration.init();
+                        nf.ControllerService.init();
+                        nf.ReportingTask.init();
+                        nf.ProcessorConfiguration.init();
+                        nf.ProcessGroupConfiguration.init();
+                        nf.RemoteProcessGroupConfiguration.init();
+                        nf.RemoteProcessGroupPorts.init();
+                        nf.PortConfiguration.init();
+                        nf.LabelConfiguration.init();
+                        nf.ProcessorDetails.init();
+                        nf.ProcessGroupDetails.init();
+                        nf.PortDetails.init();
+                        nf.ConnectionDetails.init();
+                        nf.RemoteProcessGroupDetails.init();
+                        nf.GoTo.init();
+                        nf.Graph.init().done(function () {
+                            // determine the split between the polling
+                            var pollingSplit = autoRefreshIntervalSeconds / 2;
 
-                                // register the revision and status polling
-                                startRevisionPolling(autoRefreshIntervalSeconds);
-                                setTimeout(function () {
-                                    startStatusPolling(autoRefreshIntervalSeconds);
-                                }, pollingSplit * 1000);
+                            // register the revision and status polling
+                            startRevisionPolling(autoRefreshIntervalSeconds);
+                            setTimeout(function () {
+                                startStatusPolling(autoRefreshIntervalSeconds);
+                            }, pollingSplit * 1000);
 
-                                // hide the splash screen
-                                nf.Canvas.hideSplash();
-                            }).fail(nf.Common.handleAjaxError);
+                            // hide the splash screen
+                            nf.Canvas.hideSplash();
                         }).fail(nf.Common.handleAjaxError);
                     }).fail(nf.Common.handleAjaxError);
                 }).fail(nf.Common.handleAjaxError);

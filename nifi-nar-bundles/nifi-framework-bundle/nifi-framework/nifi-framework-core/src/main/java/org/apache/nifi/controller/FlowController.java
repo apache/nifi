@@ -16,27 +16,61 @@
  */
 package org.apache.nifi.controller;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
-import org.apache.nifi.cluster.BulletinsPayload;
 import org.apache.nifi.cluster.HeartbeatPayload;
+import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.Heartbeat;
-import org.apache.nifi.cluster.protocol.NodeBulletins;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
-import org.apache.nifi.cluster.protocol.message.NodeBulletinsMessage;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
@@ -48,11 +82,16 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.connectable.StandardConnection;
+import org.apache.nifi.controller.cluster.Heartbeater;
+import org.apache.nifi.controller.cluster.ZooKeeperHeartbeater;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
+import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
+import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
@@ -109,7 +148,6 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.events.NodeBulletinProcessingStrategy;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -184,41 +222,9 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
+import com.sun.jersey.api.client.ClientHandlerException;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.LockSupport;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
-
-public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, Heartbeater, QueueProvider {
+public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider {
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -234,6 +240,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public static final String ROOT_GROUP_ID_ALIAS = "root";
     public static final String DEFAULT_ROOT_GROUP_NAME = "NiFi Flow";
+    public static final String PRIMARY_NODE_ROLE_NAME = "primary-node";
 
     private final AtomicInteger maxTimerDrivenThreads;
     private final AtomicInteger maxEventDrivenThreads;
@@ -256,7 +263,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ControllerServiceProvider controllerServiceProvider;
-    private final UserService userService;
+    private final KeyService keyService;
     private final AuditService auditService;
     private final EventDrivenWorkerQueue eventDrivenWorkerQueue;
     private final ComponentStatusRepository componentStatusRepository;
@@ -280,6 +287,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private ProcessGroup rootGroup;
     private final List<Connectable> startConnectablesAfterInitialization;
     private final List<RemoteGroupPort> startRemoteGroupPortsAfterInitialization;
+    private final LeaderElectionManager leaderElectionManager;
+
 
     /**
      * true if controller is configured to operate in a clustered environment
@@ -296,10 +305,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      */
     private final StringEncryptor encryptor;
 
-    /**
-     * cluster protocol sender
-     */
-    private final NodeProtocolSender protocolSender;
 
     private final ScheduledExecutorService clusterTaskExecutor = new FlowEngine(3, "Clustering Tasks");
     private final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
@@ -308,17 +313,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     /**
      * timer to periodically send heartbeats to the cluster
      */
-    private ScheduledFuture<?> bulletinFuture;
-    private ScheduledFuture<?> heartbeatGeneratorFuture;
     private ScheduledFuture<?> heartbeatSenderFuture;
+    private final Heartbeater heartbeater;
 
     // guarded by FlowController lock
     /**
      * timer task to generate heartbeats
      */
-    private final AtomicReference<HeartbeatMessageGeneratorTask> heartbeatMessageGeneratorTaskRef = new AtomicReference<>(null);
-
-    private final AtomicReference<NodeBulletinProcessingStrategy> nodeBulletinSubscriber;
+    private final AtomicReference<HeartbeatSendTask> heartbeatSendTask = new AtomicReference<>(null);
 
     // guarded by rwLock
     /**
@@ -334,16 +336,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private String clusterManagerDN;
 
     // guarded by rwLock
-    /**
-     * true if controller is the primary of the cluster
-     */
-    private boolean primary;
-
-    // guarded by rwLock
-    /**
-     * true if connected to a cluster
-     */
-    private boolean connected;
+    private NodeConnectionStatus connectionStatus;
+    private final ConcurrentMap<NodeIdentifier, VersionedNodeConnectionStatus> nodeStatuses = new ConcurrentHashMap<>();
 
     // guarded by rwLock
     private String instanceId;
@@ -360,13 +354,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public static FlowController createStandaloneInstance(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final UserService userService,
+        final KeyService keyService,
         final AuditService auditService,
         final StringEncryptor encryptor) {
         return new FlowController(
             flowFileEventRepo,
             properties,
-            userService,
+            keyService,
             auditService,
             encryptor,
             /* configuredForClustering */ false,
@@ -376,14 +370,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public static FlowController createClusteredInstance(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final UserService userService,
+        final KeyService keyService,
         final AuditService auditService,
         final StringEncryptor encryptor,
         final NodeProtocolSender protocolSender) {
         final FlowController flowController = new FlowController(
             flowFileEventRepo,
             properties,
-            userService,
+            keyService,
             auditService,
             encryptor,
             /* configuredForClustering */ true,
@@ -397,7 +391,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private FlowController(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final UserService userService,
+        final KeyService keyService,
         final AuditService auditService,
         final StringEncryptor encryptor,
         final boolean configuredForClustering,
@@ -420,15 +414,18 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         counterRepositoryRef = new AtomicReference<CounterRepository>(new StandardCounterRepository());
 
         bulletinRepository = new VolatileBulletinRepository();
-        nodeBulletinSubscriber = new AtomicReference<>();
 
         try {
             this.provenanceEventRepository = createProvenanceRepository(properties);
             this.provenanceEventRepository.initialize(createEventReporter(bulletinRepository));
-
-            this.contentRepository = createContentRepository(properties);
         } catch (final Exception e) {
             throw new RuntimeException("Unable to create Provenance Repository", e);
+        }
+
+        try {
+            this.contentRepository = createContentRepository(properties);
+        } catch (final Exception e) {
+            throw new RuntimeException("Unable to create Content Repository", e);
         }
 
         try {
@@ -437,7 +434,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             throw new RuntimeException(e);
         }
 
-        processScheduler = new StandardProcessScheduler(this, this, encryptor, stateManagerProvider);
+        processScheduler = new StandardProcessScheduler(this, encryptor, stateManagerProvider);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
         controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
 
@@ -454,7 +451,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         startConnectablesAfterInitialization = new ArrayList<>();
         startRemoteGroupPortsAfterInitialization = new ArrayList<>();
-        this.userService = userService;
+        this.keyService = keyService;
         this.auditService = auditService;
 
         final String gracefulShutdownSecondsVal = properties.getProperty(GRACEFUL_SHUTDOWN_PERIOD);
@@ -478,7 +475,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         this.configuredForClustering = configuredForClustering;
         this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(properties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
-        this.protocolSender = protocolSender;
         try {
             this.templateManager = new TemplateManager(properties.getTemplateDirectory());
         } catch (final IOException e) {
@@ -515,9 +511,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         // Initialize the Embedded ZooKeeper server, if applicable
-        if (properties.isStartEmbeddedZooKeeper()) {
+        if (properties.isStartEmbeddedZooKeeper() && configuredForClustering) {
             try {
                 zooKeeperStateServer = ZooKeeperStateServer.create(properties);
+                zooKeeperStateServer.start();
             } catch (final IOException | ConfigException e) {
                 throw new IllegalStateException("Unable to initailize Flow because NiFi was configured to start an Embedded Zookeeper server but failed to do so", e);
             }
@@ -533,7 +530,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
         }, snapshotMillis, snapshotMillis, TimeUnit.MILLISECONDS);
 
-        heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false, false));
+        heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false, new NodeConnectionStatus(NodeConnectionState.DISCONNECTED, DisconnectionCode.NOT_YET_CONNECTED)));
+
+        if (configuredForClustering) {
+            leaderElectionManager = new CuratorLeaderElectionManager(4);
+            heartbeater = new ZooKeeperHeartbeater(protocolSender, properties);
+        } else {
+            leaderElectionManager = null;
+            heartbeater = null;
+        }
     }
 
     private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ResourceClaimManager contentClaimManager) {
@@ -734,7 +739,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private ContentRepository createContentRepository(final NiFiProperties properties) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final String implementationClassName = properties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION, DEFAULT_CONTENT_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
-            throw new RuntimeException("Cannot create Provenance Repository because the NiFi Properties is missing the following property: "
+            throw new RuntimeException("Cannot create Content Repository because the NiFi Properties is missing the following property: "
                 + NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION);
         }
 
@@ -833,7 +838,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .resourceClaimManager(resourceClaimManager)
             .flowFileRepository(flowFileRepository)
             .provenanceRepository(provenanceEventRepository)
-            .heartbeater(this)
             .build();
     }
 
@@ -1006,6 +1010,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
+    public Heartbeater getHeartbeater() {
+        return heartbeater;
+    }
+
     /**
      * @return the BulletinRepository for storing and retrieving Bulletins
      */
@@ -1035,7 +1043,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
         return new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT,
-            userService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
+            keyService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
     }
 
     /**
@@ -1052,7 +1060,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
         return new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT,
-            userService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
+            keyService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
     }
 
     /**
@@ -1167,6 +1175,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new IllegalStateException("Controller already stopped or still stopping...");
             }
 
+            if (heartbeater != null) {
+                sendShutdownNotification();
+            }
+
+            if (leaderElectionManager != null) {
+                leaderElectionManager.stop();
+            }
+
             if (kill) {
                 this.timerDrivenEngineRef.get().shutdownNow();
                 this.eventDrivenEngineRef.get().shutdownNow();
@@ -1250,6 +1266,39 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             readLock.unlock();
         }
     }
+
+    /**
+     * Sends a notification to the cluster that the node was shut down.
+     */
+    private void sendShutdownNotification() {
+        // Generate a heartbeat message and publish it, indicating that we are shutting down
+        final HeartbeatMessage heartbeatMsg = createHeartbeatMessage();
+        final Heartbeat heartbeat = heartbeatMsg.getHeartbeat();
+        final byte[] hbPayload = heartbeatMsg.getHeartbeat().getPayload();
+        final NodeConnectionStatus connectionStatus = new NodeConnectionStatus(DisconnectionCode.NODE_SHUTDOWN);
+        heartbeatMsg.setHeartbeat(new Heartbeat(heartbeat.getNodeIdentifier(), false, connectionStatus, hbPayload));
+        final Runnable sendNotification = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    heartbeater.send(heartbeatMsg);
+                } catch (IOException e) {
+                    LOG.warn("Failed to send NODE_SHUTDOWN heartbeat message. Cluster may not be notified of "
+                        + "shutdown and may have to wait for the heartbeats to time out before noticing that the node left the cluster");
+                }
+            }
+        };
+
+        final Future<?> hbFuture = processScheduler.submitFrameworkTask(sendNotification);
+        try {
+            hbFuture.get(3, TimeUnit.SECONDS);
+            LOG.info("Successfully sent Shutdown Notification to cluster");
+        } catch (final Exception e) {
+            LOG.warn("Failed to send NODE_SHUTDOWN heartbeat message in time. Cluster may not be notified of "
+                + "shutdown and may have to wait for the heartbeats to time out before noticing that the node left the cluster");
+        }
+    }
+
 
     /**
      * Serializes the current state of the controller to the given OutputStream
@@ -1373,7 +1422,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connectionStatus));
         } finally {
             writeLock.unlock();
         }
@@ -2122,7 +2171,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final ProcessGroupStatus status = new ProcessGroupStatus();
         status.setId(group.getIdentifier());
         status.setName(group.getName());
-        status.setCreationTimestamp(new Date().getTime());
         int activeGroupThreads = 0;
         long bytesRead = 0L;
         long bytesWritten = 0L;
@@ -2899,7 +2947,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public Counter resetCounter(final String identifier) {
         final CounterRepository counterRepo = counterRepositoryRef.get();
         final Counter resetValue = counterRepo.resetCounter(identifier);
-        heartbeat();
         return resetValue;
     }
 
@@ -2952,16 +2999,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         writeLock.lock();
         try {
-
             stopHeartbeating();
 
-            bulletinFuture = clusterTaskExecutor.scheduleWithFixedDelay(new BulletinsTask(protocolSender), 250, 2000, TimeUnit.MILLISECONDS);
-
-            final HeartbeatMessageGeneratorTask heartbeatMessageGeneratorTask = new HeartbeatMessageGeneratorTask();
-            heartbeatMessageGeneratorTaskRef.set(heartbeatMessageGeneratorTask);
-            heartbeatGeneratorFuture = clusterTaskExecutor.scheduleWithFixedDelay(heartbeatMessageGeneratorTask, 0, heartbeatDelaySeconds, TimeUnit.SECONDS);
-
-            heartbeatSenderFuture = clusterTaskExecutor.scheduleWithFixedDelay(new HeartbeatSendTask(protocolSender), 250, 250, TimeUnit.MILLISECONDS);
+            final HeartbeatSendTask sendTask = new HeartbeatSendTask();
+            this.heartbeatSendTask.set(sendTask);
+            heartbeatSenderFuture = clusterTaskExecutor.scheduleWithFixedDelay(sendTask, 0, heartbeatDelaySeconds, TimeUnit.SECONDS);
         } finally {
             writeLock.unlock();
         }
@@ -2989,7 +3031,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws IllegalStateException if not clustered
      */
     public void stopHeartbeating() throws IllegalStateException {
-
         if (!configuredForClustering) {
             throw new IllegalStateException("Unable to stop heartbeating because heartbeating is not configured.");
         }
@@ -3000,16 +3041,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 return;
             }
 
-            if (heartbeatGeneratorFuture != null) {
-                heartbeatGeneratorFuture.cancel(false);
-            }
-
             if (heartbeatSenderFuture != null) {
                 heartbeatSenderFuture.cancel(false);
-            }
-
-            if (bulletinFuture != null) {
-                bulletinFuture.cancel(false);
             }
         } finally {
             writeLock.unlock();
@@ -3023,8 +3056,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public boolean isHeartbeating() {
         readLock.lock();
         try {
-            return heartbeatGeneratorFuture != null && !heartbeatGeneratorFuture.isCancelled()
-                && heartbeatSenderFuture != null && !heartbeatSenderFuture.isCancelled();
+            return heartbeatSenderFuture != null && !heartbeatSenderFuture.isCancelled();
         } finally {
             readLock.unlock();
         }
@@ -3119,6 +3151,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             boolean isChanging = false;
             if (this.clustered != clustered) {
                 isChanging = true;
+
+                if (clustered) {
+                    LOG.info("Cluster State changed from Not Clustered to Clustered");
+                } else {
+                    LOG.info("Cluster State changed from Clustered to Not Clustered");
+                }
             }
 
             // mark the new cluster status
@@ -3135,8 +3173,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // update the bulletin repository
             if (isChanging) {
                 if (clustered) {
-                    nodeBulletinSubscriber.set(new NodeBulletinProcessingStrategy());
-                    bulletinRepository.overrideDefaultBulletinProcessing(nodeBulletinSubscriber.get());
+                    leaderElectionManager.register(PRIMARY_NODE_ROLE_NAME, new LeaderElectionStateChangeListener() {
+                        @Override
+                        public void onLeaderElection() {
+                            setPrimary(true);
+                        }
+
+                        @Override
+                        public void onLeaderRelinquish() {
+                            setPrimary(false);
+                        }
+                    });
+
+                    leaderElectionManager.start();
                     stateManagerProvider.enableClusterProvider();
 
                     if (zooKeeperStateServer != null) {
@@ -3175,11 +3224,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                         LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1L));
                     }
                 } else {
-                    bulletinRepository.restoreDefaultBulletinProcessing();
+                    leaderElectionManager.unregister(PRIMARY_NODE_ROLE_NAME);
+
                     if (zooKeeperStateServer != null) {
                         zooKeeperStateServer.shutdown();
                     }
                     stateManagerProvider.disableClusterProvider();
+
+                    setPrimary(false);
                 }
 
                 final List<RemoteProcessGroup> remoteGroups = getGroup(getRootGroupId()).findAllRemoteProcessGroups();
@@ -3189,7 +3241,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connectionStatus));
         } finally {
             writeLock.unlock();
         }
@@ -3199,44 +3251,40 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @return true if this instance is the primary node in the cluster; false otherwise
      */
     public boolean isPrimary() {
-        rwLock.readLock().lock();
-        try {
-            return primary;
-        } finally {
-            rwLock.readLock().unlock();
-        }
+        return leaderElectionManager != null && leaderElectionManager.isLeader(PRIMARY_NODE_ROLE_NAME);
     }
 
     public void setPrimary(final boolean primary) {
-        rwLock.writeLock().lock();
-        try {
-            // no update, so return
-            if (this.primary == primary) {
-                return;
-            }
-
-            LOG.info("Setting primary flag from '" + this.primary + "' to '" + primary + "'");
-
-            final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
-            final ProcessGroup rootGroup = getGroup(getRootGroupId());
-            for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
+        final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
+        final ProcessGroup rootGroup = getGroup(getRootGroupId());
+        for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
+            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
             }
-            for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
+        }
+        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
+            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
             }
-            for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
+        }
+        for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
+            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
             }
+        }
 
-            // update primary
-            this.primary = primary;
-            eventDrivenWorkerQueue.setPrimary(primary);
+        // update primary
+        eventDrivenWorkerQueue.setPrimary(primary);
 
-            // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
-        } finally {
-            rwLock.writeLock().unlock();
+        // update the heartbeat bean
+        final HeartbeatBean oldBean = this.heartbeatBeanRef.getAndSet(new HeartbeatBean(rootGroup, primary, connectionStatus));
+
+        // Emit a bulletin detailing the fact that the primary node state has changed
+        if (oldBean == null || oldBean.isPrimary() != primary) {
+            final String message = primary ? "This node has been elected Primary Node" : "This node is no longer Primary Node";
+            final Bulletin bulletin = BulletinFactory.createBulletin("Primary Node", Severity.INFO.name(), message);
+            bulletinRepository.addBulletin(bulletin);
+            LOG.info(message);
         }
     }
 
@@ -3481,6 +3529,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return replayFlowFile(record, requestor);
     }
 
+    @SuppressWarnings("deprecation")
     public ProvenanceEventRecord replayFlowFile(final ProvenanceEventRecord event, final String requestor) throws IOException {
         if (event == null) {
             throw new NullPointerException();
@@ -3603,25 +3652,24 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public boolean isConnected() {
         rwLock.readLock().lock();
         try {
-            return connected;
+            return connectionStatus.getState() == NodeConnectionState.CONNECTED;
         } finally {
             rwLock.readLock().unlock();
         }
     }
 
-    public void setConnected(final boolean connected) {
+    public void setConnectionStatus(final NodeConnectionStatus connectionStatus) {
         rwLock.writeLock().lock();
         try {
-            this.connected = connected;
+            this.connectionStatus = connectionStatus;
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, primary, connected));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connectionStatus));
         } finally {
             rwLock.writeLock().unlock();
         }
     }
 
-    @Override
     public void heartbeat() {
         if (!isClustered()) {
             return;
@@ -3630,128 +3678,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             return;
         }
 
-        final HeartbeatMessageGeneratorTask task = heartbeatMessageGeneratorTaskRef.get();
+        final HeartbeatSendTask task = heartbeatSendTask.get();
         if (task != null) {
-            task.run();
+            clusterTaskExecutor.submit(task);
         }
     }
 
-    private class BulletinsTask implements Runnable {
-
-        private final NodeProtocolSender protocolSender;
-        private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
-
-        public BulletinsTask(final NodeProtocolSender protocolSender) {
-            if (protocolSender == null) {
-                throw new IllegalArgumentException("NodeProtocolSender may not be null.");
-            }
-            this.protocolSender = protocolSender;
-        }
-
-        @Override
-        public void run() {
-            try {
-                final NodeBulletinsMessage message = createBulletinsMessage();
-                if (message == null) {
-                    return;
-                }
-
-                protocolSender.sendBulletins(message);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(
-                        String.format(
-                            "Sending bulletins to cluster manager at %s",
-                            dateFormatter.format(new Date())));
-                }
-
-            } catch (final UnknownServiceAddressException usae) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(usae.getMessage());
-                }
-            } catch (final Exception ex) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Failed to send bulletins to cluster manager due to: " + ex, ex);
-                }
-            }
-        }
-
-        private boolean isIllegalXmlChar(final char c) {
-            return c < 0x20 && c != 0x09 && c != 0x0A && c != 0x0D;
-        }
-
-        private boolean containsIllegalXmlChars(final Bulletin bulletin) {
-            final String message = bulletin.getMessage();
-            for (int i = 0; i < message.length(); i++) {
-                final char c = message.charAt(i);
-                if (isIllegalXmlChar(c)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private String stripIllegalXmlChars(final String value) {
-            final StringBuilder sb = new StringBuilder(value.length());
-            for (int i = 0; i < value.length(); i++) {
-                final char c = value.charAt(i);
-                sb.append(isIllegalXmlChar(c) ? '?' : c);
-            }
-
-            return sb.toString();
-        }
-
-        private NodeBulletinsMessage createBulletinsMessage() {
-            final Set<Bulletin> nodeBulletins = nodeBulletinSubscriber.get().getBulletins();
-            final Set<Bulletin> escapedNodeBulletins = new HashSet<>(nodeBulletins.size());
-
-            // ensure there are some bulletins to report
-            if (nodeBulletins.isEmpty()) {
-                return null;
-            }
-
-            for (final Bulletin bulletin : nodeBulletins) {
-                final Bulletin escapedBulletin;
-                if (containsIllegalXmlChars(bulletin)) {
-                    final String escapedBulletinMessage = stripIllegalXmlChars(bulletin.getMessage());
-
-                    if (bulletin.getGroupId() == null) {
-                        escapedBulletin = BulletinFactory.createBulletin(bulletin.getCategory(), bulletin.getLevel(), escapedBulletinMessage);
-                    } else {
-                        escapedBulletin = BulletinFactory.createBulletin(bulletin.getGroupId(), bulletin.getSourceId(), bulletin.getSourceType(),
-                            bulletin.getSourceName(), bulletin.getCategory(), bulletin.getLevel(), escapedBulletinMessage);
-                    }
-                } else {
-                    escapedBulletin = bulletin;
-                }
-
-                escapedNodeBulletins.add(escapedBulletin);
-            }
-
-            // create the bulletin payload
-            final BulletinsPayload payload = new BulletinsPayload();
-            payload.setBulletins(escapedNodeBulletins);
-
-            // create bulletin message
-            final NodeBulletins bulletins = new NodeBulletins(getNodeId(), payload.marshal());
-            final NodeBulletinsMessage message = new NodeBulletinsMessage();
-            message.setBulletins(bulletins);
-
-            return message;
-        }
-    }
 
     private class HeartbeatSendTask implements Runnable {
-
-        private final NodeProtocolSender protocolSender;
         private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
-
-        public HeartbeatSendTask(final NodeProtocolSender protocolSender) {
-            if (protocolSender == null) {
-                throw new IllegalArgumentException("NodeProtocolSender may not be null.");
-            }
-            this.protocolSender = protocolSender;
-        }
 
         @Override
         public void run() {
@@ -3760,19 +3695,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     return;
                 }
 
-                final HeartbeatMessageGeneratorTask task = heartbeatMessageGeneratorTaskRef.get();
-                if (task == null) {
-                    return;
-                }
-
-                final HeartbeatMessage message = task.getHeartbeatMessage();
+                final HeartbeatMessage message = createHeartbeatMessage();
                 if (message == null) {
                     heartbeatLogger.debug("No heartbeat to send");
                     return;
                 }
 
                 final long sendStart = System.nanoTime();
-                protocolSender.heartbeat(message);
+                heartbeater.send(message);
+
                 final long sendNanos = System.nanoTime() - sendStart;
                 final long sendMillis = TimeUnit.NANOSECONDS.toMillis(sendNanos);
 
@@ -3785,63 +3716,44 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     heartbeatLogger.debug(usae.getMessage());
                 }
             } catch (final Throwable ex) {
-                heartbeatLogger.warn("Failed to send heartbeat to cluster manager due to: " + ex);
-                if (heartbeatLogger.isDebugEnabled()) {
-                    heartbeatLogger.warn("", ex);
-                }
+                heartbeatLogger.warn("Failed to send heartbeat due to: " + ex, ex);
             }
         }
     }
 
-    private class HeartbeatMessageGeneratorTask implements Runnable {
-
-        private final AtomicReference<HeartbeatMessage> heartbeatMessageRef = new AtomicReference<>();
-
-        @Override
-        public void run() {
-            final HeartbeatMessage heartbeatMessage = createHeartbeatMessage();
-            if (heartbeatMessage != null) {
-                heartbeatMessageRef.set(heartbeatMessage);
-            }
-        }
-
-        public HeartbeatMessage getHeartbeatMessage() {
-            return heartbeatMessageRef.getAndSet(null);
-        }
-
-        private HeartbeatMessage createHeartbeatMessage() {
-            try {
-                final HeartbeatBean bean = heartbeatBeanRef.get();
-                if (bean == null) {
-                    return null;
+    HeartbeatMessage createHeartbeatMessage() {
+        try {
+            HeartbeatBean bean = heartbeatBeanRef.get();
+            if (bean == null) {
+                readLock.lock();
+                try {
+                    final NodeConnectionStatus connectionStatus = new NodeConnectionStatus(DisconnectionCode.NOT_YET_CONNECTED);
+                    bean = new HeartbeatBean(getGroup(getRootGroupId()), isPrimary(), connectionStatus);
+                } finally {
+                    readLock.unlock();
                 }
-
-                final ProcessGroupStatus procGroupStatus = getGroupStatus(bean.getRootGroup(), getProcessorStats());
-                // create heartbeat payload
-                final HeartbeatPayload hbPayload = new HeartbeatPayload();
-                hbPayload.setSystemStartTime(systemStartTime);
-                hbPayload.setActiveThreadCount(procGroupStatus.getActiveThreadCount());
-
-                final QueueSize queueSize = getTotalFlowFileCount(bean.getRootGroup());
-                hbPayload.setTotalFlowFileCount(queueSize.getObjectCount());
-                hbPayload.setTotalFlowFileBytes(queueSize.getByteCount());
-
-                hbPayload.setCounters(getCounters());
-                hbPayload.setSystemDiagnostics(getSystemDiagnostics());
-                hbPayload.setProcessGroupStatus(procGroupStatus);
-
-                // create heartbeat message
-                final Heartbeat heartbeat = new Heartbeat(getNodeId(), bean.isPrimary(), bean.isConnected(), hbPayload.marshal());
-                final HeartbeatMessage message = new HeartbeatMessage();
-                message.setHeartbeat(heartbeat);
-
-                heartbeatLogger.debug("Generated heartbeat");
-
-                return message;
-            } catch (final Throwable ex) {
-                LOG.warn("Failed to create heartbeat due to: " + ex, ex);
-                return null;
             }
+
+            // create heartbeat payload
+            final HeartbeatPayload hbPayload = new HeartbeatPayload();
+            hbPayload.setSystemStartTime(systemStartTime);
+            hbPayload.setActiveThreadCount(getActiveThreadCount());
+
+            final QueueSize queueSize = getTotalFlowFileCount(bean.getRootGroup());
+            hbPayload.setTotalFlowFileCount(queueSize.getObjectCount());
+            hbPayload.setTotalFlowFileBytes(queueSize.getByteCount());
+
+            // create heartbeat message
+            final Heartbeat heartbeat = new Heartbeat(getNodeId(), bean.isPrimary(), bean.getConnectionStatus(), hbPayload.marshal());
+            final HeartbeatMessage message = new HeartbeatMessage();
+            message.setHeartbeat(heartbeat);
+
+            heartbeatLogger.debug("Generated heartbeat");
+
+            return message;
+        } catch (final Throwable ex) {
+            LOG.warn("Failed to create heartbeat due to: " + ex, ex);
+            return null;
         }
     }
 
@@ -3963,16 +3875,51 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return queues;
     }
 
+    public void setNodeStatus(final NodeIdentifier nodeId, final NodeConnectionStatus nodeStatus, final Long updateId) {
+        // We keep a VersionedNodeConnectionStatus as the value in our map, rather than NodeConnectionStatus.
+        // We do this because we update this based on data that is coming from the network. It is possible that we will
+        // get these notifications out-of-order because they could be sent across different TCP connections. As a result,
+        // we need to ensure that we don't update the status to an older version. The VersionedNodeConnectionStatus
+        // allows us to do this by looking at an "Update ID" that is associated with the new node status.
+        final VersionedNodeConnectionStatus versionedStatus = new VersionedNodeConnectionStatus(nodeStatus, updateId);
+
+        boolean updated = false;
+        while (!updated) {
+            VersionedNodeConnectionStatus curStatus = nodeStatuses.putIfAbsent(nodeId, versionedStatus);
+            if (curStatus == null) {
+                // There was no status before.
+                LOG.info("Status of Node {} set to {}", nodeId, nodeStatus);
+                return;
+            }
+
+            if (updateId < curStatus.getUpdateId()) {
+                LOG.debug("Received notification that status of Node {} changed to {} but the status update was old. Ignoring update.", nodeId, nodeStatus);
+                return;
+            }
+
+            updated = nodeStatuses.replace(nodeId, curStatus, versionedStatus);
+            if (updated) {
+                LOG.info("Status of {} changed from {} to {}", nodeId, curStatus.getStatus(), nodeStatus);
+                return;
+            }
+        }
+    }
+
+    public NodeConnectionStatus getNodeStatus(final NodeIdentifier nodeId) {
+        final VersionedNodeConnectionStatus versionedStatus = nodeStatuses.get(nodeId);
+        return versionedStatus == null ? null : versionedStatus.getStatus();
+    }
+
     private static class HeartbeatBean {
 
         private final ProcessGroup rootGroup;
         private final boolean primary;
-        private final boolean connected;
+        private final NodeConnectionStatus connectionStatus;
 
-        public HeartbeatBean(final ProcessGroup rootGroup, final boolean primary, final boolean connected) {
+        public HeartbeatBean(final ProcessGroup rootGroup, final boolean primary, final NodeConnectionStatus connectionStatus) {
             this.rootGroup = rootGroup;
             this.primary = primary;
-            this.connected = connected;
+            this.connectionStatus = connectionStatus;
         }
 
         public ProcessGroup getRootGroup() {
@@ -3983,9 +3930,56 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             return primary;
         }
 
-        public boolean isConnected() {
-            return connected;
+        public NodeConnectionStatus getConnectionStatus() {
+            return connectionStatus;
         }
     }
 
+
+    /**
+     * A simple wrapper around a Node Connection Status and an Update ID. This is used as a value in a map so that we
+     * ensure that we update that Map only with newer versions
+     */
+    private static class VersionedNodeConnectionStatus {
+        private final NodeConnectionStatus status;
+        private final Long updateId;
+
+        public VersionedNodeConnectionStatus(final NodeConnectionStatus status, final Long updateId) {
+            this.status = status;
+            this.updateId = updateId;
+        }
+
+        public NodeConnectionStatus getStatus() {
+            return status;
+        }
+
+        public Long getUpdateId() {
+            return updateId;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((status == null) ? 0 : status.hashCode());
+            result = prime * result + ((updateId == null) ? 0 : updateId.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+
+            VersionedNodeConnectionStatus other = (VersionedNodeConnectionStatus) obj;
+            return other.getStatus().equals(getStatus()) && other.getUpdateId().equals(getUpdateId());
+        }
+    }
 }

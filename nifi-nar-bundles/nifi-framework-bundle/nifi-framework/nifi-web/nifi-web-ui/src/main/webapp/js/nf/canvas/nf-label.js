@@ -526,6 +526,13 @@ nf.Label = (function () {
                 set(labels);
             }
         },
+
+        /**
+         * Returns the entity key when marshalling an entity of this type.
+         */
+        getEntityKey: function (d) {
+            return 'label';
+        },
         
         /**
          * Removes the specified label.

@@ -41,21 +41,20 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
-import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
+import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.Availability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -64,24 +63,23 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * RESTful endpoint for managing a Controller Service.
  */
-@Api(hidden = true)
+@Path("/controller-services")
+@Api(
+    value = "/controller-services",
+    description = "Endpoint for managing a Controller Service."
+)
 public class ControllerServiceResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceResource.class);
@@ -99,7 +97,7 @@ public class ControllerServiceResource extends ApplicationResource {
      * @param controllerServices services
      * @return dtos
      */
-    private Set<ControllerServiceDTO> populateRemainingControllerServicesContent(final String availability, final Set<ControllerServiceDTO> controllerServices) {
+    public Set<ControllerServiceDTO> populateRemainingControllerServicesContent(final String availability, final Set<ControllerServiceDTO> controllerServices) {
         for (ControllerServiceDTO controllerService : controllerServices) {
             populateRemainingControllerServiceContent(availability, controllerService);
         }
@@ -109,9 +107,9 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Populates the uri for the specified controller service.
      */
-    private ControllerServiceDTO populateRemainingControllerServiceContent(final String availability, final ControllerServiceDTO controllerService) {
+    public ControllerServiceDTO populateRemainingControllerServiceContent(final String availability, final ControllerServiceDTO controllerService) {
         // populate the controller service href
-        controllerService.setUri(generateResourceUri("controller", "controller-services", availability, controllerService.getId()));
+        controllerService.setUri(generateResourceUri("controller-services", availability, controllerService.getId()));
         controllerService.setAvailability(availability);
 
         // see if this processor has any ui extensions
@@ -135,7 +133,7 @@ public class ControllerServiceResource extends ApplicationResource {
      * @param availability avail
      * @return avail
      */
-    private Availability parseAvailability(final String availability) {
+    public Availability parseAvailability(final String availability) {
         final Availability avail;
         try {
             avail = Availability.valueOf(availability.toUpperCase());
@@ -152,234 +150,6 @@ public class ControllerServiceResource extends ApplicationResource {
     }
 
     /**
-     * Retrieves all the of controller services in this NiFi.
-     *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @return A controllerServicesEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-            value = "Gets all controller services",
-            response = ControllerServicesEntity.class,
-            authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getControllerServices(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability) {
-
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // get all the controller services
-        final Set<ControllerServiceDTO> controllerServices = populateRemainingControllerServicesContent(availability, serviceFacade.getControllerServices());
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final ControllerServicesEntity entity = new ControllerServicesEntity();
-        entity.setRevision(revision);
-        entity.setControllerServices(controllerServices);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Creates a new controller service.
-     *
-     * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @param type The type of controller service to create.
-     * @return A controllerServiceEntity.
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
-    public Response createControllerService(
-            @Context HttpServletRequest httpServletRequest,
-            @FormParam(VERSION) LongParameter version,
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("availability") String availability,
-            @FormParam("type") String type) {
-
-        // create the controller service DTO
-        final ControllerServiceDTO controllerServiceDTO = new ControllerServiceDTO();
-        controllerServiceDTO.setType(type);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        if (version != null) {
-            revision.setVersion(version.getLong());
-        }
-
-        // create the controller service entity
-        final ControllerServiceEntity controllerServiceEntity = new ControllerServiceEntity();
-        controllerServiceEntity.setRevision(revision);
-        controllerServiceEntity.setControllerService(controllerServiceDTO);
-
-        return createControllerService(httpServletRequest, availability, controllerServiceEntity);
-    }
-
-    /**
-     * Creates a new Controller Service.
-     *
-     * @param httpServletRequest request
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @param controllerServiceEntity A controllerServiceEntity.
-     * @return A controllerServiceEntity.
-     */
-    @POST
-    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
-    @ApiOperation(
-            value = "Creates a new controller service",
-            response = ControllerServiceEntity.class,
-            authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response createControllerService(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability,
-            @ApiParam(
-                    value = "The controller service configuration details.",
-                    required = true
-            ) ControllerServiceEntity controllerServiceEntity) {
-
-        final Availability avail = parseAvailability(availability);
-
-        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
-            throw new IllegalArgumentException("Controller service details must be specified.");
-        }
-
-        if (controllerServiceEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
-        if (controllerServiceEntity.getControllerService().getId() != null) {
-            throw new IllegalArgumentException("Controller service ID cannot be specified.");
-        }
-
-        if (StringUtils.isBlank(controllerServiceEntity.getControllerService().getType())) {
-            throw new IllegalArgumentException("The type of controller service to create must be specified.");
-        }
-
-        // get the revision
-        final RevisionDTO revision = controllerServiceEntity.getRevision();
-
-        // if cluster manager, convert POST to PUT (to maintain same ID across nodes) and replicate
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            // create ID for resource
-            final String id = UUID.randomUUID().toString();
-
-            // set ID for resource
-            controllerServiceEntity.getControllerService().setId(id);
-
-            // convert POST request to PUT request to force entity ID to be the same across nodes
-            URI putUri = null;
-            try {
-                putUri = new URI(getAbsolutePath().toString() + "/" + id);
-            } catch (final URISyntaxException e) {
-                throw new WebApplicationException(e);
-            }
-
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate put request
-            return (Response) clusterManager.applyRequest(HttpMethod.PUT, putUri, updateClientId(controllerServiceEntity), getHeaders(headersToOverride)).getResponse();
-        }
-
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            return generateContinueResponse().build();
-        }
-
-        // create the controller service and generate the json
-        final ConfigurationSnapshot<ControllerServiceDTO> controllerResponse = serviceFacade.createControllerService(
-                new Revision(revision.getVersion(), revision.getClientId()), controllerServiceEntity.getControllerService());
-        final ControllerServiceDTO controllerService = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(updatedRevision);
-        entity.setControllerService(populateRemainingControllerServiceContent(availability, controllerService));
-
-        // build the response
-        return clusterContext(generateCreatedResponse(URI.create(controllerService.getUri()), entity)).build();
-    }
-
-    /**
      * Retrieves the specified controller service.
      *
      * @param clientId Optional client id. If the client id is not specified, a
@@ -393,9 +163,9 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a controller service",
             response = ControllerServiceEntity.class,
@@ -467,9 +237,9 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}/descriptors")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}/descriptors")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a controller service property descriptor",
             response = PropertyDescriptorEntity.class,
@@ -551,9 +321,9 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}/state")
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}/state")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Gets the state for a controller service",
         response = ComponentStateDTO.class,
@@ -614,8 +384,7 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Clears the state for a controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
      * @param availability Whether the controller service is available on the
      * NCM only (ncm) or on the nodes only (node). If this instance is not
      * clustered all services should use the node availability.
@@ -623,10 +392,10 @@ public class ControllerServiceResource extends ApplicationResource {
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}/state/clear-requests")
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}/state/clear-requests")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Clears the state for a controller service",
         response = ComponentStateDTO.class,
@@ -646,15 +415,10 @@ public class ControllerServiceResource extends ApplicationResource {
     public Response clearState(
         @Context HttpServletRequest httpServletRequest,
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
-            value = "The revision is used to verify the client is working with the latest version of the flow.",
+            value = "The revision used to verify the client is working with the latest version of the flow.",
             required = true
         )
-        @FormParam(VERSION) LongParameter version,
+        Entity revisionEntity,
         @ApiParam(
             value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
             allowableValues = "NCM, NODE",
@@ -681,23 +445,18 @@ public class ControllerServiceResource extends ApplicationResource {
             return generateContinueResponse().build();
         }
 
-        // get the revision specified by the user
-        Long revision = null;
-        if (version != null) {
-            revision = version.getLong();
-        }
-
         // get the component state
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearControllerServiceState(new Revision(revision, clientId.getClientId()), id);
+        final RevisionDTO requestRevision = revisionEntity.getRevision();
+        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearControllerServiceState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
 
         // create the revision
-        final RevisionDTO revisionDTO = new RevisionDTO();
-        revisionDTO.setClientId(clientId.getClientId());
-        revisionDTO.setVersion(snapshot.getVersion());
+        final RevisionDTO responseRevision = new RevisionDTO();
+        responseRevision.setClientId(requestRevision.getClientId());
+        responseRevision.setVersion(snapshot.getVersion());
 
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(revisionDTO);
+        entity.setRevision(responseRevision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -717,9 +476,9 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}/references")
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}/references")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a controller service",
             response = ControllerServiceEntity.class,
@@ -782,29 +541,20 @@ public class ControllerServiceResource extends ApplicationResource {
      * Updates the references of the specified controller service.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param availability Whether the controller service is available on the
      * NCM only (ncm) or on the nodes only (node). If this instance is not
      * clustered all services should use the node availability.
-     * @param id The id of the controller service to retrieve
-     * @param state Sets the state of referencing components. A value of RUNNING
-     * or STOPPED will update referencing schedulable components (Processors and
-     * Reporting Tasks). A value of ENABLED or DISABLED will update referencing
-     * controller services.
-     * @return A controllerServiceEntity.
+     * @param updateReferenceRequest The update request
+     * @return A controllerServiceReferencingComponentsEntity.
      */
     @PUT
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}/references")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}/references")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a controller services references",
-            response = ControllerServiceEntity.class,
+            response = ControllerServiceReferencingComponentsEntity.class,
             authorizations = {
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
             }
@@ -821,32 +571,19 @@ public class ControllerServiceResource extends ApplicationResource {
     public Response updateControllerServiceReferences(
             @Context HttpServletRequest httpServletRequest,
             @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
-            )
-            @FormParam(VERSION) LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
+                value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+                allowableValues = "NCM, NODE",
+                required = true
             )
             @PathParam("availability") String availability,
             @ApiParam(
-                    value = "The controller service id.",
-                    required = true
-            )
-            @PathParam("id") String id,
-            @ApiParam(
-                    value = "The new state of the references for the controller service.",
-                    allowableValues = "ENABLED, DISABLED, RUNNING, STOPPED",
-                    required = true
-            )
-            @FormParam("state") @DefaultValue(StringUtils.EMPTY) String state) {
+                value = "The controller service request update request.",
+                required = true
+            ) UpdateControllerServiceReferenceRequestEntity updateReferenceRequest) {
+
+        if (updateReferenceRequest.getId() == null) {
+            throw new IllegalArgumentException("The controller service identifier must be specified.");
+        }
 
         // parse the state to determine the desired action
         // need to consider controller service state first as it shares a state with
@@ -854,14 +591,14 @@ public class ControllerServiceResource extends ApplicationResource {
         // but not referencing schedulable components
         ControllerServiceState controllerServiceState = null;
         try {
-            controllerServiceState = ControllerServiceState.valueOf(state);
+            controllerServiceState = ControllerServiceState.valueOf(updateReferenceRequest.getState());
         } catch (final IllegalArgumentException iae) {
             // ignore
         }
 
         ScheduledState scheduledState = null;
         try {
-            scheduledState = ScheduledState.valueOf(state);
+            scheduledState = ScheduledState.valueOf(updateReferenceRequest.getState());
         } catch (final IllegalArgumentException iae) {
             // ignore
         }
@@ -883,29 +620,24 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(updateReferenceRequest), getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
-            serviceFacade.verifyUpdateControllerServiceReferencingComponents(id, scheduledState, controllerServiceState);
+            serviceFacade.verifyUpdateControllerServiceReferencingComponents(updateReferenceRequest.getId(), scheduledState, controllerServiceState);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // get the controller service
-        final ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> response
-                = serviceFacade.updateControllerServiceReferencingComponents(new Revision(clientVersion, clientId.getClientId()), id, scheduledState, controllerServiceState);
+        final RevisionDTO requestRevision = updateReferenceRequest.getRevision();
+        final ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> response = serviceFacade.updateControllerServiceReferencingComponents(
+            new Revision(requestRevision.getVersion(), requestRevision.getClientId()), updateReferenceRequest.getId(), scheduledState, controllerServiceState);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
+        revision.setClientId(requestRevision.getClientId());
         revision.setVersion(response.getVersion());
 
         // create the response entity
@@ -914,109 +646,6 @@ public class ControllerServiceResource extends ApplicationResource {
         entity.setControllerServiceReferencingComponents(response.getConfiguration());
 
         return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Updates the specified controller service.
-     *
-     * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @param id The id of the controller service to update.
-     * @param name The name of the controller service
-     * @param annotationData The annotation data for the controller service
-     * @param comments The comments for the controller service
-     * @param state The state of this controller service. Should be ENABLED or
-     * DISABLED.
-     * @param markedForDeletion Array of property names whose value should be
-     * removed.
-     * @param formParams Additionally, the processor properties and styles are
-     * specified in the form parameters. Because the property names and styles
-     * differ from processor to processor they are specified in a map-like
-     * fashion:
-     * <br>
-     * <ul>
-     * <li>properties[required.file.path]=/path/to/file</li>
-     * <li>properties[required.hostname]=localhost</li>
-     * <li>properties[required.port]=80</li>
-     * <li>properties[optional.file.path]=/path/to/file</li>
-     * <li>properties[optional.hostname]=localhost</li>
-     * <li>properties[optional.port]=80</li>
-     * <li>properties[user.defined.pattern]=^.*?s.*$</li>
-     * </ul>
-     * @return A controllerServiceEntity.
-     */
-    @PUT
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
-    public Response updateControllerService(
-            @Context HttpServletRequest httpServletRequest,
-            @FormParam(VERSION) LongParameter version,
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("availability") String availability, @PathParam("id") String id, @FormParam("name") String name,
-            @FormParam("annotationData") String annotationData, @FormParam("comments") String comments,
-            @FormParam("state") String state, @FormParam("markedForDeletion[]") List<String> markedForDeletion,
-            MultivaluedMap<String, String> formParams) {
-
-        // create collections for holding the controller service properties
-        final Map<String, String> updatedProperties = new LinkedHashMap<>();
-
-        // go through each parameter and look for processor properties
-        for (String parameterName : formParams.keySet()) {
-            if (StringUtils.isNotBlank(parameterName)) {
-                // see if the parameter name starts with an expected parameter type...
-                // if so, store the parameter name and value in the corresponding collection
-                if (parameterName.startsWith("properties")) {
-                    final int startIndex = StringUtils.indexOf(parameterName, "[");
-                    final int endIndex = StringUtils.lastIndexOf(parameterName, "]");
-                    if (startIndex != -1 && endIndex != -1) {
-                        final String propertyName = StringUtils.substring(parameterName, startIndex + 1, endIndex);
-                        updatedProperties.put(propertyName, formParams.getFirst(parameterName));
-                    }
-                }
-            }
-        }
-
-        // set the properties to remove
-        for (String propertyToDelete : markedForDeletion) {
-            updatedProperties.put(propertyToDelete, null);
-        }
-
-        // create the controller service DTO
-        final ControllerServiceDTO controllerServiceDTO = new ControllerServiceDTO();
-        controllerServiceDTO.setId(id);
-        controllerServiceDTO.setName(name);
-        controllerServiceDTO.setAnnotationData(annotationData);
-        controllerServiceDTO.setComments(comments);
-        controllerServiceDTO.setState(state);
-
-        // only set the properties when appropriate
-        if (!updatedProperties.isEmpty()) {
-            controllerServiceDTO.setProperties(updatedProperties);
-        }
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        if (version != null) {
-            revision.setVersion(version.getLong());
-        }
-
-        // create the controller service entity
-        final ControllerServiceEntity controllerServiceEntity = new ControllerServiceEntity();
-        controllerServiceEntity.setRevision(revision);
-        controllerServiceEntity.setControllerService(controllerServiceDTO);
-
-        // update the controller service
-        return updateControllerService(httpServletRequest, availability, id, controllerServiceEntity);
     }
 
     /**
@@ -1031,10 +660,10 @@ public class ControllerServiceResource extends ApplicationResource {
      * @return A controllerServiceEntity.
      */
     @PUT
-    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a controller service",
             response = ControllerServiceEntity.class,
@@ -1145,9 +774,9 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{availability}/{id}")
-    @PreAuthorize("hasRole('ROLE_DFM')")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{availability}/{id}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a controller service",
             response = ControllerServiceEntity.class,

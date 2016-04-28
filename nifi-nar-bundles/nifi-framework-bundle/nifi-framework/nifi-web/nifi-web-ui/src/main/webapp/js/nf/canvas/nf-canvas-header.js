@@ -23,8 +23,7 @@ nf.CanvasHeader = (function () {
 
     var config = {
         urls: {
-            helpDocument: '../nifi-docs/documentation',
-            controllerAbout: '../nifi-api/controller/about'
+            helpDocument: '../nifi-docs/documentation'
         }
     };
 
@@ -61,7 +60,9 @@ nf.CanvasHeader = (function () {
 
             // mouse over for the templates link
             nf.Common.addHoverEffect('#templates-link', 'templates-link', 'templates-link-hover').click(function () {
-                nf.Shell.showPage('templates');
+                nf.Shell.showPage('templates?' + $.param({
+                    groupId: nf.Canvas.getGroupId()
+                }));
             });
 
             // mouse over for the flow settings link
@@ -71,15 +72,6 @@ nf.CanvasHeader = (function () {
                 });
             });
 
-            // mouse over for the users link
-            if (nf.Common.isAdmin()) {
-                nf.Common.addHoverEffect('#users-link', 'users-link', 'users-link-hover').click(function () {
-                    nf.Shell.showPage('users');
-                });
-            } else {
-                $('#users-link').addClass('users-link-disabled');
-            }
-
             // mouse over for the cluster link
             if (nf.Canvas.isClustered()) {
                 nf.Common.addHoverEffect('#cluster-link', 'cluster-link', 'cluster-link-hover').click(function () {
@@ -88,10 +80,6 @@ nf.CanvasHeader = (function () {
 
                 // show the connected nodes
                 $('#connected-nodes-element').show();
-
-                // show the cluster indicator
-                $('#cluster-indicator').show();
-                $('#data-flow-title-viewport').css('left', '113px');
             } else {
                 $('#cluster-link').hide();
             }
@@ -105,18 +93,6 @@ nf.CanvasHeader = (function () {
             $('#refresh-required-link').click(function () {
                 nf.CanvasHeader.reloadAndClearWarnings();
             });
-
-            // get the about details
-            $.ajax({
-                type: 'GET',
-                url: config.urls.controllerAbout,
-                dataType: 'json'
-            }).done(function (response) {
-                var aboutDetails = response.about;
-                // set the document title and the about title
-                document.title = aboutDetails.title;
-                $('#nf-version').text(aboutDetails.version);
-            }).fail(nf.Common.handleAjaxError);
 
             // configure the about dialog
             $('#nf-about').modal({
@@ -181,8 +157,6 @@ nf.CanvasHeader = (function () {
                                 // color the selected components
                                 selection.each(function (d) {
                                     var selected = d3.select(this);
-
-                                    var revision = nf.Client.getRevision();
                                     var selectedData = selected.datum();
 
                                     // get the color and update the styles
@@ -190,16 +164,24 @@ nf.CanvasHeader = (function () {
 
                                     // ensure the color actually changed
                                     if (color !== selectedData.component.style['background-color']) {
+                                        // build the request entity
+                                        var entity = {
+                                            'revision': nf.Client.getRevision()
+                                        };
+                                        entity[nf[selectedData.type].getEntityKey()] = {
+                                            'id': selectedData.component.id,
+                                            'style': {
+                                                'background-color': color
+                                            }
+                                        };
+
                                         // update the style for the specified component
                                         $.ajax({
                                             type: 'PUT',
                                             url: selectedData.component.uri,
-                                            data: {
-                                                'version': revision.version,
-                                                'clientId': revision.clientId,
-                                                'style[background-color]': color
-                                            },
-                                            dataType: 'json'
+                                            data: JSON.stringify(entity),
+                                            dataType: 'json',
+                                            contentType: 'application/json'
                                         }).done(function (response) {
                                             // update the revision
                                             nf.Client.setRevision(response.revision);
@@ -278,59 +260,6 @@ nf.CanvasHeader = (function () {
                 var code = e.keyCode ? e.keyCode : e.which;
                 if (code === $.ui.keyCode.ENTER) {
                     updateColor();
-                }
-            });
-
-            // mousewheel -> IE, Chrome
-            // DOMMouseScroll -> FF
-            // wheel -> FF, IE
-
-            // still having issues with this in IE :/
-            $('#data-flow-title-viewport').on('DOMMouseScroll mousewheel', function (evt, d) {
-                if (nf.Common.isUndefinedOrNull(evt.originalEvent)) {
-                    return;
-                }
-
-                var title = $('#data-flow-title-container');
-                var titlePosition = title.position();
-                var titleWidth = title.outerWidth();
-                var titleRight = titlePosition.left + titleWidth;
-
-                var padding = $('#breadcrumbs-right-border').width();
-                var viewport = $('#data-flow-title-viewport');
-                var viewportWidth = viewport.width();
-                var viewportRight = viewportWidth - padding;
-
-                // if the width of the title is larger than the viewport
-                if (titleWidth > viewportWidth) {
-                    var adjust = false;
-
-                    var delta = 0;
-                    if (nf.Common.isDefinedAndNotNull(evt.originalEvent.detail)) {
-                        delta = -evt.originalEvent.detail;
-                    } else if (nf.Common.isDefinedAndNotNull(evt.originalEvent.wheelDelta)) {
-                        delta = evt.originalEvent.wheelDelta;
-                    }
-
-                    // determine the increment
-                    if (delta > 0 && titleRight > viewportRight) {
-                        var increment = -25;
-                        adjust = true;
-                    } else if (delta < 0 && (titlePosition.left - padding) < 0) {
-                        increment = 25;
-
-                        // don't shift too far
-                        if (titlePosition.left + increment > padding) {
-                            increment = padding - titlePosition.left;
-                        }
-
-                        adjust = true;
-                    }
-
-                    if (adjust) {
-                        // adjust the position
-                        title.css('left', (titlePosition.left + increment) + 'px');
-                    }
                 }
             });
 

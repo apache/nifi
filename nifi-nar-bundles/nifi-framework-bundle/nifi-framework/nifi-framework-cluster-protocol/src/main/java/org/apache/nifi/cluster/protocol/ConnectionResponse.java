@@ -35,14 +35,13 @@ public class ConnectionResponse {
     private final int tryLaterSeconds;
     private final NodeIdentifier nodeIdentifier;
     private final StandardDataFlow dataFlow;
-    private final boolean primary;
     private final Integer managerRemoteInputPort;
     private final Boolean managerRemoteCommsSecure;
     private final String instanceId;
 
     private volatile String clusterManagerDN;
 
-    public ConnectionResponse(final NodeIdentifier nodeIdentifier, final StandardDataFlow dataFlow, final boolean primary,
+    public ConnectionResponse(final NodeIdentifier nodeIdentifier, final StandardDataFlow dataFlow,
         final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
@@ -53,7 +52,6 @@ public class ConnectionResponse {
         this.dataFlow = dataFlow;
         this.tryLaterSeconds = 0;
         this.rejectionReason = null;
-        this.primary = primary;
         this.managerRemoteInputPort = managerRemoteInputPort;
         this.managerRemoteCommsSecure = managerRemoteCommsSecure;
         this.instanceId = instanceId;
@@ -67,7 +65,6 @@ public class ConnectionResponse {
         this.nodeIdentifier = null;
         this.tryLaterSeconds = tryLaterSeconds;
         this.rejectionReason = null;
-        this.primary = false;
         this.managerRemoteInputPort = null;
         this.managerRemoteCommsSecure = null;
         this.instanceId = null;
@@ -78,7 +75,6 @@ public class ConnectionResponse {
         this.nodeIdentifier = null;
         this.tryLaterSeconds = 0;
         this.rejectionReason = rejectionReason;
-        this.primary = false;
         this.managerRemoteInputPort = null;
         this.managerRemoteCommsSecure = null;
         this.instanceId = null;
@@ -94,10 +90,6 @@ public class ConnectionResponse {
 
     public static ConnectionResponse createRejectionResponse(final String explanation) {
         return new ConnectionResponse(explanation);
-    }
-
-    public boolean isPrimary() {
-        return primary;
     }
 
     public boolean shouldTryLater() {

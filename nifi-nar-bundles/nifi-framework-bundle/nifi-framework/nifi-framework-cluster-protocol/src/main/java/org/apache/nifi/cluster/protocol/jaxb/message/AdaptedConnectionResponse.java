@@ -28,7 +28,6 @@ public class AdaptedConnectionResponse {
     private StandardDataFlow dataFlow;
     private NodeIdentifier nodeIdentifier;
     private String rejectionReason;
-    private boolean primary;
     private int tryLaterSeconds;
     private Integer managerRemoteInputPort;
     private Boolean managerRemoteCommsSecure;
@@ -69,14 +68,6 @@ public class AdaptedConnectionResponse {
 
     public void setRejectionReason(final String rejectionReason) {
         this.rejectionReason = rejectionReason;
-    }
-
-    public boolean isPrimary() {
-        return primary;
-    }
-
-    public void setPrimary(boolean primary) {
-        this.primary = primary;
     }
 
     public boolean shouldTryLater() {

@@ -14,40 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
  * DTO for serializing the status of a processor.
  */
 @XmlType(name = "processorStatus")
-public class ProcessorStatusDTO extends StatusDTO {
-
-    private String id;
+public class ProcessorStatusDTO implements Cloneable {
     private String groupId;
+    private String id;
     private String name;
     private String type;
     private String runStatus;
+    private Date statsLastRefreshed;
 
-    private String read;
-    private String written;
+    private ProcessorStatusSnapshotDTO aggregateSnapshot;
+    private List<NodeProcessorStatusSnapshotDTO> nodeSnapshots;
 
-    private String input;
-    private String output;
+    @ApiModelProperty("The unique ID of the process group that the Processor belongs to")
+    public String getGroupId() {
+        return groupId;
+    }
 
-    private String tasks;
-    private String tasksDuration;
-    private Integer activeThreadCount;
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
 
-    /* getters / setters */
-    /**
-     * @return The processor id
-     */
-    @ApiModelProperty(
-            value = "The id of the processor."
-    )
+    @ApiModelProperty("The unique ID of the Processor")
     public String getId() {
         return id;
     }
@@ -56,12 +60,7 @@ public class ProcessorStatusDTO extends StatusDTO {
         this.id = id;
     }
 
-    /**
-     * @return The processor name
-     */
-    @ApiModelProperty(
-            value = "The name of the prcessor."
-    )
+    @ApiModelProperty("The name of the Processor")
     public String getName() {
         return name;
     }
@@ -70,12 +69,7 @@ public class ProcessorStatusDTO extends StatusDTO {
         this.name = name;
     }
 
-    /**
-     * @return The processor type
-     */
-    @ApiModelProperty(
-            value = "The type of the processor."
-    )
+    @ApiModelProperty("The type of the Processor")
     public String getType() {
         return type;
     }
@@ -84,13 +78,7 @@ public class ProcessorStatusDTO extends StatusDTO {
         this.type = type;
     }
 
-    /**
-     * @return run status of this processor
-     */
-    @ApiModelProperty(
-            value = "The state of the processor.",
-            allowableValues = "RUNNING, STOPPED, DISABLED, INVALID"
-    )
+    @ApiModelProperty("The run status of the Processor")
     public String getRunStatus() {
         return runStatus;
     }
@@ -99,116 +87,54 @@ public class ProcessorStatusDTO extends StatusDTO {
         this.runStatus = runStatus;
     }
 
-    /**
-     * @return The total count and size of flow files that have been accepted in the last five minutes
-     */
-    @ApiModelProperty(
-            value = "The count/size of flowfiles that have been accepted in the last 5 minutes."
-    )
-    public String getInput() {
-        return input;
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty("The timestamp of when the stats were last refreshed")
+    public Date getStatsLastRefreshed() {
+        return statsLastRefreshed;
     }
 
-    public void setInput(String input) {
-        this.input = input;
+    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+        this.statsLastRefreshed = statsLastRefreshed;
     }
 
-    /**
-     * @return number of bytes read
-     */
-    @ApiModelProperty(
-            value = "The number of bytes read in the last 5 minutes."
-    )
-    public String getRead() {
-        return read;
+    @ApiModelProperty("A status snapshot that represents the aggregate stats of all nodes in the cluster. If the NiFi instance is "
+        + "a standalone instance, rather than a cluster, this represents the stats of the single instance.")
+    public ProcessorStatusSnapshotDTO getAggregateSnapshot() {
+        return aggregateSnapshot;
     }
 
-    public void setRead(String read) {
-        this.read = read;
+    public void setAggregateSnapshot(ProcessorStatusSnapshotDTO aggregateSnapshot) {
+        this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    /**
-     * @return number of bytes written
-     */
-    @ApiModelProperty(
-            value = "The number of bytes written in the last 5 minutes."
-    )
-    public String getWritten() {
-        return written;
+    @ApiModelProperty("A status snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+        + "a cluster, this may be null.")
+    public List<NodeProcessorStatusSnapshotDTO> getNodeSnapshots() {
+        return nodeSnapshots;
     }
 
-    public void setWritten(String written) {
-        this.written = written;
+    public void setNodeSnapshots(List<NodeProcessorStatusSnapshotDTO> nodeSnapshots) {
+        this.nodeSnapshots = nodeSnapshots;
     }
 
-    /**
-     * @return the ID of the Process Group to which this processor belongs.
-     */
-    @ApiModelProperty(
-            value = "The id of the parent process group to which the processor belongs."
-    )
-    public String getGroupId() {
-        return groupId;
-    }
+    @Override
+    public ProcessorStatusDTO clone() {
+        final ProcessorStatusDTO other = new ProcessorStatusDTO();
+        other.setGroupId(getGroupId());
+        other.setId(getId());
+        other.setName(getName());
+        other.setRunStatus(getRunStatus());
+        other.setType(getType());
+        other.setStatsLastRefreshed(getStatsLastRefreshed());
+        other.setAggregateSnapshot(getAggregateSnapshot().clone());
 
-    public void setGroupId(final String groupId) {
-        this.groupId = groupId;
-    }
+        final List<NodeProcessorStatusSnapshotDTO> nodeStatuses = getNodeSnapshots();
+        final List<NodeProcessorStatusSnapshotDTO> nodeStatusClones = new ArrayList<>(nodeStatuses.size());
+        for (final NodeProcessorStatusSnapshotDTO status : nodeStatuses) {
+            nodeStatusClones.add(status.clone());
+        }
+        other.setNodeSnapshots(nodeStatusClones);
 
-    /**
-     * @return The total count and size of flow files that have been processed in the last five minutes
-     */
-    @ApiModelProperty(
-            value = "The count/size of flowfiles that have been processed in the last 5 minutes."
-    )
-    public String getOutput() {
-        return output;
+        return other;
     }
-
-    public void setOutput(String output) {
-        this.output = output;
-    }
-
-    /**
-     * @return number of threads currently running for this Processor
-     */
-    @ApiModelProperty(
-            value = "The number of threads currently executing in the processor."
-    )
-    public Integer getActiveThreadCount() {
-        return activeThreadCount;
-    }
-
-    public void setActiveThreadCount(Integer threadCount) {
-        this.activeThreadCount = threadCount;
-    }
-
-    /**
-     * @return number of task this connectable has had over the last 5 minutes
-     */
-    @ApiModelProperty(
-            value = "The total number of task this connectable has completed over the last 5 minutes."
-    )
-    public String getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(String tasks) {
-        this.tasks = tasks;
-    }
-
-    /**
-     * @return total duration of all tasks for this connectable over the last 5 minutes
-     */
-    @ApiModelProperty(
-            value = "The total duration of all tasks for this connectable over the last 5 minutes."
-    )
-    public String getTasksDuration() {
-        return tasksDuration;
-    }
-
-    public void setTasksDuration(String tasksDuration) {
-        this.tasksDuration = tasksDuration;
-    }
-
 }

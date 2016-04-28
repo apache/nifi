@@ -46,7 +46,6 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                     data: JSON.stringify(remoteProcessGroupEntity),
                                     url: remoteProcessGroupData.component.uri,
                                     dataType: 'json',
-                                    processData: false,
                                     contentType: 'application/json'
                                 }).done(function (response) {
                                     // update the revision

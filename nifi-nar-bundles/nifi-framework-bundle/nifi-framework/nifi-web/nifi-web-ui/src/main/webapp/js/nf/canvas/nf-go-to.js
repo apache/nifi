@@ -24,8 +24,8 @@ nf.GoTo = (function () {
 
     var config = {
         urls: {
-            controller: '../nifi-api/controller',
-            processGroups: '../nifi-api/controller/process-groups/'
+            api: '../nifi-api',
+            processGroups: '../nifi-api/process-groups/'
         }
     };
 
@@ -350,7 +350,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -389,7 +389,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -428,7 +428,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -467,7 +467,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -506,7 +506,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -545,7 +545,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -587,7 +587,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -629,7 +629,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -668,7 +668,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;
@@ -704,7 +704,7 @@ nf.GoTo = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
             }).done(function (response) {
                 var connections = response.connections;

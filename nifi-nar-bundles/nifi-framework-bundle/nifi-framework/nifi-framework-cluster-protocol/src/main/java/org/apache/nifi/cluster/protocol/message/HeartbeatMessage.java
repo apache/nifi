@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.cluster.protocol.message;
 
-import org.apache.nifi.cluster.protocol.Heartbeat;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.nifi.cluster.protocol.Heartbeat;
 
 /**
  */
@@ -25,11 +26,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class HeartbeatMessage extends ProtocolMessage {
 
     private Heartbeat heartbeat;
-
-    @Override
-    public MessageType getType() {
-        return MessageType.HEARTBEAT;
-    }
 
     public Heartbeat getHeartbeat() {
         return heartbeat;
@@ -39,4 +35,8 @@ public class HeartbeatMessage extends ProtocolMessage {
         this.heartbeat = heartbeat;
     }
 
+    @Override
+    public MessageType getType() {
+        return MessageType.HEARTBEAT;
+    }
 }

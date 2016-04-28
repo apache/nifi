@@ -580,7 +580,7 @@ nf.ProcessorConfiguration = (function () {
                 // get the processor history
                 requests.push($.ajax({
                     type: 'GET',
-                    url: '../nifi-api/controller/history/processors/' + encodeURIComponent(processor.id),
+                    url: '../nifi-api/history/processors/' + encodeURIComponent(processor.id),
                     dataType: 'json'
                 }));
 

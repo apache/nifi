@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+
+import java.util.Set;
 
 public interface ProcessGroupDAO {
 
     /**
      * Determines if the specified remote process group exists.
      *
-     * @param groupId id
      * @return true if group exists
      */
     boolean hasProcessGroup(String groupId);

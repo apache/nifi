@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.cluster.protocol.ClusterManagerProtocolSender;
@@ -31,7 +35,7 @@ import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
-import org.apache.nifi.cluster.protocol.message.PrimaryRoleAssignmentMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -40,6 +44,7 @@ import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 
 /**
  * A protocol sender for sending protocol messages from the cluster manager to
@@ -56,7 +61,6 @@ public class ClusterManagerProtocolSenderImpl implements ClusterManagerProtocolS
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final SocketConfiguration socketConfiguration;
     private int handshakeTimeoutSeconds;
-    private volatile BulletinRepository bulletinRepository;
 
     public ClusterManagerProtocolSenderImpl(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
         if (socketConfiguration == null) {
@@ -71,7 +75,6 @@ public class ClusterManagerProtocolSenderImpl implements ClusterManagerProtocolS
 
     @Override
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
-        this.bulletinRepository = bulletinRepository;
     }
 
     /**
@@ -183,30 +186,6 @@ public class ClusterManagerProtocolSenderImpl implements ClusterManagerProtocolS
         }
     }
 
-    /**
-     * Assigns the primary role to a node.
-     *
-     * @param msg a message
-     *
-     * @throws ProtocolException if the message failed to be sent
-     */
-    @Override
-    public void assignPrimaryRole(final PrimaryRoleAssignmentMessage msg) throws ProtocolException {
-        Socket socket = null;
-        try {
-            socket = createSocket(msg.getNodeId(), true);
-
-            try {
-                // marshal message to output stream
-                final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
-                marshaller.marshal(msg, socket.getOutputStream());
-            } catch (final IOException ioe) {
-                throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
-            }
-        } finally {
-            SocketUtils.closeQuietly(socket);
-        }
-    }
 
     private void setConnectionHandshakeTimeoutOnSocket(final Socket socket) throws SocketException {
         // update socket timeout, if handshake timeout was set; otherwise use socket's current timeout
@@ -241,6 +220,44 @@ public class ClusterManagerProtocolSenderImpl implements ClusterManagerProtocolS
             return socket;
         } catch (final IOException ioe) {
             throw new ProtocolException("Failed to create socket due to: " + ioe, ioe);
+        }
+    }
+
+    @Override
+    public void notifyNodeStatusChange(final Set<NodeIdentifier> nodesToNotify, final NodeStatusChangeMessage msg) {
+        final NiFiProperties properties = NiFiProperties.getInstance();
+        final int numThreads = Math.min(nodesToNotify.size(), properties.getClusterManagerProtocolThreads());
+
+        final byte[] msgBytes;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
+            marshaller.marshal(msg, baos);
+            msgBytes = baos.toByteArray();
+        } catch (final IOException e) {
+            throw new ProtocolException("Failed to marshal NodeStatusChangeMessage", e);
+        }
+
+        final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        for (final NodeIdentifier nodeId : nodesToNotify) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try (final Socket socket = createSocket(nodeId, true)) {
+                        // marshal message to output stream
+                        socket.getOutputStream().write(msgBytes);
+                    } catch (final IOException ioe) {
+                        throw new ProtocolException("Failed to send Node Status Change message to " + nodeId, ioe);
+                    }
+                }
+            });
+        }
+
+        executor.shutdown();
+
+        try {
+            executor.awaitTermination(10, TimeUnit.DAYS);
+        } catch (final InterruptedException ie) {
+            throw new ProtocolException(ie);
         }
     }
 }

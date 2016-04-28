@@ -22,6 +22,7 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.DeleteBucketRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import org.apache.nifi.util.file.FileUtils;
@@ -128,6 +129,14 @@ public abstract class AbstractS3IT {
 
     protected void putTestFile(String key, File file) throws AmazonS3Exception {
         PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, file);
+
+        client.putObject(putRequest);
+    }
+
+    protected void putTestFileEncrypted(String key, File file) throws AmazonS3Exception, FileNotFoundException {
+        ObjectMetadata objectMetadata = new ObjectMetadata();
+        objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, new FileInputStream(file), objectMetadata);
 
         client.putObject(putRequest);
     }

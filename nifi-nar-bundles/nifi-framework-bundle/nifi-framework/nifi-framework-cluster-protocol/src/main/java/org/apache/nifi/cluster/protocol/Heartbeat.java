@@ -19,6 +19,8 @@ package org.apache.nifi.cluster.protocol;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.jaxb.message.HeartbeatAdapter;
 
 /**
@@ -30,17 +32,17 @@ public class Heartbeat {
 
     private final NodeIdentifier nodeIdentifier;
     private final boolean primary;
-    private final boolean connected;
+    private final NodeConnectionStatus connectionStatus;
     private final long createdTimestamp;
     private final byte[] payload;
 
-    public Heartbeat(final NodeIdentifier nodeIdentifier, final boolean primary, final boolean connected, final byte[] payload) {
+    public Heartbeat(final NodeIdentifier nodeIdentifier, final boolean primary, final NodeConnectionStatus connectionStatus, final byte[] payload) {
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node Identifier may not be null.");
         }
         this.nodeIdentifier = nodeIdentifier;
         this.primary = primary;
-        this.connected = connected;
+        this.connectionStatus = connectionStatus;
         this.payload = payload;
         this.createdTimestamp = new Date().getTime();
     }
@@ -57,8 +59,8 @@ public class Heartbeat {
         return primary;
     }
 
-    public boolean isConnected() {
-        return connected;
+    public NodeConnectionStatus getConnectionStatus() {
+        return connectionStatus;
     }
 
     @XmlTransient

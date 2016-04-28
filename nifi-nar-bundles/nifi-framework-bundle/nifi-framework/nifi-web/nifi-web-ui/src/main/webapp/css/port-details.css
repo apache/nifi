@@ -24,30 +24,3 @@
     width: 400px;
     height: 300px;
 }
-
-/*
-    Secure port details.
-*/
-
-#secure-port-details {
-    z-index: 1301;
-    display: none;
-    height: 425px;
-    width: 400px;
-}
-
-#secure-port-details-tabs {
-    background-color: transparent;
-    border-bottom: 3px solid #666666;
-    height: 21px;
-    width: 380px;
-}
-
-#secure-port-details div.configuration-tab {
-    background: url("../images/bgTabContainer.png") repeat-x scroll 0 0 #EEEEEE;
-    display: none;
-    height: 315px;
-    padding: 10px;
-    width: 360px;
-    z-index: 1301;
-}

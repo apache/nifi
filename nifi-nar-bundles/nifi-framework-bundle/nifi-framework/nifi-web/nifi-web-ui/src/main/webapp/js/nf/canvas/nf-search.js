@@ -19,7 +19,7 @@ nf.Search = (function () {
     var config = {
         search: 'Search',
         urls: {
-            search: '../nifi-api/controller/search-results'
+            search: '../nifi-api/flow/search-results'
         }
     };
 

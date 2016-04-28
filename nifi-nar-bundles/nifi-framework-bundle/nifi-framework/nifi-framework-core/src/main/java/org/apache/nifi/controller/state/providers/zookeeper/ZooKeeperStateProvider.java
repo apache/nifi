@@ -22,9 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -108,22 +106,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         .defaultValue(OPEN_TO_WORLD.getValue())
         .required(true)
         .build();
-    static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
-        .name("Username")
-        .description("A Username that can be used to set Access Controls on ZooKeeper ZNodes. In order to apply any Access Controls to ZNodes, either a username and password must be set, "
-            + "or NiFi must be configured to communicate with ZooKeeper via Kerberos.")
-        .addValidator(Validator.VALID)
-        .required(false)
-        .build();
-    static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-        .name("Password")
-        .description("A password that can be used in conjunction with the Username property to set Access Controls on ZooKeeper ZNodes. "
-            + "In order to apply any Access Controls to ZNodes, either a username and password must be set, "
-            + "or NiFi must be configured to communicate with ZooKeeper via Kerberos.")
-        .addValidator(Validator.VALID)
-        .required(false)
-        .sensitive(true)
-        .build();
 
     private static final byte ENCODING_VERSION = 1;
 
@@ -148,44 +130,15 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         properties.add(SESSION_TIMEOUT);
         properties.add(ROOT_NODE);
         properties.add(ACCESS_CONTROL);
-        properties.add(USERNAME);
-        properties.add(PASSWORD);
         return properties;
     }
 
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> validationFailures = new ArrayList<>();
-
-        final String username = validationContext.getProperty(USERNAME).getValue();
-        if (username != null && !username.trim().isEmpty()) {
-            final String password = validationContext.getProperty(PASSWORD).getValue();
-            if (password == null || password.trim().isEmpty()) {
-                validationFailures.add(new ValidationResult.Builder()
-                    .input("")
-                    .subject("Username and Password")
-                    .valid(false)
-                    .explanation("If the Username is set, the Password must also be set")
-                    .build());
-            }
-        }
-        return validationFailures;
-    }
 
     @Override
     public synchronized void init(final StateProviderInitializationContext context) {
         connectionString = context.getProperty(CONNECTION_STRING).getValue();
         rootNode = context.getProperty(ROOT_NODE).getValue();
         timeoutMillis = context.getProperty(SESSION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-
-        final String username = context.getProperty(USERNAME).getValue();
-        if (username == null) {
-            auth = null;
-        } else {
-            final String password = context.getProperty(PASSWORD).getValue();
-            auth = (username + ":" + password).getBytes(StandardCharsets.UTF_8);
-        }
 
         if (context.getProperty(ACCESS_CONTROL).getValue().equalsIgnoreCase(CREATOR_ONLY.getValue())) {
             acl = Ids.CREATOR_ALL_ACL;
@@ -365,7 +318,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 keeper.setData(path, data, version);
             } catch (final NoNodeException nne) {
                 if (allowNodeCreation) {
-                    createNode(path, data, componentId, stateValues);
+                    createNode(path, data, componentId, stateValues, acl);
                     return;
                 } else {
                     throw nne;
@@ -396,7 +349,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     }
 
 
-    private void createNode(final String path, final byte[] data, final String componentId, final Map<String, String> stateValues) throws IOException, KeeperException {
+    private void createNode(final String path, final byte[] data, final String componentId, final Map<String, String> stateValues, final List<ACL> acls) throws IOException, KeeperException {
         try {
             if (data != null && data.length > ONE_MB) {
                 throw new StateTooLargeException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId
@@ -404,20 +357,20 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                     + " bytes, and the maximum allowed by ZooKeeper is 1 MB (" + ONE_MB + " bytes)");
             }
 
-            getZooKeeper().create(path, data, acl, CreateMode.PERSISTENT);
+            getZooKeeper().create(path, data, acls, CreateMode.PERSISTENT);
         } catch (final InterruptedException ie) {
             throw new IOException("Failed to update cluster-wide state due to interruption", ie);
         } catch (final KeeperException ke) {
             final Code exceptionCode = ke.code();
             if (Code.NONODE == exceptionCode) {
                 final String parentPath = StringUtils.substringBeforeLast(path, "/");
-                createNode(parentPath, null, componentId, stateValues);
-                createNode(path, data, componentId, stateValues);
+                createNode(parentPath, null, componentId, stateValues, Ids.OPEN_ACL_UNSAFE);
+                createNode(path, data, componentId, stateValues, acls);
                 return;
             }
             if (Code.SESSIONEXPIRED == exceptionCode) {
                 invalidateClient();
-                createNode(path, data, componentId, stateValues);
+                createNode(path, data, componentId, stateValues, acls);
                 return;
             }
 
@@ -429,7 +382,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 } catch (final KeeperException ke1) {
                     // Node no longer exists -- it was removed by someone else. Go recreate the node.
                     if (ke1.code() == Code.NONODE) {
-                        createNode(path, data, componentId, stateValues);
+                        createNode(path, data, componentId, stateValues, acls);
                         return;
                     }
                 } catch (final InterruptedException ie) {

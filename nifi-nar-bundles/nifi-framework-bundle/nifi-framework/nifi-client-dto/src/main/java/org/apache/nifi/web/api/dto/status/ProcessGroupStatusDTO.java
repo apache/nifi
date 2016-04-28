@@ -14,51 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Collection;
 import java.util.Date;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
-/**
- * The status for a process group in this NiFi.
- */
 @XmlType(name = "processGroupStatus")
-public class ProcessGroupStatusDTO extends StatusDTO {
-
+public class ProcessGroupStatusDTO implements Cloneable {
     private String id;
     private String name;
-    private Collection<ConnectionStatusDTO> connectionStatus;
-    private Collection<ProcessorStatusDTO> processorStatus;
-    private Collection<ProcessGroupStatusDTO> processGroupStatus;
-    private Collection<RemoteProcessGroupStatusDTO> remoteProcessGroupStatus;
-    private Collection<PortStatusDTO> inputPortStatus;
-    private Collection<PortStatusDTO> outputPortStatus;
-
-    private String input;
-    private String queuedCount;
-    private String queuedSize;
-    private String queued;
-    private String read;
-    private String written;
-    private String output;
-    private String transferred;
-    private String received;
-    private String sent;
-    private Integer activeThreadCount;
     private Date statsLastRefreshed;
 
-    /**
-     * The id for the process group.
-     *
-     * @return The id for the process group
-     */
-    @ApiModelProperty(
-            value = "The id of the process group."
-    )
+    private ProcessGroupStatusSnapshotDTO aggregateSnapshot;
+    private List<NodeProcessGroupStatusSnapshotDTO> nodeSnapshots;
+
+    @ApiModelProperty("The ID of the Process Group")
     public String getId() {
         return id;
     }
@@ -67,12 +44,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
         this.id = id;
     }
 
-    /**
-     * @return name of this process group
-     */
-    @ApiModelProperty(
-            value = "The name of this process group."
-    )
+    @ApiModelProperty("The name of the PRocess Group")
     public String getName() {
         return name;
     }
@@ -81,274 +53,23 @@ public class ProcessGroupStatusDTO extends StatusDTO {
         this.name = name;
     }
 
-    /**
-     * @return active thread count for this process group
-     */
-    @ApiModelProperty(
-            value = "The active thread count for this process group."
-    )
-    public Integer getActiveThreadCount() {
-        return activeThreadCount;
+    @ApiModelProperty("The aggregate status of all nodes in the cluster")
+    public ProcessGroupStatusSnapshotDTO getAggregateSnapshot() {
+        return aggregateSnapshot;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
-        this.activeThreadCount = activeThreadCount;
+    public void setAggregateSnapshot(ProcessGroupStatusSnapshotDTO aggregateSnapshot) {
+        this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    /**
-     * The status of all connections in this process group.
-     *
-     * @return The status of all connections
-     */
-    @ApiModelProperty(
-            value = "The status of all conenctions in the process group."
-    )
-    public Collection<ConnectionStatusDTO> getConnectionStatus() {
-        return connectionStatus;
+    @ApiModelProperty("The status reported by each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+        + "a clustered instance, this value may be null.")
+    public List<NodeProcessGroupStatusSnapshotDTO> getNodeSnapshots() {
+        return nodeSnapshots;
     }
 
-    public void setConnectionStatus(Collection<ConnectionStatusDTO> connectionStatus) {
-        this.connectionStatus = connectionStatus;
-    }
-
-    /**
-     * The status of all process groups in this process group.
-     *
-     * @return The status of all process groups
-     */
-    @ApiModelProperty(
-            value = "The status of all process groups in the process group."
-    )
-    public Collection<ProcessGroupStatusDTO> getProcessGroupStatus() {
-        return processGroupStatus;
-    }
-
-    public void setProcessGroupStatus(Collection<ProcessGroupStatusDTO> processGroupStatus) {
-        this.processGroupStatus = processGroupStatus;
-    }
-
-    /**
-     * The status of all remote process groups in this process group.
-     *
-     * @return The status of all remote process groups
-     */
-    @ApiModelProperty(
-            value = "The status of all remote process groups in the process group.."
-    )
-    public Collection<RemoteProcessGroupStatusDTO> getRemoteProcessGroupStatus() {
-        return remoteProcessGroupStatus;
-    }
-
-    public void setRemoteProcessGroupStatus(final Collection<RemoteProcessGroupStatusDTO> remoteProcessGroupStatus) {
-        this.remoteProcessGroupStatus = remoteProcessGroupStatus;
-    }
-
-    /**
-     * The status of all processors in this process group.
-     *
-     * @return The status of all processors
-     */
-    @ApiModelProperty(
-            value = "The status of all processors in the process group."
-    )
-    public Collection<ProcessorStatusDTO> getProcessorStatus() {
-        return processorStatus;
-    }
-
-    public void setProcessorStatus(Collection<ProcessorStatusDTO> processorStatus) {
-        this.processorStatus = processorStatus;
-    }
-
-    /**
-     * The status of all input ports in this process group.
-     *
-     * @return The status of all input ports
-     */
-    @ApiModelProperty(
-            value = "The status of all input ports in the process group."
-    )
-    public Collection<PortStatusDTO> getInputPortStatus() {
-        return inputPortStatus;
-    }
-
-    public void setInputPortStatus(Collection<PortStatusDTO> inputPortStatus) {
-        this.inputPortStatus = inputPortStatus;
-    }
-
-    /**
-     * The status of all output ports in this process group.
-     *
-     * @return The status of all output ports
-     */
-    @ApiModelProperty(
-            value = "The status of all output ports in the process group."
-    )
-    public Collection<PortStatusDTO> getOutputPortStatus() {
-        return outputPortStatus;
-    }
-
-    public void setOutputPortStatus(Collection<PortStatusDTO> outputPortStatus) {
-        this.outputPortStatus = outputPortStatus;
-    }
-
-    /**
-     * The output stats for this process group.
-     *
-     * @return The output stats
-     */
-    @ApiModelProperty(
-            value = "The output count/size for the process group in the last 5 minutes."
-    )
-    public String getOutput() {
-        return output;
-    }
-
-    public void setOutput(String output) {
-        this.output = output;
-    }
-
-    /**
-     * The transferred stats for this process group. This represents the count/size of flowfiles transferred to/from queues.
-     *
-     * @return The transferred status for this process group
-     */
-    @ApiModelProperty(
-            value = "The count/size transferred to/frome queues in the process group in the last 5 minutes."
-    )
-    public String getTransferred() {
-        return transferred;
-    }
-
-    public void setTransferred(String transferred) {
-        this.transferred = transferred;
-    }
-
-    /**
-     * The received stats for this process group. This represents the count/size of flowfiles received.
-     *
-     * @return The received stats for this process group
-     */
-    @ApiModelProperty(
-            value = "The count/size sent to the process group in the last 5 minutes."
-    )
-    public String getReceived() {
-        return received;
-    }
-
-    public void setReceived(String received) {
-        this.received = received;
-    }
-
-    /**
-     * The sent stats for this process group. This represents the count/size of flowfiles sent.
-     *
-     * @return The sent stats for this process group
-     */
-    @ApiModelProperty(
-            value = "The count/size sent from this process group in the last 5 minutes."
-    )
-    public String getSent() {
-        return sent;
-    }
-
-    public void setSent(String sent) {
-        this.sent = sent;
-    }
-
-    /**
-     * The queued count for this process group.
-     *
-     * @return The queued count for this process group
-     */
-    @ApiModelProperty(
-            value = "The count that is queued for the process group."
-    )
-    public String getQueuedCount() {
-        return queuedCount;
-    }
-
-    public void setQueuedCount(String queuedCount) {
-        this.queuedCount = queuedCount;
-    }
-
-    /**
-     * The queued size for this process group.
-     *
-     * @return The queued size for this process group
-     */
-    @ApiModelProperty(
-            value = "The size that is queued for the process group."
-    )
-    public String getQueuedSize() {
-        return queuedSize;
-    }
-
-    public void setQueuedSize(String queuedSize) {
-        this.queuedSize = queuedSize;
-    }
-
-    /**
-     * The queued stats for this process group.
-     *
-     * @return The queued stats
-     */
-    @ApiModelProperty(
-            value = "The count/size that is queued in the the process group."
-    )
-    public String getQueued() {
-        return queued;
-    }
-
-    public void setQueued(String queued) {
-        this.queued = queued;
-    }
-
-    /**
-     * The read stats for this process group.
-     *
-     * @return The read stats
-     */
-    @ApiModelProperty(
-            value = "The number of bytes read in the last 5 minutes."
-    )
-    public String getRead() {
-        return read;
-    }
-
-    public void setRead(String read) {
-        this.read = read;
-    }
-
-    /**
-     * The written stats for this process group.
-     *
-     * @return The written stats
-     */
-    @ApiModelProperty(
-            value = "The number of bytes written in the last 5 minutes."
-    )
-    public String getWritten() {
-        return written;
-    }
-
-    public void setWritten(String written) {
-        this.written = written;
-    }
-
-    /**
-     * The input stats for this process group.
-     *
-     * @return The input stats
-     */
-    @ApiModelProperty(
-            value = "The input count/size for the process group in the last 5 minutes."
-    )
-    public String getInput() {
-        return input;
-    }
-
-    public void setInput(String input) {
-        this.input = input;
+    public void setNodeSnapshots(List<NodeProcessGroupStatusSnapshotDTO> nodeSnapshots) {
+        this.nodeSnapshots = nodeSnapshots;
     }
 
     /**
@@ -358,7 +79,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "The time the status for the process group was last refreshed."
+        value = "The time the status for the process group was last refreshed."
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
@@ -367,5 +88,4 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     public void setStatsLastRefreshed(Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
-
 }

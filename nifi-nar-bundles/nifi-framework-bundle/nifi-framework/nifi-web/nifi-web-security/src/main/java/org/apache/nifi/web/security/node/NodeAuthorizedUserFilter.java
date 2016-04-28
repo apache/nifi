@@ -30,7 +30,7 @@ import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.token.NiFiAuthorizationToken;
+import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.apache.nifi.web.security.x509.X509IdentityProvider;
 import org.apache.nifi.web.util.WebUtils;
@@ -96,7 +96,7 @@ public class NodeAuthorizedUserFilter extends GenericFilterBean {
                                         httpServletRequest.getRequestURL().toString(), request.getRemoteAddr()));
 
                                 // create the authorized nifi token
-                                final NiFiAuthorizationToken token = new NiFiAuthorizationToken(userDetails);
+                                final NiFiAuthenticationToken token = new NiFiAuthenticationToken(userDetails);
                                 SecurityContextHolder.getContext().setAuthentication(token);
                             }
                         }

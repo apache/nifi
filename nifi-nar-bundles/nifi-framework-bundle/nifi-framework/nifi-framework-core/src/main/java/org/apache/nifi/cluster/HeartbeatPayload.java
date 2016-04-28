@@ -20,18 +20,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.List;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
 import org.apache.nifi.cluster.protocol.ProtocolException;
-import org.apache.nifi.controller.Counter;
-import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.diagnostics.SystemDiagnostics;
-import org.apache.nifi.jaxb.CounterAdapter;
 
 /**
  * The payload of the heartbeat. The payload contains status to inform the cluster manager the current workload of this node.
@@ -50,22 +46,10 @@ public class HeartbeatPayload {
         }
     }
 
-    private List<Counter> counters;
-    private ProcessGroupStatus processGroupStatus;
     private int activeThreadCount;
     private long totalFlowFileCount;
     private long totalFlowFileBytes;
-    private SystemDiagnostics systemDiagnostics;
     private long systemStartTime;
-
-    @XmlJavaTypeAdapter(CounterAdapter.class)
-    public List<Counter> getCounters() {
-        return counters;
-    }
-
-    public void setCounters(final List<Counter> counters) {
-        this.counters = counters;
-    }
 
     public int getActiveThreadCount() {
         return activeThreadCount;
@@ -89,22 +73,6 @@ public class HeartbeatPayload {
 
     public void setTotalFlowFileBytes(final long totalFlowFileBytes) {
         this.totalFlowFileBytes = totalFlowFileBytes;
-    }
-
-    public ProcessGroupStatus getProcessGroupStatus() {
-        return processGroupStatus;
-    }
-
-    public void setProcessGroupStatus(final ProcessGroupStatus processGroupStatus) {
-        this.processGroupStatus = processGroupStatus;
-    }
-
-    public SystemDiagnostics getSystemDiagnostics() {
-        return systemDiagnostics;
-    }
-
-    public void setSystemDiagnostics(final SystemDiagnostics systemDiagnostics) {
-        this.systemDiagnostics = systemDiagnostics;
     }
 
     public long getSystemStartTime() {

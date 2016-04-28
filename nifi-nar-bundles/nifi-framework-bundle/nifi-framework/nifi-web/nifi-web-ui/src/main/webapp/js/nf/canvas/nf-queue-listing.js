@@ -380,8 +380,9 @@ nf.QueueListing = (function () {
             // issue the request to list the flow files
             $.ajax({
                 type: 'POST',
-                url: connection.component.uri + '/listing-requests',
-                dataType: 'json'
+                url: '../nifi-api/flowfile-queues/' + connection.component.id + '/listing-requests',
+                dataType: 'json',
+                contentType: 'application/json'
             }).done(function(response) {
                 // initialize the progress bar value
                 updateProgress(0);

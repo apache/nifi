@@ -446,6 +446,7 @@
                 organizeEndpoints('labels', $('#label-endpoints'));
                 organizeEndpoints('process-groups', $('#process-group-endpoints'));
                 organizeEndpoints('history', $('#history-endpoints'));
+                organizeEndpoints('access', $('#access-endpoints'));
                 organizeEndpoints(null, $('#controller-endpoints'));
                 
                 
@@ -465,6 +466,14 @@
         </div>
         <div class="clear"></div>
         <div class="overview">{{info.description}}</div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Access</div>
+                <div class="sub-title section-description">User authentication and token endpoints</div>
+                <div class="clear"></div>
+            </div>
+            <div id="access-endpoints" class="section-endpoints hidden"></div>
+        </div>
         <div class="section">
             <div class="section-header">
                 <div class="title link">Controller</div>

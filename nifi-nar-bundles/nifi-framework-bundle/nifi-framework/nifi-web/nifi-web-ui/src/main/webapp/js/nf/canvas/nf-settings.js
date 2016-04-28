@@ -27,11 +27,11 @@ nf.Settings = (function () {
             filterList: 'filter-list'
         },
         urls: {
+            api: '../nifi-api',
             controllerConfig: '../nifi-api/controller/config',
             controllerArchive: '../nifi-api/controller/archive',
-            controllerServiceTypes: '../nifi-api/controller/controller-service-types',
-            controllerServices: '../nifi-api/controller/controller-services',
-            reportingTaskTypes: '../nifi-api/controller/reporting-task-types',
+            controllerServiceTypes: '../nifi-api/flow/controller-service-types',
+            reportingTaskTypes: '../nifi-api/flow/reporting-task-types',
             reportingTasks: '../nifi-api/controller/reporting-tasks'
         }
     };
@@ -80,19 +80,20 @@ nf.Settings = (function () {
 
             // register the click listener for the save button
             $('#settings-save').click(function () {
-                var revision = nf.Client.getRevision();
-
                 // marshal the configuration details
                 var configuration = marshalConfiguration();
-                configuration['version'] = revision.version;
-                configuration['clientId'] = revision.clientId;
+                var entity = {
+                    'revision': nf.Client.getRevision(),
+                    'config': configuration
+                };
 
                 // save the new configuration details
                 $.ajax({
                     type: 'PUT',
                     url: config.urls.controllerConfig,
-                    data: configuration,
-                    dataType: 'json'
+                    data: JSON.stringify(entity),
+                    dataType: 'json',
+                    contentType: 'application/json'
                 }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
@@ -101,7 +102,7 @@ nf.Settings = (function () {
                     document.title = response.config.name;
 
                     // set the data flow title and close the shell
-                    $('#data-flow-title-container').children('span.link:first-child').text(response.config.name);
+                    nf.Canvas.reload();
 
                     // close the settings dialog
                     nf.Dialog.showOkDialog({
@@ -297,8 +298,6 @@ nf.Settings = (function () {
      * @param {string} controllerServiceType
      */
     var addControllerService = function (controllerServiceType) {
-        var revision = nf.Client.getRevision();
-
         // get the desired availability
         var availability;
         if (nf.Canvas.isClustered()) {
@@ -306,17 +305,22 @@ nf.Settings = (function () {
         } else {
             availability = config.node;
         }
+        
+        // build the controller service entity
+        var controllerServiceEntity = {
+            'revision': nf.Client.getRevision(),
+            'controllerService': {
+                'type': controllerServiceType
+            }
+        };
 
         // add the new controller service
         var addService = $.ajax({
             type: 'POST',
-            url: config.urls.controllerServices + '/' + encodeURIComponent(availability),
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                type: controllerServiceType
-            },
-            dataType: 'json'
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(availability),
+            data: JSON.stringify(controllerServiceEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             // update the revision
             nf.Client.setRevision(response.revision);
@@ -860,7 +864,7 @@ nf.Settings = (function () {
         // get the controller services that are running on the nodes
         var nodeControllerServices = $.ajax({
             type: 'GET',
-            url: config.urls.controllerServices + '/' + encodeURIComponent(config.node),
+            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(config.node),
             dataType: 'json'
         }).done(function (response) {
             var nodeServices = response.controllerServices;
@@ -878,7 +882,7 @@ nf.Settings = (function () {
             if (nf.Canvas.isClustered()) {
                 $.ajax({
                     type: 'GET',
-                    url: config.urls.controllerServices + '/' + encodeURIComponent(config.ncm),
+                    url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId) + '/controller-services/' + encodeURIComponent(config.ncm),
                     dataType: 'json'
                 }).done(function (response) {
                     var ncmServices = response.controllerServices;
@@ -1030,8 +1034,6 @@ nf.Settings = (function () {
      * @param {string} reportingTaskType
      */
     var addReportingTask = function (reportingTaskType) {
-        var revision = nf.Client.getRevision();
-
         // get the desired availability
         var availability;
         if (nf.Canvas.isClustered()) {
@@ -1039,17 +1041,22 @@ nf.Settings = (function () {
         } else {
             availability = config.node;
         }
+        
+        // build the reporting task entity
+        var reportingTaskEntity = {
+            'revision': nf.Client.getRevision(),
+            'reportingTask': {
+                'type': reportingTaskType
+            }
+        };
 
         // add the new reporting task
         var addTask = $.ajax({
             type: 'POST',
             url: config.urls.reportingTasks + '/' + encodeURIComponent(availability),
-            data: {
-                version: revision.version,
-                clientId: revision.clientId,
-                type: reportingTaskType
-            },
-            dataType: 'json'
+            data: JSON.stringify(reportingTaskEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).done(function (response) {
             // update the revision
             nf.Client.setRevision(response.revision);

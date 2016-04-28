@@ -1038,6 +1038,13 @@ nf.RemoteProcessGroup = (function () {
             // only update the visible components
             d3.selectAll('g.remote-process-group.visible').call(updateProcessGroupStatus);
         },
+
+        /**
+         * Returns the entity key when marshalling an entity of this type.
+         */
+        getEntityKey: function (d) {
+            return 'remoteProcessGroup';
+        },
         
         /**
          * Removes the specified process group.

@@ -32,9 +32,9 @@ nf.ProvenanceTable = (function () {
             hidden: 'hidden'
         },
         urls: {
-            searchOptions: '../nifi-api/controller/provenance/search-options',
-            replays: '../nifi-api/controller/provenance/replays',
-            provenance: '../nifi-api/controller/provenance',
+            searchOptions: '../nifi-api/provenance/search-options',
+            replays: '../nifi-api/provenance/replays',
+            provenance: '../nifi-api/provenance',
             cluster: '../nifi-api/cluster',
             d3Script: 'js/d3/d3.min.js',
             lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
@@ -47,29 +47,6 @@ nf.ProvenanceTable = (function () {
      * The last search performed
      */
     var cachedQuery = {};
-
-    /**
-     * Loads the lineage capabilities when the current browser supports SVG.
-     */
-    var loadLineageCapabilities = function () {
-        return $.Deferred(function (deferred) {
-            if (nf.Common.SUPPORTS_SVG) {
-                nf.Common.cachedScript(config.urls.d3Script).done(function () {
-                    nf.Common.cachedScript(config.urls.lineageScript).done(function () {
-                        // initialize the lineage graph
-                        nf.ProvenanceLineage.init();
-                        deferred.resolve();
-                    }).fail(function () {
-                        deferred.reject();
-                    });
-                }).fail(function () {
-                    deferred.reject();
-                });
-            } else {
-                deferred.resolve();
-            }
-        }).promise();
-    };
 
     /**
      * Downloads the content for the provenance event that is currently loaded in the specified direction.
@@ -121,7 +98,7 @@ nf.ProvenanceTable = (function () {
         var eventId = $('#provenance-event-id').text();
 
         // build the uri to the data
-        var dataUri = controllerUri + '/provenance/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = controllerUri + 'provenance/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // generate tokens as necessary
         var getAccessTokens = $.Deferred(function (deferred) {
@@ -280,21 +257,22 @@ nf.ProvenanceTable = (function () {
         if (nf.Common.isDFM()) {
             // replay
             $('#replay-content').on('click', function () {
-                var parameters = {
-                    eventId: $('#provenance-event-id').text()
+                var replayEntity = {
+                    'eventId': $('#provenance-event-id').text()
                 };
 
                 // conditionally include the cluster node id
                 var clusterNodeId = $('#provenance-event-cluster-node-id').text();
                 if (!nf.Common.isBlank(clusterNodeId)) {
-                    parameters['clusterNodeId'] = clusterNodeId;
+                    replayEntity['clusterNodeId'] = clusterNodeId;
                 }
 
                 $.ajax({
                     type: 'POST',
                     url: config.urls.replays,
-                    data: parameters,
-                    dataType: 'json'
+                    data: JSON.stringify(replayEntity),
+                    dataType: 'json',
+                    contentType: 'application/json'
                 }).done(function (response) {
                     nf.Dialog.showOkDialog({
                         dialogContent: 'Successfully submitted replay request.',
@@ -432,7 +410,7 @@ nf.ProvenanceTable = (function () {
                             }
 
                             // add the search criteria
-                            search = $.extend(getSearchCriteria(), search);
+                            search['searchTerms'] = getSearchCriteria();
 
                             // reload the table
                             nf.ProvenanceTable.loadProvenanceTable(search);
@@ -522,7 +500,7 @@ nf.ProvenanceTable = (function () {
 
             // if the field isn't blank include it in the search
             if (!nf.Common.isBlank(searchValue)) {
-                searchCriteria['search[' + fieldId + ']'] = searchValue;
+                searchCriteria[fieldId] = searchValue;
             }
         });
         return searchCriteria;
@@ -861,13 +839,21 @@ nf.ProvenanceTable = (function () {
      * @returns {deferred}
      */
     var submitProvenance = function (provenance) {
+        var provenanceEntity = {
+            'provenance': {
+                'request': $.extend({
+                    maxResults: config.maxResults
+                }, provenance)
+            }
+        };
+
+        // submit the provenance request
         return $.ajax({
             type: 'POST',
             url: config.urls.provenance,
-            data: $.extend({
-                maxResults: config.maxResults
-            }, provenance),
-            dataType: 'json'
+            data: JSON.stringify(provenanceEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).fail(nf.Common.handleAjaxError);
     };
 
@@ -1020,15 +1006,16 @@ nf.ProvenanceTable = (function () {
                     deferred.reject();
                     nf.Common.handleAjaxError(xhr, status, error);
                 };
-                
-                // load the lineage capabilities
-                loadLineageCapabilities().done(function () {
-                    initDetailsDialog();
-                    initProvenanceQueryDialog();
-                    initProvenanceTable(isClustered);
-                    initSearchDialog(isClustered).done(function () {
-                        deferred.resolve();
-                    }).fail(failure);
+
+                // initialize the lineage view
+                nf.ProvenanceLineage.init();
+
+                // initialize the table view
+                initDetailsDialog();
+                initProvenanceQueryDialog();
+                initProvenanceTable(isClustered);
+                initSearchDialog(isClustered).done(function () {
+                    deferred.resolve();
                 }).fail(failure);
             }).promise();
         },

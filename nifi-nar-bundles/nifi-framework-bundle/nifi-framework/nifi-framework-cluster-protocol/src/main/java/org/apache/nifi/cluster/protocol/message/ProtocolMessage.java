@@ -21,22 +21,18 @@ public abstract class ProtocolMessage {
     private volatile String requestorDN;
 
     public static enum MessageType {
-
-        BULLETINS,
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
-        CONTROLLER_STARTUP_FAILURE,
-        RECONNECTION_FAILURE,
         DISCONNECTION_REQUEST,
         EXCEPTION,
         FLOW_REQUEST,
         FLOW_RESPONSE,
         HEARTBEAT,
         PING,
-        PRIMARY_ROLE,
         RECONNECTION_REQUEST,
         RECONNECTION_RESPONSE,
         SERVICE_BROADCAST,
+        NODE_STATUS_CHANGE;
     }
 
     public abstract MessageType getType();

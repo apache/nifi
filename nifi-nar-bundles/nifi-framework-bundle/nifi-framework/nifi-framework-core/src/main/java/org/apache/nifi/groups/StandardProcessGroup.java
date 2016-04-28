@@ -945,6 +945,27 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Connection findConnection(final String id) {
+        return findConnection(id, this);
+    }
+
+    private Connection findConnection(final String id, final ProcessGroup start) {
+        Connection connection = start.getConnection(id);
+        if (connection != null) {
+            return connection;
+        }
+
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            connection = findConnection(id, group);
+            if (connection != null) {
+                return connection;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     public List<Connection> findAllConnections() {
         return findAllConnections(this);
     }
@@ -1360,6 +1381,19 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public List<ProcessGroup> findAllProcessGroups() {
+        return findAllProcessGroups(this);
+    }
+
+    private List<ProcessGroup> findAllProcessGroups(final ProcessGroup start) {
+        final List<ProcessGroup> allProcessGroups = new ArrayList<>(start.getProcessGroups());
+        for (final ProcessGroup childGroup : start.getProcessGroups()) {
+            allProcessGroups.addAll(findAllProcessGroups(childGroup));
+        }
+        return allProcessGroups;
+    }
+
+    @Override
     public List<RemoteProcessGroup> findAllRemoteProcessGroups() {
         return findAllRemoteProcessGroups(this);
     }
@@ -1476,6 +1510,27 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Label findLabel(final String id) {
+        return findLabel(id, this);
+    }
+
+    private Label findLabel(final String id, final ProcessGroup start) {
+        Label label = start.getLabel(id);
+        if (label != null) {
+            return label;
+        }
+
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            label = findLabel(id, group);
+            if (label != null) {
+                return label;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     public List<Label> findAllLabels() {
         return findAllLabels(this);
     }
@@ -1494,8 +1549,34 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public List<Port> findAllInputPorts() {
+        return findAllInputPorts(this);
+    }
+
+    private List<Port> findAllInputPorts(final ProcessGroup start) {
+        final List<Port> allOutputPorts = new ArrayList<>(start.getInputPorts());
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            allOutputPorts.addAll(findAllInputPorts(group));
+        }
+        return allOutputPorts;
+    }
+
+    @Override
     public Port findOutputPort(final String id) {
         return findPort(id, this, new OutputPortRetriever());
+    }
+
+    @Override
+    public List<Port> findAllOutputPorts() {
+        return findAllOutputPorts(this);
+    }
+
+    private List<Port> findAllOutputPorts(final ProcessGroup start) {
+        final List<Port> allOutputPorts = new ArrayList<>(start.getOutputPorts());
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            allOutputPorts.addAll(findAllOutputPorts(group));
+        }
+        return allOutputPorts;
     }
 
     @Override
@@ -1600,6 +1681,27 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+    }
+
+    @Override
+    public Funnel findFunnel(final String id) {
+        return findFunnel(id, this);
+    }
+
+    private Funnel findFunnel(final String id, final ProcessGroup start) {
+        Funnel funnel = start.getFunnel(id);
+        if (funnel != null) {
+            return funnel;
+        }
+
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            funnel = findFunnel(id, group);
+            if (funnel != null) {
+                return funnel;
+            }
+        }
+
+        return null;
     }
 
     @Override
