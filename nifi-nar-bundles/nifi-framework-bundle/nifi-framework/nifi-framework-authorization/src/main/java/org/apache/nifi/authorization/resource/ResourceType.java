@@ -20,6 +20,7 @@ public enum ResourceType {
     Processor("/processors"),
     InputPort("/input-ports"),
     OutputPort("/output-ports"),
+    Funnel("/funnel"),
     Connection("/connections"),
     ProcessGroup("/process-groups"),
     RemoteProcessGroup("/remote-process-groups"),

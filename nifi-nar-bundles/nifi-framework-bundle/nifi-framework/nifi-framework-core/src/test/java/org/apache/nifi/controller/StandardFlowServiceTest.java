@@ -161,7 +161,6 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        assertEquals(expected.getParent(), actual.getParent());
         Assert.assertEquals(expected.getComments(), actual.getComments());
         assertEquals(expected.getContents(), actual.getContents());
     }

@@ -16,27 +16,25 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.FunnelDTO;
-
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of FunnelDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of FunnelEntitys.
  */
 @XmlRootElement(name = "funnelsEntity")
 public class FunnelsEntity extends Entity {
 
-    private Set<FunnelDTO> funnels;
+    private Set<FunnelEntity> funnels;
 
     /**
-     * @return collection of FunnelDTOs that are being serialized
+     * @return collection of FunnelEntitys that are being serialized
      */
-    public Set<FunnelDTO> getFunnels() {
+    public Set<FunnelEntity> getFunnels() {
         return funnels;
     }
 
-    public void setFunnels(Set<FunnelDTO> labels) {
+    public void setFunnels(Set<FunnelEntity> labels) {
         this.funnels = labels;
     }
 

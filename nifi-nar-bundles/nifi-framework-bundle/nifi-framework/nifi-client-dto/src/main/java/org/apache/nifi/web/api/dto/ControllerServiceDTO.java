@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlType;
  * A Controller Service that can be shared by other components
  */
 @XmlType(name = "controllerService")
-public class ControllerServiceDTO extends NiFiComponentDTO {
+public class ControllerServiceDTO extends ComponentDTO {
 
     private String name;
     private String type;

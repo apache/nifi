@@ -28,6 +28,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -74,6 +75,32 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Populates the remaining content for each remote process group. The uri must be generated and the remote process groups name must be retrieved.
      *
+     * @param remoteProcessGroupEntities groups
+     * @return dtos
+     */
+    public Set<RemoteProcessGroupEntity> populateRemainingRemoteProcessGroupEntitiesContent(Set<RemoteProcessGroupEntity> remoteProcessGroupEntities) {
+        for (RemoteProcessGroupEntity remoteProcessEntities : remoteProcessGroupEntities) {
+            populateRemainingRemoteProcessGroupEntityContent(remoteProcessEntities);
+        }
+        return remoteProcessGroupEntities;
+    }
+
+    /**
+     * Populates the remaining content for each remote process group. The uri must be generated and the remote process groups name must be retrieved.
+     *
+     * @param remoteProcessGroupEntity groups
+     * @return dtos
+     */
+    public RemoteProcessGroupEntity populateRemainingRemoteProcessGroupEntityContent(RemoteProcessGroupEntity remoteProcessGroupEntity) {
+        if (remoteProcessGroupEntity.getComponent() != null) {
+            populateRemainingRemoteProcessGroupContent(remoteProcessGroupEntity.getComponent());
+        }
+        return remoteProcessGroupEntity;
+    }
+
+    /**
+     * Populates the remaining content for each remote process group. The uri must be generated and the remote process groups name must be retrieved.
+     *
      * @param remoteProcessGroups groups
      * @return dtos
      */
@@ -100,7 +127,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process group.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true remote group contents (ports) will be included.
      * @param id The id of the remote process group to retrieve
      * @return A remoteProcessGroupEntity.
@@ -130,11 +156,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     )
     public Response getRemoteProcessGroup(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "Whether to include any encapulated ports or just details about the remote process group.",
                     required = false
             )
@@ -150,22 +171,16 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        // get the label
-        final RemoteProcessGroupDTO remoteProcessGroup = serviceFacade.getRemoteProcessGroup(id);
+        // get the remote process group
+        final RemoteProcessGroupEntity entity = serviceFacade.getRemoteProcessGroup(id);
+        populateRemainingRemoteProcessGroupEntityContent(entity);
 
         // prune the response as necessary
         if (!verbose) {
-            remoteProcessGroup.setContents(null);
+            if (entity.getComponent() != null) {
+                entity.getComponent().setContents(null);
+            }
         }
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
-        entity.setRevision(revision);
-        entity.setRemoteProcessGroup(populateRemainingRemoteProcessGroupContent(remoteProcessGroup));
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -236,18 +251,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             clientVersion = version.getLong();
         }
 
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteRemoteProcessGroup(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // create the response entity
-        final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
-        entity.setRevision(revision);
-
-        // create the response
+        final RemoteProcessGroupEntity entity = serviceFacade.deleteRemoteProcessGroup(new Revision(clientVersion, clientId.getClientId()), id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -463,7 +467,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             @PathParam("id") String id,
             RemoteProcessGroupEntity remoteProcessGroupEntity) {
 
-        if (remoteProcessGroupEntity == null || remoteProcessGroupEntity.getRemoteProcessGroup() == null) {
+        if (remoteProcessGroupEntity == null || remoteProcessGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Remote process group details must be specified.");
         }
 
@@ -472,7 +476,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         // ensure the ids are the same
-        final RemoteProcessGroupDTO requestRemoteProcessGroup = remoteProcessGroupEntity.getRemoteProcessGroup();
+        final RemoteProcessGroupDTO requestRemoteProcessGroup = remoteProcessGroupEntity.getComponent();
         if (!id.equals(requestRemoteProcessGroup.getId())) {
             throw new IllegalArgumentException(String.format("The remote process group id (%s) in the request body does not equal the "
                     + "remote process group id of the requested resource (%s).", requestRemoteProcessGroup.getId(), id));
@@ -530,24 +534,14 @@ public class RemoteProcessGroupResource extends ApplicationResource {
 
         // update the specified remote process group
         final RevisionDTO revision = remoteProcessGroupEntity.getRevision();
-        final ConfigurationSnapshot<RemoteProcessGroupDTO> controllerResponse
+        final UpdateResult<RemoteProcessGroupEntity> updateResult
                 = serviceFacade.updateRemoteProcessGroup(new Revision(revision.getVersion(), revision.getClientId()), requestRemoteProcessGroup);
 
-        final RemoteProcessGroupDTO responseRemoteProcessGroup = controllerResponse.getConfiguration();
-        populateRemainingRemoteProcessGroupContent(responseRemoteProcessGroup);
+        final RemoteProcessGroupEntity entity = updateResult.getResult();
+        populateRemainingRemoteProcessGroupEntityContent(entity);
 
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
-        entity.setRevision(updatedRevision);
-        entity.setRemoteProcessGroup(responseRemoteProcessGroup);
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responseRemoteProcessGroup.getUri()), entity)).build();
+        if (updateResult.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }

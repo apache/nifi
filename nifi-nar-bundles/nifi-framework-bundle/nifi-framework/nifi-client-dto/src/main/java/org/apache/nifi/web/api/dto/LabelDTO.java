@@ -25,7 +25,7 @@ import javax.xml.bind.annotation.XmlType;
  * Details of a label.
  */
 @XmlType(name = "label")
-public class LabelDTO extends NiFiComponentDTO {
+public class LabelDTO extends ComponentDTO {
 
     private String label;
 

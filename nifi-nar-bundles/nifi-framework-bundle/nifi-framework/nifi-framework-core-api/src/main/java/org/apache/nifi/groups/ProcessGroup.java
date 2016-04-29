@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -40,7 +41,7 @@ import org.apache.nifi.processor.Processor;
  * <p>
  * MUST BE THREAD-SAFE</p>
  */
-public interface ProcessGroup {
+public interface ProcessGroup extends Authorizable {
 
     /**
      * @return a reference to this ProcessGroup's parent. This will be

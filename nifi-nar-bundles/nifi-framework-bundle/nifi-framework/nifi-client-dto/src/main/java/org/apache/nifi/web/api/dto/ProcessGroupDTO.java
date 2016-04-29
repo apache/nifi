@@ -23,13 +23,11 @@ import javax.xml.bind.annotation.XmlType;
  * The details for a process group within this NiFi flow.
  */
 @XmlType(name = "processGroup")
-public class ProcessGroupDTO extends NiFiComponentDTO {
+public class ProcessGroupDTO extends ComponentDTO {
 
     private String name;
     private String comments;
     private Boolean running;
-
-    private ProcessGroupDTO parent;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -61,22 +59,6 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    /**
-     * This Process Group's parent
-     *
-     * @return This Process Group's parent
-     */
-    @ApiModelProperty(
-            value = "The part of the process group."
-    )
-    public ProcessGroupDTO getParent() {
-        return parent;
-    }
-
-    public void setParent(ProcessGroupDTO parent) {
-        this.parent = parent;
     }
 
     /**

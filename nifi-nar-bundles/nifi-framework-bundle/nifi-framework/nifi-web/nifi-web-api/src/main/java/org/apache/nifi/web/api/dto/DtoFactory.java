@@ -34,7 +34,10 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.manager.StatusMerger;
@@ -113,6 +116,9 @@ import org.apache.nifi.web.api.dto.action.details.ConfigureDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.ConnectDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.MoveDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.PurgeDetailsDTO;
+import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageRequestType;
@@ -163,6 +169,8 @@ public final class DtoFactory {
     };
 
     private ControllerServiceLookup controllerServiceLookup;
+    private EntityFactory entityFactory;
+    private Authorizer authorizer;
 
     /**
      * Creates an ActionDTO for the specified Action.
@@ -537,6 +545,7 @@ public final class DtoFactory {
         if (connection == null) {
             return null;
         }
+
         final ConnectionDTO dto = new ConnectionDTO();
 
         dto.setId(connection.getIdentifier());
@@ -650,6 +659,9 @@ public final class DtoFactory {
      */
     public FunnelDTO createFunnelDto(final Funnel funnel) {
         if (funnel == null) {
+            return null;
+        }
+        if (!funnel.isAuthorized(authorizer, RequestAction.READ)) {
             return null;
         }
 
@@ -1385,24 +1397,31 @@ public final class DtoFactory {
     }
 
     /**
-     * Creates a ProcessGroupDTO from the specified parent ProcessGroup.
+     * Creates a FlowBreadcrumbDTO from the specified parent ProcessGroup.
      *
      * @param parentGroup group
      * @return dto
      */
-    private ProcessGroupDTO createParentProcessGroupDto(final ProcessGroup parentGroup) {
+    private FlowBreadcrumbDTO createBreadcrumbDto(final ProcessGroup parentGroup) {
         if (parentGroup == null) {
             return null;
         }
 
-        final ProcessGroupDTO dto = new ProcessGroupDTO();
+        final FlowBreadcrumbDTO dto = new FlowBreadcrumbDTO();
         dto.setId(parentGroup.getIdentifier());
         dto.setName(parentGroup.getName());
 
         if (parentGroup.getParent() != null) {
-            dto.setParent(createParentProcessGroupDto(parentGroup.getParent()));
+            dto.setParentBreadcrumb(createBreadcrumbDto(parentGroup.getParent()));
         }
 
+        return dto;
+    }
+
+    public AccessPolicyDTO createAccessPolicyDto(final Authorizable authorizable) {
+        final AccessPolicyDTO dto = new AccessPolicyDTO();
+        dto.setCanRead(authorizable.isAuthorized(authorizer, RequestAction.READ));
+        dto.setCanWrite(authorizable.isAuthorized(authorizer, RequestAction.WRITE));
         return dto;
     }
 
@@ -1414,6 +1433,125 @@ public final class DtoFactory {
      */
     public ProcessGroupDTO createProcessGroupDto(final ProcessGroup group) {
         return createProcessGroupDto(group, false);
+    }
+
+    public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final boolean recurse) {
+        final ProcessGroupFlowDTO dto = new ProcessGroupFlowDTO();
+        dto.setId(group.getIdentifier());
+        dto.setBreadcrumb(createBreadcrumbDto(group));
+        dto.setFlow(createFlowDto(group));
+
+        final ProcessGroup parent = group.getParent();
+        if (parent != null) {
+            dto.setParentGroupId(parent.getIdentifier());
+        }
+
+        return dto;
+    }
+
+    public FlowDTO createFlowDto(final ProcessGroup group, final FlowSnippetDTO snippet) {
+        if (snippet == null) {
+            return null;
+        }
+
+        final FlowDTO flow = new FlowDTO();
+
+        for (final ConnectionDTO connection : snippet.getConnections()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getConnection(connection.getId()));
+            flow.getConnections().add(entityFactory.createConnectionEntity(connection, null, accessPolicy));
+        }
+
+        for (final ControllerServiceDTO controllerService : snippet.getControllerServices()) {
+            flow.getControllerServices().add(entityFactory.createControllerServiceEntity(controllerService, null, null));
+        }
+
+        for (final FunnelDTO funnel : snippet.getFunnels()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getFunnel(funnel.getId()));
+            flow.getFunnels().add(entityFactory.createFunnelEntity(funnel, null, accessPolicy));
+        }
+
+        for (final PortDTO inputPort : snippet.getInputPorts()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getInputPort(inputPort.getId()));
+            flow.getInputPorts().add(entityFactory.createPortEntity(inputPort, null, accessPolicy));
+        }
+
+        for (final PortDTO outputPort : snippet.getOutputPorts()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getOutputPort(outputPort.getId()));
+            flow.getOutputPorts().add(entityFactory.createPortEntity(outputPort, null, accessPolicy));
+        }
+
+        for (final LabelDTO label : snippet.getLabels()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getLabel(label.getId()));
+            flow.getLabels().add(entityFactory.createLabelEntity(label, null, accessPolicy));
+        }
+
+        for (final ProcessGroupDTO processGroup : snippet.getProcessGroups()) {
+            // clear the contents as we only return a single level/group at a time
+            processGroup.setContents(null);
+
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getProcessGroup(processGroup.getId()));
+            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(processGroup, null, accessPolicy));
+        }
+
+        for (final ProcessorDTO processor : snippet.getProcessors()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getProcessor(processor.getId()));
+            flow.getProcessors().add(entityFactory.createProcessorEntity(processor, null, accessPolicy));
+        }
+
+        for (final RemoteProcessGroupDTO remoteProcessGroup : snippet.getRemoteProcessGroups()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getRemoteProcessGroup(remoteProcessGroup.getId()));
+            flow.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(remoteProcessGroup, null, accessPolicy));
+        }
+
+        return flow;
+    }
+
+    public FlowDTO createFlowDto(final ProcessGroup group) {
+        final FlowDTO dto = new FlowDTO();
+
+        for (final ProcessorNode procNode : group.getProcessors()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(procNode);
+            dto.getProcessors().add(entityFactory.createProcessorEntity(createProcessorDto(procNode), null, accessPolicy));
+        }
+
+        for (final Connection connNode : group.getConnections()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(connNode);
+            dto.getConnections().add(entityFactory.createConnectionEntity(createConnectionDto(connNode), null, accessPolicy));
+        }
+
+        for (final Label label : group.getLabels()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(label);
+            dto.getLabels().add(entityFactory.createLabelEntity(createLabelDto(label), null, accessPolicy));
+        }
+
+        for (final Funnel funnel : group.getFunnels()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(funnel);
+            dto.getFunnels().add(entityFactory.createFunnelEntity(createFunnelDto(funnel), null, accessPolicy));
+        }
+
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(childGroup);
+            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), null, accessPolicy));
+        }
+
+        for (final RemoteProcessGroup rpg : group.getRemoteProcessGroups()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(rpg);
+            dto.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(createRemoteProcessGroupDto(rpg), null, accessPolicy));
+        }
+
+        for (final Port inputPort : group.getInputPorts()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(inputPort);
+            dto.getInputPorts().add(entityFactory.createPortEntity(createPortDto(inputPort), null, accessPolicy));
+        }
+
+        for (final Port outputPort : group.getOutputPorts()) {
+            final AccessPolicyDTO accessPolicy = createAccessPolicyDto(outputPort);
+            dto.getOutputPorts().add(entityFactory.createPortEntity(createPortDto(outputPort), null, accessPolicy));
+        }
+
+        // TODO - controller services once they are accessible from the group
+
+        return dto;
     }
 
     /**
@@ -1449,7 +1587,6 @@ public final class DtoFactory {
         ProcessGroup parentGroup = group.getParent();
         if (parentGroup != null) {
             dto.setParentGroupId(parentGroup.getIdentifier());
-            dto.setParent(createParentProcessGroupDto(parentGroup));
         }
 
         final ProcessGroupCounts counts = group.getCounts();
@@ -1480,7 +1617,6 @@ public final class DtoFactory {
         final FlowSnippetDTO dto = new FlowSnippetDTO();
 
         for (final ProcessorNode procNode : group.getProcessors()) {
-            // authorization check
             dto.getProcessors().add(createProcessorDto(procNode));
         }
 
@@ -2121,7 +2257,6 @@ public final class DtoFactory {
         copy.setPosition(original.getPosition());
         copy.setWidth(original.getWidth());
         copy.setHeight(original.getHeight());
-        copy.setUri(original.getUri());
 
         return copy;
     }
@@ -2139,7 +2274,6 @@ public final class DtoFactory {
         copy.setReferencingComponents(copy(original.getReferencingComponents()));
         copy.setState(original.getState());
         copy.setType(original.getType());
-        copy.setUri(original.getUri());
         copy.setValidationErrors(copy(original.getValidationErrors()));
         return copy;
     }
@@ -2149,7 +2283,6 @@ public final class DtoFactory {
         copy.setId(original.getId());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setPosition(original.getPosition());
-        copy.setUri(original.getUri());
 
         return copy;
     }
@@ -2198,7 +2331,6 @@ public final class DtoFactory {
         copy.setState(original.getState());
         copy.setStyle(copy(original.getStyle()));
         copy.setType(original.getType());
-        copy.setUri(original.getUri());
         copy.setSupportsParallelProcessing(original.getSupportsParallelProcessing());
         copy.setSupportsEventDriven(original.getSupportsEventDriven());
         copy.setValidationErrors(copy(original.getValidationErrors()));
@@ -2242,7 +2374,6 @@ public final class DtoFactory {
         copy.setBackPressureDataSizeThreshold(original.getBackPressureDataSizeThreshold());
         copy.setPrioritizers(copy(original.getPrioritizers()));
         copy.setSource(original.getSource());
-        copy.setUri(original.getUri());
         copy.setzIndex(original.getzIndex());
         copy.setLabelIndex(original.getLabelIndex());
         copy.setBends(copy(original.getBends()));
@@ -2271,7 +2402,6 @@ public final class DtoFactory {
         copy.setName(original.getName());
         copy.setComments(original.getComments());
         copy.setParentGroupId(original.getParentGroupId());
-        copy.setUri(original.getUri());
         copy.setState(original.getState());
         copy.setType(original.getType());
         copy.setTransmitting(original.isTransmitting());
@@ -2300,14 +2430,12 @@ public final class DtoFactory {
     public ProcessGroupDTO copy(final ProcessGroupDTO original, final boolean deep) {
         final ProcessGroupDTO copy = new ProcessGroupDTO();
         copy.setComments(original.getComments());
-        copy.setContents(copy(original.getContents(), deep));
         copy.setPosition(original.getPosition());
         copy.setId(original.getId());
         copy.setInputPortCount(original.getInputPortCount());
         copy.setInvalidCount(original.getInvalidCount());
         copy.setName(original.getName());
         copy.setOutputPortCount(original.getOutputPortCount());
-        copy.setParent(original.getParent());
         copy.setParentGroupId(original.getParentGroupId());
 
         copy.setRunning(original.isRunning());
@@ -2316,7 +2444,6 @@ public final class DtoFactory {
         copy.setDisabledCount(original.getDisabledCount());
         copy.setActiveRemotePortCount(original.getActiveRemotePortCount());
         copy.setInactiveRemotePortCount(original.getInactiveRemotePortCount());
-        copy.setUri(original.getUri());
 
         return copy;
     }
@@ -2356,7 +2483,6 @@ public final class DtoFactory {
         copy.setInactiveRemoteOutputPortCount(original.getInactiveRemoteOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setTargetUri(original.getTargetUri());
-        copy.setUri(original.getUri());
 
         copy.setContents(copyContents);
 
@@ -2545,6 +2671,12 @@ public final class DtoFactory {
         return revisionDTO;
     }
 
+    public RevisionDTO createRevisionDTO(final Long version, final String clientId) {
+        final RevisionDTO dto = new RevisionDTO();
+        dto.setVersion(version);
+        dto.setClientId(clientId);
+        return dto;
+    }
 
     public NodeDTO createNodeDTO(Node node, NodeHeartbeat nodeHeartbeat, List<Event> events, boolean primary) {
         final NodeDTO nodeDto = new NodeDTO();
@@ -2599,4 +2731,11 @@ public final class DtoFactory {
         this.controllerServiceLookup = lookup;
     }
 
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
+
+    public void setEntityFactory(EntityFactory entityFactory) {
+        this.entityFactory = entityFactory;
+    }
 }

@@ -25,12 +25,12 @@ import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.InputPortEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
@@ -70,6 +70,32 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Populates the uri for the specified input ports.
      *
+     * @param inputPortEntites ports
+     * @return ports
+     */
+    public Set<PortEntity> populateRemainingInputPortEntitiesContent(Set<PortEntity> inputPortEntites) {
+        for (PortEntity inputPortEntity : inputPortEntites) {
+            populateRemainingInputPortEntityContent(inputPortEntity);
+        }
+        return inputPortEntites;
+    }
+
+        /**
+         * Populates the uri for the specified input port.
+         *
+         * @param inputPortEntity port
+         * @return ports
+         */
+    public PortEntity populateRemainingInputPortEntityContent(PortEntity inputPortEntity) {
+        if (inputPortEntity.getComponent() != null) {
+            populateRemainingInputPortContent(inputPortEntity.getComponent());
+        }
+        return inputPortEntity;
+    }
+
+    /**
+     * Populates the uri for the specified input ports.
+     *
      * @param inputPorts ports
      * @return ports
      */
@@ -92,7 +118,6 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Retrieves the specified input port.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the input port to retrieve
      * @return A inputPortEntity.
      */
@@ -103,7 +128,7 @@ public class InputPortResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets an input port",
-            response = InputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
@@ -121,11 +146,6 @@ public class InputPortResource extends ApplicationResource {
     )
     public Response getInputPort(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The input port id.",
                     required = true
             )
@@ -137,16 +157,8 @@ public class InputPortResource extends ApplicationResource {
         }
 
         // get the port
-        final PortDTO port = serviceFacade.getInputPort(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final InputPortEntity entity = new InputPortEntity();
-        entity.setRevision(revision);
-        entity.setInputPort(populateRemainingInputPortContent(port));
+        final PortEntity entity = serviceFacade.getInputPort(id);
+        populateRemainingInputPortEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -166,7 +178,7 @@ public class InputPortResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates an input port",
-            response = InputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
             }
@@ -190,9 +202,9 @@ public class InputPortResource extends ApplicationResource {
             @ApiParam(
                     value = "The input port configuration details.",
                     required = true
-            ) InputPortEntity portEntity) {
+            ) PortEntity portEntity) {
 
-        if (portEntity == null || portEntity.getInputPort() == null) {
+        if (portEntity == null || portEntity.getComponent() == null) {
             throw new IllegalArgumentException("Input port details must be specified.");
         }
 
@@ -201,7 +213,7 @@ public class InputPortResource extends ApplicationResource {
         }
 
         // ensure the ids are the same
-        final PortDTO requestPortDTO = portEntity.getInputPort();
+        final PortDTO requestPortDTO = portEntity.getComponent();
         if (!id.equals(requestPortDTO.getId())) {
             throw new IllegalArgumentException(String.format("The input port id (%s) in the request body does not equal the "
                     + "input port id of the requested resource (%s).", requestPortDTO.getId(), id));
@@ -226,25 +238,15 @@ public class InputPortResource extends ApplicationResource {
 
         // update the input port
         final RevisionDTO revision = portEntity.getRevision();
-        final ConfigurationSnapshot<PortDTO> controllerResponse = serviceFacade.updateInputPort(
+        final UpdateResult<PortEntity> updateResult = serviceFacade.updateInputPort(
                 new Revision(revision.getVersion(), revision.getClientId()), requestPortDTO);
 
-        // get the results
-        final PortDTO responsePortDTO = controllerResponse.getConfiguration();
-        populateRemainingInputPortContent(responsePortDTO);
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
         // build the response entity
-        final InputPortEntity entity = new InputPortEntity();
-        entity.setRevision(updatedRevision);
-        entity.setInputPort(responsePortDTO);
+        final PortEntity entity = updateResult.getResult();
+        populateRemainingInputPortEntityContent(entity);
 
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responsePortDTO.getUri()), entity)).build();
+        if (updateResult.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }
@@ -266,7 +268,7 @@ public class InputPortResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes an input port",
-            response = InputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
             }
@@ -317,17 +319,7 @@ public class InputPortResource extends ApplicationResource {
         }
 
         // delete the specified input port
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteInputPort(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final InputPortEntity entity = new InputPortEntity();
-        entity.setRevision(revision);
-
+        final PortEntity entity = serviceFacade.deleteInputPort(new Revision(clientVersion, clientId.getClientId()), id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 

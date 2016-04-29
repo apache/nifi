@@ -17,12 +17,6 @@
 
 package org.apache.nifi.controller.state.providers.zookeeper;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.curator.test.TestingServer;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -35,6 +29,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.testng.Assert;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
@@ -147,7 +146,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         } catch (final StateTooLargeException stle) {
             // expected behavior.
         } catch (final Exception e) {
-            Assert.fail("Expected StateTooLargeException");
+            Assert.fail("Expected StateTooLargeException", e);
         }
 
     }

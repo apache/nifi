@@ -14,32 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.dto;
+package org.apache.nifi.web.api.dto.flow;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * Base class for all nifi components.
+ * The NiFi flow starting at a given Process Group.
  */
-@XmlType(name = "nifiComponent")
-public class NiFiComponentDTO {
+@XmlType(name = "processGroupflow")
+public class ProcessGroupFlowDTO {
 
     private String id;
     private String uri;
-    private PositionDTO position;
     private String parentGroupId;
+    private FlowBreadcrumbDTO breadcrumb;
+    private FlowDTO flow;
 
-    public NiFiComponentDTO() {
+    /**
+     * @return contents of this process group. This field will be populated if the request is marked verbose
+     */
+    @ApiModelProperty(
+        value = "The flow structure starting at this Process Group."
+    )
+    public FlowDTO getFlow() {
+        return flow;
     }
 
-    public NiFiComponentDTO(final String id) {
-        this.id = id;
-    }
-
-    public NiFiComponentDTO(final String id, final double x, final double y) {
-        this.id = id;
-        this.position = new PositionDTO(x, y);
+    public void setFlow(FlowDTO flow) {
+        this.flow = flow;
     }
 
     /**
@@ -48,7 +52,7 @@ public class NiFiComponentDTO {
      * @return The id
      */
     @ApiModelProperty(
-            value = "The id of the component."
+        value = "The id of the component."
     )
     public String getId() {
         return this.id;
@@ -59,10 +63,26 @@ public class NiFiComponentDTO {
     }
 
     /**
+     * The breadcrumb for this ProcessGroup flow.
+     *
+     * @return The breadcrumb for this ProcessGroup flow
+     */
+    @ApiModelProperty(
+        value = "The breadcrumb of the process group."
+    )
+    public FlowBreadcrumbDTO getBreadcrumb() {
+        return breadcrumb;
+    }
+
+    public void setBreadcrumb(FlowBreadcrumbDTO breadcrumb) {
+        this.breadcrumb = breadcrumb;
+    }
+
+    /**
      * @return id for the parent group of this component if applicable, null otherwise
      */
     @ApiModelProperty(
-            value = "The id of parent process group of this component if applicable."
+        value = "The id of parent process group of this component if applicable."
     )
     public String getParentGroupId() {
         return parentGroupId;
@@ -78,7 +98,7 @@ public class NiFiComponentDTO {
      * @return The uri
      */
     @ApiModelProperty(
-            value = "The URI for futures requests to the component."
+        value = "The URI for futures requests to the component."
     )
     public String getUri() {
         return uri;
@@ -88,19 +108,5 @@ public class NiFiComponentDTO {
         this.uri = uri;
     }
 
-    public void setPosition(final PositionDTO position) {
-        this.position = position;
-    }
 
-    /**
-     * The position of this component in the UI if applicable, null otherwise.
-     *
-     * @return The position
-     */
-    @ApiModelProperty(
-            value = "The position of this component in the UI if applicable."
-    )
-    public PositionDTO getPosition() {
-        return position;
-    }
 }

@@ -41,7 +41,8 @@
 
     <!-- otp authentication provider -->
     <bean id="x509AuthenticationProvider" class="org.apache.nifi.web.security.x509.X509AuthenticationProvider">
-        <constructor-arg ref="certificateIdentityProvider"/>
+        <constructor-arg ref="certificateIdentityProvider" index="0"/>
+        <constructor-arg ref="authorizer" index="1"/>
     </bean>
 
     <!-- jwt service -->

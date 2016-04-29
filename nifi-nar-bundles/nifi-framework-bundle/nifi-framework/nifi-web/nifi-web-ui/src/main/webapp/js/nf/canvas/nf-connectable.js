@@ -71,7 +71,7 @@ nf.Connectable = (function () {
                         var position = d3.mouse(canvas.node());
                         canvas.insert('path', ':first-child')
                                 .datum({
-                                    'sourceId': sourceData.component.id,
+                                    'sourceId': sourceData.id,
                                     'sourceWidth': sourceData.dimensions.width,
                                     'x': position[0],
                                     'y': position[1]
@@ -122,7 +122,7 @@ nf.Connectable = (function () {
                                 var destinationData = destination.datum();
                                 
                                 // show the line preview as appropriate
-                                if (pathDatum.sourceId === destinationData.component.id) {
+                                if (pathDatum.sourceId === destinationData.id) {
                                     var x = pathDatum.x;
                                     var y = pathDatum.y;
                                     var componentOffset = pathDatum.sourceWidth / 2;
@@ -132,8 +132,8 @@ nf.Connectable = (function () {
                                 } else {
                                     // get the position on the destination perimeter
                                     var end = nf.CanvasUtils.getPerimeterPoint(pathDatum, {
-                                        'x': destinationData.component.position.x,
-                                        'y': destinationData.component.position.y,
+                                        'x': destinationData.position.x,
+                                        'y': destinationData.position.y,
                                         'width': destinationData.dimensions.width,
                                         'height': destinationData.dimensions.height
                                     });
@@ -190,7 +190,7 @@ nf.Connectable = (function () {
 
                             // create the connection
                             var destinationData = destination.datum();
-                            nf.ConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.component.id);
+                            nf.ConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.id);
                         }
                     });
         },

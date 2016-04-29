@@ -21,12 +21,13 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.RemoteGroupPort;
 
-public interface RemoteProcessGroup {
+public interface RemoteProcessGroup extends Authorizable {
 
     String getIdentifier();
 

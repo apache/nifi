@@ -166,12 +166,12 @@ nf.CanvasHeader = (function () {
                                     if (color !== selectedData.component.style['background-color']) {
                                         // build the request entity
                                         var entity = {
-                                            'revision': nf.Client.getRevision()
-                                        };
-                                        entity[nf[selectedData.type].getEntityKey()] = {
-                                            'id': selectedData.component.id,
-                                            'style': {
-                                                'background-color': color
+                                            'revision': nf.Client.getRevision(),
+                                            'component': {
+                                                'id': selectedData.id,
+                                                'style': {
+                                                    'background-color': color
+                                                }
                                             }
                                         };
 
@@ -186,12 +186,8 @@ nf.CanvasHeader = (function () {
                                             // update the revision
                                             nf.Client.setRevision(response.revision);
 
-                                            // update the processor
-                                            if (nf.CanvasUtils.isProcessor(selected)) {
-                                                nf.Processor.set(response.processor);
-                                            } else {
-                                                nf.Label.set(response.label);
-                                            }
+                                            // update the component
+                                            nf[selectedData.type].set(response);
                                         }).fail(function (xhr, status, error) {
                                             if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                                 nf.Dialog.showOkDialog({

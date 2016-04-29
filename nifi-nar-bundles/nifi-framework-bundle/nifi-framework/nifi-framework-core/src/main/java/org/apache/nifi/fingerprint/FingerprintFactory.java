@@ -52,7 +52,7 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
-import org.apache.nifi.web.api.dto.NiFiComponentDTO;
+import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -321,9 +321,9 @@ public final class FingerprintFactory {
     }
 
     private StringBuilder addSnippetFingerprint(final StringBuilder builder, final FlowSnippetDTO snippet) {
-        final Comparator<NiFiComponentDTO> componentComparator = new Comparator<NiFiComponentDTO>() {
+        final Comparator<ComponentDTO> componentComparator = new Comparator<ComponentDTO>() {
             @Override
-            public int compare(final NiFiComponentDTO o1, final NiFiComponentDTO o2) {
+            public int compare(final ComponentDTO o1, final ComponentDTO o2) {
                 if (o1 == null && o2 == null) {
                     return 0;
                 }

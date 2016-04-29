@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+
+import java.util.Set;
 
 public interface TemplateDAO {
 

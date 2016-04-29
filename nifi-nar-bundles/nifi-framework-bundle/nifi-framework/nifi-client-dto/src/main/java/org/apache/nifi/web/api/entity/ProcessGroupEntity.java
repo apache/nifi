@@ -23,21 +23,21 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessGroupDTO.
  */
 @XmlRootElement(name = "processGroupEntity")
-public class ProcessGroupEntity extends Entity {
+public class ProcessGroupEntity extends ComponentEntity {
 
-    private ProcessGroupDTO processGroup;
+    private ProcessGroupDTO component;
 
     /**
      * The ProcessGroupDTO that is being serialized.
      *
      * @return The ControllerDTO object
      */
-    public ProcessGroupDTO getProcessGroup() {
-        return processGroup;
+    public ProcessGroupDTO getComponent() {
+        return component;
     }
 
-    public void setProcessGroup(ProcessGroupDTO controller) {
-        this.processGroup = controller;
+    public void setComponent(ProcessGroupDTO component) {
+        this.component = component;
     }
 
 }

@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlType;
  * Details for a processor within this NiFi.
  */
 @XmlType(name = "processor")
-public class ProcessorDTO extends NiFiComponentDTO {
+public class ProcessorDTO extends ComponentDTO {
 
     private String name;
     private String type;

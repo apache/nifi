@@ -51,21 +51,21 @@ nf.Snippet = (function () {
                 var selected = d3.select(this);
 
                 if (nf.CanvasUtils.isProcessor(selected)) {
-                    snippet.processors.push(d.component.id);
+                    snippet.processors.push(d.id);
                 } else if (nf.CanvasUtils.isFunnel(selected)) {
-                    snippet.funnels.push(d.component.id);
+                    snippet.funnels.push(d.id);
                 } else if (nf.CanvasUtils.isLabel(selected)) {
-                    snippet.labels.push(d.component.id);
+                    snippet.labels.push(d.id);
                 } else if (nf.CanvasUtils.isInputPort(selected)) {
-                    snippet.inputPorts.push(d.component.id);
+                    snippet.inputPorts.push(d.id);
                 } else if (nf.CanvasUtils.isOutputPort(selected)) {
-                    snippet.outputPorts.push(d.component.id);
+                    snippet.outputPorts.push(d.id);
                 } else if (nf.CanvasUtils.isProcessGroup(selected)) {
-                    snippet.processGroups.push(d.component.id);
+                    snippet.processGroups.push(d.id);
                 } else if (nf.CanvasUtils.isRemoteProcessGroup(selected)) {
-                    snippet.remoteProcessGroups.push(d.component.id);
+                    snippet.remoteProcessGroups.push(d.id);
                 } else if (nf.CanvasUtils.isConnection(selected)) {
-                    snippet.connections.push(d.component.id);
+                    snippet.connections.push(d.id);
                 }
             });
 

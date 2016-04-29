@@ -49,9 +49,14 @@
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
 
+    <!-- entity factory -->
+    <bean id="entityFactory" class="org.apache.nifi.web.api.dto.EntityFactory"></bean>
+
     <!-- dto factory -->
     <bean id="dtoFactory" class="org.apache.nifi.web.api.dto.DtoFactory">
         <property name="controllerServiceLookup" ref="controllerServiceProvider" />
+        <property name="entityFactory" ref="entityFactory"/>
+        <property name="authorizer" ref="authorizer"/>
     </bean>
 
     <!-- snippet utils -->
@@ -81,7 +86,7 @@
     </bean>
     <bean id="connectionDAO" class="org.apache.nifi.web.dao.impl.StandardConnectionDAO">
         <property name="flowController" ref="flowController"/>
-        <property name="keyService" ref="keyService"/>
+        <property name="authorizer" ref="authorizer"/>
     </bean>
     <bean id="processorDAO" class="org.apache.nifi.web.dao.impl.StandardProcessorDAO">
         <property name="flowController" ref="flowController"/>
@@ -115,6 +120,7 @@
     </bean>
     <bean id="serviceFacade" class="org.apache.nifi.web.StandardNiFiServiceFacade">
         <property name="properties" ref="nifiProperties"/>
+        <property name="authorizer" ref="authorizer"/>
         <property name="controllerFacade" ref="controllerFacade"/>
         <property name="processorDAO" ref="processorDAO"/>
         <property name="inputPortDAO" ref="inputPortDAO"/>
@@ -133,6 +139,7 @@
         <property name="snippetUtils" ref="snippetUtils"/>
         <property name="optimisticLockingManager" ref="webOptimisticLockingManager"/>
         <property name="dtoFactory" ref="dtoFactory"/>
+        <property name="entityFactory" ref="entityFactory"/>
         <property name="clusterManager" ref="clusterManager"/>
     </bean>
 
@@ -158,8 +165,19 @@
     <!-- rest endpoints -->
     <bean id="flowResource" class="org.apache.nifi.web.api.FlowResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="authorizer" ref="authorizer"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
+        <property name="processorResource" ref="processorResource"/>
+        <property name="inputPortResource" ref="inputPortResource"/>
+        <property name="outputPortResource" ref="outputPortResource"/>
+        <property name="funnelResource" ref="funnelResource"/>
+        <property name="labelResource" ref="labelResource"/>
+        <property name="remoteProcessGroupResource" ref="remoteProcessGroupResource"/>
+        <property name="connectionResource" ref="connectionResource"/>
+        <property name="templateResource" ref="templateResource"/>
+        <property name="controllerServiceResource" ref="controllerServiceResource"/>
+        <property name="processGroupResource" ref="processGroupResource"/>
     </bean>
     <bean id="resourceResource" class="org.apache.nifi.web.api.ResourceResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>

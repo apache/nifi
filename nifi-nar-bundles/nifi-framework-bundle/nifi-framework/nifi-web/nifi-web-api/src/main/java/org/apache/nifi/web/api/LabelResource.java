@@ -25,9 +25,9 @@ import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.LabelEntity;
@@ -74,6 +74,32 @@ public class LabelResource extends ApplicationResource {
     /**
      * Populates the uri for the specified labels.
      *
+     * @param labelEntities labels
+     * @return entites
+     */
+    public Set<LabelEntity> populateRemainingLabelEntitiesContent(Set<LabelEntity> labelEntities) {
+        for (LabelEntity labelEntity : labelEntities) {
+            populateRemainingLabelEntityContent(labelEntity);
+        }
+        return labelEntities;
+    }
+
+    /**
+     * Populates the uri for the specified labels.
+     *
+     * @param labelEntity label
+     * @return entities
+     */
+    public LabelEntity populateRemainingLabelEntityContent(LabelEntity labelEntity) {
+        if (labelEntity.getComponent() != null) {
+            populateRemainingLabelContent(labelEntity.getComponent());
+        }
+        return labelEntity;
+    }
+
+    /**
+     * Populates the uri for the specified labels.
+     *
      * @param labels labels
      * @return dtos
      */
@@ -96,7 +122,6 @@ public class LabelResource extends ApplicationResource {
     /**
      * Retrieves the specified label.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the label to retrieve
      * @return A labelEntity.
      */
@@ -125,11 +150,6 @@ public class LabelResource extends ApplicationResource {
     )
     public Response getLabel(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The label id.",
                     required = true
             )
@@ -141,16 +161,8 @@ public class LabelResource extends ApplicationResource {
         }
 
         // get the label
-        final LabelDTO label = serviceFacade.getLabel(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final LabelEntity entity = new LabelEntity();
-        entity.setRevision(revision);
-        entity.setLabel(populateRemainingLabelContent(label));
+        final LabelEntity entity = serviceFacade.getLabel(id);
+        populateRemainingLabelEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -196,7 +208,7 @@ public class LabelResource extends ApplicationResource {
                     required = true
             ) LabelEntity labelEntity) {
 
-        if (labelEntity == null || labelEntity.getLabel() == null) {
+        if (labelEntity == null || labelEntity.getComponent() == null) {
             throw new IllegalArgumentException("Label details must be specified.");
         }
 
@@ -205,7 +217,7 @@ public class LabelResource extends ApplicationResource {
         }
 
         // ensure the ids are the same
-        final LabelDTO requestLabelDTO = labelEntity.getLabel();
+        final LabelDTO requestLabelDTO = labelEntity.getComponent();
         if (!id.equals(requestLabelDTO.getId())) {
             throw new IllegalArgumentException(String.format("The label id (%s) in the request body does not equal the "
                     + "label id of the requested resource (%s).", requestLabelDTO.getId(), id));
@@ -229,25 +241,13 @@ public class LabelResource extends ApplicationResource {
 
         // update the label
         final RevisionDTO revision = labelEntity.getRevision();
-        final ConfigurationSnapshot<LabelDTO> controllerResponse = serviceFacade.updateLabel(
+        final UpdateResult<LabelEntity> result = serviceFacade.updateLabel(
                 new Revision(revision.getVersion(), revision.getClientId()), requestLabelDTO);
+        final LabelEntity entity = result.getResult();
+        populateRemainingLabelEntityContent(entity);
 
-        // get the results
-        final LabelDTO responseLabelDTO = controllerResponse.getConfiguration();
-        populateRemainingLabelContent(responseLabelDTO);
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final LabelEntity entity = new LabelEntity();
-        entity.setRevision(updatedRevision);
-        entity.setLabel(responseLabelDTO);
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responseLabelDTO.getUri()), entity)).build();
+        if (result.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }
@@ -319,17 +319,7 @@ public class LabelResource extends ApplicationResource {
         }
 
         // delete the specified label
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteLabel(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final LabelEntity entity = new LabelEntity();
-        entity.setRevision(revision);
-
+        final LabelEntity entity = serviceFacade.deleteLabel(new Revision(clientVersion, clientId.getClientId()), id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 

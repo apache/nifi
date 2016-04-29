@@ -32,8 +32,8 @@ nf.RemoteProcessGroupConfiguration = (function () {
 
                                 // create the remote process group details
                                 var remoteProcessGroupEntity = {
-                                    revision: nf.Client.getRevision(),
-                                    remoteProcessGroup: {
+                                    'revision': nf.Client.getRevision(),
+                                    'component': {
                                         id: remoteProcessGroupId,
                                         communicationsTimeout: $('#remote-process-group-timeout').val(),
                                         yieldDuration: $('#remote-process-group-yield-duration').val()
@@ -52,7 +52,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                     nf.Client.setRevision(response.revision);
                                     
                                     // refresh the remote process group component
-                                    nf.RemoteProcessGroup.set(response.remoteProcessGroup);
+                                    nf.RemoteProcessGroup.set(response);
 
                                     // close the details panel
                                     $('#remote-process-group-configuration').modal('hide');
@@ -113,7 +113,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
                 var selectionData = selection.datum();
 
                 // populate the port settings
-                $('#remote-process-group-id').text(selectionData.component.id);
+                $('#remote-process-group-id').text(selectionData.id);
                 $('#remote-process-group-name').text(selectionData.component.name);
                 $('#remote-process-group-url').text(selectionData.component.targetUri);
 

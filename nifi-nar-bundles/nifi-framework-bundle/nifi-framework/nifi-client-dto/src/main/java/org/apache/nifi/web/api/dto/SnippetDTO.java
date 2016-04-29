@@ -17,9 +17,10 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import javax.xml.bind.annotation.XmlType;
 import java.util.HashSet;
 import java.util.Set;
-import javax.xml.bind.annotation.XmlType;
 
 /**
  * The contents of a snippet of a flow.
@@ -41,8 +42,6 @@ public class SnippetDTO {
     private Set<String> connections = new HashSet<>();
     private Set<String> labels = new HashSet<>();
     private Set<String> funnels = new HashSet<>();
-
-    private FlowSnippetDTO contents;
 
     /**
      * @return id of this snippet
@@ -228,20 +227,6 @@ public class SnippetDTO {
 
     public void setRemoteProcessGroups(Set<String> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
-    }
-
-    /**
-     * @return the contents of the configuration for this snippet
-     */
-    @ApiModelProperty(
-            value = "The contents of the configuration for the snippet."
-    )
-    public FlowSnippetDTO getContents() {
-        return contents;
-    }
-
-    public void setContents(FlowSnippetDTO contents) {
-        this.contents = contents;
     }
 
 }

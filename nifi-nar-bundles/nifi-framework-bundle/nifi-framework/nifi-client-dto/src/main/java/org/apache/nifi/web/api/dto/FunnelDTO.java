@@ -22,7 +22,7 @@ import javax.xml.bind.annotation.XmlType;
  * Details of a funnel.
  */
 @XmlType(name = "funnel")
-public class FunnelDTO extends NiFiComponentDTO {
+public class FunnelDTO extends ComponentDTO {
 
     public FunnelDTO() {
     }

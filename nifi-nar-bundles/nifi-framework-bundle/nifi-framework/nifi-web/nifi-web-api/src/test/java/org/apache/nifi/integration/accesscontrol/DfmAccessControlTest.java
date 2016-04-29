@@ -20,19 +20,6 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.multipart.BodyPart;
 import com.sun.jersey.multipart.FormDataBodyPart;
 import com.sun.jersey.multipart.FormDataMultiPart;
-import java.io.File;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import javax.ws.rs.core.MediaType;
-import org.junit.Assert;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.integration.NiFiWebApiTest;
@@ -57,12 +44,11 @@ import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
-import org.apache.nifi.web.api.entity.InputPortEntity;
 import org.apache.nifi.web.api.entity.InputPortsEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.LabelsEntity;
-import org.apache.nifi.web.api.entity.OutputPortEntity;
 import org.apache.nifi.web.api.entity.OutputPortsEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PrioritizerTypesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
@@ -71,9 +57,23 @@ import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
 import org.apache.nifi.web.api.entity.ProcessorsEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import javax.ws.rs.core.MediaType;
+import java.io.File;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Access control test for the dfm user.
@@ -159,7 +159,7 @@ public class DfmAccessControlTest {
         Assert.assertNotNull(processGroupEntity);
 
         // extract the process group dto
-        ProcessGroupDTO processGroupDTO = processGroupEntity.getProcessGroup();
+        ProcessGroupDTO processGroupDTO = processGroupEntity.getComponent();
         FlowSnippetDTO processGroupContentsDTO = processGroupDTO.getContents();
 
         // verify graph
@@ -371,7 +371,7 @@ public class DfmAccessControlTest {
         // create the entity body
         ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
-        entity.setProcessGroup(processGroup);
+        entity.setComponent(processGroup);
 
         // perform the request
         ClientResponse response = DFM_USER.testPut(url + "/" + processGroup.getId(), entity);
@@ -401,7 +401,7 @@ public class DfmAccessControlTest {
         // create the entity body
         ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
-        entity.setProcessGroup(processGroup);
+        entity.setComponent(processGroup);
 
         // perform the request
         ClientResponse response = DFM_USER.testPut(url + "/" + processGroup.getId(), entity);
@@ -411,8 +411,8 @@ public class DfmAccessControlTest {
 
         // get the result
         entity = response.getEntity(ProcessGroupEntity.class);
-        Assert.assertNotNull(entity.getProcessGroup());
-        Assert.assertEquals("new group name", entity.getProcessGroup().getName());
+        Assert.assertNotNull(entity.getComponent());
+        Assert.assertEquals("new group name", entity.getComponent().getName());
     }
 
     /**
@@ -436,7 +436,7 @@ public class DfmAccessControlTest {
         // create the entity body
         ProcessorEntity entity = new ProcessorEntity();
         entity.setRevision(revision);
-        entity.setProcessor(processor);
+        entity.setComponent(processor);
 
         // perform the request
         ClientResponse response = DFM_USER.testPut(url + "/" + processor.getId(), entity);
@@ -466,7 +466,7 @@ public class DfmAccessControlTest {
         // create the entity body
         ProcessorEntity entity = new ProcessorEntity();
         entity.setRevision(revision);
-        entity.setProcessor(processor);
+        entity.setComponent(processor);
 
         // perform the request
         ClientResponse response = DFM_USER.testPut(url + "/" + processor.getId(), entity);
@@ -476,8 +476,8 @@ public class DfmAccessControlTest {
 
         // get the result
         entity = response.getEntity(ProcessorEntity.class);
-        Assert.assertNotNull(entity.getProcessor());
-        Assert.assertEquals("new processor name", entity.getProcessor().getName());
+        Assert.assertNotNull(entity.getComponent());
+        Assert.assertEquals("new processor name", entity.getComponent().getName());
     }
 
     /**
@@ -501,7 +501,7 @@ public class DfmAccessControlTest {
         // create the entity body
         ConnectionEntity entity = new ConnectionEntity();
         entity.setRevision(revision);
-        entity.setConnection(connection);
+        entity.setComponent(connection);
 
         // perform the request
         ClientResponse response = DFM_USER.testPut(url + "/" + connection.getId(), entity);
@@ -531,7 +531,7 @@ public class DfmAccessControlTest {
         // create the entity body
         LabelEntity entity = new LabelEntity();
         entity.setRevision(revision);
-        entity.setLabel(label);
+        entity.setComponent(label);
 
         // perform the request
         ClientResponse response = DFM_USER.testPut(url + "/" + label.getId(), entity);
@@ -541,8 +541,8 @@ public class DfmAccessControlTest {
 
         // get the result
         entity = response.getEntity(LabelEntity.class);
-        Assert.assertNotNull(entity.getLabel());
-        Assert.assertEquals("new label", entity.getLabel().getLabel());
+        Assert.assertNotNull(entity.getComponent());
+        Assert.assertEquals("new label", entity.getComponent().getLabel());
     }
 
     /**
@@ -564,9 +564,9 @@ public class DfmAccessControlTest {
         revision.setVersion(NiFiTestUser.REVISION);
 
         // create the entity body
-        InputPortEntity entity = new InputPortEntity();
+        PortEntity entity = new PortEntity();
         entity.setRevision(revision);
-        entity.setInputPort(inputPort);
+        entity.setComponent(inputPort);
 
         // perform the request
         ClientResponse response = DFM_USER.testPut(url + "/" + inputPort.getId(), entity);
@@ -575,9 +575,9 @@ public class DfmAccessControlTest {
         Assert.assertEquals(200, response.getStatus());
 
         // get the result
-        entity = response.getEntity(InputPortEntity.class);
-        Assert.assertNotNull(entity.getInputPort());
-        Assert.assertEquals("new input port name", entity.getInputPort().getName());
+        entity = response.getEntity(PortEntity.class);
+        Assert.assertNotNull(entity.getComponent());
+        Assert.assertEquals("new input port name", entity.getComponent().getName());
     }
 
     /**
@@ -599,9 +599,9 @@ public class DfmAccessControlTest {
         revision.setVersion(NiFiTestUser.REVISION);
 
         // create the entity body
-        OutputPortEntity entity = new OutputPortEntity();
+        PortEntity entity = new PortEntity();
         entity.setRevision(revision);
-        entity.setOutputPort(outputPort);
+        entity.setComponent(outputPort);
 
         // perform the request
         ClientResponse response = DFM_USER.testPut(url + "/" + outputPort.getId(), entity);
@@ -610,9 +610,9 @@ public class DfmAccessControlTest {
         Assert.assertEquals(200, response.getStatus());
 
         // get the result
-        entity = response.getEntity(OutputPortEntity.class);
-        Assert.assertNotNull(entity.getOutputPort());
-        Assert.assertEquals("new output port name", entity.getOutputPort().getName());
+        entity = response.getEntity(PortEntity.class);
+        Assert.assertNotNull(entity.getComponent());
+        Assert.assertEquals("new output port name", entity.getComponent().getName());
     }
 
     // ----------------------------------------------
@@ -761,15 +761,15 @@ public class DfmAccessControlTest {
 
         // get the process group dtos
         ProcessGroupsEntity processGroupEntity = response.getEntity(ProcessGroupsEntity.class);
-        Collection<ProcessGroupDTO> processGroups = processGroupEntity.getProcessGroups();
+        Collection<ProcessGroupEntity> processGroups = processGroupEntity.getProcessGroups();
 
         // ensure the correct number of processor groups
         Assert.assertFalse(processGroups.isEmpty());
 
         // use the first process group as the target
-        Iterator<ProcessGroupDTO> processorIter = processGroups.iterator();
+        Iterator<ProcessGroupEntity> processorIter = processGroups.iterator();
         Assert.assertTrue(processorIter.hasNext());
-        return processorIter.next();
+        return processorIter.next().getComponent();
     }
 
     private ProcessorDTO getRandomProcessor() throws Exception {
@@ -783,15 +783,15 @@ public class DfmAccessControlTest {
 
         // get the processor dtos
         ProcessorsEntity processorsEntity = response.getEntity(ProcessorsEntity.class);
-        Collection<ProcessorDTO> processors = processorsEntity.getProcessors();
+        Collection<ProcessorEntity> processors = processorsEntity.getProcessors();
 
         // ensure the correct number of processors
         Assert.assertFalse(processors.isEmpty());
 
         // use the first processor as the target
-        Iterator<ProcessorDTO> processorIter = processors.iterator();
+        Iterator<ProcessorEntity> processorIter = processors.iterator();
         Assert.assertTrue(processorIter.hasNext());
-        return processorIter.next();
+        return processorIter.next().getComponent();
     }
 
     private ConnectionDTO getRandomConnection() throws Exception {
@@ -805,15 +805,15 @@ public class DfmAccessControlTest {
 
         // get the connection dtos
         ConnectionsEntity connectionEntity = response.getEntity(ConnectionsEntity.class);
-        Collection<ConnectionDTO> connections = connectionEntity.getConnections();
+        Collection<ConnectionEntity> connections = connectionEntity.getConnections();
 
         // ensure the correct number of connections
         Assert.assertFalse(connections.isEmpty());
 
         // use the first connection as the target
-        Iterator<ConnectionDTO> connectionIter = connections.iterator();
+        Iterator<ConnectionEntity> connectionIter = connections.iterator();
         Assert.assertTrue(connectionIter.hasNext());
-        return connectionIter.next();
+        return connectionIter.next().getComponent();
     }
 
     private LabelDTO getRandomLabel() throws Exception {
@@ -827,15 +827,15 @@ public class DfmAccessControlTest {
 
         // get the label dtos
         LabelsEntity labelEntity = response.getEntity(LabelsEntity.class);
-        Collection<LabelDTO> labels = labelEntity.getLabels();
+        Collection<LabelEntity> labels = labelEntity.getLabels();
 
         // ensure the correct number of labels
         Assert.assertFalse(labels.isEmpty());
 
         // use the first label as the target
-        Iterator<LabelDTO> labelIter = labels.iterator();
+        Iterator<LabelEntity> labelIter = labels.iterator();
         Assert.assertTrue(labelIter.hasNext());
-        return labelIter.next();
+        return labelIter.next().getComponent();
     }
 
     private PortDTO getRandomInputPort() throws Exception {
@@ -849,15 +849,15 @@ public class DfmAccessControlTest {
 
         // get the port dtos
         InputPortsEntity inputPortsEntity = response.getEntity(InputPortsEntity.class);
-        Collection<PortDTO> inputPorts = inputPortsEntity.getInputPorts();
+        Collection<PortEntity> inputPorts = inputPortsEntity.getInputPorts();
 
         // ensure the correct number of ports
         Assert.assertFalse(inputPorts.isEmpty());
 
         // use the first port as the target
-        Iterator<PortDTO> inputPortsIter = inputPorts.iterator();
+        Iterator<PortEntity> inputPortsIter = inputPorts.iterator();
         Assert.assertTrue(inputPortsIter.hasNext());
-        return inputPortsIter.next();
+        return inputPortsIter.next().getComponent();
     }
 
     private PortDTO getRandomOutputPort() throws Exception {
@@ -871,15 +871,15 @@ public class DfmAccessControlTest {
 
         // get the port dtos
         OutputPortsEntity outputPortsEntity = response.getEntity(OutputPortsEntity.class);
-        Collection<PortDTO> outputPorts = outputPortsEntity.getOutputPorts();
+        Collection<PortEntity> outputPorts = outputPortsEntity.getOutputPorts();
 
         // ensure the correct number of ports
         Assert.assertFalse(outputPorts.isEmpty());
 
         // use the first port as the target
-        Iterator<PortDTO> inputPortsIter = outputPorts.iterator();
+        Iterator<PortEntity> inputPortsIter = outputPorts.iterator();
         Assert.assertTrue(inputPortsIter.hasNext());
-        return inputPortsIter.next();
+        return inputPortsIter.next().getComponent();
     }
 
     // ----------------------------------------------
@@ -900,7 +900,7 @@ public class DfmAccessControlTest {
         // create the entity body
         ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
-        entity.setProcessGroup(processGroup);
+        entity.setComponent(processGroup);
 
         // perform the request
         ClientResponse response = DFM_USER.testPost(url, entity);
@@ -912,7 +912,7 @@ public class DfmAccessControlTest {
         entity = response.getEntity(ProcessGroupEntity.class);
 
         // verify creation
-        processGroup = entity.getProcessGroup();
+        processGroup = entity.getComponent();
         Assert.assertEquals("Group1", processGroup.getName());
 
         // get the process group
@@ -932,9 +932,9 @@ public class DfmAccessControlTest {
         revision.setVersion(NiFiTestUser.REVISION);
 
         // create the entity body
-        InputPortEntity entity = new InputPortEntity();
+        PortEntity entity = new PortEntity();
         entity.setRevision(revision);
-        entity.setInputPort(portDTO);
+        entity.setComponent(portDTO);
 
         // perform the request
         ClientResponse response = DFM_USER.testPost(url, entity);
@@ -943,10 +943,10 @@ public class DfmAccessControlTest {
         Assert.assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(InputPortEntity.class);
+        entity = response.getEntity(PortEntity.class);
 
         // verify creation
-        portDTO = entity.getInputPort();
+        portDTO = entity.getComponent();
         Assert.assertEquals("Input Port", portDTO.getName());
 
         // get the process group
@@ -966,9 +966,9 @@ public class DfmAccessControlTest {
         revision.setVersion(NiFiTestUser.REVISION);
 
         // create the entity body
-        OutputPortEntity entity = new OutputPortEntity();
+        PortEntity entity = new PortEntity();
         entity.setRevision(revision);
-        entity.setOutputPort(portDTO);
+        entity.setComponent(portDTO);
 
         // perform the request
         ClientResponse response = DFM_USER.testPost(url, entity);
@@ -977,10 +977,10 @@ public class DfmAccessControlTest {
         Assert.assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(OutputPortEntity.class);
+        entity = response.getEntity(PortEntity.class);
 
         // verify creation
-        portDTO = entity.getOutputPort();
+        portDTO = entity.getComponent();
         Assert.assertEquals("Output Port", portDTO.getName());
 
         // get the process group
@@ -1003,7 +1003,7 @@ public class DfmAccessControlTest {
         // create the entity body
         ProcessorEntity entity = new ProcessorEntity();
         entity.setRevision(revision);
-        entity.setProcessor(processor);
+        entity.setComponent(processor);
 
         // perform the request
         ClientResponse response = DFM_USER.testPost(url, entity);
@@ -1015,7 +1015,7 @@ public class DfmAccessControlTest {
         entity = response.getEntity(ProcessorEntity.class);
 
         // verify creation
-        processor = entity.getProcessor();
+        processor = entity.getComponent();
         Assert.assertEquals("Copy", processor.getName());
         Assert.assertEquals("org.apache.nifi.integration.util.SourceTestProcessor", processor.getType());
 
@@ -1054,7 +1054,7 @@ public class DfmAccessControlTest {
         // create the entity body
         ConnectionEntity entity = new ConnectionEntity();
         entity.setRevision(revision);
-        entity.setConnection(connection);
+        entity.setComponent(connection);
 
         // perform the request
         ClientResponse response = DFM_USER.testPost(url, entity);
@@ -1066,7 +1066,7 @@ public class DfmAccessControlTest {
         entity = response.getEntity(ConnectionEntity.class);
 
         // verify the results
-        connection = entity.getConnection();
+        connection = entity.getComponent();
         Assert.assertEquals(sourceId, connection.getSource().getId());
         Assert.assertEquals(targetId, connection.getDestination().getId());
         Assert.assertEquals(1, connection.getSelectedRelationships().size());
@@ -1091,7 +1091,7 @@ public class DfmAccessControlTest {
         // create the entity body
         LabelEntity entity = new LabelEntity();
         entity.setRevision(revision);
-        entity.setLabel(label);
+        entity.setComponent(label);
 
         // perform the request
         ClientResponse response = DFM_USER.testPost(url, entity);
@@ -1103,7 +1103,7 @@ public class DfmAccessControlTest {
         entity = response.getEntity(LabelEntity.class);
 
         // verify the results
-        label = entity.getLabel();
+        label = entity.getComponent();
         Assert.assertEquals("Label2", label.getLabel());
 
         // get the label id

@@ -25,7 +25,7 @@ import javax.xml.bind.annotation.XmlType;
  * A connection between two connectable components.
  */
 @XmlType(name = "connection")
-public class ConnectionDTO extends NiFiComponentDTO {
+public class ConnectionDTO extends ComponentDTO {
 
     private ConnectableDTO source;
     private ConnectableDTO destination;

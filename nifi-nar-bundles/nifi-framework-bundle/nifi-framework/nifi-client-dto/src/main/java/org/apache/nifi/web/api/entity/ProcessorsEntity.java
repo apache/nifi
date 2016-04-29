@@ -16,27 +16,25 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of ProcessorDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of ProcessorEntity's.
  */
 @XmlRootElement(name = "processorsEntity")
 public class ProcessorsEntity extends Entity {
 
-    private Set<ProcessorDTO> processors;
+    private Set<ProcessorEntity> processors;
 
     /**
-     * @return collection of ProcessorDTOs that are being serialized
+     * @return collection of ProcessorEntity's that are being serialized
      */
-    public Set<ProcessorDTO> getProcessors() {
+    public Set<ProcessorEntity> getProcessors() {
         return processors;
     }
 
-    public void setProcessors(Set<ProcessorDTO> processors) {
+    public void setProcessors(Set<ProcessorEntity> processors) {
         this.processors = processors;
     }
 

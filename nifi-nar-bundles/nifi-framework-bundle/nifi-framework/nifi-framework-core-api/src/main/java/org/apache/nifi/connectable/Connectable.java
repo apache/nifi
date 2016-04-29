@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.groups.ProcessGroup;
@@ -31,7 +32,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 /**
  * Represents a connectable component to which or from which data can flow.
  */
-public interface Connectable extends Triggerable {
+public interface Connectable extends Triggerable, Authorizable {
 
     /**
      * @return the unique identifier for this <code>Connectable</code>

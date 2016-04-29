@@ -23,21 +23,21 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupDTO.
  */
 @XmlRootElement(name = "remoteProcessGroupEntity")
-public class RemoteProcessGroupEntity extends Entity {
+public class RemoteProcessGroupEntity extends ComponentEntity {
 
-    private RemoteProcessGroupDTO remoteProcessGroup;
+    private RemoteProcessGroupDTO component;
 
     /**
      * The RemoteProcessGroupDTO that is being serialized.
      *
      * @return The RemoteProcessGroupDTO object
      */
-    public RemoteProcessGroupDTO getRemoteProcessGroup() {
-        return remoteProcessGroup;
+    public RemoteProcessGroupDTO getComponent() {
+        return component;
     }
 
-    public void setRemoteProcessGroup(RemoteProcessGroupDTO remoteProcessGroup) {
-        this.remoteProcessGroup = remoteProcessGroup;
+    public void setComponent(RemoteProcessGroupDTO component) {
+        this.component = component;
     }
 
 }

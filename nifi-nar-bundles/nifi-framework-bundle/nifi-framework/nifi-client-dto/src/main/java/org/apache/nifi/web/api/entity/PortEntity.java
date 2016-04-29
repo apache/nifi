@@ -16,26 +16,35 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.PortDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to an input PortDTO.
  */
-@XmlRootElement(name = "inputPortEntity")
-public class InputPortEntity extends Entity {
+@XmlRootElement(name = "portEntity")
+public class PortEntity extends ComponentEntity {
 
-    private PortDTO inputPort;
+    private PortDTO component;
+    private String portType;
 
     /**
      * @return input PortDTO that are being serialized
      */
-    public PortDTO getInputPort() {
-        return inputPort;
+    public PortDTO getComponent() {
+        return component;
     }
 
-    public void setInputPort(PortDTO inputPort) {
-        this.inputPort = inputPort;
+    public void setComponent(PortDTO component) {
+        this.component = component;
     }
 
+    public String getPortType() {
+        return portType;
+    }
+
+    public void setPortType(String portType) {
+        this.portType = portType;
+    }
 }

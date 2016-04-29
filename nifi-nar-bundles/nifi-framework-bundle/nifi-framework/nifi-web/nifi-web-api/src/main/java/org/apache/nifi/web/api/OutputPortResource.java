@@ -25,12 +25,12 @@ import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.OutputPortEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
@@ -74,6 +74,32 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Populates the uri for the specified output ports.
      *
+     * @param outputPortEntities ports
+     * @return dtos
+     */
+    public Set<PortEntity> populateRemainingOutputPortEntitiesContent(Set<PortEntity> outputPortEntities) {
+        for (PortEntity outputPortEntity : outputPortEntities) {
+            populateRemainingOutputPortEntityContent(outputPortEntity);
+        }
+        return outputPortEntities;
+    }
+
+    /**
+     * Populates the uri for the specified output ports.
+     *
+     * @param outputPortEntity ports
+     * @return dtos
+     */
+    public PortEntity populateRemainingOutputPortEntityContent(PortEntity outputPortEntity) {
+        if (outputPortEntity.getComponent() != null) {
+            populateRemainingOutputPortContent(outputPortEntity.getComponent());
+        }
+        return outputPortEntity;
+    }
+
+    /**
+     * Populates the uri for the specified output ports.
+     *
      * @param outputPorts ports
      * @return dtos
      */
@@ -96,7 +122,6 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Retrieves the specified output port.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the output port to retrieve
      * @return A outputPortEntity.
      */
@@ -107,7 +132,7 @@ public class OutputPortResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets an output port",
-            response = OutputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
@@ -125,11 +150,6 @@ public class OutputPortResource extends ApplicationResource {
     )
     public Response getOutputPort(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The output port id.",
                     required = true
             )
@@ -141,16 +161,8 @@ public class OutputPortResource extends ApplicationResource {
         }
 
         // get the port
-        final PortDTO port = serviceFacade.getOutputPort(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final OutputPortEntity entity = new OutputPortEntity();
-        entity.setRevision(revision);
-        entity.setOutputPort(populateRemainingOutputPortContent(port));
+        final PortEntity entity = serviceFacade.getOutputPort(id);
+        populateRemainingOutputPortEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -170,7 +182,7 @@ public class OutputPortResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates an output port",
-            response = OutputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
             }
@@ -194,9 +206,9 @@ public class OutputPortResource extends ApplicationResource {
             @ApiParam(
                     value = "The output port configuration details.",
                     required = true
-            ) OutputPortEntity portEntity) {
+            ) PortEntity portEntity) {
 
-        if (portEntity == null || portEntity.getOutputPort() == null) {
+        if (portEntity == null || portEntity.getComponent() == null) {
             throw new IllegalArgumentException("Output port details must be specified.");
         }
 
@@ -205,7 +217,7 @@ public class OutputPortResource extends ApplicationResource {
         }
 
         // ensure the ids are the same
-        PortDTO requestPortDTO = portEntity.getOutputPort();
+        PortDTO requestPortDTO = portEntity.getComponent();
         if (!id.equals(requestPortDTO.getId())) {
             throw new IllegalArgumentException(String.format("The output port id (%s) in the request body does not equal the "
                     + "output port id of the requested resource (%s).", requestPortDTO.getId(), id));
@@ -230,25 +242,15 @@ public class OutputPortResource extends ApplicationResource {
 
         // update the output port
         final RevisionDTO revision = portEntity.getRevision();
-        final ConfigurationSnapshot<PortDTO> controllerResponse = serviceFacade.updateOutputPort(
+        final UpdateResult<PortEntity> updateResult = serviceFacade.updateOutputPort(
                 new Revision(revision.getVersion(), revision.getClientId()), requestPortDTO);
 
         // get the results
-        final PortDTO responsePortDTO = controllerResponse.getConfiguration();
-        populateRemainingOutputPortContent(responsePortDTO);
+        final PortEntity entity = updateResult.getResult();
+        populateRemainingOutputPortEntityContent(entity);
 
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final OutputPortEntity entity = new OutputPortEntity();
-        entity.setRevision(updatedRevision);
-        entity.setOutputPort(responsePortDTO);
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responsePortDTO.getUri()), entity)).build();
+        if (updateResult.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }
@@ -270,7 +272,7 @@ public class OutputPortResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes an output port",
-            response = OutputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
             }
@@ -321,17 +323,7 @@ public class OutputPortResource extends ApplicationResource {
         }
 
         // delete the specified output port
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteOutputPort(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final OutputPortEntity entity = new OutputPortEntity();
-        entity.setRevision(revision);
-
+        final PortEntity entity = serviceFacade.deleteOutputPort(new Revision(clientVersion, clientId.getClientId()), id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 

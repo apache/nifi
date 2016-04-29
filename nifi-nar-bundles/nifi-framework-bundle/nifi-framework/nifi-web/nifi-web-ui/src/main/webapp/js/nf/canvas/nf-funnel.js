@@ -45,7 +45,7 @@ nf.Funnel = (function () {
      */
     var select = function () {
         return funnelContainer.selectAll('g.funnel').data(funnelMap.values(), function (d) {
-            return d.component.id;
+            return d.id;
         });
     };
 
@@ -63,7 +63,7 @@ nf.Funnel = (function () {
         var funnel = entered.append('g')
                 .attr({
                     'id': function (d) {
-                        return 'id-' + d.component.id;
+                        return 'id-' + d.id;
                     },
                     'class': 'funnel component'
                 })
@@ -100,9 +100,9 @@ nf.Funnel = (function () {
         funnel.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
 
         // only support dragging and connecting when appropriate
-        if (nf.Common.isDFM()) {
-            funnel.call(nf.Draggable.activate).call(nf.Connectable.activate);
-        }
+        funnel.filter(function (d) {
+            return d.accessPolicy.canWrite && d.accessPolicy.canRead;
+        }).call(nf.Draggable.activate).call(nf.Connectable.activate);
 
         return funnel;
     };
@@ -142,28 +142,27 @@ nf.Funnel = (function () {
         /**
          * Populates the graph with the specified funnels.
          * 
-         * @argument {object | array} funnels                    The funnels to add
+         * @argument {object | array} funnelEntities                    The funnels to add
          * @argument {boolean} selectAll                Whether or not to select the new contents
          */
-        add: function (funnels, selectAll) {
+        add: function (funnelEntities, selectAll) {
             selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
 
-            var add = function (funnel) {
+            var add = function (funnelEntity) {
                 // add the funnel
-                funnelMap.set(funnel.id, {
+                funnelMap.set(funnelEntity.id, $.extend({
                     type: 'Funnel',
-                    component: funnel,
                     dimensions: dimensions
-                });
+                }, funnelEntity));
             };
 
             // determine how to handle the specified funnel status
-            if ($.isArray(funnels)) {
-                $.each(funnels, function (_, funnel) {
-                    add(funnel);
+            if ($.isArray(funnelEntities)) {
+                $.each(funnelEntities, function (_, funnelEntity) {
+                    add(funnelEntity);
                 });
             } else {
-                add(funnels);
+                add(funnelEntities);
             }
 
             // apply the selection and handle all new processors
@@ -211,7 +210,7 @@ nf.Funnel = (function () {
                     url: funnel.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    nf.Funnel.set(response.funnel);
+                    nf.Funnel.set(response);
                 });
             }
         },
@@ -230,35 +229,28 @@ nf.Funnel = (function () {
          * will set each funnel. If it is not an array, it will 
          * attempt to set the specified funnel.
          * 
-         * @param {object | array} funnels
+         * @param {object | array} funnelEntities
          */
-        set: function (funnels) {
-            var set = function (funnel) {
-                if (funnelMap.has(funnel.id)) {
+        set: function (funnelEntities) {
+            var set = function (funnelEntity) {
+                if (funnelMap.has(funnelEntity.id)) {
                     // update the current entry
-                    var funnelEntry = funnelMap.get(funnel.id);
-                    funnelEntry.component = funnel;
-
+                    var funnelEntry = funnelMap.get(funnelEntity.id);
+                    $.extend(funnelEntry, funnelEntity);
+                    
                     // update the connection in the UI
-                    d3.select('#id-' + funnel.id).call(updateFunnels);
+                    d3.select('#id-' + funnelEntity.id).call(updateFunnels);
                 }
             };
 
             // determine how to handle the specified funnel status
-            if ($.isArray(funnels)) {
-                $.each(funnels, function (_, funnel) {
-                    set(funnel);
+            if ($.isArray(funnelEntities)) {
+                $.each(funnelEntities, function (_, funnelEntity) {
+                    set(funnelEntity);
                 });
             } else {
-                set(funnels);
+                set(funnelEntities);
             }
-        },
-
-        /**
-         * Returns the entity key when marshalling an entity of this type.
-         */
-        getEntityKey: function (d) {
-            return 'funnel';
         },
 
         /**

@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlType;
  * Component that is capable of reporting internal NiFi state to an external service
  */
 @XmlType(name = "reportingTask")
-public class ReportingTaskDTO extends NiFiComponentDTO {
+public class ReportingTaskDTO extends ComponentDTO {
 
     private String name;
     private String type;

@@ -3071,7 +3071,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         if (hasSuccessfulClientResponse && isProcessorEndpoint(uri, method)) {
             final ProcessorEntity responseEntity = clientResponse.getClientResponse().getEntity(ProcessorEntity.class);
-            final ProcessorDTO processor = responseEntity.getProcessor();
+            final ProcessorDTO processor = responseEntity.getComponent();
 
             final Map<NodeIdentifier, ProcessorDTO> processorMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
@@ -3080,7 +3080,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
 
                 final ProcessorEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorEntity.class);
-                final ProcessorDTO nodeProcessor = nodeResponseEntity.getProcessor();
+                final ProcessorDTO nodeProcessor = nodeResponseEntity.getComponent();
                 processorMap.put(nodeResponse.getNodeId(), nodeProcessor);
             }
 
@@ -3088,7 +3088,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             clientResponse = new NodeResponse(clientResponse, responseEntity);
         } else if (hasSuccessfulClientResponse && isProcessorsEndpoint(uri, method)) {
             final ProcessorsEntity responseEntity = clientResponse.getClientResponse().getEntity(ProcessorsEntity.class);
-            final Set<ProcessorDTO> processors = responseEntity.getProcessors();
+            final Set<ProcessorEntity> processors = responseEntity.getProcessors();
 
             final Map<String, Map<NodeIdentifier, ProcessorDTO>> processorMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
@@ -3097,31 +3097,31 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
 
                 final ProcessorsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorsEntity.class);
-                final Set<ProcessorDTO> nodeProcessors = nodeResponseEntity.getProcessors();
+                final Set<ProcessorEntity> nodeProcessors = nodeResponseEntity.getProcessors();
 
-                for (final ProcessorDTO nodeProcessor : nodeProcessors) {
-                    Map<NodeIdentifier, ProcessorDTO> innerMap = processorMap.get(nodeProcessor.getId());
+                for (final ProcessorEntity nodeProcessor : nodeProcessors) {
+                    Map<NodeIdentifier, ProcessorDTO> innerMap = processorMap.get(nodeProcessor.getComponent().getId());
                     if (innerMap == null) {
                         innerMap = new HashMap<>();
-                        processorMap.put(nodeProcessor.getId(), innerMap);
+                        processorMap.put(nodeProcessor.getComponent().getId(), innerMap);
                     }
 
-                    innerMap.put(nodeResponse.getNodeId(), nodeProcessor);
+                    innerMap.put(nodeResponse.getNodeId(), nodeProcessor.getComponent());
                 }
             }
 
-            for (final ProcessorDTO processor : processors) {
-                final String procId = processor.getId();
+            for (final ProcessorEntity processor : processors) {
+                final String procId = processor.getComponent().getId();
                 final Map<NodeIdentifier, ProcessorDTO> mergeMap = processorMap.get(procId);
 
-                mergeProcessorValidationErrors(processor, mergeMap);
+                mergeProcessorValidationErrors(processor.getComponent(), mergeMap);
             }
 
             // create a new client response
             clientResponse = new NodeResponse(clientResponse, responseEntity);
         } else if (hasSuccessfulClientResponse && isProcessGroupEndpoint(uri, method)) {
             final ProcessGroupEntity responseEntity = clientResponse.getClientResponse().getEntity(ProcessGroupEntity.class);
-            final ProcessGroupDTO responseDto = responseEntity.getProcessGroup();
+            final ProcessGroupDTO responseDto = responseEntity.getComponent();
 
             final FlowSnippetDTO contents = responseDto.getContents();
             if (contents == null) {
@@ -3138,7 +3138,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     }
 
                     final ProcessGroupEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessGroupEntity.class);
-                    final ProcessGroupDTO nodeProcessGroup = nodeResponseEntity.getProcessGroup();
+                    final ProcessGroupDTO nodeProcessGroup = nodeResponseEntity.getComponent();
 
                     for (final ProcessorDTO nodeProcessor : nodeProcessGroup.getContents().getProcessors()) {
                         Map<NodeIdentifier, ProcessorDTO> innerMap = processorMap.get(nodeProcessor.getId());
@@ -3242,7 +3242,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             clientResponse = new NodeResponse(clientResponse, responseEntity);
         } else if (hasSuccessfulClientResponse && isRemoteProcessGroupEndpoint(uri, method)) {
             final RemoteProcessGroupEntity responseEntity = clientResponse.getClientResponse().getEntity(RemoteProcessGroupEntity.class);
-            final RemoteProcessGroupDTO remoteProcessGroup = responseEntity.getRemoteProcessGroup();
+            final RemoteProcessGroupDTO remoteProcessGroup = responseEntity.getComponent();
 
             final Map<NodeIdentifier, RemoteProcessGroupDTO> remoteProcessGroupMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
@@ -3251,7 +3251,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
 
                 final RemoteProcessGroupEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupEntity.class);
-                final RemoteProcessGroupDTO nodeRemoteProcessGroup = nodeResponseEntity.getRemoteProcessGroup();
+                final RemoteProcessGroupDTO nodeRemoteProcessGroup = nodeResponseEntity.getComponent();
 
                 remoteProcessGroupMap.put(nodeResponse.getNodeId(), nodeRemoteProcessGroup);
             }
@@ -3260,7 +3260,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             clientResponse = new NodeResponse(clientResponse, responseEntity);
         } else if (hasSuccessfulClientResponse && isRemoteProcessGroupsEndpoint(uri, method)) {
             final RemoteProcessGroupsEntity responseEntity = clientResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
-            final Set<RemoteProcessGroupDTO> remoteProcessGroups = responseEntity.getRemoteProcessGroups();
+            final Set<RemoteProcessGroupEntity> remoteProcessGroups = responseEntity.getRemoteProcessGroups();
 
             final Map<String, Map<NodeIdentifier, RemoteProcessGroupDTO>> remoteProcessGroupMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
@@ -3269,24 +3269,24 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
 
                 final RemoteProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
-                final Set<RemoteProcessGroupDTO> nodeRemoteProcessGroups = nodeResponseEntity.getRemoteProcessGroups();
+                final Set<RemoteProcessGroupEntity> nodeRemoteProcessGroups = nodeResponseEntity.getRemoteProcessGroups();
 
-                for (final RemoteProcessGroupDTO nodeRemoteProcessGroup : nodeRemoteProcessGroups) {
+                for (final RemoteProcessGroupEntity nodeRemoteProcessGroup : nodeRemoteProcessGroups) {
                     Map<NodeIdentifier, RemoteProcessGroupDTO> innerMap = remoteProcessGroupMap.get(nodeRemoteProcessGroup.getId());
                     if (innerMap == null) {
                         innerMap = new HashMap<>();
                         remoteProcessGroupMap.put(nodeRemoteProcessGroup.getId(), innerMap);
                     }
 
-                    innerMap.put(nodeResponse.getNodeId(), nodeRemoteProcessGroup);
+                    innerMap.put(nodeResponse.getNodeId(), nodeRemoteProcessGroup.getComponent());
                 }
             }
 
-            for (final RemoteProcessGroupDTO remoteProcessGroup : remoteProcessGroups) {
+            for (final RemoteProcessGroupEntity remoteProcessGroup : remoteProcessGroups) {
                 final String remoteProcessGroupId = remoteProcessGroup.getId();
                 final Map<NodeIdentifier, RemoteProcessGroupDTO> mergeMap = remoteProcessGroupMap.get(remoteProcessGroupId);
 
-                mergeRemoteProcessGroup(remoteProcessGroup, mergeMap);
+                mergeRemoteProcessGroup(remoteProcessGroup.getComponent(), mergeMap);
             }
 
             // create a new client response

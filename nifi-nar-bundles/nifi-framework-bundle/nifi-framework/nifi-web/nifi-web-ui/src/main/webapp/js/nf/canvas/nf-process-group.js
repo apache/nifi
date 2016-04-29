@@ -59,9 +59,7 @@ nf.ProcessGroup = (function () {
      * Selects the process group elements against the current process group map.
      */
     var select = function () {
-        return processGroupContainer.selectAll('g.process-group').data(processGroupMap.values(), function (d) {
-            return d.component.id;
-        });
+        return processGroupContainer.selectAll('g.process-group').data(processGroupMap.values());
     };
 
     /**
@@ -78,7 +76,7 @@ nf.ProcessGroup = (function () {
         var processGroup = entered.append('g')
                 .attr({
                     'id': function (d) {
-                        return 'id-' + d.component.id;
+                        return 'id-' + d.id;
                     },
                     'class': 'process-group component'
                 })
@@ -152,45 +150,48 @@ nf.ProcessGroup = (function () {
         // always support selecting and navigation
         processGroup.on('dblclick', function (d) {
                     // enter this group on double click
-                    nf.CanvasUtils.enterGroup(d.component.id);
+                    nf.CanvasUtils.enterGroup(d.id);
                 })
                 .call(nf.Selectable.activate).call(nf.ContextMenu.activate);
 
         // only support dragging, connection, and drag and drop if appropriate
         if (nf.Common.isDFM()) {
-            processGroup
-                    // Using mouseover/out to workaround chrome issue #122746
-                    .on('mouseover.drop', function (d) {
-                        // get the target and ensure its not already been marked for drop
-                        var target = d3.select(this);
-                        if (!target.classed('drop')) {
-                            var targetData = target.datum();
-                            
-                            // see if there is a selection being dragged
-                            var drag = d3.select('rect.drag-selection');
-                            if (!drag.empty()) {
-                                // filter the current selection by this group
-                                var selection = nf.CanvasUtils.getSelection().filter(function(d) {
-                                    return targetData.component.id === d.component.id;
-                                });
-                                
-                                // ensure this group isn't in the selection
-                                if (selection.empty()) {
-                                    // mark that we are hovering over a drop area if appropriate 
-                                    target.classed('drop', function () {
-                                        // get the current selection and ensure its disconnected
-                                        return nf.CanvasUtils.isDisconnected(nf.CanvasUtils.getSelection());
-                                    });
-                                }
-                            }
+            processGroup.filter(function (d) {
+                return d.accessPolicy.canWrite && d.accessPolicy.canRead;
+            })
+            .on('mouseover.drop', function (d) {
+                // Using mouseover/out to workaround chrome issue #122746
+
+                // get the target and ensure its not already been marked for drop
+                var target = d3.select(this);
+                if (!target.classed('drop')) {
+                    var targetData = target.datum();
+
+                    // see if there is a selection being dragged
+                    var drag = d3.select('rect.drag-selection');
+                    if (!drag.empty()) {
+                        // filter the current selection by this group
+                        var selection = nf.CanvasUtils.getSelection().filter(function(d) {
+                            return targetData.id === d.id;
+                        });
+
+                        // ensure this group isn't in the selection
+                        if (selection.empty()) {
+                            // mark that we are hovering over a drop area if appropriate
+                            target.classed('drop', function () {
+                                // get the current selection and ensure its disconnected
+                                return nf.CanvasUtils.isDisconnected(nf.CanvasUtils.getSelection());
+                            });
                         }
-                    })
-                    .on('mouseout.drop', function (d) {
-                        // mark that we are no longer hovering over a drop area unconditionally
-                        d3.select(this).classed('drop', false);
-                    })
-                    .call(nf.Draggable.activate)
-                    .call(nf.Connectable.activate);
+                    }
+                }
+            })
+            .on('mouseout.drop', function (d) {
+                // mark that we are no longer hovering over a drop area unconditionally
+                d3.select(this).classed('drop', false);
+            })
+            .call(nf.Draggable.activate)
+            .call(nf.Connectable.activate);
         }
 
         // call update to trigger some rendering
@@ -210,7 +211,7 @@ nf.ProcessGroup = (function () {
             return;
         }
 
-        updated.each(function () {
+        updated.each(function (processGroupData) {
             var processGroup = d3.select(this);
             var details = processGroup.select('g.process-group-details');
 
@@ -261,150 +262,152 @@ nf.ProcessGroup = (function () {
                     // contents
                     // --------
 
-                    // input ports icon
-                    details.append('image')
-                            .call(nf.CanvasUtils.disableImageHref)
-                            .attr({
-                                'xlink:href': 'images/iconInputPortSmall.png',
-                                'width': 16,
-                                'height': 16,
-                                'x': 10,
-                                'y': 25
-                            });
+                    if (processGroupData.accessPolicy.canRead) {
+                        // input ports icon
+                        details.append('image')
+                                .call(nf.CanvasUtils.disableImageHref)
+                                .attr({
+                                    'xlink:href': 'images/iconInputPortSmall.png',
+                                    'width': 16,
+                                    'height': 16,
+                                    'x': 10,
+                                    'y': 25
+                                });
 
-                    // input ports count
-                    details.append('text')
-                            .attr({
-                                'x': 29,
-                                'y': 37,
-                                'class': 'process-group-input-port-count process-group-contents-count'
-                            });
+                        // input ports count
+                        details.append('text')
+                                .attr({
+                                    'x': 29,
+                                    'y': 37,
+                                    'class': 'process-group-input-port-count process-group-contents-count'
+                                });
 
-                    // output ports icon
-                    details.append('image')
-                            .call(nf.CanvasUtils.disableImageHref)
-                            .attr({
-                                'xlink:href': 'images/iconOutputPortSmall.png',
-                                'width': 16,
-                                'height': 16,
-                                'y': 25,
-                                'class': 'process-group-output-port'
-                            });
+                        // output ports icon
+                        details.append('image')
+                                .call(nf.CanvasUtils.disableImageHref)
+                                .attr({
+                                    'xlink:href': 'images/iconOutputPortSmall.png',
+                                    'width': 16,
+                                    'height': 16,
+                                    'y': 25,
+                                    'class': 'process-group-output-port'
+                                });
 
-                    // output ports count
-                    details.append('text')
-                            .attr({
-                                'y': 37,
-                                'class': 'process-group-output-port-count process-group-contents-count'
-                            });
+                        // output ports count
+                        details.append('text')
+                                .attr({
+                                    'y': 37,
+                                    'class': 'process-group-output-port-count process-group-contents-count'
+                                });
 
-                    // transmitting icon
-                    details.append('image')
-                            .call(nf.CanvasUtils.disableImageHref)
-                            .attr({
-                                'xlink:href': 'images/iconTransmissionActive.png',
-                                'width': 16,
-                                'height': 16,
-                                'y': 25,
-                                'class': 'process-group-transmitting'
-                            });
+                        // transmitting icon
+                        details.append('image')
+                                .call(nf.CanvasUtils.disableImageHref)
+                                .attr({
+                                    'xlink:href': 'images/iconTransmissionActive.png',
+                                    'width': 16,
+                                    'height': 16,
+                                    'y': 25,
+                                    'class': 'process-group-transmitting'
+                                });
 
-                    // transmitting count
-                    details.append('text')
-                            .attr({
-                                'y': 37,
-                                'class': 'process-group-transmitting-count process-group-contents-count'
-                            });
+                        // transmitting count
+                        details.append('text')
+                                .attr({
+                                    'y': 37,
+                                    'class': 'process-group-transmitting-count process-group-contents-count'
+                                });
 
-                    // not transmitting icon
-                    details.append('image')
-                            .call(nf.CanvasUtils.disableImageHref)
-                            .attr({
-                                'xlink:href': 'images/iconTransmissionInactive.png',
-                                'width': 16,
-                                'height': 16,
-                                'y': 25,
-                                'class': 'process-group-not-transmitting'
-                            });
+                        // not transmitting icon
+                        details.append('image')
+                                .call(nf.CanvasUtils.disableImageHref)
+                                .attr({
+                                    'xlink:href': 'images/iconTransmissionInactive.png',
+                                    'width': 16,
+                                    'height': 16,
+                                    'y': 25,
+                                    'class': 'process-group-not-transmitting'
+                                });
 
-                    // not transmitting count
-                    details.append('text')
-                            .attr({
-                                'y': 37,
-                                'class': 'process-group-not-transmitting-count process-group-contents-count'
-                            });
+                        // not transmitting count
+                        details.append('text')
+                                .attr({
+                                    'y': 37,
+                                    'class': 'process-group-not-transmitting-count process-group-contents-count'
+                                });
 
-                    // running icon
-                    details.append('image')
-                            .call(nf.CanvasUtils.disableImageHref)
-                            .attr({
-                                'xlink:href': 'images/iconRun.png',
-                                'width': 16,
-                                'height': 16,
-                                'y': 25,
-                                'class': 'process-group-running'
-                            });
+                        // running icon
+                        details.append('image')
+                                .call(nf.CanvasUtils.disableImageHref)
+                                .attr({
+                                    'xlink:href': 'images/iconRun.png',
+                                    'width': 16,
+                                    'height': 16,
+                                    'y': 25,
+                                    'class': 'process-group-running'
+                                });
 
-                    // running count
-                    details.append('text')
-                            .attr({
-                                'y': 37,
-                                'class': 'process-group-running-count process-group-contents-count'
-                            });
+                        // running count
+                        details.append('text')
+                                .attr({
+                                    'y': 37,
+                                    'class': 'process-group-running-count process-group-contents-count'
+                                });
 
-                    // stopped icon
-                    details.append('image')
-                            .call(nf.CanvasUtils.disableImageHref)
-                            .attr({
-                                'xlink:href': 'images/iconStop.png',
-                                'width': 16,
-                                'height': 16,
-                                'y': 25,
-                                'class': 'process-group-stopped'
-                            });
+                        // stopped icon
+                        details.append('image')
+                                .call(nf.CanvasUtils.disableImageHref)
+                                .attr({
+                                    'xlink:href': 'images/iconStop.png',
+                                    'width': 16,
+                                    'height': 16,
+                                    'y': 25,
+                                    'class': 'process-group-stopped'
+                                });
 
-                    // stopped count
-                    details.append('text')
-                            .attr({
-                                'y': 37,
-                                'class': 'process-group-stopped-count process-group-contents-count'
-                            });
+                        // stopped count
+                        details.append('text')
+                                .attr({
+                                    'y': 37,
+                                    'class': 'process-group-stopped-count process-group-contents-count'
+                                });
 
-                    // invalid icon
-                    details.append('image')
-                            .call(nf.CanvasUtils.disableImageHref)
-                            .attr({
-                                'xlink:href': 'images/iconAlert.png',
-                                'width': 16,
-                                'height': 16,
-                                'y': 25,
-                                'class': 'process-group-invalid'
-                            });
+                        // invalid icon
+                        details.append('image')
+                                .call(nf.CanvasUtils.disableImageHref)
+                                .attr({
+                                    'xlink:href': 'images/iconAlert.png',
+                                    'width': 16,
+                                    'height': 16,
+                                    'y': 25,
+                                    'class': 'process-group-invalid'
+                                });
 
-                    // invalid count
-                    details.append('text')
-                            .attr({
-                                'y': 37,
-                                'class': 'process-group-invalid-count process-group-contents-count'
-                            });
+                        // invalid count
+                        details.append('text')
+                                .attr({
+                                    'y': 37,
+                                    'class': 'process-group-invalid-count process-group-contents-count'
+                                });
 
-                    // disabled icon
-                    details.append('image')
-                            .call(nf.CanvasUtils.disableImageHref)
-                            .attr({
-                                'xlink:href': 'images/iconDisable.png',
-                                'width': 16,
-                                'height': 16,
-                                'y': 25,
-                                'class': 'process-group-disabled'
-                            });
+                        // disabled icon
+                        details.append('image')
+                                .call(nf.CanvasUtils.disableImageHref)
+                                .attr({
+                                    'xlink:href': 'images/iconDisable.png',
+                                    'width': 16,
+                                    'height': 16,
+                                    'y': 25,
+                                    'class': 'process-group-disabled'
+                                });
 
-                    // disabled count
-                    details.append('text')
-                            .attr({
-                                'y': 37,
-                                'class': 'process-group-disabled-count process-group-contents-count'
-                            });
+                        // disabled count
+                        details.append('text')
+                                .attr({
+                                    'y': 37,
+                                    'class': 'process-group-disabled-count process-group-contents-count'
+                                });
+                    }
 
                     // -----
                     // stats
@@ -600,157 +603,159 @@ nf.ProcessGroup = (function () {
                             });
                 }
 
-                // update the input ports
-                var inputPortCount = details.select('text.process-group-input-port-count')
-                        .text(function (d) {
-                            return d.component.inputPortCount;
-                        });
+                if (processGroupData.accessPolicy.canRead) {
+                    // update the input ports
+                    var inputPortCount = details.select('text.process-group-input-port-count')
+                            .text(function (d) {
+                                return d.component.inputPortCount;
+                            });
 
-                // update the output ports
-                var outputPort = details.select('image.process-group-output-port')
-                        .attr('x', function () {
-                            var inputPortCountX = parseInt(inputPortCount.attr('x'), 10);
-                            return inputPortCountX + inputPortCount.node().getComputedTextLength() + CONTENTS_SPACER;
-                        });
-                details.select('text.process-group-output-port-count')
-                        .attr('x', function () {
-                            var outputPortImageX = parseInt(outputPort.attr('x'), 10);
-                            var outputPortImageWidth = parseInt(outputPort.attr('width'), 10);
-                            return outputPortImageX + outputPortImageWidth + CONTENTS_SPACER;
-                        })
-                        .text(function (d) {
-                            return d.component.outputPortCount;
-                        });
+                    // update the output ports
+                    var outputPort = details.select('image.process-group-output-port')
+                            .attr('x', function () {
+                                var inputPortCountX = parseInt(inputPortCount.attr('x'), 10);
+                                return inputPortCountX + inputPortCount.node().getComputedTextLength() + CONTENTS_SPACER;
+                            });
+                    details.select('text.process-group-output-port-count')
+                            .attr('x', function () {
+                                var outputPortImageX = parseInt(outputPort.attr('x'), 10);
+                                var outputPortImageWidth = parseInt(outputPort.attr('width'), 10);
+                                return outputPortImageX + outputPortImageWidth + CONTENTS_SPACER;
+                            })
+                            .text(function (d) {
+                                return d.component.outputPortCount;
+                            });
 
-                // get the container to help right align
-                var container = details.select('rect.process-group-contents-container');
+                    // get the container to help right align
+                    var container = details.select('rect.process-group-contents-container');
 
-                // update disabled
-                var disabledCount = details.select('text.process-group-disabled-count')
-                        .text(function (d) {
-                            return d.component.disabledCount;
-                        })
-                        .attr('x', function () {
-                            var containerX = parseInt(container.attr('x'), 10);
-                            var containerWidth = parseInt(container.attr('width'), 10);
-                            return containerX + containerWidth - this.getComputedTextLength() - CONTENTS_SPACER;
-                        });
-                var disabled = details.select('image.process-group-disabled')
-                        .attr('x', function () {
-                            var disabledCountX = parseInt(disabledCount.attr('x'), 10);
-                            var width = parseInt(d3.select(this).attr('width'), 10);
-                            return disabledCountX - width - CONTENTS_SPACER;
-                        });
+                    // update disabled
+                    var disabledCount = details.select('text.process-group-disabled-count')
+                            .text(function (d) {
+                                return d.component.disabledCount;
+                            })
+                            .attr('x', function () {
+                                var containerX = parseInt(container.attr('x'), 10);
+                                var containerWidth = parseInt(container.attr('width'), 10);
+                                return containerX + containerWidth - this.getComputedTextLength() - CONTENTS_SPACER;
+                            });
+                    var disabled = details.select('image.process-group-disabled')
+                            .attr('x', function () {
+                                var disabledCountX = parseInt(disabledCount.attr('x'), 10);
+                                var width = parseInt(d3.select(this).attr('width'), 10);
+                                return disabledCountX - width - CONTENTS_SPACER;
+                            });
 
-                // update invalid
-                var invalidCount = details.select('text.process-group-invalid-count')
-                        .text(function (d) {
-                            return d.component.invalidCount;
-                        })
-                        .attr('x', function () {
-                            var disabledX = parseInt(disabled.attr('x'), 10);
-                            return disabledX - this.getComputedTextLength() - CONTENTS_SPACER;
-                        });
-                var invalid = details.select('image.process-group-invalid')
-                        .attr('x', function () {
-                            var invalidCountX = parseInt(invalidCount.attr('x'), 10);
-                            var width = parseInt(d3.select(this).attr('width'), 10);
-                            return invalidCountX - width - CONTENTS_SPACER;
-                        });
+                    // update invalid
+                    var invalidCount = details.select('text.process-group-invalid-count')
+                            .text(function (d) {
+                                return d.component.invalidCount;
+                            })
+                            .attr('x', function () {
+                                var disabledX = parseInt(disabled.attr('x'), 10);
+                                return disabledX - this.getComputedTextLength() - CONTENTS_SPACER;
+                            });
+                    var invalid = details.select('image.process-group-invalid')
+                            .attr('x', function () {
+                                var invalidCountX = parseInt(invalidCount.attr('x'), 10);
+                                var width = parseInt(d3.select(this).attr('width'), 10);
+                                return invalidCountX - width - CONTENTS_SPACER;
+                            });
 
-                // update stopped
-                var stoppedCount = details.select('text.process-group-stopped-count')
-                        .text(function (d) {
-                            return d.component.stoppedCount;
-                        })
-                        .attr('x', function () {
-                            var invalidX = parseInt(invalid.attr('x'), 10);
-                            return invalidX - this.getComputedTextLength() - CONTENTS_SPACER;
-                        });
-                var stopped = details.select('image.process-group-stopped')
-                        .attr('x', function () {
-                            var stoppedCountX = parseInt(stoppedCount.attr('x'), 10);
-                            var width = parseInt(d3.select(this).attr('width'), 10);
-                            return stoppedCountX - width - CONTENTS_SPACER;
-                        });
+                    // update stopped
+                    var stoppedCount = details.select('text.process-group-stopped-count')
+                            .text(function (d) {
+                                return d.component.stoppedCount;
+                            })
+                            .attr('x', function () {
+                                var invalidX = parseInt(invalid.attr('x'), 10);
+                                return invalidX - this.getComputedTextLength() - CONTENTS_SPACER;
+                            });
+                    var stopped = details.select('image.process-group-stopped')
+                            .attr('x', function () {
+                                var stoppedCountX = parseInt(stoppedCount.attr('x'), 10);
+                                var width = parseInt(d3.select(this).attr('width'), 10);
+                                return stoppedCountX - width - CONTENTS_SPACER;
+                            });
 
-                // update running
-                var runningCount = details.select('text.process-group-running-count')
-                        .text(function (d) {
-                            return d.component.runningCount;
-                        })
-                        .attr('x', function () {
-                            var stoppedX = parseInt(stopped.attr('x'), 10);
-                            return stoppedX - this.getComputedTextLength() - CONTENTS_SPACER;
-                        });
-                var running = details.select('image.process-group-running')
-                        .attr('x', function () {
-                            var runningCountX = parseInt(runningCount.attr('x'), 10);
-                            var width = parseInt(d3.select(this).attr('width'), 10);
-                            return runningCountX - width - CONTENTS_SPACER;
-                        });
+                    // update running
+                    var runningCount = details.select('text.process-group-running-count')
+                            .text(function (d) {
+                                return d.component.runningCount;
+                            })
+                            .attr('x', function () {
+                                var stoppedX = parseInt(stopped.attr('x'), 10);
+                                return stoppedX - this.getComputedTextLength() - CONTENTS_SPACER;
+                            });
+                    var running = details.select('image.process-group-running')
+                            .attr('x', function () {
+                                var runningCountX = parseInt(runningCount.attr('x'), 10);
+                                var width = parseInt(d3.select(this).attr('width'), 10);
+                                return runningCountX - width - CONTENTS_SPACER;
+                            });
 
-                // update not transmitting
-                var notTransmittingCount = details.select('text.process-group-not-transmitting-count')
-                        .text(function (d) {
-                            return d.component.inactiveRemotePortCount;
-                        })
-                        .attr('x', function () {
-                            var runningX = parseInt(running.attr('x'), 10);
-                            return runningX - this.getComputedTextLength() - CONTENTS_SPACER;
-                        });
-                var notTransmitting = details.select('image.process-group-not-transmitting')
-                        .attr('x', function () {
-                            var notTransmittingCountX = parseInt(notTransmittingCount.attr('x'), 10);
-                            var width = parseInt(d3.select(this).attr('width'), 10);
-                            return notTransmittingCountX - width - CONTENTS_SPACER;
-                        });
+                    // update not transmitting
+                    var notTransmittingCount = details.select('text.process-group-not-transmitting-count')
+                            .text(function (d) {
+                                return d.component.inactiveRemotePortCount;
+                            })
+                            .attr('x', function () {
+                                var runningX = parseInt(running.attr('x'), 10);
+                                return runningX - this.getComputedTextLength() - CONTENTS_SPACER;
+                            });
+                    var notTransmitting = details.select('image.process-group-not-transmitting')
+                            .attr('x', function () {
+                                var notTransmittingCountX = parseInt(notTransmittingCount.attr('x'), 10);
+                                var width = parseInt(d3.select(this).attr('width'), 10);
+                                return notTransmittingCountX - width - CONTENTS_SPACER;
+                            });
 
-                // update transmitting
-                var transmittingCount = details.select('text.process-group-transmitting-count')
-                        .text(function (d) {
-                            return d.component.activeRemotePortCount;
-                        })
-                        .attr('x', function () {
-                            var notTransmittingX = parseInt(notTransmitting.attr('x'), 10);
-                            return notTransmittingX - this.getComputedTextLength() - CONTENTS_SPACER;
-                        });
-                details.select('image.process-group-transmitting')
-                        .attr('x', function () {
-                            var transmittingCountX = parseInt(transmittingCount.attr('x'), 10);
-                            var width = parseInt(d3.select(this).attr('width'), 10);
-                            return transmittingCountX - width - CONTENTS_SPACER;
-                        });
+                    // update transmitting
+                    var transmittingCount = details.select('text.process-group-transmitting-count')
+                            .text(function (d) {
+                                return d.component.activeRemotePortCount;
+                            })
+                            .attr('x', function () {
+                                var notTransmittingX = parseInt(notTransmitting.attr('x'), 10);
+                                return notTransmittingX - this.getComputedTextLength() - CONTENTS_SPACER;
+                            });
+                    details.select('image.process-group-transmitting')
+                            .attr('x', function () {
+                                var transmittingCountX = parseInt(transmittingCount.attr('x'), 10);
+                                var width = parseInt(d3.select(this).attr('width'), 10);
+                                return transmittingCountX - width - CONTENTS_SPACER;
+                            });
 
-                // update the process group comments
-                details.select('text.process-group-comments')
-                        .each(function (d) {
-                            var processGroupComments = d3.select(this);
+                    // update the process group comments
+                    details.select('text.process-group-comments')
+                            .each(function (d) {
+                                var processGroupComments = d3.select(this);
 
-                            // reset the process group name to handle any previous state
-                            processGroupComments.text(null).selectAll('tspan, title').remove();
+                                // reset the process group name to handle any previous state
+                                processGroupComments.text(null).selectAll('tspan, title').remove();
 
-                            // apply ellipsis to the port name as necessary
-                            nf.CanvasUtils.multilineEllipsis(processGroupComments, 2, getProcessGroupComments(d));
-                        }).classed('unset', function (d) {
-                    return nf.Common.isBlank(d.component.comments);
-                }).append('title').text(function (d) {
-                    return getProcessGroupComments(d);
-                });
+                                // apply ellipsis to the port name as necessary
+                                nf.CanvasUtils.multilineEllipsis(processGroupComments, 2, getProcessGroupComments(d));
+                            }).classed('unset', function (d) {
+                        return nf.Common.isBlank(d.component.comments);
+                    }).append('title').text(function (d) {
+                        return getProcessGroupComments(d);
+                    });
 
-                // update the process group name
-                processGroup.select('text.process-group-name')
-                        .each(function (d) {
-                            var processGroupName = d3.select(this);
+                    // update the process group name
+                    processGroup.select('text.process-group-name')
+                            .each(function (d) {
+                                var processGroupName = d3.select(this);
 
-                            // reset the process group name to handle any previous state
-                            processGroupName.text(null).selectAll('title').remove();
+                                // reset the process group name to handle any previous state
+                                processGroupName.text(null).selectAll('title').remove();
 
-                            // apply ellipsis to the process group name as necessary
-                            nf.CanvasUtils.ellipsis(processGroupName, d.component.name);
-                        }).append('title').text(function (d) {
-                    return d.component.name;
-                });
+                                // apply ellipsis to the process group name as necessary
+                                nf.CanvasUtils.ellipsis(processGroupName, d.component.name);
+                            }).append('title').text(function (d) {
+                        return d.component.name;
+                    });
+                }
 
                 // hide the preview
                 processGroup.select('image.process-group-preview').style('display', 'none');
@@ -758,16 +763,18 @@ nf.ProcessGroup = (function () {
                 // populate the stats
                 processGroup.call(updateProcessGroupStatus);
             } else {
-                // update the process group name
-                processGroup.select('text.process-group-name')
-                        .text(function (d) {
-                            var name = d.component.name;
-                            if (name.length > PREVIEW_NAME_LENGTH) {
-                                return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
-                            } else {
-                                return name;
-                            }
-                        });
+                if (processGroupData.accessPolicy.canRead) {
+                    // update the process group name
+                    processGroup.select('text.process-group-name')
+                            .text(function (d) {
+                                var name = d.component.name;
+                                if (name.length > PREVIEW_NAME_LENGTH) {
+                                    return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
+                                } else {
+                                    return name;
+                                }
+                            });
+                }
 
                 // show the preview
                 processGroup.select('image.process-group-preview').style('display', 'block');
@@ -876,7 +883,7 @@ nf.ProcessGroup = (function () {
     var removeTooltips = function (removed) {
         removed.each(function (d) {
             // remove any associated tooltips
-            $('#bulletin-tip-' + d.component.id).remove();
+            $('#bulletin-tip-' + d.id).remove();
         });
     };
 
@@ -898,28 +905,27 @@ nf.ProcessGroup = (function () {
         /**
          * Populates the graph with the specified process groups.
          *
-         * @argument {object | array} processGroups                    The process groups to add
+         * @argument {object | array} processGroupEntities                    The process groups to add
          * @argument {boolean} selectAll                Whether or not to select the new contents
          */
-        add: function (processGroups, selectAll) {
+        add: function (processGroupEntities, selectAll) {
             selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
 
-            var add = function (processGroup) {
+            var add = function (processGroupEntity) {
                 // add the process group
-                processGroupMap.set(processGroup.id, {
+                processGroupMap.set(processGroupEntity.id, $.extend({
                     type: 'ProcessGroup',
-                    component: processGroup,
                     dimensions: dimensions
-                });
+                }, processGroupEntity));
             };
 
             // determine how to handle the specified process groups
-            if ($.isArray(processGroups)) {
-                $.each(processGroups, function (_, processGroup) {
-                    add(processGroup);
+            if ($.isArray(processGroupEntities)) {
+                $.each(processGroupEntities, function (_, processGroupEntity) {
+                    add(processGroupEntity);
                 });
             } else {
-                add(processGroups);
+                add(processGroupEntities);
             }
 
             // apply the selection and handle all new process group
@@ -974,7 +980,7 @@ nf.ProcessGroup = (function () {
                     url: processGroup.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    nf.ProcessGroup.set(response.processGroup);
+                    nf.ProcessGroup.set(response);
                 });
             }
         },
@@ -993,27 +999,27 @@ nf.ProcessGroup = (function () {
          * will set each process group. If it is not an array, it will
          * attempt to set the specified process group.
          *
-         * @param {object | array} processGroups
+         * @param {object | array} processGroupEntities
          */
-        set: function (processGroups) {
-            var set = function (processGroup) {
-                if (processGroupMap.has(processGroup.id)) {
+        set: function (processGroupEntities) {
+            var set = function (processGroupEntity) {
+                if (processGroupMap.has(processGroupEntity.id)) {
                     // update the current entry
-                    var processGroupEntry = processGroupMap.get(processGroup.id);
-                    processGroupEntry.component = processGroup;
-
+                    var processGroupEntry = processGroupMap.get(processGroupEntity.id);
+                    $.extend(processGroupEntry, processGroupEntity);
+                    
                     // update the process group in the UI
-                    d3.select('#id-' + processGroup.id).call(updateProcessGroups);
+                    d3.select('#id-' + processGroupEntry.id).call(updateProcessGroups);
                 }
             };
 
             // determine how to handle the specified process group
-            if ($.isArray(processGroups)) {
-                $.each(processGroups, function (_, processGroup) {
-                    set(processGroup);
+            if ($.isArray(processGroupEntities)) {
+                $.each(processGroupEntities, function (_, processGroupEntity) {
+                    set(processGroupEntity);
                 });
             } else {
-                set(processGroups);
+                set(processGroupEntities);
             }
         },
         
@@ -1039,13 +1045,6 @@ nf.ProcessGroup = (function () {
             d3.selectAll('g.process-group.visible').call(updateProcessGroupStatus);
         },
 
-        /**
-         * Returns the entity key when marshalling an entity of this type.
-         */
-        getEntityKey: function (d) {
-            return 'processGroup';
-        },
-        
         /**
          * Removes the specified process group.
          *

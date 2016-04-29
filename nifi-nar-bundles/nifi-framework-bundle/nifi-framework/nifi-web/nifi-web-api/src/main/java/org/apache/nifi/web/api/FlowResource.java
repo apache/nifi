@@ -24,20 +24,32 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
@@ -58,6 +70,8 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.IdentityEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PrioritizerTypesEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
@@ -69,7 +83,6 @@ import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -92,7 +105,7 @@ import java.util.Set;
 @Path("/flow")
 @Api(
     value = "/flow",
-    description = "Endpoint for accessing the flow structure and component statuses."
+    description = "Endpoint for accessing the flow structure and component status."
 )
 public class FlowResource extends ApplicationResource {
 
@@ -101,9 +114,163 @@ public class FlowResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     @Context
     private ResourceContext resourceContext;
+
+    private ProcessorResource processorResource;
+    private InputPortResource inputPortResource;
+    private OutputPortResource outputPortResource;
+    private FunnelResource funnelResource;
+    private LabelResource labelResource;
+    private RemoteProcessGroupResource remoteProcessGroupResource;
+    private ConnectionResource connectionResource;
+    private TemplateResource templateResource;
+    private ProcessGroupResource processGroupResource;
+    private ControllerServiceResource controllerServiceResource;
+
+    /**
+     * Populates the remaining fields in the specified process group.
+     *
+     * @param flow group
+     * @return group dto
+     */
+    private ProcessGroupFlowDTO populateRemainingFlowContent(ProcessGroupFlowDTO flow) {
+        FlowDTO flowStructure = flow.getFlow();
+
+        // populate the remaining fields for the processors, connections, process group refs, remote process groups, and labels if appropriate
+        if (flowStructure != null) {
+            populateRemainingFlowStructure(flowStructure);
+        }
+
+        // set the process group uri
+        flow.setUri(generateResourceUri("flow", "process-groups",  flow.getId()));
+
+        return flow;
+    }
+
+    /**
+     * Populates the remaining content of the specified snippet.
+     */
+    private FlowDTO populateRemainingFlowStructure(FlowDTO flowStructure) {
+        processorResource.populateRemainingProcessorEntitiesContent(flowStructure.getProcessors());
+        connectionResource.populateRemainingConnectionEntitiesContent(flowStructure.getConnections());
+        inputPortResource.populateRemainingInputPortEntitiesContent(flowStructure.getInputPorts());
+        outputPortResource.populateRemainingOutputPortEntitiesContent(flowStructure.getOutputPorts());
+        remoteProcessGroupResource.populateRemainingRemoteProcessGroupEntitiesContent(flowStructure.getRemoteProcessGroups());
+        funnelResource.populateRemainingFunnelEntitiesContent(flowStructure.getFunnels());
+        labelResource.populateRemainingLabelEntitiesContent(flowStructure.getLabels());
+        processGroupResource.populateRemainingProcessGroupEntitiesContent(flowStructure.getProcessGroups());
+
+        // go through each process group child and populate its uri
+        for (final ProcessGroupEntity processGroupEntity : flowStructure.getProcessGroups()) {
+            final ProcessGroupDTO processGroup = processGroupEntity.getComponent();
+            if (processGroup != null) {
+                processGroup.setContents(null);
+            }
+        }
+
+        return flowStructure;
+    }
+
+    private void authorizeFlow() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+            .resource(ResourceFactory.getFlowResource())
+            .identity(user.getIdentity())
+            .anonymous(user.isAnonymous())
+            .accessAttempt(true)
+            .action(RequestAction.READ)
+            .build();
+
+        final AuthorizationResult result = authorizer.authorize(request);
+        if (!Result.Approved.equals(result.getResult())) {
+            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
+            throw new AccessDeniedException(message);
+        }
+    }
+
+    // ----
+    // flow
+    // ----
+
+    /**
+     * Retrieves the contents of the specified group.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
+     * @param groupId The id of the process group.
+     * @return A processGroupEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Gets a process group",
+        response = ProcessGroupEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getFlow(
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @ApiParam(
+            value = "The process group id.",
+            required = false
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "Whether the response should contain all encapsulated components or just the immediate children.",
+            required = false
+        )
+        @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive) {
+
+        authorizeFlow();
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get this process group contents
+        final ConfigurationSnapshot<ProcessGroupFlowDTO> controllerResponse = serviceFacade.getProcessGroupFlow(groupId, recursive);
+        final ProcessGroupFlowDTO flow = controllerResponse.getConfiguration();
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+        revision.setVersion(controllerResponse.getVersion());
+
+        // create the response entity
+        final ProcessGroupFlowEntity processGroupEntity = new ProcessGroupFlowEntity();
+        processGroupEntity.setRevision(revision);
+        processGroupEntity.setProcessGroupFlow(populateRemainingFlowContent(flow));
+
+        return clusterContext(generateOkResponse(processGroupEntity)).build();
+    }
+
+    // ------
+    // search
+    // ------
 
     /**
      * Performs a search request in this flow.
@@ -134,6 +301,8 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response searchFlow(@QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
+        authorizeFlow();
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -186,6 +355,8 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getRevision() {
+        authorizeFlow();
+
         // create the current revision
         final RevisionDTO revision = serviceFacade.getRevision();
 
@@ -231,6 +402,8 @@ public class FlowResource extends ApplicationResource {
                     required = false
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        authorizeFlow();
 
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -327,6 +500,8 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
+        authorizeFlow();
+
         // get the banner from the properties - will come from the NCM when clustered
         final String bannerText = properties.getBannerText();
 
@@ -382,6 +557,8 @@ public class FlowResource extends ApplicationResource {
                     required = false
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -442,6 +619,8 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam("serviceType") String serviceType) {
 
+        authorizeFlow();
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -494,6 +673,8 @@ public class FlowResource extends ApplicationResource {
                     required = false
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -548,6 +729,8 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
+        authorizeFlow();
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -600,6 +783,8 @@ public class FlowResource extends ApplicationResource {
                     required = false
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -708,6 +893,8 @@ public class FlowResource extends ApplicationResource {
         )
         @QueryParam("limit") IntegerParameter limit) {
 
+        authorizeFlow();
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -806,6 +993,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -907,6 +1096,8 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) {
 
+        authorizeFlow();
+
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
@@ -1007,6 +1198,8 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) {
 
+        authorizeFlow();
+
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
@@ -1106,6 +1299,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1215,6 +1410,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String groupId) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1337,6 +1534,8 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) {
 
+        authorizeFlow();
+
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
@@ -1431,6 +1630,8 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) {
 
+        authorizeFlow();
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -1489,6 +1690,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String groupId) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -1553,6 +1756,8 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) {
 
+        authorizeFlow();
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -1616,6 +1821,8 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) {
 
+        authorizeFlow();
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -1644,6 +1851,50 @@ public class FlowResource extends ApplicationResource {
 
     public void setClusterManager(WebClusterManager clusterManager) {
         this.clusterManager = clusterManager;
+    }
+
+    public void setProcessorResource(ProcessorResource processorResource) {
+        this.processorResource = processorResource;
+    }
+
+    public void setInputPortResource(InputPortResource inputPortResource) {
+        this.inputPortResource = inputPortResource;
+    }
+
+    public void setOutputPortResource(OutputPortResource outputPortResource) {
+        this.outputPortResource = outputPortResource;
+    }
+
+    public void setFunnelResource(FunnelResource funnelResource) {
+        this.funnelResource = funnelResource;
+    }
+
+    public void setLabelResource(LabelResource labelResource) {
+        this.labelResource = labelResource;
+    }
+
+    public void setRemoteProcessGroupResource(RemoteProcessGroupResource remoteProcessGroupResource) {
+        this.remoteProcessGroupResource = remoteProcessGroupResource;
+    }
+
+    public void setConnectionResource(ConnectionResource connectionResource) {
+        this.connectionResource = connectionResource;
+    }
+
+    public void setTemplateResource(TemplateResource templateResource) {
+        this.templateResource = templateResource;
+    }
+
+    public void setProcessGroupResource(ProcessGroupResource processGroupResource) {
+        this.processGroupResource = processGroupResource;
+    }
+
+    public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
+        this.controllerServiceResource = controllerServiceResource;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 
     public void setProperties(NiFiProperties properties) {

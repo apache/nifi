@@ -89,9 +89,6 @@ public class TemplateResource extends ApplicationResource {
     /**
      * Retrieves the specified template.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param id The id of the template to retrieve
      * @return A templateEntity.
      */
@@ -119,11 +116,6 @@ public class TemplateResource extends ApplicationResource {
             }
     )
     public Response exportTemplate(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "The template id.",
                     required = true

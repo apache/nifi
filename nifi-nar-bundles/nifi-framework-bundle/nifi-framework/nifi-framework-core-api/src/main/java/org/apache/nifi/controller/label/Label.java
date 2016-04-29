@@ -18,11 +18,12 @@ package org.apache.nifi.controller.label;
 
 import java.util.Map;
 
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.groups.ProcessGroup;
 
-public interface Label {
+public interface Label extends Authorizable {
 
     String getIdentifier();
 

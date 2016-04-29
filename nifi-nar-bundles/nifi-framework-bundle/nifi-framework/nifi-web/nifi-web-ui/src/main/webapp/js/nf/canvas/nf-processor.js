@@ -47,9 +47,7 @@ nf.Processor = (function () {
      * Selects the processor elements against the current processor map.
      */
     var select = function () {
-        return processorContainer.selectAll('g.processor').data(processorMap.values(), function (d) {
-            return d.component.id;
-        });
+        return processorContainer.selectAll('g.processor').data(processorMap.values());
     };
 
     // renders the processors
@@ -61,7 +59,7 @@ nf.Processor = (function () {
         var processor = entered.append('g')
                 .attr({
                     'id': function (d) {
-                        return 'id-' + d.component.id;
+                        return 'id-' + d.id;
                     },
                     'class': 'processor component'
                 })
@@ -138,9 +136,9 @@ nf.Processor = (function () {
         processor.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
 
         // only activate dragging and connecting if appropriate
-        if (nf.Common.isDFM()) {
-            processor.call(nf.Draggable.activate).call(nf.Connectable.activate);
-        }
+        processor.filter(function (d) {
+            return d.accessPolicy.canWrite && d.accessPolicy.canRead;
+        }).call(nf.Draggable.activate).call(nf.Connectable.activate);
 
         // call update to trigger some rendering
         processor.call(updateProcessors);
@@ -156,7 +154,7 @@ nf.Processor = (function () {
             return;
         }
 
-        updated.each(function () {
+        updated.each(function (processorData) {
             var processor = d3.select(this);
             var details = processor.select('g.processor-details');
 
@@ -176,28 +174,30 @@ nf.Processor = (function () {
                                 'y': 5
                             });
 
-                    // processor type
-                    details.append('text')
-                            .attr({
-                                'x': 25,
-                                'y': 30,
-                                'width': 246,
-                                'height': 16,
-                                'font-size': '8pt',
-                                'font-weight': 'normal',
-                                'fill': 'black'
-                            })
-                            .each(function (d) {
-                                var processorType = d3.select(this);
+                    if (processorData.accessPolicy.canRead) {
+                        // processor type
+                        details.append('text')
+                                .attr({
+                                    'x': 25,
+                                    'y': 30,
+                                    'width': 246,
+                                    'height': 16,
+                                    'font-size': '8pt',
+                                    'font-weight': 'normal',
+                                    'fill': 'black'
+                                })
+                                .each(function (d) {
+                                    var processorType = d3.select(this);
 
-                                // reset the processor type to handle any previous state
-                                processorType.text(null).selectAll('title').remove();
+                                    // reset the processor type to handle any previous state
+                                    processorType.text(null).selectAll('title').remove();
 
-                                // apply ellipsis to the processor type as necessary
-                                nf.CanvasUtils.ellipsis(processorType, nf.Common.substringAfterLast(d.component.type, '.'));
-                            }).append('title').text(function (d) {
-                        return nf.Common.substringAfterLast(d.component.type, '.');
-                    });
+                                    // apply ellipsis to the processor type as necessary
+                                    nf.CanvasUtils.ellipsis(processorType, nf.Common.substringAfterLast(d.component.type, '.'));
+                                }).append('title').text(function (d) {
+                            return nf.Common.substringAfterLast(d.component.type, '.');
+                        });
+                    }
 
                     // -----
                     // stats
@@ -412,62 +412,64 @@ nf.Processor = (function () {
                             });
                 }
 
-                // update the run status
-                details.select('image.run-status-icon')
-                        .attr('xlink:href', function (d) {
-                            var img = '';
-                            if (d.component.state === 'DISABLED') {
-                                img = 'images/iconDisable.png';
-                            } else if (!nf.Common.isEmpty(d.component.validationErrors)) {
-                                img = 'images/iconAlert.png';
-                            } else if (d.component.state === 'RUNNING') {
-                                img = 'images/iconRun.png';
-                            } else if (d.component.state === 'STOPPED') {
-                                img = 'images/iconStop.png';
-                            }
-                            return img;
-                        })
-                        .each(function (d) {
-                            // remove the existing tip if necessary
-                            var tip = d3.select('#run-status-tip-' + d.component.id);
-                            if (!tip.empty()) {
-                                tip.remove();
-                            }
+                if (processorData.accessPolicy.canRead) {
+                    // update the run status
+                    details.select('image.run-status-icon')
+                            .attr('xlink:href', function (d) {
+                                var img = '';
+                                if (d.component.state === 'DISABLED') {
+                                    img = 'images/iconDisable.png';
+                                } else if (!nf.Common.isEmpty(d.component.validationErrors)) {
+                                    img = 'images/iconAlert.png';
+                                } else if (d.component.state === 'RUNNING') {
+                                    img = 'images/iconRun.png';
+                                } else if (d.component.state === 'STOPPED') {
+                                    img = 'images/iconStop.png';
+                                }
+                                return img;
+                            })
+                            .each(function (d) {
+                                // remove the existing tip if necessary
+                                var tip = d3.select('#run-status-tip-' + d.id);
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
 
-                            // if there are validation errors generate a tooltip
-                            if (!nf.Common.isEmpty(d.component.validationErrors)) {
-                                tip = d3.select('#processor-tooltips').append('div')
-                                        .attr('id', function () {
-                                            return 'run-status-tip-' + d.component.id;
-                                        })
-                                        .attr('class', 'tooltip nifi-tooltip')
-                                        .html(function () {
-                                            var list = nf.Common.formatUnorderedList(d.component.validationErrors);
-                                            if (list === null || list.length === 0) {
-                                                return '';
-                                            } else {
-                                                return $('<div></div>').append(list).html();
-                                            }
-                                        });
+                                // if there are validation errors generate a tooltip
+                                if (!nf.Common.isEmpty(d.component.validationErrors)) {
+                                    tip = d3.select('#processor-tooltips').append('div')
+                                            .attr('id', function () {
+                                                return 'run-status-tip-' + d.id;
+                                            })
+                                            .attr('class', 'tooltip nifi-tooltip')
+                                            .html(function () {
+                                                var list = nf.Common.formatUnorderedList(d.component.validationErrors);
+                                                if (list === null || list.length === 0) {
+                                                    return '';
+                                                } else {
+                                                    return $('<div></div>').append(list).html();
+                                                }
+                                            });
 
-                                // add the tooltip
-                                nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
-                            }
-                        });
+                                    // add the tooltip
+                                    nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
+                                }
+                            });
 
-                // update the processor name
-                processor.select('text.processor-name')
-                        .each(function (d) {
-                            var processorName = d3.select(this);
+                    // update the processor name
+                    processor.select('text.processor-name')
+                            .each(function (d) {
+                                var processorName = d3.select(this);
 
-                            // reset the processor name to handle any previous state
-                            processorName.text(null).selectAll('title').remove();
+                                // reset the processor name to handle any previous state
+                                processorName.text(null).selectAll('title').remove();
 
-                            // apply ellipsis to the processor name as necessary
-                            nf.CanvasUtils.ellipsis(processorName, d.component.name);
-                        }).append('title').text(function (d) {
-                    return d.component.name;
-                });
+                                // apply ellipsis to the processor name as necessary
+                                nf.CanvasUtils.ellipsis(processorName, d.component.name);
+                            }).append('title').text(function (d) {
+                        return d.component.name;
+                    });
+                }
 
                 // hide the preview
                 processor.select('image.processor-stats-preview').style('display', 'none');
@@ -475,16 +477,18 @@ nf.Processor = (function () {
                 // populate the stats
                 processor.call(updateProcessorStatus);
             } else {
-                // update the processor name
-                processor.select('text.processor-name')
-                        .text(function (d) {
-                            var name = d.component.name;
-                            if (name.length > PREVIEW_NAME_LENGTH) {
-                                return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
-                            } else {
-                                return name;
-                            }
-                        });
+                if (processorData.accessPolicy.canRead) {
+                    // update the processor name
+                    processor.select('text.processor-name')
+                            .text(function (d) {
+                                var name = d.component.name;
+                                if (name.length > PREVIEW_NAME_LENGTH) {
+                                    return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
+                                } else {
+                                    return name;
+                                }
+                            });
+                }
 
                 // show the preview
                 processor.select('image.processor-stats-preview').style('display', 'block');
@@ -509,9 +513,11 @@ nf.Processor = (function () {
 
         // determine all unique colors
         processorMap.forEach(function (id, d) {
-            var color = d.component.style['background-color'];
-            if (nf.Common.isDefinedAndNotNull(color)) {
-                colors.add(nf.Common.substringAfterLast(color, '#'));
+            if (d.accessPolicy.canRead) {
+                var color = d.component.style['background-color'];
+                if (nf.Common.isDefinedAndNotNull(color)) {
+                    colors.add(nf.Common.substringAfterLast(color, '#'));
+                }
             }
         });
         nf.Canvas.defineProcessorColors(colors.values());
@@ -521,9 +527,11 @@ nf.Processor = (function () {
                 .attr('stroke', function (d) {
                     var color = nf.Processor.defaultColor();
 
-                    // use the specified color if appropriate
-                    if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
-                        color = d.component.style['background-color'];
+                    if (d.accessPolicy.canRead) {
+                        // use the specified color if appropriate
+                        if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                            color = d.component.style['background-color'];
+                        }
                     }
 
                     return color;
@@ -533,9 +541,11 @@ nf.Processor = (function () {
                 .attr('fill', function (d) {
                     var color = nf.Processor.defaultColor();
 
-                    // use the specified color if appropriate
-                    if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
-                        color = d.component.style['background-color'];
+                    if (d.accessPolicy.canRead) {
+                        // use the specified color if appropriate
+                        if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                            color = d.component.style['background-color'];
+                        }
                     }
 
                     // get just the color code part
@@ -635,8 +645,8 @@ nf.Processor = (function () {
     var removeTooltips = function (removed) {
         removed.each(function (d) {
             // remove any associated tooltips
-            $('#run-status-tip-' + d.component.id).remove();
-            $('#bulletin-tip-' + d.component.id).remove();
+            $('#run-status-tip-' + d.id).remove();
+            $('#bulletin-tip-' + d.id).remove();
         });
     };
 
@@ -658,28 +668,27 @@ nf.Processor = (function () {
         /**
          * Populates the graph with the specified processors.
          * 
-         * @argument {object | array} processors                The processors to add
+         * @argument {object | array} processorEntities                The processors to add
          * @argument {boolean} selectAll                Whether or not to select the new contents
          */
-        add: function (processors, selectAll) {
+        add: function (processorNodeEntities, selectAll) {
             selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
 
-            var add = function (processor) {
+            var add = function (processorEntity) {
                 // add the processor
-                processorMap.set(processor.id, {
+                processorMap.set(processorEntity.id, $.extend({
                     type: 'Processor',
-                    component: processor,
                     dimensions: dimensions
-                });
+                }, processorEntity));
             };
 
             // determine how to handle the specified processor
-            if ($.isArray(processors)) {
-                $.each(processors, function (_, processor) {
-                    add(processor);
+            if ($.isArray(processorNodeEntities)) {
+                $.each(processorNodeEntities, function (_, processorEntity) {
+                    add(processorEntity);
                 });
             } else {
-                add(processors);
+                add(processorNodeEntities);
             }
 
             // apply the selection and handle all new processors
@@ -743,7 +752,7 @@ nf.Processor = (function () {
                     url: processor.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    nf.Processor.set(response.processor);
+                    nf.Processor.set(response);
                 });
             }
         },
@@ -753,27 +762,27 @@ nf.Processor = (function () {
          * will set each processor. If it is not an array, it will 
          * attempt to set the specified processor.
          * 
-         * @param {object | array} processors
+         * @param {object | array} processorEntities
          */
-        set: function (processors) {
-            var set = function (processor) {
-                if (processorMap.has(processor.id)) {
+        set: function (processorEntities) {
+            var set = function (processorEntity) {
+                if (processorMap.has(processorEntity.id)) {
                     // update the current entry
-                    var processorEntry = processorMap.get(processor.id);
-                    processorEntry.component = processor;
-
+                    var processorEntry = processorMap.get(processorEntity.id);
+                    $.extend(processorEntry, processorEntity);
+                    
                     // update the processor in the UI
-                    d3.select('#id-' + processor.id).call(updateProcessors);
+                    d3.select('#id-' + processorEntry.id).call(updateProcessors);
                 }
             };
 
             // determine how to handle the specified processor
-            if ($.isArray(processors)) {
-                $.each(processors, function (_, processor) {
-                    set(processor);
+            if ($.isArray(processorEntities)) {
+                $.each(processorEntities, function (_, processorEntity) {
+                    set(processorEntity);
                 });
             } else {
-                set(processors);
+                set(processorEntities);
             }
         },
         
@@ -824,13 +833,6 @@ nf.Processor = (function () {
             d3.selectAll('g.processor.visible').call(updateProcessorStatus);
         },
 
-        /**
-         * Returns the entity key when marshalling an entity of this type.
-         */
-        getEntityKey: function (d) {
-            return 'processor';
-        },
-        
         /**
          * Returns the default color that should be used when drawing a processor.
          */

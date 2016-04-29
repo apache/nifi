@@ -152,9 +152,6 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Retrieves the specified controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param availability Whether the controller service is available on the
      * NCM only (ncm) or on the nodes only (node). If this instance is not
      * clustered all services should use the node availability.
@@ -186,11 +183,6 @@ public class ControllerServiceResource extends ApplicationResource {
     )
     public Response getControllerService(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
                     allowableValues = "NCM, NODE",
                     required = true
@@ -212,13 +204,8 @@ public class ControllerServiceResource extends ApplicationResource {
         // get the controller service
         final ControllerServiceDTO controllerService = serviceFacade.getControllerService(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(revision);
         entity.setControllerService(populateRemainingControllerServiceContent(availability, controllerService));
 
         return clusterContext(generateOkResponse(entity)).build();
@@ -227,9 +214,6 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param availability avail
      * @param id The id of the controller service.
      * @param propertyName The property
@@ -259,11 +243,6 @@ public class ControllerServiceResource extends ApplicationResource {
             }
     )
     public Response getPropertyDescriptor(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
                     allowableValues = "NCM, NODE",
@@ -296,13 +275,8 @@ public class ControllerServiceResource extends ApplicationResource {
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
-        entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
@@ -312,7 +286,6 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Gets the state for a controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param availability Whether the controller service is available on the
      * NCM only (ncm) or on the nodes only (node). If this instance is not
      * clustered all services should use the node availability.
@@ -342,11 +315,6 @@ public class ControllerServiceResource extends ApplicationResource {
     )
     public Response getState(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
             allowableValues = "NCM, NODE",
             required = true
@@ -368,13 +336,8 @@ public class ControllerServiceResource extends ApplicationResource {
         // get the component state
         final ComponentStateDTO state = serviceFacade.getControllerServiceState(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(revision);
         entity.setComponentState(state);
 
         // generate the response
@@ -465,9 +428,6 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Retrieves the references of the specified controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param availability Whether the controller service is available on the
      * NCM only (ncm) or on the nodes only (node). If this instance is not
      * clustered all services should use the node availability.
@@ -499,11 +459,6 @@ public class ControllerServiceResource extends ApplicationResource {
     )
     public Response getControllerServiceReferences(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
                     allowableValues = "NCM, NODE",
                     required = true
@@ -525,13 +480,8 @@ public class ControllerServiceResource extends ApplicationResource {
         // get the controller service
         final Set<ControllerServiceReferencingComponentDTO> controllerServiceReferences = serviceFacade.getControllerServiceReferencingComponents(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ControllerServiceReferencingComponentsEntity entity = new ControllerServiceReferencingComponentsEntity();
-        entity.setRevision(revision);
         entity.setControllerServiceReferencingComponents(controllerServiceReferences);
 
         return clusterContext(generateOkResponse(entity)).build();

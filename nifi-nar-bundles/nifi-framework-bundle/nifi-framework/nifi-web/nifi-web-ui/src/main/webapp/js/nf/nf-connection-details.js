@@ -51,7 +51,7 @@ nf.ConnectionDetails = (function () {
             url: '../nifi-api/processors/' + encodeURIComponent(source.id),
             dataType: 'json'
         }).done(function (response) {
-            var processor = response.processor;
+            var processor = response.component;
             var processorName = $('<div class="label"></div>').text(processor.name);
             var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
 
@@ -94,7 +94,7 @@ nf.ConnectionDetails = (function () {
             },
             dataType: 'json'
         }).done(function (response) {
-            var remoteProcessGroup = response.remoteProcessGroup;
+            var remoteProcessGroup = response.component;
 
             // populate source port details
             $('#read-only-connection-source-label').text('From output');
@@ -128,7 +128,7 @@ nf.ConnectionDetails = (function () {
                     },
                     dataType: 'json'
                 }).done(function (response) {
-                    var processGroup = response.processGroup;
+                    var processGroup = response.component;
 
                     // populate source port details
                     $('#read-only-connection-source-label').text('From output');
@@ -176,7 +176,7 @@ nf.ConnectionDetails = (function () {
                 url: '../nifi-api/processors/' + encodeURIComponent(destination.id),
                 dataType: 'json'
             }).done(function (response) {
-                var processor = response.processor;
+                var processor = response.component;
                 var processorName = $('<div class="label"></div>').text(processor.name);
                 var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
 
@@ -224,7 +224,7 @@ nf.ConnectionDetails = (function () {
             },
             dataType: 'json'
         }).done(function (response) {
-            var remoteProcessGroup = response.remoteProcessGroup;
+            var remoteProcessGroup = response.component;
 
             // populate source port details
             $('#read-only-connection-target-label').text('To input');
@@ -258,7 +258,7 @@ nf.ConnectionDetails = (function () {
                     },
                     dataType: 'json'
                 }).done(function (response) {
-                    var processGroup = response.processGroup;
+                    var processGroup = response.component;
 
                     // populate destination port details
                     $('#read-only-connection-target-label').text('To input');
@@ -384,8 +384,8 @@ nf.ConnectionDetails = (function () {
                 var connectionResponse = connectionResult[0];
 
                 if (nf.Common.isDefinedAndNotNull(groupResponse.processGroup) && nf.Common.isDefinedAndNotNull(connectionResponse.connection)) {
-                    var processGroup = groupResponse.processGroup;
-                    var connection = connectionResponse.connection;
+                    var processGroup = groupResponse.component;
+                    var connection = connectionResponse.component;
 
                     // process the source
                     var connectionSource = initializeConnectionSource(processGroup.id, processGroup.name, connection.source);

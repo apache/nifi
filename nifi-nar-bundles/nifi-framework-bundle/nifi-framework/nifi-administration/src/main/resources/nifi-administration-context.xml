@@ -18,11 +18,6 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-    <!-- user/entity authorizer -->
-    <bean id="authorizer" class="org.apache.nifi.authorization.AuthorizerFactoryBean">
-        <property name="properties" ref="nifiProperties"/>
-    </bean>
-
     <!-- initialize the user key data source -->
     <bean id="keyDataSource" class="org.apache.nifi.admin.KeyDataSourceFactoryBean" destroy-method="shutdown">
         <property name="properties" ref="nifiProperties"/>

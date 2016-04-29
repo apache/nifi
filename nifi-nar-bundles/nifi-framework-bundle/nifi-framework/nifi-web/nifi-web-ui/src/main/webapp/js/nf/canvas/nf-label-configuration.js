@@ -43,7 +43,7 @@ nf.LabelConfiguration = (function () {
                             // build the label entity
                             var labelEntity = {
                                 'revision': nf.Client.getRevision(),
-                                'label': {
+                                'component': {
                                     'id': labelId,
                                     'label': labelValue,
                                     'style': {
@@ -64,7 +64,7 @@ nf.LabelConfiguration = (function () {
                                 nf.Client.setRevision(response.revision);
 
                                 // get the label out of the response
-                                nf.Label.set(response.label);
+                                nf.Label.set(response);
                             }).fail(nf.Common.handleAjaxError);
 
                             // reset and hide the dialog
@@ -139,7 +139,7 @@ nf.LabelConfiguration = (function () {
                 }
 
                 // store the label uri
-                labelId = selectionData.component.id;
+                labelId = selectionData.id;
 
                 // populate the dialog
                 $('#label-value').val(labelValue);

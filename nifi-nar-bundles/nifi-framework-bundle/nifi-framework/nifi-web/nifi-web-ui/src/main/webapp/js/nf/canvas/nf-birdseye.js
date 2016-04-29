@@ -151,50 +151,54 @@ nf.Birdseye = (function () {
         $.each(components.labels, function (_, d) {
             var color = nf.Label.defaultColor();
 
-            // use the specified color if appropriate
-            if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
-                color = d.component.style['background-color'];
+            if (d.accessPolicy.canRead) {
+                // use the specified color if appropriate
+                if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                    color = d.component.style['background-color'];
+                }
             }
 
             context.fillStyle = color;
-            context.fillRect(d.component.position.x, d.component.position.y, d.dimensions.width, d.dimensions.height);
+            context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // funnels
         context.fillStyle = '#9f6000';
         $.each(components.funnels, function (_, d) {
-            context.fillRect(d.component.position.x, d.component.position.y, d.dimensions.width, d.dimensions.height);
+            context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // ports
         context.fillStyle = '#aaa';
         $.each(components.ports, function (_, d) {
-            context.fillRect(d.component.position.x, d.component.position.y, d.dimensions.width, d.dimensions.height);
+            context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // remote process groups
         context.fillStyle = '#294c58';
         $.each(components.remoteProcessGroups, function (_, d) {
-            context.fillRect(d.component.position.x, d.component.position.y, d.dimensions.width, d.dimensions.height);
+            context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // process groups
         context.fillStyle = '#294c58';
         $.each(components.processGroups, function (_, d) {
-            context.fillRect(d.component.position.x, d.component.position.y, d.dimensions.width, d.dimensions.height);
+            context.fillRect(d.x, d.y, d.dimensions.width, d.dimensions.height);
         });
 
         // processors
         $.each(components.processors, function (_, d) {
             var color = nf.Processor.defaultColor();
 
-            // use the specified color if appropriate
-            if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
-                color = d.component.style['background-color'];
+            if (d.accessPolicy.canRead) {
+                // use the specified color if appropriate
+                if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                    color = d.component.style['background-color'];
+                }
             }
 
             context.fillStyle = color;
-            context.fillRect(d.component.position.x, d.component.position.y, d.dimensions.width, d.dimensions.height);
+            context.fillRect(d.x, d.y, d.dimensions.width, d.dimensions.height);
         });
 
         context.restore();

@@ -40,8 +40,8 @@ nf.RemoteProcessGroupPorts = (function () {
 
                                 // create the remote process group details
                                 var remoteProcessGroupPortEntity = {
-                                    revision: nf.Client.getRevision(),
-                                    remoteProcessGroupPort: {
+                                    'revision': nf.Client.getRevision(),
+                                    'remoteProcessGroupPort': {
                                         id: remotePortId,
                                         useCompression: $('#remote-port-use-compression').hasClass('checkbox-checked'),
                                         concurrentlySchedulableTaskCount: remotePortConcurrentTasks
@@ -259,8 +259,8 @@ nf.RemoteProcessGroupPorts = (function () {
 
                     // create the remote process group details
                     var remoteProcessGroupPortEntity = {
-                        revision: nf.Client.getRevision(),
-                        remoteProcessGroupPort: {
+                        'revision': nf.Client.getRevision(),
+                        'remoteProcessGroupPort': {
                             id: port.id,
                             transmitting: isTransmitting
                         }
@@ -460,7 +460,7 @@ nf.RemoteProcessGroupPorts = (function () {
                     var remoteProcessGroup = response.remoteProcessGroup;
 
                     // set the model locally
-                    nf.RemoteProcessGroup.set(remoteProcessGroup);
+                    nf.RemoteProcessGroup.set(response);
 
                     // populate the port settings
                     $('#remote-process-group-ports-id').text(remoteProcessGroup.id);

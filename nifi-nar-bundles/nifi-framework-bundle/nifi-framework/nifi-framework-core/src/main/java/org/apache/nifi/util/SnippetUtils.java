@@ -26,7 +26,7 @@ import java.util.Map;
 
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.NiFiComponentDTO;
+import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 
 /**
@@ -50,7 +50,7 @@ public final class SnippetUtils {
             final Collection<ConnectionDTO> connections = getConnections(snippet);
 
             // get the components and their positions from the template contents
-            final Collection<NiFiComponentDTO> components = getComponents(snippet);
+            final Collection<ComponentDTO> components = getComponents(snippet);
 
             // only perform the operation if there are components in this snippet
             if (connections.isEmpty() && components.isEmpty()) {
@@ -58,7 +58,7 @@ public final class SnippetUtils {
             }
 
             // get the component positions from the snippet contents
-            final Map<NiFiComponentDTO, PositionDTO> componentPositionLookup = getPositionLookup(components);
+            final Map<ComponentDTO, PositionDTO> componentPositionLookup = getPositionLookup(components);
             final Map<ConnectionDTO, List<PositionDTO>> connectionPositionLookup = getConnectionPositionLookup(connections);
             final PositionDTO currentOrigin = getOrigin(componentPositionLookup.values(), connectionPositionLookup.values());
 
@@ -101,8 +101,8 @@ public final class SnippetUtils {
      * @param contents snippet
      * @return component dtos
      */
-    private static Collection<NiFiComponentDTO> getComponents(FlowSnippetDTO contents) {
-        final Collection<NiFiComponentDTO> components = new HashSet<>();
+    private static Collection<ComponentDTO> getComponents(FlowSnippetDTO contents) {
+        final Collection<ComponentDTO> components = new HashSet<>();
 
         // add all components
         if (contents.getInputPorts() != null) {
@@ -136,11 +136,11 @@ public final class SnippetUtils {
      * @param components components
      * @return component and position map
      */
-    private static Map<NiFiComponentDTO, PositionDTO> getPositionLookup(Collection<NiFiComponentDTO> components) {
-        final Map<NiFiComponentDTO, PositionDTO> positionLookup = new HashMap<>();
+    private static Map<ComponentDTO, PositionDTO> getPositionLookup(Collection<ComponentDTO> components) {
+        final Map<ComponentDTO, PositionDTO> positionLookup = new HashMap<>();
 
         // determine the position for each component
-        for (final NiFiComponentDTO component : components) {
+        for (final ComponentDTO component : components) {
             positionLookup.put(component, new PositionDTO(component.getPosition().getX(), component.getPosition().getY()));
         }
 
@@ -223,9 +223,9 @@ public final class SnippetUtils {
      * @param componentPositionLookup lookup
      * @param connectionPositionLookup lookup
      */
-    private static void applyUpdatedPositions(final Map<NiFiComponentDTO, PositionDTO> componentPositionLookup, final Map<ConnectionDTO, List<PositionDTO>> connectionPositionLookup) {
-        for (final Map.Entry<NiFiComponentDTO, PositionDTO> entry : componentPositionLookup.entrySet()) {
-            final NiFiComponentDTO component = entry.getKey();
+    private static void applyUpdatedPositions(final Map<ComponentDTO, PositionDTO> componentPositionLookup, final Map<ConnectionDTO, List<PositionDTO>> connectionPositionLookup) {
+        for (final Map.Entry<ComponentDTO, PositionDTO> entry : componentPositionLookup.entrySet()) {
+            final ComponentDTO component = entry.getKey();
             final PositionDTO position = entry.getValue();
             component.setPosition(position);
         }

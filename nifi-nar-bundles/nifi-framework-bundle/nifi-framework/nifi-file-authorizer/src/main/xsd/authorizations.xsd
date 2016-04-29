@@ -28,7 +28,6 @@
             <xs:simpleType>
                 <xs:restriction base="xs:string">
                     <xs:enumeration value="R"/>
-                    <xs:enumeration value="W"/>
                     <xs:enumeration value="RW"/>
                 </xs:restriction>
             </xs:simpleType>

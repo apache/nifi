@@ -109,61 +109,62 @@ nf.CanvasToolbar = (function () {
             }
 
             // only refresh the toolbar if DFM
-            if (nf.Common.isDFM()) {
-                var selection = nf.CanvasUtils.getSelection();
+            var selection = nf.CanvasUtils.getSelection();
+            if (nf.CanvasUtils.canModify(selection) === false) {
+                return;
+            }
 
-                // if all selected components are deletable enable the delete button
-                if (!selection.empty()) {
-                    var enableDelete = true;
-                    selection.each(function (d) {
-                        if (!nf.CanvasUtils.isDeletable(d3.select(this))) {
-                            enableDelete = false;
-                            return false;
-                        }
-                    });
-                    if (enableDelete) {
-                        actions['delete'].enable();
-                    } else {
-                        actions['delete'].disable();
+            // if all selected components are deletable enable the delete button
+            if (!selection.empty()) {
+                var enableDelete = true;
+                selection.each(function (d) {
+                    if (!nf.CanvasUtils.isDeletable(d3.select(this))) {
+                        enableDelete = false;
+                        return false;
                     }
+                });
+                if (enableDelete) {
+                    actions['delete'].enable();
                 } else {
                     actions['delete'].disable();
                 }
+            } else {
+                actions['delete'].disable();
+            }
 
-                // if there are any copyable components enable the button
-                if (nf.CanvasUtils.isCopyable(selection)) {
-                    actions['copy'].enable();
-                } else {
-                    actions['copy'].disable();
-                }
+            // if there are any copyable components enable the button
+            if (nf.CanvasUtils.isCopyable(selection)) {
+                actions['copy'].enable();
+            } else {
+                actions['copy'].disable();
+            }
 
-                // determine if the selection is groupable
-                if (!selection.empty() && nf.CanvasUtils.isDisconnected(selection)) {
-                    actions['group'].enable();
-                } else {
-                    actions['group'].disable();
-                }
+            // determine if the selection is groupable
+            if (!selection.empty() && nf.CanvasUtils.isDisconnected(selection)) {
+                actions['group'].enable();
+            } else {
+                actions['group'].disable();
+            }
 
-                // if there are any colorable components enable the fill button
-                if (nf.CanvasUtils.isColorable(selection)) {
-                    actions['fill'].enable();
-                } else {
-                    actions['fill'].disable();
-                }
-                
-                // ensure the selection supports enable
-                if (nf.CanvasUtils.canEnable(selection)) {
-                    actions['enable'].enable();
-                } else {
-                    actions['enable'].disable();
-                }
+            // if there are any colorable components enable the fill button
+            if (nf.CanvasUtils.isColorable(selection)) {
+                actions['fill'].enable();
+            } else {
+                actions['fill'].disable();
+            }
+            
+            // ensure the selection supports enable
+            if (nf.CanvasUtils.canEnable(selection)) {
+                actions['enable'].enable();
+            } else {
+                actions['enable'].disable();
+            }
 
-                // ensure the selection supports disable
-                if (nf.CanvasUtils.canDisable(selection)) {
-                    actions['disable'].enable();
-                } else {
-                    actions['disable'].disable();
-                }
+            // ensure the selection supports disable
+            if (nf.CanvasUtils.canDisable(selection)) {
+                actions['disable'].enable();
+            } else {
+                actions['disable'].disable();
             }
         }
     };

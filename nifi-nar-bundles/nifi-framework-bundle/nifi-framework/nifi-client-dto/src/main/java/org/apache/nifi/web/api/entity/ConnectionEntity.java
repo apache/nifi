@@ -16,26 +16,119 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.List;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a ConnectionDTO.
  */
 @XmlRootElement(name = "connectionEntity")
-public class ConnectionEntity extends Entity {
+public class ConnectionEntity extends ComponentEntity {
 
-    private ConnectionDTO connection;
+    private ConnectionDTO component;
+    private List<PositionDTO> bends;
+    private Integer labelIndex;
+    private String sourceId;
+    private String sourceGroupId;
+    private String destinationId;
+    private String destinationGroupId;
 
     /**
      * @return RelationshipDTO that is being serialized
      */
-    public ConnectionDTO getConnection() {
-        return connection;
+    public ConnectionDTO getComponent() {
+        return component;
     }
 
-    public void setConnection(ConnectionDTO connection) {
-        this.connection = connection;
+    public void setComponent(ConnectionDTO component) {
+        this.component = component;
     }
 
+    /**
+     * @return position of the bend points on this connection
+     */
+    @ApiModelProperty(
+        value = "The bend points on the connection."
+    )
+    public List<PositionDTO> getBends() {
+        return bends;
+    }
+
+    public void setBends(List<PositionDTO> bends) {
+        this.bends = bends;
+    }
+
+    /**
+     * @return The index of control point that the connection label should be placed over
+     */
+    @ApiModelProperty(
+        value = "The index of the bend point where to place the connection label."
+    )
+    public Integer getLabelIndex() {
+        return labelIndex;
+    }
+
+    public void setLabelIndex(Integer labelIndex) {
+        this.labelIndex = labelIndex;
+    }
+
+    /**
+     * @return The identifier of the source of this connection
+     */
+    @ApiModelProperty(
+        value = "The identifier of the source of this connection."
+    )
+    public String getSourceId() {
+        return sourceId;
+    }
+
+    public void setSourceId(String sourceId) {
+        this.sourceId = sourceId;
+    }
+
+    /**
+     * @return The identifier of the destination of this connection
+     */
+    @ApiModelProperty(
+        value = "The identifier of the destination of this connection."
+    )
+    public String getDestinationId() {
+        return destinationId;
+    }
+
+    public void setDestinationId(String destinationId) {
+        this.destinationId = destinationId;
+    }
+
+    /**
+     * @return The identifier of the group of the source of this connection
+     */
+    @ApiModelProperty(
+        value = "The identifier of the group of the source of this connection."
+    )
+    public String getSourceGroupId() {
+        return sourceGroupId;
+    }
+
+    public void setSourceGroupId(String sourceGroupId) {
+        this.sourceGroupId = sourceGroupId;
+    }
+
+    /**
+     * @return The identifier of the group of the destination of this connection
+     */
+    @ApiModelProperty(
+        value = "The identifier of the group of the destination of this connection."
+    )
+    public String getDestinationGroupId() {
+        return destinationGroupId;
+    }
+
+    public void setDestinationGroupId(String destinationGroupId) {
+        this.destinationGroupId = destinationGroupId;
+    }
 }

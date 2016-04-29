@@ -363,7 +363,7 @@ nf.CanvasToolbox = (function () {
     var createProcessor = function (name, processorType, pt) {
         var processorEntity = {
             'revision': nf.Client.getRevision(),
-            'processor': {
+            'component': {
                 'type': processorType,
                 'name': name,
                 'position': {
@@ -381,13 +381,13 @@ nf.CanvasToolbox = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.processor)) {
+            if (nf.Common.isDefinedAndNotNull(response.component)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
 
                 // add the processor to the graph
                 nf.Graph.add({
-                    'processors': [response.processor]
+                    'processors': [response]
                 }, true);
 
                 // update component visibility
@@ -454,7 +454,7 @@ nf.CanvasToolbox = (function () {
     var createInputPort = function (portName, pt) {
         var inputPortEntity = {
             'revision': nf.Client.getRevision(),
-            'inputPort': {
+            'component': {
                 'name': portName,
                 'position': {
                     'x': pt.x,
@@ -471,13 +471,13 @@ nf.CanvasToolbox = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.inputPort)) {
+            if (nf.Common.isDefinedAndNotNull(response.component)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
 
                 // add the port to the graph
                 nf.Graph.add({
-                    'inputPorts': [response.inputPort]
+                    'inputPorts': [response]
                 }, true);
 
                 // update component visibility
@@ -544,7 +544,7 @@ nf.CanvasToolbox = (function () {
     var createOutputPort = function (portName, pt) {
         var outputPortEntity = {
             'revision': nf.Client.getRevision(),
-            'outputPort': {
+            'component': {
                 'name': portName,
                 'position': {
                     'x': pt.x,
@@ -561,13 +561,13 @@ nf.CanvasToolbox = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.outputPort)) {
+            if (nf.Common.isDefinedAndNotNull(response.component)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
 
                 // add the port to the graph
                 nf.Graph.add({
-                    'outputPorts': [response.outputPort]
+                    'outputPorts': [response]
                 }, true);
 
                 // update component visibility
@@ -588,7 +588,7 @@ nf.CanvasToolbox = (function () {
     var createGroup = function (groupName, pt) {
         var processGroupEntity = {
             'revision': nf.Client.getRevision(),
-            'processGroup': {
+            'component': {
                 'name': groupName,
                 'position': {
                     'x': pt.x,
@@ -605,13 +605,13 @@ nf.CanvasToolbox = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.processGroup)) {
+            if (nf.Common.isDefinedAndNotNull(response.component)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
 
-                // add the processor to the graph
+                // add the process group to the graph
                 nf.Graph.add({
-                    'processGroups': [response.processGroup]
+                    'processGroups': [response]
                 }, true);
 
                 // update component visibility
@@ -675,7 +675,7 @@ nf.CanvasToolbox = (function () {
     var createRemoteProcessGroup = function (remoteProcessGroupUri, pt) {
         var remoteProcessGroupEntity = {
             'revision': nf.Client.getRevision(),
-            'remoteProcessGroup': {
+            'component': {
                 'targetUri': remoteProcessGroupUri,
                 'position': {
                     'x': pt.x,
@@ -684,7 +684,7 @@ nf.CanvasToolbox = (function () {
             }
         };
 
-        // create a new processor of the defined type
+        // create a new remote process group of the defined type
         $.ajax({
             type: 'POST',
             url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/remote-process-groups',
@@ -692,13 +692,13 @@ nf.CanvasToolbox = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.remoteProcessGroup)) {
+            if (nf.Common.isDefinedAndNotNull(response.component)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
 
                 // add the processor to the graph
                 nf.Graph.add({
-                    'remoteProcessGroups': [response.remoteProcessGroup]
+                    'remoteProcessGroups': [response]
                 }, true);
 
                 // update component visibility
@@ -718,7 +718,7 @@ nf.CanvasToolbox = (function () {
     var createFunnel = function (pt) {
         var outputPortEntity = {
             'revision': nf.Client.getRevision(),
-            'funnel': {
+            'component': {
                 'position': {
                     'x': pt.x,
                     'y': pt.y
@@ -734,13 +734,13 @@ nf.CanvasToolbox = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.funnel)) {
+            if (nf.Common.isDefinedAndNotNull(response.component)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
 
                 // add the funnel to the graph
                 nf.Graph.add({
-                    'funnels': [response.funnel]
+                    'funnels': [response]
                 }, true);
 
                 // update the birdseye
@@ -841,7 +841,7 @@ nf.CanvasToolbox = (function () {
             nf.Client.setRevision(response.revision);
 
             // populate the graph accordingly
-            nf.Graph.add(response.contents, true);
+            nf.Graph.add(response.flow, true);
 
             // update component visibility
             nf.Canvas.View.updateVisibility();
@@ -859,7 +859,7 @@ nf.CanvasToolbox = (function () {
     var createLabel = function (pt) {
         var labelEntity = {
             'revision': nf.Client.getRevision(),
-            'label': {
+            'component': {
                 'width': nf.Label.config.width,
                 'height': nf.Label.config.height,
                 'position': {
@@ -877,13 +877,13 @@ nf.CanvasToolbox = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.label)) {
+            if (nf.Common.isDefinedAndNotNull(response.component)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
 
                 // add the label to the graph
                 nf.Graph.add({
-                    'labels': [response.label]
+                    'labels': [response]
                 }, true);
 
                 // update the birdseye
@@ -1135,7 +1135,7 @@ nf.CanvasToolbox = (function () {
 
                     // create the group and resolve the deferred accordingly
                     createGroup(groupName, pt).done(function (response) {
-                        deferred.resolve(response.processGroup);
+                        deferred.resolve(response.component);
                     }).fail(function () {
                         deferred.reject();
                     });

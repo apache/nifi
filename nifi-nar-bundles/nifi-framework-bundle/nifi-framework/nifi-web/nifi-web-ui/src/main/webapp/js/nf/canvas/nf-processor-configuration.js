@@ -303,7 +303,7 @@ nf.ProcessorConfiguration = (function () {
         // create the processor entity
         var processorEntity = {};
         processorEntity['revision'] = nf.Client.getRevision();
-        processorEntity['processor'] = processorDto;
+        processorEntity['component'] = processorDto;
 
         // return the marshaled details
         return processorEntity;
@@ -340,7 +340,7 @@ nf.ProcessorConfiguration = (function () {
      */
     var validateDetails = function (details) {
         var errors = [];
-        var processor = details['processor'];
+        var processor = details['component'];
         var config = processor['config'];
 
         // ensure numeric fields are specified correctly
@@ -377,8 +377,10 @@ nf.ProcessorConfiguration = (function () {
     var reloadProcessorConnections = function (processor) {
         var connections = nf.Connection.getComponentConnections(processor.id);
         $.each(connections, function (_, connection) {
-            if (connection.source.id === processor.id) {
-                nf.Connection.reload(connection);
+            if (connection.accessPolicy.canRead) {
+                if (connection.sourceId === processor.id) {
+                    nf.Connection.reload(connection);
+                }
             }
         });
     };
@@ -435,7 +437,7 @@ nf.ProcessorConfiguration = (function () {
                 processData: false,
                 contentType: 'application/json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.processor)) {
+                if (nf.Common.isDefinedAndNotNull(response.component)) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
                 }
@@ -592,7 +594,7 @@ nf.ProcessorConfiguration = (function () {
                 // once everything is loaded, show the dialog
                 $.when.apply(window, requests).done(function (processorResponse, historyResponse) {
                     // get the updated processor
-                    processor = processorResponse[0].processor;
+                    processor = processorResponse[0].component;
                     
                     // get the processor history
                     var processorHistory = historyResponse[0].componentHistory;
@@ -717,7 +719,7 @@ nf.ProcessorConfiguration = (function () {
                                     // save the processor
                                     saveProcessor(processor).done(function (response) {
                                         // set the new processor state based on the response
-                                        nf.Processor.set(response.processor);
+                                        nf.Processor.set(response);
 
                                         // reload the processor's outgoing connections
                                         reloadProcessorConnections(processor);

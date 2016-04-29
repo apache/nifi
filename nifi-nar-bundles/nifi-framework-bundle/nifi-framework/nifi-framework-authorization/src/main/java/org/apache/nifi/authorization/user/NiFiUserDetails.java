@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.user;
+package org.apache.nifi.authorization.user;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.user.NiFiUser;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 

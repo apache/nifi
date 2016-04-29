@@ -16,15 +16,18 @@
  */
 package org.apache.nifi.controller.label;
 
-import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.connectable.Position;
+import org.apache.nifi.connectable.Size;
+import org.apache.nifi.groups.ProcessGroup;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.apache.nifi.connectable.Position;
-import org.apache.nifi.connectable.Size;
-import org.apache.nifi.groups.ProcessGroup;
 
 public class StandardLabel implements Label {
 
@@ -74,6 +77,16 @@ public class StandardLabel implements Label {
 
     public String getIdentifier() {
         return identifier;
+    }
+
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return getProcessGroup();
+    }
+
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getComponentResource(ResourceType.Label, getIdentifier(),"Label");
     }
 
     public Map<String, String> getStyle() {

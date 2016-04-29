@@ -14,28 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.entity;
-
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.PortDTO;
+package org.apache.nifi.authorization;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to an output PortDTO.
+ * Represents any error that might occur while authorizing user requests.
  */
-@XmlRootElement(name = "outputPortEntity")
-public class OutputPortEntity extends Entity {
+public class AccessDeniedException extends RuntimeException {
 
-    private PortDTO outputPort;
-
-    /**
-     * @return output PortDTO that are being serialized
-     */
-    public PortDTO getOutputPort() {
-        return outputPort;
+    public AccessDeniedException(Throwable cause) {
+        super(cause);
     }
 
-    public void setOutputPort(PortDTO outputPort) {
-        this.outputPort = outputPort;
+    public AccessDeniedException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public AccessDeniedException(String message) {
+        super(message);
+    }
+
+    public AccessDeniedException() {
     }
 
 }

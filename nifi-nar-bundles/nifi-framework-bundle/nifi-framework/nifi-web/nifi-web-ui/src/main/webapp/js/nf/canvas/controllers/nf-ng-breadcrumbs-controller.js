@@ -38,15 +38,15 @@ nf.ng.BreadcrumbsCtrl = (function () {
             /**
              * Generate the breadcrumbs.
              *
-             * @param {object} processGroup  The process group used to generate breadcrumbs
+             * @param {object} breadcrumb  The breadcrumb
              */
-            generateBreadcrumbs: function (processGroup) {
+            generateBreadcrumbs: function (breadcrumb) {
                 //explicitly sanitize processGroup.name
-                processGroup.name = $sanitize(processGroup.name);
-                this.breadcrumbs.unshift(processGroup);
+                breadcrumb.name = $sanitize(breadcrumb.name);
+                this.breadcrumbs.unshift(breadcrumb);
 
-                if (nf.Common.isDefinedAndNotNull(processGroup.parent)) {
-                    this.generateBreadcrumbs(processGroup.parent);
+                if (nf.Common.isDefinedAndNotNull(breadcrumb.parentBreadcrumb)) {
+                    this.generateBreadcrumbs(breadcrumb.parentBreadcrumb);
                 }
             },
 

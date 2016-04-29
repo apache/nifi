@@ -58,7 +58,7 @@ nf.RemoteProcessGroupDetails = (function () {
                 var selectionData = selection.datum();
 
                 // populate the port settings
-                nf.Common.populateField('read-only-remote-process-group-id', selectionData.component.id);
+                nf.Common.populateField('read-only-remote-process-group-id', selectionData.id);
                 nf.Common.populateField('read-only-remote-process-group-name', selectionData.component.name);
                 nf.Common.populateField('read-only-remote-process-group-url', selectionData.component.targetUri);
                 nf.Common.populateField('read-only-remote-process-group-timeout', selectionData.component.communicationsTimeout);

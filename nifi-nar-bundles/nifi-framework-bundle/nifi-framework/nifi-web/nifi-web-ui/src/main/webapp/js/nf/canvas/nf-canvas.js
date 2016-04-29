@@ -450,8 +450,8 @@ nf.Canvas = (function () {
                     d3.selectAll('g.component').classed('selected', function (d) {
                         // consider it selected if its already selected or enclosed in the bounding box
                         return d3.select(this).classed('selected') ||
-                            d.component.position.x >= selectionBoundingBox.x && (d.component.position.x + d.dimensions.width) <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
-                            d.component.position.y >= selectionBoundingBox.y && (d.component.position.y + d.dimensions.height) <= (selectionBoundingBox.y + selectionBoundingBox.height);
+                            d.position.x >= selectionBoundingBox.x && (d.position.x + d.dimensions.width) <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
+                            d.position.y >= selectionBoundingBox.y && (d.position.y + d.dimensions.height) <= (selectionBoundingBox.y + selectionBoundingBox.height);
                     });
 
                     // see if a connection should be selected or not
@@ -777,32 +777,31 @@ nf.Canvas = (function () {
         // load the controller
         return $.ajax({
             type: 'GET',
-            url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupId),
+            url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId),
             data: {
                 verbose: true
             },
             dataType: 'json'
-        }).done(function (processGroupResponse) {
+        }).done(function (flowResponse) {
             // set the revision
-            nf.Client.setRevision(processGroupResponse.revision);
+            nf.Client.setRevision(flowResponse.revision);
 
             // get the controller and its contents
-            var processGroup = processGroupResponse.processGroup;
+            var processGroupFlow = flowResponse.processGroupFlow;
 
             // set the group details
-            nf.Canvas.setGroupId(processGroup.id);
-            nf.Canvas.setGroupName(processGroup.name);
+            nf.Canvas.setGroupId(processGroupFlow.id);
 
             // update the breadcrumbs
             nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
                 'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetBreadcrumbs');
             nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
                 'AppCtrl.ServiceProvider.BreadcrumbsCtrl.generateBreadcrumbs',
-                processGroup);
+                processGroupFlow.breadcrumb);
 
             // set the parent id if applicable
-            if (nf.Common.isDefinedAndNotNull(processGroup.parent)) {
-                nf.Canvas.setParentGroupId(processGroup.parent.id);
+            if (nf.Common.isDefinedAndNotNull(processGroupFlow.parentGroupId)) {
+                nf.Canvas.setParentGroupId(processGroupFlow.parentGroupId);
             } else {
                 nf.Canvas.setParentGroupId(null);
             }
@@ -811,7 +810,7 @@ nf.Canvas = (function () {
             nf.Graph.removeAll();
 
             // refresh the graph
-            nf.Graph.add(processGroup.contents, false);
+            nf.Graph.add(processGroupFlow.flow, false);
 
             // update the toolbar
             nf.CanvasToolbar.refresh();
@@ -1253,8 +1252,8 @@ nf.Canvas = (function () {
                         return false;
                     }
 
-                    var left = d.component.position.x;
-                    var top = d.component.position.y;
+                    var left = d.position.x;
+                    var top = d.position.y;
                     var right = left + d.dimensions.width;
                     var bottom = top + d.dimensions.height;
 
@@ -1283,7 +1282,7 @@ nf.Canvas = (function () {
 
                 // marks the specific component as visible and determines if its entering or leaving visibility
                 var updateVisibility = function (d, isVisible) {
-                    var selection = d3.select('#id-' + d.component.id);
+                    var selection = d3.select('#id-' + d.id);
                     var visible = isVisible(d);
                     var wasVisible = selection.classed('visible');
 

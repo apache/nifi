@@ -25,9 +25,9 @@ import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.FunnelEntity;
@@ -74,6 +74,32 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Populates the uri for the specified funnels.
      *
+     * @param funnelEntities funnels
+     * @return funnels
+     */
+    public Set<FunnelEntity> populateRemainingFunnelEntitiesContent(Set<FunnelEntity> funnelEntities) {
+        for (FunnelEntity funnelEntity : funnelEntities) {
+            populateRemainingFunnelEntityContent(funnelEntity);
+        }
+        return funnelEntities;
+    }
+
+    /**
+     * Populates the uri for the specified funnel.
+     *
+     * @param funnelEntity funnel
+     * @return funnel
+     */
+    public FunnelEntity populateRemainingFunnelEntityContent(FunnelEntity funnelEntity) {
+        if (funnelEntity.getComponent() != null) {
+            populateRemainingFunnelContent(funnelEntity.getComponent());
+        }
+        return funnelEntity;
+    }
+
+    /**
+     * Populates the uri for the specified funnels.
+     *
      * @param funnels funnels
      * @return funnels
      */
@@ -96,9 +122,6 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Retrieves the specified funnel.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param id The id of the funnel to retrieve
      * @return A funnelEntity.
      */
@@ -127,11 +150,6 @@ public class FunnelResource extends ApplicationResource {
     )
     public Response getFunnel(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The funnel id.",
                     required = true
             )
@@ -143,16 +161,8 @@ public class FunnelResource extends ApplicationResource {
         }
 
         // get the funnel
-        final FunnelDTO funnel = serviceFacade.getFunnel(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final FunnelEntity entity = new FunnelEntity();
-        entity.setRevision(revision);
-        entity.setFunnel(populateRemainingFunnelContent(funnel));
+        final FunnelEntity entity = serviceFacade.getFunnel(id);
+        populateRemainingFunnelEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -198,7 +208,7 @@ public class FunnelResource extends ApplicationResource {
                     required = true
             ) FunnelEntity funnelEntity) {
 
-        if (funnelEntity == null || funnelEntity.getFunnel() == null) {
+        if (funnelEntity == null || funnelEntity.getComponent() == null) {
             throw new IllegalArgumentException("Funnel details must be specified.");
         }
 
@@ -207,7 +217,7 @@ public class FunnelResource extends ApplicationResource {
         }
 
         // ensure the ids are the same
-        final FunnelDTO requestFunnelDTO = funnelEntity.getFunnel();
+        final FunnelDTO requestFunnelDTO = funnelEntity.getComponent();
         if (!id.equals(requestFunnelDTO.getId())) {
             throw new IllegalArgumentException(String.format("The funnel id (%s) in the request body does not equal the "
                     + "funnel id of the requested resource (%s).", requestFunnelDTO.getId(), id));
@@ -231,25 +241,15 @@ public class FunnelResource extends ApplicationResource {
 
         // update the funnel
         final RevisionDTO revision = funnelEntity.getRevision();
-        final ConfigurationSnapshot<FunnelDTO> controllerResponse = serviceFacade.updateFunnel(
+        final UpdateResult<FunnelEntity> updateResult = serviceFacade.updateFunnel(
                 new Revision(revision.getVersion(), revision.getClientId()), requestFunnelDTO);
 
         // get the results
-        final FunnelDTO responseFunnelDTO = controllerResponse.getConfiguration();
-        populateRemainingFunnelContent(responseFunnelDTO);
+        final FunnelEntity entity = updateResult.getResult();
+        populateRemainingFunnelEntityContent(entity);
 
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final FunnelEntity entity = new FunnelEntity();
-        entity.setRevision(updatedRevision);
-        entity.setFunnel(responseFunnelDTO);
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responseFunnelDTO.getUri()), entity)).build();
+        if (updateResult.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }
@@ -325,17 +325,7 @@ public class FunnelResource extends ApplicationResource {
         }
 
         // delete the specified funnel
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteFunnel(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final FunnelEntity entity = new FunnelEntity();
-        entity.setRevision(revision);
-
+        final FunnelEntity entity = serviceFacade.deleteFunnel(new Revision(clientVersion, clientId.getClientId()), id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 

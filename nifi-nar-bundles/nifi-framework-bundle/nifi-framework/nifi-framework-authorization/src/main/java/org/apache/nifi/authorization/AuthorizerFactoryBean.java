@@ -81,38 +81,37 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
     @Override
     public Object getObject() throws Exception {
         if (authorizer == null) {
-            // look up the authorizer to use
-            final String authorizerIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
-
-            // ensure the authorizer class name was specified
-            if (StringUtils.isBlank(authorizerIdentifier)) {
-                // if configured for ssl, the authorizer must be specified
-                if (properties.getSslPort() != null) {
-                    throw new Exception("When running securely, the authorizer identifier must be specified in the nifi properties file.");
-                }
-
+            if (properties.getSslPort() == null) {
                 // use a default authorizer... only allowable when running not securely
                 authorizer = createDefaultAuthorizer();
             } else {
-                final Authorizers authorizerConfiguration = loadAuthorizersConfiguration();
+                // look up the authorizer to use
+                final String authorizerIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
 
-                // create each authorizer
-                for (final org.apache.nifi.authorization.generated.Authorizer authorizer : authorizerConfiguration.getAuthorizer()) {
-                    authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz()));
-                }
+                // ensure the authorizer class name was specified
+                if (StringUtils.isBlank(authorizerIdentifier)) {
+                    throw new Exception("When running securely, the authorizer identifier must be specified in the nifi properties file.");
+                } else {
+                    final Authorizers authorizerConfiguration = loadAuthorizersConfiguration();
 
-                // configure each authorizer
-                for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
-                    final Authorizer instance = authorizers.get(provider.getIdentifier());
-                    instance.onConfigured(loadAuthorizerConfiguration(provider));
-                }
+                    // create each authorizer
+                    for (final org.apache.nifi.authorization.generated.Authorizer authorizer : authorizerConfiguration.getAuthorizer()) {
+                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz()));
+                    }
 
-                // get the authorizer instance
-                authorizer = getAuthorizer(authorizerIdentifier);
+                    // configure each authorizer
+                    for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                        final Authorizer instance = authorizers.get(provider.getIdentifier());
+                        instance.onConfigured(loadAuthorizerConfiguration(provider));
+                    }
 
-                // ensure it was found
-                if (authorizer == null) {
-                    throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
+                    // get the authorizer instance
+                    authorizer = getAuthorizer(authorizerIdentifier);
+
+                    // ensure it was found
+                    if (authorizer == null) {
+                        throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
+                    }
                 }
             }
         }

@@ -43,19 +43,17 @@ nf.Draggable = (function () {
         
         var updateComponentPosition = function(d) {
             var newPosition = {
-                'x': d.component.position.x + delta.x,
-                'y': d.component.position.y + delta.y
+                'x': d.position.x + delta.x,
+                'y': d.position.y + delta.y
             };
 
             // build the entity
             var entity = {
-                'revision': nf.Client.getRevision()
-            };
-
-            // use bracket notation to dynamic get the key based on the entity type
-            entity[nf[d.type].getEntityKey(d)] = {
-                'id': d.component.id,
-                'position': newPosition
+                'revision': nf.Client.getRevision(),
+                'component': {
+                    'id': d.id,
+                    'position': newPosition
+                }
             };
 
             // update the component positioning
@@ -70,13 +68,13 @@ nf.Draggable = (function () {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
-                    // store the updated location
-                    d.component.position = newPosition;
+                    // update the component
+                    nf[d.type].set(response);
 
                     // resolve with an object so we can refresh when finished
                     deferred.resolve({
                         type: d.type,
-                        id: d.component.id
+                        id: d.id
                     });
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
@@ -95,12 +93,12 @@ nf.Draggable = (function () {
         
         var updateConnectionPosition = function(d) {
             // only update if necessary
-            if (d.component.bends.length === 0) {
+            if (d.bends.length === 0) {
                 return null;
             }
 
             // calculate the new bend points
-            var newBends = $.map(d.component.bends, function (bend) {
+            var newBends = $.map(d.bends, function (bend) {
                 return {
                     x: bend.x + delta.x,
                     y: bend.y + delta.y
@@ -108,9 +106,9 @@ nf.Draggable = (function () {
             });
 
             var entity = {
-                revision: revision,
-                connection: {
-                    id: d.component.id,
+                'revision': revision,
+                'component': {
+                    id: d.id,
                     bends: newBends
                 }
             };
@@ -127,19 +125,13 @@ nf.Draggable = (function () {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
-                    // store the updated bend points
-                    d.component.bends = response.connection.bends;
-                    d.bends = $.map(d.component.bends, function (bend) {
-                        return {
-                            x: bend.x,
-                            y: bend.y
-                        };
-                    });
+                    // update the component
+                    nf.Connection.set(response);
 
                     // resolve with an object so we can refresh when finished
                     deferred.resolve({
                         type: d.type,
-                        id: d.component.id
+                        id: d.id
                     });
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
@@ -160,14 +152,14 @@ nf.Draggable = (function () {
         d3.selectAll('g.connection.selected').each(function (d) {
             var connectionUpdate = updateConnectionPosition(d);
             if (connectionUpdate !== null) {
-                updates.set(d.component.id, connectionUpdate);
+                updates.set(d.id, connectionUpdate);
             }
         });
         
         // go through each selected component
         d3.selectAll('g.component.selected').each(function (d) {
             // consider any self looping connections
-            var connections = nf.Connection.getComponentConnections(d.component.id);
+            var connections = nf.Connection.getComponentConnections(d.id);
             $.each(connections, function(_, connection) {
                 if (!updates.has(connection.id) && nf.CanvasUtils.getConnectionSourceComponentId(connection) === nf.CanvasUtils.getConnectionDestinationComponentId(connection)) {
                     var connectionUpdate = updateConnectionPosition(nf.Connection.get(connection.id));
@@ -178,7 +170,7 @@ nf.Draggable = (function () {
             });
             
             // consider the component itself
-            updates.set(d.component.id, updateComponentPosition(d));
+            updates.set(d.id, updateComponentPosition(d));
         });
 
         // wait for all updates to complete
@@ -240,14 +232,14 @@ nf.Draggable = (function () {
                             // determine the appropriate bounding box
                             var minX = null, maxX = null, minY = null, maxY = null;
                             selection.each(function (d) {
-                                if (minX === null || d.component.position.x < minX) {
-                                    minX = d.component.position.x;
+                                if (minX === null || d.position.x < minX) {
+                                    minX = d.position.x;
                                 }
-                                if (minY === null || d.component.position.y < minY) {
-                                    minY = d.component.position.y;
+                                if (minY === null || d.position.y < minY) {
+                                    minY = d.position.y;
                                 }
-                                var componentMaxX = d.component.position.x + d.dimensions.width;
-                                var componentMaxY = d.component.position.y + d.dimensions.height;
+                                var componentMaxX = d.position.x + d.dimensions.width;
+                                var componentMaxY = d.position.y + d.dimensions.height;
                                 if (maxX === null || componentMaxX > maxX) {
                                     maxX = componentMaxX;
                                 }
