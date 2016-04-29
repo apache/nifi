@@ -2990,8 +2990,17 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         long droppedSize = 0;
 
         DropFlowFileState state = null;
+        boolean allFinished = true;
+        String failureReason = null;
         for (final Map.Entry<NodeIdentifier, DropRequestDTO> nodeEntry : dropRequestMap.entrySet()) {
             final DropRequestDTO nodeDropRequest = nodeEntry.getValue();
+
+            if (!nodeDropRequest.isFinished()) {
+                allFinished = false;
+            }
+            if (nodeDropRequest.getFailureReason() != null) {
+                failureReason = nodeDropRequest.getFailureReason();
+            }
 
             currentCount += nodeDropRequest.getCurrentCount();
             currentSize += nodeDropRequest.getCurrentSize();
@@ -3006,7 +3015,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             }
 
             final DropFlowFileState nodeState = DropFlowFileState.valueOfDescription(nodeDropRequest.getState());
-            if (state == null || state.compareTo(nodeState) > 0) {
+            if (state == null || state.ordinal() > nodeState.ordinal()) {
                 state = nodeState;
             }
         }
@@ -3018,6 +3027,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         dropRequest.setDroppedCount(droppedCount);
         dropRequest.setDroppedSize(droppedSize);
         dropRequest.setDropped(FormatUtils.formatCount(droppedCount) + " / " + FormatUtils.formatDataSize(droppedSize));
+
+        dropRequest.setFinished(allFinished);
+        dropRequest.setFailureReason(failureReason);
+        if (originalCount == 0) {
+            dropRequest.setPercentCompleted(allFinished ? 100 : 0);
+        } else {
+            dropRequest.setPercentCompleted((int) ((double) droppedCount / (double) originalCount * 100D));
+        }
 
         if (!nodeWaiting) {
             dropRequest.setOriginalCount(originalCount);
