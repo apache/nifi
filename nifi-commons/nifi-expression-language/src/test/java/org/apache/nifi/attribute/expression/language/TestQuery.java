@@ -1083,6 +1083,17 @@ public class TestQuery {
     }
 
     @Test
+    public void testIn() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("myEnum", "JOHN");
+        verifyEquals("${ myEnum:in('PAUL', 'JOHN', 'MIKE') }", attributes, true);
+        verifyEquals("${ myEnum:in('RED', 'BLUE', 'GREEN') }", attributes, false);
+
+        attributes.put("toReplace", "BLUE");
+        verifyEquals("${ myEnum:in('RED', ${ toReplace:replace('BLUE', 'JOHN') }, 'GREEN') }", attributes, true);
+    }
+
+    @Test
     public void testSubjectAsEmbeddedExpressionWithSurroundChars() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("b", "x");
