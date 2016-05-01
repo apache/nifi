@@ -1,0 +1,6 @@
+{
+  "testString": "String Value",
+  "testNumber": 1,
+  "testBoolean": true,
+  "testNull": null
+}
