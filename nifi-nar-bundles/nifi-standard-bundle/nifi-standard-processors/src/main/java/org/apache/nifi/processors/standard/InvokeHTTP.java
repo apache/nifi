@@ -49,17 +49,15 @@ import javax.net.ssl.SSLSession;
 
 import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
-import com.burgstaller.okhttp.DispatchingAuthenticator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
-
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
-
 import com.squareup.okhttp.ResponseBody;
+
 import okio.BufferedSink;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -85,6 +83,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.MultiAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
@@ -212,6 +211,23 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The port of the proxy server")
             .required(false)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROP_PROXY_USER = new PropertyDescriptor.Builder()
+            .name("invokehttp-proxy-user")
+            .displayName("Proxy Username")
+            .description("Username to set when authenticating against proxy")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("invokehttp-proxy-password")
+            .displayName("Proxy Password")
+            .description("Password to set when authenticating against proxy")
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
@@ -349,6 +365,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_BASIC_AUTH_PASSWORD,
             PROP_PROXY_HOST,
             PROP_PROXY_PORT,
+            PROP_PROXY_USER,
+            PROP_PROXY_PASSWORD,
             PROP_PUT_OUTPUT_IN_ATTRIBUTE,
             PROP_PUT_ATTRIBUTE_MAX_LENGTH,
             PROP_DIGEST_AUTH,
@@ -454,12 +472,22 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>(1);
+        final List<ValidationResult> results = new ArrayList<>(3);
         final boolean proxyHostSet = validationContext.getProperty(PROP_PROXY_HOST).isSet();
         final boolean proxyPortSet = validationContext.getProperty(PROP_PROXY_PORT).isSet();
 
         if ((proxyHostSet && !proxyPortSet) || (!proxyHostSet && proxyPortSet)) {
             results.add(new ValidationResult.Builder().subject("Proxy Host and Port").valid(false).explanation("If Proxy Host or Proxy Port is set, both must be set").build());
+        }
+
+        final boolean proxyUserSet = validationContext.getProperty(PROP_PROXY_USER).isSet();
+        final boolean proxyPwdSet = validationContext.getProperty(PROP_PROXY_PASSWORD).isSet();
+
+        if ((proxyUserSet && !proxyPwdSet) || (!proxyUserSet && proxyPwdSet)) {
+            results.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
+        }
+        if(proxyUserSet && !proxyHostSet) {
+            results.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
         }
 
         return results;
@@ -500,7 +528,16 @@ public final class InvokeHTTP extends AbstractProcessor {
             okHttpClient.setHostnameVerifier(new OverrideHostnameVerifier(trustedHostname, okHttpClient.getHostnameVerifier()));
         }
 
+        setAuthenticator(okHttpClient, context);
+
+        useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
+
+        okHttpClientAtomicReference.set(okHttpClient);
+    }
+
+    private void setAuthenticator(OkHttpClient okHttpClient, ProcessContext context) {
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String proxyUsername = trimToEmpty(context.getProperty(PROP_PROXY_USER).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
@@ -512,22 +549,31 @@ public final class InvokeHTTP extends AbstractProcessor {
              * Once added this should be refactored to use the built in support. For now, a third party lib is needed.
              */
             final Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
-
             com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
-
             final DigestAuthenticator digestAuthenticator = new DigestAuthenticator(credentials);
 
-            DispatchingAuthenticator authenticator = new DispatchingAuthenticator.Builder()
+            MultiAuthenticator authenticator = new MultiAuthenticator.Builder()
                     .with("Digest", digestAuthenticator)
                     .build();
 
+            if(!proxyUsername.isEmpty()) {
+                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).getValue();
+                authenticator.setProxyUsername(proxyUsername);
+                authenticator.setProxyPassword(proxyPassword);
+            }
+
             okHttpClient.interceptors().add(new AuthenticationCacheInterceptor(authCache));
             okHttpClient.setAuthenticator(new CachingAuthenticatorDecorator(authenticator, authCache));
+        } else {
+            // Add proxy authentication only
+            if(!proxyUsername.isEmpty()) {
+                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).getValue();
+                MultiAuthenticator authenticator = new MultiAuthenticator.Builder().build();
+                authenticator.setProxyUsername(proxyUsername);
+                authenticator.setProxyPassword(proxyPassword);
+                okHttpClient.setAuthenticator(authenticator);
+            }
         }
-
-        useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
-
-        okHttpClientAtomicReference.set(okHttpClient);
     }
 
     @Override
