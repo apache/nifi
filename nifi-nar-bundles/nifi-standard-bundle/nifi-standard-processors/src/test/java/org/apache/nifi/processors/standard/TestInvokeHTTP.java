@@ -144,6 +144,16 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         }
         runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, String.valueOf(proxyURL.getPort()));
 
+        runner.setProperty(InvokeHTTP.PROP_PROXY_USER, "username");
+
+        try{
+            runner.run();
+            Assert.fail();
+        } catch (AssertionError e){
+            // Expect assetion error when proxy password isn't set but host is.
+        }
+        runner.setProperty(InvokeHTTP.PROP_PROXY_PASSWORD, "password");
+
         createFlowFiles(runner);
 
         runner.run();
