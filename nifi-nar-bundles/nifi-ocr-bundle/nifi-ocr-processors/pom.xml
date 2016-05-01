@@ -60,4 +60,48 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/images/invalidInput.json</exclude>
+                        <exclude>src/test/resources/images/QuickBrownFox.jpg</exclude>
+                        <exclude>src/test/resources/tessdata/configs/ambigs.train</exclude>
+                        <exclude>src/test/resources/tessdata/configs/api_config</exclude>
+                        <exclude>src/test/resources/tessdata/configs/bigram</exclude>
+                        <exclude>src/test/resources/tessdata/configs/box.train</exclude>
+                        <exclude>src/test/resources/tessdata/configs/box.train.stderr</exclude>
+                        <exclude>src/test/resources/tessdata/configs/digits</exclude>
+                        <exclude>src/test/resources/tessdata/configs/hocr</exclude>
+                        <exclude>src/test/resources/tessdata/configs/inter</exclude>
+                        <exclude>src/test/resources/tessdata/configs/kannada</exclude>
+                        <exclude>src/test/resources/tessdata/configs/linebox</exclude>
+                        <exclude>src/test/resources/tessdata/configs/logfile</exclude>
+                        <exclude>src/test/resources/tessdata/configs/makebox</exclude>
+                        <exclude>src/test/resources/tessdata/configs/pdf</exclude>
+                        <exclude>src/test/resources/tessdata/configs/quiet</exclude>
+                        <exclude>src/test/resources/tessdata/configs/rebox</exclude>
+                        <exclude>src/test/resources/tessdata/configs/strokewidth</exclude>
+                        <exclude>src/test/resources/tessdata/configs/unix</exclude>
+                        <exclude>src/test/resources/tessdata/configs/unlv</exclude>
+                        <exclude>src/test/resources/tessdata/tessconfigs/batch</exclude>
+                        <exclude>src/test/resources/tessdata/tessconfigs/batch.nochop</exclude>
+                        <exclude>src/test/resources/tessdata/tessconfigs/matdemo</exclude>
+                        <exclude>src/test/resources/tessdata/tessconfigs/msdemo</exclude>
+                        <exclude>src/test/resources/tessdata/tessconfigs/nobatch</exclude>
+                        <exclude>src/test/resources/tessdata/tessconfigs/segdemo</exclude>
+                        <exclude>src/test/resources/tessdata/eng.traineddata</exclude>
+                        <exclude>src/test/resources/tessdata/man.traineddata</exclude>
+                        <exclude>src/test/resources/tessdata/osd.traineddata</exclude>
+                        <exclude>src/test/resources/tessdata/pdf.tiff</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
