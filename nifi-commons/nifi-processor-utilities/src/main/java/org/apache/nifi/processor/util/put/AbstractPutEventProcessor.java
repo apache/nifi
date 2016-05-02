@@ -119,7 +119,24 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .defaultValue("10 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
-
+    public static final PropertyDescriptor OUTGOING_MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
+            .name("Outgoing Message Delimiter")
+            .description("Specifies the delimiter to use when sending messages out over the same TCP stream. The delimiter is appended to each FlowFile message "
+                    + "that is transmitted over the stream so that the receiver can determine when one message ends and the next message begins. Users should "
+                    + "ensure that the FlowFile content does not contain the delimiter character to avoid errors. If it is not possible to define a delimiter "
+                    + "character that is not present in the FlowFile content then the user must use another processor to change the encoding of the data e.g. Base64 "
+                    + "encoding.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+    public static final PropertyDescriptor CONNECTION_PER_FLOWFILE = new PropertyDescriptor.Builder()
+            .name("Connection Per FlowFile")
+            .description("Specifies whether to send each FlowFile's content on an individual connection.")
+            .required(true)
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are sent successfully to the destination are sent out this relationship.")

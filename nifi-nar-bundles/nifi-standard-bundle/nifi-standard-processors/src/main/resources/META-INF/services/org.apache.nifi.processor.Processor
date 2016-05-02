@@ -66,6 +66,7 @@ org.apache.nifi.processors.standard.PutJMS
 org.apache.nifi.processors.standard.PutSFTP
 org.apache.nifi.processors.standard.PutSQL
 org.apache.nifi.processors.standard.PutSyslog
+org.apache.nifi.processors.standard.PutTCP
 org.apache.nifi.processors.standard.PutUDP
 org.apache.nifi.processors.standard.QueryDatabaseTable
 org.apache.nifi.processors.standard.ReplaceText
