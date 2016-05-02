@@ -40,7 +40,7 @@ import org.apache.commons.net.ftp.FTPHTTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -105,7 +105,7 @@ public class FTPTransfer implements FileTransfer {
         .sensitive(true)
         .build();
 
-    private final ProcessorLog logger;
+    private final ComponentLog logger;
 
     private final ProcessContext ctx;
     private boolean closed = true;
@@ -113,7 +113,7 @@ public class FTPTransfer implements FileTransfer {
     private String homeDirectory;
     private String remoteHostName;
 
-    public FTPTransfer(final ProcessContext context, final ProcessorLog logger) {
+    public FTPTransfer(final ProcessContext context, final ComponentLog logger) {
         this.ctx = context;
         this.logger = logger;
     }

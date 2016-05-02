@@ -17,7 +17,7 @@
 package org.apache.nifi.processor;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 
 /**
  * <p>
@@ -34,10 +34,10 @@ public interface ProcessorInitializationContext {
     String getIdentifier();
 
     /**
-     * @return a {@link ProcessorLog} that is tied to this processor that can be
+     * @return a {@link ComponentLog} that is tied to this processor that can be
      * used to log events
      */
-    ProcessorLog getLogger();
+    ComponentLog getLogger();
 
     /**
      * @return the {@link ControllerServiceLookup} which can be used to obtain

@@ -17,8 +17,7 @@
 package org.apache.nifi.processor.util.listen.event;
 
 import org.apache.commons.lang3.Validate;
-import org.apache.nifi.logging.ProcessorLog;
-
+import org.apache.nifi.logging.ComponentLog;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -36,13 +35,13 @@ public class EventQueue<E extends Event> {
 
     private final long offerWaitMs;
     private final BlockingQueue<E> events;
-    private final ProcessorLog logger;
+    private final ComponentLog logger;
 
-    public EventQueue(final BlockingQueue<E> events, final ProcessorLog logger) {
+    public EventQueue(final BlockingQueue<E> events, final ComponentLog logger) {
         this(events, DEFAULT_OFFER_WAIT_MS, logger);
     }
 
-    public EventQueue(final BlockingQueue<E> events, final long offerWaitMs, final ProcessorLog logger) {
+    public EventQueue(final BlockingQueue<E> events, final long offerWaitMs, final ComponentLog logger) {
         this.events = events;
         this.offerWaitMs = offerWaitMs;
         this.logger = logger;

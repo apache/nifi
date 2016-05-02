@@ -24,7 +24,7 @@ import org.apache.nifi.documentation.mock.MockConfigurationContext;
 import org.apache.nifi.documentation.mock.MockControllerServiceInitializationContext;
 import org.apache.nifi.documentation.mock.MockProcessorLogger;
 import org.apache.nifi.documentation.util.ReflectionUtils;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -49,7 +49,7 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
         try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
             ControllerService controllerService = (ControllerService) component;
 
-            final ProcessorLog logger = new MockProcessorLogger();
+            final ComponentLog logger = new MockProcessorLogger();
             final MockConfigurationContext context = new MockConfigurationContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, controllerService, logger, context);
         }

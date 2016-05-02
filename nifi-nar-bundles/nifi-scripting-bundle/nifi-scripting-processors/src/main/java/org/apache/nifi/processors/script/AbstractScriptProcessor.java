@@ -21,7 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -219,7 +219,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
     protected void setupEngine() {
         ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            ProcessorLog log = getLogger();
+            ComponentLog log = getLogger();
 
             ScriptEngineConfigurator configurator = scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
 

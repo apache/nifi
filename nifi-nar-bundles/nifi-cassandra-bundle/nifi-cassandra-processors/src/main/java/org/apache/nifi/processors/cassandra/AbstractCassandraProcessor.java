@@ -32,7 +32,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -183,7 +183,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
     protected void connectToCassandra(ProcessContext context) {
         if (cluster.get() == null) {
-            ProcessorLog log = getLogger();
+            ComponentLog log = getLogger();
             final String contactPointList = context.getProperty(CONTACT_POINTS).getValue();
             final String consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
             List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);

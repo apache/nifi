@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processor.util.put.sender;
 
-import org.apache.nifi.logging.ProcessorLog;
-
+import org.apache.nifi.logging.ComponentLog;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
@@ -29,12 +28,12 @@ public abstract class ChannelSender {
     protected final int port;
     protected final String host;
     protected final int maxSendBufferSize;
-    protected final ProcessorLog logger;
+    protected final ComponentLog logger;
 
     protected volatile int timeout = 10000;
     protected volatile long lastUsed;
 
-    public ChannelSender(final String host, final int port, final int maxSendBufferSize, final ProcessorLog logger) {
+    public ChannelSender(final String host, final int port, final int maxSendBufferSize, final ComponentLog logger) {
         this.port = port;
         this.host = host;
         this.maxSendBufferSize = maxSendBufferSize;
