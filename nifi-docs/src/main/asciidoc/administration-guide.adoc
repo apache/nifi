@@ -286,6 +286,46 @@ nifi.security.user.login.identity.provider=kerberos-provider
 
 See also <<kerberos_service>> to allow single sign-on access via client Kerberos tickets.
 
+
+[[file_identity_provider]]
+Credentials File
+~~~~~~~~~~~~~~~~
+
+NiFi may be configured for simple username/password authentication backed by a local credentials file.
+This may be suitable for environments without LDAP or Kerberos, or when X.509 certificates are impractical.
+Enabling this configuration requires the following steps:
+
+* NiFi must be configured for HTTPS
+* File Authorization Provider must be enabled in _login-identity-providers.xml_
+* Identity of the File Authorization Provider must be set in nifi.properties
+* Users and their Bcrypt-hashed passwords must be added to _login-credentials.xml_
+* User authorizations must be separately provided by the File Authorization Provider in authorizations.xml,
+or from another equivalent provider.
+
+The following Login Identity Provider configuration should be configured in _login-identity-providers.xml_
+----
+<provider>
+    <identifier>file-identity-provider</identifier>
+    <class>org.apache.nifi.authentication.file.FileIdentityProvider</class>
+    <property name="Credentials File">conf/login-credentials.xml</property>
+    <property name="Authentication Expiration">12 hours</property>
+</provider>
+----
+
+With this configuration, username/password authentication can be enabled by referencing this provider in _nifi.properties_.
+
+----
+nifi.security.user.login.identity.provider=file-identity-provider
+----
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`Credentials File` | Path to credentials store file.
+|`Authentication Expiration`| The duration of how long the user authentication is valid for. If the user never logs out, they will be required to log back in following this duration.
+|==================================================================================================================================================
+
+
 [[encryption]]
 Encryption Configuration
 ------------------------
