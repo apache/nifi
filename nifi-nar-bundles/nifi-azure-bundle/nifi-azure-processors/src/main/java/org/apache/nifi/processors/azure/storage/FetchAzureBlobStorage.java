@@ -34,9 +34,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @CapabilityDescription("Retrieves contents of an Azure Storage Blob, writing the contents to the content of the FlowFile")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@WritesAttributes({
-    @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched")
-})
+@WritesAttributes({ @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched") })
 public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
     public static final List<PropertyDescriptor> properties = Collections
             .unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, BLOB, BLOB_TYPE));
@@ -79,10 +77,10 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
                     }
                 }
             });
-            
+
             long length = blob.getProperties().getLength();
             attributes.put("azure.length", String.valueOf(length));
-            
+
             if (!attributes.isEmpty()) {
                 flowFile = session.putAllAttributes(flowFile, attributes);
             }

@@ -121,7 +121,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                     BlobProperties properties = cloudBlob.getProperties();
                     StorageUri uri = cloudBlob.getQualifiedStorageUri();
 
-                    Builder builder = new BlobInfo.Builder().primaryUri(uri.getPrimaryUri().toString()).secondaryUri(uri.getSecondaryUri().toString()).contentType(properties.getContentType())
+                    Builder builder = new BlobInfo.Builder().name(cloudBlob.getName()).primaryUri(uri.getPrimaryUri().toString()).secondaryUri(uri.getSecondaryUri().toString()).contentType(properties.getContentType())
                             .contentLanguage(properties.getContentLanguage()).etag(properties.getEtag()).lastModifiedTime(properties.getLastModified().getTime()).length(properties.getLength());
 
                     if (blob instanceof CloudBlockBlob) {

@@ -7,6 +7,7 @@ import org.apache.nifi.processors.standard.util.ListableEntity;
 public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEntity {
     private static final long serialVersionUID = 1L;
 
+    private final String name;
     private final String primaryUri;
     private final String secondaryUri;
     private final String contentType;
@@ -53,6 +54,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     }
 
     public static final class Builder {
+        private String name;
         private String primaryUri;
         private String secondaryUri;
         private String contentType;
@@ -61,7 +63,12 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         private long lastModifiedTime;
         private long length;
         private String blobType;
-
+        
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+        
         public Builder primaryUri(String primaryUri) {
             this.primaryUri = primaryUri;
             return this;
@@ -144,6 +151,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     }
 
     protected BlobInfo(final Builder builder) {
+        this.name = builder.name;
         this.primaryUri = builder.primaryUri;
         this.secondaryUri = builder.secondaryUri;
         this.contentType = builder.contentType;
@@ -156,7 +164,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
 
     @Override
     public String getName() {
-        return getPrimaryUri();
+        return name;
     }
 
     @Override

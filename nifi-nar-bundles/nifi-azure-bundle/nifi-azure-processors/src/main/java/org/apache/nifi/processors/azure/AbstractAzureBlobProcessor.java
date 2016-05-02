@@ -15,7 +15,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 public abstract class AbstractAzureBlobProcessor extends AbstractAzureProcessor {
 
     public static final PropertyDescriptor BLOB = new PropertyDescriptor.Builder().name("Blob").description("The path of the blob to download").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true).required(true).build();
+            .expressionLanguageSupported(true).defaultValue("${azure.blobname}").required(true).build();
 
     public static final PropertyDescriptor BLOB_TYPE = new PropertyDescriptor.Builder()
             .name("Blob type")
