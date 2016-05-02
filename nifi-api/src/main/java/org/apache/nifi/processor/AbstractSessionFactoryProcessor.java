@@ -24,7 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 
 /**
  * <p>
@@ -46,7 +46,7 @@ import org.apache.nifi.logging.ProcessorLog;
 public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurableComponent implements Processor {
 
     private String identifier;
-    private ProcessorLog logger;
+    private ComponentLog logger;
     private volatile boolean scheduled = false;
     private volatile boolean configurationRestored = false;
     private ControllerServiceLookup serviceLookup;
@@ -75,7 +75,7 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
         return Collections.emptySet();
     }
 
-    protected final ProcessorLog getLogger() {
+    protected final ComponentLog getLogger() {
         return logger;
     }
 

@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.processors.script;
 
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -47,7 +62,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -223,7 +237,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
         engineQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
         ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            ProcessorLog log = getLogger();
+            ComponentLog log = getLogger();
 
             if (StringUtils.isBlank(scriptEngineName)) {
                 throw new IllegalArgumentException("The script engine name cannot be null");

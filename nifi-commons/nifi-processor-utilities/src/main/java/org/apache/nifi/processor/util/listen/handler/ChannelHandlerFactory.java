@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processor.util.listen.handler;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -35,12 +35,12 @@ public interface ChannelHandlerFactory<E extends Event, D extends ChannelDispatc
                                     final Charset charset,
                                     final EventFactory<E> eventFactory,
                                     final BlockingQueue<E> events,
-                                    final ProcessorLog logger);
+                                    final ComponentLog logger);
 
     ChannelHandler<E, D> createSSLHandler(final SelectionKey key,
                                        final D dispatcher,
                                        final Charset charset,
                                        final EventFactory<E> eventFactory,
                                        final BlockingQueue<E> events,
-                                       final ProcessorLog logger);
+                                       final ComponentLog logger);
 }

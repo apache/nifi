@@ -18,17 +18,17 @@ package org.apache.nifi.util;
 
 import java.util.List;
 
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.logging.ProcessorLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MockProcessorLog implements ProcessorLog {
+public class MockComponentLog implements ComponentLog {
 
     private final CapturingLogger logger;
     private final Object component;
 
-    public MockProcessorLog(final String componentId, final Object component) {
+    public MockComponentLog(final String componentId, final Object component) {
         this.logger = new CapturingLogger(LoggerFactory.getLogger(component.getClass()));
         this.component = component;
     }

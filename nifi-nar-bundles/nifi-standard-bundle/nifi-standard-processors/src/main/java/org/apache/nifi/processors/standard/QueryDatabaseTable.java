@@ -31,7 +31,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -254,7 +254,7 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
         ProcessSession session = sessionFactory.createSession();
         FlowFile fileToProcess = null;
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final String tableName = context.getProperty(TABLE_NAME).getValue();

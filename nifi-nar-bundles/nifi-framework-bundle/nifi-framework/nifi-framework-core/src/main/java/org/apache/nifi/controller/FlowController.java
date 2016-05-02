@@ -169,7 +169,6 @@ import org.apache.nifi.logging.ControllerServiceLogObserver;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
-import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.logging.ProcessorLogObserver;
 import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
@@ -991,7 +990,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends Processor> processorClass = rawClass.asSubclass(Processor.class);
             processor = processorClass.newInstance();
-            final ProcessorLog processorLogger = new SimpleProcessLogger(identifier, processor);
+            final ComponentLog processorLogger = new SimpleProcessLogger(identifier, processor);
             final ProcessorInitializationContext ctx = new StandardProcessorInitializationContext(identifier, processorLogger, this);
             processor.initialize(ctx);
 

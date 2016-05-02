@@ -30,11 +30,13 @@ import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -161,7 +163,7 @@ public class ExecuteScript extends AbstractScriptProcessor {
             }
         }
         ScriptEngine scriptEngine = engineQ.poll();
-        ProcessorLog log = getLogger();
+        ComponentLog log = getLogger();
         if (scriptEngine == null) {
             // No engine available so nothing more to do here
             return;

@@ -33,7 +33,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +52,7 @@ class KafkaPublisher implements Closeable {
 
     private long ackWaitTime = 30000;
 
-    private ProcessorLog processLog;
+    private ComponentLog processLog;
 
     private final Partitioner partitioner;
 
@@ -110,7 +110,7 @@ class KafkaPublisher implements Closeable {
      */
     KafkaPublisherResult publish(PublishingContext publishingContext) {
         StreamDemarcator streamTokenizer = new StreamDemarcator(publishingContext.getContentStream(),
-                publishingContext.getDelimiterBytes(), publishingContext.getMaxRequestSize());
+            publishingContext.getDelimiterBytes(), publishingContext.getMaxRequestSize());
 
         int prevLastAckedMessageIndex = publishingContext.getLastAckedMessageIndex();
         List<Future<RecordMetadata>> resultFutures = new ArrayList<>();
@@ -124,7 +124,7 @@ class KafkaPublisher implements Closeable {
                     partitionId = this.getPartition(publishingContext.getKeyBytes(), publishingContext.getTopic());
                 }
                 ProducerRecord<byte[], byte[]> message =
-                        new ProducerRecord<>(publishingContext.getTopic(), publishingContext.getPartitionId(), publishingContext.getKeyBytes(), messageBytes);
+                    new ProducerRecord<>(publishingContext.getTopic(), publishingContext.getPartitionId(), publishingContext.getKeyBytes(), messageBytes);
                 resultFutures.add(this.kafkaProducer.send(message));
             }
         }
@@ -198,10 +198,10 @@ class KafkaPublisher implements Closeable {
     }
 
     /**
-     * Will set {@link ProcessorLog} as an additional logger to forward log
+     * Will set {@link ComponentLog} as an additional logger to forward log
      * messages to NiFi bulletin
      */
-    void setProcessLog(ProcessorLog processLog) {
+    void setProcessLog(ComponentLog processLog) {
         this.processLog = processLog;
     }
 

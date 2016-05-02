@@ -52,7 +52,7 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -389,12 +389,12 @@ public class ExecuteProcess extends AbstractProcessor {
      */
     private static class ProxyOutputStream extends OutputStream {
 
-        private final ProcessorLog logger;
+        private final ComponentLog logger;
 
         private final Lock lock = new ReentrantLock();
         private OutputStream delegate;
 
-        public ProxyOutputStream(final ProcessorLog logger) {
+        public ProxyOutputStream(final ComponentLog logger) {
             this.logger = logger;
         }
 

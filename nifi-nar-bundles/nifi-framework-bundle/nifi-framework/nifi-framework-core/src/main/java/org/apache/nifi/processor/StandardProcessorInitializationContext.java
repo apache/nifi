@@ -18,15 +18,15 @@ package org.apache.nifi.processor;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 
 public class StandardProcessorInitializationContext implements ProcessorInitializationContext {
 
     private final String identifier;
-    private final ProcessorLog logger;
+    private final ComponentLog logger;
     private final ControllerServiceProvider serviceProvider;
 
-    public StandardProcessorInitializationContext(final String identifier, final ProcessorLog processorLog, final ControllerServiceProvider serviceProvider) {
+    public StandardProcessorInitializationContext(final String identifier, final ComponentLog processorLog, final ControllerServiceProvider serviceProvider) {
         this.identifier = identifier;
         this.logger = processorLog;
         this.serviceProvider = serviceProvider;
@@ -38,7 +38,7 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
     }
 
     @Override
-    public ProcessorLog getLogger() {
+    public ComponentLog getLogger() {
         return logger;
     }
 

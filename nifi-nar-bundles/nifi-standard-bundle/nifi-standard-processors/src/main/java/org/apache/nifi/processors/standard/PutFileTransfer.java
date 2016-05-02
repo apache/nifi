@@ -19,7 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -94,7 +94,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final String hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final int maxNumberOfFiles = context.getProperty(FileTransfer.BATCH_SIZE).asInteger();
@@ -187,7 +187,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
             final String path,
             final FlowFile flowFile,
             final boolean rejectZeroByteFiles,
-            final ProcessorLog logger)
+            final ComponentLog logger)
             throws IOException {
         Relationship destinationRelationship = REL_SUCCESS;
         String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());

@@ -17,7 +17,7 @@
 package org.apache.nifi.processor.util.listen.dispatcher;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
@@ -55,7 +55,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
     private final ChannelHandlerFactory<E, AsyncChannelDispatcher> handlerFactory;
     private final BlockingQueue<ByteBuffer> bufferPool;
     private final BlockingQueue<E> events;
-    private final ProcessorLog logger;
+    private final ComponentLog logger;
     private final int maxConnections;
     private final SSLContext sslContext;
     private final SslContextFactory.ClientAuth clientAuth;
@@ -71,7 +71,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                                    final ChannelHandlerFactory<E, AsyncChannelDispatcher> handlerFactory,
                                    final BlockingQueue<ByteBuffer> bufferPool,
                                    final BlockingQueue<E> events,
-                                   final ProcessorLog logger,
+                                   final ComponentLog logger,
                                    final int maxConnections,
                                    final SSLContext sslContext,
                                    final Charset charset) {
@@ -82,7 +82,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                                    final ChannelHandlerFactory<E, AsyncChannelDispatcher> handlerFactory,
                                    final BlockingQueue<ByteBuffer> bufferPool,
                                    final BlockingQueue<E> events,
-                                   final ProcessorLog logger,
+                                   final ComponentLog logger,
                                    final int maxConnections,
                                    final SSLContext sslContext,
                                    final SslContextFactory.ClientAuth clientAuth,

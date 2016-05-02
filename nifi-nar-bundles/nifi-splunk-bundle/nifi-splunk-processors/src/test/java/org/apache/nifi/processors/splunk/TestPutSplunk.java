@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.splunk;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -43,7 +43,7 @@ public class TestPutSplunk {
 
     @Before
     public void init() {
-        ProcessorLog logger = Mockito.mock(ProcessorLog.class);
+        ComponentLog logger = Mockito.mock(ComponentLog.class);
         sender = new CapturingChannelSender("localhost", 12345, 0, logger);
         proc = new TestablePutSplunk(sender);
 
@@ -356,7 +356,7 @@ public class TestPutSplunk {
         private int errorStart = -1;
         private int errorEnd = -1;
 
-        public CapturingChannelSender(String host, int port, int maxSendBufferSize, ProcessorLog logger) {
+        public CapturingChannelSender(String host, int port, int maxSendBufferSize, ComponentLog logger) {
             super(host, port, maxSendBufferSize, logger);
         }
 

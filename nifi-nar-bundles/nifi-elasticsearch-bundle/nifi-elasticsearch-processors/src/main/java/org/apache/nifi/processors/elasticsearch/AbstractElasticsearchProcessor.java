@@ -20,7 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -182,7 +182,7 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
      */
     protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
 
-        ProcessorLog log = getLogger();
+        ComponentLog log = getLogger();
         if (esClient.get() != null) {
             return;
         }

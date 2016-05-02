@@ -30,7 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -223,7 +223,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         final List<Bin> bins = new ArrayList<>();
         bins.add(bin);
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final ProcessSession session = sessionFactory.createSession();
 
         final List<FlowFileSessionWrapper> binCopy = new ArrayList<>(bin.getContents());

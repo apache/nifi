@@ -31,7 +31,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.io.nio.BufferPool;
 import org.apache.nifi.io.nio.consumer.StreamConsumer;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 
@@ -44,7 +44,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  */
 public class UDPStreamConsumer implements StreamConsumer {
 
-    private final ProcessorLog logger;
+    private final ComponentLog logger;
     final List<FlowFile> newFlowFileQueue;
     private final String uniqueId;
     private BufferPool bufferPool = null;
@@ -54,7 +54,7 @@ public class UDPStreamConsumer implements StreamConsumer {
     private ProcessSession session;
     private final UDPConsumerCallback udpCallback;
 
-    public UDPStreamConsumer(final String streamId, final List<FlowFile> newFlowFiles, final long fileSizeTrigger, final ProcessorLog logger,
+    public UDPStreamConsumer(final String streamId, final List<FlowFile> newFlowFiles, final long fileSizeTrigger, final ComponentLog logger,
             final boolean flowFilePerDatagram) {
         this.uniqueId = streamId;
         this.newFlowFileQueue = newFlowFiles;

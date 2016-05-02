@@ -25,7 +25,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -82,7 +82,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
             int bufferSize = bufferSizeProp.intValue();
             conf.setInt(BUFFER_SIZE_KEY, bufferSize);
         }
-        ProcessorLog logger = getLogger();
+        ComponentLog logger = getLogger();
         final SequenceFileReader<Set<FlowFile>> reader;
         if (flowFileContentValue.equalsIgnoreCase(VALUE_ONLY)) {
             reader = new ValueReader(session);

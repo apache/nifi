@@ -31,7 +31,7 @@ import javax.jms.TextMessage;
 import javax.jms.Topic;
 
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.junit.Test;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -44,7 +44,7 @@ public class JMSPublisherConsumerTest {
     public void validateByesConvertedToBytesMessageOnSend() throws Exception {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("testQueue", false);
 
-        JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ProcessorLog.class));
+        JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
         publisher.publish("hellomq".getBytes());
 
         Message receivedMessage = jmsTemplate.receive();
@@ -60,7 +60,7 @@ public class JMSPublisherConsumerTest {
     public void validateJmsHeadersAndPropertiesAreTransferredFromFFAttributes() throws Exception {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("testQueue", false);
 
-        JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ProcessorLog.class));
+        JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
         Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put("foo", "foo");
         flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
@@ -92,7 +92,7 @@ public class JMSPublisherConsumerTest {
             }
         });
 
-        JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ProcessorLog.class));
+        JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         try {
             consumer.consume();
         } finally {
@@ -115,7 +115,7 @@ public class JMSPublisherConsumerTest {
             }
         });
 
-        JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ProcessorLog.class));
+        JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         assertEquals("JMSConsumer[destination:testQueue; pub-sub:false;]", consumer.toString());
 
         JMSResponse response = consumer.consume();

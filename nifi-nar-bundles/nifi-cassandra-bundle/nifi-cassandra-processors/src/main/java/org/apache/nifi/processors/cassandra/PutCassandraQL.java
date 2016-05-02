@@ -38,7 +38,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -150,7 +150,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        ProcessorLog log = getLogger();
+        ComponentLog log = getLogger();
         try {
             connectToCassandra(context);
         } catch (final NoHostAvailableException nhae) {
@@ -169,7 +169,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        ProcessorLog logger = getLogger();
+        ComponentLog logger = getLogger();
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;

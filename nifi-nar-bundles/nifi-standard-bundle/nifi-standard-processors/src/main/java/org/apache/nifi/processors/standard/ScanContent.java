@@ -44,7 +44,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -142,7 +142,7 @@ public class ScanContent extends AbstractProcessor {
         }
     }
 
-    private boolean reloadDictionary(final ProcessContext context, final boolean force, final ProcessorLog logger) throws IOException {
+    private boolean reloadDictionary(final ProcessContext context, final boolean force, final ComponentLog logger) throws IOException {
         boolean obtainedLock;
         if (force) {
             dictionaryUpdateLock.lock();
@@ -188,7 +188,7 @@ public class ScanContent extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final SynchronousFileWatcher fileWatcher = fileWatcherRef.get();
         try {
             if (fileWatcher.checkAndReset()) {
