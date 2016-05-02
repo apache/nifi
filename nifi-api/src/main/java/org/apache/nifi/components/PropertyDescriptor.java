@@ -533,6 +533,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     private static final class ConstrainedSetValidator implements Validator {
 
         private static final String POSITIVE_EXPLANATION = "Given value found in allowed set";
+        private static final String EL_EXPLANATION = "Expression language supported for this set";
         private static final String NEGATIVE_EXPLANATION = "Given value not found in allowed set '%1$s'";
         private static final String VALUE_DEMARCATOR = ", ";
         private final String validStrings;
@@ -570,6 +571,9 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             if (validValues.contains(input)) {
                 builder.valid(true);
                 builder.explanation(POSITIVE_EXPLANATION);
+            } else if (context.isExpressionLanguageSupported(subject)) {
+                builder.valid(true);
+                builder.explanation(EL_EXPLANATION);
             } else {
                 builder.valid(false);
                 builder.explanation(String.format(NEGATIVE_EXPLANATION, validStrings));

@@ -18,10 +18,19 @@ package org.apache.nifi.util;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -45,6 +54,27 @@ public class TestStandardProcessorTestRunner {
 
         assertEquals(1, proc.getOnStoppedCallsWithContext());
         assertEquals(1, proc.getOnStoppedCallsWithoutContext());
+    }
+
+    @Test
+    public void testELPropertiesMock() {
+        final ProcessorPropertiesCheck proc = new ProcessorPropertiesCheck();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+
+        runner.setProperty(ProcessorPropertiesCheck.TYPE, "A");
+        runner.assertValid();
+
+        runner.setProperty(ProcessorPropertiesCheck.TYPE, "${type}");
+
+        MockFlowFile ff = new MockFlowFile(0);
+        Map<String, String> attrs = new HashMap<String, String>();
+        attrs.put("type", "A");
+        ff.putAttributes(attrs);
+
+        runner.enqueue(ff);
+        runner.setValidateExpressionUsage(true);
+        runner.run();
+        assertEquals("A", ProcessorPropertiesCheck.value);
     }
 
     @Test(expected = AssertionError.class)
@@ -138,6 +168,41 @@ public class TestStandardProcessorTestRunner {
 
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        }
+
+    }
+
+    private static class ProcessorPropertiesCheck extends AbstractProcessor {
+
+        public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
+                .name("Type")
+                .description("Type")
+                .allowableValues("A", "B", "C")
+                .defaultValue("C")
+                .expressionLanguageSupported(true)
+                .required(true)
+                .build();
+
+        private List<PropertyDescriptor> properties;
+        public static String value = "Z";
+
+        @Override
+        protected void init(final ProcessorInitializationContext context) {
+            final List<PropertyDescriptor> properties = new ArrayList<>();
+            properties.add(ProcessorPropertiesCheck.TYPE);
+            this.properties = Collections.unmodifiableList(properties);
+        }
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return properties;
+        }
+
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+            FlowFile ff = session.get();
+            value = context.getProperty(TYPE).evaluateAttributeExpressions(ff).getValue();
+            session.remove(ff);
         }
 
     }
