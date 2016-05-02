@@ -192,7 +192,7 @@ public class LdapProvider implements LoginIdentityProvider {
             referralStrategy = ReferralStrategy.valueOf(rawReferralStrategy);
         } catch (final IllegalArgumentException iae) {
             throw new ProviderCreationException(String.format("Unrecgonized authentication strategy '%s'. Possible values are [%s]",
-                    rawAuthenticationStrategy, StringUtils.join(ReferralStrategy.values(), ", ")));
+                    rawReferralStrategy, StringUtils.join(ReferralStrategy.values(), ", ")));
         }
 
         context.setReferral(referralStrategy.toString());
