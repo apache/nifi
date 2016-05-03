@@ -33,6 +33,7 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.commons.lang.LocaleUtils;
+import org.apache.nifi.processors.kite.AbstractKiteConvertProcessor.CodecType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -64,6 +65,73 @@ public class TestConvertAvroSchema {
                 INPUT_SCHEMA.toString());
         runner.setProperty(ConvertAvroSchema.OUTPUT_SCHEMA,
                 OUTPUT_SCHEMA.toString());
+        Locale locale = Locale.getDefault();
+        runner.setProperty("primaryColor", "color");
+        runner.assertValid();
+
+        NumberFormat format = NumberFormat.getInstance(locale);
+
+        // Two valid rows, and one invalid because "free" is not a double.
+        Record goodRecord1 = dataBasic("1", "blue", null, null);
+        Record goodRecord2 = dataBasic("2", "red", "yellow", format.format(5.5));
+        Record badRecord = dataBasic("3", "red", "yellow", "free");
+        List<Record> input = Lists.newArrayList(goodRecord1, goodRecord2,
+                badRecord);
+
+        runner.enqueue(streamFor(input));
+        runner.run();
+
+        long converted = runner.getCounterValue("Converted records");
+        long errors = runner.getCounterValue("Conversion errors");
+        Assert.assertEquals("Should convert 2 rows", 2, converted);
+        Assert.assertEquals("Should reject 1 rows", 1, errors);
+
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("failure", 1);
+
+        MockFlowFile incompatible = runner.getFlowFilesForRelationship(
+                "failure").get(0);
+        GenericDatumReader<Record> reader = new GenericDatumReader<Record>(
+                INPUT_SCHEMA);
+        DataFileStream<Record> stream = new DataFileStream<Record>(
+                new ByteArrayInputStream(
+                        runner.getContentAsByteArray(incompatible)), reader);
+        int count = 0;
+        for (Record r : stream) {
+            Assert.assertEquals(badRecord, r);
+            count++;
+        }
+        stream.close();
+        Assert.assertEquals(1, count);
+        Assert.assertEquals("Should accumulate error messages",
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+
+        GenericDatumReader<Record> successReader = new GenericDatumReader<Record>(
+                OUTPUT_SCHEMA);
+        DataFileStream<Record> successStream = new DataFileStream<Record>(
+                new ByteArrayInputStream(runner.getContentAsByteArray(runner
+                        .getFlowFilesForRelationship("success").get(0))),
+                successReader);
+        count = 0;
+        for (Record r : successStream) {
+            if (count == 0) {
+                Assert.assertEquals(convertBasic(goodRecord1, locale), r);
+            } else {
+                Assert.assertEquals(convertBasic(goodRecord2, locale), r);
+            }
+            count++;
+        }
+        successStream.close();
+        Assert.assertEquals(2, count);
+    }
+
+    @Test
+    public void testBasicConversionWithCompression() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertAvroSchema.class);
+        runner.assertNotValid();
+        runner.setProperty(ConvertAvroSchema.INPUT_SCHEMA, INPUT_SCHEMA.toString());
+        runner.setProperty(ConvertAvroSchema.OUTPUT_SCHEMA, OUTPUT_SCHEMA.toString());
+        runner.setProperty(AbstractKiteConvertProcessor.COMPRESSION_TYPE, CodecType.BZIP2.toString());
         Locale locale = Locale.getDefault();
         runner.setProperty("primaryColor", "color");
         runner.assertValid();
