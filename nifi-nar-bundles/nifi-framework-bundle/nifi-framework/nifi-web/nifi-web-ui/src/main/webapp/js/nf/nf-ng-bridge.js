@@ -24,16 +24,16 @@ nf.ng.Bridge = (function () {
     };
     AngularBridge.prototype = {
         constructor: AngularBridge,
-        
+
         /**
          * Sets the root scope for the angular application being bridged.
          *
          * @param {object} scope    An object that refers to the application model.
          */
-        setRootScope: function(scope){
+        setRootScope: function (scope) {
             this.rootScope = scope;
         },
-        
+
         /**
          * Inspects the root scope of the bridged angular application to look up
          * objects (to be provided as the `this` context) and invoke methods.
@@ -63,19 +63,19 @@ nf.ng.Bridge = (function () {
             var args = Array.prototype.slice.call(arguments, 2);
             var result = fun.apply(obj, args);
             this.rootScope.$apply();
-            if(result){
+            if (result) {
                 return result;
             }
         },
 
         /**
          * Inspects the root scope of the bridged angular application to look up
-         * and return object. 
-         * 
+         * and return object.
+         *
          * @param {string} name     The name of the object to lookup.
          * @returns {Object|*}
          */
-        get: function(name){
+        get: function (name) {
             var objArray = name.split(".");
             var obj = this.rootScope;
             angular.forEach(objArray, function (value) {
@@ -84,7 +84,7 @@ nf.ng.Bridge = (function () {
             return obj;
         },
 
-        digest: function(){
+        digest: function () {
             this.rootScope.$digest();
         }
     };

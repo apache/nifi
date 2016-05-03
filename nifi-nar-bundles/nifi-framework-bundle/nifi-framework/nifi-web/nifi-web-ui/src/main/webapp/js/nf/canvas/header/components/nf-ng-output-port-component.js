@@ -74,7 +74,7 @@ nf.ng.OutputPortComponent = (function () {
              * The output port component's modal.
              */
             modal: {
-                
+
                 /**
                  * Gets the modal element.
                  *

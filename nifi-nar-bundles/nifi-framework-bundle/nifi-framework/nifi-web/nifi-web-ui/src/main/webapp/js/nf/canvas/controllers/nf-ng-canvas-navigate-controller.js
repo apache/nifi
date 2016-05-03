@@ -26,8 +26,11 @@ nf.ng.Canvas.NavigateCtrl = (function () {
         };
         NavigateCtrl.prototype = {
             constructor: NavigateCtrl,
-            
-            zoomIn: function(){
+
+            /**
+             * Zoom in on the canvas.
+             */
+            zoomIn: function () {
                 nf.Canvas.View.zoomIn();
 
                 // hide the context menu
@@ -38,8 +41,11 @@ nf.ng.Canvas.NavigateCtrl = (function () {
                     transition: true
                 });
             },
-            
-            zoomOut: function(){
+
+            /**
+             * Zoom out on the canvas.
+             */
+            zoomOut: function () {
                 nf.Canvas.View.zoomOut();
 
                 // hide the context menu
@@ -50,8 +56,11 @@ nf.ng.Canvas.NavigateCtrl = (function () {
                     transition: true
                 });
             },
-            
-            zoomFit: function(){
+
+            /**
+             * Zoom fit on the canvas.
+             */
+            zoomFit: function () {
                 nf.Canvas.View.fit();
 
                 // hide the context menu
@@ -62,8 +71,11 @@ nf.ng.Canvas.NavigateCtrl = (function () {
                     transition: true
                 });
             },
-            
-            zoomActualSize: function(){
+
+            /**
+             * Zoom actual size on the canvas.
+             */
+            zoomActualSize: function () {
                 nf.Canvas.View.actualSize();
 
                 // hide the context menu

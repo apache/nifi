@@ -27,14 +27,14 @@ nf.ng.Canvas.AppConfig = (function () {
         $mdThemingProvider.definePalette('basePalette', {
             '50': '728E9B',
             '100': '728E9B',
-            '200': '004849',/* link-color */
-            '300': '775351',/* value-color */
+            '200': '004849', /* link-color */
+            '300': '775351', /* value-color */
             '400': '728E9B',
-            '500': '728E9B',/* base-color */
+            '500': '728E9B', /* base-color */
             '600': '728E9B',
             '700': '728E9B',
             '800': '728E9B',
-            '900': 'rgba(249,250,251,0.97)',/* tint base-color 96% */
+            '900': 'rgba(249,250,251,0.97)', /* tint base-color 96% */
             'A100': '728E9B',
             'A200': '728E9B',
             'A400': '728E9B',
@@ -46,13 +46,13 @@ nf.ng.Canvas.AppConfig = (function () {
         $mdThemingProvider.definePalette('tintPalette', {
             '50': '728E9B',
             '100': '728E9B',
-            '200': 'CCDADB',/* tint link-color 20% */
+            '200': 'CCDADB', /* tint link-color 20% */
             '300': '728E9B',
-            '400': 'AABBC3',/* tint base-color 40% */
+            '400': 'AABBC3', /* tint base-color 40% */
             '500': '728E9B',
-            '600': 'C7D2D7',/* tint base-color 60% */
+            '600': 'C7D2D7', /* tint base-color 60% */
             '700': '728E9B',
-            '800': 'E3E8EB',/* tint base-color 80% */
+            '800': 'E3E8EB', /* tint base-color 80% */
             '900': '728E9B',
             'A100': '728E9B',
             'A200': '728E9B',
@@ -68,7 +68,7 @@ nf.ng.Canvas.AppConfig = (function () {
             '200': 'BA554A',
             '300': 'BA554A',
             '400': 'BA554A',
-            '500': 'BA554A',/* warn-color */
+            '500': 'BA554A', /* warn-color */
             '600': 'BA554A',
             '700': 'BA554A',
             '800': 'BA554A',
@@ -96,7 +96,7 @@ nf.ng.Canvas.AppConfig = (function () {
         });
     }
 
-    AppConfig.$inject=['$mdThemingProvider', '$compileProvider'];
+    AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
 
     return AppConfig;
 }());

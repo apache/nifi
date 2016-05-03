@@ -249,12 +249,12 @@ nf.ng.ProcessorComponent = (function () {
              * The processor component's modal.
              */
             modal: {
-                
+
                 /**
                  * The processor component modal's filter.
                  */
                 filter: {
-                    
+
                     /**
                      * Initialize the filter.
                      */

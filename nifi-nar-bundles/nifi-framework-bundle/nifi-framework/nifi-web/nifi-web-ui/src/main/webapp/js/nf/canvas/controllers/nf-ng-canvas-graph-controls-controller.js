@@ -157,7 +157,7 @@ nf.ng.Canvas.GraphControlsCtrl = (function () {
              * Undock the graph control.
              * @param {jQuery} $event
              */
-            undock: function($event){
+            undock: function ($event) {
                 openGraphControl($($event.target).parent().parent());
             },
 
@@ -165,7 +165,7 @@ nf.ng.Canvas.GraphControlsCtrl = (function () {
              * Expand the graph control.
              * @param {jQuery} $event
              */
-            expand: function($event){
+            expand: function ($event) {
                 var icon = $($event.target);
                 if (icon.hasClass('fa-plus-square-o')) {
                     openGraphControl(icon.closest('div.graph-control'));

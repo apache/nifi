@@ -24,21 +24,23 @@ nf.ng.ServiceProvider = (function () {
         };
         ServiceProvider.prototype = {
             constructor: ServiceProvider,
+
             /**
              * Registers the given `object` by `name`.
              *
              * @param {string} name     The lookup name of the object being registered
              * @param {object} object   The object to register
              */
-            register: function(name, object) {
+            register: function (name, object) {
                 serviceProvider[name] = object;
             },
+
             /**
              * Removes the given object from the registry.
              *
              * @param {string objectName    The lookup name of the object to remove from the registry
              */
-            remove: function(objectName) {
+            remove: function (objectName) {
                 delete serviceProvider[objectName];
             }
         };
@@ -46,7 +48,7 @@ nf.ng.ServiceProvider = (function () {
         return serviceProvider;
     }
 
-    ServiceProvider.$inject=[];
+    ServiceProvider.$inject = [];
 
     return ServiceProvider;
 }());

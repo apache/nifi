@@ -37,7 +37,7 @@ nf.ng.Canvas.AppCtrl = (function () {
         nf.ng.Bridge.setRootScope($scope);
     }
 
-    AppCtrl.$inject=['$scope', 'serviceProvider', 'headerCtrl', 'graphControlsCtrl'];
+    AppCtrl.$inject = ['$scope', 'serviceProvider', 'headerCtrl', 'graphControlsCtrl'];
 
     return AppCtrl;
 }());
