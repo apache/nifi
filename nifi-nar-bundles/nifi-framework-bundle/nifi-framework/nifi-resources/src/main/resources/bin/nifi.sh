@@ -21,10 +21,11 @@
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
-SCRIPT_DIR=$(dirname "$0")
-SCRIPT_NAME=$(basename "$0")
+SCRIPT_PATH="$(realpath $0)"
+SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 NIFI_HOME=$(cd "${SCRIPT_DIR}" && cd .. && pwd)
-PROGNAME=$(basename "$0")
+PROGNAME="$SCRIPT_NAME"
 
 
 warn() {
@@ -148,7 +149,7 @@ install() {
         fi
 
         SVC_FILE="/etc/init.d/${SVC_NAME}"
-        cp "$0" "${SVC_FILE}"
+        cp "$SCRIPT_PATH" "${SVC_FILE}"
         sed -i s:NIFI_HOME=.*:NIFI_HOME="${NIFI_HOME}": "${SVC_FILE}"
         sed -i s:PROGNAME=.*:PROGNAME="${SCRIPT_NAME}": "${SVC_FILE}"
         rm -f "/etc/rc2.d/S65${SVC_NAME}"
