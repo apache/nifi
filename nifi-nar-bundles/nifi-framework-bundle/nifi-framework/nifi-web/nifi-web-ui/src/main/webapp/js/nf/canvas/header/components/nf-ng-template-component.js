@@ -66,7 +66,7 @@ nf.ng.TemplateComponent = (function () {
              * The template component's modal.
              */
             modal: {
-                
+
                 /**
                  * Gets the modal element.
                  *

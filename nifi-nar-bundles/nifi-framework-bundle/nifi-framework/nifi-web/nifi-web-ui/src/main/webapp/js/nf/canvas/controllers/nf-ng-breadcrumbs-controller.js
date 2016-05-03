@@ -66,17 +66,17 @@ nf.ng.BreadcrumbsCtrl = (function () {
 
             /**
              * Update the breadcrumbs css.
-             * 
+             *
              * @param {object} style  The style to be applied.
              */
-            updateBreadcrumbsCss: function(style){
+            updateBreadcrumbsCss: function (style) {
                 $('#breadcrumbs').css(style);
             },
 
             /**
              * Reset initial scroll position.
              */
-            resetScrollPosition: function(){
+            resetScrollPosition: function () {
                 var title = $('#data-flow-title-container');
                 var titlePosition = title.position();
                 var titleWidth = title.outerWidth();
@@ -98,10 +98,10 @@ nf.ng.BreadcrumbsCtrl = (function () {
 
             /**
              * Registers a scroll event on the `element`
-             * 
+             *
              * @param {object} element    The element event listener will be registered upon.
              */
-            registerMouseWheelEvent: function(element){
+            registerMouseWheelEvent: function (element) {
                 // mousewheel -> IE, Chrome
                 // DOMMouseScroll -> FF
                 // wheel -> FF, IE

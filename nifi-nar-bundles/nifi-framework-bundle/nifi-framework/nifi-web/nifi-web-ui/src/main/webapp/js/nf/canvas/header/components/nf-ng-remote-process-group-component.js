@@ -74,7 +74,7 @@ nf.ng.RemoteProcessGroupComponent = (function () {
              * The remote group component's modal.
              */
             modal: {
-                
+
                 /**
                  * Gets the modal element.
                  *
