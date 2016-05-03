@@ -55,6 +55,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private boolean allowExpressionValidation = true;
     private volatile boolean incomingConnection = true;
     private volatile boolean nonLoopConnection = true;
+    private int numThreads = 1;
 
     private volatile Set<Relationship> connections = new HashSet<>();
     private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
@@ -174,7 +175,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
 
     @Override
     public int getMaxConcurrentTasks() {
-        return 1;
+        return numThreads;
     }
 
     public void setAnnotationData(final String annotationData) {
@@ -359,5 +360,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     @Override
     public String getName() {
         return "";
+    }
+
+    protected void setNumThreads(int numThreads) {
+        this.numThreads = numThreads;
     }
 }

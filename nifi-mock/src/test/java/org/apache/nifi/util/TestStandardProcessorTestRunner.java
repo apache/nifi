@@ -47,6 +47,15 @@ public class TestStandardProcessorTestRunner {
         assertEquals(1, proc.getOnStoppedCallsWithoutContext());
     }
 
+    @Test
+    public void testNumThreads() {
+        final ProcessorWithOnStop proc = new ProcessorWithOnStop();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setThreadCount(5);
+        runner.run(1, true);
+        assertEquals(5, runner.getProcessContext().getMaxConcurrentTasks());
+    }
+
     @Test(expected = AssertionError.class)
     @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testFailOnDeprecatedTypeAnnotation() {
