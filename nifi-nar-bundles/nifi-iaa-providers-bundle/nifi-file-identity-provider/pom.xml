@@ -57,7 +57,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.apache.nifi.authentication.file.CredentialsCLI</mainClass>
+                            <mainClass>org.apache.nifi.authentication.file.PasswordHasherCLI</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
