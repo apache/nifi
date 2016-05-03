@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.util;
 
+import java.util.Collections;
+import java.util.Set;
+
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -23,9 +26,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Set;
 
 public class TestMockProcessSession {
 
@@ -36,7 +36,7 @@ public class TestMockProcessSession {
 
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {
 
-        private static final Relationship REL_FAILURE = new Relationship.Builder()
+        protected static final Relationship REL_FAILURE = new Relationship.Builder()
                 .name("failure")
                 .build();
 
@@ -55,4 +55,35 @@ public class TestMockProcessSession {
         }
 
     }
+
+
+    @Test(expected = AssertionError.class)
+    public void testNonExistentRelationFromProcessor() {
+        TestRunners.newTestRunner(NonExistentRelationTestProcessor.class).run();
+    }
+
+    protected static class NonExistentRelationTestProcessor extends PoorlyBehavedProcessor {
+
+            static final Relationship REL_NON_EXISTENT = new Relationship.Builder()
+                    .name("NonExistent Relation")
+                    .build();
+
+            public Set<Relationship> relationships = Collections.singleton(REL_FAILURE);
+
+            @Override
+            public Set<Relationship> getRelationships() {
+                return relationships;
+            }
+
+
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+                final FlowFile file = session.create();
+
+                session.transfer(file, REL_NON_EXISTENT);
+
+
+            }
+        }
+
 }

@@ -66,6 +66,7 @@ public class MockProcessSession implements ProcessSession {
     private final Map<Long, MockFlowFile> currentVersions = new HashMap<>();
     private final Map<Long, MockFlowFile> originalVersions = new HashMap<>();
     private final SharedSessionState sharedState;
+    private final Set<Relationship> relationships;
     private final Map<String, Long> counterMap = new HashMap<>();
     private final MockProvenanceReporter provenanceReporter;
 
@@ -77,6 +78,7 @@ public class MockProcessSession implements ProcessSession {
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
         provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
+        relationships=processor.getRelationships();
     }
 
     @Override
@@ -587,6 +589,7 @@ public class MockProcessSession implements ProcessSession {
         }
 
         validateState(flowFile);
+        validateDestinationRelation(relationship);
         List<MockFlowFile> list = transferMap.get(relationship);
         if (list == null) {
             list = new ArrayList<>();
@@ -594,6 +597,7 @@ public class MockProcessSession implements ProcessSession {
         }
 
         beingProcessed.remove(flowFile.getId());
+       // if(sharedState.)
         list.add((MockFlowFile) flowFile);
     }
 
@@ -606,6 +610,7 @@ public class MockProcessSession implements ProcessSession {
 
         for (final FlowFile flowFile : flowFiles) {
             validateState(flowFile);
+            validateDestinationRelation(relationship);
         }
 
         List<MockFlowFile> list = transferMap.get(relationship);
@@ -793,10 +798,18 @@ public class MockProcessSession implements ProcessSession {
             throw new FlowFileHandlingException(flowFile + " is not the most recent version of this flow file within this session");
         }
 
+
         for (final List<MockFlowFile> flowFiles : transferMap.values()) {
             if (flowFiles.contains(flowFile)) {
                 throw new IllegalStateException(flowFile + " has already been transferred");
             }
+        }
+    }
+
+    private void validateDestinationRelation(final Relationship relationship) {
+        if (!relationships.contains(relationship)) {
+            rollback();
+            throw new FlowFileHandlingException(relationship + " transfer relationship not specified");
         }
     }
 

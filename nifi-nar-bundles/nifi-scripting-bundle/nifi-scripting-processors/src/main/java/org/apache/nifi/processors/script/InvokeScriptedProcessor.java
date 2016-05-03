@@ -92,11 +92,10 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                     logger.error(message, t);
                 }
             }
-        } else {
-            // Return defaults for now
-            relationships.add(REL_SUCCESS);
-            relationships.add(REL_FAILURE);
         }
+        // Add defaults
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
         return Collections.unmodifiableSet(relationships);
     }
 
