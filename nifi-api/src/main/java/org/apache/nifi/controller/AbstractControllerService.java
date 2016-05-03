@@ -18,11 +18,11 @@ package org.apache.nifi.controller;
 
 import java.util.Map;
 
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -49,7 +49,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
         return identifier;
     }
 
-    @OnConfigured
+    @OnEnabled
     public void onConfigurationChange(final ConfigurationContext context) {
         this.configContext = context;
     }
@@ -81,7 +81,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
 
     /**
      * Provides a mechanism by which subclasses can perform initialization of
-     * the Reporting Task before it is scheduled to be run
+     * the Controller Service before it is scheduled to be run
      *
      * @param config of initialization context
      * @throws InitializationException if unable to init
