@@ -531,6 +531,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         this.numThreads = threadCount;
+        this.context.setNumThreads(threadCount);
     }
 
     @Override
