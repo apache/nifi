@@ -540,9 +540,6 @@ nf.Settings = (function () {
                     processTypesGrid.resetActiveCell();
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
 
@@ -1276,9 +1273,6 @@ nf.Settings = (function () {
                     reportingTaskTypesGrid.resetActiveCell();
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
 
@@ -1624,7 +1618,8 @@ nf.Settings = (function () {
             // refresh the system diagnostics when clicked
             nf.Common.addHoverEffect('#settings-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
                 if ($('#settings-refresh-required-icon').is(':visible')) {
-                    nf.CanvasHeader.reloadAndClearWarnings();
+                    nf.ng.Bridge.call('appCtrl.serviceProvider.headerCtrl',
+                        'appCtrl.serviceProvider.headerCtrl.reloadAndClearWarnings');
                 } else {
                     nf.Settings.loadSettings();
                 }

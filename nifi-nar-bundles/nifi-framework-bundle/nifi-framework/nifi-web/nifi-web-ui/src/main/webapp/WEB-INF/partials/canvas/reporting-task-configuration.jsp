@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="reporting-task-configuration">
+<div id="reporting-task-configuration" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="reporting-task-configuration-tab-container">
         <div id="reporting-task-configuration-tabs"></div>
         <div id="reporting-task-configuration-tabs-content">

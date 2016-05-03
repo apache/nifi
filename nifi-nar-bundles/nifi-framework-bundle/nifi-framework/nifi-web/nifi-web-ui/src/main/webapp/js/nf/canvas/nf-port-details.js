@@ -42,9 +42,6 @@ nf.PortDetails = (function () {
                         nf.Common.clearField('read-only-port-comments');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
         },
         

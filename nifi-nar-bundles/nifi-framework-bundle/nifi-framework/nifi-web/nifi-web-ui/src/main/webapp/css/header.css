@@ -14,640 +14,159 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /*
     Header Settings
 */
 
-#header {
-    position: absolute;
-    white-space:nowrap;
-    overflow: visible;
-    top: 17px;
-    left: 0px;
-    height: 47px;
-    right: 0px;
-    background-color: #FFF;
-    color: #000;
-    font-size: 1.3em;
-    font-weight: bold;
-    z-index: 99;
+md-toolbar.md-small {
+    height: 56px;
+    background-color:#AABBC3; /*tint base-color 40%*/
+    min-height: 56px;
+    max-height: 56px; }
+md-toolbar.md-small .md-toolbar-tools {
+    height: 56px;
+    min-height: 56px;
+    max-height: 56px; }
+
+#header .icon {
+    font-size:30px;
+    color: #004849;
 }
 
-#nf-logo {
-    float: left;
-    width: 61px;
-    height: 90px;
-    background-image: url(../images/bgNifiLogo.png);
-    margin-top: -16px;
+#header .fa {
+    font-size:30px;
+    color: #004849;
 }
 
-#nf-logo-name {
-    float: left;
-    width: 410px;
-    height: 47px;
-    background-image: url(../images/bgNifiToolbar.png);
-    z-index: 2;
+#login-link-container > span.link {
+    font-size: 12px;
+    text-transform:uppercase;
+}
+
+#logout-link-container > span.link {
+    font-size: 12px;
+    text-transform:uppercase;
+}
+
+#current-user {
+    font-size: 12px;
+}
+
+#nifi-logo {
+    height: 37px;
+    margin: 0 20px 0 15px;
+}
+
+#global-menu-button {
+    background-color:#AABBC3; /*tint base-color 40%*/
+    border:1px solid #AABBC3; /*tint base-color 40%*/
+    border-top-left-radius:2px;
+    border-top-right-radius:2px;
+    margin:0 10px;
+    cursor: pointer;
+}
+
+#global-menu-button:hover {
+    background-color:#C7D2D7; /*tint base-color 60%*/
+    box-shadow:0 1px 1px rgba(0,0,0,0.15);
+}
+
+#global-menu-content {
+    font-size: 13px;
+    padding: 3px 0;
+    background-color:rgba(249,250,251,0.97); /*tint base-color 96%*/
+    border:1px solid #004849; /*link-color*/
+    border-radius:2px;
+    box-shadow:0 2px 3px rgba(0,0,0,0.35);
+    width: 215px;
+}
+
+#global-menu-content md-menu-item{
+    min-height: 28px;
+    height: 28px;
+}
+
+#global-menu-content md-menu-divider{
+    background-color:#C7D2D7; /*tint base-color 60%*/
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+#global-menu-content a{
+    height: 28px;
+    padding: 6px 16px;
+    cursor: pointer;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+#global-menu-content a:hover{
+    background-color:#C7D2D7;
+}
+
+#global-menu-content .icon {
+    font-size: 15px;
+    color: #728E9B;
+    margin-right: 10px;
+}
+
+#global-menu-content .fa {
+    font-size: 15px;
+    color: #728E9B;
+    margin-right: 10px;
 }
 
 /* styles for the toolbox */
 
-#toolbox-container {
-    position: absolute;
-    bottom: 0px;
-    left: 135px;
-    height: 34px;
-    z-index: 3;
-}
-
-#toolbox-right-edge {
-    float: left;
-    background-image: url(../images/bgNifiToolbarEdge.png);
-    height: 47px;
-    width: 13px;
-    margin-top: -13px;
-}
-
-#toolbox {
-    float: left;
-    height: 34px;
-    padding-top: 1px;
-}
-
-div.toolbox-icon {
-    width: 32px;
-    height: 32px;
-    margin-right: 5px;
-    margin-left: 5px;
-    float: left;
-}
-
-div.toolbox-drag-icon {
-    width: 32px;
-    height: 32px;
-}
-
-div.processor-icon-disable {
-    background: transparent url(../images/toolboxIconProcessor.png) no-repeat scroll 0 0;
-}
-
-div.processor-icon {
-    background: transparent url(../images/toolboxIconProcessor.png) no-repeat scroll -32px 0;
-}
-
-div.processor-icon-hover {
-    background: transparent url(../images/toolboxIconProcessor.png) no-repeat scroll -64px 0;
-}
-
-div.processor-icon-drag {
-    background: transparent url(../images/toolboxIconProcessor.png) no-repeat scroll -96px 0;
-}
-
-div.input-port-icon-disable {
-    background: transparent url(../images/toolboxIconInputPort.png) no-repeat scroll 0 0;
-}
-
-div.input-port-icon {
-    background: transparent url(../images/toolboxIconInputPort.png) no-repeat scroll -32px 0;
-}
-
-div.input-port-icon-hover {
-    background: transparent url(../images/toolboxIconInputPort.png) no-repeat scroll -64px 0;
-}
-
-div.input-port-icon-drag {
-    background: transparent url(../images/toolboxIconInputPort.png) no-repeat scroll -96px 0;
-}
-
-div.output-port-icon-disable {
-    background: transparent url(../images/toolboxIconOutputPort.png) no-repeat scroll 0 0;
-}
-
-div.output-port-icon {
-    background: transparent url(../images/toolboxIconOutputPort.png) no-repeat scroll -32px 0;
-}
-
-div.output-port-icon-hover {
-    background: transparent url(../images/toolboxIconOutputPort.png) no-repeat scroll -64px 0;
-}
-
-div.output-port-icon-drag {
-    background: transparent url(../images/toolboxIconOutputPort.png) no-repeat scroll -96px 0;
-}
-
-div.process-group-icon-disable {
-    background: transparent url(../images/toolboxIconProcessGroup.png) no-repeat scroll 0 0;
-}
-
-div.process-group-icon {
-    background: transparent url(../images/toolboxIconProcessGroup.png) no-repeat scroll -32px 0;
-}
-
-div.process-group-icon-hover {
-    background: transparent url(../images/toolboxIconProcessGroup.png) no-repeat scroll -64px 0;
-}
-
-div.process-group-icon-drag {
-    background: transparent url(../images/toolboxIconProcessGroup.png) no-repeat scroll -96px 0;
-}
-
-div.remote-process-group-icon-disable {
-    background: transparent url(../images/toolboxIconRemoteProcessGroup.png) no-repeat scroll 0 0;
-}
-
-div.remote-process-group-icon {
-    background: transparent url(../images/toolboxIconRemoteProcessGroup.png) no-repeat scroll -32px 0;
-}
-
-div.remote-process-group-icon-hover {
-    background: transparent url(../images/toolboxIconRemoteProcessGroup.png) no-repeat scroll -64px 0;
-}
-
-div.remote-process-group-icon-drag {
-    background: transparent url(../images/toolboxIconRemoteProcessGroup.png) no-repeat scroll -96px 0;
-}
-
-div.funnel-icon-disable {
-    background: transparent url(../images/toolboxIconFunnel.png) no-repeat scroll 0 0;
-}
-
-div.funnel-icon {
-    background: transparent url(../images/toolboxIconFunnel.png) no-repeat scroll -32px 0;
-}
-
-div.funnel-icon-hover {
-    background: transparent url(../images/toolboxIconFunnel.png) no-repeat scroll -64px 0;
-}
-
-div.funnel-icon-drag {
-    background: transparent url(../images/toolboxIconFunnel.png) no-repeat scroll -96px 0;
-}
-
-div.template-icon-disable {
-    background: transparent url(../images/toolboxIconTemplate.png) no-repeat scroll 0 0;
-}
-
-div.template-icon {
-    background: transparent url(../images/toolboxIconTemplate.png) no-repeat scroll -32px 0;
-}
-
-div.template-icon-hover {
-    background: transparent url(../images/toolboxIconTemplate.png) no-repeat scroll -64px 0;
-}
-
-div.template-icon-drag {
-    background: transparent url(../images/toolboxIconTemplate.png) no-repeat scroll -96px 0;
-}
-
-div.label-icon-disable {
-    background: transparent url(../images/toolboxIconLabel.png) no-repeat scroll 0 0;
-}
-
-div.label-icon {
-    background: transparent url(../images/toolboxIconLabel.png) no-repeat scroll -32px 0;
-}
-
-div.label-icon-hover {
-    background: transparent url(../images/toolboxIconLabel.png) no-repeat scroll -64px 0;
-}
-
-div.label-icon-drag {
-    background: transparent url(../images/toolboxIconLabel.png) no-repeat scroll -96px 0;
-}
-
-#status-and-toolbar-container {
-    overflow: hidden;
-    height: 55px;
-    margin-top: 15px;
-}
-
-/* toolbar styles */
-
-#toolbar {
-    position: absolute;
-    bottom: 0px;
-    left: 471px;
-    right: 0px;
-    height: 27px;
-    background-image: url(../images/toolbarBg.gif);
-    background-repeat: repeat-x;
-    border-bottom: 1px solid #7098ad;
-    z-index: 1;
-}
-
-#toolbar-filler {
-    position: absolute;
-    bottom: 0px;
-    right: 0px;
-    height: 28px;
-}
-
-/* global actions / controls */
-
-div.toolbar-icon {
-    float: left;
-    height: 26px;
-    width: 20px;
-}
-
-#global-controls-container {
-    float: left;
-}
-
-div.control-border {
-    float: left;
-    height: 26px;
-    width: 1px;
-    background: transparent url(../images/bgToolbarBtnBorder.png) no-repeat scroll top left;
-}
-
-div.control-separator {
-    float: left;
-    height: 26px;
-    width: 5px;
-}
-
-#global-controls {
-    float: left;
-    margin-top: 1px;
-    margin-left: 20px;
-}
-
-div.enable-all {
-    background: transparent url(../images/buttonEnable.png) no-repeat scroll top left;
-}
-
-div.enable-all-hover {
-    background: transparent url(../images/buttonEnable.png) no-repeat scroll top center;
-}
-
-div.enable-all-disable {
-    background: transparent url(../images/buttonEnable.png) no-repeat scroll top right;
-}
-
-div.disable-all {
-    background: transparent url(../images/buttonDisable.png) no-repeat scroll top left;
-}
-
-div.disable-all-hover {
-    background: transparent url(../images/buttonDisable.png) no-repeat scroll top center;
-}
-
-div.disable-all-disable {
-    background: transparent url(../images/buttonDisable.png) no-repeat scroll top right;
-}
-
-div.start-all {
-    background: transparent url(../images/buttonRun.png) no-repeat scroll top left;
-}
-
-div.start-all-hover {
-    background: transparent url(../images/buttonRun.png) no-repeat scroll top center;
-}
-
-div.start-all-disable {
-    background: transparent url(../images/buttonRun.png) no-repeat scroll top right;
-}
-
-div.stop-all {
-    background: transparent url(../images/buttonStop.png) no-repeat scroll top left;
-}
-
-div.stop-all-hover {
-    background: transparent url(../images/buttonStop.png) no-repeat scroll top center;
-}
-
-div.stop-all-disable {
-    background: transparent url(../images/buttonStop.png) no-repeat scroll top right;
-}
-
-div.copy {
-    background: transparent url(../images/buttonCopy.png) no-repeat scroll top left;
-}
-
-div.copy-hover {
-    background: transparent url(../images/buttonCopy.png) no-repeat scroll top center;
-}
-
-div.copy-disable {
-    background: transparent url(../images/buttonCopy.png) no-repeat scroll top right;
-}
-
-div.paste {
-    background: transparent url(../images/buttonPaste.png) no-repeat scroll top left;
-}
-
-div.paste-hover {
-    background: transparent url(../images/buttonPaste.png) no-repeat scroll top center;
-}
-
-div.paste-disable {
-    background: transparent url(../images/buttonPaste.png) no-repeat scroll top right;
-}
-
-div.fill {
-    background: transparent url(../images/buttonColor.png) no-repeat scroll top left;
-}
-
-div.fill-hover {
-    background: transparent url(../images/buttonColor.png) no-repeat scroll top center;
-}
-
-div.fill-disable {
-    background: transparent url(../images/buttonColor.png) no-repeat scroll top right;
-}
-
-div.group {
-    background: transparent url(../images/buttonGroup.png) no-repeat scroll top left;
-}
-
-div.group-hover {
-    background: transparent url(../images/buttonGroup.png) no-repeat scroll top center;
-}
-
-div.group-disable {
-    background: transparent url(../images/buttonGroup.png) no-repeat scroll top right;
-}
-
-div.delete {
-    background: transparent url(../images/buttonDelete.png) no-repeat scroll top left;
-}
-
-div.delete-hover {
-    background: transparent url(../images/buttonDelete.png) no-repeat scroll top center;
-}
-
-div.delete-disable {
-    background: transparent url(../images/buttonDelete.png) no-repeat scroll top right;
-}
-
-div.template {
-    background: transparent url(../images/buttonTemplate.png) no-repeat scroll top left;
-}
-
-div.template-hover {
-    background: transparent url(../images/buttonTemplate.png) no-repeat scroll top center;
-}
-
-div.template-disable {
-    background: transparent url(../images/buttonTemplate.png) no-repeat scroll top right;
-}
-
-/* search field */
-
-div.search-result-icon {
-    float: left;
-    margin-right: 5px;
-    width: 14px;
-    height: 14px;
-}
-
-div.process-group-small-icon {
-    background-image: url(../images/iconSmallProcessGroup.png);
-}
-
-div.processor-small-icon {
-    background-image: url(../images/iconSmallProcessor.png);
-}
-
-div.connection-small-icon {
-    background-image: url(../images/iconSmallRelationship.png);
-}
-
-div.remote-process-group-small-icon {
-    background-image: url(../images/iconSmallRemoteProcessGroup.png);
-}
-
-div.input-port-small-icon {
-    background-image: url(../images/iconSmallInputPort.png);
-}
-
-div.output-port-small-icon {
-    background-image: url(../images/iconSmallOutputPort.png);
-}
-
-div.funnel-small-icon {
-    background-image: url(../images/iconSmallFunnel.png);
-}
-
-#search-container {
-    float: right;
-    font-weight: normal;
-    color: #fff;
-    margin-right: 10px;
-    width: 20%;
-}
-
-#search-field {
-    font-size: 11px;
-    margin-top: 3px;
-    border-width: 0px;
-    width: 95%;
-    background: #fff url(../images/bgSearchInput.png) repeat-x scroll top left;
-    z-index: 1000;
-    position: relative;
-}
-
-input.search-flow {
-    color: #7098AD;
-}
-
-#search-flow-results .ui-autocomplete {
-    max-height: 400px;
-    overflow: auto;
-    border: 1px solid #aaaaaa;
-    z-index: 1251;
-    border-radius: 0;
-}
-
-#search-flow-results .ui-menu .ui-menu-item a.ui-state-focus {
-    background: #D4E0E5 !important;
-    border: 1px solid #999999;
-    border-radius: 0;
-}
-
-#search-flow-results li.search-header {
-    font-weight: bold;
-    padding-top: 4px;
-    padding-left: 4px;
-    padding-right: 4px;
-    height: 14px;
-}
 
-#search-flow-results div.search-match-header {
-    font-weight: normal;
-    margin-left: 19px;
+#header .component-button {
+    background-color:#AABBC3; /*tint base-color 40%*/
+    border-radius:2px;
+    border: none;
 }
 
-#search-flow-results div.search-match {
-    margin-left: 26px;
-    color: #888;
-    font-size: 10px;
-    line-height: 1.4em;
+#header .component-button:hover {
+    background-color:#C7D2D7; /*tint base-color 60%*/
+    box-shadow:0 1px 1px rgba(0,0,0,0.15);
+    cursor:grab;
+    cursor:-moz-grab;
+    cursor:-webkit-grab;
 }
 
-#search-flow-results li.search-no-matches {
-    padding: 4px;
-    font-weight: bold;
-    color: #aaa;
-    font-style: italic;
+#header .component-button:disabled {
+    background-color:#AABBC3; /*tint base-color 40%*/
+    cursor:not-allowed;
+    box-shadow:none;
 }
 
-div.search-glass-pane {
-    position: absolute;
-    background-image: url(../images/spacer.png);
-    background-repeat: repeat;
-    background-color: transparent;
-    left: 0px;
-    top: 0px;
-    right: 0px;
-    bottom: 0px;
-    z-index: 1000;
+#header .component-button:disabled .icon{
+    color:#669192;
 }
 
 /* styles for the status link */
 
 #anonymous-user-alert {
-    float: left;
-    margin-top: -2px;
-    margin-right: 6px;
-    width: 18px;
-    height: 16px;
-    background-image: url(../images/iconAlert.png);
+    font-size: 12px;
 }
 
 #current-user {
-    float: left;
-    margin-right: 8px;
-    font-weight: bold;
+    font-family: 'Roboto+Slab';
+    font-style: normal;
+    font-weight: normal;
+    font-size: 12px;
     max-width: 250px;
     text-overflow: ellipsis;
     line-height: normal;
     overflow: hidden;
+    white-space: nowrap;
+    color: #262626;
 }
 
-#utilities-container {
-    float: right;
-}
-
-#utilities-border {
-    float: left;
-    width: 42px;
-    height: 47px;
-    margin-top: -19px;
-    background: transparent url(../images/bgControlsInset.png) no-repeat scroll top left;
-    z-index: 99;
-}
-
-#utility-buttons {
-    background-color: #80a0b5;
-    border-top: 1px solid #fff;
-    float: left;
-    margin-left: -28px;
+#current-user-container .fa{
+    font-size: 12px;
+    color: #262626;
     padding-right: 5px;
-}
-
-div.utility-button {
-    width: 26px;
-    height: 26px;
-    float: left;
-}
-
-div.reporting-link {
-    background: transparent url(../images/iconReporting.png) no-repeat scroll top left;
-}
-
-div.reporting-link-hover {
-    background: transparent url(../images/iconReporting.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-div.counters-link {
-    background: transparent url(../images/iconCounter.png) no-repeat scroll top left;
-}
-
-div.counters-link-hover {
-    background: transparent url(../images/iconCounter.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-div.flow-settings-link {
-    background: transparent url(../images/iconFlowSettings.png) no-repeat scroll top left;
-}
-
-div.flow-settings-link-hover {
-    background: transparent url(../images/iconFlowSettings.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-div.flow-settings-link-disabled {
-    background: transparent url(../images/iconFlowSettings.png) no-repeat scroll top right;
-}
-
-div.templates-link {
-    background: transparent url(../images/iconTemplates.png) no-repeat scroll top left;
-}
-
-div.templates-link-hover {
-    background: transparent url(../images/iconTemplates.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-div.templates-link-disabled {
-    background: transparent url(../images/iconTemplates.png) no-repeat scroll top right;
-}
-
-div.history-link {
-    background: transparent url(../images/iconHistory.png) no-repeat scroll top left;
-}
-
-div.history-link-hover {
-    background: transparent url(../images/iconHistory.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-div.history-link-disabled {
-    background: transparent url(../images/iconHistory.png) no-repeat scroll top right;
-}
-
-div.provenance-link {
-    background: transparent url(../images/iconProvenance.png) no-repeat scroll top left;
-}
-
-div.provenance-link-hover {
-    background: transparent url(../images/iconProvenance.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-div.provenance-link-disabled {
-    background: transparent url(../images/iconProvenance.png) no-repeat scroll top right;
-}
-
-div.cluster-link {
-    background: transparent url(../images/iconCluster.png) no-repeat scroll top left;
-}
-
-div.cluster-link-hover {
-    background: transparent url(../images/iconCluster.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-div.cluster-link-disabled {
-    background: transparent url(../images/iconCluster.png) no-repeat scroll top right;
-}
-
-div.bulletin-board-link {
-    background: transparent url(../images/iconBulletinBoard.png) no-repeat scroll top left;
-}
-
-div.bulletin-board-hover {
-    background: transparent url(../images/iconBulletinBoard.png) no-repeat scroll top center;
-    cursor: pointer;
-}
-
-#header-links-container {
-    position: absolute;
-    right: 10px;
-    z-index: 100;
 }
 
 #has-pending-accounts {
@@ -657,16 +176,4 @@ div.bulletin-board-hover {
     margin-top: 2px;
     margin-left: 13px;
     background-color: transparent;
-}
-
-a.header-link:link, a.header-link:visited, a.header-link:active {
-    color: #1e373f;
-    text-decoration: none;
-    outline: none;
-}
-
-a.header-link:hover {
-    color: #264c58;
-    text-decoration: underline;
-    outline: none;
 }

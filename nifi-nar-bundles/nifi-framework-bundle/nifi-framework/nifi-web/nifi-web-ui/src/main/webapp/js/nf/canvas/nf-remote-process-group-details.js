@@ -41,9 +41,6 @@ nf.RemoteProcessGroupDetails = (function () {
                         nf.Common.clearField('read-only-remote-process-group-yield-duration');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
         },
         

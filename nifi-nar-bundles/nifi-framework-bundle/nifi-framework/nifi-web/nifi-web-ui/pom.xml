@@ -215,6 +215,49 @@
                     </webResources>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.0</version>
+                <configuration>
+                    <workingDirectory>src/main/frontend</workingDirectory>
+                    <installDirectory>${project.build.directory}/${project.build.finalName}/assets</installDirectory>
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <id>install node and npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <nodeVersion>v0.10.18</nodeVersion>
+                            <npmVersion>1.3.8</npmVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install bower</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install bower</arguments>
+                            <workingDirectory>${project.build.directory}/${project.build.finalName}/assets</workingDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>bower install</id>
+                        <goals>
+                            <goal>bower</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install ../../../src/main/frontend --config.directory=${project.build.directory}/${project.build.finalName}/assets</arguments>
+                            <workingDirectory>${project.build.directory}/${project.build.finalName}/assets</workingDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -270,7 +313,6 @@
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-canvas-toolbox.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-state.js</include>
@@ -300,10 +342,6 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-selectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-birdseye.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-toolbar-action.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-canvas-toolbar.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-graph-control.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-canvas-header.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-search.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-settings.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-go-to.js</include>
@@ -315,7 +353,22 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-ng-canvas-app-config.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-app-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-breadcrumbs-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-header-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-toolbox-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-global-menu-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-graph-controls-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-navigate-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-operate-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-processor-component.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-input-port-component.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-output-port-component.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-group-component.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-remote-process-group-component.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-funnel-component.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-template-component.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-label-component.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/directives/nf-ng-breadcrumbs-directive.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/directives/nf-ng-draggable-directive.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
                                             </includes>
@@ -568,6 +621,7 @@
                         <version>2.5</version>
                         <configuration>
                             <packagingIncludes>
+                                assets/**/*,
                                 css/reset.css,
                                 css/reset.css.gz,
                                 css/message-page.css,
@@ -596,7 +650,6 @@
                                 js/d3/**/*,
                                 js/codemirror/**/*,
                                 js/jquery/**/*,
-                                js/angular/**/*,
                                 js/nf/nf-namespace.js,
                                 js/nf/nf-namespace.js.gz,
                                 js/nf/nf-ng-namespace.js,
@@ -646,6 +699,7 @@
                         <configuration>
                             <excludes combine.children="append">
                                 <exclude>nbactions.xml</exclude>
+                                <exclude>src/main/frontend/bower.json</exclude>
                                 <exclude>src/main/webapp/js/json2.js</exclude>
                                 <exclude>src/main/webapp/js/jquery/</exclude>
                                 <exclude>src/main/webapp/js/d3/d3.min.js</exclude>

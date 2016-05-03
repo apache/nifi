@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="connection-configuration">
+<div id="connection-configuration" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="connection-configuration-tab-container">
         <div id="connection-configuration-tabs"></div>
         <div id="connection-configuration-tabs-content">

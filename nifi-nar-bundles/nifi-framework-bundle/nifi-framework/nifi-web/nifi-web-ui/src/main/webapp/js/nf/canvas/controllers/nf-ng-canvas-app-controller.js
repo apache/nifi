@@ -19,25 +19,25 @@
 
 nf.ng.Canvas.AppCtrl = (function () {
 
-    function AppCtrl($scope, ServiceProvider) {
-        function AppCtrl(ServiceProvider) {
+    function AppCtrl($scope, serviceProvider) {
+        function AppCtrl(serviceProvider) {
             //global nf namespace for reference throughout angular app
             this.nf = nf;
-            //any registered angular service is available through the ServiceProvider
-            this.ServiceProvider = ServiceProvider;
+            //any registered angular service is available through the serviceProvider
+            this.serviceProvider = serviceProvider;
         };
         AppCtrl.prototype = {
             constructor: AppCtrl
         };
-        var appCtrl = new AppCtrl(ServiceProvider);
-        $scope.AppCtrl = appCtrl;
+        var appCtrl = new AppCtrl(serviceProvider);
+        $scope.appCtrl = appCtrl;
 
         //For production angular applications .scope() is unavailable so we set
         //the root scope of the bootstrapped app on the bridge
         nf.ng.Bridge.setRootScope($scope);
     }
 
-    AppCtrl.$inject=['$scope', 'ServiceProvider'];
+    AppCtrl.$inject=['$scope', 'serviceProvider', 'headerCtrl', 'graphControlsCtrl'];
 
     return AppCtrl;
 }());

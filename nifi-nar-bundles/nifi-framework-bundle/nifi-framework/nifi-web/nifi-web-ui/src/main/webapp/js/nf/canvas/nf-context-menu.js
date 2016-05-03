@@ -553,8 +553,8 @@ nf.ContextMenu = (function () {
                 'y': position[1]
             });
 
-            // refresh the toolbar incase we've click on the canvas
-            nf.CanvasToolbar.refresh();
+            // inform Angular app incase we've click on the canvas
+            nf.ng.Bridge.digest();
         },
         
         /**

@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="controller-service-configuration">
+<div id="controller-service-configuration" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="controller-service-configuration-tab-container">
         <div id="controller-service-configuration-tabs"></div>
         <div id="controller-service-configuration-tabs-content">

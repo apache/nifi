@@ -19,7 +19,7 @@
 
 nf.ng.BreadcrumbsDirective = (function () {
 
-    function BreadcrumbsDirective(BreadcrumbsCtrl) {
+    function BreadcrumbsDirective(breadcrumbsCtrl) {
         return {
             restrict: 'E',
             templateUrl: 'views/nf-ng-breadcrumbs-directive-view.html',
@@ -30,13 +30,12 @@ nf.ng.BreadcrumbsDirective = (function () {
                 'separatorFunc': '='
             },
             link: function (scope, element, attrs) {
-                BreadcrumbsCtrl.registerMouseWheelEvent(element);
-                scope.BreadcrumbsCtrl = BreadcrumbsCtrl;
+                breadcrumbsCtrl.registerMouseWheelEvent(element);
             }
         };
     }
 
-    BreadcrumbsDirective.$inject = ['BreadcrumbsCtrl'];
+    BreadcrumbsDirective.$inject = ['breadcrumbsCtrl'];
 
     return BreadcrumbsDirective;
 }());

@@ -174,9 +174,6 @@ nf.RemoteProcessGroupPorts = (function () {
                     $('#remote-process-group-output-ports-container').empty();
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
 
