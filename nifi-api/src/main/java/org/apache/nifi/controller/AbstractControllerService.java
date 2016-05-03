@@ -18,6 +18,7 @@ package org.apache.nifi.controller;
 
 import java.util.Map;
 
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -81,7 +82,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
 
     /**
      * Provides a mechanism by which subclasses can perform initialization of
-     * the Reporting Task before it is scheduled to be run
+     * the Controller Service before it is scheduled to be run
      *
      * @param config of initialization context
      * @throws InitializationException if unable to init
