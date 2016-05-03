@@ -55,9 +55,6 @@ nf.QueueListing = (function () {
                     $('#listing-request-status-dialog').modal('setButtonModel', []);
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
 
@@ -221,9 +218,6 @@ nf.QueueListing = (function () {
                     $('#additional-flowfile-details').empty();
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
 

@@ -17,41 +17,70 @@
 /* flow status styles positioned at the top of the graph */
 
 #flow-status {
-    position: absolute;
-    top: 94px;
-    left: 0px;
-    right: 0px;
-    height: 13px;
-    padding: 7px 8px 3px 40px;
-    background: #e3ebee url(../images/bgStatusPanel.png) repeat-x scroll top left;
-    color: #598599;
-    z-index: 2;
+    height: 32px;
+    background-color:#E3E8EB; /*tint base-color 60%*/
 }
 
-div.flow-status-property-element {
-    float: left;
-    margin-left: 25px;
-    font-size: 10px;
+#flow-status .icon {
+    font-size:15px;
+    font-style: normal;
+    color: #728E9B; /*base-color*/
 }
 
-span.flow-status-property-value {
-    font-weight: bold;
-    font-size: 10px;
-    color: #000;
+#flow-status .fa {
+    font-size:15px;
+    font-style: normal;
+    color: #728E9B; /*base-color*/
 }
 
-#connected-nodes-element {
-    display: none;
+#flow-status .icon span{
+    font-size:15px;
+    font-weight: 500;
+    color: #775351; /*value-color*/
 }
 
-#controller-bulletins {
-    margin-top: -1px;
-    margin-left: 9px;
-    float: left;
-    width: 12px;
-    height: 12px;
-    background-color: transparent;
-    display: none;
+#flow-status .fa span{
+    font-size:15px;
+    font-weight: 500;
+    color: #775351; /*value-color*/
+    font-family: Roboto, sans-serif;
+}
+
+#flow-status button{
+    height: 32px;
+    width:32px;
+    border-left:1px solid #AABBC3; /*tint base-color 40%*/
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+}
+
+#flow-status span{
+    padding-left: 5px;
+}
+
+#search-button {
+    background-color:#E3E8EB; /*tint base-color 80%*/
+}
+
+#search-button i{
+    color: #004849;
+    font-size:15px;
+}
+
+#search-button:hover {
+    background-color:#FFFFFF;
+    border-left:1px solid #004849; /*link-color*/
+    box-shadow:0 2px 2px rgba(0,0,0,0.25);
+}
+
+#bulletin-button {
+    background-color:#728E9B; /*base-color*/
+}
+
+#bulletin-button i{
+    color: #fff;
+    font-size:15px;
 }
 
 #canvas-loading-container {
@@ -63,48 +92,76 @@ span.flow-status-property-value {
     background-color: transparent;
 }
 
-span.alert {
-    color: #c00;
+/* search field */
+div.search-result-icon {
+    float: left;
+    margin-right: 5px;
+    width: 14px;
+    height: 14px;
 }
 
-#refresh-required-container {
-    display: none;
-    float: left;
-    margin-left: 10px;
+#search-field {
+    height: 32px;
+    width: 200px;
+    background: #FFFFFF;
+    border: 0px solid #AABBC3;
+    position: relative;
+    left: 32px;
+}
+
+input.search-flow {
+    color: #7098AD;
+}
+
+#search-flow-results .ui-autocomplete {
+    max-height: 400px;
+    overflow: auto;
+    border: 1px solid #aaaaaa;
+    z-index: 1251;
+    border-radius: 0;
+}
+
+#search-flow-results .ui-menu .ui-menu-item a.ui-state-focus {
+    background: #D4E0E5 !important;
+    border: 1px solid #999999;
+    border-radius: 0;
+}
+
+#search-flow-results li.search-header {
+    font-weight: bold;
+    padding-top: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    height: 14px;
+}
+
+#search-flow-results div.search-match-header {
+    font-weight: normal;
+    margin-left: 19px;
+}
+
+#search-flow-results div.search-match {
+    margin-left: 26px;
+    color: #888;
     font-size: 10px;
+    line-height: 1.4em;
 }
 
-#refresh-required-icon {
-    float: left;
-    margin-top: -2px;
-    margin-right: 10px;
-    width: 18px;
-    height: 16px;
-    background-image: url(../images/iconAlert.png);
-}
-
-#refresh-required-container span.link {
-    cursor: pointer;
-    color: #1e373f;
-    text-decoration: underline;
+#search-flow-results li.search-no-matches {
+    padding: 4px;
     font-weight: bold;
+    color: #aaa;
+    font-style: italic;
 }
 
-#refresh-required-container span.header-link-over {
-    color: #264c58;
-    text-decoration: underline;
-    font-weight: bold;
-}
-
-#controller-counts {
-    float: right;
-    margin-right: 195px;
-    margin-top: -3px;
-}
-
-div.controller-component-count {
-    font-weight: bold;
-    color: #000;
-    margin: 3px 10px 3px 2px;
-    float: left;
+div.search-glass-pane {
+    position: absolute;
+    background-image: url(../images/spacer.png);
+    background-repeat: repeat;
+    background-color: transparent;
+    left: 0px;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 1000;
 }

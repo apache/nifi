@@ -29,11 +29,26 @@ $(document).ready(function () {
         app.controller('ngCanvasAppCtrl', nf.ng.Canvas.AppCtrl);
 
         //App Services
-        app.factory('ServiceProvider', nf.ng.ServiceProvider);
-        app.factory('BreadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
+        app.factory('serviceProvider', nf.ng.ServiceProvider);
+        app.factory('breadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
+        app.factory('headerCtrl', nf.ng.Canvas.HeaderCtrl);
+        app.factory('globalMenuCtrl', nf.ng.Canvas.GlobalMenuCtrl);
+        app.factory('toolboxCtrl', nf.ng.Canvas.ToolboxCtrl);
+        app.factory('processorComponent', nf.ng.ProcessorComponent);
+        app.factory('inputPortComponent', nf.ng.InputPortComponent);
+        app.factory('outputPortComponent', nf.ng.OutputPortComponent);
+        app.factory('groupComponent', nf.ng.GroupComponent);
+        app.factory('remoteGroupComponent', nf.ng.RemoteProcessGroupComponent);
+        app.factory('funnelComponent', nf.ng.FunnelComponent);
+        app.factory('templateComponent', nf.ng.TemplateComponent);
+        app.factory('labelComponent', nf.ng.LabelComponent);
+        app.factory('graphControlsCtrl', nf.ng.Canvas.GraphControlsCtrl);
+        app.factory('navigateCtrl', nf.ng.Canvas.NavigateCtrl);
+        app.factory('operateCtrl', nf.ng.Canvas.OperateCtrl);
 
         //App Directives
-        app.directive('breadcrumbsDirective', nf.ng.BreadcrumbsDirective);
+        app.directive('nfBreadcrumbs', nf.ng.BreadcrumbsDirective);
+        app.directive('nfDraggable', nf.ng.DraggableDirective);
 
         //Manually Boostrap App
         angular.bootstrap($('body'), ['ngCanvasApp'], { strictDi: true });
@@ -480,8 +495,8 @@ nf.Canvas = (function () {
                     nf.CanvasUtils.getSelection().classed('selected', false);
                 }
 
-                // update the toolbar
-                nf.CanvasToolbar.refresh();
+                // inform Angular app values have changed
+                nf.ng.Bridge.digest();
             });
 
         // define a function for update the graph dimensions
@@ -509,8 +524,8 @@ nf.Canvas = (function () {
             });
 
             //breadcrumbs
-            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
-                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.updateBreadcrumbsCss',
+            nf.ng.Bridge.call('appCtrl.serviceProvider.breadcrumbsCtrl',
+                'appCtrl.serviceProvider.breadcrumbsCtrl.updateBreadcrumbsCss',
                 {'bottom': bottom + 'px'});
 
             // body
@@ -520,10 +535,19 @@ nf.Canvas = (function () {
             });
         };
 
+        // define a function for update the flow status dimensions
+        var updateFlowStatusContainerSize = function () {
+            $('#flow-status-container').css({
+                'width': ((($('#nifi-logo').width() + $('#component-container').width())/$(window).width())*100)*2 + '%'
+            });
+        };
+        updateFlowStatusContainerSize();
+
         // listen for browser resize events to reset the graph size
         $(window).on('resize', function (e) {
             if (e.target === window) {
                 updateGraphSize();
+                updateFlowStatusContainerSize();
                 nf.Settings.resetTableSize();
             }
         }).on('keydown', function (evt) {
@@ -546,7 +570,7 @@ nf.Canvas = (function () {
                 } else if (evt.keyCode === 65) {
                     // ctrl-a
                     nf.Actions.selectAll();
-                    nf.CanvasToolbar.refresh();
+                    nf.ng.Bridge.digest();
 
                     // only want to prevent default if the action was performed, otherwise default select all would be overridden
                     evt.preventDefault();
@@ -588,8 +612,9 @@ nf.Canvas = (function () {
             // ensure the banners response is specified
             if (nf.Common.isDefinedAndNotNull(response.banners)) {
                 if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
-                    // update the header text
-                    $('#banner-header').addClass('banner-header-background').text(response.banners.headerText);
+                    // update the header text and show it
+                    $('#banner-header').addClass('banner-header-background').text(response.banners.headerText).show();
+                    $('#canvas-container').css('top', '98px');
                 }
 
                 if (nf.Common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
@@ -709,6 +734,11 @@ nf.Canvas = (function () {
                 }
                 if (nf.Common.isDefinedAndNotNull(controllerStatus.invalidCount)) {
                     $('#controller-invalid-count').text(controllerStatus.invalidCount);
+                    if(controllerStatus.invalidCount > 0) {
+                        $('#controller-invalid-count').parent().css('color', '#BA554A');
+                    } else {
+                        $('#controller-invalid-count').parent().css('color', '#728E9B');
+                    }
                 } else {
                     $('#controller-invalid-count').text('-');
                 }
@@ -793,10 +823,10 @@ nf.Canvas = (function () {
             nf.Canvas.setGroupId(processGroupFlow.id);
 
             // update the breadcrumbs
-            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
-                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetBreadcrumbs');
-            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
-                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.generateBreadcrumbs',
+            nf.ng.Bridge.call('appCtrl.serviceProvider.breadcrumbsCtrl',
+                'appCtrl.serviceProvider.breadcrumbsCtrl.resetBreadcrumbs');
+            nf.ng.Bridge.call('appCtrl.serviceProvider.breadcrumbsCtrl',
+                'appCtrl.serviceProvider.breadcrumbsCtrl.generateBreadcrumbs',
                 processGroupFlow.breadcrumb);
 
             // set the parent id if applicable
@@ -812,8 +842,8 @@ nf.Canvas = (function () {
             // refresh the graph
             nf.Graph.add(processGroupFlow.flow, false);
 
-            // update the toolbar
-            nf.CanvasToolbar.refresh();
+            // inform Angular app values have changed
+            nf.ng.Bridge.digest();
         }).fail(nf.Common.handleAjaxError);
     };
 
@@ -903,8 +933,8 @@ nf.Canvas = (function () {
                 var settingsXhr = nf.Settings.loadSettings(false); // don't reload the status as we want to wait for deferreds to complete
                 $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
                     // adjust breadcrumbs if necessary
-                    nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
-                        'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetScrollPosition');
+                    nf.ng.Bridge.call('appCtrl.serviceProvider.breadcrumbsCtrl',
+                        'appCtrl.serviceProvider.breadcrumbsCtrl.resetScrollPosition');
 
                     // don't load the status until the graph is loaded
                     reloadStatus(nf.Canvas.getGroupId()).done(function () {
@@ -1086,10 +1116,8 @@ nf.Canvas = (function () {
                         initCanvas();
                         nf.Canvas.View.init();
                         nf.ContextMenu.init();
-                        nf.CanvasToolbar.init();
-                        nf.CanvasToolbox.init();
-                        nf.CanvasHeader.init(loginDetails.supportsLogin);
-                        nf.GraphControl.init();
+                        nf.ng.Bridge.call('appCtrl.serviceProvider.headerCtrl',
+                            'appCtrl.serviceProvider.headerCtrl.init', loginDetails.supportsLogin);
                         nf.Search.init();
                         nf.Settings.init();
                         nf.Actions.init();
@@ -1124,6 +1152,9 @@ nf.Canvas = (function () {
                         nf.RemoteProcessGroupDetails.init();
                         nf.GoTo.init();
                         nf.Graph.init().done(function () {
+                            nf.ng.Bridge.call('appCtrl.serviceProvider.graphControlsCtrl',
+                                'appCtrl.serviceProvider.graphControlsCtrl.init');
+
                             // determine the split between the polling
                             var pollingSplit = autoRefreshIntervalSeconds / 2;
 

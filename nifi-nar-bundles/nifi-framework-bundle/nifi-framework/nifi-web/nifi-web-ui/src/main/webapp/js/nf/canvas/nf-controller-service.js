@@ -1431,9 +1431,6 @@ nf.ControllerService = (function () {
                         $('#controller-service-configuration').removeData('controllerServiceDetails');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
 
             // initialize the property table
@@ -1498,9 +1495,6 @@ nf.ControllerService = (function () {
                         }]);
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
             
             // initialize the enable scope combo
@@ -1571,9 +1565,6 @@ nf.ControllerService = (function () {
                         }]);
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
         },
         

@@ -507,9 +507,6 @@ nf.ProcessorConfiguration = (function () {
                         $('#processor-configuration').removeData('processorDetails');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
 
             // initialize the bulletin combo
@@ -726,6 +723,9 @@ nf.ProcessorConfiguration = (function () {
 
                                         // close the details panel
                                         $('#processor-configuration').modal('hide');
+                                        
+                                        // inform Angular app values have changed
+                                        nf.ng.Bridge.digest();
                                     });
                                 }
                             }

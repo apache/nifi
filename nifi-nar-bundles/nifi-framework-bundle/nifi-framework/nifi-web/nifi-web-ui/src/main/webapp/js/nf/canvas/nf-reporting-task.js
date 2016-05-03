@@ -350,9 +350,6 @@ nf.ReportingTask = (function () {
                         $('#reporting-task-configuration').removeData('reportingTaskDetails');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
 
             // initialize the property table

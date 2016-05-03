@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="instantiate-template-dialog">
+<div id="instantiate-template-dialog" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="dialog-content">
         <div id="available-templates" name="available-templates"></div>
     </div>

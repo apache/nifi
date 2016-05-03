@@ -19,7 +19,7 @@
 
 nf.ng.BreadcrumbsCtrl = (function () {
 
-    function BreadcrumbsCtrl(ServiceProvider, $sanitize) {
+    function BreadcrumbsCtrl(serviceProvider, $sanitize) {
         function BreadcrumbsCtrl() {
             this.breadcrumbs = [];
         };
@@ -27,11 +27,11 @@ nf.ng.BreadcrumbsCtrl = (function () {
             constructor: BreadcrumbsCtrl,
 
             /**
-             *  Initialize the Breadcrumbs controller.
+             *  Register the breadcrumbs controller.
              */
-            init: function () {
-                if (ServiceProvider.BreadcrumbsCtrl === undefined) {
-                    ServiceProvider.register('BreadcrumbsCtrl', breadcrumbsCtrl);
+            register: function () {
+                if (serviceProvider.breadcrumbsCtrl === undefined) {
+                    serviceProvider.register('breadcrumbsCtrl', breadcrumbsCtrl);
                 }
             },
 
@@ -161,11 +161,11 @@ nf.ng.BreadcrumbsCtrl = (function () {
             }
         };
         var breadcrumbsCtrl = new BreadcrumbsCtrl();
-        breadcrumbsCtrl.init();
+        breadcrumbsCtrl.register();
         return breadcrumbsCtrl;
     }
 
-    BreadcrumbsCtrl.$inject = ['ServiceProvider', '$sanitize'];
+    BreadcrumbsCtrl.$inject = ['serviceProvider', '$sanitize']; //also depends on nf.Common
 
     return BreadcrumbsCtrl;
 }());

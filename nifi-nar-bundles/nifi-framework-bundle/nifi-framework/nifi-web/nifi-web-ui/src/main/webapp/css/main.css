@@ -86,11 +86,22 @@
     url('../fonts/Roboto_Slab/RobotoSlab-Bold.ttf') format('truetype');
 }
 
+/*remove margin from font awesome*/
+i[class^="fa-"]:before, i[class*=" fa-"]:before {
+    margin: -1px;
+}
+
+/*remove margin from flowfont*/
+i[class^="icon-"]:before, i[class*=" icon-"]:before {
+    margin: -1px;
+}
+
 body { 
     display: block;
     font-family: Roboto, sans-serif;
     font-size: 62.5%;
     overflow: hidden;
+    color: #262626;
 }
 
 #splash {
@@ -417,4 +428,20 @@ span.details-title {
     font-weight: bold;
     font-size: 12px;
     text-decoration: underline;
+}
+
+/* angular material override */
+
+button:focus {
+    outline: none;
+    border: 0;
+}
+
+div:focus {
+    outline: none;
+    border: 0;
+}
+
+input:focus {
+    outline: none;
 }

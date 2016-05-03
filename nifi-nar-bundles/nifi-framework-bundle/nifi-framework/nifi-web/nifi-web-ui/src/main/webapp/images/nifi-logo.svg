@@ -1,0 +1,17 @@
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<svg id="nifi-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89 37"><defs><style>.cls-1{fill:#728e9b;}.cls-2{fill:#e3e8eb;}</style></defs><title>Untitled-1</title><path id="drop" class="cls-1" d="M75.09 35.88a12.55 12.55 0 0 1-12.55-12.55c0-6 4.68-11.69 7.88-15.87A45.4 45.4 0 0 0 75.09 0a45.38 45.38 0 0 0 4.68 7.43c3.2 4.18 7.88 9.9 7.88 15.87h-8v4.6h-4.6v8zm4.91-3v-4.1h-4.1v4.1H80zm-4.1 4.1a12.24 12.24 0 0 0 4.1-.79v-2.11h-4.1v2.85zm8.7-8.7v-4.1h-4.1v4.1h4.1zm.24 5.34l.51-.51v-3.63h-4.1v4.1h3.59zM81.52 37a12.26 12.26 0 0 0 3-1.86h-3V37zm6.38-8.73a12.21 12.21 0 0 0 .79-4.1h-2.85v4.1h2.06zm-1 4.55a12.24 12.24 0 0 0 1.86-3h-1.9v3z"/><path id="fi" class="cls-2" d="M33.07 14.89v-4.37h3.25V7.68a7.64 7.64 0 0 1 .46-2.83A4.47 4.47 0 0 1 38.11 3a5.26 5.26 0 0 1 2.11-1A11.93 11.93 0 0 1 43 1.69q1.72 0 3.44.14v4.55a3.55 3.55 0 0 0-.65 0h-.59a3 3 0 0 0-1.91.46 1.89 1.89 0 0 0-.56 1.53v2.18h3.72v4.37h-3.71v20.6h-6.42V14.89h-3.25zM50.27 2v5.45h6.41V2h-6.41zm0 8.55v25h6.41v-25h-6.41z"/><path id="ni" class="cls-1" d="M6.41 10.52v2.93h.09a6.51 6.51 0 0 1 2.65-2.72 7.84 7.84 0 0 1 3.72-.86 6.33 6.33 0 0 1 4.72 1.67q1.65 1.67 1.65 5.44v18.54h-6.42V18.28a4.29 4.29 0 0 0-.65-2.72 2.6 2.6 0 0 0-2.09-.77q-3.39 0-3.39 4.14v16.59H.27v-25h6.14zM23.54 2v5.45H30V2h-6.46zm0 8.55v25H30v-25h-6.46z"/></svg>

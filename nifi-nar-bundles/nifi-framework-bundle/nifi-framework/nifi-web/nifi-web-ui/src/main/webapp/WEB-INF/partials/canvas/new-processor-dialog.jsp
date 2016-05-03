@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-processor-dialog">
+<div id="new-processor-dialog" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="dialog-content">
         <div id="processor-type-filter-controls">
             <div id="processor-type-filter-container">

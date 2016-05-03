@@ -49,9 +49,6 @@ nf.Actions = (function () {
                     $('#drop-request-status-dialog').modal('setButtonModel', []);
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
     
@@ -418,10 +415,10 @@ nf.Actions = (function () {
                     }));
                 });
 
-                // refresh the toolbar once the updates have completed
+                // inform Angular app once the updates have completed
                 if (enableRequests.length > 0) {
                     $.when.apply(window, enableRequests).always(function () {
-                        nf.CanvasToolbar.refresh();
+                        nf.ng.Bridge.digest();
                     });
                 }
             }
@@ -460,10 +457,10 @@ nf.Actions = (function () {
                     }));
                 });
 
-                // refresh the toolbar once the updates have completed
+                // inform Angular app once the updates have completed
                 if (disableRequests.length > 0) {
                     $.when.apply(window, disableRequests).always(function () {
-                        nf.CanvasToolbar.refresh();
+                        nf.ng.Bridge.digest();
                     });
                 }
             }
@@ -549,10 +546,10 @@ nf.Actions = (function () {
                         }));
                     });
 
-                    // refresh the toolbar once the updates have completed
+                    // inform Angular app once the updates have completed
                     if (startRequests.length > 0) {
                         $.when.apply(window, startRequests).always(function () {
-                            nf.CanvasToolbar.refresh();
+                            nf.ng.Bridge.digest();
                         });
                     }
                 }
@@ -623,10 +620,10 @@ nf.Actions = (function () {
                         }));
                     });
 
-                    // refresh the toolbar once the updates have completed
+                    // inform Angular app once the updates have completed
                     if (stopRequests.length > 0) {
                         $.when.apply(window, stopRequests).always(function () {
-                            nf.CanvasToolbar.refresh();
+                            nf.ng.Bridge.digest();
                         });
                     }
                 }
@@ -823,9 +820,10 @@ nf.Actions = (function () {
                             }
                         }
 
-                        // refresh the birdseye/toolbar
+                        // refresh the birdseye
                         nf.Birdseye.refresh();
-                        nf.CanvasToolbar.refresh();
+                        // inform Angular app values have changed
+                        nf.ng.Bridge.digest();
                     }).fail(nf.Common.handleAjaxError);
                 } else {
                     // create a snippet for the specified component and link to the data flow
@@ -873,9 +871,10 @@ nf.Actions = (function () {
                                 nf.Connection.remove(components.get('Connection'));
                             }
 
-                            // refresh the birdseye/toolbar
+                            // refresh the birdseye
                             nf.Birdseye.refresh();
-                            nf.CanvasToolbar.refresh();
+                            // inform Angular app values have changed
+                            nf.ng.Bridge.digest();
                         }).fail(function (xhr, status, error) {
                             // unable to acutally remove the components so attempt to
                             // unlink and remove just the snippet - if unlinking fails
@@ -1158,7 +1157,7 @@ nf.Actions = (function () {
                 var origin = nf.CanvasUtils.getOrigin(selection);
 
                 var pt = {'x': origin.x, 'y': origin.y};
-                $.when(nf.CanvasToolbox.promptForGroupName(pt)).done(function (processGroup) {
+                $.when(nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl.toolboxCtrl.groupComponent').promptForGroupName(pt)).done(function (processGroup) {
                     var group = d3.select('#id-' + processGroup.id);
                     nf.CanvasUtils.moveComponents(selection, group);
                 });

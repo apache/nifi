@@ -15,41 +15,24 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="flow-status">
-    <div class="flow-status-property-element">
-        Active threads:
-        <span id="active-thread-count" class="flow-status-property-value"></span>
+<div id="flow-status" flex layout="row" layout-align="space-between center">
+    <div id="flow-status-container" layout="row" layout-align="space-around center">
+        <i class="fa fa-cubes" ng-if="appCtrl.nf.Canvas.isClustered()"><span id="connected-nodes-count"></span></i>
+        <i class="icon icon-threads"><span id="active-thread-count"></span></i>
+        <i class="fa fa-list"><span id="total-queued"></span></i>
+        <i class="fa fa-bullseye"><span id="controller-transmitting-count"></span></i>
+        <i class="icon icon-transmit-false"><span id="controller-not-transmitting-count"></span></i>
+        <i class="fa fa-play"><span id="controller-running-count"></span></i>
+        <i class="fa fa-stop"><span id="controller-stopped-count"></span></i>
+        <i class="fa fa-warning"><span id="controller-invalid-count"></span></i>
+        <i class="icon icon-enable-false"><span id="controller-disabled-count"></span></i>
+        <i class="fa fa-refresh"><span id="stats-last-refreshed"></span></i>
+        <div id="canvas-loading-container" class="loading-container"></div>
     </div>
-    <div class="flow-status-property-element">
-        Queued:
-        <span id="total-queued" class="flow-status-property-value"></span>
-    </div>
-    <div id="connected-nodes-element" class="flow-status-property-element">
-        Connected nodes:
-        <span id="connected-nodes-count" class="flow-status-property-value"></span>
-    </div>
-    <div class="flow-status-property-element">
-        Stats last refreshed:
-        <span id="stats-last-refreshed" class="flow-status-property-value"></span>
-    </div>
-    <div id="refresh-required-container" class="flow-status-property-element">
-        <div id="refresh-required-icon"></div>
-        <span id="refresh-required-link" class="link">Refresh</span>
-    </div>
-    <div id="controller-bulletins" class="bulletin-icon"></div>
-    <div id="canvas-loading-container" class="loading-container"></div>
-    <div id="controller-counts">
-        <div class="transmitting"></div>
-        <div id="controller-transmitting-count" class="controller-component-count">0</div>
-        <div class="not-transmitting"></div>
-        <div id="controller-not-transmitting-count" class="controller-component-count">0</div>
-        <div class="running"></div>
-        <div id="controller-running-count" class="controller-component-count">-</div>
-        <div class="stopped"></div>
-        <div id="controller-stopped-count" class="controller-component-count">-</div>
-        <div class="invalid"></div>
-        <div id="controller-invalid-count" class="controller-component-count">-</div>
-        <div class="disabled"></div>
-        <div id="controller-disabled-count" class="controller-component-count">-</div>
+    <div layout="row" layout-align="end center">
+        <input id="search-field" type="text"/>
+        <button id="search-button"><i class="fa fa-search"></i></button>
+        <button id="bulletin-button"><i class="icon-bulletin"></i></button>
     </div>
 </div>
+<div id="search-flow-results"></div>

@@ -1,0 +1,17 @@
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<svg id="nifi-drop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27 37"><defs><style>.cls-1{fill:#728e9b;}</style></defs><title>Untitled-1</title><path id="drop" class="cls-1" d="M13 35.88A12.55 12.55 0 0 1 .41 23.33c0-6 4.68-11.69 7.88-15.87A45.4 45.4 0 0 0 13 0a45.38 45.38 0 0 0 4.68 7.43c3.2 4.18 7.88 9.9 7.88 15.87h-8v4.6H13v8zm4.91-3v-4.1h-4.1v4.1h4.1zm-4.1 4.1a12.24 12.24 0 0 0 4.1-.79v-2.11h-4.1v2.85zm8.7-8.7v-4.1h-4.1v4.1h4.1zm.24 5.34l.51-.51v-3.63h-4.1v4.1h3.59zM19.39 37a12.26 12.26 0 0 0 3-1.86h-3V37zm6.38-8.73a12.21 12.21 0 0 0 .79-4.1h-2.85v4.1h2.06zm-1 4.55a12.24 12.24 0 0 0 1.86-3h-1.9v3z"/></svg>

@@ -239,9 +239,6 @@ nf.ComponentState = (function () {
                         resetDialog();
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
 
             // clear state link

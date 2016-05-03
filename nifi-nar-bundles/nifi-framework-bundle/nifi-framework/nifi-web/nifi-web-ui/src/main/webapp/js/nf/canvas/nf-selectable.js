@@ -44,8 +44,8 @@ nf.Selectable = (function () {
                 }
             }
 
-            // update the toolbar
-            nf.CanvasToolbar.refresh();
+            // inform Angular app that values have changed
+            nf.ng.Bridge.digest();
 
             // stop propagation
             d3.event.stopPropagation();
