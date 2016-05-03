@@ -307,6 +307,8 @@ categorizing them by their functions.
 - *ConvertJSONToSQL*: Convert a JSON document into a SQL INSERT or UPDATE command that can then be passed to the PutSQL Processor
 - *ExecuteSQL*: Executes a user-defined SQL SELECT command, writing the results to a FlowFile in Avro format
 - *PutSQL*: Updates a database by executing the SQL DDM statement defined by the FlowFile's content
+- *SelectHiveQL*: Executes a user-defined HiveQL SELECT command against an Apache Hive database, writing the results to a FlowFile in Avro or CSV format
+- *PutHiveQL*: Updates a Hive database by executing the HiveQL DDM statement defined by the FlowFile's content
 
 [[AttributeExtraction]]
 === Attribute Extraction
