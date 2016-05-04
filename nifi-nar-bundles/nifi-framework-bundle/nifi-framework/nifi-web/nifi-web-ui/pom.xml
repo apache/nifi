@@ -35,6 +35,9 @@
         <bulletin.board.filter>bulletin-board.properties</bulletin.board.filter>
         <login.filter>login.properties</login.filter>
         <provenance.filter>provenance.properties</provenance.filter>
+        <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
+        <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
+        <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
     </properties>
     <build>
         <!--
@@ -109,6 +112,7 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>copy-web-xml</id>
                         <phase>prepare-package</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -121,6 +125,25 @@
                                     <filtering>true</filtering>
                                     <includes>
                                         <include>web.xml</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-bower-json</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${frontend.working.dir}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.dependency.configs}</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>bower.json</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -220,13 +243,12 @@
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>1.0</version>
                 <configuration>
-                    <workingDirectory>src/main/frontend</workingDirectory>
-                    <installDirectory>${project.build.directory}/${project.build.finalName}/assets</installDirectory>
+                    <installDirectory>${frontend.working.dir}</installDirectory>
                 </configuration>
 
                 <executions>
                     <execution>
-                        <id>install node and npm</id>
+                        <id>install-node-and-npm</id>
                         <goals>
                             <goal>install-node-and-npm</goal>
                         </goals>
@@ -237,23 +259,23 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>install bower</id>
+                        <id>install-bower</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
                             <arguments>install bower</arguments>
-                            <workingDirectory>${project.build.directory}/${project.build.finalName}/assets</workingDirectory>
+                            <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>bower install</id>
+                        <id>bower-install</id>
                         <goals>
                             <goal>bower</goal>
                         </goals>
                         <configuration>
-                            <arguments>install ../../../src/main/frontend --config.directory=${project.build.directory}/${project.build.finalName}/assets</arguments>
-                            <workingDirectory>${project.build.directory}/${project.build.finalName}/assets</workingDirectory>
+                            <arguments>install --config.directory=${frontend.assets}</arguments>
+                            <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
                 </executions>
