@@ -54,10 +54,10 @@ import java.util.concurrent.TimeUnit;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"Amazon", "S3", "AWS", "list"})
-@CapabilityDescription("Retrieves a listing of objects from an S3 bucket. For each object that is listed, creates a FlowFile that represents \"\n" +
-        "        + \"the object so that it can be fetched in conjunction with FetchS3Object. This Processor is designed to run on Primary Node only \"\n" +
-        "        + \"in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating \"\n" +
-        "        + \"all of the data.")
+@CapabilityDescription("Retrieves a listing of objects from an S3 bucket. For each object that is listed, creates a FlowFile that represents "
+        + "the object so that it can be fetched in conjunction with FetchS3Object. This Processor is designed to run on Primary Node only "
+        + "in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating "
+        + "all of the data.")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a listing of keys, the timestamp of the newest key is stored, "
         + "along with the keys that share that same timestamp. This allows the Processor to list only keys that have been added or modified after "
         + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary "
@@ -92,7 +92,7 @@ public class ListS3 extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
+            Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
                     PROXY_HOST, PROXY_HOST_PORT, DELIMITER, PREFIX));
 
@@ -128,7 +128,7 @@ public class ListS3 extends AbstractS3Processor {
 
     private void restoreState(final ProcessContext context) throws IOException {
         final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
-        if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX) == null) {
+        if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
             currentTimestamp = 0L;
             currentKeys = new HashSet<>();
         } else {
@@ -143,6 +143,7 @@ public class ListS3 extends AbstractS3Processor {
         int i = 0;
         for (String key : currentKeys) {
             state.put(CURRENT_KEY_PREFIX+i, key);
+            i++;
         }
         try {
             context.getStateManager().setState(state, Scope.CLUSTER);
@@ -192,7 +193,9 @@ public class ListS3 extends AbstractS3Processor {
                 final Map<String, String> attributes = new HashMap<>();
                 attributes.put(CoreAttributes.FILENAME.key(), objectSummary.getKey());
                 attributes.put("s3.bucket", objectSummary.getBucketName());
-                attributes.put("s3.owner", objectSummary.getOwner().getId());
+                if (objectSummary.getOwner() != null) { // We may not have permission to read the owner
+                    attributes.put("s3.owner", objectSummary.getOwner().getId());
+                }
                 attributes.put("s3.etag", objectSummary.getETag());
                 attributes.put("s3.lastModified", String.valueOf(lastModified));
                 attributes.put("s3.length", String.valueOf(objectSummary.getSize()));
