@@ -34,6 +34,7 @@ import org.apache.nifi.util.TestRunners;
 
 import org.junit.Test;
 
+import static org.apache.nifi.processors.attributes.UpdateAttribute.STORE_STATE_LOCALLY;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -121,9 +122,9 @@ public class TestUpdateAttribute {
     @Test
     public void testDefaultState() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
-        runner.setProperty("count", "${count_state:plus(1)}");
-        runner.setProperty("sum", "${sum_state:plus(${pencils})}");
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
+        runner.setProperty("count", "${getStateValue('count'):plus(1)}");
+        runner.setProperty("sum", "${getStateValue('sum'):plus(${pencils})}");
 
         runner.assertValid();
 
@@ -152,10 +153,10 @@ public class TestUpdateAttribute {
     @Test
     public void testStateWithInitValue() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
         runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "10");
-        runner.setProperty("count", "${count_state:plus(1)}");
-        runner.setProperty("sum", "${sum_state:plus(${pencils})}");
+        runner.setProperty("count", "${getStateValue('count'):plus(1)}");
+        runner.setProperty("sum", "${getStateValue('sum'):plus(${pencils})}");
 
         runner.assertValid();
 
@@ -186,12 +187,12 @@ public class TestUpdateAttribute {
         final Criteria criteria = getCriteria();
         addRule(criteria, "rule", Arrays.asList(
                 // conditions
-                "${maxValue_state:lt(${value})}"), getMap(
+                "${getStateValue('maxValue'):lt(${value})}"), getMap(
                 // actions
                 "maxValue", "${value}"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
         runner.setAnnotationData(serialize(criteria));
 
         final Map<String, String> attributes = new HashMap<>();
@@ -219,14 +220,14 @@ public class TestUpdateAttribute {
         final Criteria criteria = getCriteria();
         addRule(criteria, "rule", Arrays.asList(
                 // conditions
-                "${maxValue_state:lt(${value})}"), getMap(
+                "${getStateValue('maxValue'):lt(${value})}"), getMap(
                 // actions
                 "maxValue", "${value}"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
         runner.setAnnotationData(serialize(criteria));
-        runner.setProperty("maxValue", "${maxValue_state}");
+        runner.setProperty("maxValue", "${getStateValue('maxValue')}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "1");
@@ -253,12 +254,12 @@ public class TestUpdateAttribute {
         final Criteria criteria = getCriteria();
         addRule(criteria, "rule", Arrays.asList(
                 // conditions
-                "${minValue_state:ge(${value})}"), getMap(
+                "${getStateValue('minValue'):ge(${value})}"), getMap(
                 // actions
                 "minValue", "${value}"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
         runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "5");
         runner.setAnnotationData(serialize(criteria));
 
@@ -286,16 +287,16 @@ public class TestUpdateAttribute {
         final Criteria criteria = getCriteria();
         addRule(criteria, "rule", Arrays.asList(
                 // conditions
-                "${maxValue_state:lt(${value})}"), getMap(
+                "${getStateValue('maxValue'):lt(${value})}"), getMap(
                 // actions
                 "maxValue", "${value}"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty(UpdateAttribute.STORE_STATE, "true");
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
         runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "badValue");
         runner.setAnnotationData(serialize(criteria));
-        runner.setProperty("maxValue", "${maxValue_state}");
-        runner.setProperty("theCount", "${theCount_state:plus(1)}");
+        runner.setProperty("maxValue", "${getStateValue('maxValue')}");
+        runner.setProperty("theCount", "${getStateValue('theCount'):plus(1)}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "1");

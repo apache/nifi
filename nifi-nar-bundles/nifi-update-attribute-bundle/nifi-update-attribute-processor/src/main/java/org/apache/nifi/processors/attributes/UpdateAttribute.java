@@ -84,11 +84,37 @@ import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 @Stateful(scopes = {Scope.LOCAL}, description = "Gives the option to store values not only on the FlowFile but as stateful variables to be referenced in a recursive manner.")
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
+
+    public static final String DO_NOT_STORE_STATE = "do not store state";
+    public static final String STORE_STATE_LOCALLY = "store state locally";
+
     private boolean stateful = false;
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);
     private final ConcurrentMap<String, PropertyValue> propertyValues = new ConcurrentHashMap<>();
 
-    private final Set<Relationship> relationships;
+    private final static Set<Relationship> statelessRelationshipSet;
+    private final static Set<Relationship> statefulRelationshipSet;
+
+    // relationships
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .description("All successful FlowFiles are routed to this relationship").name("success").build();
+    public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
+            .description("A failure to set the state after adding the attributes to the FlowFile will route the FlowFile here.").name("set state fail").build();
+
+    static {
+        Set<Relationship> tempStatelessSet = new HashSet<>();
+        tempStatelessSet.add(REL_SUCCESS);
+
+        statelessRelationshipSet = Collections.unmodifiableSet(tempStatelessSet);
+
+        Set<Relationship> tempStatefulSet = new HashSet<>();
+        tempStatefulSet.add(REL_SUCCESS);
+        tempStatefulSet.add(REL_FAILED_SET_STATE);
+
+        statefulRelationshipSet = Collections.unmodifiableSet(tempStatefulSet);
+    }
+
+    private volatile Set<Relationship> relationships;
 
     private static final Validator DELETE_PROPERTY_VALIDATOR = new Validator() {
         private final Validator DPV_RE_VALIDATOR = StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true);
@@ -132,8 +158,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                     "FlowFile in a stateless manner. Selecting 'Stateful' will not only store the attributes on the FlowFile but also in the Processors state. See the 'Stateful Usage' " +
                     "topic of the 'Additional Details' section of this processor's documentation for more information")
             .required(true)
-            .allowableValues("false", "true")
-            .defaultValue("false")
+            .allowableValues(DO_NOT_STORE_STATE, STORE_STATE_LOCALLY)
+            .defaultValue(DO_NOT_STORE_STATE)
             .build();
     public static final PropertyDescriptor STATEFUL_VARIABLES_INIT_VALUE = new PropertyDescriptor.Builder()
             .name("Stateful Variables Initial Value")
@@ -141,21 +167,12 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                     "when state does not contain a value for the variable.")
             .required(false)
             .defaultValue("0")
-            .addValidator(StandardValidators.NUMBER_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    // relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .description("All successful FlowFiles are routed to this relationship").name("success").build();
-    public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
-            .description("A failure to set the state after adding the attributes to the FlowFile will route the FlowFile here. If the processor is set to 'Stateless' then all FlowFiles will " +
-                    "route to success").name("set state fail").build();
 
     public UpdateAttribute() {
-        final Set<Relationship> relationshipSet = new HashSet<>();
-        relationshipSet.add(REL_SUCCESS);
-        relationshipSet.add(REL_FAILED_SET_STATE);
-        relationships = Collections.unmodifiableSet(relationshipSet);
+        relationships = statelessRelationshipSet;
     }
 
     @Override
@@ -197,7 +214,13 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         super.onPropertyModified(descriptor, oldValue, newValue);
 
         if (descriptor.equals(STORE_STATE)) {
-            stateful = "true".equalsIgnoreCase(newValue);
+            if (DO_NOT_STORE_STATE.equals(newValue)){
+                stateful = false;
+                relationships = statelessRelationshipSet;
+            } else {
+                stateful = true;
+                relationships = statefulRelationshipSet;
+            }
         }
     }
 
@@ -217,8 +240,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             // Initialize the stateful default actions
             for (PropertyDescriptor entry : context.getProperties().keySet()) {
                 if (entry.isDynamic()) {
-                    if(!tempMap.containsKey(entry.getName()+"_state")) {
-                        tempMap.put(entry.getName() + "_state", initValue);
+                    if(!tempMap.containsKey(entry.getName())) {
+                        tempMap.put(entry.getName(), initValue);
                     }
                 }
             }
@@ -228,8 +251,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             if (criteria != null) {
                 for (Rule rule : criteria.getRules()) {
                     for (Action action : rule.getActions()) {
-                        if (!tempMap.containsKey(action.getAttribute() + "_state")) {
-                            tempMap.put(action.getAttribute() + "_state", initValue);
+                        if (!tempMap.containsKey(action.getAttribute())) {
+                            tempMap.put(action.getAttribute(), initValue);
                         }
                     }
                 }
@@ -496,11 +519,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         return currentValue;
     }
 
-    //Evaluates the specified condition on the specified flowfile.
+    // Evaluates the specified condition on the specified flowfile.
     private boolean evaluateCondition(final ProcessContext context, final Condition condition, final FlowFile flowfile, final Map<String, String> statefulAttributes) {
         try {
             // evaluate the expression for the given flow file
-            return getPropertyValue(condition.getExpression(), context).evaluateAttributeExpressions(flowfile, statefulAttributes).asBoolean();
+            return getPropertyValue(condition.getExpression(), context).evaluateAttributeExpressions(flowfile, null, null, statefulAttributes).asBoolean();
         } catch (final ProcessException pe) {
             throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), pe), pe);
         }
@@ -552,7 +575,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         for (final Action action : actions.values()) {
             if (!action.getAttribute().equals(DELETE_ATTRIBUTES.getName())) {
                 try {
-                    final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, statefulAttributes).getValue();
+                    final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, statefulAttributes).getValue();
 
                     // log if appropriate
                     if (logger.isDebugEnabled()) {
@@ -561,7 +584,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
                     if (statefulAttributesToSet != null) {
                         if(!action.getAttribute().equals("UpdateAttribute.matchedRule")) {
-                            statefulAttributesToSet.put(action.getAttribute() + "_state", newAttributeValue);
+                            statefulAttributesToSet.put(action.getAttribute(), newAttributeValue);
                         }
                     }
 

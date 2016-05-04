@@ -1974,6 +1974,22 @@ an error when validating the function.
 `${literal( ${allMatchingAttributes('a.*'):count()} ):gt(3)}` returns true if there are more than 3 attributes whose
 names begin with the letter `a`.
 
+[.function]
+=== getStateValue
+
+*Description*: [.description]#Access a processor's state values by passing in the String key and getting the value back as a String. This
+ is a special Expression Language function that only works with processors that explicitly allow EL to query state. Currently only UpdateAttribute
+ does.#
+
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*:
+
+	- [.String]#_Key_# : [.argDesc]#The key to use when accessing the state map.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: UpdateAttribute processor has stored the key "count" with value "20" in state. '${getStateValue("count")}` returns `20`.
 
 [[multi]]
 == Evaluating Multiple Attributes

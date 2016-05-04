@@ -129,7 +129,7 @@ functionCall : functionRef ->
 
 booleanLiteral : TRUE | FALSE;
 zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | RANDOM) LPAREN! RPAREN!;
-oneArgStandaloneFunction : ((TO_LITERAL | MATH)^ LPAREN! anyArg RPAREN!) |
+oneArgStandaloneFunction : ((TO_LITERAL | MATH | GET_STATE_VALUE)^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
 standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
 
