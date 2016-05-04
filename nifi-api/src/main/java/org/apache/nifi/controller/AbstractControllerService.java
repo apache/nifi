@@ -23,7 +23,6 @@ import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -50,7 +49,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
         return identifier;
     }
 
-    @OnConfigured
+    @OnEnabled
     public void onConfigurationChange(final ConfigurationContext context) {
         this.configContext = context;
     }
