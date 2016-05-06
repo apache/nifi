@@ -77,16 +77,17 @@
         </encoder>
     </appender>
 	
-	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
         </encoder>
-	</appender>
+    </appender>
     
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
+    <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
     
     
@@ -152,8 +153,8 @@
     </logger>
     
     <!-- Everything written to NiFi's Standard Error will be logged with the logger org.apache.nifi.StdErr at ERROR level -->
-	<logger name="org.apache.nifi.StdErr" level="ERROR" additivity="false">
-    	<appender-ref ref="BOOTSTRAP_FILE" />
+    <logger name="org.apache.nifi.StdErr" level="ERROR" additivity="false">
+        <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
 
 
