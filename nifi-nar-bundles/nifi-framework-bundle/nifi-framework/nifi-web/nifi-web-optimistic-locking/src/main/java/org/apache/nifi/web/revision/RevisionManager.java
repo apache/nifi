@@ -107,7 +107,7 @@ public interface RevisionManager {
      * Returns the current Revision for the component with the given ID. If no Revision yet exists for the
      * component with the given ID, one will be created with a Version of 0 and no Client ID.
      *
-     * @param componentId
+     * @param componentId the ID of the component
      * @return the current Revision for the component with the given ID
      */
     Revision getRevision(String componentId);

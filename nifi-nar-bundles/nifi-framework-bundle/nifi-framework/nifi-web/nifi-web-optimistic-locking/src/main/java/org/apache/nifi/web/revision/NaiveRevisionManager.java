@@ -65,7 +65,8 @@ public class NaiveRevisionManager implements RevisionManager {
      * Constructs a new NaiveRevisionManager that uses the given number of Nanoseconds as the expiration time
      * for a Revision Claims
      *
-     * @param claimNanos the number of nanoseconds that a Revision Claim should last
+     * @param claimExpiration how long a Revision Claim should last
+     * @param timeUnit the TimeUnit of 'claimExpiration'
      */
     public NaiveRevisionManager(final long claimExpiration, final TimeUnit timeUnit) {
         this.claimExpirationNanos = timeUnit.toNanos(claimExpiration);

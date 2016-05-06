@@ -477,7 +477,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @param <C> the Component Type of the updated component
      *
      * @return A ConfigurationSnapshot that represents the new configuration
-     * @throws ExpiredRevisionClaimException
      */
     private <D, C> RevisionUpdate<D> updateComponent(final Revision revision, final Authorizable authorizable, final Supplier<C> daoUpdate, final Function<C, D> dtoCreation) {
         final String modifier = NiFiUserUtils.getNiFiUserName();
@@ -1547,7 +1546,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionClaim claim = new StandardRevisionClaim(requiredRevisions);
         final String modifier = NiFiUserUtils.getNiFiUserName();
 
-        final RevisionUpdate<ControllerServiceReferencingComponentsEntity> update = revisionManager.updateRevision(claim, modifier, new UpdateRevisionTask<ControllerServiceReferencingComponentsEntity>() {
+        final RevisionUpdate<ControllerServiceReferencingComponentsEntity> update = revisionManager.updateRevision(claim, modifier,
+                new UpdateRevisionTask<ControllerServiceReferencingComponentsEntity>() {
             @Override
             public RevisionUpdate<ControllerServiceReferencingComponentsEntity> update() {
                 final Set<ConfiguredComponent> updated = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
