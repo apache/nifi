@@ -74,12 +74,13 @@ md-toolbar.md-small .md-toolbar-tools {
 
 #global-menu-content {
     font-size: 13px;
-    padding: 3px 0;
+    padding: 0px 0;
     background-color:rgba(249,250,251,0.97); /*tint base-color 96%*/
     border:1px solid #004849; /*link-color*/
     border-radius:2px;
     box-shadow:0 2px 3px rgba(0,0,0,0.35);
     width: 215px;
+    max-height: inherit;
 }
 
 #global-menu-content md-menu-item{

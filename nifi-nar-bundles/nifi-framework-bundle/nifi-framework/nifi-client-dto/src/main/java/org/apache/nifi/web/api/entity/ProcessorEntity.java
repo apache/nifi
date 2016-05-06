@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -27,6 +28,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ProcessorEntity extends ComponentEntity {
 
     private ProcessorDTO component;
+    private ProcessorStatusDTO status;
 
     /**
      * The ProcessorDTO that is being serialized.
@@ -41,4 +43,16 @@ public class ProcessorEntity extends ComponentEntity {
         this.component = component;
     }
 
+    /**
+     * The Processor status.
+     *
+     * @return status
+     */
+    public ProcessorStatusDTO getStatus() {
+        return status;
+    }
+
+    public void setStatus(ProcessorStatusDTO status) {
+        this.status = status;
+    }
 }

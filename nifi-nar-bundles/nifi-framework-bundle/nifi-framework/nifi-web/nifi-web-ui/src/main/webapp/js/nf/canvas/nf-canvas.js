@@ -241,7 +241,7 @@ nf.Canvas = (function () {
 
         // create arrow definitions for the various line types
         defs.selectAll('marker')
-            .data(['normal', 'ghost'])
+            .data(['normal', 'ghost', 'unauthorized'])
             .enter().append('marker')
             .attr({
                 'id': function (d) {
@@ -256,6 +256,8 @@ nf.Canvas = (function () {
                 'fill': function (d) {
                     if (d === 'ghost') {
                         return '#aaaaaa';
+                    } else if (d === 'unauthorized') {
+                        return '#ba554a';
                     } else {
                         return '#000000';
                     }
@@ -264,77 +266,42 @@ nf.Canvas = (function () {
             .append('path')
             .attr('d', 'M2,3 L0,6 L6,3 L0,0 z');
 
-        // define the gradient for the processor stats background
-        var processGroupStatsBackground = defs.append('linearGradient')
-            .attr({
-                'id': 'process-group-stats-background',
-                'x1': '0%',
-                'y1': '100%',
-                'x2': '0%',
-                'y2': '0%'
-            });
+        // filter for drop shadow
+        var filter = defs.append('filter')
+            .attr('id', 'component-drop-shadow');
 
-        processGroupStatsBackground.append('stop')
-            .attr({
-                'offset': '0%',
-                'stop-color': '#dedede'
-            });
+        // blur
+        filter.append('feGaussianBlur')
+            .attr('in', 'SourceAlpha')
+            .attr('stdDeviation', 2)
+            .attr('result', 'blur');
 
-        processGroupStatsBackground.append('stop')
-            .attr({
-                'offset': '50%',
-                'stop-color': '#ffffff'
-            });
+        // offset
+        filter.append('feOffset')
+            .attr('in', 'blur')
+            .attr('dx', 0)
+            .attr('dy', 1)
+            .attr('result', 'offsetBlur');
 
-        processGroupStatsBackground.append('stop')
-            .attr({
-                'offset': '100%',
-                'stop-color': '#dedede'
-            });
+        // color/opacity
+        filter.append('feFlood')
+            .attr('flood-color', '#000000')
+            .attr('flood-opacity', 0.25)
+            .attr('result', 'offsetColor');
 
-        // define the gradient for the processor stats background
-        var processorStatsBackground = defs.append('linearGradient')
-            .attr({
-                'id': 'processor-stats-background',
-                'x1': '0%',
-                'y1': '100%',
-                'x2': '0%',
-                'y2': '0%'
-            });
+        // combine
+        filter.append('feComposite')
+            .attr('in', 'offsetColor')
+            .attr('in2', 'offsetBlur')
+            .attr('operator', 'in')
+            .attr('result', 'offsetColorBlur');
 
-        processorStatsBackground.append('stop')
-            .attr({
-                'offset': '0%',
-                'stop-color': '#6f97ac'
-            });
-
-        processorStatsBackground.append('stop')
-            .attr({
-                'offset': '100%',
-                'stop-color': '#30505c'
-            });
-
-        // define the gradient for the port background
-        var portBackground = defs.append('linearGradient')
-            .attr({
-                'id': 'port-background',
-                'x1': '0%',
-                'y1': '100%',
-                'x2': '0%',
-                'y2': '0%'
-            });
-
-        portBackground.append('stop')
-            .attr({
-                'offset': '0%',
-                'stop-color': '#aaaaaa'
-            });
-
-        portBackground.append('stop')
-            .attr({
-                'offset': '100%',
-                'stop-color': '#ffffff'
-            });
+        // stack the effect under the source graph
+        var feMerge = filter.append('feMerge');
+        feMerge.append('feMergeNode')
+            .attr('in', 'offsetColorBlur');
+        feMerge.append('feMergeNode')
+            .attr('in', 'SourceGraphic');
 
         // define the gradient for the expiration icon
         var expirationBackground = defs.append('linearGradient')
@@ -634,51 +601,6 @@ nf.Canvas = (function () {
             // update the graph dimensions
             updateGraphSize();
         }).fail(nf.Common.handleAjaxError);
-    };
-
-    /**
-     * Sets the colors for the specified type.
-     *
-     * @param {array} colors The possible colors
-     * @param {string} type The component type for these colors
-     */
-    var setColors = function (colors, type) {
-        var defs = d3.select('defs');
-
-        // update processors
-        var processorSelection = defs.selectAll('linearGradient.' + type + '-background').data(colors, function (d) {
-            return d;
-        });
-
-        // define the gradient for the processor background
-        var gradient = processorSelection.enter().append('linearGradient')
-            .attr({
-                'id': function (d) {
-                    return type + '-background-' + d;
-                },
-                'class': type + '-background',
-                'x1': '0%',
-                'y1': '100%',
-                'x2': '0%',
-                'y2': '0%'
-            });
-
-        gradient.append('stop')
-            .attr({
-                'offset': '0%',
-                'stop-color': function (d) {
-                    return '#' + d;
-                }
-            });
-
-        gradient.append('stop')
-            .attr({
-                'offset': '100%',
-                'stop-color': '#ffffff'
-            });
-
-        // remove old processor colors
-        processorSelection.exit().remove();
     };
 
     /**
@@ -1170,24 +1092,6 @@ nf.Canvas = (function () {
                     }).fail(nf.Common.handleAjaxError);
                 }).fail(nf.Common.handleAjaxError);
             }).fail(nf.Common.handleAjaxError);
-        },
-
-        /**
-         * Defines the gradient colors used to render processors.
-         *
-         * @param {array} colors The colors
-         */
-        defineProcessorColors: function (colors) {
-            setColors(colors, 'processor');
-        },
-
-        /**
-         * Defines the gradient colors used to render label.
-         *
-         * @param {array} colors The colors
-         */
-        defineLabelColors: function (colors) {
-            setColors(colors, 'label');
         },
 
         /**
