@@ -16,29 +16,14 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.nifi.action.Action;
-import org.apache.nifi.action.FlowChangeAction;
-import org.apache.nifi.action.Operation;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.entity.Entity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.util.WebUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -50,15 +35,35 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.nifi.action.Action;
+import org.apache.nifi.action.FlowChangeAction;
+import org.apache.nifi.action.Operation;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.cluster.context.ClusterContext;
+import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.apache.nifi.web.util.WebUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.sun.jersey.api.core.HttpContext;
+import com.sun.jersey.api.representation.Form;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 
 /**
  * Base class for controllers.
@@ -311,7 +316,7 @@ public abstract class ApplicationResource {
         // get the form that jersey processed and use it if it exists (only exist for requests with a body and application form urlencoded
         final Form form = (Form) httpContext.getProperties().get(FormDispatchProvider.FORM_PROPERTY);
         if (form == null) {
-            for (Map.Entry<String, String[]> entry : (Set<Map.Entry<String, String[]>>) httpServletRequest.getParameterMap().entrySet()) {
+            for (Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
                 if (entry.getValue() == null) {
                     entity.add(entry.getKey(), null);
                 } else {
@@ -406,5 +411,51 @@ public abstract class ApplicationResource {
         for (Action action : actions) {
             strb.append(ReflectionToStringBuilder.toString(action, ToStringStyle.MULTI_LINE_STYLE)).append("\n");
         }
+    }
+
+    /**
+     * Checks whether the request is part of a two-phase commit style request (either phase 1 or phase 2)
+     *
+     * @param httpServletRequest the request
+     * @return <code>true</code> if the request represents a two-phase commit style request
+     */
+    protected boolean isTwoPhaseRequest(HttpServletRequest httpServletRequest) {
+        final String headerValue = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID);
+        return headerValue != null;
+    }
+
+    /**
+     * When a two-phase commit style request is used, the first phase (generally referred to
+     * as the "commit-request stage") is intended to validate that the request can be completed.
+     * In NiFi, we use this phase to validate that the request can complete. This method determines
+     * whether or not the request is the first phase of a two-phase commit.
+     *
+     * @param httpServletRequest the request
+     * @return <code>true</code> if the request represents a two-phase commit style request and is the
+     *         first of the two phases.
+     */
+    protected boolean isValidationPhase(HttpServletRequest httpServletRequest) {
+        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER) != null;
+    }
+
+    /**
+     * Converts a Revision DTO and an associated Component ID into a Revision object
+     *
+     * @param revisionDto the Revision DTO
+     * @param componentId the ID of the component that the Revision DTO belongs to
+     * @return a Revision that has the same client ID and Version as the Revision DTO and the Component ID specified
+     */
+    protected Revision getRevision(RevisionDTO revisionDto, String componentId) {
+        return new Revision(revisionDto.getVersion(), revisionDto.getClientId(), componentId);
+    }
+
+    /**
+     * Extracts a Revision object from the Revision DTO and ID provided by the Component Entity
+     *
+     * @param entity the ComponentEntity that contains the Revision DTO & ID
+     * @return the Revision specified in the ComponentEntity
+     */
+    protected Revision getRevision(ComponentEntity entity, String componentId) {
+        return getRevision(entity.getRevision(), componentId);
     }
 }

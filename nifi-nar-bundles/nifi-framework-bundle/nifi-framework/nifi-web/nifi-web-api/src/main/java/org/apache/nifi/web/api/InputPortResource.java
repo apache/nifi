@@ -16,23 +16,10 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.PortEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.LongParameter;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -48,10 +35,24 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing an Input Port.
@@ -230,16 +231,18 @@ public class InputPortResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(portEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateInputPort(requestPortDTO);
             return generateContinueResponse().build();
         }
 
         // update the input port
-        final RevisionDTO revision = portEntity.getRevision();
-        final UpdateResult<PortEntity> updateResult = serviceFacade.updateInputPort(
-                new Revision(revision.getVersion(), revision.getClientId()), requestPortDTO);
+        final UpdateResult<PortEntity> updateResult = serviceFacade.updateInputPort(revision, requestPortDTO);
 
         // build the response entity
         final PortEntity entity = updateResult.getResult();
@@ -306,20 +309,18 @@ public class InputPortResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteInputPort(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the specified input port
-        final PortEntity entity = serviceFacade.deleteInputPort(new Revision(clientVersion, clientId.getClientId()), id);
+        final PortEntity entity = serviceFacade.deleteInputPort(revision, id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 

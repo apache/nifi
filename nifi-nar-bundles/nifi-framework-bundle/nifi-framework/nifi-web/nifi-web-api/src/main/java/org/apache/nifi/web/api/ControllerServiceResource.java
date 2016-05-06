@@ -16,39 +16,11 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.ui.extension.UiExtension;
-import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.api.dto.ComponentStateDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
-import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.ComponentStateEntity;
-import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
-import org.apache.nifi.web.api.entity.Entity;
-import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
-import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.util.Availability;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -66,11 +38,41 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.ConfigurationSnapshot;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.UpdateResult;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
+import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
+import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.util.Availability;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Controller Service.
@@ -402,19 +404,22 @@ public class ControllerServiceResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(revisionEntity.getRevision(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyCanClearControllerServiceState(id);
             return generateContinueResponse().build();
         }
 
         // get the component state
-        final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearControllerServiceState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
+        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearControllerServiceState(revision, id);
 
         // create the revision
         final RevisionDTO responseRevision = new RevisionDTO();
-        responseRevision.setClientId(requestRevision.getClientId());
+        responseRevision.setClientId(revision.getClientId());
         responseRevision.setVersion(snapshot.getVersion());
 
         // generate the response entity
@@ -478,11 +483,7 @@ public class ControllerServiceResource extends ApplicationResource {
         }
 
         // get the controller service
-        final Set<ControllerServiceReferencingComponentDTO> controllerServiceReferences = serviceFacade.getControllerServiceReferencingComponents(id);
-
-        // create the response entity
-        final ControllerServiceReferencingComponentsEntity entity = new ControllerServiceReferencingComponentsEntity();
-        entity.setControllerServiceReferencingComponents(controllerServiceReferences);
+        final ControllerServiceReferencingComponentsEntity entity = serviceFacade.getControllerServiceReferencingComponents(id);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -574,26 +575,19 @@ public class ControllerServiceResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision controllerServiceRevision = getRevision(updateReferenceRequest.getRevision(), updateReferenceRequest.getId());
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(controllerServiceRevision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateControllerServiceReferencingComponents(updateReferenceRequest.getId(), scheduledState, controllerServiceState);
             return generateContinueResponse().build();
         }
 
         // get the controller service
-        final RevisionDTO requestRevision = updateReferenceRequest.getRevision();
-        final ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> response = serviceFacade.updateControllerServiceReferencingComponents(
-            new Revision(requestRevision.getVersion(), requestRevision.getClientId()), updateReferenceRequest.getId(), scheduledState, controllerServiceState);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(requestRevision.getClientId());
-        revision.setVersion(response.getVersion());
-
-        // create the response entity
-        final ControllerServiceReferencingComponentsEntity entity = new ControllerServiceReferencingComponentsEntity();
-        entity.setRevision(revision);
-        entity.setControllerServiceReferencingComponents(response.getConfiguration());
+        final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
+            controllerServiceRevision, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -676,32 +670,25 @@ public class ControllerServiceResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(controllerServiceEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO);
             return generateContinueResponse().build();
         }
 
         // update the controller service
-        final RevisionDTO revision = controllerServiceEntity.getRevision();
-        final ConfigurationSnapshot<ControllerServiceDTO> controllerResponse = serviceFacade.updateControllerService(
-                new Revision(revision.getVersion(), revision.getClientId()), requestControllerServiceDTO);
-
-        // get the results
-        final ControllerServiceDTO responseControllerServiceDTO = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
+        final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, requestControllerServiceDTO);
 
         // build the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(updatedRevision);
-        entity.setControllerService(populateRemainingControllerServiceContent(availability, responseControllerServiceDTO));
+        final ControllerServiceEntity entity = updateResult.getResult();
+        populateRemainingControllerServiceContent(availability, entity.getControllerService());
 
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responseControllerServiceDTO.getUri()), entity)).build();
+        if (updateResult.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(entity.getControllerService().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }
@@ -775,30 +762,18 @@ public class ControllerServiceResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteControllerService(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the specified controller service
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteControllerService(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(revision);
-
+        final ControllerServiceEntity entity = serviceFacade.deleteControllerService(revision, id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 

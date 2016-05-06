@@ -88,7 +88,7 @@ public final class SnippetUtils {
         // add any processors
         if (!snippet.getProcessors().isEmpty()) {
             final Set<ProcessorDTO> processors = new LinkedHashSet<>();
-            for (String processorId : snippet.getProcessors()) {
+            for (String processorId : snippet.getProcessors().keySet()) {
                 final ProcessorNode processor = processGroup.getProcessor(processorId);
                 if (processor == null) {
                     throw new IllegalStateException("A processor in this snippet could not be found.");
@@ -101,7 +101,7 @@ public final class SnippetUtils {
         // add any connections
         if (!snippet.getConnections().isEmpty()) {
             final Set<ConnectionDTO> connections = new LinkedHashSet<>();
-            for (String connectionId : snippet.getConnections()) {
+            for (String connectionId : snippet.getConnections().keySet()) {
                 final Connection connection = processGroup.getConnection(connectionId);
                 if (connection == null) {
                     throw new IllegalStateException("A connection in this snippet could not be found.");
@@ -114,7 +114,7 @@ public final class SnippetUtils {
         // add any funnels
         if (!snippet.getFunnels().isEmpty()) {
             final Set<FunnelDTO> funnels = new LinkedHashSet<>();
-            for (String funnelId : snippet.getFunnels()) {
+            for (String funnelId : snippet.getFunnels().keySet()) {
                 final Funnel funnel = processGroup.getFunnel(funnelId);
                 if (funnel == null) {
                     throw new IllegalStateException("A funnel in this snippet could not be found.");
@@ -127,7 +127,7 @@ public final class SnippetUtils {
         // add any input ports
         if (!snippet.getInputPorts().isEmpty()) {
             final Set<PortDTO> inputPorts = new LinkedHashSet<>();
-            for (String inputPortId : snippet.getInputPorts()) {
+            for (String inputPortId : snippet.getInputPorts().keySet()) {
                 final Port inputPort = processGroup.getInputPort(inputPortId);
                 if (inputPort == null) {
                     throw new IllegalStateException("An input port in this snippet could not be found.");
@@ -140,7 +140,7 @@ public final class SnippetUtils {
         // add any labels
         if (!snippet.getLabels().isEmpty()) {
             final Set<LabelDTO> labels = new LinkedHashSet<>();
-            for (String labelId : snippet.getLabels()) {
+            for (String labelId : snippet.getLabels().keySet()) {
                 final Label label = processGroup.getLabel(labelId);
                 if (label == null) {
                     throw new IllegalStateException("A label in this snippet could not be found.");
@@ -153,7 +153,7 @@ public final class SnippetUtils {
         // add any output ports
         if (!snippet.getOutputPorts().isEmpty()) {
             final Set<PortDTO> outputPorts = new LinkedHashSet<>();
-            for (String outputPortId : snippet.getOutputPorts()) {
+            for (String outputPortId : snippet.getOutputPorts().keySet()) {
                 final Port outputPort = processGroup.getOutputPort(outputPortId);
                 if (outputPort == null) {
                     throw new IllegalStateException("An output port in this snippet could not be found.");
@@ -166,7 +166,7 @@ public final class SnippetUtils {
         // add any process groups
         if (!snippet.getProcessGroups().isEmpty()) {
             final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
-            for (String childGroupId : snippet.getProcessGroups()) {
+            for (String childGroupId : snippet.getProcessGroups().keySet()) {
                 final ProcessGroup childGroup = processGroup.getProcessGroup(childGroupId);
                 if (childGroup == null) {
                     throw new IllegalStateException("A process group in this snippet could not be found.");
@@ -179,7 +179,7 @@ public final class SnippetUtils {
         // add any remote process groups
         if (!snippet.getRemoteProcessGroups().isEmpty()) {
             final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
-            for (String remoteProcessGroupId : snippet.getRemoteProcessGroups()) {
+            for (String remoteProcessGroupId : snippet.getRemoteProcessGroups().keySet()) {
                 final RemoteProcessGroup remoteProcessGroup = processGroup.getRemoteProcessGroup(remoteProcessGroupId);
                 if (remoteProcessGroup == null) {
                     throw new IllegalStateException("A remote process group in this snippet could not be found.");

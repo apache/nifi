@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+
 import javax.xml.bind.annotation.XmlType;
+
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * A Controller Service that can be shared by other components
@@ -41,7 +45,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     private String customUiUrl;
     private String annotationData;
 
-    private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
+    private Set<ControllerServiceReferencingComponentEntity> referencingComponents;
 
     private Collection<String> validationErrors;
 
@@ -193,11 +197,11 @@ public class ControllerServiceDTO extends ComponentDTO {
     @ApiModelProperty(
             value = "All components referencing this controller service."
     )
-    public Set<ControllerServiceReferencingComponentDTO> getReferencingComponents() {
+    public Set<ControllerServiceReferencingComponentEntity> getReferencingComponents() {
         return referencingComponents;
     }
 
-    public void setReferencingComponents(Set<ControllerServiceReferencingComponentDTO> referencingComponents) {
+    public void setReferencingComponents(Set<ControllerServiceReferencingComponentEntity> referencingComponents) {
         this.referencingComponents = referencingComponents;
     }
 

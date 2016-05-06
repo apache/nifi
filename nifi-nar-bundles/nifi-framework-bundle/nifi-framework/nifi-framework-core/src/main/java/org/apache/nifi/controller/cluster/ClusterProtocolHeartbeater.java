@@ -38,8 +38,8 @@ import org.slf4j.LoggerFactory;
  * that this node is part of the cluster. However, once the Cluster Coordinator is known, heartbeats are
  * sent directly to the Cluster Coordinator.
  */
-public class ZooKeeperHeartbeater implements Heartbeater {
-    private static final Logger logger = LoggerFactory.getLogger(ZooKeeperHeartbeater.class);
+public class ClusterProtocolHeartbeater implements Heartbeater {
+    private static final Logger logger = LoggerFactory.getLogger(ClusterProtocolHeartbeater.class);
 
     private final NodeProtocolSender protocolSender;
     private final CuratorFramework curatorClient;
@@ -49,7 +49,7 @@ public class ZooKeeperHeartbeater implements Heartbeater {
     private volatile String coordinatorAddress;
 
 
-    public ZooKeeperHeartbeater(final NodeProtocolSender protocolSender, final Properties properties) {
+    public ClusterProtocolHeartbeater(final NodeProtocolSender protocolSender, final Properties properties) {
         this.protocolSender = protocolSender;
 
         final RetryPolicy retryPolicy = new RetryForever(5000);
@@ -85,6 +85,7 @@ public class ZooKeeperHeartbeater implements Heartbeater {
             throw new IOException("Unable to determine Cluster Coordinator from ZooKeeper", e);
         }
     }
+
 
     @Override
     public synchronized void send(final HeartbeatMessage heartbeatMessage) throws IOException {

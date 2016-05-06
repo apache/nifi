@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,11 +31,13 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.util.SnippetUtils;
@@ -99,6 +102,17 @@ public class StandardSnippetDAO implements SnippetDAO {
         }
     }
 
+    private Map<String, Revision> mapDtoToRevision(final Map<String, RevisionDTO> revisionMap) {
+        final Map<String, Revision> revisions = new HashMap<>(revisionMap.size());
+        for (final Map.Entry<String, RevisionDTO> entry : revisionMap.entrySet()) {
+            final RevisionDTO revisionDto = entry.getValue();
+            final Revision revision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), entry.getKey());
+
+            revisions.put(entry.getKey(), revision);
+        }
+        return revisions;
+    }
+
     @Override
     public Snippet createSnippet(final SnippetDTO snippetDTO) {
         // create the snippet request
@@ -106,14 +120,14 @@ public class StandardSnippetDAO implements SnippetDAO {
         snippet.setId(snippetDTO.getId());
         snippet.setParentGroupId(snippetDTO.getParentGroupId());
         snippet.setLinked(snippetDTO.isLinked());
-        snippet.addProcessors(snippetDTO.getProcessors());
-        snippet.addProcessGroups(snippetDTO.getProcessGroups());
-        snippet.addRemoteProcessGroups(snippetDTO.getRemoteProcessGroups());
-        snippet.addInputPorts(snippetDTO.getInputPorts());
-        snippet.addOutputPorts(snippetDTO.getOutputPorts());
-        snippet.addConnections(snippetDTO.getConnections());
-        snippet.addLabels(snippetDTO.getLabels());
-        snippet.addFunnels(snippetDTO.getFunnels());
+        snippet.addProcessors(mapDtoToRevision(snippetDTO.getProcessors()));
+        snippet.addProcessGroups(mapDtoToRevision(snippetDTO.getProcessGroups()));
+        snippet.addRemoteProcessGroups(mapDtoToRevision(snippetDTO.getRemoteProcessGroups()));
+        snippet.addInputPorts(mapDtoToRevision(snippetDTO.getInputPorts()));
+        snippet.addOutputPorts(mapDtoToRevision(snippetDTO.getOutputPorts()));
+        snippet.addConnections(mapDtoToRevision(snippetDTO.getConnections()));
+        snippet.addLabels(mapDtoToRevision(snippetDTO.getLabels()));
+        snippet.addFunnels(mapDtoToRevision(snippetDTO.getFunnels()));
 
         // ensure this snippet isn't empty
         if (snippet.isEmpty()) {

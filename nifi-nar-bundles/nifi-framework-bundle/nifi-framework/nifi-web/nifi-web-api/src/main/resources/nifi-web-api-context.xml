@@ -37,10 +37,8 @@
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
-    <!-- optimistic locking manager -->
-    <bean id="webOptimisticLockingManager" class="org.apache.nifi.web.spring.OptimisticLockingManagerFactoryBean" depends-on="clusterManagerOptimisticLockingManager">
-        <property name="properties" ref="nifiProperties"/>
-    </bean>
+    <!-- revision manager -->
+    <bean id="revisionManager" class="org.apache.nifi.web.revision.NaiveRevisionManager" />
     
     <!-- content access -->
     <bean id="contentAccess" class="org.apache.nifi.web.StandardNiFiContentAccess">
@@ -137,7 +135,7 @@
         <property name="auditService" ref="auditService"/>
         <property name="keyService" ref="keyService"/>
         <property name="snippetUtils" ref="snippetUtils"/>
-        <property name="optimisticLockingManager" ref="webOptimisticLockingManager"/>
+        <property name="revisionManager" ref="revisionManager" />
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="entityFactory" ref="entityFactory"/>
         <property name="clusterManager" ref="clusterManager"/>

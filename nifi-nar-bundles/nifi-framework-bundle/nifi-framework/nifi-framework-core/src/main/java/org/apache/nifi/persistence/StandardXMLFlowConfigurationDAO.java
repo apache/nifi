@@ -85,6 +85,15 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     }
 
     @Override
+    public void load(final OutputStream os, final boolean compressed) throws IOException {
+        if (compressed) {
+            Files.copy(flowXmlPath, os);
+        } else {
+            load(os);
+        }
+    }
+
+    @Override
     public synchronized void save(final InputStream is) throws IOException {
         try (final OutputStream outStream = Files.newOutputStream(flowXmlPath, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
                 final OutputStream gzipOut = new GZIPOutputStream(outStream)) {
@@ -140,15 +149,8 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         if (archive) {
             try {
-                final String archiveDirVal = NiFiProperties.getInstance().getProperty(CONFIGURATION_ARCHIVE_DIR_KEY);
-                final Path archiveDir = (archiveDirVal == null || archiveDirVal.equals("")) ? configFile.getParent().resolve("archive") : new File(archiveDirVal).toPath();
-                Files.createDirectories(archiveDir);
-
-                if (!Files.isDirectory(archiveDir)) {
-                    throw new IOException("Archive directory doesn't appear to be a directory " + archiveDir);
-                }
-                final Path archiveFile = archiveDir.resolve(System.nanoTime() + "-" + configFile.toFile().getName());
-                Files.copy(configFile, archiveFile);
+                final File archiveFile = createArchiveFile();
+                Files.copy(configFile, archiveFile.toPath());
             } catch (final Exception ex) {
                 LOG.warn("Unable to archive flow configuration as requested due to " + ex);
                 if (LOG.isDebugEnabled()) {
@@ -158,4 +160,16 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         }
     }
 
+    @Override
+    public File createArchiveFile() throws IOException {
+        final String archiveDirVal = NiFiProperties.getInstance().getProperty(CONFIGURATION_ARCHIVE_DIR_KEY);
+        final Path archiveDir = (archiveDirVal == null || archiveDirVal.equals("")) ? flowXmlPath.getParent().resolve("archive") : new File(archiveDirVal).toPath();
+        Files.createDirectories(archiveDir);
+
+        if (!Files.isDirectory(archiveDir)) {
+            throw new IOException("Archive directory doesn't appear to be a directory " + archiveDir);
+        }
+        final Path archiveFile = archiveDir.resolve(System.nanoTime() + "-" + flowXmlPath.toFile().getName());
+        return archiveFile.toFile();
+    }
 }

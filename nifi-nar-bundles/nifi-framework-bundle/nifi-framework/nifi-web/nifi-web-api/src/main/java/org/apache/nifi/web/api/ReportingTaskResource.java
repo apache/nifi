@@ -31,6 +31,7 @@ import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -425,19 +426,22 @@ public class ReportingTaskResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(revisionEntity.getRevision(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyCanClearReportingTaskState(id);
             return generateContinueResponse().build();
         }
 
         // get the component state
-        final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearReportingTaskState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
+        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearReportingTaskState(revision, id);
 
         // create the revision
         final RevisionDTO responseRevision = new RevisionDTO();
-        responseRevision.setClientId(requestRevision.getClientId());
+        responseRevision.setClientId(revision.getClientId());
         responseRevision.setVersion(snapshot.getVersion());
 
         // generate the response entity
@@ -521,32 +525,27 @@ public class ReportingTaskResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(reportingTaskEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO);
             return generateContinueResponse().build();
         }
 
         // update the reporting task
-        final RevisionDTO revision = reportingTaskEntity.getRevision();
-        final ConfigurationSnapshot<ReportingTaskDTO> controllerResponse = serviceFacade.updateReportingTask(
-                new Revision(revision.getVersion(), revision.getClientId()), requestReportingTaskDTO);
+        final UpdateResult<ReportingTaskEntity> controllerResponse = serviceFacade.updateReportingTask(revision, requestReportingTaskDTO);
 
         // get the results
-        final ReportingTaskDTO responseReportingTaskDTO = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
+        final ReportingTaskEntity entity = controllerResponse.getResult();
 
         // build the response entity
-        final ReportingTaskEntity entity = new ReportingTaskEntity();
-        entity.setRevision(updatedRevision);
-        entity.setReportingTask(populateRemainingReportingTaskContent(availability, responseReportingTaskDTO));
+        populateRemainingReportingTaskContent(availability, entity.getReportingTask());
 
         if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responseReportingTaskDTO.getUri()), entity)).build();
+            return clusterContext(generateCreatedResponse(URI.create(entity.getReportingTask().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }
@@ -620,30 +619,18 @@ public class ReportingTaskResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteReportingTask(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the specified reporting task
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteReportingTask(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ReportingTaskEntity entity = new ReportingTaskEntity();
-        entity.setRevision(revision);
-
+        final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
