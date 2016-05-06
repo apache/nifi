@@ -634,7 +634,7 @@ public class StatusMerger {
     }
 
     public static String prettyPrint(final Integer count, final Long bytes) {
-        return formatCount(count) + " / " + formatDataSize(bytes);
+        return formatCount(count) + " (" + formatDataSize(bytes) + ")";
     }
 
 }

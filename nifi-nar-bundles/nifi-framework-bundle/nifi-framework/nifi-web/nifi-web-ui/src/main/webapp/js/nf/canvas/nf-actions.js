@@ -152,7 +152,7 @@ nf.Actions = (function () {
                         url: d.component.uri,
                         dataType: 'json'
                     }).done(function (response) {
-                        var remoteProcessGroup = response.remoteProcessGroup;
+                        var remoteProcessGroup = response.component;
 
                         // the timestamp has not updated yet, poll again
                         if (refreshTimestamp === remoteProcessGroup.flowRefreshed) {
@@ -163,7 +163,7 @@ nf.Actions = (function () {
                             // reload the group's connections
                             var connections = nf.Connection.getComponentConnections(remoteProcessGroup.id);
                             $.each(connections, function (_, connection) {
-                                nf.Connection.reload(connection);
+                                nf.Connection.reload(connection.component);
                             });
                         }
                     });

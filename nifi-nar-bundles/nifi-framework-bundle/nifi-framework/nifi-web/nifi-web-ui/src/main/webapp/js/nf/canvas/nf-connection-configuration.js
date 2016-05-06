@@ -248,28 +248,31 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupData.id),
+                url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupData.id),
                 data: {
                     verbose: true
                 },
                 dataType: 'json'
             }).done(function (response) {
-                var processGroup = response.component;
-                var processGroupContents = processGroup.contents;
+                var processGroup = response.processGroupFlow;
+                var processGroupContents = processGroup.flow;
+
+                // show the output port options
+                var options = [];
+                $.each(processGroupContents.outputPorts, function (i, outputPort) {
+                    if (outputPort.accessPolicy.canRead && outputPort.accessPolicy.canWrite) {
+                        var component = outputPort.component;
+                        options.push({
+                            text: component.name,
+                            value: component.id,
+                            description: nf.Common.escapeHtml(component.comments)
+                        });
+                    }
+                });
 
                 // only proceed if there are output ports
-                if (!nf.Common.isEmpty(processGroupContents.outputPorts)) {
+                if (!nf.Common.isEmpty(options)) {
                     $('#output-port-source').show();
-
-                    // show the output port options
-                    var options = [];
-                    $.each(processGroupContents.outputPorts, function (i, outputPort) {
-                        options.push({
-                            text: outputPort.name,
-                            value: outputPort.id,
-                            description: nf.Common.escapeHtml(outputPort.comments)
-                        });
-                    });
 
                     // sort the options
                     options.sort(function (a, b) {
@@ -331,7 +334,7 @@ nf.ConnectionConfiguration = (function () {
                 },
                 dataType: 'json'
             }).done(function (response) {
-                var remoteProcessGroup = response.remoteProcessGroup;
+                var remoteProcessGroup = response.component;
                 var remoteProcessGroupContents = remoteProcessGroup.contents;
 
                 // only proceed if there are output ports
@@ -473,28 +476,28 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupData.id),
-                data: {
-                    verbose: true
-                },
+                url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupData.id),
                 dataType: 'json'
             }).done(function (response) {
-                var processGroup = response.component;
-                var processGroupContents = processGroup.contents;
+                var processGroup = response.processGroupFlow;
+                var processGroupContents = processGroup.flow;
+
+                // show the input port options
+                var options = [];
+                $.each(processGroupContents.inputPorts, function (i, inputPort) {
+                    if (inputPort.accessPolicy.canRead && inputPort.accessPolicy.canWrite) {
+                        var component = inputPort.component;
+                        options.push({
+                            text: component.name,
+                            value: component.id,
+                            description: nf.Common.escapeHtml(component.comments)
+                        });
+                    }
+                });
 
                 // only proceed if there are output ports
-                if (!nf.Common.isEmpty(processGroupContents.inputPorts)) {
+                if (!nf.Common.isEmpty(options)) {
                     $('#input-port-destination').show();
-
-                    // show the input port options
-                    var options = [];
-                    $.each(processGroupContents.inputPorts, function (i, inputPort) {
-                        options.push({
-                            text: inputPort.name,
-                            value: inputPort.id,
-                            description: nf.Common.escapeHtml(inputPort.comments)
-                        });
-                    });
 
                     // sort the options
                     options.sort(function (a, b) {
@@ -555,7 +558,7 @@ nf.ConnectionConfiguration = (function () {
                 },
                 dataType: 'json'
             }).done(function (response) {
-                var remoteProcessGroup = response.remoteProcessGroup;
+                var remoteProcessGroup = response.component;
                 var remoteProcessGroupContents = remoteProcessGroup.contents;
 
                 // only proceed if there are output ports

@@ -405,16 +405,12 @@ nf.CanvasUtils = (function () {
                         .each(function () {
                             var bBox = this.getBBox();
                             d3.select(this).attr('x', function () {
-                                return d.dimensions.width - bBox.width - 4;
+                                return d.dimensions.width - bBox.width - 15;
                             });
                         });
 
                 // update the background width
-                selection.select('rect.active-thread-count-background')
-                        .attr('width', function () {
-                            var bBox = activeThreadCount.node().getBBox();
-                            return bBox.width + 8;
-                        })
+                selection.select('text.active-thread-count-icon')
                         .attr('x', function () {
                             var bBox = activeThreadCount.node().getBBox();
 
@@ -423,22 +419,11 @@ nf.CanvasUtils = (function () {
                                 setOffset(bBox.width + 6);
                             }
 
-                            return d.dimensions.width - bBox.width - 8;
-                        })
-                        .attr('stroke-dasharray', function() {
-                            var rect = d3.select(this);
-                            var width = parseFloat(rect.attr('width'));
-                            var height = parseFloat(rect.attr('height'));
-                            
-                            var dashArray = [];
-                            dashArray.push(0);
-                            dashArray.push(width + height);
-                            dashArray.push(width + height);
-                            return dashArray.join(' ');
+                            return d.dimensions.width - bBox.width - 20;
                         })
                         .style('display', 'block');
             } else {
-                selection.selectAll('text.active-thread-count, rect.active-thread-count-background').style('display', 'none');
+                selection.selectAll('text.active-thread-count, text.active-thread-count-icon').style('display', 'none');
             }
         },
         
@@ -475,16 +460,8 @@ nf.CanvasUtils = (function () {
             // if there are bulletins show them, otherwise hide
             if (nf.Common.isDefinedAndNotNull(d.status) && !nf.Common.isEmpty(d.status.bulletins)) {
                 // update the tooltip
-                selection.select('image.bulletin-icon')
-                        .style('display', 'block')
+                selection.select('text.bulletin-icon')
                         .each(function () {
-                            var bBox = this.getBBox();
-                            var bulletinIcon = d3.select(this);
-
-                            bulletinIcon.attr('x', function () {
-                                return d.dimensions.width - offset - bBox.width - 4;
-                            });
-
                             // if there are bulletins generate a tooltip
                             tip = getTooltipContainer().append('div')
                                     .attr('id', function () {
@@ -505,10 +482,8 @@ nf.CanvasUtils = (function () {
                                     });
 
                             // add the tooltip
-                            nf.CanvasUtils.canvasTooltip(tip, bulletinIcon);
+                            nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
                         });
-            } else {
-                selection.selectAll('image.bulletin-icon').style('display', 'none');
             }
         },
         

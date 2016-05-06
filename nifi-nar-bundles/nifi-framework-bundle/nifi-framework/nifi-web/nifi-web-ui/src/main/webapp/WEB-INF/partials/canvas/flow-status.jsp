@@ -32,7 +32,7 @@
     <div layout="row" layout-align="end center">
         <input id="search-field" type="text"/>
         <button id="search-button"><i class="fa fa-search"></i></button>
-        <button id="bulletin-button"><i class="icon-bulletin"></i></button>
+        <button id="bulletin-button"><i class="fa fa-sticky-note-o"></i></button>
     </div>
 </div>
 <div id="search-flow-results"></div>

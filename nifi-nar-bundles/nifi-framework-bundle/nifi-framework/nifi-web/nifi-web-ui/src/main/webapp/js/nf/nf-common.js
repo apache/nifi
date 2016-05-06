@@ -723,6 +723,43 @@ nf.Common = (function () {
         },
 
         /**
+         * Extracts the contents of the specified str after the strToFind. If the
+         * strToFind is not found or the last part of the str, an empty string is
+         * returned.
+         *
+         * @argument {string} str       The full string
+         * @argument {string} strToFind The substring to find
+         */
+        substringAfterFirst: function (str, strToFind) {
+            var result = '';
+            var indexOfStrToFind = str.indexOf(strToFind);
+            if (indexOfStrToFind >= 0) {
+                var indexAfterStrToFind = indexOfStrToFind + strToFind.length;
+                if (indexAfterStrToFind < str.length) {
+                    result = str.substr(indexAfterStrToFind);
+                }
+            }
+            return result;
+        },
+
+        /**
+         * Extracts the contents of the specified str before the strToFind. If the
+         * strToFind is not found or the first part of the str, an empty string is
+         * returned.
+         *
+         * @argument {string} str       The full string
+         * @argument {string} strToFind The substring to find
+         */
+        substringBeforeFirst: function(str, strToFind) {
+            var result = '';
+            var indexOfStrToFind = str.indexOf(strToFind);
+            if (indexOfStrToFind >= 0) {
+                result = str.substr(0, indexOfStrToFind);
+            }
+            return result
+        },
+
+        /**
          * Updates the mouse pointer.
          * 
          * @argument {string} domId         The id of the element for the new cursor style

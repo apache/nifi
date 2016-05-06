@@ -53,7 +53,9 @@ nf.Label = (function () {
      * Selects the labels elements against the current label map.
      */
     var select = function () {
-        return labelContainer.selectAll('g.label').data(labelMap.values());
+        return labelContainer.selectAll('g.label').data(labelMap.values(), function (d) {
+            return d.id;
+        });
     };
 
     /**
@@ -126,21 +128,6 @@ nf.Label = (function () {
             return;
         }
 
-        // reset the colors
-        var colors = d3.set();
-        colors.add(nf.Common.substringAfterLast(nf.Label.defaultColor(), '#'));
-
-        // determine all unique colors
-        labelMap.forEach(function (id, d) {
-            if (d.accessPolicy.canRead) {
-                var color = d.component.style['background-color'];
-                if (nf.Common.isDefinedAndNotNull(color)) {
-                    colors.add(nf.Common.substringAfterLast(color, '#'));
-                }
-            }
-        });
-        nf.Canvas.defineLabelColors(colors.values());
-
         // update the border using the configured color
         updated.select('rect.border')
                 .attr({
@@ -177,10 +164,7 @@ nf.Label = (function () {
                             }
                         }
 
-                        // get just the color code part
-                        color = nf.Common.substringAfterLast(color, '#');
-
-                        return 'url(#label-background-' + color + ')';
+                        return color;
                     },
                     'width': function (d) {
                         return d.dimensions.width;

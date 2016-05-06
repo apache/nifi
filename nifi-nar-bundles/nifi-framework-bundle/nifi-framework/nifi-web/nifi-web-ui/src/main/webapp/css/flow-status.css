@@ -78,7 +78,7 @@
     background-color:#728E9B; /*base-color*/
 }
 
-#bulletin-button i{
+#bulletin-button i.fa {
     color: #fff;
     font-size:15px;
 }

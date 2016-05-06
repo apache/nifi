@@ -85,7 +85,7 @@
                     <md-menu-item layout-align="space-around center">
                         <a id="bulletin-board-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.bulletinBoard.shell.launch();"><i
-                                class="icon icon-bulletin"></i>Bulletin Board</a>
+                                class="fa fa-sticky-note-o"></i>Bulletin Board</a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item
