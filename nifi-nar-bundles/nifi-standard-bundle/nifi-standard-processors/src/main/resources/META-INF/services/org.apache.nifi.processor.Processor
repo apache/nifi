@@ -29,6 +29,7 @@ org.apache.nifi.processors.standard.ExecuteStreamCommand
 org.apache.nifi.processors.standard.ExecuteProcess
 org.apache.nifi.processors.standard.ExtractText
 org.apache.nifi.processors.standard.FetchSFTP
+org.apache.nifi.processors.standard.GetSCP
 org.apache.nifi.processors.standard.FetchFile
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GetFile
@@ -62,6 +63,7 @@ org.apache.nifi.processors.standard.PutFile
 org.apache.nifi.processors.standard.PutFTP
 org.apache.nifi.processors.standard.PutJMS
 org.apache.nifi.processors.standard.PutSFTP
+org.apache.nifi.processors.standard.PutSCP
 org.apache.nifi.processors.standard.PutSQL
 org.apache.nifi.processors.standard.PutSyslog
 org.apache.nifi.processors.standard.PutUDP
