@@ -2561,30 +2561,29 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             return "";
         }
         bldr.append("(unacknowledged flowfiles [");
-        for (Relationship relationship : context.getAvailableRelationships()) {
-            for (Connection connection : context.getConnections(relationship)) {
-                long filesListed = 0;
-                for (FlowFileRecord rec : unacknowledgedFlowFiles.get(connection)) {
-                    if (bldr.length() > 1) {
-                        bldr.append(", ");
-                    }
-                    // todo debug connection logging
-                    bldr.append("rel=")
-                            .append(relationship.getName())
-                            .append("/conn=")
-                            .append(connection.getName())
-                            .append("/filename=")
-                            .append(rec.getAttribute(CoreAttributes.FILENAME.key()))
-                            .append("/uuid=")
-                            .append(rec.getAttribute(CoreAttributes.UUID.key()));
-                    if (isRollbackCountEnabled) {
-                        bldr.append("/rollbacks=")
-                                .append(rec.getAttribute(StandardProcessSession.ROLLBACK_COUNT_ATTR_NAME));
-                    }
-                    filesListed++;
-                    if (filesListed > rollbackLogUnackFFMax) {
-                        break;
-                    }
+        final int initBldrLen = bldr.length();
+        long filesListed = 0;
+        for (Map.Entry<Connection, Set<FlowFileRecord>> rec : unacknowledgedFlowFiles.entrySet()) {
+            for (FlowFileRecord flowFileRecord : rec.getValue()) {
+                if (bldr.length() > initBldrLen) {
+                    bldr.append(", ");
+                }
+                bldr.append("queue=")
+                        .append(rec.getKey().getFlowFileQueue().getIdentifier())
+                        .append("/filename=")
+                        .append(flowFileRecord.getAttribute(CoreAttributes.FILENAME.key()))
+                        .append("/uuid=")
+                        .append(flowFileRecord.getAttribute(CoreAttributes.UUID.key()));
+                if (isRollbackCountEnabled) {
+                    bldr.append("/rollbacks=")
+                            .append(flowFileRecord.getAttribute(StandardProcessSession.ROLLBACK_COUNT_ATTR_NAME));
+                }
+                filesListed++;
+                if (filesListed > rollbackLogUnackFFMax) {
+                    bldr.append(", ... ")
+                            .append(unacknowledgedFlowFiles.entrySet().size() - rollbackLogUnackFFMax)
+                            .append(" files not listed");
+                    break;
                 }
             }
         }
