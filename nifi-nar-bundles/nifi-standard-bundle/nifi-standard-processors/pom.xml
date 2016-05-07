@@ -235,6 +235,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>json-utils</artifactId>
             <version>0.0.20</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-example-csv</artifactId>
+            <version>1.7.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -356,6 +361,9 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/unsalted_128_raw.enc</exclude>
+                        <exclude>src/test/resources/TestFilterCSVColumns/US500_typeless.csv</exclude>
+                        <exclude>src/test/resources/TestFilterCSVColumns/US500.csv</exclude>
+                        <exclude>src/test/resources/TestFilterCSVColumns/Numeric.csv</exclude>
                         <!-- This file is copied from https://github.com/jeremyh/jBCrypt because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/processors/standard/util/crypto/bcrypt/BCrypt.java</exclude>
                     </excludes>
