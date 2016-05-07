@@ -44,20 +44,23 @@ public class StandardValidationContext implements ValidationContext {
     private final Map<String, Boolean> expressionLanguageSupported;
     private final String annotationData;
     private final Set<String> serviceIdentifiersToNotValidate;
+    private final String groupId;
 
-    public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties, final String annotationData) {
-        this(controllerServiceProvider, Collections.<String>emptySet(), properties, annotationData);
+    public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties, final String annotationData, final String groupId) {
+        this(controllerServiceProvider, Collections.<String> emptySet(), properties, annotationData, groupId);
     }
 
     public StandardValidationContext(
             final ControllerServiceProvider controllerServiceProvider,
             final Set<String> serviceIdentifiersToNotValidate,
             final Map<PropertyDescriptor, String> properties,
-            final String annotationData) {
+        final String annotationData,
+        final String groupId) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
         this.serviceIdentifiersToNotValidate = serviceIdentifiersToNotValidate;
+        this.groupId = groupId;
 
         preparedQueries = new HashMap<>(properties.size());
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -90,7 +93,7 @@ public class StandardValidationContext implements ValidationContext {
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
         final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(controllerService.getIdentifier());
-        return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData());
+        return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(), serviceNode.getProcessGroup().getIdentifier());
     }
 
     @Override
@@ -133,5 +136,10 @@ public class StandardValidationContext implements ValidationContext {
     public boolean isExpressionLanguageSupported(final String propertyName) {
         final Boolean supported = expressionLanguageSupported.get(propertyName);
         return Boolean.TRUE.equals(supported);
+    }
+
+    @Override
+    public String getProcessGroupIdentifier() {
+        return groupId;
     }
 }

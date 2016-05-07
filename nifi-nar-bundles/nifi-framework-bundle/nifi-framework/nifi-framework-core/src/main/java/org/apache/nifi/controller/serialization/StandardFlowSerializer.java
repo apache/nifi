@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller;
+package org.apache.nifi.controller.serialization;
 
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
@@ -39,6 +39,9 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -59,6 +62,7 @@ import org.w3c.dom.Element;
  * NOT THREAD-SAFE.
  */
 public class StandardFlowSerializer implements FlowSerializer {
+    private static final String MAX_ENCODING_VERSION = "1.0";
 
     private final StringEncryptor encryptor;
 
@@ -78,6 +82,7 @@ public class StandardFlowSerializer implements FlowSerializer {
 
             // populate document with controller state
             final Element rootNode = doc.createElement("flowController");
+            rootNode.setAttribute("encoding-version", MAX_ENCODING_VERSION);
             doc.appendChild(rootNode);
             addTextElement(rootNode, "maxTimerDrivenThreadCount", controller.getMaxTimerDrivenThreadCount());
             addTextElement(rootNode, "maxEventDrivenThreadCount", controller.getMaxEventDrivenThreadCount());
@@ -85,9 +90,6 @@ public class StandardFlowSerializer implements FlowSerializer {
 
             final Element controllerServicesNode = doc.createElement("controllerServices");
             rootNode.appendChild(controllerServicesNode);
-            for (final ControllerServiceNode serviceNode : controller.getAllControllerServices()) {
-                addControllerService(controllerServicesNode, serviceNode, encryptor);
-            }
 
             final Element reportingTasksNode = doc.createElement("reportingTasks");
             rootNode.appendChild(reportingTasksNode);
@@ -179,6 +181,10 @@ public class StandardFlowSerializer implements FlowSerializer {
 
         for (final Connection connection : group.getConnections()) {
             addConnection(element, connection);
+        }
+
+        for (final ControllerServiceNode service : group.getControllerServices(false)) {
+            addControllerService(element, service);
         }
     }
 
@@ -408,7 +414,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         parentElement.appendChild(element);
     }
 
-    public static void addControllerService(final Element element, final ControllerServiceNode serviceNode, final StringEncryptor encryptor) {
+    public void addControllerService(final Element element, final ControllerServiceNode serviceNode) {
         final Element serviceElement = element.getOwnerDocument().createElement("controllerService");
         addTextElement(serviceElement, "id", serviceNode.getIdentifier());
         addTextElement(serviceElement, "name", serviceNode.getName());

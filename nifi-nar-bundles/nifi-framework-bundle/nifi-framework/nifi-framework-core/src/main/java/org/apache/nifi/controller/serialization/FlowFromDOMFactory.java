@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller;
+package org.apache.nifi.controller.serialization;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.connectable.Size;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
@@ -114,7 +115,7 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
-    public static ProcessGroupDTO getProcessGroup(final String parentId, final Element element, final StringEncryptor encryptor) {
+    public static ProcessGroupDTO getProcessGroup(final String parentId, final Element element, final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
         final ProcessGroupDTO dto = new ProcessGroupDTO();
         final String groupId = getString(element, "id");
         dto.setId(groupId);
@@ -169,7 +170,7 @@ public class FlowFromDOMFactory {
 
         nodeList = DomUtils.getChildNodesByTagName(element, "processGroup");
         for (int i = 0; i < nodeList.getLength(); i++) {
-            processGroups.add(getProcessGroup(groupId, (Element) nodeList.item(i), encryptor));
+            processGroups.add(getProcessGroup(groupId, (Element) nodeList.item(i), encryptor, encodingVersion));
         }
 
         nodeList = DomUtils.getChildNodesByTagName(element, "remoteProcessGroup");

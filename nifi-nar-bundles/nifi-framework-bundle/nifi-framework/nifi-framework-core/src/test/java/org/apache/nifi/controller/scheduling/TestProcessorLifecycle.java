@@ -290,7 +290,7 @@ public class TestProcessorLifecycle {
                 }
             });
         }
-        assertTrue(countDownCounter.await(10000, TimeUnit.MILLISECONDS));
+        assertTrue(countDownCounter.await(1000000, TimeUnit.MILLISECONDS));
         String previousOperation = null;
         for (String operationName : testProcessor.operationNames) {
             if (previousOperation == null || previousOperation.equals("@OnStopped")) {
@@ -559,8 +559,10 @@ public class TestProcessorLifecycle {
         this.setControllerRootGroup(fc, testGroup);
 
         ControllerServiceNode testServiceNode = fc.createControllerService(TestService.class.getName(), "foo", true);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
+        testGroup.addControllerService(testServiceNode);
 
+        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
+        testGroup.addProcessor(testProcNode);
         testProcNode.setProperty("P", "hello");
         testProcNode.setProperty("S", testServiceNode.getIdentifier());
 

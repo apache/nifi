@@ -1452,7 +1452,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ControllerServiceEntity createControllerService(final Revision revision, final ControllerServiceDTO controllerServiceDTO) {
+    public ControllerServiceEntity createControllerService(final Revision revision, final String groupId, final ControllerServiceDTO controllerServiceDTO) {
         // TODO: Instead of "root" we need the ID of the Process Group that the Controller Service is being created in.
         // Right now, though, they are not scoped to a particular group.
         return revisionManager.get("root", new ReadOnlyRevisionCallback<RevisionUpdate<ControllerServiceEntity>>() {
@@ -1466,12 +1466,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // create the controller service
                 final ControllerServiceNode controllerService = controllerServiceDAO.createControllerService(controllerServiceDTO);
 
+                final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+                group.authorize(authorizer, RequestAction.WRITE);
+                group.addControllerService(controllerService);
+
                 // save the update
-                if (properties.isClusterManager()) {
-                    clusterManager.saveControllerServices();
-                } else {
-                    controllerFacade.save();
-                }
+                controllerFacade.save();
 
                 final Revision updatedRevision = new Revision(0L, revision.getClientId(), controllerService.getIdentifier());
                 final FlowModification lastMod = new FlowModification(updatedRevision, NiFiUserUtils.getNiFiUserName());
@@ -1491,7 +1491,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public UpdateResult<ControllerServiceEntity> updateControllerService(final Revision revision, final ControllerServiceDTO controllerServiceDTO) {
         // if controller service does not exist, then create new controller service
         if (controllerServiceDAO.hasControllerService(controllerServiceDTO.getId()) == false) {
-            return new UpdateResult<>(createControllerService(revision, controllerServiceDTO), true);
+            return new UpdateResult<>(createControllerService(revision, controllerServiceDTO.getParentGroupId(), controllerServiceDTO), true);
         }
 
         final String modifier = NiFiUserUtils.getNiFiUserName();
@@ -1502,11 +1502,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final ControllerServiceNode controllerService = controllerServiceDAO.updateControllerService(controllerServiceDTO);
 
                 // save the update
-                if (properties.isClusterManager()) {
-                    clusterManager.saveControllerServices();
-                } else {
-                    controllerFacade.save();
-                }
+                controllerFacade.save();
 
                 final Revision updatedRevision = incrementRevision(revision);
                 final ControllerServiceDTO controllerServiceDto = dtoFactory.createControllerServiceDto(controllerService);
@@ -1614,11 +1610,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 controllerServiceDAO.deleteControllerService(controllerServiceId);
 
                 // save the update
-                if (properties.isClusterManager()) {
-                    clusterManager.saveControllerServices();
-                } else {
-                    controllerFacade.save();
-                }
+                controllerFacade.save();
 
                 final ControllerServiceEntity entity = entityFactory.createControllerServiceEntity(dto, null, null);
                 return new StandardRevisionUpdate<>(entity, null);
@@ -2032,7 +2024,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
         }
 
-        return dtoFactory.createPropertyDescriptorDto(descriptor);
+        return dtoFactory.createPropertyDescriptorDto(descriptor, processor.getProcessGroup().getIdentifier());
     }
 
     @Override
@@ -2407,13 +2399,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<ControllerServiceDTO> getControllerServices() {
+    public Set<ControllerServiceDTO> getControllerServices(String groupId) {
         final Set<ControllerServiceDTO> controllerServiceDtos = new LinkedHashSet<>();
-        final Set<ControllerServiceNode> serviceNodes = controllerServiceDAO.getControllerServices();
+        final Set<ControllerServiceNode> serviceNodes = getGroup(groupId).getControllerServices(true);
         final Set<String> serviceIds = serviceNodes.stream().map(service -> service.getIdentifier()).collect(Collectors.toSet());
 
         revisionManager.get(serviceIds, () -> {
-            for (ControllerServiceNode controllerService : controllerServiceDAO.getControllerServices()) {
+            for (ControllerServiceNode controllerService : serviceNodes) {
                 controllerServiceDtos.add(dtoFactory.createControllerServiceDto(controllerService));
             }
             return null;
@@ -2438,7 +2430,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
             }
 
-            return dtoFactory.createPropertyDescriptorDto(descriptor);
+            return dtoFactory.createPropertyDescriptorDto(descriptor, controllerService.getProcessGroup().getIdentifier());
         });
     }
 
@@ -2479,7 +2471,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
         }
 
-        return dtoFactory.createPropertyDescriptorDto(descriptor);
+        return dtoFactory.createPropertyDescriptorDto(descriptor, "root");
     }
 
     @Override

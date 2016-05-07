@@ -254,4 +254,9 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     public String toString() {
         return "ReportingTask[id=" + getIdentifier() + ", name=" + getName() + "]";
     }
+
+    @Override
+    protected String getProcessGroupIdentifier() {
+        return null;
+    }
 }

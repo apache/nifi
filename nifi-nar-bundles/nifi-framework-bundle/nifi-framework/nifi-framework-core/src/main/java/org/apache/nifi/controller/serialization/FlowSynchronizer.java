@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller;
+package org.apache.nifi.controller.serialization;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.encrypt.StringEncryptor;
 
 /**

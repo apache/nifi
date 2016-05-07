@@ -69,13 +69,14 @@ public class StandardReportingInitializationContext implements ReportingInitiali
         return schedulingPeriod;
     }
 
+    @Override
     public SchedulingStrategy getSchedulingStrategy() {
         return schedulingStrategy;
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
-        return serviceProvider.getControllerServiceIdentifiers(serviceType);
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
+        return serviceProvider.getControllerServiceIdentifiers(serviceType, groupId);
     }
 
     @Override

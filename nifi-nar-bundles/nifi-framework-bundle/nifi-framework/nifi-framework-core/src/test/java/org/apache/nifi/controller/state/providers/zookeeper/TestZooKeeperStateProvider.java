@@ -117,7 +117,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
 
     @Test
-    public void testStateTooLargeExceptionThrown() {
+    public void testStateTooLargeExceptionThrownOnSetState() {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
 
@@ -137,8 +137,30 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         } catch (final StateTooLargeException stle) {
             // expected behavior.
         } catch (final Exception e) {
+            e.printStackTrace();
             Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
         }
+    }
+
+
+    @Test
+    public void testStateTooLargeExceptionThrownOnReplace() throws IOException {
+        final Map<String, String> state = new HashMap<>();
+        final StringBuilder sb = new StringBuilder();
+
+        // Build a string that is a little less than 64 KB, because that's
+        // the largest value available for DataOutputStream.writeUTF
+        for (int i = 0; i < 6500; i++) {
+            sb.append("0123456789");
+        }
+
+        for (int i = 0; i < 20; i++) {
+            state.put("numbers." + i, sb.toString());
+        }
+
+        final Map<String, String> smallState = new HashMap<>();
+        smallState.put("abc", "xyz");
+        getProvider().setState(smallState, componentId);
 
         try {
             getProvider().replace(getProvider().getState(componentId), state, componentId);
@@ -146,6 +168,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         } catch (final StateTooLargeException stle) {
             // expected behavior.
         } catch (final Exception e) {
+            e.printStackTrace();
             Assert.fail("Expected StateTooLargeException", e);
         }
 

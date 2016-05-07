@@ -54,12 +54,15 @@ public interface ControllerServiceLookup {
     boolean isControllerServiceEnabled(ControllerService service);
 
     /**
+     *
      * @param serviceType type of service to get identifiers for
+     * @param groupId the ID of the Process Group to look in for Controller Services
+     *
      * @return the set of all Controller Service Identifiers whose Controller
-     * Service is of the given type.
+     *         Service is of the given type.
      * @throws IllegalArgumentException if the given class is not an interface
      */
-    Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType) throws IllegalArgumentException;
+    Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType, String groupId) throws IllegalArgumentException;
 
     /**
      * @param serviceIdentifier identifier to look up

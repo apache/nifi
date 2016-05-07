@@ -35,6 +35,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.mock.DummyProcessor;
+import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.groups.ProcessGroup;
@@ -88,13 +89,17 @@ public class TestStandardControllerServiceProvider {
         provider.disableControllerService(serviceNode);
     }
 
-    @Test(timeout=10000)
+    @Test(timeout = 1000000)
     public void testEnableDisableWithReference() {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
+        final ProcessGroup group = new MockProcessGroup();
+        provider.setRootProcessGroup(group);
 
         final ControllerServiceNode serviceNodeB = provider.createControllerService(ServiceB.class.getName(), "B", false);
         final ControllerServiceNode serviceNodeA = provider.createControllerService(ServiceA.class.getName(), "A", false);
+        group.addControllerService(serviceNodeA);
+        group.addControllerService(serviceNodeB);
 
         serviceNodeA.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
 
@@ -145,6 +150,8 @@ public class TestStandardControllerServiceProvider {
 
     public void testEnableReferencingServicesGraph(ProcessScheduler scheduler) {
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
+        final ProcessGroup procGroup = new MockProcessGroup();
+        provider.setRootProcessGroup(procGroup);
 
         // build a graph of controller services with dependencies as such:
         //
@@ -162,6 +169,11 @@ public class TestStandardControllerServiceProvider {
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceA.class.getName(), "2", false);
         final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3", false);
         final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4", false);
+
+        procGroup.addControllerService(serviceNode1);
+        procGroup.addControllerService(serviceNode2);
+        procGroup.addControllerService(serviceNode3);
+        procGroup.addControllerService(serviceNode4);
 
         serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
         serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");

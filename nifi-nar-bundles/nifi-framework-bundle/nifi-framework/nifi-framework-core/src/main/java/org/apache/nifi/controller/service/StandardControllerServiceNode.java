@@ -39,6 +39,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
@@ -62,11 +63,12 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     private final Set<ConfiguredComponent> referencingComponents = new HashSet<>();
     private String comment;
+    private ProcessGroup processGroup;
 
     private final AtomicBoolean active;
 
     public StandardControllerServiceNode(final ControllerService proxiedControllerService, final ControllerService implementation, final String id,
-            final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
+        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
         super(implementation, id, validationContextFactory, serviceProvider);
         this.proxedControllerService = proxiedControllerService;
         this.implementation = implementation;
@@ -82,6 +84,26 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public ControllerService getControllerServiceImplementation() {
         return implementation;
+    }
+
+    @Override
+    public ProcessGroup getProcessGroup() {
+        readLock.lock();
+        try {
+            return processGroup;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public void setProcessGroup(final ProcessGroup group) {
+        writeLock.lock();
+        try {
+            this.processGroup = group;
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
@@ -366,5 +388,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
             LOG.error("Failed to invoke @OnDisabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
         }
+    }
+
+    @Override
+    protected String getProcessGroupIdentifier() {
+        final ProcessGroup procGroup = getProcessGroup();
+        return procGroup == null ? null : procGroup.getIdentifier();
     }
 }

@@ -138,7 +138,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
         // if the property descriptor identifies a Controller Service, validate that the ControllerService exists, is of the correct type, and is valid
         if (controllerServiceDefinition != null) {
-            final Set<String> validIdentifiers = context.getControllerServiceLookup().getControllerServiceIdentifiers(controllerServiceDefinition);
+            final Set<String> validIdentifiers = context.getControllerServiceLookup().getControllerServiceIdentifiers(controllerServiceDefinition, context.getProcessGroupIdentifier());
             if (validIdentifiers != null && validIdentifiers.contains(input)) {
                 final ControllerService controllerService = context.getControllerServiceLookup().getControllerService(input);
                 if (!context.isValidationRequired(controllerService)) {

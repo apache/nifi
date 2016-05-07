@@ -148,7 +148,7 @@ public class TestStandardPropertyValue {
         }
 
         @Override
-        public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
+        public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
             return null;
         }
 

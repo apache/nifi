@@ -48,5 +48,4 @@ public class ClusteredReportingTaskNode extends AbstractReportingTaskNode {
     public ReportingContext getReportingContext() {
         return new ClusteredReportingContext(eventAccess, bulletinRepository, getProperties(), serviceProvider, stateManager);
     }
-
 }

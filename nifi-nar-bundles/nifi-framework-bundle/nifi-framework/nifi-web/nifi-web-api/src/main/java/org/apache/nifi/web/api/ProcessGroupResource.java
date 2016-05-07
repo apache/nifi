@@ -2514,7 +2514,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // create the controller service and generate the json
         final ControllerServiceEntity entity = serviceFacade.createControllerService(
-            new Revision(revision.getVersion(), revision.getClientId()), controllerServiceEntity.getControllerService());
+            new Revision(revision.getVersion(), revision.getClientId()), groupId, controllerServiceEntity.getControllerService());
 
         // build the response entity
         controllerServiceResource.populateRemainingControllerServiceContent(availability, entity.getControllerService());
@@ -2574,7 +2574,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // get all the controller services
-        final Set<ControllerServiceDTO> controllerServices = controllerServiceResource.populateRemainingControllerServicesContent(availability, serviceFacade.getControllerServices());
+        final Set<ControllerServiceDTO> controllerServices = controllerServiceResource.populateRemainingControllerServicesContent(availability, serviceFacade.getControllerServices(groupId));
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();

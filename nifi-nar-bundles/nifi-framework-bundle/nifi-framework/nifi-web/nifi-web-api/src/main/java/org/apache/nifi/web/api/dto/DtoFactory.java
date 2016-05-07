@@ -1113,7 +1113,7 @@ public final class DtoFactory {
             final PropertyDescriptor descriptor = entry.getKey();
 
             // store the property descriptor
-            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor));
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, "root"));
 
             // determine the property value - don't include sensitive properties
             String propertyValue = entry.getValue();
@@ -1176,7 +1176,7 @@ public final class DtoFactory {
             final PropertyDescriptor descriptor = entry.getKey();
 
             // store the property descriptor
-            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor));
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, controllerServiceNode.getProcessGroup().getIdentifier()));
 
             // determine the property value - don't include sensitive properties
             String propertyValue = entry.getValue();
@@ -1267,6 +1267,7 @@ public final class DtoFactory {
             dto.setId(component.getIdentifier());
             dto.setName(component.getName());
 
+            String processGroupId = null;
             List<PropertyDescriptor> propertyDescriptors = null;
             Collection<ValidationResult> validationErrors = null;
             if (component instanceof ProcessorNode) {
@@ -1279,6 +1280,7 @@ public final class DtoFactory {
 
                 propertyDescriptors = node.getProcessor().getPropertyDescriptors();
                 validationErrors = node.getValidationErrors();
+                processGroupId = node.getProcessGroup().getIdentifier();
             } else if (component instanceof ControllerServiceNode) {
                 final ControllerServiceNode node = ((ControllerServiceNode) component);
                 dto.setState(node.getState().name());
@@ -1293,6 +1295,7 @@ public final class DtoFactory {
 
                 propertyDescriptors = node.getControllerServiceImplementation().getPropertyDescriptors();
                 validationErrors = node.getValidationErrors();
+                processGroupId = node.getProcessGroup().getIdentifier();
             } else if (component instanceof ReportingTaskNode) {
                 final ReportingTaskNode node = ((ReportingTaskNode) component);
                 dto.setState(node.getScheduledState().name());
@@ -1302,6 +1305,7 @@ public final class DtoFactory {
 
                 propertyDescriptors = node.getReportingTask().getPropertyDescriptors();
                 validationErrors = node.getValidationErrors();
+                processGroupId = "root";
             }
 
             if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
@@ -1326,7 +1330,7 @@ public final class DtoFactory {
                     final PropertyDescriptor descriptor = entry.getKey();
 
                     // store the property descriptor
-                    dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor));
+                    dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
 
                     // determine the property value - don't include sensitive properties
                     String propertyValue = entry.getValue();
@@ -2216,7 +2220,7 @@ public final class DtoFactory {
             final PropertyDescriptor descriptor = entry.getKey();
 
             // store the property descriptor
-            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor));
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, procNode.getProcessGroup().getIdentifier()));
 
             // determine the property value - don't include sensitive properties
             String propertyValue = entry.getValue();
@@ -2258,9 +2262,10 @@ public final class DtoFactory {
      * Creates a PropertyDesriptorDTO from the specified PropertyDesriptor.
      *
      * @param propertyDescriptor descriptor
+     * @param groupId the Identifier of the Process Group that the component belongs to
      * @return dto
      */
-    public PropertyDescriptorDTO createPropertyDescriptorDto(final PropertyDescriptor propertyDescriptor) {
+    public PropertyDescriptorDTO createPropertyDescriptorDto(final PropertyDescriptor propertyDescriptor, final String groupId) {
         if (propertyDescriptor == null) {
             return null;
         }
@@ -2287,7 +2292,7 @@ public final class DtoFactory {
                 dto.setAllowableValues(null);
             } else {
                 final List<AllowableValueDTO> allowableValues = new ArrayList<>();
-                for (final String serviceIdentifier : controllerServiceLookup.getControllerServiceIdentifiers(serviceDefinition)) {
+                for (final String serviceIdentifier : controllerServiceLookup.getControllerServiceIdentifiers(serviceDefinition, groupId)) {
                     final String displayName = controllerServiceLookup.getControllerServiceName(serviceIdentifier);
 
                     final AllowableValueDTO allowableValue = new AllowableValueDTO();

@@ -24,8 +24,8 @@ import org.apache.nifi.components.ValidationContext;
 
 public interface ValidationContextFactory {
 
-    ValidationContext newValidationContext(Map<PropertyDescriptor, String> properties, String annotationData);
+    ValidationContext newValidationContext(Map<PropertyDescriptor, String> properties, String annotationData, String groupId);
 
-    ValidationContext newValidationContext(Set<String> serviceIdentifiersToNotValidate, Map<PropertyDescriptor, String> properties, String annotationData);
+    ValidationContext newValidationContext(Set<String> serviceIdentifiersToNotValidate, Map<PropertyDescriptor, String> properties, String annotationData, String groupId);
 
 }

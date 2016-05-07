@@ -47,8 +47,8 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
-        return context.getControllerServiceIdentifiers(serviceType);
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
+        return context.getControllerServiceIdentifiers(serviceType, groupId);
     }
 
     @Override

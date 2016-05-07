@@ -115,7 +115,6 @@ import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.StandardFlowSerializer;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
@@ -126,6 +125,7 @@ import org.apache.nifi.controller.reporting.StandardReportingInitializationConte
 import org.apache.nifi.controller.scheduling.QuartzSchedulingAgent;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.scheduling.TimerDrivenSchedulingAgent;
+import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.controller.service.ControllerServiceLoader;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -406,7 +406,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
                 final byte[] serializedServices = clusterDataFlow.getControllerServices();
                 if (serializedServices != null && serializedServices.length > 0) {
-                    ControllerServiceLoader.loadControllerServices(this, new ByteArrayInputStream(serializedServices), encryptor, bulletinRepository, properties.getAutoResumeState());
+                    ControllerServiceLoader.loadControllerServices(this, new ByteArrayInputStream(serializedServices), null, encryptor, bulletinRepository, properties.getAutoResumeState());
                 }
 
                 // start multicast broadcasting service, if configured
@@ -1271,21 +1271,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         return baos.toByteArray();
     }
 
-    private byte[] serializeControllerServices() throws ParserConfigurationException, TransformerException {
-        final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        docFactory.setNamespaceAware(true);
-
-        final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-        final Document document = docBuilder.newDocument();
-        final Element rootElement = document.createElement("controllerServices");
-        document.appendChild(rootElement);
-
-        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-            StandardFlowSerializer.addControllerService(rootElement, serviceNode, encryptor);
-        }
-
-        return serialize(document);
-    }
 
     private byte[] serializeReportingTasks() throws ParserConfigurationException, TransformerException {
         final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -1303,19 +1288,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         return serialize(document);
     }
 
-    public void saveControllerServices() {
-        try {
-            dataFlowManagementService.updateControllerServices(serializeControllerServices());
-        } catch (final Exception e) {
-            logger.error("Failed to save changes to NCM's Controller Services; changes may be lost on restart due to " + e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
-
-            getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Controller Services", Severity.ERROR.name(),
-                    "Failed to save changes to NCM's Controller Services; changes may be lost on restart. See logs for more details."));
-        }
-    }
 
     public void saveReportingTasks() {
         try {
@@ -2299,8 +2271,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
-        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType);
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
+        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType, groupId);
     }
 
     public void reportEvent(final NodeIdentifier nodeId, final Severity severity, final String message) {
