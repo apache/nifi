@@ -18,7 +18,11 @@ package org.apache.nifi.processors.aws.iot;
 
 import com.amazonaws.services.iotdata.AWSIotDataClient;
 import com.amazonaws.services.iotdata.model.UpdateThingShadowRequest;
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -31,7 +35,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 @Tags({"Amazon", "AWS", "IOT", "Shadow", "Put", "Update", "Write"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -73,10 +80,9 @@ public class PutAWSIoTShadow extends AbstractAWSIoTShadowProcessor {
         if (flowFile == null) return;
 
         // if provided override configured thing name with the name from the corresponding message attribute
-        String thingName =
-                flowFile.getAttributes().containsKey(ATTR_NAME_THING) ?
-                        flowFile.getAttribute(ATTR_NAME_THING) :
-                        context.getProperty(PROP_NAME_THING).getValue();
+        String thingName = flowFile.getAttributes().containsKey(ATTR_NAME_THING)
+                ? flowFile.getAttribute(ATTR_NAME_THING)
+                : context.getProperty(PROP_NAME_THING).getValue();
 
         // get message content and put it into the flowfile
         final ByteArrayOutputStream fileContentStream = new ByteArrayOutputStream();

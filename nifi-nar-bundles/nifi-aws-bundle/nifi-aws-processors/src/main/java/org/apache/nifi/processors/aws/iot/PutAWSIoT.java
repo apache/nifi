@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.processors.aws.iot;
 
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -30,7 +34,11 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.eclipse.paho.client.mqttv3.MqttException;
 
 import java.io.ByteArrayOutputStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.Map;
 
 @Tags({"Amazon", "AWS", "IOT", "MQTT", "Websockets", "Put", "Publish", "Send"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -59,7 +67,11 @@ public class PutAWSIoT extends AbstractAWSIoTProcessor {
 
     public static final PropertyDescriptor PROP_RETAINED = new PropertyDescriptor
             .Builder().name(PROP_NAME_RETAINED)
-            .description("For messages being published, a true setting indicates that the MQTT server should retain a copy of the message. The message will then be transmitted to new subscribers to a topic that matches the message topic. For subscribers registering a new subscription, the flag being true indicates that the received message is not a new one, but one that has been retained by the MQTT server.")
+            .description("For messages being published, a true setting indicates that the MQTT server " +
+                    "should retain a copy of the message. The message will then be transmitted to new " +
+                    "subscribers to a topic that matches the message topic. For subscribers registering " +
+                    "a new subscription, the flag being true indicates that the received message is not " +
+                    "a new one, but one that has been retained by the MQTT server.")
             .required(true)
             .defaultValue(PROP_DEFAULT_RETAINED.toString())
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)

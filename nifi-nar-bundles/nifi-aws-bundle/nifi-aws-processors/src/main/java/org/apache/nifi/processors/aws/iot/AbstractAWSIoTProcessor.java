@@ -72,7 +72,8 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
 
     public static final PropertyDescriptor PROP_CLIENT = new PropertyDescriptor
             .Builder().name(PROP_NAME_CLIENT)
-            .description("MQTT client ID to use. Under the cover your input will be extended by a random string to ensure a unique id among all conntected clients.")
+            .description("MQTT client ID to use. Under the cover your input will be extended by a random " +
+                    "string to ensure a unique id among all conntected clients.")
             .required(false)
             .defaultValue(PROP_DEFAULT_CLIENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -80,7 +81,12 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
 
     public static final PropertyDescriptor PROP_KEEPALIVE = new PropertyDescriptor
             .Builder().name(PROP_NAME_KEEPALIVE)
-            .description("Seconds a WebSocket-connection remains open after automatically renewing it. This is neccessary due to Amazon's service limit on WebSocket connection duration. As soon as the limit is changed by Amazon you can adjust the value here. Never use a duration longer than supported by Amazon. This processor renews the connection " + DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION + " seconds before the actual expiration. If no value set the default will be " + PROP_DEFAULT_KEEPALIVE + ".")
+            .description("Seconds a WebSocket-connection remains open after automatically renewing it. " +
+                    "This is neccessary due to Amazon's service limit on WebSocket connection duration. " +
+                    "As soon as the limit is changed by Amazon you can adjust the value here. Never use " +
+                    "a duration longer than supported by Amazon. This processor renews the connection " +
+                    "" + DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION + " seconds before the " +
+                    "actual expiration. If no value set the default will be " + PROP_DEFAULT_KEEPALIVE + ".")
             .required(false)
             .defaultValue(PROP_DEFAULT_KEEPALIVE.toString())
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -96,7 +102,8 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor
             .Builder().name(PROP_NAME_QOS)
             .description("Decide for at most once (0) or at least once (1) message-receiption. " +
-                    "Currently AWS IoT does not support QoS-level 2. If no value set the default QoS is " + DEFAULT_QOS + ".")
+                    "Currently AWS IoT does not support QoS-level 2. If no value set the default QoS " +
+                    "is " + DEFAULT_QOS + ".")
             .required(false)
             .allowableValues("0", "1")
             .defaultValue("0")

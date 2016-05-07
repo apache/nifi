@@ -37,26 +37,16 @@ import org.eclipse.paho.client.mqttv3.internal.NetworkModule;
 import org.eclipse.paho.client.mqttv3.logging.Logger;
 import org.eclipse.paho.client.mqttv3.logging.LoggerFactory;
 
-public class WebSocketNetworkModule extends WebSocketAdapter implements
-        NetworkModule {
-    private static final String CLASS_NAME = WebSocketNetworkModule.class
-            .getName();
-    private static final Logger log = LoggerFactory.getLogger(
-            LoggerFactory.MQTT_CLIENT_MSG_CAT, CLASS_NAME);
-
-    /**
-     * WebSocket URI
-     */
+public class WebSocketNetworkModule extends WebSocketAdapter implements NetworkModule {
+    private static final String CLASS_NAME = WebSocketNetworkModule.class.getName();
+    private static final Logger log = LoggerFactory.getLogger(LoggerFactory.MQTT_CLIENT_MSG_CAT, CLASS_NAME);
     private final URI uri;
-
-    /**
-     * Sub-Protocol
-     */
     private final String subProtocol;
+    private final PipedOutputStream receiverStream = new PipedOutputStream();
+    private final PipedInputStream inputStream;
+    private WebSocketClient client;
+    private int conTimeout;
 
-    /**
-     * A stream for outgoing data
-     */
     private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream() {
         @Override
         public void flush() throws IOException {
@@ -71,22 +61,6 @@ public class WebSocketNetworkModule extends WebSocketAdapter implements
         }
     };
 
-    /**
-     * A pair of streams for incoming data
-     */
-    private final PipedOutputStream receiverStream = new PipedOutputStream();
-    private final PipedInputStream inputStream;
-
-    private WebSocketClient client;
-    private int conTimeout;
-
-    /**
-     * Constructs a new WebSocketNetworkModule using the specified URI.
-     *
-     * @param uri
-     * @param subProtocol
-     * @param resourceContext
-     */
     public WebSocketNetworkModule(URI uri, String subProtocol,
                                   String resourceContext) {
         log.setResourceName(resourceContext);
@@ -99,22 +73,12 @@ public class WebSocketNetworkModule extends WebSocketAdapter implements
         }
     }
 
-    /**
-     * A factory method for {@link ClientUpgradeRequest} class
-     *
-     * @return
-     */
     protected ClientUpgradeRequest createClientUpgradeRequest() {
         final ClientUpgradeRequest request = new ClientUpgradeRequest();
         // you can manipulate the request by overriding this method.
         return request;
     }
 
-    /**
-     * A factory method for {@link WebSocketClient} class
-     *
-     * @return
-     */
     protected WebSocketClient createWebSocketClient() {
         final WebSocketClient client = new WebSocketClient(
                 createSslContextFactory());
@@ -122,19 +86,10 @@ public class WebSocketNetworkModule extends WebSocketAdapter implements
         return client;
     }
 
-    /**
-     * A factory method for {@link SslContextFactory} class, used for
-     * instantiating a WebSocketClient()
-     *
-     * @return
-     */
     protected SslContextFactory createSslContextFactory() {
         return new SslContextFactory();
     }
 
-    /**
-     * Starts the module, by creating a TCP socket to the server.
-     */
     @Override
     public void start() throws IOException, MqttException {
         final String methodName = "start";
@@ -186,9 +141,6 @@ public class WebSocketNetworkModule extends WebSocketAdapter implements
         return outputStream;
     }
 
-    /**
-     * Stops the module, by closing the web socket.
-     */
     @Override
     public void stop() throws IOException {
         try {
@@ -200,12 +152,6 @@ public class WebSocketNetworkModule extends WebSocketAdapter implements
         }
     }
 
-    /**
-     * Set the maximum time in seconds to wait for a socket to be established
-     *
-     * @param timeout
-     *            in seconds
-     */
     public void setConnectTimeout(int timeout) {
         this.conTimeout = timeout;
     }

@@ -19,7 +19,11 @@ package org.apache.nifi.processors.aws.iot;
 import com.amazonaws.services.iotdata.AWSIotDataClient;
 import com.amazonaws.services.iotdata.model.GetThingShadowRequest;
 import com.amazonaws.services.iotdata.model.GetThingShadowResult;
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -33,7 +37,13 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+
 
 @Tags({"Amazon", "AWS", "IOT", "Shadow", "Get"})
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
@@ -81,10 +91,9 @@ public class GetAWSIoTShadow extends AbstractAWSIoTShadowProcessor {
         // get flowfile
         FlowFile flowFile = session.get();
         // if provided override configured thing name with name from corresponding message attribute
-        String thingName =
-                flowFile != null && flowFile.getAttributes().containsKey(ATTR_NAME_THING) ?
-                        flowFile.getAttribute(ATTR_NAME_THING) :
-                        context.getProperty(PROP_NAME_THING).getValue();
+        String thingName = flowFile != null && flowFile.getAttributes().containsKey(ATTR_NAME_THING)
+                        ? flowFile.getAttribute(ATTR_NAME_THING)
+                        : context.getProperty(PROP_NAME_THING).getValue();
 
         // ask shadow of the thing for last reported state by requesting the API of AWS
         final GetThingShadowRequest iotRequest = new GetThingShadowRequest().withThingName(thingName);

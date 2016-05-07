@@ -88,7 +88,7 @@ public class AWS4Signer {
         return AWS_IOT_PROTOCOL + "://" + strHost + AWS_IOT_WS_PATH + "?" + strCanonicalQuerystring;
     }
 
-    public static String sha256(String data) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private static String sha256(String data) throws UnsupportedEncodingException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         digest.reset();
         return bin2hex(digest.digest(data.getBytes("UTF-8")));
@@ -98,8 +98,7 @@ public class AWS4Signer {
         return String.format("%0" + (data.length * 2) + "X", new BigInteger(1, data)).toLowerCase();
     }
 
-    private static String GetUTCdatetimeAsString(Date dt, String strFormat)
-    {
+    private static String GetUTCdatetimeAsString(Date dt, String strFormat) {
         final SimpleDateFormat sdf = new SimpleDateFormat(strFormat);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         return sdf.format(dt);

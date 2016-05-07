@@ -37,6 +37,8 @@ public class IoTMessage {
         return payload;
     }
 
-    public Integer getQos() { return qos; }
+    public Integer getQos() {
+        return qos;
+    }
 }
 

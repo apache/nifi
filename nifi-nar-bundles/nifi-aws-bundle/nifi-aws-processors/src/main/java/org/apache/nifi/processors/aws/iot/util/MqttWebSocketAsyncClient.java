@@ -20,12 +20,16 @@ import java.net.URI;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.nifi.logging.ProcessorLog;
-import org.eclipse.paho.client.mqttv3.*;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.TimerPingSender;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttSecurityException;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.internal.NetworkModule;
-import org.eclipse.paho.client.mqttv3.logging.Logger;
-import org.eclipse.paho.client.mqttv3.logging.LoggerFactory;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 
 public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCallback {
 
@@ -68,17 +72,6 @@ public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCal
         return networkModules;
     }
 
-
-    /**
-     * Factory method to create the correct network module, based on the
-     * supplied address URI.
-     *
-     * @param input
-     *            the URI for the server.
-     * @param options
-     *            MQTT connect options
-     * @return a network module appropriate to the specified address.
-     */
     protected NetworkModule createNetworkModule(String input,
                                                 MqttConnectOptions options) throws MqttException,
             MqttSecurityException {
@@ -87,29 +80,10 @@ public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCal
             return super.createNetworkModules(address, options)[0];
         }
 
-        final String subProtocol;
-        if (options.getMqttVersion() == MqttConnectOptions.MQTT_VERSION_3_1) {
-            // http://wiki.eclipse.org/Paho/Paho_Websockets#Ensuring_implementations_can_inter-operate
-            subProtocol = "mqttv3.1";
-        } else {
-            // http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/cs01/mqtt-v3.1.1-cs01.html#_Toc388534418
-            subProtocol = "mqtt";
-        }
-        return newWebSocketNetworkModule(URI.create(address), subProtocol,
-                options);
+        final String subProtocol = (options.getMqttVersion() == MqttConnectOptions.MQTT_VERSION_3_1) ? "mqttv3.1" : "mqtt";
+        return newWebSocketNetworkModule(URI.create(address), subProtocol, options);
     }
 
-    /**
-     * A factory method for instantiating a {@link NetworkModule} with websocket
-     * support. Subclasses is able to extend this method in order to create an
-     * arbitrary {@link NetworkModule} class instance.
-     *
-     * @param uri
-     * @param subProtocol
-     *            Either `mqtt` for MQTT v3 or `mqttv3.1` for MQTT v3.1
-     * @param options
-     * @return
-     */
     protected NetworkModule newWebSocketNetworkModule(URI uri,
                                                       String subProtocol, MqttConnectOptions options) {
         final WebSocketNetworkModule netModule = new WebSocketNetworkModule(

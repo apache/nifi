@@ -32,11 +32,17 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.aws.iot.util.IoTMessage;
 import org.apache.nifi.processors.aws.iot.util.MqttWebSocketAsyncClient;
-import org.eclipse.paho.client.mqttv3.*;
+import org.eclipse.paho.client.mqttv3.MqttException;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.LinkedList;
+import java.util.HashMap;
+import java.util.Map;
 
 @Tags({"Amazon", "AWS", "IOT", "MQTT", "Websockets", "Get", "Subscribe", "Receive"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
