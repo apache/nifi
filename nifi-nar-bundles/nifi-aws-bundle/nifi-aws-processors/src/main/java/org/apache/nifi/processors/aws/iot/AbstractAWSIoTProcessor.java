@@ -165,8 +165,9 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
      * @return seconds
      */
     long getConnectionDuration() {
-        return dtLastConnect != null ?
-                TimeUnit.MILLISECONDS.toSeconds(new Date().getTime() - dtLastConnect.getTime()) : awsKeepAliveSeconds + 1;
+        return dtLastConnect != null
+                ? TimeUnit.MILLISECONDS.toSeconds(new Date().getTime() - dtLastConnect.getTime())
+                : awsKeepAliveSeconds + 1;
     }
 
     /**

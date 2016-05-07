@@ -112,13 +112,11 @@ public class PutAWSIoT extends AbstractAWSIoTProcessor {
             // renew connection
             mqttClient = connect(context);
         }
-
         // get flowfile
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
-        
         Map<String, String> attributes = flowFile.getAttributes();
         // if provided override MQTT configuration with values from the corresponding message attributes
         String topic = attributes.containsKey(ATTR_NAME_TOPIC) ? attributes.get(ATTR_NAME_TOPIC) : awsTopic;
