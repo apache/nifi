@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller;
+package org.apache.nifi.controller.serialization;
 
 import java.io.OutputStream;
+
+import org.apache.nifi.controller.FlowController;
 
 /**
  * Serializes the flow configuration of a controller instance to an output stream.

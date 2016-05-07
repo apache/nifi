@@ -126,6 +126,10 @@ import org.apache.nifi.controller.scheduling.ProcessContextFactory;
 import org.apache.nifi.controller.scheduling.QuartzSchedulingAgent;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.scheduling.TimerDrivenSchedulingAgent;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSerializer;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -262,7 +266,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final RemoteSiteListener externalSiteListener;
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
-    private final ControllerServiceProvider controllerServiceProvider;
+    private final StandardControllerServiceProvider controllerServiceProvider;
     private final KeyService keyService;
     private final AuditService auditService;
     private final EventDrivenWorkerQueue eventDrivenWorkerQueue;
@@ -436,7 +440,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         processScheduler = new StandardProcessScheduler(this, encryptor, stateManagerProvider);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
-        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
 
         final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceEventRepository);
         processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, new EventDrivenSchedulingAgent(
@@ -486,6 +489,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         rootGroup = new StandardProcessGroup(UUID.randomUUID().toString(), this, processScheduler, properties, encryptor, this);
         rootGroup.setName(DEFAULT_ROOT_GROUP_NAME);
         instanceId = UUID.randomUUID().toString();
+
+        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
+        controllerServiceProvider.setRootProcessGroup(rootGroup);
 
         if (remoteInputSocketPort == null) {
             LOG.info("Not enabling Site-to-Site functionality because nifi.remote.input.socket.port is not set");
@@ -1425,6 +1431,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             if (externalSiteListener != null) {
                 externalSiteListener.setRootGroup(group);
             }
+
+            controllerServiceProvider.setRootProcessGroup(rootGroup);
 
             // update the heartbeat bean
             this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connectionStatus));
@@ -3836,8 +3844,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
-        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType);
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
+        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType, groupId);
     }
 
     @Override

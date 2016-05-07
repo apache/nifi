@@ -47,7 +47,7 @@ public class MockControllerServiceLookup implements ControllerServiceLookup {
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType)
+    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType, String groupId)
             throws IllegalArgumentException {
         return Collections.emptySet();
     }

@@ -1120,17 +1120,19 @@ public interface NiFiServiceFacade {
      * Creates a controller service.
      *
      * @param revision Revision to compare with current base revision
+     * @param groupId the ID of the Process Group to add the Controller Service to
      * @param controllerServiceDTO The controller service DTO
      * @return The controller service DTO
      */
-    ControllerServiceEntity createControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
+    ControllerServiceEntity createControllerService(Revision revision, String groupId, ControllerServiceDTO controllerServiceDTO);
 
     /**
-     * Gets all controller services.
+     * Gets all controller services that belong to the given group and its parent/ancestor groups
      *
+     * @param groupId the id of the process group of interest
      * @return services
      */
-    Set<ControllerServiceDTO> getControllerServices();
+    Set<ControllerServiceDTO> getControllerServices(String groupId);
 
     /**
      * Gets the specified controller service.

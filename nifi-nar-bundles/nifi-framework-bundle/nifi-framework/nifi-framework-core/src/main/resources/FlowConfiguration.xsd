@@ -29,6 +29,8 @@
             <!-- Groupings of Processors/Ports -->
             <xs:element name="rootGroup" type="RootProcessGroupType" />
             
+            <!-- This exists for backward compatibility between NiFi 1.x and NiFi 0.x. Any Controller Service that is listed
+            here is assigned to the root group -->
             <xs:element name="controllerServices" type="ControllerServicesType" minOccurs="0" maxOccurs="1" />
             
             <xs:element name="reportingTasks" type="ReportingTasksType" minOccurs="0" maxOccurs="1" />
@@ -139,6 +141,7 @@
             <xs:element name="processGroup" type="ProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="remoteProcessGroup" type="RemoteProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
     
@@ -162,6 +165,7 @@
             <xs:element name="processGroup" type="ProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="remoteProcessGroup" type="RemoteProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
     

@@ -918,8 +918,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public boolean isValid() {
         try {
-            final ValidationContext validationContext = validationContextFactory.newValidationContext(getProperties(),
-                    getAnnotationData());
+            final ValidationContext validationContext = validationContextFactory.newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier());
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -966,7 +965,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final List<ValidationResult> results = new ArrayList<>();
         try {
             final ValidationContext validationContext = validationContextFactory.newValidationContext(getProperties(),
-                    getAnnotationData());
+                getAnnotationData(), getProcessGroup().getIdentifier());
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -1420,5 +1419,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         } finally {
             callback.postMonitor();
         }
+    }
+
+    @Override
+    protected String getProcessGroupIdentifier() {
+        final ProcessGroup group = getProcessGroup();
+        return group == null ? null : group.getIdentifier();
     }
 }

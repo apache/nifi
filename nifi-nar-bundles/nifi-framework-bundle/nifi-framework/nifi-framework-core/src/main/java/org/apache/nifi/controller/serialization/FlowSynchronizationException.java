@@ -14,33 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller;
+package org.apache.nifi.controller.serialization;
+
+import org.apache.nifi.cluster.ConnectionException;
 
 /**
- * Represents the exceptional case when flow configuration is malformed and therefore, cannot be serialized or deserialized.
+ * Represents the exceptional case when a controller managing an existing flow fails to fully load a different flow.
  *
  */
-public class FlowSerializationException extends RuntimeException {
+public class FlowSynchronizationException extends ConnectionException {
 
-    private static final long serialVersionUID = 128934798237L;
+    private static final long serialVersionUID = 109234802938L;
 
-    public FlowSerializationException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public FlowSynchronizationException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 
-    public FlowSerializationException(Throwable cause) {
+    public FlowSynchronizationException(Throwable cause) {
         super(cause);
     }
 
-    public FlowSerializationException(String message, Throwable cause) {
+    public FlowSynchronizationException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public FlowSerializationException(String message) {
+    public FlowSynchronizationException(String message) {
         super(message);
     }
 
-    public FlowSerializationException() {
+    public FlowSynchronizationException() {
     }
-
 }

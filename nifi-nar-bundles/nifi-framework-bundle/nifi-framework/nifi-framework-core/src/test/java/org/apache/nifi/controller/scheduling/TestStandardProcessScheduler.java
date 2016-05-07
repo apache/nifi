@@ -50,6 +50,8 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
+import org.apache.nifi.controller.service.mock.MockProcessGroup;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -116,11 +118,17 @@ public class TestStandardProcessScheduler {
     @Test(timeout = 6000)
     public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException {
         final Processor proc = new ServiceReferencingProcessor();
+        final ProcessGroup group = new MockProcessGroup();
 
-        final ControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(scheduler, null, Mockito.mock(StateManagerProvider.class));
+        final StandardControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(scheduler, null, Mockito.mock(StateManagerProvider.class));
+        serviceProvider.setRootProcessGroup(group);
+
         final ControllerServiceNode service = serviceProvider.createControllerService(NoStartServiceImpl.class.getName(), "service", true);
+        group.addControllerService(service);
+
         final ProcessorNode procNode = new StandardProcessorNode(proc, UUID.randomUUID().toString(),
                 new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider);
+        group.addProcessor(procNode);
 
         procNode.setProperty(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier());
 

@@ -55,6 +55,12 @@ import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
+import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizer;
+import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.controller.service.ControllerServiceLoader;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -123,19 +129,18 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final Element rootElement = document.getDocumentElement();
 
         final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
-        final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor);
+        final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootGroupElement);
+
+        final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
         return isEmpty(rootGroupDto);
     }
 
     @Override
     public void sync(final FlowController controller, final DataFlow proposedFlow, final StringEncryptor encryptor)
             throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
-        // get the controller's root group
-        final ProcessGroup rootGroup = controller.getGroup(controller.getRootGroupId());
-
         // handle corner cases involving no proposed flow
         if (proposedFlow == null) {
-            if (rootGroup.isEmpty()) {
+            if (controller.getGroup(controller.getRootGroupId()).isEmpty()) {
                 return;  // no sync to perform
             } else {
                 throw new UninheritableFlowException("Proposed configuration is empty, but the controller contains a data flow.");
@@ -160,6 +165,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 } else {
                     final Document document = parseFlowBytes(existingFlow);
                     final Element rootElement = document.getDocumentElement();
+                    final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootElement);
 
                     logger.trace("Setting controller thread counts");
                     final Integer maxThreadCount = getInteger(rootElement, "maxThreadCount");
@@ -180,17 +186,17 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     }
 
                     final Element controllerServicesElement = DomUtils.getChild(rootElement, "controllerServices");
-                    final List<Element> controllerServiceElements;
+                    final List<Element> unrootedControllerServiceElements;
                     if (controllerServicesElement == null) {
-                        controllerServiceElements = Collections.emptyList();
+                        unrootedControllerServiceElements = Collections.emptyList();
                     } else {
-                        controllerServiceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
+                        unrootedControllerServiceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
                     }
 
                     logger.trace("Parsing process group from DOM");
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
-                    final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor);
-                    existingFlowEmpty = taskElements.isEmpty() && controllerServiceElements.isEmpty() && isEmpty(rootGroupDto);
+                    final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
+                    existingFlowEmpty = taskElements.isEmpty() && unrootedControllerServiceElements.isEmpty() && isEmpty(rootGroupDto);
                     logger.debug("Existing Flow Empty = {}", existingFlowEmpty);
                 }
             }
@@ -237,6 +243,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 synchronized (configuration) {
                     // get the root element
                     final Element rootElement = (Element) configuration.getElementsByTagName("flowController").item(0);
+                    final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootElement);
 
                     // set controller config
                     logger.trace("Updating flow config");
@@ -252,26 +259,32 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     // get the root group XML element
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
 
+                    // if this controller isn't initialized or its empty, add the root group, otherwise update
+                    final ProcessGroup rootGroup;
+                    if (!initialized || existingFlowEmpty) {
+                        logger.trace("Adding root process group");
+                        rootGroup = addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
+                    } else {
+                        logger.trace("Updating root process group");
+                        rootGroup = updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
+                    }
+
                     final Element controllerServicesElement = DomUtils.getChild(rootElement, "controllerServices");
                     if (controllerServicesElement != null) {
                         final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
 
                         if (!initialized || existingFlowEmpty) {
-                            ControllerServiceLoader.loadControllerServices(serviceElements, controller, encryptor, controller.getBulletinRepository(), autoResumeState);
+                            // If the encoding version is null, we are loading a flow from NiFi 0.x, where Controller
+                            // Services could not be scoped by Process Group. As a result, we want to move the Process Groups
+                            // to the root Group. Otherwise, we want to use a null group, which indicates a Controller-level
+                            // Controller Service.
+                            final ProcessGroup group = (encodingVersion == null) ? rootGroup : null;
+                            ControllerServiceLoader.loadControllerServices(serviceElements, controller, group, encryptor, controller.getBulletinRepository(), autoResumeState);
                         } else {
                             for (final Element serviceElement : serviceElements) {
                                 updateControllerService(controller, serviceElement, encryptor);
                             }
                         }
-                    }
-
-                    // if this controller isn't initialized or its emtpy, add the root group, otherwise update
-                    if (!initialized || existingFlowEmpty) {
-                        logger.trace("Adding root process group");
-                        addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
-                    } else {
-                        logger.trace("Updating root process group");
-                        updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
                     }
 
                     final Element reportingTasksElement = DomUtils.getChild(rootElement, "reportingTasks");
@@ -488,14 +501,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private ProcessGroup updateProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement, final StringEncryptor encryptor)
-            throws ProcessorInstantiationException {
+    private ProcessGroup updateProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
+        final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) throws ProcessorInstantiationException {
 
         // get the parent group ID
         final String parentId = (parentGroup == null) ? null : parentGroup.getIdentifier();
 
         // get the process group
-        final ProcessGroupDTO processGroupDto = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor);
+        final ProcessGroupDTO processGroupDto = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor, encodingVersion);
 
         // update the process group
         if (parentId == null) {
@@ -636,7 +649,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // update nested process groups (recursively)
         final List<Element> nestedProcessGroupNodeList = getChildrenByTagName(processGroupElement, "processGroup");
         for (final Element nestedProcessGroupElement : nestedProcessGroupNodeList) {
-            updateProcessGroup(controller, processGroup, nestedProcessGroupElement, encryptor);
+            updateProcessGroup(controller, processGroup, nestedProcessGroupElement, encryptor, encodingVersion);
         }
 
         // update connections
@@ -690,6 +703,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             if (dto.getFlowFileExpiration() != null) {
                 connection.getFlowFileQueue().setFlowFileExpiration(dto.getFlowFileExpiration());
             }
+        }
+
+        // Update Controller Services
+        final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
+        for (final Element serviceNodeElement : serviceNodeList) {
+            updateControllerService(controller, serviceNodeElement, encryptor);
         }
 
         return processGroup;
@@ -749,13 +768,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private ProcessGroup addProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement, final StringEncryptor encryptor)
-            throws ProcessorInstantiationException {
+    private ProcessGroup addProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
+        final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) throws ProcessorInstantiationException {
         // get the parent group ID
         final String parentId = (parentGroup == null) ? null : parentGroup.getIdentifier();
 
         // add the process group
-        final ProcessGroupDTO processGroupDTO = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor);
+        final ProcessGroupDTO processGroupDTO = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor, encodingVersion);
         final ProcessGroup processGroup = controller.createProcessGroup(processGroupDTO.getId());
         processGroup.setComments(processGroupDTO.getComments());
         processGroup.setPosition(toPosition(processGroupDTO.getPosition()));
@@ -892,7 +911,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // add nested process groups (recursively)
         final List<Element> nestedProcessGroupNodeList = getChildrenByTagName(processGroupElement, "processGroup");
         for (final Element nestedProcessGroupElement : nestedProcessGroupNodeList) {
-            addProcessGroup(controller, processGroup, nestedProcessGroupElement, encryptor);
+            addProcessGroup(controller, processGroup, nestedProcessGroupElement, encryptor, encodingVersion);
         }
 
         // add remote process group
@@ -1025,6 +1044,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             processGroup.addConnection(connection);
+        }
+
+        // Add Controller Services
+        final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
+        if (!serviceNodeList.isEmpty()) {
+            ControllerServiceLoader.loadControllerServices(serviceNodeList, controller, processGroup, encryptor, controller.getBulletinRepository(), autoResumeState);
         }
 
         return processGroup;

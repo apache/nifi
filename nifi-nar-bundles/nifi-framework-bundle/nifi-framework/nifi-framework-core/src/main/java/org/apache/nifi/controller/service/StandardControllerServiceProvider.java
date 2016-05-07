@@ -30,19 +30,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
-import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -51,6 +48,7 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
@@ -68,10 +66,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private static final Logger logger = LoggerFactory.getLogger(StandardControllerServiceProvider.class);
 
     private final ProcessScheduler processScheduler;
-    private final ConcurrentMap<String, ControllerServiceNode> controllerServices;
     private static final Set<Method> validDisabledMethods;
     private final BulletinRepository bulletinRepo;
     private final StateManagerProvider stateManagerProvider;
+    private volatile ProcessGroup rootGroup;
 
     static {
         // methods that are okay to be called when the service is disabled.
@@ -88,10 +86,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public StandardControllerServiceProvider(final ProcessScheduler scheduler, final BulletinRepository bulletinRepo, final StateManagerProvider stateManagerProvider) {
         // the following 2 maps must be updated atomically, but we do not lock around them because they are modified
         // only in the createControllerService method, and both are modified before the method returns
-        this.controllerServices = new ConcurrentHashMap<>();
         this.processScheduler = scheduler;
         this.bulletinRepo = bulletinRepo;
         this.stateManagerProvider = stateManagerProvider;
+    }
+
+    public void setRootProcessGroup(ProcessGroup rootGroup) {
+        this.rootGroup = rootGroup;
     }
 
     private Class<?>[] getInterfaces(final Class<?> cls) {
@@ -195,7 +196,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 }
             }
 
-            this.controllerServices.put(id, serviceNode);
             return serviceNode;
         } catch (final Throwable t) {
             throw new ControllerServiceInstantiationException(t);
@@ -444,7 +444,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public ControllerService getControllerService(final String serviceIdentifier) {
-        final ControllerServiceNode node = controllerServices.get(serviceIdentifier);
+        final ControllerServiceNode node = getControllerServiceNode(serviceIdentifier);
         return node == null ? null : node.getProxiedControllerService();
     }
 
@@ -455,27 +455,43 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public boolean isControllerServiceEnabled(final String serviceIdentifier) {
-        final ControllerServiceNode node = controllerServices.get(serviceIdentifier);
+        final ControllerServiceNode node = getControllerServiceNode(serviceIdentifier);
         return node == null ? false : ControllerServiceState.ENABLED == node.getState();
     }
 
     @Override
     public boolean isControllerServiceEnabling(final String serviceIdentifier) {
-        final ControllerServiceNode node = controllerServices.get(serviceIdentifier);
+        final ControllerServiceNode node = getControllerServiceNode(serviceIdentifier);
         return node == null ? false : ControllerServiceState.ENABLING == node.getState();
     }
 
     @Override
     public ControllerServiceNode getControllerServiceNode(final String serviceIdentifier) {
-        return controllerServices.get(serviceIdentifier);
+        final ProcessGroup group = rootGroup;
+        return group == null ? null : group.findControllerService(serviceIdentifier);
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
+        ProcessGroup group = rootGroup;
+        if (group == null) {
+            return Collections.emptySet();
+        }
+
+        if (!FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
+            group = group.findProcessGroup(groupId);
+        }
+
+        if (group == null) {
+            return Collections.emptySet();
+        }
+
+        final Set<ControllerServiceNode> serviceNodes = group.getControllerServices(true);
+
         final Set<String> identifiers = new HashSet<>();
-        for (final Map.Entry<String, ControllerServiceNode> entry : controllerServices.entrySet()) {
-            if (requireNonNull(serviceType).isAssignableFrom(entry.getValue().getProxiedControllerService().getClass())) {
-                identifiers.add(entry.getKey());
+        for (final ControllerServiceNode serviceNode : serviceNodes) {
+            if (requireNonNull(serviceType).isAssignableFrom(serviceNode.getProxiedControllerService().getClass())) {
+                identifiers.add(serviceNode.getIdentifier());
             }
         }
 
@@ -490,39 +506,22 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void removeControllerService(final ControllerServiceNode serviceNode) {
-        final ControllerServiceNode existing = controllerServices.get(serviceNode.getIdentifier());
-        if (existing == null || existing != serviceNode) {
-            throw new IllegalStateException("Controller Service " + serviceNode + " does not exist in this Flow");
+        final ProcessGroup group = requireNonNull(serviceNode).getProcessGroup();
+        if (group == null) {
+            throw new IllegalArgumentException("Cannot remote Controller Service " + serviceNode + " because it does not belong to any Process Group");
         }
 
-        serviceNode.verifyCanDelete();
-
-        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, this, null);
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, serviceNode.getControllerServiceImplementation(), configurationContext);
-        }
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : serviceNode.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            if (descriptor.getControllerServiceDefinition() != null) {
-                final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
-                if (value != null) {
-                    final ControllerServiceNode referencedNode = getControllerServiceNode(value);
-                    if (referencedNode != null) {
-                        referencedNode.removeReference(serviceNode);
-                    }
-                }
-            }
-        }
-
-        controllerServices.remove(serviceNode.getIdentifier());
-
-        stateManagerProvider.onComponentRemoved(serviceNode.getIdentifier());
+        group.removeControllerService(serviceNode);
     }
 
     @Override
     public Set<ControllerServiceNode> getAllControllerServices() {
-        return new HashSet<>(controllerServices.values());
+        final ProcessGroup group = rootGroup;
+        if (group == null) {
+            return Collections.emptySet();
+        }
+
+        return group.findAllControllerServices();
     }
 
     /**
@@ -560,6 +559,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public Set<ConfiguredComponent> enableReferencingServices(final ControllerServiceNode serviceNode) {
         final List<ControllerServiceNode> recursiveReferences = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
+        logger.debug("Enabling the following Referencing Services for {}: {}", serviceNode, recursiveReferences);
         return enableReferencingServices(serviceNode, recursiveReferences);
     }
 
@@ -580,6 +580,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
             if (!nodeToEnable.isActive()) {
+                logger.debug("Enabling {} because it references {}", nodeToEnable, serviceNode);
                 enableControllerService(nodeToEnable);
                 updated.add(nodeToEnable);
             }

@@ -41,9 +41,9 @@ import javax.xml.validation.SchemaFactory;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowFromDOMFactory;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.DomUtils;
@@ -431,6 +431,18 @@ public final class FingerprintFactory {
 
             for (final RemoteProcessGroupDTO remoteGroup : sortedRemoteGroups) {
                 addRemoteProcessGroupFingerprint(builder, remoteGroup);
+            }
+        }
+
+        final Set<ControllerServiceDTO> services = snippet.getControllerServices();
+        if (services == null || services.isEmpty()) {
+            builder.append("NO_CONTROLLER_SERVICES");
+        } else {
+            final List<ControllerServiceDTO> sortedServices = new ArrayList<>(services);
+            Collections.sort(sortedServices, componentComparator);
+
+            for (final ControllerServiceDTO service : sortedServices) {
+                addControllerServiceFingerprint(builder, service);
             }
         }
 

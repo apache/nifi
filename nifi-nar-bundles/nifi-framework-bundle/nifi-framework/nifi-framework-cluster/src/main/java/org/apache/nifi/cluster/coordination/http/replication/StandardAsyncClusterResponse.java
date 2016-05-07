@@ -138,7 +138,10 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
             return null;
         }
 
-        final Set<NodeResponse> nodeResponses = responseMap.values().stream().map(p -> p.getResponse()).collect(Collectors.toSet());
+        final Set<NodeResponse> nodeResponses = responseMap.values().stream()
+            .map(p -> p.getResponse())
+            .filter(response -> response != null)
+            .collect(Collectors.toSet());
         mergedResponse = responseMerger.mergeResponses(uri, method, nodeResponses);
 
         logger.debug("Notifying all that merged response is complete for {}", id);

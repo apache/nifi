@@ -36,6 +36,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -45,6 +46,7 @@ import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.NarCloseable;
@@ -92,6 +94,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, RemoteProcessGroup> remoteGroups = new HashMap<>();
     private final Map<String, ProcessorNode> processors = new HashMap<>();
     private final Map<String, Funnel> funnels = new HashMap<>();
+    private final Map<String, ControllerServiceNode> controllerServices = new HashMap<>();
     private final StringEncryptor encryptor;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -1721,6 +1724,41 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public ControllerServiceNode findControllerService(final String id) {
+        return findControllerService(id, this);
+    }
+
+    private ControllerServiceNode findControllerService(final String id, final ProcessGroup start) {
+        ControllerServiceNode service = start.getControllerService(id);
+        if (service != null) {
+            return service;
+        }
+
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            service = findControllerService(id, group);
+            if (service != null) {
+                return service;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public Set<ControllerServiceNode> findAllControllerServices() {
+        return findAllControllerServices(this);
+    }
+
+    public Set<ControllerServiceNode> findAllControllerServices(ProcessGroup start) {
+        final Set<ControllerServiceNode> services = start.getControllerServices(false);
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            services.addAll(findAllControllerServices(group));
+        }
+
+        return services;
+    }
+
+    @Override
     public void removeFunnel(final Funnel funnel) {
         writeLock.lock();
         try {
@@ -1758,6 +1796,91 @@ public final class StandardProcessGroup implements ProcessGroup {
             readLock.unlock();
         }
     }
+
+
+    @Override
+    public void addControllerService(final ControllerServiceNode service) {
+        writeLock.lock();
+        try {
+            final String id = requireNonNull(service).getIdentifier();
+            final ControllerServiceNode existingService = controllerServices.get(id);
+            if (existingService != null) {
+                throw new IllegalStateException("A Controller Service is already registered to this ProcessGroup with ID " + id);
+            }
+
+            service.setProcessGroup(this);
+            this.controllerServices.put(service.getIdentifier(), service);
+            LOG.info("{} added to {}", service, this);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public ControllerServiceNode getControllerService(final String id) {
+        readLock.lock();
+        try {
+            return controllerServices.get(requireNonNull(id));
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<ControllerServiceNode> getControllerServices(final boolean recursive) {
+        readLock.lock();
+        try {
+            final Set<ControllerServiceNode> services = new HashSet<>();
+            services.addAll(controllerServices.values());
+
+            if (recursive && parent.get() != null) {
+                services.addAll(parent.get().getControllerServices(true));
+            }
+
+            return services;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public void removeControllerService(final ControllerServiceNode service) {
+        writeLock.lock();
+        try {
+            final ControllerServiceNode existing = controllerServices.get(requireNonNull(service).getIdentifier());
+            if (existing == null) {
+                throw new IllegalStateException(service + " is not a member of this Process Group");
+            }
+
+            service.verifyCanDelete();
+
+            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
+            }
+
+            for (final Map.Entry<PropertyDescriptor, String> entry : service.getProperties().entrySet()) {
+                final PropertyDescriptor descriptor = entry.getKey();
+                if (descriptor.getControllerServiceDefinition() != null) {
+                    final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
+                    if (value != null) {
+                        final ControllerServiceNode referencedNode = getControllerService(value);
+                        if (referencedNode != null) {
+                            referencedNode.removeReference(service);
+                        }
+                    }
+                }
+            }
+
+            controllerServices.remove(service.getIdentifier());
+            flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier());
+
+            LOG.info("{} removed from {}", service, this);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
 
     @Override
     public void remove(final Snippet snippet) {
