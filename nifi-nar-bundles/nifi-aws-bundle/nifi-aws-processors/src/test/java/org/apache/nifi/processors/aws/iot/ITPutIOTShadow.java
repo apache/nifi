@@ -35,16 +35,16 @@ public class ITPutIOTShadow {
     @Test
     public void testSimplePutUsingCredentialsProviderService() throws Throwable {
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        final TestRunner runner = TestRunners.newTestRunner(new PutIOTShadow());
+        final TestRunner runner = TestRunners.newTestRunner(new PutAWSIoTShadow());
         final String thing = "thingName";
         final byte[] message = "{\"state\":{\"desired\":{\"key\":\"value\"}}}".getBytes();
         final Region region = Regions.getCurrentRegion();
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
-        runner.setProperty(PutIOTShadow.PROP_THING, thing);
-        runner.setProperty(PutIOTShadow.REGION, region.getName());
-        runner.setProperty(PutIOTShadow.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+        runner.setProperty(PutAWSIoTShadow.PROP_THING, thing);
+        runner.setProperty(PutAWSIoTShadow.REGION, region.getName());
+        runner.setProperty(PutAWSIoTShadow.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
 
         runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
 
@@ -59,9 +59,9 @@ public class ITPutIOTShadow {
         runner.run(1);
 
         // validate that the FlowFiles went where they were expected to go
-        runner.assertAllFlowFilesTransferred(PutIOTShadow.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(PutAWSIoTShadow.REL_SUCCESS, 1);
 
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutIOTShadow.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutAWSIoTShadow.REL_SUCCESS);
         for (final MockFlowFile mff : flowFiles) {
             mff.assertContentEquals(message);
         }

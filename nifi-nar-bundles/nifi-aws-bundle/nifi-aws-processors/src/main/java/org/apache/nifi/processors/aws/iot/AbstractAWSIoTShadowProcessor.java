@@ -25,7 +25,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-public abstract class AbstractIOTShadowProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotDataClient> {
+public abstract class AbstractAWSIoTShadowProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotDataClient> {
     protected static final String PROP_NAME_THING = "aws.iot.thing";
 
     public static final PropertyDescriptor PROP_THING = new PropertyDescriptor

@@ -34,30 +34,30 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotClient> {
-    protected static final String PROP_NAME_ENDPOINT = "aws.iot.endpoint";
-    protected static final String PROP_NAME_CLIENT = "aws.iot.mqtt.client";
-    protected static final String PROP_NAME_KEEPALIVE = "aws.iot.mqtt.keepalive";
-    protected static final String PROP_NAME_TOPIC = "aws.iot.mqtt.topic";
-    protected static final String PROP_NAME_QOS = "aws.iot.mqtt.qos";
+public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProviderProcessor<AWSIotClient> {
+    static final String PROP_NAME_ENDPOINT = "aws.iot.endpoint";
+    static final String PROP_NAME_CLIENT = "aws.iot.mqtt.client";
+    static final String PROP_NAME_KEEPALIVE = "aws.iot.mqtt.keepalive";
+    static final String PROP_NAME_TOPIC = "aws.iot.mqtt.topic";
+    static final String PROP_NAME_QOS = "aws.iot.mqtt.qos";
     /**
      * Amazon's current service limit on websocket connection duration
      */
-    protected static final Integer PROP_DEFAULT_KEEPALIVE = 300;
+    static final Integer PROP_DEFAULT_KEEPALIVE = 300;
     /**
      * When to start indicating the need for connection renewal (in seconds before actual termination)
      */
-    protected static final Integer DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION = 20;
-    protected static final String PROP_DEFAULT_CLIENT = AbstractIOTMqttProcessor.class.getSimpleName();
+    static final Integer DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION = 20;
+    static final String PROP_DEFAULT_CLIENT = AbstractAWSIoTProcessor.class.getSimpleName();
     /**
      * Default QoS level for message delivery
      */
-    protected static final Integer DEFAULT_QOS = 0;
-    protected String awsTopic;
-    protected int awsQos;
-    protected MqttWebSocketAsyncClient mqttClient;
-    protected String awsEndpoint;
-    protected String awsClientId;
+    static final Integer DEFAULT_QOS = 0;
+    String awsTopic;
+    int awsQos;
+    MqttWebSocketAsyncClient mqttClient;
+    String awsEndpoint;
+    String awsClientId;
 
     private String awsRegion;
     private Integer awsKeepAliveSeconds;
@@ -129,9 +129,9 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
 
     /**
      * Gets ready an MQTT client by connecting to a AWS IoT WebSocket endpoint specific to the properties
-     * @param context
+     * @param context processor context
      */
-    protected void init(final ProcessContext context) {
+    void init(final ProcessContext context) {
         // read out properties
         awsEndpoint = context.getProperty(PROP_ENDPOINT).getValue();
         awsRegion = context.getProperty(REGION).getValue();
@@ -157,7 +157,7 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
      * Returns the lifetime-seconds of the established websocket-connection
      * @return seconds
      */
-    protected long getConnectionDuration() {
+    long getConnectionDuration() {
         return dtLastConnect != null ?
                 TimeUnit.MILLISECONDS.toSeconds(new Date().getTime() - dtLastConnect.getTime()) : awsKeepAliveSeconds + 1;
     }
@@ -167,7 +167,7 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
      * expiration but an advice to when it is worth renewing the connection.
      * @return seconds
      */
-    protected long getRemainingConnectionLifetime() {
+    long getRemainingConnectionLifetime() {
         return awsKeepAliveSeconds - DEFAULT_CONNECTION_RENEWAL_BEFORE_KEEP_ALIVE_EXPIRATION;
     }
 
@@ -176,7 +176,7 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
      * to renew the connection some time before the actual expiration.
      * @return Indication (if true caller should renew the connection)
      */
-    protected boolean isConnectionAboutToExpire() {
+    boolean isConnectionAboutToExpire() {
         return getConnectionDuration() > getRemainingConnectionLifetime();
     }
 
@@ -184,20 +184,19 @@ public abstract class AbstractIOTMqttProcessor extends AbstractAWSCredentialsPro
      * Connects to the websocket-endpoint over an MQTT client.
      * @param context processcontext
      * @return websocket connection client
-     * @throws Exception
      */
-    protected MqttWebSocketAsyncClient connect(ProcessContext context) {
+    MqttWebSocketAsyncClient connect(ProcessContext context) {
         getCredentialsProvider(context).refresh();
         AWSCredentials awsCredentials = getCredentialsProvider(context).getCredentials();
         MqttWebSocketAsyncClient _mqttClient = null;
 
         // generate mqtt endpoint-address with authentication details
-        String strEndpointAddress = null;
+        String strEndpointAddress;
         try {
             strEndpointAddress = AWS4Signer.getAddress(awsRegion, awsEndpoint, awsCredentials);
         } catch (Exception e) {
             getLogger().error("Error while generating AWS endpoint-address caused by " + e.getMessage());
-            return _mqttClient;
+            return null;
         }
         // extend clientId with random string in order to ensure unique id per connection
         String clientId = awsClientId + RandomStringUtils.random(12, true, false);

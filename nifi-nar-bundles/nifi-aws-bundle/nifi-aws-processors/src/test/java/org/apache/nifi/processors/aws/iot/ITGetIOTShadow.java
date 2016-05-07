@@ -35,15 +35,15 @@ public class ITGetIOTShadow {
     @Test
     public void testSimpleGetUsingCredentialsProviderService() throws Throwable {
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        final TestRunner runner = TestRunners.newTestRunner(new GetIOTShadow());
+        final TestRunner runner = TestRunners.newTestRunner(new GetAWSIoTShadow());
         final String thing = "thingName";
         final Region region = Regions.getCurrentRegion();
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
-        runner.setProperty(GetIOTShadow.PROP_THING, thing);
-        runner.setProperty(GetIOTShadow.REGION, region.getName());
-        runner.setProperty(GetIOTShadow.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+        runner.setProperty(GetAWSIoTShadow.PROP_THING, thing);
+        runner.setProperty(GetAWSIoTShadow.REGION, region.getName());
+        runner.setProperty(GetAWSIoTShadow.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
 
         runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
 
@@ -56,11 +56,11 @@ public class ITGetIOTShadow {
         runner.run(1);
 
         // validate that the FlowFiles went where they were expected to go
-        runner.assertAllFlowFilesTransferred(GetIOTShadow.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(GetAWSIoTShadow.REL_SUCCESS, 1);
 
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetIOTShadow.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetAWSIoTShadow.REL_SUCCESS);
         for (final MockFlowFile mff : flowFiles) {
-            mff.assertAttributeEquals(GetIOTShadow.PROP_NAME_THING, thing);
+            mff.assertAttributeEquals(GetAWSIoTShadow.PROP_NAME_THING, thing);
         }
     }
 }

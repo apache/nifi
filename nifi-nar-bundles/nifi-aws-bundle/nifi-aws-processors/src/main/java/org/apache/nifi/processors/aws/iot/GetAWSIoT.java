@@ -41,19 +41,19 @@ import java.util.*;
 @Tags({"Amazon", "AWS", "IOT", "MQTT", "Websockets", "Get", "Subscribe", "Receive"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Subscribes to and receives messages from MQTT-topic(s) of AWS IoT." +
-    "The processors keeps open a WebSocket connection and will automatically renew the " +
+    "The processor keeps open a WebSocket connection and will automatically renew the " +
     "connection to overcome Amazon's service limit on maximum connection duration. Depending on " +
     "your set up QoS the processor will miss some messages (QoS=0) or receives messages twice (QoS=1) " +
     "while reconnecting to AWS IoT WebSocket endpoint. We strongly recommend you to make use of " +
     "processor isolation as concurrent subscriptions to an MQTT topic result in multiple message receiptions.")
-@SeeAlso({ GetIOTShadow.class })
+@SeeAlso({ GetAWSIoTShadow.class })
 @WritesAttributes({
         @WritesAttribute(attribute = "aws.iot.mqtt.endpoint", description = "AWS endpoint this message was received from."),
         @WritesAttribute(attribute = "aws.iot.mqtt.topic", description = "MQTT topic this message was received from."),
         @WritesAttribute(attribute = "aws.iot.mqtt.client", description = "MQTT client which received the message."),
         @WritesAttribute(attribute = "aws.iot.mqtt.qos", description = "Underlying MQTT quality-of-service.")
 })
-public class GetIOTMqtt extends AbstractIOTMqttProcessor {
+public class GetAWSIoT extends AbstractAWSIoTProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(
@@ -123,10 +123,9 @@ public class GetIOTMqtt extends AbstractIOTMqttProcessor {
 
         if (messageList.isEmpty()) return;
 
-        Iterator iterator = messageList.iterator();
-        while (iterator.hasNext()) {
+        for (Object aMessageList : messageList) {
             FlowFile flowFile = session.create();
-            final IoTMessage msg = (IoTMessage) iterator.next();
+            final IoTMessage msg = (IoTMessage) aMessageList;
             final Map<String, String> attributes = new HashMap<>();
 
             attributes.put(PROP_NAME_ENDPOINT, awsEndpoint);

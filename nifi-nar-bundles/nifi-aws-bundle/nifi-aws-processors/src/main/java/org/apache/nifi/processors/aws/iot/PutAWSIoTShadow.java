@@ -37,14 +37,14 @@ import java.util.*;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sets state of a thing in AWS IoT by updating the shadow. You can dynamically set a thing-name " +
         "when overriding the processor-configuration with a message-attribute \"aws.iot.thing.override\".")
-@SeeAlso({ PutIOTMqtt.class })
+@SeeAlso({ PutAWSIoT.class })
 @ReadsAttributes({
         @ReadsAttribute(attribute = "aws.iot.thing.override", description = "Overrides the processor configuration for topic."),
 })
 @WritesAttributes({
         @WritesAttribute(attribute = "aws.iot.thing", description = "Underlying MQTT quality-of-service.")
 })
-public class PutIOTShadow extends AbstractIOTShadowProcessor {
+public class PutAWSIoTShadow extends AbstractAWSIoTShadowProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(
                     PROP_THING,

@@ -34,12 +34,12 @@ import java.util.*;
 
 @Tags({"Amazon", "AWS", "IOT", "MQTT", "Websockets", "Put", "Publish", "Send"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Publishes messages to MQTT-topic(s) of AWS IoT. The processors keeps open a WebSocket connection and will automatically renew the " +
+@CapabilityDescription("Publishes messages to MQTT-topic(s) of AWS IoT. The processor keeps open a WebSocket connection and will automatically renew the " +
         "connection to overcome Amazon's service limit on maximum connection duration. Most of the " +
         "configuration can be overridden by values coming in as message attributes. This applies for " +
         "the topic (corresponding message attribute is \"aws.iot.mqtt.topic.override\"), the qos-level " +
         "(\"aws.iot.mqtt.qos.override\") and the retention (\"aws.iot.mqtt.retained.override\")")
-@SeeAlso({ PutIOTShadow.class })
+@SeeAlso({ PutAWSIoTShadow.class })
 @ReadsAttributes({
         @ReadsAttribute(attribute = "aws.iot.mqtt.topic.override", description = "Overrides the processor configuration for topic."),
         @ReadsAttribute(attribute = "aws.iot.mqtt.qos.override", description = "Overrides the processor configuration for quality of service."),
@@ -48,7 +48,7 @@ import java.util.*;
 @WritesAttributes({
         @WritesAttribute(attribute = "aws.iot.mqtt.exception", description = "Error details")
 })
-public class PutIOTMqtt extends AbstractIOTMqttProcessor {
+public class PutAWSIoT extends AbstractAWSIoTProcessor {
     private final static String PROP_NAME_RETAINED = "aws.iot.mqtt.retained";
     private final static String ATTR_NAME_TOPIC = PROP_NAME_TOPIC + ".override";
     private final static String ATTR_NAME_QOS = PROP_NAME_QOS + ".override";
