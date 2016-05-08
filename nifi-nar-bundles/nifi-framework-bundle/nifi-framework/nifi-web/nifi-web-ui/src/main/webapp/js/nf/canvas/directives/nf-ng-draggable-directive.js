@@ -17,18 +17,11 @@
 
 /* global nf, d3 */
 
-nf.ng.DraggableDirective = (function () {
-
-    function DraggableDirective() {
-        return {
-            restrict: 'AE',
-            link: function (scope, element, attrs) {
-                element.draggable(scope.$eval(attrs.nfDraggable));
-            }
-        };
-    }
-
-    DraggableDirective.$inject = [];
-
-    return DraggableDirective;
-}());
+nf.ng.DraggableDirective = function () {
+    return {
+        restrict: 'AE',
+        link: function (scope, element, attrs) {
+            element.draggable(scope.$eval(attrs.nfDraggable));
+        }
+    };
+};

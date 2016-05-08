@@ -18,6 +18,7 @@
 /* global nf, d3 */
 
 nf.ng.Bridge = (function () {
+    'use strict';
 
     function AngularBridge() {
         this.rootScope;
@@ -88,6 +89,7 @@ nf.ng.Bridge = (function () {
             this.rootScope.$digest();
         }
     };
+    
     var angularBridge = new AngularBridge();
 
     return angularBridge;

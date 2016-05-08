@@ -19,38 +19,68 @@
 
 $(document).ready(function () {
     if (nf.Canvas.SUPPORTS_SVG) {
-        //Create App
+
+        //Create Angular App
         var app = angular.module('ngCanvasApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngSanitize', 'ngMessages']);
 
-        //Configure App
+        //Define Dependency Injection Annotations
+        nf.ng.Canvas.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+        nf.ng.Canvas.AppCtrl.$inject = ['$scope', 'serviceProvider', 'headerCtrl', 'graphControlsCtrl'];
+        nf.ng.ServiceProvider.$inject = [];
+        nf.ng.BreadcrumbsCtrl.$inject = ['serviceProvider', '$sanitize'];
+        nf.ng.Canvas.HeaderCtrl.$inject = ['serviceProvider', 'toolboxCtrl', 'globalMenuCtrl'];
+        nf.ng.Canvas.GlobalMenuCtrl.$inject = ['serviceProvider'];
+        nf.ng.Canvas.ToolboxCtrl.$inject = ['processorComponent',
+            'inputPortComponent',
+            'outputPortComponent',
+            'groupComponent',
+            'remoteGroupComponent',
+            'funnelComponent',
+            'templateComponent',
+            'labelComponent'];
+        nf.ng.ProcessorComponent.$inject = ['serviceProvider'];
+        nf.ng.InputPortComponent.$inject = ['serviceProvider'];
+        nf.ng.OutputPortComponent.$inject = ['serviceProvider'];
+        nf.ng.GroupComponent.$inject = ['serviceProvider'];
+        nf.ng.RemoteProcessGroupComponent.$inject = ['serviceProvider'];
+        nf.ng.FunnelComponent.$inject = ['serviceProvider'];
+        nf.ng.TemplateComponent.$inject = ['serviceProvider'];
+        nf.ng.LabelComponent.$inject = ['serviceProvider'];
+        nf.ng.Canvas.GraphControlsCtrl.$inject = ['serviceProvider', 'navigateCtrl', 'operateCtrl'];
+        nf.ng.Canvas.NavigateCtrl.$inject = [];
+        nf.ng.Canvas.OperateCtrl.$inject = [];
+        nf.ng.BreadcrumbsDirective.$inject = ['breadcrumbsCtrl'];
+        nf.ng.DraggableDirective.$inject = [];
+
+        //Configure Angular App
         app.config(nf.ng.Canvas.AppConfig);
 
-        //App Controllers
+        //Define Angular App Controllers
         app.controller('ngCanvasAppCtrl', nf.ng.Canvas.AppCtrl);
 
-        //App Services
-        app.factory('serviceProvider', nf.ng.ServiceProvider);
-        app.factory('breadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
-        app.factory('headerCtrl', nf.ng.Canvas.HeaderCtrl);
-        app.factory('globalMenuCtrl', nf.ng.Canvas.GlobalMenuCtrl);
-        app.factory('toolboxCtrl', nf.ng.Canvas.ToolboxCtrl);
-        app.factory('processorComponent', nf.ng.ProcessorComponent);
-        app.factory('inputPortComponent', nf.ng.InputPortComponent);
-        app.factory('outputPortComponent', nf.ng.OutputPortComponent);
-        app.factory('groupComponent', nf.ng.GroupComponent);
-        app.factory('remoteGroupComponent', nf.ng.RemoteProcessGroupComponent);
-        app.factory('funnelComponent', nf.ng.FunnelComponent);
-        app.factory('templateComponent', nf.ng.TemplateComponent);
-        app.factory('labelComponent', nf.ng.LabelComponent);
-        app.factory('graphControlsCtrl', nf.ng.Canvas.GraphControlsCtrl);
-        app.factory('navigateCtrl', nf.ng.Canvas.NavigateCtrl);
-        app.factory('operateCtrl', nf.ng.Canvas.OperateCtrl);
+        //Define Angular App Services
+        app.service('serviceProvider', nf.ng.ServiceProvider);
+        app.service('breadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
+        app.service('headerCtrl', nf.ng.Canvas.HeaderCtrl);
+        app.service('globalMenuCtrl', nf.ng.Canvas.GlobalMenuCtrl);
+        app.service('toolboxCtrl', nf.ng.Canvas.ToolboxCtrl);
+        app.service('processorComponent', nf.ng.ProcessorComponent);
+        app.service('inputPortComponent', nf.ng.InputPortComponent);
+        app.service('outputPortComponent', nf.ng.OutputPortComponent);
+        app.service('groupComponent', nf.ng.GroupComponent);
+        app.service('remoteGroupComponent', nf.ng.RemoteProcessGroupComponent);
+        app.service('funnelComponent', nf.ng.FunnelComponent);
+        app.service('templateComponent', nf.ng.TemplateComponent);
+        app.service('labelComponent', nf.ng.LabelComponent);
+        app.service('graphControlsCtrl', nf.ng.Canvas.GraphControlsCtrl);
+        app.service('navigateCtrl', nf.ng.Canvas.NavigateCtrl);
+        app.service('operateCtrl', nf.ng.Canvas.OperateCtrl);
 
-        //App Directives
+        //Define Angular App Directives
         app.directive('nfBreadcrumbs', nf.ng.BreadcrumbsDirective);
         app.directive('nfDraggable', nf.ng.DraggableDirective);
 
-        //Manually Boostrap App
+        //Manually Boostrap Angular App
         angular.bootstrap($('body'), ['ngCanvasApp'], { strictDi: true });
 
         // initialize the NiFi

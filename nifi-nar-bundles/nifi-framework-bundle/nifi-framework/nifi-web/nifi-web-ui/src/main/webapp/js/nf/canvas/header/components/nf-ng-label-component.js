@@ -17,93 +17,88 @@
 
 /* global nf, d3 */
 
-nf.ng.LabelComponent = (function () {
+nf.ng.LabelComponent = function (serviceProvider) {
+    'use strict';
 
-    function LabelComponent(serviceProvider) {
+    function LabelComponent() {
+    }
+    LabelComponent.prototype = {
+        constructor: LabelComponent,
 
-        function LabelComponent() {
-        };
-        LabelComponent.prototype = {
-            constructor: LabelComponent,
+        /**
+         * Gets the component.
+         *
+         * @returns {*|jQuery|HTMLElement}
+         */
+        getElement: function() {
+            return $('#label-component');
+        },
 
-            /**
-             * Gets the component.
-             *
-             * @returns {*|jQuery|HTMLElement}
-             */
-            getElement: function () {
-                return $('#label-component');
-            },
+        /**
+         * Enable the component.
+         */
+        enabled: function() {
+            this.getElement().attr('disabled', false);
+        },
 
-            /**
-             * Enable the component.
-             */
-            enabled: function () {
-                this.getElement().attr('disabled', false);
-            },
+        /**
+         * Disable the component.
+         */
+        disabled: function() {
+            this.getElement().attr('disabled', true);
+        },
 
-            /**
-             * Disable the component.
-             */
-            disabled: function () {
-                this.getElement().attr('disabled', true);
-            },
+        /**
+         * Handler function for when component is dropped on the canvas.
+         *
+         * @argument {object} pt        The point that the component was dropped.
+         */
+        dropHandler: function(pt) {
+            this.createLabel(pt);
+        },
 
-            /**
-             * Handler function for when component is dropped on the canvas.
-             *
-             * @argument {object} pt        The point that the component was dropped.
-             */
-            dropHandler: function (pt) {
-                this.createLabel(pt);
-            },
-
-            /**
-             * Create the label and add to the graph.
-             *
-             * @argument {object} pt        The point that the label was dropped.
-             */
-            createLabel: function (pt) {
-                var labelEntity = {
-                    'revision': nf.Client.getRevision(),
-                    'component': {
-                        'width': nf.Label.config.width,
-                        'height': nf.Label.config.height,
-                        'position': {
-                            'x': pt.x,
-                            'y': pt.y
-                        }
+        /**
+         * Create the label and add to the graph.
+         *
+         * @argument {object} pt        The point that the label was dropped.
+         */
+        createLabel: function(pt) {
+            var labelEntity = {
+                'revision': nf.Client.getRevision(),
+                'component': {
+                    'width': nf.Label.config.width,
+                    'height': nf.Label.config.height,
+                    'position': {
+                        'x': pt.x,
+                        'y': pt.y
                     }
-                };
+                }
+            };
 
-                // create a new label
-                $.ajax({
-                    type: 'POST',
-                    url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/labels',
-                    data: JSON.stringify(labelEntity),
-                    dataType: 'json',
-                    contentType: 'application/json'
-                }).done(function (response) {
-                    if (nf.Common.isDefinedAndNotNull(response.component)) {
-                        // update the revision
-                        nf.Client.setRevision(response.revision);
+            // create a new label
+            $.ajax({
+                type: 'POST',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/labels',
+                data: JSON.stringify(labelEntity),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                if (nf.Common.isDefinedAndNotNull(response.component)) {
+                    // update the revision
+                    nf.Client.setRevision(response.revision);
 
-                        // add the label to the graph
-                        nf.Graph.add({
-                            'labels': [response]
-                        }, true);
+                    // add the label to the graph
+                    nf.Graph.add({
+                        'labels': [response]
+                    }, true);
 
-                        // update the birdseye
-                        nf.Birdseye.refresh();
-                    }
-                }).fail(nf.Common.handleAjaxError);
-            }
-        };
-        var labelComponent = new LabelComponent();
-        return labelComponent;
+                    // update the birdseye
+                    nf.Birdseye.refresh();
+                }
+            }).fail(nf.Common.handleAjaxError);
+        }
     }
 
-    LabelComponent.$inject = ['serviceProvider'];
-
-    return LabelComponent;
-}());
+    var labelComponent = new LabelComponent();
+    return labelComponent;
+};

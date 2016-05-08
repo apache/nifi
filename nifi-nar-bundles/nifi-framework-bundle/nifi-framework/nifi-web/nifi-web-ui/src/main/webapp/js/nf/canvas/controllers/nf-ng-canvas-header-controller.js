@@ -17,103 +17,98 @@
 
 /* global nf, d3 */
 
+nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl) {
+    'use strict';
 
-nf.ng.Canvas.HeaderCtrl = (function () {
+    var MIN_TOOLBAR_WIDTH = 640;
 
-    function HeaderCtrl(serviceProvider, toolboxCtrl, globalMenuCtrl) {
+    function HeaderCtrl(toolboxCtrl, globalMenuCtrl) {
+        this.toolboxCtrl = toolboxCtrl;
+        this.globalMenuCtrl = globalMenuCtrl;
 
-        var MIN_TOOLBAR_WIDTH = 640;
+        /**
+         * The login link.
+         */
+        this.loginLink = {
+            shell: {
 
-        function HeaderCtrl(toolboxCtrl, globalMenuCtrl) {
-            this.toolboxCtrl = toolboxCtrl;
-            this.globalMenuCtrl = globalMenuCtrl;
-        };
-        HeaderCtrl.prototype = {
-            constructor: HeaderCtrl,
-
-            /**
-             *  Register the header controller.
-             */
-            register: function () {
-                if (serviceProvider.headerCtrl === undefined) {
-                    serviceProvider.register('headerCtrl', headerCtrl);
-                }
-            },
-
-            /**
-             * Initialize the canvas header.
-             */
-            init: function () {
-                this.toolboxCtrl.init();
-                this.globalMenuCtrl.init();
-
-                // if the user is not anonymous or accessing via http
-                if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
-                    $('#login-link-container').css('display', 'none');
-                }
-
-                // if accessing via http, don't show the current user
-                if (location.protocol === 'http:') {
-                    $('#current-user-container').css('display', 'none');
-                }
-            },
-
-            /**
-             * Reloads and clears any warnings.
-             */
-            reloadAndClearWarnings: function () {
-                nf.Canvas.reload().done(function () {
-                    // update component visibility
-                    nf.Canvas.View.updateVisibility();
-
-                    // refresh the birdseye
-                    nf.Birdseye.refresh();
-
-                    // hide the refresh link on the canvas
-                    $('#stats-last-refreshed').removeClass('alert');
-                    $('#refresh-required-container').hide();
-
-                    // hide the refresh link on the settings
-                    $('#settings-last-refreshed').removeClass('alert');
-                    $('#settings-refresh-required-icon').hide();
-                }).fail(function () {
-                    nf.Dialog.showOkDialog({
-                        dialogContent: 'Unable to refresh the current group.',
-                        overlayBackground: true
-                    });
-                });
-            },
-
-            /**
-             * The login link.
-             */
-            loginLink: {
-                shell: {
-                    /**
-                     * Launch the login shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('login', false);
-                    }
-                }
-            },
-
-            /**
-             * Logout.
-             */
-            logoutLink: {
-                logout: function () {
-                    nf.Storage.removeItem("jwt");
-                    window.location = '/nifi';
+                /**
+                 * Launch the login shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage('login', false);
                 }
             }
         };
-        var headerCtrl = new HeaderCtrl(toolboxCtrl, globalMenuCtrl);
-        headerCtrl.register();
-        return headerCtrl;
+
+        /**
+         * Logout.
+         */
+        this.logoutLink = {
+            logout: function () {
+                nf.Storage.removeItem("jwt");
+                window.location = '/nifi';
+            }
+        };
+    }
+    HeaderCtrl.prototype = {
+        constructor: HeaderCtrl,
+
+        /**
+         *  Register the header controller.
+         */
+        register: function() {
+            if (serviceProvider.headerCtrl === undefined) {
+                serviceProvider.register('headerCtrl', headerCtrl);
+            }
+        },
+
+        /**
+         * Initialize the canvas header.
+         */
+        init: function() {
+            this.toolboxCtrl.init();
+            this.globalMenuCtrl.init();
+
+            // if the user is not anonymous or accessing via http
+            if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
+                $('#login-link-container').css('display', 'none');
+            }
+
+            // if accessing via http, don't show the current user
+            if (location.protocol === 'http:') {
+                $('#current-user-container').css('display', 'none');
+            }
+        },
+
+        /**
+         * Reloads and clears any warnings.
+         */
+        reloadAndClearWarnings: function() {
+            nf.Canvas.reload().done(function () {
+                // update component visibility
+                nf.Canvas.View.updateVisibility();
+
+                // refresh the birdseye
+                nf.Birdseye.refresh();
+
+                // hide the refresh link on the canvas
+                $('#stats-last-refreshed').removeClass('alert');
+                $('#refresh-required-container').hide();
+
+                // hide the refresh link on the settings
+                $('#settings-last-refreshed').removeClass('alert');
+                $('#settings-refresh-required-icon').hide();
+            }).fail(function () {
+                nf.Dialog.showOkDialog({
+                    dialogContent: 'Unable to refresh the current group.',
+                    overlayBackground: true
+                });
+            });
+        }
     }
 
-    HeaderCtrl.$inject = ['serviceProvider', 'toolboxCtrl', 'globalMenuCtrl'];
-
-    return HeaderCtrl;
-}());
+    var headerCtrl = new HeaderCtrl(toolboxCtrl, globalMenuCtrl);
+    headerCtrl.register();
+    return headerCtrl;
+};

@@ -17,91 +17,86 @@
 
 /* global nf, d3 */
 
-nf.ng.FunnelComponent = (function () {
+nf.ng.FunnelComponent = function (serviceProvider) {
+    'use strict';
 
-    function FunnelComponent(serviceProvider) {
+    function FunnelComponent() {
+    }
+    FunnelComponent.prototype = {
+        constructor: FunnelComponent,
 
-        function FunnelComponent() {
-        };
-        FunnelComponent.prototype = {
-            constructor: FunnelComponent,
+        /**
+         * Gets the component.
+         *
+         * @returns {*|jQuery|HTMLElement}
+         */
+        getElement: function() {
+            return $('#funnel-component');
+        },
 
-            /**
-             * Gets the component.
-             *
-             * @returns {*|jQuery|HTMLElement}
-             */
-            getElement: function () {
-                return $('#funnel-component');
-            },
+        /**
+         * Enable the component.
+         */
+        enabled: function() {
+            this.getElement().attr('disabled', false);
+        },
 
-            /**
-             * Enable the component.
-             */
-            enabled: function () {
-                this.getElement().attr('disabled', false);
-            },
+        /**
+         * Disable the component.
+         */
+        disabled: function() {
+            this.getElement().attr('disabled', true);
+        },
 
-            /**
-             * Disable the component.
-             */
-            disabled: function () {
-                this.getElement().attr('disabled', true);
-            },
+        /**
+         * Handler function for when component is dropped on the canvas.
+         *
+         * @argument {object} pt        The point that the component was dropped.
+         */
+        dropHandler: function(pt) {
+            this.createFunnel(pt);
+        },
 
-            /**
-             * Handler function for when component is dropped on the canvas.
-             *
-             * @argument {object} pt        The point that the component was dropped.
-             */
-            dropHandler: function (pt) {
-                this.createFunnel(pt);
-            },
-
-            /**
-             * Creates a new funnel at the specified point.
-             *
-             * @argument {object} pt        The point that the funnel was dropped.
-             */
-            createFunnel: function (pt) {
-                var outputPortEntity = {
-                    'revision': nf.Client.getRevision(),
-                    'component': {
-                        'position': {
-                            'x': pt.x,
-                            'y': pt.y
-                        }
+        /**
+         * Creates a new funnel at the specified point.
+         *
+         * @argument {object} pt        The point that the funnel was dropped.
+         */
+        createFunnel: function(pt) {
+            var outputPortEntity = {
+                'revision': nf.Client.getRevision(),
+                'component': {
+                    'position': {
+                        'x': pt.x,
+                        'y': pt.y
                     }
-                };
+                }
+            };
 
-                // create a new funnel
-                $.ajax({
-                    type: 'POST',
-                    url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/funnels',
-                    data: JSON.stringify(outputPortEntity),
-                    dataType: 'json',
-                    contentType: 'application/json'
-                }).done(function (response) {
-                    if (nf.Common.isDefinedAndNotNull(response.component)) {
-                        // update the revision
-                        nf.Client.setRevision(response.revision);
+            // create a new funnel
+            $.ajax({
+                type: 'POST',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/funnels',
+                data: JSON.stringify(outputPortEntity),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                if (nf.Common.isDefinedAndNotNull(response.component)) {
+                    // update the revision
+                    nf.Client.setRevision(response.revision);
 
-                        // add the funnel to the graph
-                        nf.Graph.add({
-                            'funnels': [response]
-                        }, true);
+                    // add the funnel to the graph
+                    nf.Graph.add({
+                        'funnels': [response]
+                    }, true);
 
-                        // update the birdseye
-                        nf.Birdseye.refresh();
-                    }
-                }).fail(nf.Common.handleAjaxError);
-            }
-        };
-        var funnelComponent = new FunnelComponent();
-        return funnelComponent;
+                    // update the birdseye
+                    nf.Birdseye.refresh();
+                }
+            }).fail(nf.Common.handleAjaxError);
+        }
     }
 
-    FunnelComponent.$inject = ['serviceProvider'];
-
-    return FunnelComponent;
-}());
+    var funnelComponent = new FunnelComponent();
+    return funnelComponent;
+};
