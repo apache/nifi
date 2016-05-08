@@ -17,81 +17,75 @@
 
 /* global nf, d3 */
 
-
-nf.ng.Canvas.NavigateCtrl = (function () {
+nf.ng.Canvas.NavigateCtrl = function () {
+    'use strict';
 
     function NavigateCtrl() {
 
-        function NavigateCtrl() {
+        /**
+         * Zoom in on the canvas.
+         */
+        this.zoomIn = function () {
+            nf.Canvas.View.zoomIn();
+
+            // hide the context menu
+            nf.ContextMenu.hide();
+
+            // refresh the canvas
+            nf.Canvas.View.refresh({
+                transition: true
+            });
         };
-        NavigateCtrl.prototype = {
-            constructor: NavigateCtrl,
 
-            /**
-             * Zoom in on the canvas.
-             */
-            zoomIn: function () {
-                nf.Canvas.View.zoomIn();
+        /**
+         * Zoom out on the canvas.
+         */
+        this.zoomOut = function () {
+            nf.Canvas.View.zoomOut();
 
-                // hide the context menu
-                nf.ContextMenu.hide();
+            // hide the context menu
+            nf.ContextMenu.hide();
 
-                // refresh the canvas
-                nf.Canvas.View.refresh({
-                    transition: true
-                });
-            },
-
-            /**
-             * Zoom out on the canvas.
-             */
-            zoomOut: function () {
-                nf.Canvas.View.zoomOut();
-
-                // hide the context menu
-                nf.ContextMenu.hide();
-
-                // refresh the canvas
-                nf.Canvas.View.refresh({
-                    transition: true
-                });
-            },
-
-            /**
-             * Zoom fit on the canvas.
-             */
-            zoomFit: function () {
-                nf.Canvas.View.fit();
-
-                // hide the context menu
-                nf.ContextMenu.hide();
-
-                // refresh the canvas
-                nf.Canvas.View.refresh({
-                    transition: true
-                });
-            },
-
-            /**
-             * Zoom actual size on the canvas.
-             */
-            zoomActualSize: function () {
-                nf.Canvas.View.actualSize();
-
-                // hide the context menu
-                nf.ContextMenu.hide();
-
-                // refresh the canvas
-                nf.Canvas.View.refresh({
-                    transition: true
-                });
-            }
+            // refresh the canvas
+            nf.Canvas.View.refresh({
+                transition: true
+            });
         };
-        var navigateCtrl = new NavigateCtrl();
-        return navigateCtrl;
+
+        /**
+         * Zoom fit on the canvas.
+         */
+        this.zoomFit = function () {
+            nf.Canvas.View.fit();
+
+            // hide the context menu
+            nf.ContextMenu.hide();
+
+            // refresh the canvas
+            nf.Canvas.View.refresh({
+                transition: true
+            });
+        };
+
+        /**
+         * Zoom actual size on the canvas.
+         */
+        this.zoomActualSize = function () {
+            nf.Canvas.View.actualSize();
+
+            // hide the context menu
+            nf.ContextMenu.hide();
+
+            // refresh the canvas
+            nf.Canvas.View.refresh({
+                transition: true
+            });
+        };
+    }
+    NavigateCtrl.prototype = {
+        constructor: NavigateCtrl
     }
 
-    NavigateCtrl.$inject = [];
-
-    return NavigateCtrl;
-}());
+    var navigateCtrl = new NavigateCtrl();
+    return navigateCtrl;
+};

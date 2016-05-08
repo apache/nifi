@@ -17,198 +17,193 @@
 
 /* global nf, d3 */
 
-nf.ng.InputPortComponent = (function () {
+nf.ng.InputPortComponent = function (serviceProvider) {
+    'use strict';
 
-    function InputPortComponent(serviceProvider) {
+    /**
+     * Create the input port and add to the graph.
+     *
+     * @argument {string} portName          The input port name.
+     * @argument {object} pt                The point that the input port was dropped.
+     */
+    var createInputPort = function (portName, pt) {
+        var inputPortEntity = {
+            'revision': nf.Client.getRevision(),
+            'component': {
+                'name': portName,
+                'position': {
+                    'x': pt.x,
+                    'y': pt.y
+                }
+            }
+        };
+
+        // create a new processor of the defined type
+        $.ajax({
+            type: 'POST',
+            url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/input-ports',
+            data: JSON.stringify(inputPortEntity),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (response) {
+            if (nf.Common.isDefinedAndNotNull(response.component)) {
+                // update the revision
+                nf.Client.setRevision(response.revision);
+
+                // add the port to the graph
+                nf.Graph.add({
+                    'inputPorts': [response]
+                }, true);
+
+                // update component visibility
+                nf.Canvas.View.updateVisibility();
+
+                // update the birdseye
+                nf.Birdseye.refresh();
+            }
+        }).fail(nf.Common.handleAjaxError);
+    };
+
+    function InputPortComponent() {
 
         /**
-         * Create the input port and add to the graph.
-         *
-         * @argument {string} portName          The input port name.
-         * @argument {object} pt                The point that the input port was dropped.
+         * The input port component's modal.
          */
-        var createInputPort = function (portName, pt) {
-            var inputPortEntity = {
-                'revision': nf.Client.getRevision(),
-                'component': {
-                    'name': portName,
-                    'position': {
-                        'x': pt.x,
-                        'y': pt.y
-                    }
-                }
-            };
-
-            // create a new processor of the defined type
-            $.ajax({
-                type: 'POST',
-                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/input-ports',
-                data: JSON.stringify(inputPortEntity),
-                dataType: 'json',
-                contentType: 'application/json'
-            }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.component)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-
-                    // add the port to the graph
-                    nf.Graph.add({
-                        'inputPorts': [response]
-                    }, true);
-
-                    // update component visibility
-                    nf.Canvas.View.updateVisibility();
-
-                    // update the birdseye
-                    nf.Birdseye.refresh();
-                }
-            }).fail(nf.Common.handleAjaxError);
-        };
-
-        function InputPortComponent() {
-        };
-        InputPortComponent.prototype = {
-            constructor: InputPortComponent,
+        this.modal = {
 
             /**
-             * The input port component's modal.
-             */
-            modal: {
-                
-                /**
-                 * Gets the modal element.
-                 *
-                 * @returns {*|jQuery|HTMLElement}
-                 */
-                getElement: function () {
-                    return $('#new-port-dialog');
-                },
-
-                /**
-                 * Initialize the modal.
-                 */
-                init: function () {
-                    // configure the new port dialog
-                    this.getElement().modal({
-                        headerText: 'Add Port',
-                        overlayBackground: false,
-                        handler: {
-                            close: function () {
-                                $('#new-port-name').val('');
-                            }
-                        }
-                    });
-                },
-
-                /**
-                 * Updates the modal config.
-                 *
-                 * @param {string} name             The name of the property to update.
-                 * @param {object|array} config     The config for the `name`.
-                 */
-                update: function (name, config) {
-                    this.getElement().modal(name, config);
-                },
-
-                /**
-                 * Show the modal.
-                 */
-                show: function () {
-                    this.getElement().modal('show');
-                },
-
-                /**
-                 * Hide the modal.
-                 */
-                hide: function () {
-                    this.getElement().modal('hide');
-                }
-            },
-
-            /**
-             * Gets the component.
+             * Gets the modal element.
              *
              * @returns {*|jQuery|HTMLElement}
              */
             getElement: function () {
-                return $('#port-in-component');
+                return $('#new-port-dialog');
             },
 
             /**
-             * Enable the component.
+             * Initialize the modal.
              */
-            enabled: function () {
-                this.getElement().attr('disabled', false);
-            },
-
-            /**
-             * Disable the component.
-             */
-            disabled: function () {
-                this.getElement().attr('disabled', true);
-            },
-
-            /**
-             * Handler function for when component is dropped on the canvas.
-             *
-             * @argument {object} pt        The point that the component was dropped.
-             */
-            dropHandler: function (pt) {
-                this.promptForInputPortName(pt);
-            },
-
-            /**
-             * Prompts the user to enter the name for the input port.
-             *
-             * @argument {object} pt        The point that the input port was dropped.
-             */
-            promptForInputPortName: function (pt) {
-                var self = this;
-                var addInputPort = function () {
-                    // get the name of the input port and clear the textfield
-                    var portName = $('#new-port-name').val();
-
-                    // hide the dialog
-                    self.modal.hide();
-
-                    // create the input port
-                    createInputPort(portName, pt);
-                };
-
-                this.modal.update('setButtonModel', [{
-                    buttonText: 'Add',
+            init: function () {
+                // configure the new port dialog
+                this.getElement().modal({
+                    headerText: 'Add Port',
+                    overlayBackground: false,
                     handler: {
-                        click: addInputPort
-                    }
-                }, {
-                    buttonText: 'Cancel',
-                    handler: {
-                        click: function () {
-                            self.modal.hide();
+                        close: function () {
+                            $('#new-port-name').val('');
                         }
                     }
-                }]);
-
-                // update the port type
-                $('#new-port-type').text('Input');
-
-                // show the dialog
-                this.modal.show();
-
-                // set up the focus and key handlers
-                $('#new-port-name').focus().off('keyup').on('keyup', function (e) {
-                    var code = e.keyCode ? e.keyCode : e.which;
-                    if (code === $.ui.keyCode.ENTER) {
-                        addInputPort();
-                    }
                 });
+            },
+
+            /**
+             * Updates the modal config.
+             *
+             * @param {string} name             The name of the property to update.
+             * @param {object|array} config     The config for the `name`.
+             */
+            update: function (name, config) {
+                this.getElement().modal(name, config);
+            },
+
+            /**
+             * Show the modal.
+             */
+            show: function () {
+                this.getElement().modal('show');
+            },
+
+            /**
+             * Hide the modal.
+             */
+            hide: function () {
+                this.getElement().modal('hide');
             }
         };
-        var inputPortComponent = new InputPortComponent();
-        return inputPortComponent;
+    }
+    InputPortComponent.prototype = {
+        constructor: InputPortComponent,
+
+        /**
+         * Gets the component.
+         *
+         * @returns {*|jQuery|HTMLElement}
+         */
+        getElement: function() {
+            return $('#port-in-component');
+        },
+
+        /**
+         * Enable the component.
+         */
+        enabled: function() {
+            this.getElement().attr('disabled', false);
+        },
+
+        /**
+         * Disable the component.
+         */
+        disabled: function() {
+            this.getElement().attr('disabled', true);
+        },
+
+        /**
+         * Handler function for when component is dropped on the canvas.
+         *
+         * @argument {object} pt        The point that the component was dropped.
+         */
+        dropHandler: function(pt) {
+            this.promptForInputPortName(pt);
+        },
+
+        /**
+         * Prompts the user to enter the name for the input port.
+         *
+         * @argument {object} pt        The point that the input port was dropped.
+         */
+        promptForInputPortName: function(pt) {
+            var self = this;
+            var addInputPort = function () {
+                // get the name of the input port and clear the textfield
+                var portName = $('#new-port-name').val();
+
+                // hide the dialog
+                self.modal.hide();
+
+                // create the input port
+                createInputPort(portName, pt);
+            };
+
+            this.modal.update('setButtonModel', [{
+                buttonText: 'Add',
+                handler: {
+                    click: addInputPort
+                }
+            }, {
+                buttonText: 'Cancel',
+                handler: {
+                    click: function () {
+                        self.modal.hide();
+                    }
+                }
+            }]);
+
+            // update the port type
+            $('#new-port-type').text('Input');
+
+            // show the dialog
+            this.modal.show();
+
+            // set up the focus and key handlers
+            $('#new-port-name').focus().off('keyup').on('keyup', function (e) {
+                var code = e.keyCode ? e.keyCode : e.which;
+                if (code === $.ui.keyCode.ENTER) {
+                    addInputPort();
+                }
+            });
+        }
     }
 
-    InputPortComponent.$inject = ['serviceProvider'];
-
-    return InputPortComponent;
-}());
+    var inputPortComponent = new InputPortComponent();
+    return inputPortComponent;
+};

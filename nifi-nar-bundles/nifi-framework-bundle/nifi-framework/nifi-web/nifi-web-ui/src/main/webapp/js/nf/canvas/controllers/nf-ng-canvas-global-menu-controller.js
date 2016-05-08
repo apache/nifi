@@ -17,328 +17,326 @@
 
 /* global nf, d3 */
 
-nf.ng.Canvas.GlobalMenuCtrl = (function () {
+nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
+    'use strict';
+
+    var config = {
+        urls: {
+            helpDocument: '../nifi-docs/documentation',
+            controllerAbout: '../nifi-api/flow/about'
+        }
+    };
 
     function GlobalMenuCtrl(serviceProvider) {
 
-        var config = {
-            urls: {
-                helpDocument: '../nifi-docs/documentation',
-                controllerAbout: '../nifi-api/flow/about'
+        /**
+         * The summary menu item.
+         */
+        this.summary = {
+
+            /**
+             * The summary menu item's shell.
+             */
+            shell: {
+
+                /**
+                 * Launch the summary shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage('summary');
+                }
             }
         };
 
-        function GlobalMenuCtrl() {
+        /**
+         * The counters menu item.
+         */
+        this.counters = {
+
+            /**
+             * The counters menu item's shell.
+             */
+            shell: {
+
+                /**
+                 * Launch the counters shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage('counters');
+                }
+            }
         };
-        GlobalMenuCtrl.prototype = {
-            constructor: GlobalMenuCtrl,
 
-            init: function () {
-                this.about.modal.init();
-            },
+        /**
+         * The bulletin board menu item.
+         */
+        this.bulletinBoard = {
 
             /**
-             * The summary menu item.
+             * The bulletin board menu item's shell.
              */
-            summary: {
+            shell: {
 
                 /**
-                 * The summary menu item's shell.
+                 * Launch the bulletin board shell.
                  */
-                shell: {
-
-                    /**
-                     * Launch the summary shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('summary');
-                    }
+                launch: function () {
+                    nf.Shell.showPage('bulletin-board');
                 }
+            }
+        };
+
+        /**
+         * The data provenance menu item.
+         */
+        this.dataProvenance = {
+
+            /**
+             * Determines if the data provenance menu item is enabled.
+             *
+             * @returns {*|boolean}
+             */
+            enabled: function () {
+                return nf.Common.canAccessProvenance();
             },
 
             /**
-             * The counters menu item.
+             * The data provenance menu item's shell.
              */
-            counters: {
+            shell: {
 
                 /**
-                 * The counters menu item's shell.
+                 * Launch the data provenance shell.
                  */
-                shell: {
-
-                    /**
-                     * Launch the counters shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('counters');
-                    }
+                launch: function () {
+                    nf.Shell.showPage('provenance');
                 }
-            },
+            }
+        };
+
+        /**
+         * The controller settings menu item.
+         */
+        this.controllerSettings = {
 
             /**
-             * The bulletin board menu item.
+             * The controller settings menu item's shell.
              */
-            bulletinBoard: {
+            shell: {
 
                 /**
-                 * The bulletin board menu item's shell.
+                 * Launch the settings shell.
                  */
-                shell: {
-
-                    /**
-                     * Launch the bulletin board shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('bulletin-board');
-                    }
+                launch: function () {
+                    nf.Settings.loadSettings().done(function () {
+                        nf.Settings.showSettings();
+                    });
                 }
+            }
+        };
+
+        /**
+         * The cluster menu item.
+         */
+        this.cluster = {
+
+            /**
+             * Determines if the cluster menu item is enabled.
+             *
+             * @returns {*|boolean}
+             */
+            enabled: function () {
+                return nf.Canvas.isClustered();
             },
 
             /**
-             * The data provenance menu item.
+             * The cluster menu item's shell.
              */
-            dataProvenance: {
+            shell: {
 
                 /**
-                 * Determines if the data provenance menu item is enabled.
+                 * Launch the cluster shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage('cluster');
+                }
+            }
+        };
+
+        /**
+         * The flow config history menu item.
+         */
+        this.flowConfigHistory = {
+
+            /**
+             * The flow config history menu item's shell.
+             */
+            shell: {
+
+                /**
+                 * Launch the history shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage('history');
+                }
+            }
+        };
+
+        /**
+         * The users menu item.
+         */
+        this.users = {
+
+            /**
+             * Determines if the users menu item is enabled.
+             *
+             * @returns {*|boolean}
+             */
+            enabled: function () {
+                return nf.Common.isAdmin();
+            },
+
+            /**
+             * The users menu item's shell.
+             */
+            shell: {
+
+                /**
+                 * Launch the users shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage('users');
+                }
+            }
+        };
+
+        /**
+         * The templates menu item.
+         */
+        this.templates = {
+
+            /**
+             * The templates menu item's shell.
+             */
+            shell: {
+
+                /**
+                 * Launch the templates shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage('templates?' + $.param({
+                            groupId: nf.Canvas.getGroupId()
+                        }));
+                }
+            }
+        };
+
+        /**
+         * The help menu item.
+         */
+        this.help = {
+
+            /**
+             * The help menu item's shell.
+             */
+            shell: {
+
+                /**
+                 * Launch the help documentation shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage(config.urls.helpDocument);
+                }
+            }
+        };
+
+        /**
+         * The about menu item.
+         */
+        this.about = {
+
+            /**
+             * The about menu item's modal.
+             */
+            modal: {
+
+                /**
+                 * Gets the modal element.
                  *
-                 * @returns {*|boolean}
+                 * @returns {*|jQuery|HTMLElement}
                  */
-                enabled: function () {
-                    return nf.Common.canAccessProvenance();
+                getElement: function () {
+                    return $('#nf-about');
                 },
 
                 /**
-                 * The data provenance menu item's shell.
+                 * Initialize the modal.
                  */
-                shell: {
+                init: function () {
+                    var self = this;
+                    // get the about details
+                    $.ajax({
+                        type: 'GET',
+                        url: config.urls.controllerAbout,
+                        dataType: 'json'
+                    }).done(function (response) {
+                        var aboutDetails = response.about;
+                        // set the document title and the about title
+                        document.title = aboutDetails.title;
+                        $('#nf-version').text(aboutDetails.version);
+                    }).fail(nf.Common.handleAjaxError);
 
-                    /**
-                     * Launch the data provenance shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('provenance');
-                    }
-                }
-            },
-
-            /**
-             * The controller settings menu item.
-             */
-            controllerSettings: {
-
-                /**
-                 * The controller settings menu item's shell.
-                 */
-                shell: {
-
-                    /**
-                     * Launch the settings shell.
-                     */
-                    launch: function () {
-                        nf.Settings.loadSettings().done(function () {
-                            nf.Settings.showSettings();
-                        });
-                    }
-                }
-            },
-
-            /**
-             * The cluster menu item.
-             */
-            cluster: {
-
-                /**
-                 * Determines if the cluster menu item is enabled.
-                 *
-                 * @returns {*|boolean}
-                 */
-                enabled: function () {
-                    return nf.Canvas.isClustered();
-                },
-
-                /**
-                 * The cluster menu item's shell.
-                 */
-                shell: {
-
-                    /**
-                     * Launch the cluster shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('cluster');
-                    }
-                }
-            },
-
-            /**
-             * The flow config history menu item.
-             */
-            flowConfigHistory: {
-
-                /**
-                 * The flow config history menu item's shell.
-                 */
-                shell: {
-
-                    /**
-                     * Launch the history shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('history');
-                    }
-                }
-            },
-
-            /**
-             * The users menu item.
-             */
-            users: {
-
-                /**
-                 * Determines if the users menu item is enabled.
-                 *
-                 * @returns {*|boolean}
-                 */
-                enabled: function () {
-                    return nf.Common.isAdmin();
-                },
-
-                /**
-                 * The users menu item's shell.
-                 */
-                shell: {
-
-                    /**
-                     * Launch the users shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('users');
-                    }
-                }
-            },
-
-            /**
-             * The templates menu item.
-             */
-            templates: {
-
-                /**
-                 * The templates menu item's shell.
-                 */
-                shell: {
-
-                    /**
-                     * Launch the templates shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('templates?' + $.param({
-                                groupId: nf.Canvas.getGroupId()
-                            }));
-                    }
-                }
-            },
-
-            /**
-             * The help menu item.
-             */
-            help: {
-
-                /**
-                 * The help menu item's shell.
-                 */
-                shell: {
-
-                    /**
-                     * Launch the help documentation shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage(config.urls.helpDocument);
-                    }
-                }
-            },
-
-            /**
-             * The about menu item.
-             */
-            about: {
-
-                /**
-                 * The about menu item's modal.
-                 */
-                modal: {
-                    
-                    /**
-                     * Gets the modal element.
-                     *
-                     * @returns {*|jQuery|HTMLElement}
-                     */
-                    getElement: function () {
-                        return $('#nf-about');
-                    },
-
-                    /**
-                     * Initialize the modal.
-                     */
-                    init: function () {
-                        var self = this;
-                        // get the about details
-                        $.ajax({
-                            type: 'GET',
-                            url: config.urls.controllerAbout,
-                            dataType: 'json'
-                        }).done(function (response) {
-                            var aboutDetails = response.about;
-                            // set the document title and the about title
-                            document.title = aboutDetails.title;
-                            $('#nf-version').text(aboutDetails.version);
-                        }).fail(nf.Common.handleAjaxError);
-
-                        // configure the about dialog
-                        this.getElement().modal({
-                            overlayBackground: true,
-                            buttons: [{
-                                buttonText: 'Ok',
-                                handler: {
-                                    click: function () {
-                                        self.hide();
-                                    }
+                    // configure the about dialog
+                    this.getElement().modal({
+                        overlayBackground: true,
+                        buttons: [{
+                            buttonText: 'Ok',
+                            handler: {
+                                click: function () {
+                                    self.hide();
                                 }
-                            }]
-                        });
-                    },
+                            }
+                        }]
+                    });
+                },
 
-                    /**
-                     * Updates the modal config.
-                     *
-                     * @param {string} name             The name of the property to update.
-                     * @param {object|array} config     The config for the `name`.
-                     */
-                    update: function (name, config) {
-                        this.getElement().modal(name, config);
-                    },
+                /**
+                 * Updates the modal config.
+                 *
+                 * @param {string} name             The name of the property to update.
+                 * @param {object|array} config     The config for the `name`.
+                 */
+                update: function (name, config) {
+                    this.getElement().modal(name, config);
+                },
 
-                    /**
-                     * Show the modal
-                     */
-                    show: function () {
-                        this.getElement().modal('show');
-                    },
+                /**
+                 * Show the modal
+                 */
+                show: function () {
+                    this.getElement().modal('show');
+                },
 
-                    /**
-                     * Hide the modal
-                     */
-                    hide: function () {
-                        this.getElement().modal('hide');
-                    }
+                /**
+                 * Hide the modal
+                 */
+                hide: function () {
+                    this.getElement().modal('hide');
                 }
             }
-        };
-        var globalMenuCtrl = new GlobalMenuCtrl();
-        return globalMenuCtrl;
+        }
+    }
+    GlobalMenuCtrl.prototype = {
+        constructor: GlobalMenuCtrl,
+
+        /**
+         * Initialize the global menu controls.
+         */
+        init: function() {
+            this.about.modal.init();
+        }
     }
 
-    GlobalMenuCtrl.$inject = ['serviceProvider'];
-
-    return GlobalMenuCtrl;
-}());
+    var globalMenuCtrl = new GlobalMenuCtrl();
+    return globalMenuCtrl;
+};
