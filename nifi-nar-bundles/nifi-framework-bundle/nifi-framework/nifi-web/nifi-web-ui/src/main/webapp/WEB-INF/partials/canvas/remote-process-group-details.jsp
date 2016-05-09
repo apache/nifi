@@ -50,5 +50,14 @@
                 <span id="read-only-remote-process-group-yield-duration"></span>
             </div>
         </div>
+        <div class="setting">
+            <div class="setting-name">
+                Transport Protocol
+                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Transport protocol to use for this Remote Process Group communication."/>
+            </div>
+            <div class="setting-field">
+                <div id="read-only-remote-process-group-transport-protocol"></div>
+            </div>
+        </div>
     </div>
 </div>

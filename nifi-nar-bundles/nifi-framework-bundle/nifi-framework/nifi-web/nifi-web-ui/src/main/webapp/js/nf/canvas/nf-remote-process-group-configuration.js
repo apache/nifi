@@ -36,7 +36,8 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                     'component': {
                                         id: remoteProcessGroupId,
                                         communicationsTimeout: $('#remote-process-group-timeout').val(),
-                                        yieldDuration: $('#remote-process-group-yield-duration').val()
+                                        yieldDuration: $('#remote-process-group-yield-duration').val(),
+                                        transportProtocol: $('#remote-process-group-transport-protocol-combo').combo('getSelectedOption').value
                                     }
                                 };
 
@@ -91,8 +92,21 @@ nf.RemoteProcessGroupConfiguration = (function () {
                         $('#remote-process-group-url').text('');
                         $('#remote-process-group-timeout').val('');
                         $('#remote-process-group-yield-duration').val('');
+                        $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
+                            value: 'RAW'
+                        });
                     }
                 }
+            });
+            // initialize the transport protocol combo
+            $('#remote-process-group-transport-protocol-combo').combo({
+                options: [{
+                        text: 'RAW',
+                        value: 'RAW'
+                    }, {
+                        text: 'HTTP',
+                        value: 'HTTP'
+                    }]
             });
         },
         
@@ -114,6 +128,11 @@ nf.RemoteProcessGroupConfiguration = (function () {
                 // populate the text fields
                 $('#remote-process-group-timeout').val(selectionData.component.communicationsTimeout);
                 $('#remote-process-group-yield-duration').val(selectionData.component.yieldDuration);
+
+                // select the appropriate transport-protocol
+                $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
+                    value: selectionData.component.transportProtocol
+                });
 
                 // show the details
                 $('#remote-process-group-configuration').modal('show');

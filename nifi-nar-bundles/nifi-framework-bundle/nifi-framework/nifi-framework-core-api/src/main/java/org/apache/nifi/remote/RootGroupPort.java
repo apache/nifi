@@ -52,20 +52,18 @@ public interface RootGroupPort extends Port {
      *
      * @param peer peer
      * @param serverProtocol protocol
-     * @param requestHeaders headers
      *
      * @return the number of FlowFiles received
      * @throws org.apache.nifi.remote.exception.NotAuthorizedException nae
      * @throws org.apache.nifi.remote.exception.BadRequestException bre
      * @throws org.apache.nifi.remote.exception.RequestExpiredException ree
      */
-    int receiveFlowFiles(Peer peer, ServerProtocol serverProtocol, Map<String, String> requestHeaders) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
+    int receiveFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 
     /**
      * Transfers data to the given stream
      *
      * @param peer peer
-     * @param requestHeaders headers
      * @param serverProtocol protocol
      *
      * @return the number of FlowFiles transferred
@@ -73,6 +71,6 @@ public interface RootGroupPort extends Port {
      * @throws org.apache.nifi.remote.exception.BadRequestException bre
      * @throws org.apache.nifi.remote.exception.RequestExpiredException ree
      */
-    int transferFlowFiles(Peer peer, ServerProtocol serverProtocol, Map<String, String> requestHeaders) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
+    int transferFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 
 }

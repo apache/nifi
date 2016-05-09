@@ -17,6 +17,7 @@
 package org.apache.nifi.web.contextlistener;
 
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
@@ -25,6 +26,7 @@ import org.apache.nifi.controller.repository.RepositoryPurgeException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiCoreException;
+import org.apache.nifi.web.api.SiteToSiteResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -98,6 +100,9 @@ public class ApplicationStartupContextListener implements ServletContextListener
                 }
                 throw new NiFiCoreException("Unable to start Flow Controller.", e);
             }
+
+            sce.getServletContext().setAttribute(SiteToSiteResource.CONTEXT_ATTRIBUTE_TRANSACTION_ON_HOLD, new ConcurrentHashMap<>());
+
         }
 
     }

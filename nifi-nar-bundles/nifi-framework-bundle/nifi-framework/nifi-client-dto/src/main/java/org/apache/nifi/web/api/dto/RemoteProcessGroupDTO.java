@@ -36,6 +36,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     private String comments;
     private String communicationsTimeout;
     private String yieldDuration;
+    private String transportProtocol;
 
     private List<String> authorizationIssues;
     private Boolean transmitting;
@@ -288,4 +289,11 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         this.flowRefreshed = flowRefreshed;
     }
 
+    public String getTransportProtocol() {
+        return transportProtocol;
+    }
+
+    public void setTransportProtocol(String transportProtocol) {
+        this.transportProtocol = transportProtocol;
+    }
 }

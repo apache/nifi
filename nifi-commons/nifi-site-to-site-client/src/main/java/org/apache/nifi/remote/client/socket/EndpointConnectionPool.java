@@ -99,7 +99,6 @@ public class EndpointConnectionPool {
     private final ConcurrentMap<PeerDescription, BlockingQueue<EndpointConnection>> connectionQueueMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<PeerDescription, Long> peerTimeoutExpirations = new ConcurrentHashMap<>();
     private final URI clusterUrl;
-    private final String apiUri;
 
     private final AtomicLong peerIndex = new AtomicLong(0L);
 
@@ -142,13 +141,6 @@ public class EndpointConnectionPool {
         } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("Invalid Cluster URL: " + clusterUrl);
         }
-
-        // Trim the trailing /
-        String uriPath = this.clusterUrl.getPath();
-        if (uriPath.endsWith("/")) {
-            uriPath = uriPath.substring(0, uriPath.length() - 1);
-        }
-        apiUri = this.clusterUrl.getScheme() + "://" + this.clusterUrl.getHost() + ":" + this.clusterUrl.getPort() + uriPath + "-api";
 
         this.remoteDestination = remoteDestination;
         this.sslContext = sslContext;
@@ -884,7 +876,10 @@ public class EndpointConnectionPool {
     private ControllerDTO refreshRemoteInfo() throws IOException {
         final boolean webInterfaceSecure = clusterUrl.toString().startsWith("https");
         final NiFiRestApiUtil utils = new NiFiRestApiUtil(webInterfaceSecure ? sslContext : null);
-        final ControllerDTO controller = utils.getController(apiUri + "/controller", commsTimeout);
+        utils.resolveBaseUrl(clusterUrl);
+        utils.setConnectTimeoutMillis(commsTimeout);
+        utils.setReadTimeoutMillis(commsTimeout);
+        final ControllerDTO controller = utils.getController();
 
         remoteInfoWriteLock.lock();
         try {

@@ -50,5 +50,14 @@
                 <input type="text" id="remote-process-group-yield-duration"/>
             </div>
         </div>
+        <div class="setting">
+            <div class="setting-name">
+                Transport Protocol
+                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Specify the transport protocol to use for this Remote Process Group communication."/>
+            </div>
+            <div class="setting-field">
+                <div id="remote-process-group-transport-protocol-combo"></div>
+            </div>
+        </div>
     </div>
 </div>

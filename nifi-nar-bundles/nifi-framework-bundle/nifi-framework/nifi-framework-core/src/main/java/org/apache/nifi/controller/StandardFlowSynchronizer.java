@@ -53,6 +53,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
@@ -927,6 +928,11 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             if (remoteGroupDto.getYieldDuration() != null) {
                 remoteGroup.setYieldDuration(remoteGroupDto.getYieldDuration());
+            }
+
+            String transportProtocol = remoteGroupDto.getTransportProtocol();
+            if (transportProtocol != null && !transportProtocol.trim().isEmpty()) {
+                remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol.toUpperCase()));
             }
 
             final Set<RemoteProcessGroupPortDescriptor> inputPorts = new HashSet<>();
