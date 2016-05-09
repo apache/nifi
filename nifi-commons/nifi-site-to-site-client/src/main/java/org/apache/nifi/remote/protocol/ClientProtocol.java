@@ -40,12 +40,15 @@ public interface ClientProtocol extends VersionedRemoteResource {
 
     FlowFileCodec negotiateCodec(Peer peer) throws IOException, ProtocolException;
 
+    // TODO: This method is never used.
     int receiveFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
 
+    // TODO: This method is never used.
     int transferFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
 
     void shutdown(Peer peer) throws IOException, ProtocolException;
 
+    // TODO: This method is never used.
     boolean isReadyForFileTransfer();
 
     Transaction startTransaction(Peer peer, FlowFileCodec codec, TransferDirection direction) throws IOException;

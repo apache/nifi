@@ -16,27 +16,26 @@
  */
 package org.apache.nifi.remote.client.socket;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.remote.Communicant;
 import org.apache.nifi.remote.RemoteDestination;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransactionCompletion;
 import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.remote.client.AbstractSiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.util.ObjectHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SocketClient implements SiteToSiteClient {
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+public class SocketClient extends AbstractSiteToSiteClient {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
 
-    private final SiteToSiteClientConfig config;
     private final EndpointConnectionPool pool;
     private final boolean compress;
     private final String portName;
@@ -45,22 +44,17 @@ public class SocketClient implements SiteToSiteClient {
     private volatile boolean closed = false;
 
     public SocketClient(final SiteToSiteClientConfig config) {
+        super(config);
         pool = new EndpointConnectionPool(config.getUrl(),
                 createRemoteDestination(config.getPortIdentifier(), config.getPortName()),
                 (int) config.getTimeout(TimeUnit.MILLISECONDS),
                 (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
                 config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile());
 
-        this.config = config;
         this.compress = config.isUseCompression();
         this.portIdentifier = config.getPortIdentifier();
         this.portName = config.getPortName();
         this.penalizationNanos = config.getPenalizationPeriod(TimeUnit.NANOSECONDS);
-    }
-
-    @Override
-    public SiteToSiteClientConfig getConfig() {
-        return config;
     }
 
     @Override

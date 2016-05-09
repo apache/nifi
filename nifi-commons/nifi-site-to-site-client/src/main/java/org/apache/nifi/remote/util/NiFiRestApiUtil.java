@@ -19,33 +19,52 @@ package org.apache.nifi.remote.util;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
-import org.codehaus.jackson.JsonNode;
+import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class NiFiRestApiUtil {
 
-    public static final int RESPONSE_CODE_OK = 200;
+    protected static final int RESPONSE_CODE_OK = 200;
+    protected static final int RESPONSE_CODE_SEE_OTHER = 303;
+    protected static final int RESPONSE_CODE_BAD_REQUEST = 400;
 
+    private String baseUrl;
     private final SSLContext sslContext;
+
+    private int connectTimeoutMillis;
+    private int readTimeoutMillis;
+    private static final Pattern HTTP_ABS_URL = Pattern.compile("^https?://.+$");
 
     public NiFiRestApiUtil(final SSLContext sslContext) {
         this.sslContext = sslContext;
     }
 
-    private HttpURLConnection getConnection(final String connUrl, final int timeoutMillis) throws IOException {
-        final URL url = new URL(connUrl);
+    protected HttpURLConnection getConnection(final String path) throws IOException {
+        final URL url;
+        if(HTTP_ABS_URL.matcher(path).find()){
+            url = new URL(path);
+        } else {
+            if(StringUtils.isEmpty(getBaseUrl())){
+                throw new IllegalStateException("API baseUrl is not resolved yet, call setBaseUrl or resolveBaseUrl before sending requests with relative path.");
+            }
+            url = new URL(baseUrl + path);
+        }
         final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setConnectTimeout(timeoutMillis);
-        connection.setReadTimeout(timeoutMillis);
+        connection.setConnectTimeout(connectTimeoutMillis);
+        connection.setReadTimeout(readTimeoutMillis);
 
         // special handling for https
         if (sslContext != null && connection instanceof HttpsURLConnection) {
@@ -60,8 +79,8 @@ public class NiFiRestApiUtil {
         return connection;
     }
 
-    public ControllerDTO getController(final String url, final int timeoutMillis) throws IOException {
-        final HttpURLConnection connection = getConnection(url, timeoutMillis);
+    protected <T> T getEntity(final String path, final Class<T> entityClass) throws IOException {
+        final HttpURLConnection connection = getConnection(path);
         connection.setRequestMethod("GET");
         final int responseCode = connection.getResponseCode();
 
@@ -71,12 +90,31 @@ public class NiFiRestApiUtil {
 
         if (responseCode == RESPONSE_CODE_OK) {
             final ObjectMapper mapper = new ObjectMapper();
-            final JsonNode jsonNode = mapper.readTree(responseMessage);
-            final JsonNode controllerNode = jsonNode.get("controller");
-            return mapper.readValue(controllerNode, ControllerDTO.class);
+            return mapper.readValue(responseMessage, entityClass);
         } else {
             throw new IOException("Got HTTP response Code " + responseCode + ": " + connection.getResponseMessage() + " with explanation: " + responseMessage);
         }
+    }
+
+    public ControllerDTO getController() throws IOException {
+        // TODO: Backward compatibility needs to be added, it was used to be "/controller". Maybe the old resource should respond with 301 Moved Permanently?
+        return getEntity("/site-to-site", ControllerEntity.class).getController();
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    public void setConnectTimeoutMillis(int connectTimeoutMillis) {
+        this.connectTimeoutMillis = connectTimeoutMillis;
+    }
+
+    public void setReadTimeoutMillis(int readTimeoutMillis) {
+        this.readTimeoutMillis = readTimeoutMillis;
     }
 
     private static class OverrideHostnameVerifier implements HostnameVerifier {
@@ -96,5 +134,25 @@ public class NiFiRestApiUtil {
             }
             return delegate.verify(hostname, session);
         }
+    }
+
+    public String resolveBaseUrl(String clusterUrl) {
+        URI clusterUri;
+        try {
+            clusterUri = new URI(clusterUrl);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Specified clusterUrl was: " + clusterUrl, e);
+        }
+        return this.resolveBaseUrl(clusterUri);
+    }
+
+    public String resolveBaseUrl(URI clusterUrl) {
+        String urlPath = clusterUrl.getPath();
+        if (urlPath.endsWith("/")) {
+            urlPath = urlPath.substring(0, urlPath.length() - 1);
+        }
+        String baseUri = clusterUrl.getScheme() + "://" + clusterUrl.getHost() + ":" + clusterUrl.getPort() + urlPath + "-api";
+        this.setBaseUrl(baseUri);
+        return baseUri;
     }
 }

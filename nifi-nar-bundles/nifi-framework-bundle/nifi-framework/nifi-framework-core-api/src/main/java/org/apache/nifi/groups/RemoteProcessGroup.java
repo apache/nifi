@@ -26,6 +26,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 
 public interface RemoteProcessGroup extends Authorizable {
 
@@ -161,6 +162,10 @@ public interface RemoteProcessGroup extends Authorizable {
      * events
      */
     EventReporter getEventReporter();
+
+    SiteToSiteTransportProtocol getTransportProtocol();
+
+    void setTransportProtocol(SiteToSiteTransportProtocol transportProtocol);
 
     /**
      * Initiates a task in the remote process group to re-initialize, as a

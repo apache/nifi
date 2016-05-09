@@ -65,7 +65,8 @@ public class NodeRequestFilter implements Filter {
         HttpServletRequest httpReq = (HttpServletRequest) req;
         HttpServletResponse httpResp = (HttpServletResponse) resp;
 
-        if (properties.isClusterManager() || "HEAD".equalsIgnoreCase(httpReq.getMethod())) {
+        if (properties.isClusterManager() || "HEAD".equalsIgnoreCase(httpReq.getMethod())
+                || ((HttpServletRequest) req).getPathInfo().startsWith("/site-to-site/")) {
             filterChain.doFilter(req, resp);
         } else {
 

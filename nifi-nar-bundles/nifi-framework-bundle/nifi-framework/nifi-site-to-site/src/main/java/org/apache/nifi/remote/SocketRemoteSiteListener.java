@@ -261,11 +261,11 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                                 break;
                                             case RECEIVE_FLOWFILES:
                                                 // peer wants to receive FlowFiles, so we will transfer FlowFiles.
-                                                protocol.getPort().transferFlowFiles(peer, protocol, new HashMap<String, String>());
+                                                protocol.getPort().transferFlowFiles(peer, protocol);
                                                 break;
                                             case SEND_FLOWFILES:
                                                 // Peer wants to send FlowFiles, so we will receive.
-                                                protocol.getPort().receiveFlowFiles(peer, protocol, new HashMap<String, String>());
+                                                protocol.getPort().receiveFlowFiles(peer, protocol);
                                                 break;
                                             case REQUEST_PEER_LIST:
                                                 protocol.sendPeerList(peer);
