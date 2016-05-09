@@ -422,7 +422,7 @@ public class ClusterResource extends ApplicationResource {
     }
 
     /**
-     * Updates the processors annotation data.
+     * Updates the processor data.
      *
      * @param httpServletRequest request
      * @param processorId The id of the processor.
@@ -435,7 +435,7 @@ public class ClusterResource extends ApplicationResource {
     @Path("/processors/{id}")
     @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
-            value = "Updates processor annotation data",
+            value = "Updates processor data",
             response = ProcessorEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
@@ -497,8 +497,8 @@ public class ClusterResource extends ApplicationResource {
 
             // update the processor
             final RevisionDTO revision = processorEntity.getRevision();
-            final ConfigurationSnapshot<ProcessorDTO> controllerResponse = serviceFacade.setProcessorAnnotationData(
-                    new Revision(revision.getVersion(), revision.getClientId()), processorId, config.getAnnotationData());
+            final ConfigurationSnapshot<ProcessorDTO> controllerResponse = serviceFacade.updateProcessor(
+                    new Revision(revision.getVersion(), revision.getClientId()), processorId, config.getAnnotationData(),config.getProperties());
 
             // get the processor dto
             final ProcessorDTO responseProcessorDTO = controllerResponse.getConfiguration();

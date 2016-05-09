@@ -75,6 +75,7 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -215,10 +216,12 @@ public interface NiFiServiceFacade {
      * @param revision the revision to compare with current base revision
      * @param processorId the id of the processor to update
      * @param annotationData the annotation data
+     * @param properties the properties of the processor to update
      *
      * @return snapshot
      */
-    ConfigurationSnapshot<ProcessorDTO> setProcessorAnnotationData(Revision revision, String processorId, String annotationData);
+    ConfigurationSnapshot<ProcessorDTO> updateProcessor(Revision revision, String processorId, String annotationData, Map<String,String> properties);
+
 
     /**
      * Returns the process group status.

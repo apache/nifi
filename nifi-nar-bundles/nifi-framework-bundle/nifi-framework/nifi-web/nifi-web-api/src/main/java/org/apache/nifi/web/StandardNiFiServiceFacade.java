@@ -1626,14 +1626,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         });
     }
 
-    @Override
-    public ConfigurationSnapshot<ProcessorDTO> setProcessorAnnotationData(final Revision revision, final String processorId, final String annotationData) {
+
+    public ConfigurationSnapshot<ProcessorDTO> updateProcessor(final Revision revision, final String processorId, final String annotationData, final Map<String,String> properties) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ProcessorDTO>() {
             @Override
             public ConfigurationResult<ProcessorDTO> execute() {
                 // create the processor config
                 final ProcessorConfigDTO config = new ProcessorConfigDTO();
-                config.setAnnotationData(annotationData);
+                if (annotationData != null) {
+                    config.setAnnotationData(annotationData);
+                }
+                if (properties != null) {
+                    config.setProperties(properties);
+                }
 
                 // create the processor dto
                 final ProcessorDTO processorDTO = new ProcessorDTO();
@@ -1665,9 +1670,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         return dtoFactory.createProcessorDto(processor);
                     }
                 };
+
             }
         });
     }
+
 
     @Override
     public ConfigurationSnapshot<ControllerServiceDTO> createControllerService(final Revision revision, final ControllerServiceDTO controllerServiceDTO) {
