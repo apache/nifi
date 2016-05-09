@@ -100,9 +100,9 @@
                         // if the selection has changesd, reload the page
                         if (currentLocation !== option.value) {
                             // get an access token if necessary
-                            var getAccessToken = $.Deferred(function (deferred) {
+                            var getAccessToken = $$.Deferred(function (deferred) {
                                 if (nf.Storage.hasItem('jwt')) {
-                                    $.ajax({
+                                    $$.ajax({
                                         type: 'POST',
                                         url: '../nifi-api/access/ui-extension-token'
                                     }).done(function (token) {

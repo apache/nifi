@@ -18,7 +18,7 @@
 /**
  * Performs ajax setup for use within NiFi.
  */
-$(document).ready(function () {
+$(document).ready(function ($) {
     // include jwt when possible
     $.ajaxSetup({
         'beforeSend': function(xhr) {
