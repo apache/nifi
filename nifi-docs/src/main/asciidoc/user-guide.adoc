@@ -321,7 +321,7 @@ image:iconRemoteProcessGroup.png["Remote Process Group", width=32]
 references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM
 is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, the URL that should be used
 is the URL of the remote instance's NiFi Cluster Manager (NCM). When data is transferred to a clustered instance of NiFi
-via an RPG, the RPG it will first connect to the remote instance's NCM to determine which nodes are in the cluster and
+via an RPG, the RPG will first connect to the remote instance's NCM to determine which nodes are in the cluster and
 how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote NCM is
 then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to 
 recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
