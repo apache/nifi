@@ -49,5 +49,10 @@
             <artifactId>nifi-standard-content-viewer</artifactId>
             <type>war</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-jolt-transform-json-ui</artifactId>
+            <type>war</type>
+        </dependency>
     </dependencies>
 </project>

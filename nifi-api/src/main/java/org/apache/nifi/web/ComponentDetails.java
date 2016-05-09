@@ -31,6 +31,8 @@ public class ComponentDetails {
     private final String state;
     private final String annotationData;
     private final Map<String, String> properties;
+    private final Map<String, ComponentDescriptor> descriptors;
+
     private final Collection<String> validationErrors;
 
     private ComponentDetails(final Builder builder) {
@@ -40,7 +42,9 @@ public class ComponentDetails {
         this.state = builder.state;
         this.annotationData = builder.annotationData;
         this.properties = builder.properties;
+        this.descriptors = builder.descriptors;
         this.validationErrors = builder.validationErrors;
+
     }
 
     /**
@@ -85,6 +89,14 @@ public class ComponentDetails {
         return properties;
     }
 
+
+    /**
+     * @return Mapping of component descriptors
+     */
+    public Map<String,ComponentDescriptor> getDescriptors(){
+        return descriptors;
+    }
+
     /**
      * @return Current validation errors for the component
      */
@@ -100,6 +112,8 @@ public class ComponentDetails {
         private String state;
         private String annotationData;
         private Map<String, String> properties;
+        private Map<String,ComponentDescriptor> descriptors;
+
         private Collection<String> validationErrors;
 
         public Builder id(final String id) {
@@ -134,6 +148,11 @@ public class ComponentDetails {
 
         public Builder validateErrors(final Collection<String> validationErrors) {
             this.validationErrors = validationErrors;
+            return this;
+        }
+
+        public Builder descriptors(final Map<String,ComponentDescriptor> descriptors){
+            this.descriptors = descriptors;
             return this;
         }
 
