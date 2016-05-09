@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.remote;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
 import org.apache.nifi.remote.protocol.ServerProtocol;
+
+import java.util.Set;
 
 public interface RootGroupPort extends Port {
 
