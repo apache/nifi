@@ -36,6 +36,10 @@
             <param-name>com.sun.jersey.api.json.POJOMappingFeature</param-name>
             <param-value>true</param-value>
         </init-param>
+        <init-param>
+            <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
+            <param-value>org.apache.nifi.web.api.filter.RedirectResourceFilter</param-value>
+        </init-param>
     </servlet>
     <servlet-mapping>
         <servlet-name>jerseySpring</servlet-name>
