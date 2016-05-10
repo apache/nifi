@@ -14,32 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.label;
+package org.apache.nifi.connectable;
 
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.connectable.Positionable;
-import org.apache.nifi.connectable.Size;
-import org.apache.nifi.groups.ProcessGroup;
+/**
+ * Represents a component that can be positioned with X,Y coordinates on the canvas.
+ */
+public interface Positionable {
 
-import java.util.Map;
+    /**
+     * @return the position on the graph where this Connectable is located
+     */
+    Position getPosition();
 
-public interface Label extends Authorizable, Positionable {
-
-    String getIdentifier();
-
-    Map<String, String> getStyle();
-
-    void setStyle(Map<String, String> style);
-
-    Size getSize();
-
-    void setSize(Size size);
-
-    ProcessGroup getProcessGroup();
-
-    void setProcessGroup(ProcessGroup group);
-
-    String getValue();
-
-    void setValue(String value);
+    /**
+     * Updates this component's position on the graph
+     *
+     * @param position new position
+     */
+    void setPosition(Position position);
 }

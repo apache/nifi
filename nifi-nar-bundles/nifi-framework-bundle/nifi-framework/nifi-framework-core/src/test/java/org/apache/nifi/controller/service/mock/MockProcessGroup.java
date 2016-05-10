@@ -17,12 +17,6 @@
 
 package org.apache.nifi.controller.service.mock;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
@@ -30,6 +24,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
@@ -38,6 +33,12 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class MockProcessGroup implements ProcessGroup {
     private Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
@@ -264,6 +265,11 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessorNode getProcessor(String id) {
+        return null;
+    }
+
+    @Override
+    public Set<Positionable> findAllPositionables() {
         return null;
     }
 

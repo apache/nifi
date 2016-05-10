@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.groups;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -36,6 +37,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -72,6 +74,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -2138,6 +2141,18 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         return true;
+    }
+
+    @Override
+    public Set<Positionable> findAllPositionables() {
+        Set<Positionable> positionables = Sets.newHashSet();
+        positionables.addAll(findAllConnectables(this, true));
+        List<ProcessGroup> allProcessGroups = findAllProcessGroups();
+        positionables.addAll(allProcessGroups);
+        positionables.addAll(allProcessGroups.stream().flatMap(processGroup -> processGroup.findAllPositionables().stream()).collect(Collectors.toSet()));
+        positionables.addAll(findAllRemoteProcessGroups());
+        positionables.addAll(findAllLabels());
+        return positionables;
     }
 
     private Set<Connectable> findAllConnectables(final ProcessGroup group, final boolean includeRemotePorts) {

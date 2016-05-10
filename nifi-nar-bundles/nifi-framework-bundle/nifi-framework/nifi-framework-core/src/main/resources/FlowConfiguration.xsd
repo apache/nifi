@@ -15,7 +15,7 @@
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0">
     <xs:element name="flowController" type="FlowControllerType" />
-	
+
     <xs:complexType name="FlowControllerType">
         <xs:sequence>
             <xs:choice>
@@ -35,6 +35,7 @@
             
             <xs:element name="reportingTasks" type="ReportingTasksType" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
+        <xs:attribute name="encoding-version" type="xs:string"/>
     </xs:complexType>
 	
     <!-- the processor "id" is a key that should be valid within each flowController-->
