@@ -32,7 +32,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 /**
  * Represents a connectable component to which or from which data can flow.
  */
-public interface Connectable extends Triggerable, Authorizable {
+public interface Connectable extends Triggerable, Authorizable, Positionable {
 
     /**
      * @return the unique identifier for this <code>Connectable</code>
@@ -105,18 +105,6 @@ public interface Connectable extends Triggerable, Authorizable {
      * source
      */
     Set<Connection> getConnections(Relationship relationship);
-
-    /**
-     * @return the position on the graph where this Connectable is located
-     */
-    Position getPosition();
-
-    /**
-     * Updates this component's position on the graph
-     *
-     * @param position new position
-     */
-    void setPosition(Position position);
 
     /**
      * @return the name of this Connectable
