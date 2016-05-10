@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -136,6 +137,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private volatile Server server = null;
     private final ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap = new ConcurrentHashMap<>();
     private final AtomicReference<ProcessSessionFactory> sessionFactoryReference = new AtomicReference<>();
+    private final AtomicReference<StreamThrottler> throttlerRef = new AtomicReference<>();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -166,6 +168,15 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     @OnStopped
     public void shutdownHttpServer() {
+        final StreamThrottler throttler = throttlerRef.getAndSet(null);
+        if(throttler != null) {
+            try {
+                throttler.close();
+            } catch (IOException e) {
+                getLogger().error("Failed to close StreamThrottler", e);
+            }
+        }
+
         final Server toShutdown = this.server;
         if (toShutdown == null) {
             return;
@@ -185,6 +196,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
+        throttlerRef.set(streamThrottler);
 
         final boolean needClientAuth = sslContextService == null ? false : sslContextService.getTrustStoreFile() != null;
 
