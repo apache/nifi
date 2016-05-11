@@ -61,11 +61,11 @@
                 </div>
                 <div id="login-link-container">
                     <span id="login-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.loginLink.shell.launch();">login</span>
+                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();">login</span>
                 </div>
                 <div id="logout-link-container" style="display: none;">
                     <span id="logout-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutLink.logout();">logout</span>
+                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();">logout</span>
                 </div>
             </div>
             <md-menu md-position-mode="target-right target" md-offset="-1 44">
@@ -114,9 +114,9 @@
                     </md-menu-item>
                     <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.enabled();"
                                   layout-align="space-around center">
-                        <a id="users-link"
+                        <a id="users-link" layout="row"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();;"><i
-                                class="fa fa-users"></i>Users</a>
+                                class="fa fa-users"></i>Users<div id="has-pending-accounts" class="hidden"></div></a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">

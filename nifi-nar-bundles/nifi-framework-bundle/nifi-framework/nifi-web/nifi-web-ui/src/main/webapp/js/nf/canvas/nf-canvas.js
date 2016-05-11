@@ -28,7 +28,8 @@ $(document).ready(function () {
         nf.ng.Canvas.AppCtrl.$inject = ['$scope', 'serviceProvider', 'headerCtrl', 'graphControlsCtrl'];
         nf.ng.ServiceProvider.$inject = [];
         nf.ng.BreadcrumbsCtrl.$inject = ['serviceProvider', '$sanitize'];
-        nf.ng.Canvas.HeaderCtrl.$inject = ['serviceProvider', 'toolboxCtrl', 'globalMenuCtrl'];
+        nf.ng.Canvas.HeaderCtrl.$inject = ['serviceProvider', 'toolboxCtrl', 'globalMenuCtrl', 'flowStatusCtrl'];
+        nf.ng.Canvas.FlowStatusCtrl.$inject = ['serviceProvider', '$sanitize'];
         nf.ng.Canvas.GlobalMenuCtrl.$inject = ['serviceProvider'];
         nf.ng.Canvas.ToolboxCtrl.$inject = ['processorComponent',
             'inputPortComponent',
@@ -64,6 +65,7 @@ $(document).ready(function () {
         app.service('headerCtrl', nf.ng.Canvas.HeaderCtrl);
         app.service('globalMenuCtrl', nf.ng.Canvas.GlobalMenuCtrl);
         app.service('toolboxCtrl', nf.ng.Canvas.ToolboxCtrl);
+        app.service('flowStatusCtrl', nf.ng.Canvas.FlowStatusCtrl);
         app.service('processorComponent', nf.ng.ProcessorComponent);
         app.service('inputPortComponent', nf.ng.InputPortComponent);
         app.service('outputPortComponent', nf.ng.OutputPortComponent);
@@ -126,15 +128,9 @@ nf.Canvas = (function () {
             authorities: '../nifi-api/controller/authorities',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/flow/revision',
-            status: '../nifi-api/flow/status',
-            bulletinBoard: '../nifi-api/flow/bulletin-board',
             banners: '../nifi-api/flow/banners',
-            controller: '../nifi-api/controller',
             controllerConfig: '../nifi-api/controller/config',
-            about: '../nifi-api/flow/about',
-            accessConfig: '../nifi-api/access/config',
-            cluster: '../nifi-api/cluster',
-            d3Script: 'js/d3/d3.min.js'
+            cluster: '../nifi-api/cluster'
         }
     };
     
@@ -521,9 +517,7 @@ nf.Canvas = (function () {
             });
 
             //breadcrumbs
-            nf.ng.Bridge.call('appCtrl.serviceProvider.breadcrumbsCtrl',
-                'appCtrl.serviceProvider.breadcrumbsCtrl.updateBreadcrumbsCss',
-                {'bottom': bottom + 'px'});
+            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').updateBreadcrumbsCss({'bottom': bottom + 'px'});
 
             // body
             $('#canvas-body').css({
@@ -634,123 +628,6 @@ nf.Canvas = (function () {
     };
 
     /**
-     * Reloads the current status of this flow.
-     */
-    var reloadFlowStatus = function () {
-        return $.ajax({
-            type: 'GET',
-            url: config.urls.status,
-            dataType: 'json'
-        }).done(function (response) {
-            // report the updated status
-            if (nf.Common.isDefinedAndNotNull(response.controllerStatus)) {
-                var controllerStatus = response.controllerStatus;
-
-                // update the report values
-                $('#active-thread-count').text(controllerStatus.activeThreadCount);
-                $('#total-queued').text(controllerStatus.queued);
-
-                // update the connected nodes if applicable
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.connectedNodes)) {
-                    var connectedNodes = controllerStatus.connectedNodes.split(' / ');
-                    if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
-                        $('#connected-nodes-count').addClass('alert');
-                    } else {
-                        $('#connected-nodes-count').removeClass('alert');
-                    }
-
-                    // set the connected nodes
-                    $('#connected-nodes-count').text(controllerStatus.connectedNodes);
-                }
-
-                // update the component counts
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.activeRemotePortCount)) {
-                    $('#controller-transmitting-count').text(controllerStatus.activeRemotePortCount);
-                } else {
-                    $('#controller-transmitting-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.inactiveRemotePortCount)) {
-                    $('#controller-not-transmitting-count').text(controllerStatus.inactiveRemotePortCount);
-                } else {
-                    $('#controller-not-transmitting-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.runningCount)) {
-                    $('#controller-running-count').text(controllerStatus.runningCount);
-                } else {
-                    $('#controller-running-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.stoppedCount)) {
-                    $('#controller-stopped-count').text(controllerStatus.stoppedCount);
-                } else {
-                    $('#controller-stopped-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.invalidCount)) {
-                    $('#controller-invalid-count').text(controllerStatus.invalidCount);
-                    if(controllerStatus.invalidCount > 0) {
-                        $('#controller-invalid-count').parent().css('color', '#BA554A');
-                    } else {
-                        $('#controller-invalid-count').parent().css('color', '#728E9B');
-                    }
-                } else {
-                    $('#controller-invalid-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.disabledCount)) {
-                    $('#controller-disabled-count').text(controllerStatus.disabledCount);
-                } else {
-                    $('#controller-disabled-count').text('-');
-                }
-
-                // icon for system bulletins
-                var bulletinIcon = $('#controller-bulletins');
-                var currentBulletins = bulletinIcon.data('bulletins');
-
-                // update the bulletins if necessary
-                if (nf.Common.doBulletinsDiffer(currentBulletins, controllerStatus.bulletins)) {
-                    bulletinIcon.data('bulletins', controllerStatus.bulletins);
-
-                    // get the formatted the bulletins
-                    var bulletins = nf.Common.getFormattedBulletins(controllerStatus.bulletins);
-
-                    // bulletins for this processor are now gone
-                    if (bulletins.length === 0) {
-                        if (bulletinIcon.data('qtip')) {
-                            bulletinIcon.removeClass('has-bulletins').qtip('api').destroy(true);
-                        }
-
-                        // hide the icon
-                        bulletinIcon.hide();
-                    } else {
-                        var newBulletins = nf.Common.formatUnorderedList(bulletins);
-
-                        // different bulletins, refresh
-                        if (bulletinIcon.data('qtip')) {
-                            bulletinIcon.qtip('option', 'content.text', newBulletins);
-                        } else {
-                            // no bulletins before, show icon and tips
-                            bulletinIcon.addClass('has-bulletins').qtip($.extend({
-                                content: newBulletins
-                            }, nf.CanvasUtils.config.systemTooltipConfig));
-                        }
-
-                        // show the icon
-                        bulletinIcon.show();
-                    }
-                }
-
-                // update controller service and reporting task bulletins
-                nf.Settings.setBulletins(controllerStatus.controllerServiceBulletins, controllerStatus.reportingTaskBulletins);
-
-                // handle any pending user request
-                if (controllerStatus.hasPendingAccounts === true) {
-                    $('#has-pending-accounts').show();
-                } else {
-                    $('#has-pending-accounts').hide();
-                }
-            }
-        }).fail(nf.Common.handleAjaxError);
-    };
-
-    /**
      * Refreshes the graph.
      *
      * @argument {string} processGroupId        The process group id
@@ -775,11 +652,8 @@ nf.Canvas = (function () {
             nf.Canvas.setGroupId(processGroupFlow.id);
 
             // update the breadcrumbs
-            nf.ng.Bridge.call('appCtrl.serviceProvider.breadcrumbsCtrl',
-                'appCtrl.serviceProvider.breadcrumbsCtrl.resetBreadcrumbs');
-            nf.ng.Bridge.call('appCtrl.serviceProvider.breadcrumbsCtrl',
-                'appCtrl.serviceProvider.breadcrumbsCtrl.generateBreadcrumbs',
-                processGroupFlow.breadcrumb);
+            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetBreadcrumbs();
+            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').generateBreadcrumbs(processGroupFlow.breadcrumb);
 
             // set the parent id if applicable
             if (nf.Common.isDefinedAndNotNull(processGroupFlow.parentGroupId)) {
@@ -881,12 +755,11 @@ nf.Canvas = (function () {
 
                 // get the process group to refresh everything
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId());
-                var statusXhr = reloadFlowStatus();
+                var statusXhr = nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl.flowStatusCtrl').reloadFlowStatus();
                 var settingsXhr = nf.Settings.loadSettings(false); // don't reload the status as we want to wait for deferreds to complete
                 $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
                     // adjust breadcrumbs if necessary
-                    nf.ng.Bridge.call('appCtrl.serviceProvider.breadcrumbsCtrl',
-                        'appCtrl.serviceProvider.breadcrumbsCtrl.resetScrollPosition');
+                    nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetScrollPosition();
 
                     // don't load the status until the graph is loaded
                     reloadStatus(nf.Canvas.getGroupId()).done(function () {
@@ -904,7 +777,9 @@ nf.Canvas = (function () {
         reloadStatus: function () {
             return $.Deferred(function (deferred) {
                 // refresh the status and check any bulletins
-                $.when(reloadStatus(nf.Canvas.getGroupId()), reloadFlowStatus(), checkRevision()).done(function () {
+                $.when(reloadStatus(nf.Canvas.getGroupId()),
+                    nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl.flowStatusCtrl').reloadFlowStatus(),
+                    checkRevision()).done(function () {
                     deferred.resolve();
                 }).fail(function () {
                     deferred.reject();
@@ -995,22 +870,6 @@ nf.Canvas = (function () {
                     dataType: 'json'
                 });
 
-                // get the about details
-                var aboutXhr = $.ajax({
-                    type: 'GET',
-                    url: config.urls.about,
-                    dataType: 'json'
-                }).done(function (response) {
-                    
-                }).fail(nf.Common.handleAjaxError);
-
-                // get the login config
-                var loginXhr = $.ajax({
-                    type: 'GET',
-                    url: config.urls.accessConfig,
-                    dataType: 'json'
-                });
-
                 // create the deferred cluster request
                 var isClusteredRequest = $.Deferred(function (deferred) {
                     $.ajax({
@@ -1030,10 +889,8 @@ nf.Canvas = (function () {
                 }).promise();
 
                 // ensure the config requests are loaded
-                $.when(configXhr, loginXhr, aboutXhr, userXhr).done(function (configResult, loginResult, aboutResult) {
+                $.when(configXhr, userXhr).done(function (configResult) {
                     var configResponse = configResult[0];
-                    var loginResponse = loginResult[0];
-                    var aboutResponse = aboutResult[0];
 
                     // calculate the canvas offset
                     var canvasContainer = $('#canvas-container');
@@ -1041,17 +898,6 @@ nf.Canvas = (function () {
 
                     // get the config details
                     var configDetails = configResponse.config;
-                    var loginDetails = loginResponse.config;
-                    var aboutDetails = aboutResponse.about;
-                    
-                    // set the document title and the about title
-                    document.title = aboutDetails.title;
-                    $('#nf-version').text(aboutDetails.version);
-                    
-                    // store the content viewer url if available
-                    if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
-                        $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
-                    }
 
                     // when both request complete, load the application
                     isClusteredRequest.done(function () {
@@ -1068,9 +914,7 @@ nf.Canvas = (function () {
                         initCanvas();
                         nf.Canvas.View.init();
                         nf.ContextMenu.init();
-                        nf.ng.Bridge.call('appCtrl.serviceProvider.headerCtrl',
-                            'appCtrl.serviceProvider.headerCtrl.init', loginDetails.supportsLogin);
-                        nf.Search.init();
+                        nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl').init();
                         nf.Settings.init();
                         nf.Actions.init();
                         nf.QueueListing.init();
@@ -1104,8 +948,7 @@ nf.Canvas = (function () {
                         nf.RemoteProcessGroupDetails.init();
                         nf.GoTo.init();
                         nf.Graph.init().done(function () {
-                            nf.ng.Bridge.call('appCtrl.serviceProvider.graphControlsCtrl',
-                                'appCtrl.serviceProvider.graphControlsCtrl.init');
+                            nf.ng.Bridge.get('appCtrl.serviceProvider.graphControlsCtrl').init();
 
                             // determine the split between the polling
                             var pollingSplit = autoRefreshIntervalSeconds / 2;

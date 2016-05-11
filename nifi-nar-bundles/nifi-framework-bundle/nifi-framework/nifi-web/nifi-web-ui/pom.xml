@@ -364,7 +364,6 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-selectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-birdseye.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-search.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-settings.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-go-to.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-actions.js</include>
@@ -377,6 +376,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-breadcrumbs-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-header-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-toolbox-controller.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-flow-status-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-global-menu-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-graph-controls-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-navigate-controller.js</include>

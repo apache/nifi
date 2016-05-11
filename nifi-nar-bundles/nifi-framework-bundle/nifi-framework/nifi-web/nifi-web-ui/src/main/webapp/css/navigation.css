@@ -188,7 +188,7 @@ rect.birdseye-brush {
     background-color: rgba(249, 250, 251, 0.97); /*tint base-color 96%*/
     border-top: 1px solid #C7D2D7; /*tint base-color 60%*/
     color: #598599;
-    z-index: 2;
+    z-index: 3;
     height: 31px;
     width: 100%;
 }

@@ -1618,8 +1618,7 @@ nf.Settings = (function () {
             // refresh the system diagnostics when clicked
             nf.Common.addHoverEffect('#settings-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
                 if ($('#settings-refresh-required-icon').is(':visible')) {
-                    nf.ng.Bridge.call('appCtrl.serviceProvider.headerCtrl',
-                        'appCtrl.serviceProvider.headerCtrl.reloadAndClearWarnings');
+                    nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl').reloadAndClearWarnings();
                 } else {
                     nf.Settings.loadSettings();
                 }

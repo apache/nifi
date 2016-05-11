@@ -30,12 +30,12 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
     function GlobalMenuCtrl(serviceProvider) {
 
         /**
-         * The summary menu item.
+         * The summary menu item controller.
          */
         this.summary = {
 
             /**
-             * The summary menu item's shell.
+             * The summary menu item's shell controller.
              */
             shell: {
 
@@ -49,12 +49,12 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The counters menu item.
+         * The counters menu item controller.
          */
         this.counters = {
 
             /**
-             * The counters menu item's shell.
+             * The counters menu item's shell controller.
              */
             shell: {
 
@@ -68,12 +68,12 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The bulletin board menu item.
+         * The bulletin board menu item controller.
          */
         this.bulletinBoard = {
 
             /**
-             * The bulletin board menu item's shell.
+             * The bulletin board menu item's shell controller.
              */
             shell: {
 
@@ -87,7 +87,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The data provenance menu item.
+         * The data provenance menu item controller.
          */
         this.dataProvenance = {
 
@@ -101,7 +101,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
             },
 
             /**
-             * The data provenance menu item's shell.
+             * The data provenance menu item's shell controller.
              */
             shell: {
 
@@ -115,12 +115,12 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The controller settings menu item.
+         * The controller settings menu item controller.
          */
         this.controllerSettings = {
 
             /**
-             * The controller settings menu item's shell.
+             * The controller settings menu item's shell controller.
              */
             shell: {
 
@@ -136,7 +136,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The cluster menu item.
+         * The cluster menu item controller.
          */
         this.cluster = {
 
@@ -150,7 +150,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
             },
 
             /**
-             * The cluster menu item's shell.
+             * The cluster menu item's shell controller.
              */
             shell: {
 
@@ -164,12 +164,12 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The flow config history menu item.
+         * The flow config history menu item controller.
          */
         this.flowConfigHistory = {
 
             /**
-             * The flow config history menu item's shell.
+             * The flow config history menu item's shell controller.
              */
             shell: {
 
@@ -183,7 +183,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The users menu item.
+         * The users menu item controller.
          */
         this.users = {
 
@@ -197,7 +197,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
             },
 
             /**
-             * The users menu item's shell.
+             * The users menu item's shell controller.
              */
             shell: {
 
@@ -211,12 +211,12 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The templates menu item.
+         * The templates menu item controller.
          */
         this.templates = {
 
             /**
-             * The templates menu item's shell.
+             * The templates menu item's shell controller.
              */
             shell: {
 
@@ -232,12 +232,12 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The help menu item.
+         * The help menu item controller.
          */
         this.help = {
 
             /**
-             * The help menu item's shell.
+             * The help menu item's shell controller.
              */
             shell: {
 
@@ -251,12 +251,36 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
         };
 
         /**
-         * The about menu item.
+         * The about menu item controller.
          */
         this.about = {
 
             /**
-             * The about menu item's modal.
+             * Initialize the about details.
+             */
+            init: function () {
+                // get the about details
+                $.ajax({
+                    type: 'GET',
+                    url: config.urls.controllerAbout,
+                    dataType: 'json'
+                }).done(function (response) {
+                    var aboutDetails = response.about;
+                    // set the document title and the about title
+                    document.title = aboutDetails.title;
+                    $('#nf-version').text(aboutDetails.version);
+
+                    // store the content viewer url if available
+                    if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
+                        $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
+                    }
+                }).fail(nf.Common.handleAjaxError);
+
+                this.modal.init();
+            },
+
+            /**
+             * The about menu item's modal controller.
              */
             modal: {
 
@@ -274,19 +298,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                  */
                 init: function () {
                     var self = this;
-                    // get the about details
-                    $.ajax({
-                        type: 'GET',
-                        url: config.urls.controllerAbout,
-                        dataType: 'json'
-                    }).done(function (response) {
-                        var aboutDetails = response.about;
-                        // set the document title and the about title
-                        document.title = aboutDetails.title;
-                        $('#nf-version').text(aboutDetails.version);
-                    }).fail(nf.Common.handleAjaxError);
 
-                    // configure the about dialog
                     this.getElement().modal({
                         overlayBackground: true,
                         buttons: [{
@@ -326,14 +338,15 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
             }
         }
     }
+
     GlobalMenuCtrl.prototype = {
         constructor: GlobalMenuCtrl,
 
         /**
          * Initialize the global menu controls.
          */
-        init: function() {
-            this.about.modal.init();
+        init: function () {
+            this.about.init();
         }
     }
 
