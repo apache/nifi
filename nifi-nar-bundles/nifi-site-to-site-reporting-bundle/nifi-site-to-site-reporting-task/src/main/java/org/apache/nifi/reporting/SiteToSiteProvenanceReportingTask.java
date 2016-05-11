@@ -188,10 +188,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             // Create a JSON array of all the events in the current batch
             final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
             for (final ProvenanceEventRecord event : events) {
-                String componentName = null;
-                if (componentMap.containsKey(event.getComponentId())) {
-                    componentName = componentMap.get(event.getComponentId());
-                }
+                final String componentName = componentMap.get(event.getComponentId());
                 arrayBuilder.add(serialize(factory, builder, event, df, componentName, hostname, url, rootGroupName, platform));
             }
             final JsonArray jsonArray = arrayBuilder.build();
