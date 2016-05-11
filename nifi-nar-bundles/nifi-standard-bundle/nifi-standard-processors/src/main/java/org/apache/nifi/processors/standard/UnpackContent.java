@@ -117,7 +117,7 @@ public class UnpackContent extends AbstractProcessor {
             .name("File Filter")
             .description("Only files whose names match the given regular expression will be extracted (tar/zip only)")
             .required(true)
-            .defaultValue("[^\\.].*")
+            .defaultValue(".*")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
@@ -217,6 +217,9 @@ public class UnpackContent extends AbstractProcessor {
                 unpacker = flowFileTarUnpacker;
                 addFragmentAttrs = false;
                 break;
+            case AUTO_DETECT_FORMAT:
+                // The format of the unpacker should be known before initialization
+                throw new ProcessException(packagingFormat + " is not a valid packaging format");
         }
     }
 
