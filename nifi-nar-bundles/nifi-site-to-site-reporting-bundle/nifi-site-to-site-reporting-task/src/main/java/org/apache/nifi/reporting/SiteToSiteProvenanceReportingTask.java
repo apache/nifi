@@ -83,54 +83,41 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         return properties;
     }
 
-    private String getComponentName(final ProcessGroupStatus status, final ProvenanceEventRecord event) {
-        if (status == null) {
-            return null;
-        }
+    private Map<String,String> createComponentMap(final ProcessGroupStatus status) {
+        final Map<String,String> componentMap = new HashMap<>();
 
-        final String componentId = event.getComponentId();
-        if (status.getId().equals(componentId)) {
-            return status.getName();
-        }
+        if (status != null) {
+            componentMap.put(status.getId(), status.getName());
 
-        for (final ProcessorStatus procStatus : status.getProcessorStatus()) {
-            if (procStatus.getId().equals(componentId)) {
-                return procStatus.getName();
+            for (final ProcessorStatus procStatus : status.getProcessorStatus()) {
+                componentMap.put(procStatus.getId(), procStatus.getName());
+            }
+
+            for (final PortStatus portStatus : status.getInputPortStatus()) {
+                componentMap.put(portStatus.getId(), portStatus.getName());
+            }
+
+            for (final PortStatus portStatus : status.getOutputPortStatus()) {
+                componentMap.put(portStatus.getId(), portStatus.getName());
+            }
+
+            for (final RemoteProcessGroupStatus rpgStatus : status.getRemoteProcessGroupStatus()) {
+                componentMap.put(rpgStatus.getId(), rpgStatus.getName());
+            }
+
+            for (final ProcessGroupStatus childGroup : status.getProcessGroupStatus()) {
+                componentMap.put(childGroup.getId(), childGroup.getName());
             }
         }
 
-        for (final PortStatus portStatus : status.getInputPortStatus()) {
-            if (portStatus.getId().equals(componentId)) {
-                return portStatus.getName();
-            }
-        }
-
-        for (final PortStatus portStatus : status.getOutputPortStatus()) {
-            if (portStatus.getId().equals(componentId)) {
-                return portStatus.getName();
-            }
-        }
-
-        for (final RemoteProcessGroupStatus rpgStatus : status.getRemoteProcessGroupStatus()) {
-            if (rpgStatus.getId().equals(componentId)) {
-                return rpgStatus.getName();
-            }
-        }
-
-        for (final ProcessGroupStatus childGroup : status.getProcessGroupStatus()) {
-            final String componentName = getComponentName(childGroup, event);
-            if (componentName != null) {
-                return componentName;
-            }
-        }
-
-        return null;
+        return componentMap;
     }
 
     @Override
     public void onTrigger(final ReportingContext context) {
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
+        final Map<String,String> componentMap = createComponentMap(procGroupStatus);
 
         Long currMaxId = context.getEventAccess().getProvenanceRepository().getMaxEventId();
 
@@ -152,7 +139,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             }
 
             if(currMaxId < firstEventId){
-                getLogger().debug("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
+                getLogger().warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
                         "ids. Restarting querying from the beginning.", new Object[]{currMaxId, firstEventId});
                 firstEventId = -1;
             }
@@ -192,13 +179,20 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
 
+        final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
+        df.setTimeZone(TimeZone.getTimeZone("Z"));
+
         while (events != null && !events.isEmpty()) {
             final long start = System.nanoTime();
 
             // Create a JSON array of all the events in the current batch
             final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
             for (final ProvenanceEventRecord event : events) {
-                arrayBuilder.add(serialize(factory, builder, event, getComponentName(procGroupStatus, event), hostname, url, rootGroupName, platform));
+                String componentName = null;
+                if (componentMap.containsKey(event.getComponentId())) {
+                    componentName = componentMap.get(event.getComponentId());
+                }
+                arrayBuilder.add(serialize(factory, builder, event, df, componentName, hostname, url, rootGroupName, platform));
             }
             final JsonArray jsonArray = arrayBuilder.build();
 
@@ -252,15 +246,14 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
     }
 
-    static JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event,
+    static JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
         final String componentName, final String hostname, final URL nifiUrl, final String applicationName, final String platform) {
         addField(builder, "eventId", UUID.randomUUID().toString());
         addField(builder, "eventOrdinal", event.getEventId());
         addField(builder, "eventType", event.getEventType().name());
         addField(builder, "timestampMillis", event.getEventTime());
 
-        final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
-        df.setTimeZone(TimeZone.getTimeZone("Z"));
+
         addField(builder, "timestamp", df.format(event.getEventTime()));
 
         addField(builder, "durationMillis", event.getEventDuration());
