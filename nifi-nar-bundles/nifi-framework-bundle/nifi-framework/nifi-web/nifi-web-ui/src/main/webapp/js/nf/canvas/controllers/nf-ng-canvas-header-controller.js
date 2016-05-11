@@ -17,19 +17,63 @@
 
 /* global nf, d3 */
 
-nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl) {
+nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
     'use strict';
 
     var MIN_TOOLBAR_WIDTH = 640;
 
-    function HeaderCtrl(toolboxCtrl, globalMenuCtrl) {
+    var config = {
+        urls: {
+            accessConfig: '../nifi-api/access/config'
+        }
+    };
+
+    function HeaderCtrl(toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
         this.toolboxCtrl = toolboxCtrl;
         this.globalMenuCtrl = globalMenuCtrl;
+        this.flowStatusCtrl = flowStatusCtrl;
 
         /**
-         * The login link.
+         * The login controller.
          */
-        this.loginLink = {
+        this.loginCtrl = {
+
+            /**
+             * Initialize the login controller.
+             */
+            init: function () {
+                var self = this;
+
+                // if the user is not anonymous or accessing via http
+                if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
+                    $('#login-link-container').css('display', 'none');
+                }
+
+                // if accessing via http, don't show the current user
+                if (location.protocol === 'http:') {
+                    $('#current-user-container').css('display', 'none');
+                }
+
+                // get the login config
+                var loginXhr = $.ajax({
+                    type: 'GET',
+                    url: config.urls.accessConfig,
+                    dataType: 'json'
+                });
+
+                $.when(loginXhr).done(function (loginResult) {
+                    self.supportsLogin = loginResult.config.supportsLogin;
+                }).fail(nf.Common.handleAjaxError);
+            },
+
+            /**
+             * Boolean describing whether or not the NiFi instance supports login.
+             */
+            supportsLogin: undefined,
+
+            /**
+             * The login shell controller.
+             */
             shell: {
 
                 /**
@@ -42,22 +86,23 @@ nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl
         };
 
         /**
-         * Logout.
+         * The logout controller.
          */
-        this.logoutLink = {
+        this.logoutCtrl = {
             logout: function () {
                 nf.Storage.removeItem("jwt");
                 window.location = '/nifi';
             }
         };
     }
+
     HeaderCtrl.prototype = {
         constructor: HeaderCtrl,
 
         /**
          *  Register the header controller.
          */
-        register: function() {
+        register: function () {
             if (serviceProvider.headerCtrl === undefined) {
                 serviceProvider.register('headerCtrl', headerCtrl);
             }
@@ -65,26 +110,20 @@ nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl
 
         /**
          * Initialize the canvas header.
+         *
+         * @argument {boolean} supportsLogin    Whether login is supported.
          */
-        init: function() {
+        init: function () {
             this.toolboxCtrl.init();
             this.globalMenuCtrl.init();
-
-            // if the user is not anonymous or accessing via http
-            if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
-                $('#login-link-container').css('display', 'none');
-            }
-
-            // if accessing via http, don't show the current user
-            if (location.protocol === 'http:') {
-                $('#current-user-container').css('display', 'none');
-            }
+            this.flowStatusCtrl.init();
+            this.loginCtrl.init();
         },
 
         /**
          * Reloads and clears any warnings.
          */
-        reloadAndClearWarnings: function() {
+        reloadAndClearWarnings: function () {
             nf.Canvas.reload().done(function () {
                 // update component visibility
                 nf.Canvas.View.updateVisibility();
@@ -108,7 +147,7 @@ nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl
         }
     }
 
-    var headerCtrl = new HeaderCtrl(toolboxCtrl, globalMenuCtrl);
+    var headerCtrl = new HeaderCtrl(toolboxCtrl, globalMenuCtrl, flowStatusCtrl);
     headerCtrl.register();
     return headerCtrl;
 };

@@ -18,69 +18,78 @@
 
 #flow-status {
     height: 32px;
-    background-color:#E3E8EB; /*tint base-color 60%*/
+    background-color: #E3E8EB; /*tint base-color 60%*/
 }
 
 #flow-status .icon {
-    font-size:15px;
+    font-size: 15px;
     font-style: normal;
     color: #728E9B; /*base-color*/
 }
 
 #flow-status .fa {
-    font-size:15px;
+    font-size: 15px;
     font-style: normal;
     color: #728E9B; /*base-color*/
 }
 
-#flow-status .icon span{
-    font-size:15px;
+#flow-status .icon span {
+    font-size: 15px;
     font-weight: 500;
     color: #775351; /*value-color*/
 }
 
-#flow-status .fa span{
-    font-size:15px;
+#flow-status .fa span {
+    font-size: 15px;
     font-weight: 500;
     color: #775351; /*value-color*/
     font-family: Roboto, sans-serif;
 }
 
-#flow-status button{
+#flow-status button {
     height: 32px;
-    width:32px;
-    border-left:1px solid #AABBC3; /*tint base-color 40%*/
+    width: 32px;
+    border-left: 1px solid #AABBC3; /*tint base-color 40%*/
     border-right: none;
     border-top: none;
     border-bottom: none;
+    position: relative;
 }
 
-#flow-status span{
+#flow-status span {
     padding-left: 5px;
 }
 
-#search-button {
-    background-color:#E3E8EB; /*tint base-color 80%*/
+#search-container {
+    overflow: hidden;
+    height: 32px;
+    background: #FFFFFF;
 }
 
-#search-button i{
-    color: #004849;
-    font-size:15px;
+.search-container-opened {
+    width: 235px;
+}
+
+.search-container-closed {
+    width: 32px;
 }
 
 #search-button:hover {
-    background-color:#FFFFFF;
-    border-left:1px solid #004849; /*link-color*/
-    box-shadow:0 2px 2px rgba(0,0,0,0.25);
+    background-color: #FFFFFF !important; /* override any styles set by JS */
+    border-left: 1px solid #004849; /*link-color*/
+}
+
+#search-button .fa {
+    color: #004849;
 }
 
 #bulletin-button {
-    background-color:#728E9B; /*base-color*/
+    background-color: #728E9B; /*base-color*/
 }
 
 #bulletin-button i.fa {
     color: #fff;
-    font-size:15px;
+    font-size: 15px;
 }
 
 #canvas-loading-container {
@@ -101,12 +110,11 @@ div.search-result-icon {
 }
 
 #search-field {
-    height: 32px;
+    height: 33px;
     width: 200px;
     background: #FFFFFF;
-    border: 0px solid #AABBC3;
-    position: relative;
-    left: 32px;
+    border: 0px;
+    padding: 0px;
 }
 
 input.search-flow {
