@@ -286,6 +286,10 @@ public class SiteToSiteResource extends ApplicationResource {
         }
 
         RootGroupPort port = getRootGroupPort(portId, true);
+        if(port == null){
+            String message = "Input port was not found with id: " + portId;
+            return Response.status(Response.Status.NOT_FOUND).type(message).build();
+        }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         String txId = UUID.randomUUID().toString();
@@ -293,7 +297,12 @@ public class SiteToSiteResource extends ApplicationResource {
 
         try {
             HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, context);
-            port.receiveFlowFiles(peer, serverProtocol);
+            int numOfFlowFiles = port.receiveFlowFiles(peer, serverProtocol);
+            logger.debug("finished receiving flow files, numOfFlowFiles={}", numOfFlowFiles);
+            if (numOfFlowFiles < 1) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Client should send request when there is data to send. There was no flow file sent.").build();
+            }
         } catch (IOException | NotAuthorizedException | BadRequestException | RequestExpiredException e) {
             // TODO: error handling.
             logger.error("Failed to process the request.", e);
@@ -344,9 +353,6 @@ public class SiteToSiteResource extends ApplicationResource {
             }
         }
 
-        if(port == null){
-            throw new IllegalArgumentException((input ? "Input" : "Output") + " port was not found with id: " + id);
-        }
         return port;
     }
 
@@ -581,6 +587,10 @@ public class SiteToSiteResource extends ApplicationResource {
         }
 
         RootGroupPort port = getRootGroupPort(portId, false);
+        if(port == null){
+            String message = "Output port was not found with id: " + portId;
+            return Response.status(Response.Status.NOT_FOUND).type(message).build();
+        }
 
         String txId = UUID.randomUUID().toString();
 
@@ -594,10 +604,10 @@ public class SiteToSiteResource extends ApplicationResource {
 
                 try {
                     int numOfFlowFiles = port.transferFlowFiles(peer, serverProtocol);
-                    logger.debug("finished transferring flow files, now waiting for a confirmation request... numOfFlowFiles={}");
+                    logger.debug("finished transferring flow files, numOfFlowFiles={}", numOfFlowFiles);
                     if(numOfFlowFiles < 1){
-                        // TODO: How can WebApplicationException be used here. It creates 200, instead of 204.
-                        throw new WebApplicationException(Response.Status.NO_CONTENT);
+                        // There was no flow file to transfer. Throw this exception to stop responding with SEE OTHER.
+                        throw new WebApplicationException(Response.Status.OK);
                     }
                 } catch (NotAuthorizedException | BadRequestException | RequestExpiredException e) {
                     throw new IOException("Failed to process the request.", e);
@@ -605,7 +615,6 @@ public class SiteToSiteResource extends ApplicationResource {
             }
         };
 
-        // We can't modify response code because we've already written it here.
         return createLocationResult(true, portId, txId, flowFileContent);
     }
 

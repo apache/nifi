@@ -24,13 +24,13 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.AbstractSiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.protocol.DataPacket;
-import org.apache.nifi.util.ObjectHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class SocketClient extends AbstractSiteToSiteClient {
 
@@ -45,11 +45,15 @@ public class SocketClient extends AbstractSiteToSiteClient {
 
     public SocketClient(final SiteToSiteClientConfig config) {
         super(config);
-        pool = new EndpointConnectionPool(config.getUrl(),
+
+        final int commsTimeout = (int) config.getTimeout(TimeUnit.MILLISECONDS);
+        pool = new EndpointConnectionPool(clusterUrl,
                 createRemoteDestination(config.getPortIdentifier(), config.getPortName()),
-                (int) config.getTimeout(TimeUnit.MILLISECONDS),
+                commsTimeout,
                 (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
-                config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile());
+                config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile(),
+                siteInfoProvider
+        );
 
         this.compress = config.isUseCompression();
         this.portIdentifier = config.getPortIdentifier();
@@ -59,7 +63,7 @@ public class SocketClient extends AbstractSiteToSiteClient {
 
     @Override
     public boolean isSecure() throws IOException {
-        return pool.isSecure();
+        return siteInfoProvider.isSecure();
     }
 
     private String getPortIdentifier(final TransferDirection direction) throws IOException {
@@ -70,9 +74,9 @@ public class SocketClient extends AbstractSiteToSiteClient {
 
         final String portId;
         if (direction == TransferDirection.SEND) {
-            portId = pool.getInputPortIdentifier(this.portName);
+            portId = siteInfoProvider.getInputPortIdentifier(this.portName);
         } else {
-            portId = pool.getOutputPortIdentifier(this.portName);
+            portId = siteInfoProvider.getOutputPortIdentifier(this.portName);
         }
 
         if (portId == null) {
@@ -136,7 +140,7 @@ public class SocketClient extends AbstractSiteToSiteClient {
 
         // Wrap the transaction in a new one that will return the EndpointConnectionState back to the pool whenever
         // the transaction is either completed or canceled.
-        final ObjectHolder<EndpointConnection> connectionStateRef = new ObjectHolder<>(connectionState);
+        final AtomicReference<EndpointConnection> connectionStateRef = new AtomicReference<>(connectionState);
         return new Transaction() {
             @Override
             public void confirm() throws IOException {

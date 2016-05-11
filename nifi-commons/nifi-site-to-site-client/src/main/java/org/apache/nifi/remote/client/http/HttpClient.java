@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.remote.client.http;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
+import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.AbstractSiteToSiteClient;
+import org.apache.nifi.remote.client.PeerSelector;
+import org.apache.nifi.remote.client.PeerStatusProvider;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
@@ -35,23 +39,50 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-public class HttpClient extends AbstractSiteToSiteClient {
+public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpClient.class);
 
+    private final ScheduledExecutorService taskExecutor;
+    private final PeerSelector peerSelector;
+
     public HttpClient(final SiteToSiteClientConfig config) {
         super(config);
+
+        peerSelector = new PeerSelector(this, config.getPeerPersistenceFile());
+        peerSelector.setEventReporter(config.getEventReporter());
+
+        taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread thread = defaultFactory.newThread(r);
+                thread.setName("NiFi Site-to-Site Http Maintenance");
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
+
+        taskExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                peerSelector.refreshPeers();
+            }
+        }, 0, 5, TimeUnit.SECONDS);
+
     }
 
-    private final Random random = new Random();
-
     @Override
-    public Transaction createTransaction(TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException {
-
+    public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
+        // TODO: Set protocol version header.
         String clusterUrl = config.getUrl();
         SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext());
         String clusterApiUri = apiUtil.resolveBaseUrl(clusterUrl);
@@ -63,28 +94,36 @@ public class HttpClient extends AbstractSiteToSiteClient {
         if(peers == null || peers.size() == 0){
             throw new PortNotRunningException("Couldn't get any peer to communicate with. " + clusterApiUri + " returned zero peers.");
         }
-        // TODO: Weighted Load balancing based on the number of flow files each port has.
-        int nextIndex = random.nextInt(peers.size());
-        logger.debug("Got peers: {}, nextIndex={}", peers, nextIndex);
-        Iterator<PeerDTO> peersItr = peers.iterator();
-        for(int i = 0; i < nextIndex; i++){
-            peersItr.next();
-        }
-        PeerDTO nodeApiPeerDto = peersItr.next();
 
-        PeerDescription description = new PeerDescription(nodeApiPeerDto.getHostname(), nodeApiPeerDto.getPort(), nodeApiPeerDto.isSecure());
+        return peers.stream().map(p -> new PeerStatus(new PeerDescription(p.getHostname(), p.getPort(), p.isSecure()), p.getFlowFileCount())).collect(Collectors.toSet());
+    }
+
+    @Override
+    public Transaction createTransaction(TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException {
+
+        int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
+
+        final PeerStatus peerStatus = peerSelector.getNextPeerStatus(direction);
 
         CommunicationsSession commSession = new HttpCommunicationsSession();
-        String nodeApiUrl = resolveNodeApiUrl(description);
+        String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
         commSession.setUri(nodeApiUrl);
-        Peer peer = new Peer(description, commSession, nodeApiUrl, clusterUrl);
+        String clusterUrl = config.getUrl();
+        Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
+
+        // TODO: handshake with the selected Peer, by checking port status, see EndpointConnectionPool
+
 
         // TODO: add version negotiation
         int penaltyMillis = (int)config.getPenalizationPeriod(TimeUnit.MILLISECONDS);
         int protocolVersion = 5;
+        String portId = config.getPortIdentifier();
+        if(StringUtils.isEmpty(portId)){
+            portId = siteInfoProvider.getPortIdentifier(config.getPortName(), direction);
+        }
         HttpClientTransaction transaction = new HttpClientTransaction(protocolVersion, peer, direction,
-                config.isUseCompression(), config.getPortIdentifier(), penaltyMillis, config.getEventReporter());
-        apiUtil = new SiteToSiteRestApiUtil(config.getSslContext());
+                config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
+        SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext());
         apiUtil.setBaseUrl(peer.getUrl());
         apiUtil.setConnectTimeoutMillis(timeoutMillis);
         apiUtil.setReadTimeoutMillis(timeoutMillis);
@@ -99,12 +138,12 @@ public class HttpClient extends AbstractSiteToSiteClient {
 
     @Override
     public boolean isSecure() throws IOException {
-        // TODO: This method is designed to determine whether it is secured by asking server. It will be implemented in handshaking process.
-        return false;
+        return siteInfoProvider.isWebInterfaceSecure();
     }
 
     @Override
     public void close() throws IOException {
-        // TODO: Do we have anything to clean up here? If we adopt connection pooling
+        taskExecutor.shutdown();
+        peerSelector.clear();
     }
 }
