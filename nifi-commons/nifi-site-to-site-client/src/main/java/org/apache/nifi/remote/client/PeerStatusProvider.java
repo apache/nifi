@@ -14,32 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.util;
-
-import java.util.Set;
+package org.apache.nifi.remote.client;
 
 import org.apache.nifi.remote.PeerStatus;
 
-// TODO: This can be PeerSelector's inner class.
-public class PeerStatusCache {
+import java.io.IOException;
+import java.util.Set;
 
-    private final Set<PeerStatus> statuses;
-    private final long timestamp;
+public interface PeerStatusProvider {
 
-    public PeerStatusCache(final Set<PeerStatus> statuses) {
-        this(statuses, System.currentTimeMillis());
-    }
-
-    public PeerStatusCache(final Set<PeerStatus> statuses, final long timestamp) {
-        this.statuses = statuses;
-        this.timestamp = timestamp;
-    }
-
-    public Set<PeerStatus> getStatuses() {
-        return statuses;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
+    Set<PeerStatus> fetchRemotePeerStatuses() throws IOException;
 }

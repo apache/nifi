@@ -82,7 +82,6 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         logger.debug("responseCode={}", responseCode);
 
         if (responseCode == RESPONSE_CODE_OK) {
-            // Although server tries to send 204 when it doesn't have data, since data is already exchanged, it returns 200 instead.
             logger.debug("Server returned RESPONSE_CODE_OK, indicating there was no data.");
             return null;
 
@@ -93,6 +92,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
             throw new ProtocolException("Server returned RESPONSE_CODE_SEE_OTHER without Location header");
 
         } else {
+            // TODO: need to throw proper Exception, see EndpointConnectionPool // handle error cases
             throw new IOException("Unexpected response code: " + responseCode + " response body:" + readErrResponse());
         }
 
