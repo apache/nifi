@@ -28,7 +28,6 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
      */
     var createOutputPort = function (portName, pt) {
         var outputPortEntity = {
-            'revision': nf.Client.getRevision(),
             'component': {
                 'name': portName,
                 'position': {
@@ -47,9 +46,6 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
             contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.component)) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
-
                 // add the port to the graph
                 nf.Graph.add({
                     'outputPorts': [response]

@@ -202,7 +202,6 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
      */
     var createProcessor = function (name, processorType, pt) {
         var processorEntity = {
-            'revision': nf.Client.getRevision(),
             'component': {
                 'type': processorType,
                 'name': name,
@@ -222,9 +221,6 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
             contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.component)) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
-
                 // add the processor to the graph
                 nf.Graph.add({
                     'processors': [response]

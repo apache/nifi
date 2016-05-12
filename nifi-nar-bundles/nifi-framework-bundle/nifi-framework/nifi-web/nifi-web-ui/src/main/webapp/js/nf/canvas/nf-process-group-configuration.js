@@ -28,15 +28,13 @@ nf.ProcessGroupConfiguration = (function () {
                         buttonText: 'Apply',
                         handler: {
                             click: function () {
-                                var revision = nf.Client.getRevision();
-
                                 // get the process group data to reference the uri
                                 var processGroupId = $('#process-group-id').text();
                                 var processGroupData = d3.select('#id-' + processGroupId).datum();
-
+                                
                                 // build the entity
                                 var entity = {
-                                    'revision': nf.Client.getRevision(),
+                                    'revision': nf.Client.getRevision(processGroupData),
                                     'component': {
                                         'id': processGroupId,
                                         'name': $('#process-group-name').val(),
@@ -52,16 +50,11 @@ nf.ProcessGroupConfiguration = (function () {
                                     dataType: 'json',
                                     contentType: 'application/json'
                                 }).done(function (response) {
-                                    if (nf.Common.isDefinedAndNotNull(response.component)) {
-                                        // update the revision
-                                        nf.Client.setRevision(response.revision);
+                                    // refresh the process group
+                                    nf.ProcessGroup.set(response);
 
-                                        // refresh the process group
-                                        nf.ProcessGroup.set(response);
-
-                                        // close the details panel
-                                        $('#process-group-configuration').modal('hide');
-                                    }
+                                    // close the details panel
+                                    $('#process-group-configuration').modal('hide');
                                 }).fail(function (xhr, status, error) {
                                     // close the details panel
                                     $('#process-group-configuration').modal('hide');

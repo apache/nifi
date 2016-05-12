@@ -16,44 +16,19 @@
  */
 package org.apache.nifi.web.api;
 
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-
+import com.sun.jersey.api.core.ResourceContext;
+import com.sun.jersey.multipart.FormDataParam;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UpdateResult;
@@ -96,14 +71,36 @@ import org.apache.nifi.web.util.Availability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.sun.jersey.multipart.FormDataParam;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -205,6 +202,19 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         return flow;
+    }
+
+    /**
+     * Populate the uri's for the specified snippet.
+     *
+     * @param entity processors
+     * @return dtos
+     */
+    private SnippetEntity populateRemainingSnippetEntityContent(SnippetEntity entity) {
+        if (entity.getSnippet() != null) {
+            populateRemainingSnippetContent(entity.getSnippet());
+        }
+        return entity;
     }
 
     /**
@@ -473,10 +483,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Process group details must be specified.");
         }
 
-        if (processGroupEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (processGroupEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Process group ID cannot be specified.");
         }
@@ -506,8 +512,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the process group contents
-        final RevisionDTO revision = processGroupEntity.getRevision();
-        final ProcessGroupEntity entity = serviceFacade.createProcessGroup(groupId, new Revision(revision.getVersion(), revision.getClientId()), processGroupEntity.getComponent());
+        final ProcessGroupEntity entity = serviceFacade.createProcessGroup(groupId, processGroupEntity.getComponent());
         populateRemainingProcessGroupEntityContent(entity);
 
         // generate a 201 created response
@@ -623,10 +628,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Processor details must be specified.");
         }
 
-        if (processorEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (processorEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Processor ID cannot be specified.");
         }
@@ -660,8 +661,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the new processor
-        final RevisionDTO revision = processorEntity.getRevision();
-        final ProcessorEntity entity = serviceFacade.createProcessor(new Revision(revision.getVersion(), revision.getClientId()), groupId, processorEntity.getComponent());
+        final ProcessorEntity entity = serviceFacade.createProcessor(groupId, processorEntity.getComponent());
         processorResource.populateRemainingProcessorEntityContent(entity);
 
         // generate a 201 created response
@@ -770,10 +770,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Port details must be specified.");
         }
 
-        if (portEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (portEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Input port ID cannot be specified.");
         }
@@ -803,8 +799,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the input port and generate the json
-        final RevisionDTO revision = portEntity.getRevision();
-        final PortEntity entity = serviceFacade.createInputPort(new Revision(revision.getVersion(), revision.getClientId()), groupId, portEntity.getComponent());
+        final PortEntity entity = serviceFacade.createInputPort(groupId, portEntity.getComponent());
         inputPortResource.populateRemainingInputPortEntityContent(entity);
 
         // build the response
@@ -910,10 +905,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Port details must be specified.");
         }
 
-        if (portEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (portEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Output port ID cannot be specified.");
         }
@@ -943,9 +934,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the output port and generate the json
-        final RevisionDTO revision = portEntity.getRevision();
-        final PortEntity entity = serviceFacade.createOutputPort(
-            new Revision(revision.getVersion(), revision.getClientId()), groupId, portEntity.getComponent());
+        final PortEntity entity = serviceFacade.createOutputPort(groupId, portEntity.getComponent());
         outputPortResource.populateRemainingOutputPortEntityContent(entity);
 
         // build the response
@@ -1052,10 +1041,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Funnel details must be specified.");
         }
 
-        if (funnelEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (funnelEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Funnel ID cannot be specified.");
         }
@@ -1085,8 +1070,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the funnel and generate the json
-        final RevisionDTO revision = funnelEntity.getRevision();
-        final FunnelEntity entity = serviceFacade.createFunnel(new Revision(revision.getVersion(), revision.getClientId()), groupId, funnelEntity.getComponent());
+        final FunnelEntity entity = serviceFacade.createFunnel(groupId, funnelEntity.getComponent());
         funnelResource.populateRemainingFunnelEntityContent(entity);
 
         // build the response
@@ -1193,10 +1177,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Label details must be specified.");
         }
 
-        if (labelEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (labelEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Label ID cannot be specified.");
         }
@@ -1226,9 +1206,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the label and generate the json
-        final RevisionDTO revision = labelEntity.getRevision();
-        final LabelEntity entity = serviceFacade.createLabel(
-            new Revision(revision.getVersion(), revision.getClientId()), groupId, labelEntity.getComponent());
+        final LabelEntity entity = serviceFacade.createLabel(groupId, labelEntity.getComponent());
         labelResource.populateRemainingLabelEntityContent(entity);
 
         // build the response
@@ -1335,10 +1313,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Remote process group details must be specified.");
         }
 
-        if (remoteProcessGroupEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         final RemoteProcessGroupDTO requestProcessGroupDTO = remoteProcessGroupEntity.getComponent();
 
         if (requestProcessGroupDTO.getId() != null) {
@@ -1400,8 +1374,7 @@ public class ProcessGroupResource extends ApplicationResource {
         requestProcessGroupDTO.setTargetUri(controllerUri);
 
         // create the remote process group
-        final RevisionDTO revision = remoteProcessGroupEntity.getRevision();
-        final RemoteProcessGroupEntity entity = serviceFacade.createRemoteProcessGroup(new Revision(revision.getVersion(), revision.getClientId()), groupId, requestProcessGroupDTO);
+        final RemoteProcessGroupEntity entity = serviceFacade.createRemoteProcessGroup(groupId, requestProcessGroupDTO);
         remoteProcessGroupResource.populateRemainingRemoteProcessGroupEntityContent(entity);
 
         return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
@@ -1526,10 +1499,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Connection ID cannot be specified.");
         }
 
-        if (connectionEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (connectionEntity.getComponent().getParentGroupId() != null && !groupId.equals(connectionEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                 connectionEntity.getComponent().getParentGroupId(), groupId));
@@ -1559,8 +1528,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the new relationship target
-        final RevisionDTO revision = connectionEntity.getRevision();
-        final ConnectionEntity entity = serviceFacade.createConnection(new Revision(revision.getVersion(), revision.getClientId()), groupId, connection);
+        final ConnectionEntity entity = serviceFacade.createConnection(groupId, connection);
         connectionResource.populateRemainingConnectionEntityContent(entity);
 
         // extract the href and build the response
@@ -1670,10 +1638,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Snippet details must be specified.");
         }
 
-        if (snippetEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (snippetEntity.getSnippet().getId() != null) {
             throw new IllegalArgumentException("Snippet ID cannot be specified.");
         }
@@ -1708,24 +1672,11 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the snippet
-        final RevisionDTO revision = snippetEntity.getRevision();
-        final ConfigurationSnapshot<SnippetDTO> response = serviceFacade.createSnippet(new Revision(revision.getVersion(), revision.getClientId()), snippetEntity.getSnippet());
-
-        // get the snippet
-        final SnippetDTO snippet = response.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(response.getVersion());
-
-        // build the response entity
-        SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(updatedRevision);
-        entity.setSnippet(populateRemainingSnippetContent(snippet));
+        final SnippetEntity entity = serviceFacade.createSnippet(snippetEntity.getSnippet());
+        populateRemainingSnippetEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(snippet.getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity)).build();
     }
 
     /**
@@ -1775,15 +1726,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // get the snippet
-        final SnippetDTO snippet = serviceFacade.getSnippet(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
-        // create the response entity
-        final SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(revision);
-        entity.setSnippet(populateRemainingSnippetContent(snippet));
+        final SnippetEntity entity = serviceFacade.getSnippet(id);
+        populateRemainingSnippetEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -1856,32 +1800,25 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(snippetEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateSnippet(requestSnippetDTO);
             return generateContinueResponse().build();
         }
 
         // update the snippet
-        final RevisionDTO revision = snippetEntity.getRevision();
-        final ConfigurationSnapshot<SnippetDTO> controllerResponse = serviceFacade.updateSnippet(
-            new Revision(revision.getVersion(), revision.getClientId()), snippetEntity.getSnippet());
+        final UpdateResult<SnippetEntity> updateResult = serviceFacade.updateSnippet(revision, snippetEntity.getSnippet());
 
         // get the results
-        final SnippetDTO snippet = controllerResponse.getConfiguration();
+        final SnippetEntity entity = updateResult.getResult();
+        populateRemainingSnippetEntityContent(entity);
 
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(updatedRevision);
-        entity.setSnippet(populateRemainingSnippetContent(snippet));
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(snippet.getUri()), entity)).build();
+        if (updateResult.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }
@@ -1920,7 +1857,7 @@ public class ProcessGroupResource extends ApplicationResource {
             @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
         }
     )
-    public Response removeSnippet(
+    public Response deleteSnippet(
         @Context HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The revision is used to verify the client is working with the latest version of the flow.",
@@ -1948,21 +1885,23 @@ public class ProcessGroupResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+
+        // We need to claim the revision for the Processor if either this is the first phase of a two-phase
+        // request, or if this is not a two-phase request.
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteSnippet(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the specified snippet
-        final SnippetEntity snippetEntity = serviceFacade.deleteSnippet(new Revision(clientVersion, clientId.getClientId()), id);
+        final SnippetEntity snippetEntity = serviceFacade.deleteSnippet(revision, id);
 
         return clusterContext(generateOkResponse(snippetEntity)).build();
     }
@@ -2032,9 +1971,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // copy the specified snippet
-        final RevisionDTO requestRevision = copySnippetEntity.getRevision();
         final FlowEntity flowEntity = serviceFacade.copySnippet(
-            new Revision(requestRevision.getVersion(), requestRevision.getClientId()),
             groupId, copySnippetEntity.getSnippetId(), copySnippetEntity.getOriginX(), copySnippetEntity.getOriginY());
 
         // get the snippet
@@ -2118,9 +2055,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the template and generate the json
-        final RevisionDTO requestRevision = instantiateTemplateRequestEntity.getRevision();
-        final FlowEntity entity = serviceFacade.createTemplateInstance(
-            new Revision(requestRevision.getVersion(), requestRevision.getClientId()), groupId, instantiateTemplateRequestEntity.getOriginX(),
+        final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(),
             instantiateTemplateRequestEntity.getOriginY(), instantiateTemplateRequestEntity.getTemplateId());
 
         final FlowDTO flowSnippet = entity.getFlow();
@@ -2471,10 +2406,6 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
-        }
-
-        if (controllerServiceEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
         }
 
         if (controllerServiceEntity.getControllerService().getId() != null) {

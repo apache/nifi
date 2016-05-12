@@ -32,7 +32,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
 
                                 // create the remote process group details
                                 var remoteProcessGroupEntity = {
-                                    'revision': nf.Client.getRevision(),
+                                    'revision': nf.Client.getRevision(remoteProcessGroupData),
                                     'component': {
                                         id: remoteProcessGroupId,
                                         communicationsTimeout: $('#remote-process-group-timeout').val(),
@@ -48,9 +48,6 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                     dataType: 'json',
                                     contentType: 'application/json'
                                 }).done(function (response) {
-                                    // update the revision
-                                    nf.Client.setRevision(response.revision);
-                                    
                                     // refresh the remote process group component
                                     nf.RemoteProcessGroup.set(response);
 

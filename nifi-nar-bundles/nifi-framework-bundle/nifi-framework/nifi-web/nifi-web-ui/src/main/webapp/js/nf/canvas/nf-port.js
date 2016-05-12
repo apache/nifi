@@ -95,9 +95,6 @@ nf.Port = (function () {
                 },
                 'fill': 'transparent',
                 'stroke': 'transparent'
-            })
-            .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
             });
 
         // port body
@@ -112,9 +109,6 @@ nf.Port = (function () {
                 },
                 'filter': 'url(#component-drop-shadow)',
                 'stroke-width': 0
-            })
-            .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
             });
 
         var offset = 0;
@@ -167,9 +161,6 @@ nf.Port = (function () {
         port.filter(function (d) {
             return d.accessPolicy.canWrite && d.accessPolicy.canRead;
         }).call(nf.Draggable.activate).call(nf.Connectable.activate);
-
-        // call update to trigger some rendering
-        port.call(updatePorts);
     };
 
     /**
@@ -182,9 +173,24 @@ nf.Port = (function () {
             return;
         }
 
+        // port border authorization
+        updated.select('rect.border')
+            .classed('unauthorized', function (d) {
+                return d.accessPolicy.canRead === false;
+            });
+
+        // port body authorization
+        updated.select('rect.body')
+            .classed('unauthorized', function (d) {
+                return d.accessPolicy.canRead === false;
+            });
+
         updated.each(function (portData) {
             var port = d3.select(this);
             var details = port.select('g.port-details');
+
+            // update the component behavior as appropriate
+            nf.CanvasUtils.editable(port);
 
             // if this process group is visible, render everything
             if (port.classed('visible')) {
@@ -277,6 +283,9 @@ nf.Port = (function () {
                         }).append('title').text(function (d) {
                         return d.component.name;
                     });
+                } else {
+                    // clear the port name
+                    port.select('text.port-name').text(null);
                 }
 
                 // populate the stats
@@ -321,14 +330,14 @@ nf.Port = (function () {
             .attr({
                 'fill': function (d) {
                     var fill = '#728e9b';
-                    if (d.status.runStatus === 'Invalid') {
+                    if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                         fill = '#ba554a';
                     }
                     return fill;
                 },
                 'font-family': function (d) {
                     var family = 'FontAwesome';
-                    if (d.status.runStatus === 'Disabled') {
+                    if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                         family = 'flowfont';
                     }
                     return family;
@@ -336,13 +345,13 @@ nf.Port = (function () {
             })
             .text(function (d) {
                 var img = '';
-                if (d.status.runStatus === 'Disabled') {
+                if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
-                } else if (d.status.runStatus === 'Invalid') {
+                } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     img = '\uf071';
-                } else if (d.status.runStatus === 'Running') {
+                } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                     img = '\uf04b';
-                } else if (d.status.runStatus === 'Stopped') {
+                } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
                     img = '\uf04d';
                 }
                 return img;
@@ -378,7 +387,7 @@ nf.Port = (function () {
         updated.select('text.port-transmission-icon')
             .attr({
                 'font-family': function (d) {
-                    if (d.status.transmitting === true) {
+                    if (d.status.aggregateSnapshot.transmitting === true) {
                         return 'FontAwesome';
                     } else {
                         return 'flowfont';
@@ -386,7 +395,7 @@ nf.Port = (function () {
                 }
             })
             .text(function (d) {
-                if (d.status.transmitting === true) {
+                if (d.status.aggregateSnapshot.transmitting === true) {
                     return '\uf140';
                 } else {
                     return '\ue80a';
@@ -410,7 +419,7 @@ nf.Port = (function () {
             // ---------
 
             port.select('rect.bulletin-background').classed('has-bulletins', function () {
-                return nf.Common.isDefinedAndNotNull(d.status) && !nf.Common.isEmpty(d.status.bulletins);
+                return !nf.Common.isEmpty(d.status.aggregateSnapshot.bulletins);
             });
             
             nf.CanvasUtils.bulletins(port, d, function () {
@@ -461,13 +470,16 @@ nf.Port = (function () {
         },
 
         /**
-         * Populates the graph with the specified ports.
+         * Adds the specified port entity.
          *
-         * @argument {object | array} portNodes                    The ports to add
-         * @argument {boolean} selectAll                Whether or not to select the new contents
+         * @param portEntities       The port
+         * @param options           Configuration options
          */
-        add: function (portEntities, selectAll) {
-            selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
+        add: function (portEntities, options) {
+            var selectAll = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            }
 
             // determine the appropriate dimensions for this port
             var dimensions = portDimensions;
@@ -491,12 +503,64 @@ nf.Port = (function () {
                 $.each(portEntities, function (_, portNode) {
                     add(portNode);
                 });
-            } else {
+            } else if (nf.Common.isDefinedAndNotNull(portEntities)) {
                 add(portEntities);
             }
 
+            // apply the selection and handle new ports
+            var selection = select();
+            selection.enter().call(renderPorts, selectAll);
+            selection.call(updatePorts);
+        },
+        
+        /**
+         * Populates the graph with the specified ports.
+         *
+         * @argument {object | array} portNodes                    The ports to add
+         * @argument {object} options                Configuration options
+         */
+        set: function (portEntities, options) {
+            var selectAll = false;
+            var transition = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            }
+
+            // determine the appropriate dimensions for this port
+            var dimensions = portDimensions;
+            if (nf.Canvas.getParentGroupId() === null) {
+                dimensions = remotePortDimensions;
+            }
+
+            var set = function (portEntity) {
+                // add the port
+                portMap.set(portEntity.id, $.extend({
+                    type: 'Port',
+                    dimensions: dimensions,
+                    status: {
+                        activeThreadCount: 0
+                    }
+                }, portEntity));
+            };
+
+            // determine how to handle the specified port status
+            if ($.isArray(portEntities)) {
+                $.each(portMap.keys(), function (_, key) {
+                    portMap.remove(key);
+                });
+                $.each(portEntities, function (_, portNode) {
+                    set(portNode);
+                });
+            } else if (nf.Common.isDefinedAndNotNull(portEntities)) {
+                set(portEntities);
+            }
+
             // apply the selection and handle all new ports
-            select().enter().call(renderPorts, selectAll);
+            var selection = select();
+            selection.enter().call(renderPorts, selectAll);
+            selection.call(updatePorts).call(nf.CanvasUtils.position, transition);
+            selection.exit().call(removePorts);
         },
 
         /**
@@ -563,35 +627,6 @@ nf.Port = (function () {
          */
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
-        },
-
-        /**
-         * Sets the specified port(s). If the is an array, it
-         * will set each port. If it is not an array, it will
-         * attempt to set the specified port.
-         *
-         * @param {object | array} portEntities
-         */
-        set: function (portEntities) {
-            var set = function (portEntity) {
-                if (portMap.has(portEntity.id)) {
-                    // update the current entry
-                    var portEntry = portMap.get(portEntity.id);
-                    $.extend(portEntry, portEntity);
-
-                    // update the connection in the UI
-                    d3.select('#id-' + portEntry.id).call(updatePorts);
-                }
-            };
-
-            // determine how to handle the specified ports
-            if ($.isArray(portEntities)) {
-                $.each(portEntities, function (_, port) {
-                    set(port);
-                });
-            } else {
-                set(portEntities);
-            }
         },
 
         /**

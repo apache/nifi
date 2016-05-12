@@ -510,7 +510,7 @@
             }
             
             // if this descriptor identifies a controller service, provide a way to create one
-            if (nf.Common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+            if (nf.Common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService) && nf.Common.isDefinedAndNotNull(configurationOptions.groupId)) {
                 options.push({
                     text: 'Create new service...',
                     value: undefined,
@@ -885,23 +885,21 @@
                 var create = function () {
                     var newControllerServiceType = newControllerServiceCombo.combo('getSelectedOption').value;
 
-                    // create service of the specified type
-                    var revision = nf.Client.getRevision();
-
+                    // build the controller service entity
+                    var controllerServiceEntity = {
+                        'controllerService': {
+                            'type': newControllerServiceType
+                        }
+                    };
+                    
                     // add the new controller service
                     $.ajax({
                         type: 'POST',
-                        url: '../nifi-api/controller-services/node',
-                        data: {
-                            version: revision.version,
-                            clientId: revision.clientId,
-                            type: newControllerServiceType
-                        },
-                        dataType: 'json'
+                        url: '../nifi-api/process-groups/' + encodeURIComponent(configurationOptions.groupId) + '/controller-services/node',
+                        data: JSON.stringify(controllerServiceEntity),
+                        dataType: 'json',
+                        contentType: 'application/json'
                     }).done(function (response) {
-                        // update the revision
-                        nf.Client.setRevision(response.revision);
-
                         // load the descriptor and update the property
                         configurationOptions.descriptorDeferred(item.property).done(function(descriptorResponse) {
                             var descriptor = descriptorResponse.propertyDescriptor;

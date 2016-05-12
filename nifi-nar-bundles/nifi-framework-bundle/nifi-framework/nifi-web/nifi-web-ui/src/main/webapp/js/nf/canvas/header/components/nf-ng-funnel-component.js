@@ -64,7 +64,6 @@ nf.ng.FunnelComponent = function (serviceProvider) {
          */
         createFunnel: function(pt) {
             var outputPortEntity = {
-                'revision': nf.Client.getRevision(),
                 'component': {
                     'position': {
                         'x': pt.x,
@@ -82,9 +81,6 @@ nf.ng.FunnelComponent = function (serviceProvider) {
                 contentType: 'application/json'
             }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.component)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-
                     // add the funnel to the graph
                     nf.Graph.add({
                         'funnels': [response]

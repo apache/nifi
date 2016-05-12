@@ -17,43 +17,34 @@
 
 /* global nf */
 
-nf.Client = {};
-
-nf.Client.version = -1;
-nf.Client.clientId = null;
-
-/**
- * Gets the current revision.
- */
-nf.Client.getRevision = function () {
+nf.Client = (function() {
+    var clientId = null;
+    
     return {
-        version: nf.Client.version,
-        clientId: nf.Client.clientId
-    };
-};
+        /**
+         * Initializes the client.
+         * 
+         * @returns deferred
+         */
+        init: function () {
+            return $.ajax({
+                type: 'GET',
+                url: '../nifi-api/flow/client-id',
+            }).done(function (cid) {
+                clientId = cid;
+            });
+        },
 
-/**
- * Sets the current revision.
- * 
- * @argument {integer} revision     The revision
- */
-nf.Client.setRevision = function (revision) {
-    // ensure a value was returned
-    if (nf.Common.isDefinedAndNotNull(revision.version)) {
-        if (nf.Common.isDefinedAndNotNull(nf.Client.version)) {
-            // if the client version was already set, ensure
-            // the new value is greater
-            if (revision.version > nf.Client.version) {
-                nf.Client.version = revision.version;
-            }
-        } else {
-            // otherwise just set the value
-            nf.Client.version = revision.version;
+        /**
+         * Builds the revision fof the specified component
+         * @param d The component
+         * @returns The revision
+         */
+        getRevision: function (d) {
+            return {
+                'clientId': clientId,
+                'version': d.revision.version
+            };
         }
-    }
-
-    // ensure a value was returned
-    if (nf.Common.isDefinedAndNotNull(revision.clientId)) {
-        nf.Client.clientId = revision.clientId;
-    }
-};
+    };
+}());

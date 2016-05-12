@@ -108,8 +108,7 @@ nf.Canvas = (function () {
     var MIN_SCALE = 0.2;
     var MIN_SCALE_TO_RENDER = 0.6;
 
-    var revisionPolling = false;
-    var statusPolling = false;
+    var polling = false;
     var groupId = 'root';
     var groupName = null;
     var parentGroupId = null;
@@ -135,58 +134,31 @@ nf.Canvas = (function () {
     };
     
     /**
-     * Starts polling for the revision.
+     * Starts polling.
      *
      * @argument {int} autoRefreshInterval      The auto refresh interval
      */
-    var startRevisionPolling = function (autoRefreshInterval) {
+    var startPolling = function (autoRefreshInterval) {
         // set polling flag
-        revisionPolling = true;
-        pollForRevision(autoRefreshInterval);
+        polling = true;
+        poll(autoRefreshInterval);
     };
 
     /**
-     * Polls for the revision.
+     * Register the pooler.
      *
      * @argument {int} autoRefreshInterval      The auto refresh interval
      */
-    var pollForRevision = function (autoRefreshInterval) {
+    var poll = function (autoRefreshInterval) {
         // ensure we're suppose to poll
-        if (revisionPolling) {
-            // check the revision
-            checkRevision().done(function () {
-                // start the wait to poll again
-                setTimeout(function () {
-                    pollForRevision(autoRefreshInterval);
-                }, autoRefreshInterval * 1000);
-            });
-        }
-    };
-
-    /**
-     * Start polling for the status.
-     *
-     * @argument {int} autoRefreshInterval      The auto refresh interval
-     */
-    var startStatusPolling = function (autoRefreshInterval) {
-        // set polling flag
-        statusPolling = true;
-        pollForStatus(autoRefreshInterval);
-    };
-
-    /**
-     * Register the status poller.
-     *
-     * @argument {int} autoRefreshInterval      The auto refresh interval
-     */
-    var pollForStatus = function (autoRefreshInterval) {
-        // ensure we're suppose to poll
-        if (statusPolling) {
+        if (polling) {
             // reload the status
-            nf.Canvas.reloadStatus().done(function () {
+            nf.Canvas.reload({
+                'transition': true
+            }).done(function () {
                 // start the wait to poll again
                 setTimeout(function () {
-                    pollForStatus(autoRefreshInterval);
+                    poll(autoRefreshInterval);
                 }, autoRefreshInterval * 1000);
             });
         }
@@ -195,50 +167,50 @@ nf.Canvas = (function () {
     /**
      * Checks the current revision against this version of the flow.
      */
-    var checkRevision = function () {
-        // get the revision
-        return $.ajax({
-            type: 'GET',
-            url: config.urls.revision,
-            dataType: 'json'
-        }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.revision)) {
-                var revision = response.revision;
-                var currentRevision = nf.Client.getRevision();
-
-                // if there is a newer revision, there are outstanding
-                // changes that need to be updated
-                if (revision.version > currentRevision.version && revision.clientId !== currentRevision.clientId) {
-                    var refreshContainer = $('#refresh-required-container');
-                    var settingsRefreshIcon = $('#settings-refresh-required-icon');
-
-                    // insert the refresh needed text in the canvas - if necessary
-                    if (!refreshContainer.is(':visible')) {
-                        $('#stats-last-refreshed').addClass('alert');
-                        var refreshMessage = "This flow has been modified by '" + revision.lastModifier + "'. Please refresh.";
-
-                        // update the tooltip
-                        var refreshRequiredIcon = $('#refresh-required-icon');
-                        if (refreshRequiredIcon.data('qtip')) {
-                            refreshRequiredIcon.qtip('option', 'content.text', refreshMessage);
-                        } else {
-                            refreshRequiredIcon.qtip($.extend({
-                                content: refreshMessage
-                            }, nf.CanvasUtils.config.systemTooltipConfig));
-                        }
-
-                        refreshContainer.show();
-                    }
-
-                    // insert the refresh needed text in the settings - if necessary
-                    if (!settingsRefreshIcon.is(':visible')) {
-                        $('#settings-last-refreshed').addClass('alert');
-                        settingsRefreshIcon.show();
-                    }
-                }
-            }
-        }).fail(nf.Common.handleAjaxError);
-    };
+    // var checkRevision = function () {
+    //     // get the revision
+    //     return $.ajax({
+    //         type: 'GET',
+    //         url: config.urls.revision,
+    //         dataType: 'json'
+    //     }).done(function (response) {
+    //         if (nf.Common.isDefinedAndNotNull(response.revision)) {
+    //             var revision = response.revision;
+    //             var currentRevision = nf.Client.getRevision();
+    //
+    //             // if there is a newer revision, there are outstanding
+    //             // changes that need to be updated
+    //             if (revision.version > currentRevision.version && revision.clientId !== currentRevision.clientId) {
+    //                 var refreshContainer = $('#refresh-required-container');
+    //                 var settingsRefreshIcon = $('#settings-refresh-required-icon');
+    //
+    //                 // insert the refresh needed text in the canvas - if necessary
+    //                 if (!refreshContainer.is(':visible')) {
+    //                     $('#stats-last-refreshed').addClass('alert');
+    //                     var refreshMessage = "This flow has been modified by '" + revision.lastModifier + "'. Please refresh.";
+    //
+    //                     // update the tooltip
+    //                     var refreshRequiredIcon = $('#refresh-required-icon');
+    //                     if (refreshRequiredIcon.data('qtip')) {
+    //                         refreshRequiredIcon.qtip('option', 'content.text', refreshMessage);
+    //                     } else {
+    //                         refreshRequiredIcon.qtip($.extend({
+    //                             content: refreshMessage
+    //                         }, nf.CanvasUtils.config.systemTooltipConfig));
+    //                     }
+    //
+    //                     refreshContainer.show();
+    //                 }
+    //
+    //                 // insert the refresh needed text in the settings - if necessary
+    //                 if (!settingsRefreshIcon.is(':visible')) {
+    //                     $('#settings-last-refreshed').addClass('alert');
+    //                     settingsRefreshIcon.show();
+    //                 }
+    //             }
+    //         }
+    //     }).fail(nf.Common.handleAjaxError);
+    // };
 
     /**
      * Initializes the canvas.
@@ -555,7 +527,7 @@ nf.Canvas = (function () {
             if (isCtrl) {
                 if (evt.keyCode === 82) {
                     // ctrl-r
-                    nf.Actions.reloadStatus();
+                    nf.Actions.reload();
 
                     // default prevented in nf-universal-capture.js
                 } else if (evt.keyCode === 65) {
@@ -631,8 +603,9 @@ nf.Canvas = (function () {
      * Refreshes the graph.
      *
      * @argument {string} processGroupId        The process group id
+     * @argument {object} options               Configuration options
      */
-    var reloadProcessGroup = function (processGroupId) {
+    var reloadProcessGroup = function (processGroupId, options) {
         // load the controller
         return $.ajax({
             type: 'GET',
@@ -642,9 +615,6 @@ nf.Canvas = (function () {
             },
             dataType: 'json'
         }).done(function (flowResponse) {
-            // set the revision
-            nf.Client.setRevision(flowResponse.revision);
-
             // get the controller and its contents
             var processGroupFlow = flowResponse.processGroupFlow;
 
@@ -654,6 +624,10 @@ nf.Canvas = (function () {
             // update the breadcrumbs
             nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetBreadcrumbs();
             nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').generateBreadcrumbs(processGroupFlow.breadcrumb);
+            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetScrollPosition();
+
+            // update the timestamp
+            $('#stats-last-refreshed').text(processGroupFlow.lastRefreshed);
 
             // set the parent id if applicable
             if (nf.Common.isDefinedAndNotNull(processGroupFlow.parentGroupId)) {
@@ -662,55 +636,20 @@ nf.Canvas = (function () {
                 nf.Canvas.setParentGroupId(null);
             }
 
-            // since we're getting a new group, we want to clear it
-            nf.Graph.removeAll();
-
             // refresh the graph
-            nf.Graph.add(processGroupFlow.flow, false);
+            nf.Graph.set(processGroupFlow.flow, $.extend({
+                'selectAll': false
+            }, options));
+
+            // update component visibility
+            nf.Canvas.View.updateVisibility();
+
+            // update the birdseye
+            nf.Birdseye.refresh();
 
             // inform Angular app values have changed
             nf.ng.Bridge.digest();
         }).fail(nf.Common.handleAjaxError);
-    };
-
-    /**
-     * Refreshes the status for the resources that exist in the specified process group.
-     *
-     * @argument {string} processGroupId        The id of the process group
-     */
-    var reloadStatus = function (processGroupId) {
-        // get the stats
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId) + '/status',
-                data: {
-                    recursive: false
-                },
-                dataType: 'json'
-            }).done(function (response) {
-                // report the updated stats
-                if (nf.Common.isDefinedAndNotNull(response.processGroupStatus)) {
-                    var processGroupStatus = response.processGroupStatus;
-                    var aggregateSnapshot = processGroupStatus.aggregateSnapshot;
-
-                    // update all the stats
-                    nf.Graph.setStatus(aggregateSnapshot);
-
-                    // update the timestamp
-                    $('#stats-last-refreshed').text(processGroupStatus.statsLastRefreshed);
-                }
-                deferred.resolve();
-            }).fail(function (xhr, status, error) {
-                // if clustered, a 404 likely means the flow status at the ncm is stale
-                if (!nf.Canvas.isClustered() || xhr.status !== 404) {
-                    nf.Common.handleAjaxError(xhr, status, error);
-                    deferred.reject();
-                } else {
-                    deferred.resolve();
-                }
-            });
-        }).promise();
     };
 
     return {
@@ -729,58 +668,28 @@ nf.Canvas = (function () {
         },
 
         /**
-         * Stop polling for revision.
-         */
-        stopRevisionPolling: function () {
-            // set polling flag
-            revisionPolling = false;
-        },
-
-        /**
          * Remove the status poller.
          */
-        stopStatusPolling: function () {
+        stopPolling: function () {
             // set polling flag
-            statusPolling = false;
+            polling = false;
         },
 
         /**
          * Reloads the flow from the server based on the currently specified group id.
-         * To load another group, update nf.Canvas.setGroupId and call nf.Canvas.reload.
+         * To load another group, update nf.Canvas.setGroupId, clear the canvas, and call nf.Canvas.reload.
          */
-        reload: function () {
+        reload: function (options) {
             return $.Deferred(function (deferred) {
                 // hide the context menu
                 nf.ContextMenu.hide();
 
                 // get the process group to refresh everything
-                var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId());
+                var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
                 var statusXhr = nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl.flowStatusCtrl').reloadFlowStatus();
                 var settingsXhr = nf.Settings.loadSettings(false); // don't reload the status as we want to wait for deferreds to complete
                 $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
-                    // adjust breadcrumbs if necessary
-                    nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetScrollPosition();
-
-                    // don't load the status until the graph is loaded
-                    reloadStatus(nf.Canvas.getGroupId()).done(function () {
-                        deferred.resolve(processGroupResult);
-                    }).fail(function () {
-                        deferred.reject();
-                    });
-                });
-            }).promise();
-        },
-
-        /**
-         * Reloads the status.
-         */
-        reloadStatus: function () {
-            return $.Deferred(function (deferred) {
-                // refresh the status and check any bulletins
-                $.when(reloadStatus(nf.Canvas.getGroupId()),
-                    nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl.flowStatusCtrl').reloadFlowStatus(),
-                    checkRevision()).done(function () {
-                    deferred.resolve();
+                    deferred.resolve(processGroupResult);
                 }).fail(function () {
                     deferred.reject();
                 });
@@ -863,6 +772,9 @@ nf.Canvas = (function () {
                 });
             }).promise();
             userXhr.done(function () {
+                // load the client id
+                var clientXhr = nf.Client.init();
+                
                 // get the controller config to register the status poller
                 var configXhr = $.ajax({
                     type: 'GET',
@@ -889,7 +801,7 @@ nf.Canvas = (function () {
                 }).promise();
 
                 // ensure the config requests are loaded
-                $.when(configXhr, userXhr).done(function (configResult) {
+                $.when(configXhr, userXhr, clientXhr).done(function (configResult, loginResult, aboutResult) {
                     var configResponse = configResult[0];
 
                     // calculate the canvas offset
@@ -953,10 +865,9 @@ nf.Canvas = (function () {
                             // determine the split between the polling
                             var pollingSplit = autoRefreshIntervalSeconds / 2;
 
-                            // register the revision and status polling
-                            startRevisionPolling(autoRefreshIntervalSeconds);
+                            // register the polling
                             setTimeout(function () {
-                                startStatusPolling(autoRefreshIntervalSeconds);
+                                startPolling(autoRefreshIntervalSeconds);
                             }, pollingSplit * 1000);
 
                             // hide the splash screen

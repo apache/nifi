@@ -58,15 +58,18 @@ nf.Graph = (function () {
             // load the graph
             return nf.CanvasUtils.enterGroup(nf.Canvas.getGroupId());
         },
-        
+
         /**
          * Populates the graph with the resources defined in the response.
-         * 
+         *
          * @argument {object} processGroupContents      The contents of the process group
          * @argument {boolean} selectAll                Whether or not to select the new contents
          */
-        add: function (processGroupContents, selectAll) {
-            selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
+        add: function (processGroupContents, options) {
+            var selectAll = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            }
 
             // if we are going to select the new components, deselect the previous selection
             if (selectAll) {
@@ -77,27 +80,48 @@ nf.Graph = (function () {
             var ports = combinePorts(processGroupContents);
 
             // add the components to the responsible object
-            if (!nf.Common.isEmpty(processGroupContents.labels)) {
-                nf.Label.add(processGroupContents.labels, selectAll);
+            nf.Label.add(processGroupContents.labels, options);
+            nf.Funnel.add(processGroupContents.funnels, options);
+            nf.RemoteProcessGroup.add(processGroupContents.remoteProcessGroups, options);
+            nf.Port.add(ports, options);
+            nf.ProcessGroup.add(processGroupContents.processGroups, options);
+            nf.Processor.add(processGroupContents.processors, options);
+            nf.Connection.add(processGroupContents.connections, options);
+
+            // inform Angular app if the selection is changing
+            if (selectAll) {
+                nf.ng.Bridge.digest();
             }
-            if (!nf.Common.isEmpty(processGroupContents.funnels)) {
-                nf.Funnel.add(processGroupContents.funnels, selectAll);
+        },
+        
+        /**
+         * Populates the graph with the resources defined in the response.
+         * 
+         * @argument {object} processGroupContents      The contents of the process group
+         * @argument {object} options                   Configuration options
+         */
+        set: function (processGroupContents, options) {
+            var selectAll = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
-            if (!nf.Common.isEmpty(processGroupContents.remoteProcessGroups)) {
-                nf.RemoteProcessGroup.add(processGroupContents.remoteProcessGroups, selectAll);
+
+            // if we are going to select the new components, deselect the previous selection
+            if (selectAll) {
+                nf.CanvasUtils.getSelection().classed('selected', false);
             }
-            if (!nf.Common.isEmpty(ports)) {
-                nf.Port.add(ports, selectAll);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.processGroups)) {
-                nf.ProcessGroup.add(processGroupContents.processGroups, selectAll);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.processors)) {
-                nf.Processor.add(processGroupContents.processors, selectAll);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.connections)) {
-                nf.Connection.add(processGroupContents.connections, selectAll);
-            }
+
+            // merge the ports together
+            var ports = combinePorts(processGroupContents);
+
+            // add the components to the responsible object
+            nf.Label.set(processGroupContents.labels, options);
+            nf.Funnel.set(processGroupContents.funnels, options);
+            nf.RemoteProcessGroup.set(processGroupContents.remoteProcessGroups, options);
+            nf.Port.set(ports, options);
+            nf.ProcessGroup.set(processGroupContents.processGroups, options);
+            nf.Processor.set(processGroupContents.processors, options);
+            nf.Connection.set(processGroupContents.connections, options);
 
             // inform Angular app if the selection is changing
             if (selectAll) {
@@ -118,39 +142,6 @@ nf.Graph = (function () {
                 processors: nf.Processor.get(),
                 connections: nf.Connection.get()
             };
-        },
-        
-        /**
-         * Sets the components contained within the specified process group.
-         * 
-         * @param {type} processGroupContents
-         */
-        set: function (processGroupContents) {
-            // merge the ports together
-            var ports = combinePorts(processGroupContents);
-
-            // set the components
-            if (!nf.Common.isEmpty(processGroupContents.labels)) {
-                nf.Label.set(processGroupContents.labels);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.funnels)) {
-                nf.Funnel.set(processGroupContents.funnels);
-            }
-            if (!nf.Common.isEmpty(ports)) {
-                nf.Port.set(ports);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.remoteProcessGroups)) {
-                nf.RemoteProcessGroup.set(processGroupContents.remoteProcessGroups);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.processGroups)) {
-                nf.ProcessGroup.set(processGroupContents.processGroups);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.processors)) {
-                nf.Processor.set(processGroupContents.processors);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.connections)) {
-                nf.Connection.set(processGroupContents.connections);
-            }
         },
         
         /**

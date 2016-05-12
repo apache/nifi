@@ -843,7 +843,6 @@ nf.ConnectionConfiguration = (function () {
 
         if (validateSettings()) {
             var connectionEntity = {
-                'revision': nf.Client.getRevision(),
                 'component': {
                     'name': connectionName,
                     'source': {
@@ -873,9 +872,6 @@ nf.ConnectionConfiguration = (function () {
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
-
                 // add the connection
                 nf.Graph.add({
                     'connections': [response]
@@ -926,8 +922,9 @@ nf.ConnectionConfiguration = (function () {
         var prioritizers = $('#prioritizer-selected').sortable('toArray');
 
         if (validateSettings()) {
+            var d = nf.Connection.get(connectionId);
             var connectionEntity = {
-                'revision': nf.Client.getRevision(),
+                'revision': nf.Client.getRevision(d),
                 'component': {
                     'id': connectionId,
                     'name': connectionName,
@@ -953,9 +950,6 @@ nf.ConnectionConfiguration = (function () {
                 contentType: 'application/json'
             }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.component)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-
                     // update this connection
                     nf.Connection.set(response);
 

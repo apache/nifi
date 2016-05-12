@@ -134,7 +134,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                                         if (color !== selectedData.component.style['background-color']) {
                                             // build the request entity
                                             var entity = {
-                                                'revision': nf.Client.getRevision(),
+                                                'revision': nf.Client.getRevision(selectedData),
                                                 'component': {
                                                     'id': selectedData.id,
                                                     'style': {
@@ -151,9 +151,6 @@ nf.ng.Canvas.OperateCtrl = function () {
                                                 dataType: 'json',
                                                 contentType: 'application/json'
                                             }).done(function (response) {
-                                                // update the revision
-                                                nf.Client.setRevision(response.revision);
-
                                                 // update the component
                                                 nf[selectedData.type].set(response);
                                             }).fail(function (xhr, status, error) {

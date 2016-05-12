@@ -16,30 +16,6 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
@@ -123,7 +99,6 @@ import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
-import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
@@ -160,6 +135,32 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+import org.apache.nifi.web.revision.RevisionManager;
+
+import javax.ws.rs.WebApplicationException;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class DtoFactory {
 
@@ -664,9 +665,6 @@ public final class DtoFactory {
         if (funnel == null) {
             return null;
         }
-        if (!funnel.isAuthorized(authorizer, RequestAction.READ)) {
-            return null;
-        }
 
         final FunnelDTO dto = new FunnelDTO();
         dto.setId(funnel.getIdentifier());
@@ -766,7 +764,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ProcessGroupStatusDTO createProcessGroupStatusDto(final BulletinRepository bulletinRepository, final ProcessGroupStatus processGroupStatus) {
+    public ProcessGroupStatusDTO createConciseProcessGroupStatusDto(final ProcessGroupStatus processGroupStatus) {
         final ProcessGroupStatusDTO processGroupStatusDto = new ProcessGroupStatusDTO();
         processGroupStatusDto.setId(processGroupStatus.getId());
         processGroupStatusDto.setName(processGroupStatus.getName());
@@ -794,6 +792,12 @@ public final class DtoFactory {
         snapshot.setBytesReceived(processGroupStatus.getBytesReceived());
         snapshot.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
         StatusMerger.updatePrettyPrintedFields(snapshot);
+        return processGroupStatusDto;
+    }
+
+    public ProcessGroupStatusDTO createProcessGroupStatusDto(final ProcessGroupStatus processGroupStatus) {
+        final ProcessGroupStatusDTO processGroupStatusDto = createConciseProcessGroupStatusDto(processGroupStatus);
+        final ProcessGroupStatusSnapshotDTO snapshot = processGroupStatusDto.getAggregateSnapshot();
 
         // processor status
         final Collection<ProcessorStatusSnapshotDTO> processorStatDtoCollection = new ArrayList<>();
@@ -823,7 +827,7 @@ public final class DtoFactory {
         final Collection<ProcessGroupStatus> childProcessGroupStatusCollection = processGroupStatus.getProcessGroupStatus();
         if (childProcessGroupStatusCollection != null) {
             for (final ProcessGroupStatus childProcessGroupStatus : childProcessGroupStatusCollection) {
-                final ProcessGroupStatusDTO childProcessGroupStatusDto = createProcessGroupStatusDto(bulletinRepository, childProcessGroupStatus);
+                final ProcessGroupStatusDTO childProcessGroupStatusDto = createProcessGroupStatusDto(childProcessGroupStatus);
                 childProcessGroupStatusDtoCollection.add(childProcessGroupStatusDto.getAggregateSnapshot());
             }
         }
@@ -1504,11 +1508,12 @@ public final class DtoFactory {
         return createProcessGroupDto(group, false);
     }
 
-    public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final boolean recurse) {
+    public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager) {
         final ProcessGroupFlowDTO dto = new ProcessGroupFlowDTO();
         dto.setId(group.getIdentifier());
+        dto.setLastRefreshed(new Date());
         dto.setBreadcrumb(createBreadcrumbDto(group));
-        dto.setFlow(createFlowDto(group));
+        dto.setFlow(createFlowDto(group, groupStatus, revisionManager));
 
         final ProcessGroup parent = group.getParent();
         if (parent != null) {
@@ -1518,7 +1523,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowDTO createFlowDto(final ProcessGroup group, final FlowSnippetDTO snippet) {
+    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final FlowSnippetDTO snippet, final RevisionManager revisionManager) {
         if (snippet == null) {
             return null;
         }
@@ -1526,96 +1531,172 @@ public final class DtoFactory {
         final FlowDTO flow = new FlowDTO();
 
         for (final ConnectionDTO connection : snippet.getConnections()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(connection.getId()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getConnection(connection.getId()));
-            flow.getConnections().add(entityFactory.createConnectionEntity(connection, null, accessPolicy));
+            final ConnectionStatusDTO status = getComponentStatus(
+                () -> groupStatus.getConnectionStatus().stream().filter(connectionStatus -> connection.getId().equals(connectionStatus.getId())).findFirst().orElse(null),
+                connectionStatus -> createConnectionStatusDto(connectionStatus)
+            );
+            flow.getConnections().add(entityFactory.createConnectionEntity(connection, null, accessPolicy, status));
         }
 
         for (final ControllerServiceDTO controllerService : snippet.getControllerServices()) {
-            flow.getControllerServices().add(entityFactory.createControllerServiceEntity(controllerService, null, null));
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(controllerService.getId()));
+            flow.getControllerServices().add(entityFactory.createControllerServiceEntity(controllerService, revision, null));
         }
 
         for (final FunnelDTO funnel : snippet.getFunnels()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(funnel.getId()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getFunnel(funnel.getId()));
-            flow.getFunnels().add(entityFactory.createFunnelEntity(funnel, null, accessPolicy));
+            flow.getFunnels().add(entityFactory.createFunnelEntity(funnel, revision, accessPolicy));
         }
 
         for (final PortDTO inputPort : snippet.getInputPorts()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(inputPort.getId()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getInputPort(inputPort.getId()));
-            flow.getInputPorts().add(entityFactory.createPortEntity(inputPort, null, accessPolicy));
+            final PortStatusDTO status = getComponentStatus(
+                () -> groupStatus.getInputPortStatus().stream().filter(inputPortStatus -> inputPort.getId().equals(inputPortStatus.getId())).findFirst().orElse(null),
+                inputPortStatus -> createPortStatusDto(inputPortStatus)
+            );
+            flow.getInputPorts().add(entityFactory.createPortEntity(inputPort, revision, accessPolicy, status));
         }
 
         for (final PortDTO outputPort : snippet.getOutputPorts()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(outputPort.getId()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getOutputPort(outputPort.getId()));
-            flow.getOutputPorts().add(entityFactory.createPortEntity(outputPort, null, accessPolicy));
+            final PortStatusDTO status = getComponentStatus(
+                () -> groupStatus.getOutputPortStatus().stream().filter(outputPortStatus -> outputPort.getId().equals(outputPortStatus.getId())).findFirst().orElse(null),
+                outputPortStatus -> createPortStatusDto(outputPortStatus)
+            );
+            flow.getOutputPorts().add(entityFactory.createPortEntity(outputPort, revision, accessPolicy, status));
         }
 
         for (final LabelDTO label : snippet.getLabels()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(label.getId()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getLabel(label.getId()));
-            flow.getLabels().add(entityFactory.createLabelEntity(label, null, accessPolicy));
+            flow.getLabels().add(entityFactory.createLabelEntity(label, revision, accessPolicy));
         }
 
         for (final ProcessGroupDTO processGroup : snippet.getProcessGroups()) {
             // clear the contents as we only return a single level/group at a time
             processGroup.setContents(null);
 
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(processGroup.getId()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getProcessGroup(processGroup.getId()));
-            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(processGroup, null, accessPolicy));
+            final ProcessGroupStatusDTO status = getComponentStatus(
+                () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> processGroup.getId().equals(processGroupStatus.getId())).findFirst().orElse(null),
+                processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
+            );
+            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(processGroup, revision, accessPolicy, status));
         }
 
         for (final ProcessorDTO processor : snippet.getProcessors()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(processor.getId()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getProcessor(processor.getId()));
-            flow.getProcessors().add(entityFactory.createProcessorEntity(processor, null, accessPolicy));
+            final ProcessorStatusDTO status = getComponentStatus(
+                () -> groupStatus.getProcessorStatus().stream().filter(processorStatus -> processor.getId().equals(processorStatus.getId())).findFirst().orElse(null),
+                processorStatus -> createProcessorStatusDto(processorStatus)
+            );
+            flow.getProcessors().add(entityFactory.createProcessorEntity(processor, revision, accessPolicy, status));
         }
 
         for (final RemoteProcessGroupDTO remoteProcessGroup : snippet.getRemoteProcessGroups()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(remoteProcessGroup.getId()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(group.getRemoteProcessGroup(remoteProcessGroup.getId()));
-            flow.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(remoteProcessGroup, null, accessPolicy));
+            final RemoteProcessGroupStatusDTO status = getComponentStatus(
+                () -> groupStatus.getRemoteProcessGroupStatus().stream().filter(rpgStatus -> remoteProcessGroup.getId().equals(rpgStatus.getId())).findFirst().orElse(null),
+                remoteProcessGroupStatus -> createRemoteProcessGroupStatusDto(remoteProcessGroupStatus)
+            );
+            flow.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(remoteProcessGroup, revision, accessPolicy, status));
         }
 
         return flow;
     }
 
-    public FlowDTO createFlowDto(final ProcessGroup group) {
+    private <T, S> T getComponentStatus(final Supplier<S> getComponentStatus, final Function<S, T> convertToDto) {
+        final T statusDTO;
+        final S status = getComponentStatus.get();
+        if (status != null) {
+            statusDTO = convertToDto.apply(status);
+        } else {
+            statusDTO = null;
+        }
+        return statusDTO;
+    }
+
+    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager) {
         final FlowDTO dto = new FlowDTO();
 
         for (final ProcessorNode procNode : group.getProcessors()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(procNode.getIdentifier()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(procNode);
-            dto.getProcessors().add(entityFactory.createProcessorEntity(createProcessorDto(procNode), null, accessPolicy));
+            final ProcessorStatusDTO status = getComponentStatus(
+                () -> groupStatus.getProcessorStatus().stream().filter(processorStatus -> procNode.getIdentifier().equals(processorStatus.getId())).findFirst().orElse(null),
+                processorStatus -> createProcessorStatusDto(processorStatus)
+            );
+            dto.getProcessors().add(entityFactory.createProcessorEntity(createProcessorDto(procNode), revision, accessPolicy, status));
         }
 
         for (final Connection connNode : group.getConnections()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(connNode.getIdentifier()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(connNode);
-            dto.getConnections().add(entityFactory.createConnectionEntity(createConnectionDto(connNode), null, accessPolicy));
+            final ConnectionStatusDTO status = getComponentStatus(
+                () -> groupStatus.getConnectionStatus().stream().filter(connectionStatus -> connNode.getIdentifier().equals(connectionStatus.getId())).findFirst().orElse(null),
+                connectionStatus -> createConnectionStatusDto(connectionStatus)
+            );
+            dto.getConnections().add(entityFactory.createConnectionEntity(createConnectionDto(connNode), revision, accessPolicy, status));
         }
 
         for (final Label label : group.getLabels()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(label.getIdentifier()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(label);
-            dto.getLabels().add(entityFactory.createLabelEntity(createLabelDto(label), null, accessPolicy));
+            dto.getLabels().add(entityFactory.createLabelEntity(createLabelDto(label), revision, accessPolicy));
         }
 
         for (final Funnel funnel : group.getFunnels()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(funnel.getIdentifier()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(funnel);
-            dto.getFunnels().add(entityFactory.createFunnelEntity(createFunnelDto(funnel), null, accessPolicy));
+            dto.getFunnels().add(entityFactory.createFunnelEntity(createFunnelDto(funnel), revision, accessPolicy));
         }
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(childGroup.getIdentifier()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(childGroup);
-            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), null, accessPolicy));
+            final ProcessGroupStatusDTO status = getComponentStatus(
+                () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> childGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
+                processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
+            );
+            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, accessPolicy, status));
         }
 
         for (final RemoteProcessGroup rpg : group.getRemoteProcessGroups()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(rpg.getIdentifier()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(rpg);
-            dto.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(createRemoteProcessGroupDto(rpg), null, accessPolicy));
+            final RemoteProcessGroupStatusDTO status = getComponentStatus(
+                () -> groupStatus.getRemoteProcessGroupStatus().stream().filter(remoteProcessGroupStatus -> rpg.getIdentifier().equals(remoteProcessGroupStatus.getId())).findFirst().orElse(null),
+                remoteProcessGroupStatus -> createRemoteProcessGroupStatusDto(remoteProcessGroupStatus)
+            );
+            dto.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(createRemoteProcessGroupDto(rpg), revision, accessPolicy, status));
         }
 
         for (final Port inputPort : group.getInputPorts()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(inputPort.getIdentifier()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(inputPort);
-            dto.getInputPorts().add(entityFactory.createPortEntity(createPortDto(inputPort), null, accessPolicy));
+            final PortStatusDTO status = getComponentStatus(
+                () -> groupStatus.getInputPortStatus().stream().filter(inputPortStatus -> inputPort.getIdentifier().equals(inputPortStatus.getId())).findFirst().orElse(null),
+                inputPortStatus -> createPortStatusDto(inputPortStatus)
+            );
+            dto.getInputPorts().add(entityFactory.createPortEntity(createPortDto(inputPort), revision, accessPolicy, status));
         }
 
         for (final Port outputPort : group.getOutputPorts()) {
+            final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(outputPort.getIdentifier()));
             final AccessPolicyDTO accessPolicy = createAccessPolicyDto(outputPort);
-            dto.getOutputPorts().add(entityFactory.createPortEntity(createPortDto(outputPort), null, accessPolicy));
+            final PortStatusDTO status = getComponentStatus(
+                () -> groupStatus.getOutputPortStatus().stream().filter(outputPortStatus -> outputPort.getIdentifier().equals(outputPortStatus.getId())).findFirst().orElse(null),
+                outputPortStatus -> createPortStatusDto(outputPortStatus)
+            );
+            dto.getOutputPorts().add(entityFactory.createPortEntity(createPortDto(outputPort), revision, accessPolicy, status));
         }
 
         // TODO - controller services once they are accessible from the group
@@ -2741,10 +2822,10 @@ public final class DtoFactory {
         return revisionDTO;
     }
 
-    public RevisionDTO createRevisionDTO(final Long version, final String clientId) {
+    public RevisionDTO createRevisionDTO(final Revision revision) {
         final RevisionDTO dto = new RevisionDTO();
-        dto.setVersion(version);
-        dto.setClientId(clientId);
+        dto.setVersion(revision.getVersion());
+        dto.setClientId(revision.getClientId());
         return dto;
     }
 

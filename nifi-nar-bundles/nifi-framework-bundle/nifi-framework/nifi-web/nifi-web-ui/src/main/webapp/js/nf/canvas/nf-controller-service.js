@@ -175,7 +175,8 @@ nf.ControllerService = (function () {
      */
     var reloadControllerServiceReferences = function (controllerService) {
         // reload all dependent processors if they are currently visible
-        $.each(controllerService.referencingComponents, function (_, reference) {
+        $.each(controllerService.referencingComponents, function (_, referencingComponentEntity) {
+            var reference = referencingComponentEntity.controllerServiceReferencingComponent;
             if (reference.referenceType === 'Processor') {
                 // reload the processor on the canvas if appropriate
                 if (nf.Canvas.getGroupId() === reference.groupId) {
@@ -381,7 +382,8 @@ nf.ControllerService = (function () {
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
-        $.each(referencingComponents, function (_, referencingComponent) {
+        $.each(referencingComponents, function (_, referencingComponentEntity) {
+            var referencingComponent = referencingComponentEntity.controllerServiceReferencingComponent;
             referencingComponentIds.push(referencingComponent.id);
             
             if (referencingComponent.referenceType === 'Processor') {
@@ -580,7 +582,8 @@ nf.ControllerService = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            nf.Client.setRevision(response.revision);
+            // TODO
+            // nf.Client.setRevision(response.revision);
         }).fail(nf.Common.handleAjaxError);
         
         // wait until the polling of each service finished
@@ -627,7 +630,8 @@ nf.ControllerService = (function () {
         ids.add(controllerService.id);
         
         var checkReferencingServices = function (referencingComponents) {
-            $.each(referencingComponents, function (_, referencingComponent) {
+            $.each(referencingComponents, function (_, referencingComponentEntity) {
+                var referencingComponent = referencingComponentEntity.controllerServiceReferencingComponent;
                 if (referencingComponent.referenceType === 'ControllerService') {
                     // add the id
                     ids.add(referencingComponent.id);
@@ -668,7 +672,8 @@ nf.ControllerService = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            nf.Client.setRevision(response.revision);
+            // TODO
+            // nf.Client.setRevision(response.revision);
         }).fail(nf.Common.handleAjaxError);
         
         // wait unil the polling of each service finished
@@ -785,7 +790,8 @@ nf.ControllerService = (function () {
             var referencingComponents = service.referencingComponents;
             
             var stillRunning = false;
-            $.each(referencingComponents, function(_, referencingComponent) {
+            $.each(referencingComponents, function(_, referencingComponentEntity) {
+                var referencingComponent = referencingComponentEntity.controllerServiceReferencingComponent;
                 if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
                     if (referencingComponent.state === 'RUNNING' || referencingComponent.activeThreadCount > 0) {
                         stillRunning = true;
@@ -809,7 +815,8 @@ nf.ControllerService = (function () {
             var referencingSchedulableComponents = [];
             
             var referencingComponents = service.referencingComponents;
-            $.each(referencingComponents, function(_, referencingComponent) {
+            $.each(referencingComponents, function(_, referencingComponentEntity) {
+                var referencingComponent = referencingComponentEntity.controllerServiceReferencingComponent;
                 if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
@@ -831,7 +838,8 @@ nf.ControllerService = (function () {
             var referencingComponents = service.referencingComponents;
             
             var notEnabled = false;
-            $.each(referencingComponents, function(_, referencingComponent) {
+            $.each(referencingComponents, function(_, referencingComponentEntity) {
+                var referencingComponent = referencingComponentEntity.controllerServiceReferencingComponent;
                 if (referencingComponent.referenceType === 'ControllerService') {
                     if (referencingComponent.state !== 'ENABLING' && referencingComponent.state !== 'ENABLED') {
                         notEnabled = true;
@@ -852,7 +860,8 @@ nf.ControllerService = (function () {
             var referencingSchedulableComponents = [];
             
             var referencingComponents = service.referencingComponents;
-            $.each(referencingComponents, function(_, referencingComponent) {
+            $.each(referencingComponents, function(_, referencingComponentEntity) {
+                var referencingComponent = referencingComponentEntity.controllerServiceReferencingComponent;
                 if (referencingComponent.referenceType === 'ControllerService') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
@@ -874,7 +883,8 @@ nf.ControllerService = (function () {
             var referencingComponents = service.referencingComponents;
             
             var notDisabled = false;
-            $.each(referencingComponents, function(_, referencingComponent) {
+            $.each(referencingComponents, function(_, referencingComponentEntity) {
+                var referencingComponent = referencingComponentEntity.controllerServiceReferencingComponent;
                 if (referencingComponent.referenceType === 'ControllerService') {
                     if (referencingComponent.state !== 'DISABLED') {
                         notDisabled = true;
@@ -895,7 +905,8 @@ nf.ControllerService = (function () {
             var referencingSchedulableComponents = [];
             
             var referencingComponents = service.referencingComponents;
-            $.each(referencingComponents, function(_, referencingComponent) {
+            $.each(referencingComponents, function(_, referencingComponentEntity) {
+                var referencingComponent = referencingComponentEntity.controllerServiceReferencingComponent;
                 if (referencingComponent.referenceType === 'ControllerService') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
@@ -928,7 +939,8 @@ nf.ControllerService = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            nf.Client.setRevision(response.revision);
+            // TODO
+            // nf.Client.setRevision(response.revision);
         }).fail(nf.Common.handleAjaxError);
         
         // wait unil the polling of each service finished
@@ -1311,8 +1323,8 @@ nf.ControllerService = (function () {
                 contentType: 'application/json'
             }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.controllerService)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
+                    // TODO - update the revision
+                    // nf.Client.setRevision(response.revision);
 
                     // reload all previously referenced controller services
                     $.each(previouslyReferencedServiceIds, function(_, oldServiceReferenceId) {
@@ -1436,6 +1448,7 @@ nf.ControllerService = (function () {
             // initialize the property table
             $('#controller-service-properties').propertytable({
                 readOnly: false,
+                groupId: nf.Canvas.getGroupId(),
                 dialogContainer: '#new-controller-service-property-container',
                 descriptorDeferred: getControllerServicePropertyDescriptor,
                 goToServiceDeferred: goToServiceFromProperty
@@ -1583,6 +1596,7 @@ nf.ControllerService = (function () {
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     readOnly: false,
+                    groupId: nf.Canvas.getGroupId(),
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
                     goToServiceDeferred: goToServiceFromProperty
@@ -1888,7 +1902,8 @@ nf.ControllerService = (function () {
                 }),
                 dataType: 'json'
             }).done(function (response) {
-                nf.Client.setRevision(response.revision);
+                // TODO
+                // nf.Client.setRevision(response.revision);
 
                 // remove the service
                 var controllerServiceGrid = $('#controller-services-table').data('gridInstance');

@@ -33,6 +33,8 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.context.ClusterContext;
+import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
@@ -96,8 +98,10 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * RESTful endpoint for managing a Flow.
@@ -208,10 +212,9 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
         value = "Gets a process group",
-        response = ProcessGroupEntity.class,
+        response = ProcessGroupFlowEntity.class,
         authorizations = {
             @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
             @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
@@ -268,6 +271,43 @@ public class FlowResource extends ApplicationResource {
         return clusterContext(generateOkResponse(processGroupEntity)).build();
     }
 
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("client-id")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Generates a client id.",
+        response = String.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response generateClientId() {
+        authorizeFlow();
+
+        final String clientId;
+        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
+        if (clusterContext != null) {
+            clientId = UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString();
+        } else {
+            clientId = UUID.randomUUID().toString();
+        }
+
+        return clusterContext(generateOkResponse(clientId)).build();
+    }
+
     // ------
     // search
     // ------
@@ -317,59 +357,6 @@ public class FlowResource extends ApplicationResource {
 
         // generate the response
         return clusterContext(noCache(Response.ok(entity))).build();
-    }
-
-    /**
-     * Gets current revision of this NiFi.
-     *
-     * @return A revisionEntity
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("revision")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-            value = "Gets the current revision of this NiFi",
-            notes = "NiFi employs an optimistic locking strategy where the client must include a revision in their request when "
-            + "performing an update. If the specified revision does not match the current base revision a 409 status code "
-            + "is returned. The revision is comprised of a clientId and a version number. The version is a simple integer "
-            + "value that is incremented with each change. Including the most recent version tells NiFi that your working "
-            + "with the most recent flow. In addition to the version the client who is performing the updates is recorded. "
-            + "This allows the same client to submit multiple requests without having to wait for the previously ones to "
-            + "return. Invoking this endpoint will return the current base revision. It is also available when retrieving "
-            + "a process group and in the response of all mutable requests.",
-            response = Entity.class,
-            authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getRevision() {
-        authorizeFlow();
-
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // create the current revision
-        final RevisionDTO revision = serviceFacade.getRevision();
-
-        // create the response entity
-        final Entity entity = new Entity();
-        entity.setRevision(revision);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
     }
 
     /**
