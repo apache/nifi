@@ -81,11 +81,6 @@ public class Revision implements Serializable {
             return false;
         }
 
-        // TODO: THIS IS FOR TESTING PURPOSES! DO NOT LET THIS GET CHECKED IN THIS WAY!!!!!!!!!!!!
-        if (true) {
-            return true;
-        }
-
         Revision thatRevision = (Revision) obj;
         // ensure that component ID's are the same (including null)
         if (thatRevision.getComponentId() == null && getComponentId() != null) {

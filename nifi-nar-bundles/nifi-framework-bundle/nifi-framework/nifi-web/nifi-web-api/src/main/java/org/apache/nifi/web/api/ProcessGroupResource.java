@@ -96,6 +96,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -2187,7 +2188,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // create the template and generate the json
         final RevisionDTO revisionDTO = createTemplateRequestEntity.getRevision();
-        final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(), createTemplateRequestEntity.getSnippetId());
+        final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(),
+            createTemplateRequestEntity.getSnippetId(), groupId);
         templateResource.populateRemainingTemplateContent(template);
 
         // create the revision
@@ -2320,7 +2322,7 @@ public class ProcessGroupResource extends ApplicationResource {
             }
 
             // import the template
-            final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate());
+            final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate(), groupId);
             templateResource.populateRemainingTemplateContent(template);
 
             // create the revision
@@ -2502,6 +2504,11 @@ public class ProcessGroupResource extends ApplicationResource {
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        } else if (properties.isClusterManager()) {
+            // create the response entity
+            final ControllerServicesEntity entity = new ControllerServicesEntity();
+            entity.setControllerServices(Collections.emptySet());
+            return clusterContext(generateOkResponse(entity)).build();
         }
 
         // get all the controller services

@@ -29,9 +29,9 @@ import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
  */
 @XmlJavaTypeAdapter(DataFlowAdapter.class)
 public class StandardDataFlow implements Serializable, DataFlow {
+    private static final long serialVersionUID = 1L;
 
     private final byte[] flow;
-    private final byte[] templateBytes;
     private final byte[] snippetBytes;
 
     private boolean autoStartProcessors;
@@ -40,23 +40,20 @@ public class StandardDataFlow implements Serializable, DataFlow {
      * Constructs an instance.
      *
      * @param flow a valid flow as bytes, which cannot be null
-     * @param templateBytes an XML representation of templates.  May be null.
      * @param snippetBytes an XML representation of snippets.  May be null.
      *
      * @throws NullPointerException if flow is null
      */
-    public StandardDataFlow(final byte[] flow, final byte[] templateBytes, final byte[] snippetBytes) {
+    public StandardDataFlow(final byte[] flow, final byte[] snippetBytes) {
         if(flow == null){
             throw new NullPointerException("Flow cannot be null");
         }
         this.flow = flow;
-        this.templateBytes = templateBytes;
         this.snippetBytes = snippetBytes;
     }
 
     public StandardDataFlow(final DataFlow toCopy) {
         this.flow = copy(toCopy.getFlow());
-        this.templateBytes = copy(toCopy.getTemplates());
         this.snippetBytes = copy(toCopy.getSnippets());
         this.autoStartProcessors = toCopy.isAutoStartProcessors();
     }
@@ -70,10 +67,6 @@ public class StandardDataFlow implements Serializable, DataFlow {
         return flow;
     }
 
-    @Override
-    public byte[] getTemplates() {
-        return templateBytes;
-    }
 
     @Override
     public byte[] getSnippets() {

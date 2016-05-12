@@ -17,6 +17,8 @@
 package org.apache.nifi.controller.serialization;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +44,7 @@ import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -49,12 +52,14 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 /**
  * Serializes a Flow Controller as XML to an output stream.
@@ -185,6 +190,10 @@ public class StandardFlowSerializer implements FlowSerializer {
 
         for (final ControllerServiceNode service : group.getControllerServices(false)) {
             addControllerService(element, service);
+        }
+
+        for (final Template template : group.getTemplates()) {
+            addTemplate(element, template);
         }
     }
 
@@ -456,4 +465,21 @@ public class StandardFlowSerializer implements FlowSerializer {
         element.appendChild(toAdd);
     }
 
+    public static void addTemplate(final Element element, final Template template) {
+        try {
+            final byte[] serialized = TemplateSerializer.serialize(template.getDetails());
+
+            final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+            final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+            final Document document;
+            try (final InputStream in = new ByteArrayInputStream(serialized)) {
+                document = docBuilder.parse(in);
+            }
+
+            final Node templateNode = element.getOwnerDocument().importNode(document.getDocumentElement(), true);
+            element.appendChild(templateNode);
+        } catch (final Exception e) {
+            throw new FlowSerializationException(e);
+        }
+    }
 }

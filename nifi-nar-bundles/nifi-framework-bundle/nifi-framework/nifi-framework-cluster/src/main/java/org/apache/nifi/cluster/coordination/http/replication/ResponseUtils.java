@@ -39,7 +39,7 @@ public class ResponseUtils {
     public static Set<NodeIdentifier> findLongResponseTimes(final AsyncClusterResponse response, final double stdDeviationMultiple) {
         final Set<NodeIdentifier> slowResponses = new HashSet<>();
 
-        if (response.isOlderThan(2, TimeUnit.SECONDS)) {
+        if (response.isOlderThan(1, TimeUnit.SECONDS)) {
             // If the response is older than 2 seconds, determines if any node took a long time to respond.
             final Set<NodeIdentifier> completedIds = response.getCompletedNodeIdentifiers();
 

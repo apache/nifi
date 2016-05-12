@@ -512,7 +512,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
             clusterMetadata = (ClusterMetadata) clusterMetadataUnmarshaller.unmarshal(new ByteArrayInputStream(clusterInfoBytes));
         }
 
-        final StandardDataFlow dataFlow = new StandardDataFlow(flowBytes, templateBytes, snippetBytes);
+        final StandardDataFlow dataFlow = new StandardDataFlow(flowBytes, snippetBytes);
         dataFlow.setAutoStartProcessors(autoStart);
 
         return new ClusterDataFlow(dataFlow, clusterMetadata == null ? null : clusterMetadata.getPrimaryNodeId(), controllerServiceBytes, reportingTaskBytes);
@@ -543,11 +543,9 @@ public class DataFlowDaoImpl implements DataFlowDao {
             final DataFlow dataFlow = clusterDataFlow.getDataFlow();
             if (dataFlow == null) {
                 writeTarEntry(tarOut, FLOW_XML_FILENAME, getEmptyFlowBytes());
-                writeTarEntry(tarOut, TEMPLATES_FILENAME, new byte[0]);
                 writeTarEntry(tarOut, SNIPPETS_FILENAME, new byte[0]);
             } else {
                 writeTarEntry(tarOut, FLOW_XML_FILENAME, dataFlow.getFlow());
-                writeTarEntry(tarOut, TEMPLATES_FILENAME, dataFlow.getTemplates());
                 writeTarEntry(tarOut, SNIPPETS_FILENAME, dataFlow.getSnippets());
             }
             writeTarEntry(tarOut, CONTROLLER_SERVICES_FILENAME, clusterDataFlow.getControllerServices());

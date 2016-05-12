@@ -26,10 +26,10 @@ import java.util.regex.Pattern;
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.entity.FlowSnippetEntity;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.entity.FlowEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
 public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
     public static final Pattern TEMPLATE_INSTANCE_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/template-instance");
@@ -43,21 +43,21 @@ public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
 
     @Override
     public NodeResponse merge(final URI uri, final String method, Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
-        final FlowSnippetEntity responseEntity = clientResponse.getClientResponse().getEntity(FlowSnippetEntity.class);
-        final FlowSnippetDTO contents = responseEntity.getContents();
+        final FlowEntity responseEntity = clientResponse.getClientResponse().getEntity(FlowEntity.class);
+        final FlowDTO flowDto = responseEntity.getFlow();
 
-        if (contents == null) {
+        if (flowDto == null) {
             return clientResponse;
         } else {
-            final Map<String, Map<NodeIdentifier, ProcessorDTO>> processorMap = new HashMap<>();
-            final Map<String, Map<NodeIdentifier, RemoteProcessGroupDTO>> remoteProcessGroupMap = new HashMap<>();
+            final Map<String, Map<NodeIdentifier, ProcessorEntity>> processorMap = new HashMap<>();
+            final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> remoteProcessGroupMap = new HashMap<>();
 
             for (final NodeResponse nodeResponse : successfulResponses) {
-                final FlowSnippetEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(FlowSnippetEntity.class);
-                final FlowSnippetDTO nodeContents = nodeResponseEntity.getContents();
+                final FlowEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(FlowEntity.class);
+                final FlowDTO nodeContents = nodeResponseEntity.getFlow();
 
-                for (final ProcessorDTO nodeProcessor : nodeContents.getProcessors()) {
-                    Map<NodeIdentifier, ProcessorDTO> innerMap = processorMap.get(nodeProcessor.getId());
+                for (final ProcessorEntity nodeProcessor : nodeContents.getProcessors()) {
+                    Map<NodeIdentifier, ProcessorEntity> innerMap = processorMap.get(nodeProcessor.getId());
                     if (innerMap == null) {
                         innerMap = new HashMap<>();
                         processorMap.put(nodeProcessor.getId(), innerMap);
@@ -66,8 +66,8 @@ public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
                     innerMap.put(nodeResponse.getNodeId(), nodeProcessor);
                 }
 
-                for (final RemoteProcessGroupDTO nodeRemoteProcessGroup : nodeContents.getRemoteProcessGroups()) {
-                    Map<NodeIdentifier, RemoteProcessGroupDTO> innerMap = remoteProcessGroupMap.get(nodeRemoteProcessGroup.getId());
+                for (final RemoteProcessGroupEntity nodeRemoteProcessGroup : nodeContents.getRemoteProcessGroups()) {
+                    Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = remoteProcessGroupMap.get(nodeRemoteProcessGroup.getId());
                     if (innerMap == null) {
                         innerMap = new HashMap<>();
                         remoteProcessGroupMap.put(nodeRemoteProcessGroup.getId(), innerMap);
@@ -78,21 +78,19 @@ public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
             }
 
             final ProcessorEndpointMerger procMerger = new ProcessorEndpointMerger();
-            for (final ProcessorDTO processor : contents.getProcessors()) {
+            for (final ProcessorEntity processor : flowDto.getProcessors()) {
                 final String procId = processor.getId();
-                final Map<NodeIdentifier, ProcessorDTO> mergeMap = processorMap.get(procId);
+                final Map<NodeIdentifier, ProcessorEntity> mergeMap = processorMap.get(procId);
 
                 procMerger.mergeResponses(processor, mergeMap, successfulResponses, problematicResponses);
             }
 
             final RemoteProcessGroupEndpointMerger rpgMerger = new RemoteProcessGroupEndpointMerger();
-            for (final RemoteProcessGroupDTO remoteProcessGroup : contents.getRemoteProcessGroups()) {
-                if (remoteProcessGroup.getContents() != null) {
-                    final String remoteProcessGroupId = remoteProcessGroup.getId();
-                    final Map<NodeIdentifier, RemoteProcessGroupDTO> mergeMap = remoteProcessGroupMap.get(remoteProcessGroupId);
+            for (final RemoteProcessGroupEntity remoteProcessGroup : flowDto.getRemoteProcessGroups()) {
+                final String remoteProcessGroupId = remoteProcessGroup.getId();
+                final Map<NodeIdentifier, RemoteProcessGroupEntity> mergeMap = remoteProcessGroupMap.get(remoteProcessGroupId);
 
-                    rpgMerger.mergeResponses(remoteProcessGroup, mergeMap, successfulResponses, problematicResponses);
-                }
+                rpgMerger.mergeResponses(remoteProcessGroup, mergeMap, successfulResponses, problematicResponses);
             }
         }
 

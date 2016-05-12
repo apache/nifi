@@ -47,7 +47,6 @@ import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
-import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -183,23 +182,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     @Override
     public synchronized void removeHeartbeat(final NodeIdentifier nodeId) {
         logger.debug("Deleting heartbeat for node {}", nodeId);
-        final String nodeInfoPath = clusterNodesPath + "/" + nodeId.getId();
-
         heartbeatMessages.remove(nodeId);
-
-        try {
-            getClient().delete().forPath(nodeInfoPath);
-            logger.info("Removed heartbeat from ZooKeeper for Node {}", nodeId);
-        } catch (final NoNodeException e) {
-            // node did not exist. Just return.
-            logger.debug("Attempted to remove heartbeat for Node with ID {} but no ZNode existed at {}", nodeId, nodeInfoPath);
-            return;
-        } catch (final Exception e) {
-            logger.warn("Failed to remove heartbeat from ZooKeeper for Node {} due to {}", nodeId, e);
-            logger.warn("", e);
-
-            clusterCoordinator.reportEvent(nodeId, Severity.WARNING, "Failed to remove node's heartbeat from ZooKeeper due to " + e);
-        }
     }
 
     protected Set<NodeIdentifier> getClusterNodeIds() {

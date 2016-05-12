@@ -16,8 +16,31 @@
  */
 package org.apache.nifi.web;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -166,35 +189,14 @@ import org.apache.nifi.web.revision.StandardRevisionClaim;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
 import org.apache.nifi.web.revision.UpdateRevisionTask;
 import org.apache.nifi.web.util.SnippetUtils;
-
-import javax.ws.rs.WebApplicationException;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
  */
 public class StandardNiFiServiceFacade implements NiFiServiceFacade {
-    private static final Logger logger = Logger.getLogger(StandardNiFiServiceFacade.class);
+    private static final Logger logger = LoggerFactory.getLogger(StandardNiFiServiceFacade.class);
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -258,136 +260,236 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyUpdateConnection(ConnectionDTO connectionDTO) {
-        // if connection does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (connectionDAO.hasConnection(connectionDTO.getId())) {
-            connectionDAO.verifyUpdate(connectionDTO);
-        } else {
-            connectionDAO.verifyCreate(connectionDTO.getParentGroupId(), connectionDTO);
+        try {
+            // if connection does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (connectionDAO.hasConnection(connectionDTO.getId())) {
+                connectionDAO.verifyUpdate(connectionDTO);
+            } else {
+                connectionDAO.verifyCreate(connectionDTO.getParentGroupId(), connectionDTO);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(connectionDTO.getId());
+            throw e;
         }
     }
 
     @Override
     public void verifyDeleteConnection(String connectionId) {
-        connectionDAO.verifyDelete(connectionId);
+        try {
+            connectionDAO.verifyDelete(connectionId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(connectionId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyDeleteFunnel(String funnelId) {
-        funnelDAO.verifyDelete(funnelId);
+        try {
+            funnelDAO.verifyDelete(funnelId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(funnelId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyUpdateInputPort(PortDTO inputPortDTO) {
-        // if connection does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (inputPortDAO.hasPort(inputPortDTO.getId())) {
-            inputPortDAO.verifyUpdate(inputPortDTO);
+        try {
+            // if connection does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (inputPortDAO.hasPort(inputPortDTO.getId())) {
+                inputPortDAO.verifyUpdate(inputPortDTO);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(inputPortDTO.getId());
+            throw e;
         }
     }
 
     @Override
     public void verifyDeleteInputPort(String inputPortId) {
-        inputPortDAO.verifyDelete(inputPortId);
+        try {
+            inputPortDAO.verifyDelete(inputPortId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(inputPortId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyUpdateOutputPort(PortDTO outputPortDTO) {
-        // if connection does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (outputPortDAO.hasPort(outputPortDTO.getId())) {
-            outputPortDAO.verifyUpdate(outputPortDTO);
+        try {
+            // if connection does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (outputPortDAO.hasPort(outputPortDTO.getId())) {
+                outputPortDAO.verifyUpdate(outputPortDTO);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(outputPortDTO.getId());
+            throw e;
         }
     }
 
     @Override
     public void verifyDeleteOutputPort(String outputPortId) {
-        outputPortDAO.verifyDelete(outputPortId);
+        try {
+            outputPortDAO.verifyDelete(outputPortId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(outputPortId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyUpdateProcessor(ProcessorDTO processorDTO) {
-        // if group does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (processorDAO.hasProcessor(processorDTO.getId())) {
-            processorDAO.verifyUpdate(processorDTO);
+        try {
+            // if group does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (processorDAO.hasProcessor(processorDTO.getId())) {
+                processorDAO.verifyUpdate(processorDTO);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(processorDTO.getId());
+            throw e;
         }
     }
 
     @Override
     public void verifyDeleteProcessor(String processorId) {
-        processorDAO.verifyDelete(processorId);
+        try {
+            processorDAO.verifyDelete(processorId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(processorId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyUpdateProcessGroup(ProcessGroupDTO processGroupDTO) {
-        // if group does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (processGroupDAO.hasProcessGroup(processGroupDTO.getId())) {
-            processGroupDAO.verifyUpdate(processGroupDTO);
+        try {
+            // if group does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (processGroupDAO.hasProcessGroup(processGroupDTO.getId())) {
+                processGroupDAO.verifyUpdate(processGroupDTO);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(processGroupDTO.getId());
+            throw e;
         }
     }
 
     @Override
     public void verifyDeleteProcessGroup(String groupId) {
-        processGroupDAO.verifyDelete(groupId);
+        try {
+            processGroupDAO.verifyDelete(groupId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(groupId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyUpdateRemoteProcessGroup(RemoteProcessGroupDTO remoteProcessGroupDTO) {
-        // if remote group does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (remoteProcessGroupDAO.hasRemoteProcessGroup(remoteProcessGroupDTO.getId())) {
-            remoteProcessGroupDAO.verifyUpdate(remoteProcessGroupDTO);
+        try {
+            // if remote group does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (remoteProcessGroupDAO.hasRemoteProcessGroup(remoteProcessGroupDTO.getId())) {
+                remoteProcessGroupDAO.verifyUpdate(remoteProcessGroupDTO);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(remoteProcessGroupDTO.getId());
+            throw e;
         }
     }
 
     @Override
     public void verifyUpdateRemoteProcessGroupInputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
-        remoteProcessGroupDAO.verifyUpdateInputPort(remoteProcessGroupId, remoteProcessGroupPortDTO);
+        try {
+            remoteProcessGroupDAO.verifyUpdateInputPort(remoteProcessGroupId, remoteProcessGroupPortDTO);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(remoteProcessGroupId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyUpdateRemoteProcessGroupOutputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
-        remoteProcessGroupDAO.verifyUpdateOutputPort(remoteProcessGroupId, remoteProcessGroupPortDTO);
+        try {
+            remoteProcessGroupDAO.verifyUpdateOutputPort(remoteProcessGroupId, remoteProcessGroupPortDTO);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(remoteProcessGroupId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyDeleteRemoteProcessGroup(String remoteProcessGroupId) {
-        remoteProcessGroupDAO.verifyDelete(remoteProcessGroupId);
+        try {
+            remoteProcessGroupDAO.verifyDelete(remoteProcessGroupId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(remoteProcessGroupId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyUpdateControllerService(ControllerServiceDTO controllerServiceDTO) {
-        // if service does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (controllerServiceDAO.hasControllerService(controllerServiceDTO.getId())) {
-            controllerServiceDAO.verifyUpdate(controllerServiceDTO);
+        try {
+            // if service does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (controllerServiceDAO.hasControllerService(controllerServiceDTO.getId())) {
+                controllerServiceDAO.verifyUpdate(controllerServiceDTO);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(controllerServiceDTO.getId());
+            throw e;
         }
     }
 
     @Override
     public void verifyUpdateControllerServiceReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState) {
-        controllerServiceDAO.verifyUpdateReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
+        try {
+            controllerServiceDAO.verifyUpdateReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(controllerServiceId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyDeleteControllerService(String controllerServiceId) {
-        controllerServiceDAO.verifyDelete(controllerServiceId);
+        try {
+            controllerServiceDAO.verifyDelete(controllerServiceId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(controllerServiceId);
+            throw e;
+        }
     }
 
     @Override
     public void verifyUpdateReportingTask(ReportingTaskDTO reportingTaskDTO) {
-        // if tasks does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (reportingTaskDAO.hasReportingTask(reportingTaskDTO.getId())) {
-            reportingTaskDAO.verifyUpdate(reportingTaskDTO);
+        try {
+            // if tasks does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (reportingTaskDAO.hasReportingTask(reportingTaskDTO.getId())) {
+                reportingTaskDAO.verifyUpdate(reportingTaskDTO);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(reportingTaskDTO.getId());
+            throw e;
         }
     }
 
     @Override
     public void verifyDeleteReportingTask(String reportingTaskId) {
-        reportingTaskDAO.verifyDelete(reportingTaskId);
+        try {
+            reportingTaskDAO.verifyDelete(reportingTaskId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(reportingTaskId);
+            throw e;
+        }
     }
 
     // -----------------------------------------
@@ -515,10 +617,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyUpdateSnippet(SnippetDTO snippetDto) {
-        // if snippet does not exist, then the update request is likely creating it
-        // so we don't verify since it will fail
-        if (snippetDAO.hasSnippet(snippetDto.getId())) {
-            snippetDAO.verifyUpdate(snippetDto);
+        try {
+            // if snippet does not exist, then the update request is likely creating it
+            // so we don't verify since it will fail
+            if (snippetDAO.hasSnippet(snippetDto.getId())) {
+                snippetDAO.verifyUpdate(snippetDto);
+            }
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(snippetDto.getId());
+            throw e;
         }
     }
 
@@ -843,7 +950,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyCanClearProcessorState(final String processorId) {
-        processorDAO.verifyClearState(processorId);
+        try {
+            processorDAO.verifyClearState(processorId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(processorId);
+            throw e;
+        }
     }
 
     @Override
@@ -874,7 +986,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyCanClearControllerServiceState(final String controllerServiceId) {
-        controllerServiceDAO.verifyClearState(controllerServiceId);
+        try {
+            controllerServiceDAO.verifyClearState(controllerServiceId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(controllerServiceId);
+            throw e;
+        }
     }
 
     @Override
@@ -884,7 +1001,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyCanClearReportingTaskState(final String reportingTaskId) {
-        reportingTaskDAO.verifyClearState(reportingTaskId);
+        try {
+            reportingTaskDAO.verifyClearState(reportingTaskId);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(reportingTaskId);
+            throw e;
+        }
     }
 
     @Override
@@ -978,6 +1100,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return revisionManager.deleteRevision(claim, new DeleteRevisionTask<D>() {
             @Override
             public D performTask() {
+                logger.debug("Attempting to delete component {} with claim {}", authorizable, claim);
+
                 // ensure access to the component
                 authorizable.authorize(authorizer, RequestAction.WRITE);
 
@@ -985,6 +1109,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                 // save the flow
                 controllerFacade.save();
+                logger.debug("Deletion of component {} was successful", authorizable);
 
                 return dto;
             }
@@ -993,7 +1118,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteSnippet(String id) {
-        snippetDAO.verifyDelete(id);
+        try {
+            snippetDAO.verifyDelete(id);
+        } catch (final Exception e) {
+            revisionManager.cancelClaim(id);
+            throw e;
+        }
     }
 
     @Override
@@ -1394,7 +1524,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public TemplateDTO createTemplate(String name, String description, String snippetId) {
+    public TemplateDTO createTemplate(String name, String description, String snippetId, String groupId) {
         // get the specified snippet
         Snippet snippet = snippetDAO.getSnippet(snippetId);
 
@@ -1409,27 +1539,31 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
         if (clusterContext != null) {
             templateDTO.setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
+        } else {
+            templateDTO.setId(UUID.randomUUID().toString());
         }
 
         // create the template
-        Template template = templateDAO.createTemplate(templateDTO);
+        Template template = templateDAO.createTemplate(templateDTO, groupId);
 
         return dtoFactory.createTemplateDTO(template);
     }
 
     @Override
-    public TemplateDTO importTemplate(TemplateDTO templateDTO) {
+    public TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId) {
         // ensure id is set
         final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
         if (clusterContext != null) {
             templateDTO.setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
+        } else {
+            templateDTO.setId(UUID.randomUUID().toString());
         }
 
         // mark the timestamp
         templateDTO.setTimestamp(new Date());
 
         // import the template
-        final Template template = templateDAO.importTemplate(templateDTO);
+        final Template template = templateDAO.importTemplate(templateDTO, groupId);
 
         // return the template dto
         return dtoFactory.createTemplateDTO(template);

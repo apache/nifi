@@ -28,17 +28,19 @@ public interface TemplateDAO {
      * Creates a template.
      *
      * @param templateDTO The template DTO
+     * @param groupId the ID of the group to add the template to
      * @return The template
      */
-    Template createTemplate(TemplateDTO templateDTO);
+    Template createTemplate(TemplateDTO templateDTO, String groupId);
 
     /**
      * Import the specified template.
      *
      * @param templateDTO dto
+     * @param groupId the ID of the group to add the template to
      * @return template
      */
-    Template importTemplate(TemplateDTO templateDTO);
+    Template importTemplate(TemplateDTO templateDTO, String groupId);
 
     /**
      * Instantiate the corresponding template.

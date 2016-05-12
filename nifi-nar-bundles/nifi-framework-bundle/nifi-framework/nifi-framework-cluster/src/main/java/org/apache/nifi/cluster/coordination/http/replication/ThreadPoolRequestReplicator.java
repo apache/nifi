@@ -228,17 +228,24 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             throw new IllegalArgumentException("Cannot replicate request to 0 nodes");
         }
 
+        logger.debug("Replicating request {} {} with entity {} to {}; response is {}", method, uri, entity, nodeIds, response);
+
+        // Update headers to indicate the current revision so that we can
+        // prevent multiple users changing the flow at the same time
+        final Map<String, String> updatedHeaders = new HashMap<>(headers);
+        final String requestId = updatedHeaders.computeIfAbsent(REQUEST_TRANSACTION_ID, key -> UUID.randomUUID().toString());
+
         if (performVerification) {
             verifyState(method, uri.getPath());
         }
 
         final int numRequests = responseMap.size();
         if (numRequests >= MAX_CONCURRENT_REQUESTS) {
+            logger.debug("Cannot replicate request because there are {} outstanding HTTP Requests already", numRequests);
             throw new IllegalStateException("There are too many outstanding HTTP requests with a total " + numRequests + " outstanding requests");
         }
 
         // create the request objects and replicate to all nodes
-        final String requestId = UUID.randomUUID().toString();
         final CompletionCallback completionCallback = clusterResponse -> onCompletedResponse(requestId);
         final Runnable responseConsumedCallback = () -> onResponseConsumed(requestId);
 
@@ -249,10 +256,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             responseMap.put(requestId, response);
         }
 
-        // Update headers to indicate the current revision so that we can
-        // prevent multiple users changing the flow at the same time
-        final Map<String, String> updatedHeaders = new HashMap<>(headers);
-        updatedHeaders.put(REQUEST_TRANSACTION_ID, UUID.randomUUID().toString());
+        logger.debug("For Request ID {}, response object is {}", requestId, response);
         // setRevision(updatedHeaders);
 
         // if mutable request, we have to do a two-phase commit where we ask each node to verify
@@ -262,6 +266,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // replicate the actual request.
         final boolean mutableRequest = isMutableRequest(method, uri.getPath());
         if (mutableRequest && performVerification) {
+            logger.debug("Performing verification (first phase of two-phase commit) for Request ID {}", requestId);
             performVerification(nodeIds, method, uri, entity, updatedHeaders, response);
             return response;
         }
@@ -309,13 +314,22 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
             @Override
             public void onCompletion(final NodeResponse nodeResponse) {
-                // Add the node response to our collection.
-                nodeResponses.add(nodeResponse);
+                // Add the node response to our collection. We later need to know whether or
+                // not this is the last node response, so we add the response and then check
+                // the size within a synchronized block to ensure that those two things happen
+                // atomically. Otherwise, we could have multiple threads checking the sizes of
+                // the sets at the same time, which could result in multiple threads performing
+                // the 'all nodes are complete' logic.
+                final boolean allNodesResponded;
+                synchronized (nodeResponses) {
+                    nodeResponses.add(nodeResponse);
+                    allNodesResponded = nodeResponses.size() == numNodes;
+                }
 
                 try {
                     // If we have all of the node responses, then we can verify the responses
                     // and if good replicate the original request to all of the nodes.
-                    if (nodeResponses.size() == numNodes) {
+                    if (allNodesResponded) {
                         // Check if we have any requests that do not have a 150-Continue status code.
                         final long dissentingCount = nodeResponses.stream().filter(p -> p.getStatus() != NODE_CONTINUE_STATUS_CODE).count();
 

@@ -27,7 +27,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -35,11 +40,8 @@ import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.Revision;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
-
-@Ignore
 public class TestNaiveRevisionManager {
     private static final String CLIENT_1 = "client-1";
     private static final String COMPONENT_1 = "component-1";
@@ -235,6 +237,31 @@ public class TestNaiveRevisionManager {
     }
 
     @Test(timeout = 10000)
+    public void testSameClientSameRevisionBlocks() throws InterruptedException, ExecutionException {
+        final RevisionManager revisionManager = new NaiveRevisionManager(2, TimeUnit.MINUTES);
+        final Revision firstRevision = new Revision(1L, CLIENT_1, COMPONENT_1);
+        final RevisionClaim firstClaim = revisionManager.requestClaim(firstRevision);
+        assertNotNull(firstClaim);
+
+        final Revision secondRevision = new Revision(1L, CLIENT_1, COMPONENT_1);
+        final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                revisionManager.requestClaim(secondRevision);
+            }
+        };
+        final ExecutorService exec = Executors.newFixedThreadPool(1);
+        final Future<?> future = exec.submit(runnable);
+
+        try {
+            future.get(2, TimeUnit.SECONDS);
+            Assert.fail("Call to obtain claim on revision did not block when claim was already held");
+        } catch (TimeoutException e) {
+            // Expected
+        }
+    }
+
+    @Test(timeout = 10000)
     public void testDifferentClientDifferentRevisionsDoNotBlockEachOther() {
         final RevisionManager revisionManager = new NaiveRevisionManager(2, TimeUnit.MINUTES);
         final Revision firstRevision = new Revision(1L, CLIENT_1, COMPONENT_1);
@@ -330,6 +357,38 @@ public class TestNaiveRevisionManager {
         assertFalse(revisionManager.releaseClaim(invalidClaim));
 
         assertTrue(revisionManager.releaseClaim(claim));
+    }
+
+    @Test(timeout = 10000)
+    public void testCancelClaimSameThread() {
+        final RevisionManager revisionManager = new NaiveRevisionManager(10, TimeUnit.MINUTES);
+        final Revision firstRevision = new Revision(1L, CLIENT_1, COMPONENT_1);
+        final RevisionClaim claim = revisionManager.requestClaim(firstRevision);
+        assertNotNull(claim);
+
+        assertFalse(revisionManager.cancelClaim("component-2"));
+        assertTrue(revisionManager.cancelClaim(COMPONENT_1));
+    }
+
+    @Test(timeout = 10000)
+    public void testCancelClaimDifferentThread() throws InterruptedException {
+        final RevisionManager revisionManager = new NaiveRevisionManager(10, TimeUnit.MINUTES);
+        final Revision firstRevision = new Revision(1L, CLIENT_1, COMPONENT_1);
+        final RevisionClaim claim = revisionManager.requestClaim(firstRevision);
+        assertNotNull(claim);
+
+        final Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                assertFalse(revisionManager.cancelClaim("component-2"));
+                assertFalse(revisionManager.cancelClaim(COMPONENT_1));
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+
+        Thread.sleep(1000L);
+        assertTrue(revisionManager.cancelClaim(COMPONENT_1));
     }
 
     @Test(timeout = 10000)

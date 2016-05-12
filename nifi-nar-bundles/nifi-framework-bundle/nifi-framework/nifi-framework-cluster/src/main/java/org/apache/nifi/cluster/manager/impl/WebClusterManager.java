@@ -1957,10 +1957,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             // disconnect problematic nodes
             if (!problematicNodeResponses.isEmpty()) {
                 if (problematicNodeResponses.size() < nodeResponses.size()) {
-                    logger.warn(String.format("The following nodes failed to process URI '%s'.  Requesting each node to disconnect from cluster: ", uriPath, problematicNodeResponses));
-                    disconnectNodes(problematicNodeResponses, "Failed to process URI " + uriPath);
+                    logger.warn(String.format("The following nodes failed to process URI %s '%s'.  Requesting each node to disconnect from cluster: ", uriPath, problematicNodeResponses));
+                    disconnectNodes(problematicNodeResponses, "Failed to process URI " + method + " " + uriPath);
                 } else {
-                    logger.warn("All nodes failed to process URI {}. As a result, no node will be disconnected from cluster", uriPath);
+                    logger.warn("All nodes failed to process URI {} {}. As a result, no node will be disconnected from cluster", method, uriPath);
                 }
             }
         }

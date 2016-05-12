@@ -46,6 +46,8 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -77,6 +79,7 @@ import java.util.Set;
     description = "Endpoint for managing a Processor."
 )
 public class ProcessorResource extends ApplicationResource {
+    private static final Logger logger = LoggerFactory.getLogger(ProcessorResource.class);
 
     private static final List<Long> POSSIBLE_RUN_DURATIONS = Arrays.asList(0L, 25L, 50L, 100L, 250L, 500L, 1000L, 2000L);
 
@@ -481,16 +484,32 @@ public class ProcessorResource extends ApplicationResource {
         // handle expects request (usually from the cluster manager)
         final Revision revision = getRevision(processorEntity, id);
         final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
+        final String requestId = getHeaders().get("X-RequestTransactionId");
+
+        logger.debug("For Update Processor, Validation Phase = {}, Two-phase request = {}, Request ID = {}", validationPhase, twoPhaseRequest, requestId);
+        if (validationPhase || !twoPhaseRequest) {
             serviceFacade.claimRevision(revision);
+            logger.debug("Claimed Revision {}", revision);
         }
         if (validationPhase) {
             serviceFacade.verifyUpdateProcessor(requestProcessorDTO);
+            logger.debug("Verified Update of Processor");
             return generateContinueResponse().build();
         }
 
         // update the processor
-        final UpdateResult<ProcessorEntity> result = serviceFacade.updateProcessor(revision, requestProcessorDTO);
+        final UpdateResult<ProcessorEntity> result;
+        try {
+            logger.debug("Updating Processor with Revision {}", revision);
+            result = serviceFacade.updateProcessor(revision, requestProcessorDTO);
+            logger.debug("Updated Processor with Revision {}", revision);
+        } catch (final Exception e) {
+            final boolean tpr = isTwoPhaseRequest(httpServletRequest);
+            logger.error("Got Exception trying to update processor. two-phase request = {}, validation phase = {}, revision = {}", tpr, validationPhase, revision);
+            logger.error("", e);
+            throw e;
+        }
         final ProcessorEntity entity = result.getResult();
         populateRemainingProcessorEntityContent(entity);
 
