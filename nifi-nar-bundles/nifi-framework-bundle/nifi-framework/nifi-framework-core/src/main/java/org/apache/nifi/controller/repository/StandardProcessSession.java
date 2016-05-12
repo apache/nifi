@@ -2340,18 +2340,49 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     public void exportTo(final FlowFile source, final OutputStream destination) {
         validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
+
+        if(record.getCurrentClaim() == null) {
+            return;
+        }
+
         try {
-            if (record.getCurrentClaim() == null) {
-                return;
+            ensureNotAppending(record.getCurrentClaim());
+        } catch (final IOException e) {
+            throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
+        }
+
+        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset());
+                final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
+                final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
+                final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
+
+            // We want to differentiate between IOExceptions thrown by the repository and IOExceptions thrown from
+            // Processor code. As a result, as have the FlowFileAccessInputStream that catches IOException from the repository
+            // and translates into either FlowFileAccessException or ContentNotFoundException. We keep track of any
+            // ContentNotFoundException because if it is thrown, the Processor code may catch it and do something else with it
+            // but in reality, if it is thrown, we want to know about it and handle it, even if the Processor code catches it.
+            final FlowFileAccessInputStream ffais = new FlowFileAccessInputStream(countingStream, source, record.getCurrentClaim());
+            boolean cnfeThrown = false;
+
+            try {
+                recursionSet.add(source);
+                StreamUtils.copy(ffais, destination, source.getSize());
+            } catch (final ContentNotFoundException cnfe) {
+                cnfeThrown = true;
+                throw cnfe;
+            } finally {
+                recursionSet.remove(source);
+                IOUtils.closeQuietly(ffais);
+                // if cnfeThrown is true, we don't need to re-throw the Exception; it will propagate.
+                if (!cnfeThrown && ffais.getContentNotFoundException() != null) {
+                    throw ffais.getContentNotFoundException();
+                }
             }
 
-            ensureNotAppending(record.getCurrentClaim());
-            final long size = context.getContentRepository().exportTo(record.getCurrentClaim(), destination, record.getCurrentClaimOffset(), source.getSize());
-            bytesRead.increment(size);
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
-        } catch (final Throwable t) {
-            throw new FlowFileAccessException("Failed to export " + source + " to " + destination + " due to " + t.toString(), t);
+        } catch (final IOException ex) {
+            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ex.toString(), ex);
         }
     }
 

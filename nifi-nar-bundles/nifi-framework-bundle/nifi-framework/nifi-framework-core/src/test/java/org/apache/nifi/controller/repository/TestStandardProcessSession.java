@@ -21,8 +21,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.notNull;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -322,6 +326,41 @@ public class TestStandardProcessSession {
             }
         });
         assertDisabled(outputStreamHolder.get());
+    }
+
+    @Test
+    public void testExportTo() throws IOException {
+        final ContentClaim claim = contentRepo.create(false);
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .contentClaim(claim)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+
+        flowFile = session.append(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello World".getBytes());
+            }
+        });
+
+        // should be OK
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        session.exportTo(flowFile, os);
+        assertEquals("Hello World", new String(os.toByteArray()));
+        os.close();
+
+        // should throw ProcessException because of IOException (from processor code)
+        FileOutputStream mock = Mockito.mock(FileOutputStream.class);
+        doThrow(new IOException()).when(mock).write((byte[]) notNull(), any(Integer.class), any(Integer.class));
+        try {
+            session.exportTo(flowFile, mock);
+            Assert.fail("Expected ProcessException");
+        } catch (ProcessException e) {
+        }
     }
 
     @Test
