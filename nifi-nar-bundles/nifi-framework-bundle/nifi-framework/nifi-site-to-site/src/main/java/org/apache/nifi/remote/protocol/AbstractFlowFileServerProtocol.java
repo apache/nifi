@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.remote.protocol;
 
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -24,6 +26,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.Peer;
+import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
@@ -33,6 +36,7 @@ import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.io.CompressionInputStream;
 import org.apache.nifi.remote.io.CompressionOutputStream;
+import org.apache.nifi.remote.protocol.socket.HandshakeProperty;
 import org.apache.nifi.remote.protocol.socket.Response;
 import org.apache.nifi.remote.protocol.socket.ResponseCode;
 import org.apache.nifi.remote.util.StandardDataPacket;
@@ -47,6 +51,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -81,6 +86,98 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
     @Override
     public boolean isHandshakeSuccessful() {
         return handshakeCompleted;
+    }
+
+    protected void validateHandshakeRequest(HandshakenProperties confirmed, final Peer peer, final Map<String, String> properties) throws HandshakeException {
+        Boolean useGzip = null;
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String propertyName = entry.getKey();
+            final String value = entry.getValue();
+
+            final HandshakeProperty property;
+            try {
+                property = HandshakeProperty.valueOf(propertyName);
+            } catch (final Exception e) {
+                throw new HandshakeException(ResponseCode.UNKNOWN_PROPERTY_NAME, "Received unknown property: " + propertyName);
+            }
+
+            try {
+                switch (property) {
+                    case GZIP: {
+                        useGzip = Boolean.parseBoolean(value);
+                        confirmed.setUseGzip(useGzip);
+                        break;
+                    }
+                    case REQUEST_EXPIRATION_MILLIS:
+                        confirmed.setExpirationMillis(Long.parseLong(value));
+                        break;
+                    case BATCH_COUNT:
+                        confirmed.setBatchBytes(Integer.parseInt(value));
+                        break;
+                    case BATCH_SIZE:
+                        confirmed.setBatchBytes(Long.parseLong(value));
+                        break;
+                    case BATCH_DURATION:
+                        confirmed.setBatchDurationNanos(TimeUnit.MILLISECONDS.toNanos(Long.parseLong(value)));
+                        break;
+                    case PORT_IDENTIFIER: {
+                        checkPortStatus(peer, value);
+                    }
+                }
+            } catch (final NumberFormatException nfe) {
+                throw new HandshakeException(ResponseCode.ILLEGAL_PROPERTY_VALUE, "Received invalid value for property '" + property + "'; invalid value: " + value);
+            }
+        }
+
+        if (useGzip == null) {
+            logger.debug("Responding with ResponseCode MISSING_PROPERTY because GZIP Property missing");
+            throw new HandshakeException(ResponseCode.MISSING_PROPERTY, "Missing Property " + HandshakeProperty.GZIP.name());
+        }
+
+    }
+
+    protected void checkPortStatus(final Peer peer, String portId) throws HandshakeException {
+        Port receivedPort = rootGroup.getInputPort(portId);
+        if (receivedPort == null) {
+            receivedPort = rootGroup.getOutputPort(portId);
+        }
+        if (receivedPort == null) {
+            logger.debug("Responding with ResponseCode UNKNOWN_PORT for identifier {}", portId);
+            throw new HandshakeException(ResponseCode.UNKNOWN_PORT, "Received unknown port identifier: " + portId);
+        }
+        if (!(receivedPort instanceof RootGroupPort)) {
+            logger.debug("Responding with ResponseCode UNKNOWN_PORT for identifier {}", portId);
+            throw new HandshakeException(ResponseCode.UNKNOWN_PORT, "Received port identifier " + portId + ", but this Port is not a RootGroupPort");
+        }
+
+        this.port = (RootGroupPort) receivedPort;
+        final PortAuthorizationResult portAuthResult = this.port.checkUserAuthorization(peer.getCommunicationsSession().getUserDn());
+        if (!portAuthResult.isAuthorized()) {
+            logger.debug("Responding with ResponseCode UNAUTHORIZED: ", portAuthResult.getExplanation());
+            throw new HandshakeException(ResponseCode.UNAUTHORIZED, portAuthResult.getExplanation());
+        }
+
+        if (!receivedPort.isValid()) {
+            logger.debug("Responding with ResponseCode PORT_NOT_IN_VALID_STATE for {}", receivedPort);
+            throw new HandshakeException(ResponseCode.PORT_NOT_IN_VALID_STATE, "Port is not valid");
+        }
+
+        if (!receivedPort.isRunning()) {
+            logger.debug("Responding with ResponseCode PORT_NOT_IN_VALID_STATE for {}", receivedPort);
+            throw new HandshakeException(ResponseCode.PORT_NOT_IN_VALID_STATE, "Port not running");
+        }
+
+        // PORTS_DESTINATION_FULL was introduced in version 2. If version 1, just ignore this
+        // we we will simply not service the request but the sender will timeout
+        if (getVersionNegotiator().getVersion() > 1) {
+            for (final Connection connection : port.getConnections()) {
+                if (connection.getFlowFileQueue().isFull()) {
+                    logger.debug("Responding with ResponseCode PORTS_DESTINATION_FULL for {}", port);
+                    throw new HandshakeException(ResponseCode.PORTS_DESTINATION_FULL, "Received port identifier " + portId + ", but its destination is full");
+                }
+            }
+        }
+
     }
 
     @Override

@@ -92,7 +92,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         apiUtil.setReadTimeoutMillis(timeoutMillis);
         Collection<PeerDTO> peers = apiUtil.getPeers();
         if(peers == null || peers.size() == 0){
-            throw new PortNotRunningException("Couldn't get any peer to communicate with. " + clusterApiUri + " returned zero peers.");
+            throw new IOException("Couldn't get any peer to communicate with. " + clusterApiUri + " returned zero peers.");
         }
 
         return peers.stream().map(p -> new PeerStatus(new PeerDescription(p.getHostname(), p.getPort(), p.isSecure()), p.getFlowFileCount())).collect(Collectors.toSet());
@@ -111,9 +111,6 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         String clusterUrl = config.getUrl();
         Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
 
-        // TODO: handshake with the selected Peer, by checking port status, see EndpointConnectionPool
-
-
         // TODO: add version negotiation
         int penaltyMillis = (int)config.getPenalizationPeriod(TimeUnit.MILLISECONDS);
         int protocolVersion = 5;
@@ -123,10 +120,18 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         }
         HttpClientTransaction transaction = new HttpClientTransaction(protocolVersion, peer, direction,
                 config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
+
         SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext());
         apiUtil.setBaseUrl(peer.getUrl());
         apiUtil.setConnectTimeoutMillis(timeoutMillis);
         apiUtil.setReadTimeoutMillis(timeoutMillis);
+
+        apiUtil.setCompress(config.isUseCompression());
+        apiUtil.setRequestExpirationMillis(timeoutMillis);
+        apiUtil.setBatchCount(config.getPreferredBatchCount());
+        apiUtil.setBatchSize(config.getPreferredBatchSize());
+        apiUtil.setBatchDurationMillis(config.getPreferredBatchDuration(TimeUnit.MILLISECONDS));
+
         transaction.initialize(apiUtil);
 
         return transaction;

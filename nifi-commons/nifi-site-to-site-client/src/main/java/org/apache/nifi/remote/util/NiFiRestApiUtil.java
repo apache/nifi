@@ -38,8 +38,12 @@ import org.codehaus.jackson.map.ObjectMapper;
 public class NiFiRestApiUtil {
 
     protected static final int RESPONSE_CODE_OK = 200;
+    protected static final int RESPONSE_CODE_CREATED = 201;
     protected static final int RESPONSE_CODE_SEE_OTHER = 303;
     protected static final int RESPONSE_CODE_BAD_REQUEST = 400;
+    protected static final int RESPONSE_CODE_UNAUTHORIZED = 401;
+    protected static final int RESPONSE_CODE_NOT_FOUND = 404;
+    protected static final int RESPONSE_CODE_SERVICE_UNAVAILABLE = 503;
 
     private String baseUrl;
     private final SSLContext sslContext;

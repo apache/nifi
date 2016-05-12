@@ -48,7 +48,7 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
 
     private ConcurrentMap<String, FlowFileTransaction> transactionOnHold;
 
-    public HttpFlowFileServerProtocol(ConcurrentMap<String, FlowFileTransaction> transactionOnHold){
+    public HttpFlowFileServerProtocol(ConcurrentMap<String, FlowFileTransaction> transactionOnHold) {
         super();
         this.transactionOnHold = transactionOnHold;
     }
@@ -65,8 +65,11 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
 
     @Override
     protected HandshakenProperties doHandshake(Peer peer) throws IOException, HandshakeException {
-        // TODO: implement handshake logic.
         HandshakenProperties confirmed = new HandshakenProperties();
+
+        HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        validateHandshakeRequest(confirmed, peer, commsSession.getHandshakeParams());
+
         logger.debug("{} Done handshake, confirmed={}", this, confirmed);
         return confirmed;
     }
@@ -79,7 +82,6 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
         if(isTransfer){
             switch (response) {
                 case NO_MORE_DATA:
-                    // TODO: How can I return 204 here?
                     logger.debug("{} There's no data to send.", this);
                     break;
                 case CONTINUE_TRANSACTION:

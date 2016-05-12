@@ -17,14 +17,18 @@
 package org.apache.nifi.remote.io.http;
 
 import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.protocol.socket.HandshakeProperty;
 import org.apache.nifi.remote.protocol.socket.ResponseCode;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HttpServerCommunicationsSession extends HttpCommunicationsSession {
 
-    private String transactionId;
+    private final Map<String, String> handshakeParams = new HashMap<>();
+    private final String transactionId;
     private Transaction.TransactionState status = Transaction.TransactionState.TRANSACTION_STARTED;
     private ResponseCode responseCode;
 
@@ -50,15 +54,19 @@ public class HttpServerCommunicationsSession extends HttpCommunicationsSession {
         return transactionId;
     }
 
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
-    }
-
     public ResponseCode getResponseCode() {
         return responseCode;
     }
 
     public void setResponseCode(ResponseCode responseCode) {
         this.responseCode = responseCode;
+    }
+
+    public void putHandshakeParam(HandshakeProperty key, String value) {
+        handshakeParams.put(key.name(), value);
+    }
+
+    public Map<String, String> getHandshakeParams() {
+        return handshakeParams;
     }
 }

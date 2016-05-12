@@ -76,102 +76,26 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
 
         // evaluate the properties received
         boolean responseWritten = false;
-        Boolean useGzip = null;
-        for (final Map.Entry<String, String> entry : properties.entrySet()) {
-            final String propertyName = entry.getKey();
-            final String value = entry.getValue();
 
-            final HandshakeProperty property;
-            try {
-                property = HandshakeProperty.valueOf(propertyName);
-            } catch (final Exception e) {
-                ResponseCode.UNKNOWN_PROPERTY_NAME.writeResponse(dos, "Unknown Property Name: " + propertyName);
-                throw new HandshakeException("Received unknown property: " + propertyName);
+        try {
+            validateHandshakeRequest(confirmed, peer, properties);
+        } catch (HandshakeException e) {
+            ResponseCode handshakeResult = e.getResponseCode();
+            if(handshakeResult.containsMessage()){
+                handshakeResult.writeResponse(dos, e.getMessage());
+            } else {
+                handshakeResult.writeResponse(dos);
             }
-
-            try {
-                switch (property) {
-                    case GZIP: {
-                        useGzip = Boolean.parseBoolean(value);
-                        confirmed.setUseGzip(useGzip);
-                        break;
-                    }
-                    case REQUEST_EXPIRATION_MILLIS:
-                        confirmed.setExpirationMillis(Long.parseLong(value));
-                        break;
-                    case BATCH_COUNT:
-                        confirmed.setBatchBytes(Integer.parseInt(value));
-                        break;
-                    case BATCH_SIZE:
-                        confirmed.setBatchBytes(Long.parseLong(value));
-                        break;
-                    case BATCH_DURATION:
-                        confirmed.setBatchDurationNanos(TimeUnit.MILLISECONDS.toNanos(Long.parseLong(value)));
-                        break;
-                    case PORT_IDENTIFIER: {
-                        Port receivedPort = rootGroup.getInputPort(value);
-                        if (receivedPort == null) {
-                            receivedPort = rootGroup.getOutputPort(value);
-                        }
-                        if (receivedPort == null) {
-                            logger.debug("Responding with ResponseCode UNKNOWN_PORT for identifier {}", value);
-                            ResponseCode.UNKNOWN_PORT.writeResponse(dos);
-                            throw new HandshakeException("Received unknown port identifier: " + value);
-                        }
-                        if (!(receivedPort instanceof RootGroupPort)) {
-                            logger.debug("Responding with ResponseCode UNKNOWN_PORT for identifier {}", value);
-                            ResponseCode.UNKNOWN_PORT.writeResponse(dos);
-                            throw new HandshakeException("Received port identifier " + value + ", but this Port is not a RootGroupPort");
-                        }
-
-                        this.port = (RootGroupPort) receivedPort;
-                        final PortAuthorizationResult portAuthResult = this.port.checkUserAuthorization(peer.getCommunicationsSession().getUserDn());
-                        if (!portAuthResult.isAuthorized()) {
-                            logger.debug("Responding with ResponseCode UNAUTHORIZED: ", portAuthResult.getExplanation());
-                            ResponseCode.UNAUTHORIZED.writeResponse(dos, portAuthResult.getExplanation());
-                            responseWritten = true;
-                            break;
-                        }
-
-                        if (!receivedPort.isValid()) {
-                            logger.debug("Responding with ResponseCode PORT_NOT_IN_VALID_STATE for {}", receivedPort);
-                            ResponseCode.PORT_NOT_IN_VALID_STATE.writeResponse(dos, "Port is not valid");
-                            responseWritten = true;
-                            break;
-                        }
-
-                        if (!receivedPort.isRunning()) {
-                            logger.debug("Responding with ResponseCode PORT_NOT_IN_VALID_STATE for {}", receivedPort);
-                            ResponseCode.PORT_NOT_IN_VALID_STATE.writeResponse(dos, "Port not running");
-                            responseWritten = true;
-                            break;
-                        }
-
-                        // PORTS_DESTINATION_FULL was introduced in version 2. If version 1, just ignore this
-                        // we we will simply not service the request but the sender will timeout
-                        if (getVersionNegotiator().getVersion() > 1) {
-                            for (final Connection connection : port.getConnections()) {
-                                if (connection.getFlowFileQueue().isFull()) {
-                                    logger.debug("Responding with ResponseCode PORTS_DESTINATION_FULL for {}", receivedPort);
-                                    ResponseCode.PORTS_DESTINATION_FULL.writeResponse(dos);
-                                    responseWritten = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        break;
-                    }
-                }
-            } catch (final NumberFormatException nfe) {
-                throw new HandshakeException("Received invalid value for property '" + property + "'; invalid value: " + value);
+            switch (handshakeResult) {
+                case UNAUTHORIZED:
+                case PORT_NOT_IN_VALID_STATE:
+                case PORTS_DESTINATION_FULL:
+                    // TODO: Why doesn't it through exception with these codes? Need to check client behavior.
+                    responseWritten = true;
+                    break;
+                default:
+                    throw e;
             }
-        }
-
-        if (useGzip == null) {
-            logger.debug("Responding with ResponseCode MISSING_PROPERTY because GZIP Property missing");
-            ResponseCode.MISSING_PROPERTY.writeResponse(dos, HandshakeProperty.GZIP.name());
-            throw new HandshakeException("Missing Property " + HandshakeProperty.GZIP.name());
         }
 
         // send "OK" response
