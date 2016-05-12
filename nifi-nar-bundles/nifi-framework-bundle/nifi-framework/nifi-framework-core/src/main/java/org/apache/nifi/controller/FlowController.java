@@ -16,41 +16,7 @@
  */
 package org.apache.nifi.controller;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.LockSupport;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import javax.net.ssl.SSLContext;
-
+import com.sun.jersey.api.client.ClientHandlerException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
@@ -184,6 +150,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RemoteResourceManager;
 import org.apache.nifi.remote.RemoteSiteListener;
@@ -227,7 +194,39 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static java.util.Objects.requireNonNull;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable {
 
@@ -263,7 +262,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final ExtensionManager extensionManager;
     private final NiFiProperties properties;
     private final SSLContext sslContext;
-    private final RemoteSiteListener externalSiteListener;
+    private final Set<RemoteSiteListener> externalSiteListeners = new HashSet<>();
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final StandardControllerServiceProvider controllerServiceProvider;
@@ -490,16 +489,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         if (remoteInputSocketPort == null) {
             LOG.info("Not enabling Site-to-Site functionality because nifi.remote.input.socket.port is not set");
-            externalSiteListener = null;
         } else if (isSiteToSiteSecure && sslContext == null) {
             LOG.error("Unable to create Secure Site-to-Site Listener because not all required Keystore/Truststore "
                 + "Properties are set. Site-to-Site functionality will be disabled until this problem is has been fixed.");
-            externalSiteListener = null;
         } else {
             // Register the SocketFlowFileServerProtocol as the appropriate resource for site-to-site Server Protocol
             RemoteResourceManager.setServerProtocolImplementation(SocketFlowFileServerProtocol.RESOURCE_NAME, SocketFlowFileServerProtocol.class);
-            externalSiteListener = new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null);
-            externalSiteListener.setRootGroup(rootGroup);
+            externalSiteListeners.add(new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null));
+            externalSiteListeners.add(HttpRemoteSiteListener.getInstance());
+            for(RemoteSiteListener listener : externalSiteListeners) {
+                listener.setRootGroup(rootGroup);
+            }
         }
 
         // Determine frequency for obtaining component status snapshots
@@ -630,8 +630,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // ContentRepository to purge superfluous files
             contentRepository.cleanup();
 
-            if (externalSiteListener != null) {
-                externalSiteListener.start();
+            for(RemoteSiteListener listener : externalSiteListeners) {
+                listener.start();
             }
 
             notifyComponentsConfigurationRestored();
@@ -1251,8 +1251,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     + "will take an indeterminate amount of time to stop.  Might need to kill the program manually.");
             }
 
-            if (externalSiteListener != null) {
-                externalSiteListener.stop();
+            for(RemoteSiteListener listener : externalSiteListeners) {
+                listener.stop();
             }
 
             if (processScheduler != null) {
@@ -1433,8 +1433,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         try {
             rootGroup = group;
 
-            if (externalSiteListener != null) {
-                externalSiteListener.setRootGroup(group);
+            for(RemoteSiteListener listener : externalSiteListeners) {
+                listener.setRootGroup(rootGroup);
             }
 
             controllerServiceProvider.setRootProcessGroup(rootGroup);
