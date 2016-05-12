@@ -304,17 +304,20 @@ public interface NiFiServiceFacade {
      * @param name name
      * @param description description
      * @param snippetId id
+     * @param groupId id of the process group
      * @return template
      */
-    TemplateDTO createTemplate(String name, String description, String snippetId);
+    TemplateDTO createTemplate(String name, String description, String snippetId, String groupId);
 
     /**
      * Imports the specified Template.
      *
      * @param templateDTO The template dto
+     * @param groupId id of the process group
+     *
      * @return The new template dto
      */
-    TemplateDTO importTemplate(TemplateDTO templateDTO);
+    TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId);
 
     /**
      * Instantiate the corresponding template.

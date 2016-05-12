@@ -28,6 +28,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
@@ -768,4 +769,45 @@ public interface ProcessGroup extends Authorizable {
      * @throws IllegalStateException if the move is not valid at this time
      */
     void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup);
+
+    /**
+     * Adds the given template to this Process Group
+     *
+     * @param template the template to add
+     */
+    void addTemplate(Template template);
+
+    /**
+     * Removes the given template from the Process Group
+     *
+     * @param template the template to remove
+     */
+    void removeTemplate(Template template);
+
+    /**
+     * Returns the template with the given ID
+     *
+     * @param id the ID of the template
+     * @return the template with the given ID or <code>null</code> if no template
+     *         exists in this Process Group with the given ID
+     */
+    Template getTemplate(String id);
+
+    /**
+     * @param id of the template
+     * @return the Template with the given ID, if it exists as a child or
+     *         descendant of this ProcessGroup. This performs a recursive search of all
+     *         descendant ProcessGroups
+     */
+    Template findTemplate(String id);
+
+    /**
+     * @return a Set of all Templates that belong to this Process Group
+     */
+    Set<Template> getTemplates();
+
+    /**
+     * @return a Set of all Templates that belong to this Process Group and any descendant Process Groups
+     */
+    Set<Template> findAllTemplates();
 }

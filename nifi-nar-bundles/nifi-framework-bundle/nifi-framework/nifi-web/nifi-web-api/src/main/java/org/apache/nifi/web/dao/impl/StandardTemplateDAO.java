@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
-import javax.ws.rs.WebApplicationException;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.TemplateUtils;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiCoreException;
@@ -30,7 +31,6 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.dao.TemplateDAO;
 import org.apache.nifi.web.util.SnippetUtils;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -42,7 +42,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
 
     private Template locateTemplate(String templateId) {
         // get the template
-        Template template = flowController.getTemplate(templateId);
+        Template template = flowController.getGroup(flowController.getRootGroupId()).findTemplate(templateId);
 
         // ensure the template exists
         if (template == null) {
@@ -53,21 +53,22 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     }
 
     @Override
-    public Template createTemplate(TemplateDTO templateDTO) {
-        try {
-            return flowController.addTemplate(templateDTO);
-        } catch (IOException ioe) {
-            throw new WebApplicationException(new IOException("Unable to save specified template: " + ioe.getMessage()));
+    public Template createTemplate(TemplateDTO templateDTO, String groupId) {
+        final ProcessGroup processGroup = flowController.getGroup(groupId);
+        if (processGroup == null) {
+            throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
         }
+
+        TemplateUtils.scrubTemplate(templateDTO);
+        final Template template = new Template(templateDTO);
+        processGroup.addTemplate(template);
+
+        return template;
     }
 
     @Override
-    public Template importTemplate(TemplateDTO templateDTO) {
-        try {
-            return flowController.importTemplate(templateDTO);
-        } catch (IOException ioe) {
-            throw new WebApplicationException(new IOException("Unable to import specified template: " + ioe.getMessage()));
-        }
+    public Template importTemplate(TemplateDTO templateDTO, String groupId) {
+        return createTemplate(templateDTO, groupId);
     }
 
     @Override
@@ -75,7 +76,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         // get the template id and find the template
-        Template template = flowController.getTemplate(templateId);
+        Template template = getTemplate(templateId);
 
         // ensure the template could be found
         if (template == null) {
@@ -103,14 +104,10 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     @Override
     public void deleteTemplate(String templateId) {
         // ensure the template exists
-        locateTemplate(templateId);
+        final Template template = locateTemplate(templateId);
 
-        try {
-            // remove the specified template
-            flowController.removeTemplate(templateId);
-        } catch (final IOException ioe) {
-            throw new WebApplicationException(new IOException("Unable to remove specified template: " + ioe.getMessage()));
-        }
+        // remove the specified template
+        template.getProcessGroup().removeTemplate(template);
     }
 
     @Override
@@ -121,7 +118,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     @Override
     public Set<Template> getTemplates() {
         final Set<Template> templates = new HashSet<>();
-        for (final Template template : flowController.getTemplates()) {
+        for (final Template template : flowController.getGroup(flowController.getRootGroupId()).findAllTemplates()) {
             templates.add(template);
         }
         return templates;

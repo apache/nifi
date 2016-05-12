@@ -24,7 +24,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -98,6 +97,7 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -138,6 +138,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     @Override
     public void sync(final FlowController controller, final DataFlow proposedFlow, final StringEncryptor encryptor)
             throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
+        // TODO - Include templates
+
         // handle corner cases involving no proposed flow
         if (proposedFlow == null) {
             if (controller.getGroup(controller.getRootGroupId()).isEmpty()) {
@@ -204,27 +206,16 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             throw new FlowSerializationException(e);
         }
 
-        logger.trace("Exporting templates from controller");
-        final byte[] existingTemplates = controller.getTemplateManager().export();
         logger.trace("Exporting snippets from controller");
         final byte[] existingSnippets = controller.getSnippetManager().export();
 
-        final DataFlow existingDataFlow = new StandardDataFlow(existingFlow, existingTemplates, existingSnippets);
-
-        final boolean existingTemplatesEmpty = existingTemplates == null || existingTemplates.length == 0;
+        final DataFlow existingDataFlow = new StandardDataFlow(existingFlow, existingSnippets);
 
         // check that the proposed flow is inheritable by the controller
         try {
             if (!existingFlowEmpty) {
                 logger.trace("Checking flow inheritability");
                 final String problemInheriting = checkFlowInheritability(existingDataFlow, proposedFlow, controller);
-                if (problemInheriting != null) {
-                    throw new UninheritableFlowException("Proposed configuration is not inheritable by the flow controller because of flow differences: " + problemInheriting);
-                }
-            }
-            if (!existingTemplatesEmpty) {
-                logger.trace("Checking template inheritability");
-                final String problemInheriting = checkTemplateInheritability(existingDataFlow, proposedFlow);
                 if (problemInheriting != null) {
                     throw new UninheritableFlowException("Proposed configuration is not inheritable by the flow controller because of flow differences: " + problemInheriting);
                 }
@@ -298,16 +289,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                             }
                         }
                     }
-                }
-            }
-
-            logger.trace("Synching templates");
-            if ((existingTemplates == null || existingTemplates.length == 0) && proposedFlow.getTemplates() != null && proposedFlow.getTemplates().length > 0) {
-                // need to load templates
-                final TemplateManager templateManager = controller.getTemplateManager();
-                final List<Template> proposedTemplateList = TemplateManager.parseBytes(proposedFlow.getTemplates());
-                for (final Template template : proposedTemplateList) {
-                    templateManager.addTemplate(template.getDetails());
                 }
             }
 
@@ -711,6 +692,17 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             updateControllerService(controller, serviceNodeElement, encryptor);
         }
 
+        // Replace the templates with those from the proposed flow
+        final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");
+        for (final Template template : processGroup.getTemplates()) {
+            processGroup.removeTemplate(template);
+        }
+        for (final Element templateElement : templateNodeList) {
+            final TemplateDTO templateDto = TemplateUtils.parseDto(templateElement);
+            final Template template = new Template(templateDto);
+            processGroup.addTemplate(template);
+        }
+
         return processGroup;
     }
 
@@ -1052,6 +1044,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             ControllerServiceLoader.loadControllerServices(serviceNodeList, controller, processGroup, encryptor, controller.getBulletinRepository(), autoResumeState);
         }
 
+        final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");
+        for (final Element templateNode : templateNodeList) {
+            final TemplateDTO templateDTO = TemplateUtils.parseDto(templateNode);
+            final Template template = new Template(templateDTO);
+            processGroup.addTemplate(template);
+        }
+
         return processGroup;
     }
 
@@ -1098,60 +1097,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final boolean inheritable = existingFlowFingerprintBeforeHash.equals(proposedFlowFingerprintBeforeHash);
         if (!inheritable) {
             return findFirstDiscrepancy(existingFlowFingerprintBeforeHash, proposedFlowFingerprintBeforeHash, "Flows");
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns true if the given controller can inherit the proposed flow without orphaning flow files.
-     *
-     * @param existingFlow flow
-     * @param proposedFlow the flow to inherit
-     *
-     * @return null if the controller can inherit the specified flow, an explanation of why it cannot be inherited otherwise
-     *
-     * @throws FingerprintException if flow fingerprints could not be generated
-     */
-    public String checkTemplateInheritability(final DataFlow existingFlow, final DataFlow proposedFlow) throws FingerprintException {
-        if (existingFlow == null) {
-            return null;  // no existing flow, so equivalent to proposed flow
-        }
-
-        // check if the Flow is inheritable
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor);
-        // check if the Templates are inheritable
-        final byte[] existingTemplateBytes = existingFlow.getTemplates();
-        if (existingTemplateBytes == null || existingTemplateBytes.length == 0) {
-            return null;
-        }
-
-        final List<Template> existingTemplates = TemplateManager.parseBytes(existingTemplateBytes);
-        final String existingTemplateFingerprint = fingerprintFactory.createFingerprint(existingTemplates);
-        if (existingTemplateFingerprint.trim().isEmpty()) {
-            return null;
-        }
-
-        final byte[] proposedTemplateBytes = proposedFlow.getTemplates();
-        if (proposedTemplateBytes == null || proposedTemplateBytes.length == 0) {
-            return "Proposed Flow does not contain any Templates but Current Flow does";
-        }
-
-        final List<Template> proposedTemplates = TemplateManager.parseBytes(proposedTemplateBytes);
-        final String proposedTemplateFingerprint = fingerprintFactory.createFingerprint(proposedTemplates);
-        if (proposedTemplateFingerprint.trim().isEmpty()) {
-            return "Proposed Flow does not contain any Templates but Current Flow does";
-        }
-
-        try {
-            final String existingTemplateMd5 = fingerprintFactory.md5Hash(existingTemplateFingerprint);
-            final String proposedTemplateMd5 = fingerprintFactory.md5Hash(proposedTemplateFingerprint);
-
-            if (!existingTemplateMd5.equals(proposedTemplateMd5)) {
-                return findFirstDiscrepancy(existingTemplateFingerprint, proposedTemplateFingerprint, "Templates");
-            }
-        } catch (final NoSuchAlgorithmException e) {
-            throw new FingerprintException(e);
         }
 
         return null;

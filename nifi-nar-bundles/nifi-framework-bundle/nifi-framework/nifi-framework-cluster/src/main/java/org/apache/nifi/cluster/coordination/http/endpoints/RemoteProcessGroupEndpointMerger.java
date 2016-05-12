@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -112,5 +113,17 @@ public class RemoteProcessGroupEndpointMerger extends AbstractSingleEntityEndpoi
         if (!mergedAuthorizationIssues.isEmpty()) {
             clientDto.setAuthorizationIssues(mergedAuthorizationIssues);
         }
+    }
+
+    protected void mergeResponses(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap,
+        Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+
+        final RemoteProcessGroupDTO clientDto = clientEntity.getComponent();
+        final Map<NodeIdentifier, RemoteProcessGroupDTO> dtoMap = new HashMap<>();
+        for (final Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
+            dtoMap.put(entry.getKey(), entry.getValue().getComponent());
+        }
+
+        mergeResponses(clientDto, dtoMap, successfulResponses, problematicResponses);
     }
 }

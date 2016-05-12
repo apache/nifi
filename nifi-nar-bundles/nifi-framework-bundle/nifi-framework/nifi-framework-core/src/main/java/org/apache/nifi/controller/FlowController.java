@@ -82,8 +82,8 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.connectable.StandardConnection;
-import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.cluster.ClusterProtocolHeartbeater;
+import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -220,7 +220,6 @@ import org.apache.nifi.web.api.dto.RelationshipDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
@@ -257,7 +256,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final ProvenanceEventRepository provenanceEventRepository;
     private final VolatileBulletinRepository bulletinRepository;
     private final StandardProcessScheduler processScheduler;
-    private final TemplateManager templateManager;
     private final SnippetManager snippetManager;
     private final long gracefulShutdownSeconds;
     private final ExtensionManager extensionManager;
@@ -478,11 +476,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         this.configuredForClustering = configuredForClustering;
         this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(properties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
-        try {
-            this.templateManager = new TemplateManager(properties.getTemplateDirectory());
-        } catch (final IOException e) {
-            throw new RuntimeException(e);
-        }
 
         this.snippetManager = new SnippetManager();
 
@@ -1478,72 +1471,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
-    //
-    // Template access
-    //
-    /**
-     * Adds a template to this controller. The contents of this template must be part of the current flow. This is going create a template based on a snippet of this flow.
-     *
-     * @param dto template
-     * @return a copy of the given DTO
-     * @throws IOException if an I/O error occurs when persisting the Template
-     * @throws NullPointerException if the DTO is null
-     * @throws IllegalArgumentException if does not contain all required information, such as the template name or a processor's configuration element
-     */
-    public Template addTemplate(final TemplateDTO dto) throws IOException {
-        return templateManager.addTemplate(dto);
-    }
-
-    /**
-     * Removes all templates from this controller
-     *
-     * @throws IOException ioe
-     */
-    public void clearTemplates() throws IOException {
-        templateManager.clear();
-    }
-
-    /**
-     * Imports the specified template into this controller. The contents of this template may have come from another NiFi instance.
-     *
-     * @param dto dto
-     * @return template
-     * @throws IOException ioe
-     */
-    public Template importTemplate(final TemplateDTO dto) throws IOException {
-        return templateManager.importTemplate(dto);
-    }
-
-    /**
-     * @param id identifier
-     * @return the template with the given ID, or <code>null</code> if no template exists with the given ID
-     */
-    public Template getTemplate(final String id) {
-        return templateManager.getTemplate(id);
-    }
-
-    public TemplateManager getTemplateManager() {
-        return templateManager;
-    }
-
-    /**
-     * @return all templates that this controller knows about
-     */
-    public Collection<Template> getTemplates() {
-        return templateManager.getTemplates();
-    }
-
-    /**
-     * Removes the template with the given ID.
-     *
-     * @param id the ID of the template to remove
-     * @throws NullPointerException if the argument is null
-     * @throws IllegalStateException if no template exists with the given ID
-     * @throws IOException if template could not be removed
-     */
-    public void removeTemplate(final String id) throws IOException, IllegalStateException {
-        templateManager.removeTemplate(id);
-    }
 
     private Position toPosition(final PositionDTO dto) {
         return new Position(dto.getX(), dto.getY());

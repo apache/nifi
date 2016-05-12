@@ -35,10 +35,7 @@ public class IllegalArgumentExceptionMapper implements ExceptionMapper<IllegalAr
     public Response toResponse(IllegalArgumentException exception) {
         // log the error
         logger.info(String.format("%s. Returning %s response.", exception, Response.Status.BAD_REQUEST));
-
-        if (logger.isDebugEnabled()) {
-            logger.debug(StringUtils.EMPTY, exception);
-        }
+        logger.debug(StringUtils.EMPTY, exception);
 
         return Response.status(Response.Status.BAD_REQUEST).entity(exception.getMessage()).type("text/plain").build();
     }

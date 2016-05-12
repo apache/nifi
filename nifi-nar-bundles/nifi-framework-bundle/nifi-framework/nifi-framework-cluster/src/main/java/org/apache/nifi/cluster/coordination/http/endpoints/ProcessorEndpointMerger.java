@@ -72,4 +72,18 @@ public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<Proces
         // set the merged the validation errors
         clientDto.setValidationErrors(normalizedMergedValidationErrors(validationErrorMap, dtoMap.size()));
     }
+
+    protected void mergeResponses(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap, final Set<NodeResponse> successfulResponses,
+        final Set<NodeResponse> problematicResponses) {
+
+        final ProcessorDTO clientDto = clientEntity.getComponent();
+        final Map<NodeIdentifier, ProcessorDTO> dtoMap = new HashMap<>();
+        for (final Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
+            final ProcessorEntity nodeProcEntity = entry.getValue();
+            final ProcessorDTO nodeProcDto = nodeProcEntity.getComponent();
+            dtoMap.put(entry.getKey(), nodeProcDto);
+        }
+
+        mergeResponses(clientDto, dtoMap, successfulResponses, problematicResponses);
+    }
 }

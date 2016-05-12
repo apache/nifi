@@ -32,6 +32,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
@@ -525,6 +526,35 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup) {
 
+    }
+
+    @Override
+    public void addTemplate(Template template) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeTemplate(Template template) {
+    }
+
+    @Override
+    public Template getTemplate(String id) {
+        return null;
+    }
+
+    @Override
+    public Template findTemplate(String id) {
+        return null;
+    }
+
+    @Override
+    public Set<Template> getTemplates() {
+        return null;
+    }
+
+    @Override
+    public Set<Template> findAllTemplates() {
+        return null;
     }
 
 }

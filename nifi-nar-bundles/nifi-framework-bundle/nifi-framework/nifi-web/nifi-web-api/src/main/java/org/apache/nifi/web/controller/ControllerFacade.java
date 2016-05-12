@@ -780,7 +780,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         // add each template
-        for (final Template template : flowController.getTemplates()) {
+        for (final Template template : root.findAllTemplates()) {
             final TemplateDTO details = template.getDetails();
             resources.add(ResourceFactory.getComponentResource(ResourceType.Template, details.getId(), details.getName()));
         }

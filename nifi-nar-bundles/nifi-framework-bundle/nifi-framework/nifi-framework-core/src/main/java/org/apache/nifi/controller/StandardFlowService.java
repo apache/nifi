@@ -16,20 +16,25 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -76,13 +81,16 @@ import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.persistence.FlowConfigurationDAO;
 import org.apache.nifi.persistence.StandardXMLFlowConfigurationDAO;
+import org.apache.nifi.persistence.TemplateDeserializer;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -522,16 +530,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final byte[] flowBytes = baos.toByteArray();
             baos.reset();
 
-            final byte[] templateBytes = controller.getTemplateManager().export();
             final byte[] snippetBytes = controller.getSnippetManager().export();
 
             // create the response
             final FlowResponseMessage response = new FlowResponseMessage();
 
-            response.setDataFlow(new StandardDataFlow(flowBytes, templateBytes, snippetBytes));
+            response.setDataFlow(new StandardDataFlow(flowBytes, snippetBytes));
 
             return response;
-
         } catch (final Exception ex) {
             throw new ProtocolException("Failed serializing flow controller state for flow request due to: " + ex, ex);
         } finally {
@@ -606,27 +612,21 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private void loadFromBytes(final DataFlow proposedFlow, final boolean allowEmptyFlow)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
         logger.trace("Loading flow from bytes");
-        final TemplateManager templateManager = controller.getTemplateManager();
-        templateManager.loadTemplates();
-        logger.trace("Finished loading templates");
 
         // resolve the given flow (null means load flow from disk)
         final DataFlow actualProposedFlow;
         final byte[] flowBytes;
-        final byte[] templateBytes;
         if (proposedFlow == null) {
             final ByteArrayOutputStream flowOnDisk = new ByteArrayOutputStream();
             copyCurrentFlow(flowOnDisk);
             flowBytes = flowOnDisk.toByteArray();
-            templateBytes = templateManager.export();
             logger.debug("Loaded Flow from bytes");
         } else {
             flowBytes = proposedFlow.getFlow();
-            templateBytes = proposedFlow.getTemplates();
             logger.debug("Loaded flow from proposed flow");
         }
 
-        actualProposedFlow = new StandardDataFlow(flowBytes, templateBytes, null);
+        actualProposedFlow = new StandardDataFlow(flowBytes, null);
 
         if (firstControllerInitialization) {
             // load the controller services
@@ -642,6 +642,17 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             throw new FlowSynchronizationException("Failed to load flow because unable to connect to cluster and local flow is empty");
         }
 
+        final List<Template> templates = loadTemplates();
+        for (final Template template : templates) {
+            final Template existing = rootGroup.getTemplate(template.getIdentifier());
+            if (existing == null) {
+                logger.info("Imported Template '{}' to Root Group", template.getDetails().getName());
+                rootGroup.addTemplate(template);
+            } else {
+                logger.info("Template '{}' was already present in Root Group so will not import from file", template.getDetails().getName());
+            }
+        }
+
         // lazy initialization of controller tasks and flow
         if (firstControllerInitialization) {
             logger.debug("First controller initialization. Loading reporting tasks and initializing controller.");
@@ -651,6 +662,56 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             firstControllerInitialization = false;
         }
+    }
+
+    /**
+     * In NiFi 0.x, templates were stored in a templates directory as separate files. They are
+     * now stored in the flow itself. If there already are templates in that directory, though,
+     * we want to restore them.
+     *
+     * @return the templates found in the templates directory
+     * @throws IOException if unable to read from the file system
+     */
+    public List<Template> loadTemplates() throws IOException {
+        final NiFiProperties properties = NiFiProperties.getInstance();
+        final Path templatePath = properties.getTemplateDirectory();
+
+        final File[] files = templatePath.toFile().listFiles(pathname -> {
+            final String lowerName = pathname.getName().toLowerCase();
+            return lowerName.endsWith(".template") || lowerName.endsWith(".xml");
+        });
+
+        if (files == null) {
+            return Collections.emptyList();
+        }
+
+        final List<Template> templates = new ArrayList<>();
+        for (final File file : files) {
+            try (final FileInputStream fis = new FileInputStream(file);
+                final BufferedInputStream bis = new BufferedInputStream(fis)) {
+
+                final TemplateDTO templateDto;
+                try {
+                    templateDto = TemplateDeserializer.deserialize(bis);
+                } catch (final Exception e) {
+                    logger.error("Unable to interpret " + file + " as a Template. Skipping file.");
+                    continue;
+                }
+
+                if (templateDto.getId() == null) {
+                    // If there is no ID assigned, we need to assign one. We do this by generating
+                    // an ID from the name. This is because we know that Template Names are unique
+                    // and are consistent across all nodes in the cluster.
+                    final String uuid = UUID.nameUUIDFromBytes(templateDto.getName().getBytes(StandardCharsets.UTF_8)).toString();
+                    templateDto.setId(uuid);
+                }
+
+                final Template template = new Template(templateDto);
+                templates.add(template);
+            }
+        }
+
+        return templates;
     }
 
     private ConnectionResponse connect(final boolean retryOnCommsFailure, final boolean retryIndefinitely) throws ConnectionException {
@@ -759,7 +820,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             // start the processors as indicated by the dataflow
             controller.onFlowInitialized(dataFlow.isAutoStartProcessors());
 
-            loadTemplates(dataFlow.getTemplates());
             loadSnippets(dataFlow.getSnippets());
             controller.startHeartbeating();
         } catch (final UninheritableFlowException ufe) {
@@ -794,17 +854,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    public void loadTemplates(final byte[] bytes) throws IOException {
-        if (bytes.length == 0) {
-            return;
-        }
-
-        controller.clearTemplates();
-
-        for (final Template template : TemplateManager.parseBytes(bytes)) {
-            controller.addTemplate(template.getDetails());
-        }
-    }
 
     public void loadSnippets(final byte[] bytes) throws IOException {
         if (bytes.length == 0) {
@@ -828,6 +877,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         @Override
         public void run() {
+            final ClassLoader currentCl = Thread.currentThread().getContextClassLoader();
+            final ClassLoader cl = NarClassLoaders.getFrameworkClassLoader();
+            Thread.currentThread().setContextClassLoader(cl);
             try {
                 //Hang onto the SaveHolder here rather than setting it to null because if the save fails we will try again
                 final SaveHolder holder = StandardFlowService.this.saveHolder.get();
@@ -864,6 +916,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 // record the failed save as a bulletin
                 final Bulletin saveFailureBulletin = BulletinFactory.createBulletin(EVENT_CATEGORY, LogLevel.ERROR.name(), "Unable to save flow controller configuration.");
                 controller.getBulletinRepository().addBulletin(saveFailureBulletin);
+            } finally {
+                if (currentCl != null) {
+                    Thread.currentThread().setContextClassLoader(currentCl);
+                }
             }
         }
     }

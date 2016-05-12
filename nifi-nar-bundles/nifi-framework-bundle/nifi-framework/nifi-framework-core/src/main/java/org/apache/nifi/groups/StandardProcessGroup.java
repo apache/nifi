@@ -41,6 +41,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
@@ -95,6 +96,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, ProcessorNode> processors = new HashMap<>();
     private final Map<String, Funnel> funnels = new HashMap<>();
     private final Map<String, ControllerServiceNode> controllerServices = new HashMap<>();
+    private final Map<String, Template> templates = new HashMap<>();
     private final StringEncryptor encryptor;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -1881,6 +1883,99 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+
+    @Override
+    public void addTemplate(final Template template) {
+        requireNonNull(template);
+
+        writeLock.lock();
+        try {
+            final String id = template.getDetails().getId();
+            if (id == null) {
+                throw new IllegalStateException("Cannot add template that has no ID");
+            }
+
+            if (templates.containsKey(id)) {
+                throw new IllegalStateException("Process Group already contains a Template with ID " + id);
+            }
+
+            templates.put(id, template);
+            template.setProcessGroup(this);
+            LOG.info("{} added to {}", template, this);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public Template getTemplate(final String id) {
+        readLock.lock();
+        try {
+            return templates.get(id);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Template findTemplate(final String id) {
+        return findTemplate(id, this);
+    }
+
+    private Template findTemplate(final String id, final ProcessGroup start) {
+        final Template template = start.getTemplate(id);
+        if (template != null) {
+            return template;
+        }
+
+        for (final ProcessGroup child : start.getProcessGroups()) {
+            final Template childTemplate = findTemplate(id, child);
+            if (childTemplate != null) {
+                return childTemplate;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public Set<Template> getTemplates() {
+        readLock.lock();
+        try {
+            return new HashSet<>(templates.values());
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<Template> findAllTemplates() {
+        return findAllTemplates(this);
+    }
+
+    private Set<Template> findAllTemplates(final ProcessGroup group) {
+        final Set<Template> templates = new HashSet<>(group.getTemplates());
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            templates.addAll(findAllTemplates(childGroup));
+        }
+        return templates;
+    }
+
+    @Override
+    public void removeTemplate(final Template template) {
+        writeLock.lock();
+        try {
+            final Template existing = templates.get(requireNonNull(template).getIdentifier());
+            if (existing == null) {
+                throw new IllegalStateException(template + " is not a member of this ProcessGroup");
+            }
+
+            templates.remove(template.getIdentifier());
+            LOG.info("{} removed from flow", template);
+        } finally {
+            writeLock.unlock();
+        }
+    }
 
     @Override
     public void remove(final Snippet snippet) {

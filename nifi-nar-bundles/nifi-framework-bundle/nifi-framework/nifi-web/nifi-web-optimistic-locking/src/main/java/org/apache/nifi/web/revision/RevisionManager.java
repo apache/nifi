@@ -178,4 +178,12 @@ public interface RevisionManager {
      *         up-to-date
      */
     boolean releaseClaim(RevisionClaim claim);
+
+    /**
+     * Releases the claim on the revision for the given component if the claim was obtained by the calling thread
+     *
+     * @param componentId the ID of the component
+     * @return <code>true</code> if the claim was released, false otherwise
+     */
+    boolean cancelClaim(String componentId);
 }
