@@ -312,6 +312,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-hive-nar</artifactId>
             <type>nar</type>
         </dependency>
+	<dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-site-to-site-reporting-nar</artifactId>
+            <type>nar</type>
+      	</dependency>
     </dependencies>
 
     <properties>
