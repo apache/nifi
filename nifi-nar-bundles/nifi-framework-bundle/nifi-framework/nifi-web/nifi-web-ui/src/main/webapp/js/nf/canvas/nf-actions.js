@@ -60,18 +60,12 @@ nf.Actions = (function () {
      * @param {object} entity
      */
     var updateResource = function (uri, entity) {
-        // add the revision
-        entity['revision'] = nf.Client.getRevision();
-
         return $.ajax({
             type: 'PUT',
             url: uri,
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
-        }).done(function (response) {
-            // update the revision
-            nf.Client.setRevision(response.revision);
         }).fail(function (xhr, status, error) {
             if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                 nf.Dialog.showOkDialog({
@@ -404,6 +398,7 @@ nf.Actions = (function () {
 
                     // build the entity
                     var entity = {
+                        'revision': nf.Client.getRevision(d),
                         'component': {
                             'id': d.id,
                             'state': 'STOPPED'
@@ -446,6 +441,7 @@ nf.Actions = (function () {
 
                     // build the entity
                     var entity = {
+                        'revision': nf.Client.getRevision(d),
                         'component': {
                             'id': d.id,
                             'state': 'DISABLED'
@@ -528,6 +524,7 @@ nf.Actions = (function () {
 
                         // build the entity
                         var entity = {
+                            'revision': nf.Client.getRevision(d),
                             'component': component
                         };
 
@@ -602,6 +599,7 @@ nf.Actions = (function () {
 
                         // build the entity
                         var entity = {
+                            'revision': nf.Client.getRevision(d),
                             'component': component
                         };
 
@@ -644,6 +642,7 @@ nf.Actions = (function () {
             componentsToEnable.each(function (d) {
                 // build the entity
                 var entity = {
+                    'revision': nf.Client.getRevision(d),
                     'component': {
                         'id': d.id,
                         'transmitting': true
@@ -671,6 +670,7 @@ nf.Actions = (function () {
             componentsToDisable.each(function (d) {
                 // build the entity
                 var entity = {
+                    'revision': nf.Client.getRevision(d),
                     'component': {
                         'id': d.id,
                         'transmitting': false
@@ -772,8 +772,10 @@ nf.Actions = (function () {
         /**
          * Reloads the status for the entire canvas (components and flow.)
          */
-        reloadStatus: function () {
-            nf.Canvas.reloadStatus();
+        reload: function () {
+            nf.Canvas.reload({
+                'transition': true
+            });
         },
         
         /**
@@ -790,7 +792,7 @@ nf.Actions = (function () {
             } else {
                 if (selection.size() === 1) {
                     var selectionData = selection.datum();
-                    var revision = nf.Client.getRevision();
+                    var revision = nf.Client.getRevision(selectionData);
 
                     $.ajax({
                         type: 'DELETE',
@@ -800,9 +802,6 @@ nf.Actions = (function () {
                         }),
                         dataType: 'json'
                     }).done(function (response) {
-                        // update the revision
-                        nf.Client.setRevision(response.revision);
-
                         // remove the component/connection in question
                         nf[selectionData.type].remove(selectionData.id);
 
@@ -828,11 +827,9 @@ nf.Actions = (function () {
                 } else {
                     // create a snippet for the specified component and link to the data flow
                     var snippetDetails = nf.Snippet.marshal(selection, true);
-                    nf.Snippet.create(snippetDetails).done(function (response) {
-                        var snippet = response.snippet;
-
+                    nf.Snippet.create(snippetDetails).done(function (snippetEntity) {
                         // remove the snippet, effectively removing the components
-                        nf.Snippet.remove(snippet.id).done(function () {
+                        nf.Snippet.remove(snippetEntity).done(function () {
                             var components = d3.map();
 
                             // add the id to the type's array
@@ -876,11 +873,11 @@ nf.Actions = (function () {
                             // inform Angular app values have changed
                             nf.ng.Bridge.digest();
                         }).fail(function (xhr, status, error) {
-                            // unable to acutally remove the components so attempt to
+                            // unable to actually remove the components so attempt to
                             // unlink and remove just the snippet - if unlinking fails
                             // just ignore
-                            nf.Snippet.unlink(snippet.id).done(function () {
-                                nf.Snippet.remove(snippet.id);
+                            nf.Snippet.unlink(snippetEntity).done(function (unlinkedSnippetEntity) {
+                                nf.Snippet.remove(unlinkedSnippetEntity);
                             });
 
                             nf.Common.handleAjaxError(xhr, status, error);
@@ -1092,7 +1089,7 @@ nf.Actions = (function () {
             var processor = selection.datum();
 
             // view the state for the selected processor
-            nf.ComponentState.showState(processor.component, nf.CanvasUtils.supportsModification(selection));
+            nf.ComponentState.showState(processor.component, processor.revision, nf.CanvasUtils.supportsModification(selection));
         },
 
         /**
@@ -1228,12 +1225,11 @@ nf.Actions = (function () {
                             var snippetDetails = nf.Snippet.marshal(selection, false);
 
                             // create the snippet
-                            nf.Snippet.create(snippetDetails).done(function (response) {
-                                var snippet = response.snippet;
+                            nf.Snippet.create(snippetDetails).done(function (snippetEntity) {
                                 var createSnippetEntity = {
                                     'name': templateName,
                                     'description': templateDescription,
-                                    'snippetId': snippet.id
+                                    'snippetId': snippetEntity.id
                                 };
 
                                 // create the template
@@ -1251,7 +1247,7 @@ nf.Actions = (function () {
                                     });
                                 }).always(function () {
                                     // remove the snippet
-                                    nf.Snippet.remove(snippet.id);
+                                    nf.Snippet.remove(snippetEntity);
 
                                     // clear the template dialog fields
                                     $('#new-template-name').val('');
@@ -1327,9 +1323,7 @@ nf.Actions = (function () {
                     };
 
                     // create a snippet from the details
-                    nf.Snippet.create(data['snippet']).done(function (createResponse) {
-                        var snippet = createResponse.snippet;
-
+                    nf.Snippet.create(data['snippet']).done(function (snippetEntity) {
                         // determine the origin of the bounding box of the copy
                         var origin = pasteLocation;
                         var snippetOrigin = data['origin'];
@@ -1342,7 +1336,7 @@ nf.Actions = (function () {
                         }
 
                         // copy the snippet to the new location
-                        nf.Snippet.copy(snippet.id, origin).done(function (copyResponse) {
+                        nf.Snippet.copy(snippetEntity.id, origin).done(function (copyResponse) {
                             var snippetFlow = copyResponse.flow;
 
                             // update the graph accordingly
@@ -1355,7 +1349,7 @@ nf.Actions = (function () {
                             nf.Birdseye.refresh();
 
                             // remove the original snippet
-                            nf.Snippet.remove(snippet.id).fail(reject);
+                            nf.Snippet.remove(snippetEntity).fail(reject);
                         }).fail(function () {
                             // an error occured while performing the copy operation, reload the
                             // graph in case it was a partial success
@@ -1414,7 +1408,7 @@ nf.Actions = (function () {
 
                 // build the connection entity
                 var connectionEntity = {
-                    'revision': nf.Client.getRevision(),
+                    'revision': nf.Client.getRevision(connection),
                     'component': {
                         'id': connection.id,
                         'zIndex': zIndex
@@ -1432,9 +1426,6 @@ nf.Actions = (function () {
                     // update the edge's zIndex
                     nf.Connection.set(response);
                     nf.Connection.reorder();
-
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
                 });
             }
         }

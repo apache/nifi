@@ -17,8 +17,11 @@
 package org.apache.nifi.web.api.dto.flow;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Date;
 
 /**
  * The NiFi flow starting at a given Process Group.
@@ -31,6 +34,7 @@ public class ProcessGroupFlowDTO {
     private String parentGroupId;
     private FlowBreadcrumbDTO breadcrumb;
     private FlowDTO flow;
+    private Date lastRefreshed;
 
     /**
      * @return contents of this process group. This field will be populated if the request is marked verbose
@@ -108,5 +112,15 @@ public class ProcessGroupFlowDTO {
         this.uri = uri;
     }
 
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+        value = "The time the flow for the process group was last refreshed."
+    )
+    public Date getLastRefreshed() {
+        return lastRefreshed;
+    }
 
+    public void setLastRefreshed(Date lastRefreshed) {
+        this.lastRefreshed = lastRefreshed;
+    }
 }

@@ -56,20 +56,12 @@ nf.Settings = (function () {
 
             // register the click listener for the archive link
             $('#archive-flow-link').click(function () {
-                var revision = nf.Client.getRevision();
-
                 $.ajax({
                     type: 'POST',
                     url: config.urls.controllerArchive,
-                    data: {
-                        version: revision.version,
-                        clientId: revision.clientId
-                    },
-                    dataType: 'json'
+                    dataType: 'json',
+                    contentType: 'application/json'
                 }).done(function (response) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-
                     // show the result dialog
                     nf.Dialog.showOkDialog({
                         dialogContent: 'A new flow archive was successfully created.',
@@ -83,7 +75,9 @@ nf.Settings = (function () {
                 // marshal the configuration details
                 var configuration = marshalConfiguration();
                 var entity = {
-                    'revision': nf.Client.getRevision(),
+                    'revision': nf.Client.getRevision({
+                        'version': 0
+                    }),
                     'config': configuration
                 };
 
@@ -95,14 +89,11 @@ nf.Settings = (function () {
                     dataType: 'json',
                     contentType: 'application/json'
                 }).done(function (response) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
+                    // TODO - update the revision
+                    // nf.Client.setRevision(response.revision);
 
                     // update the displayed name
                     document.title = response.config.name;
-
-                    // set the data flow title and close the shell
-                    nf.Canvas.reload();
 
                     // close the settings dialog
                     nf.Dialog.showOkDialog({
@@ -308,7 +299,6 @@ nf.Settings = (function () {
         
         // build the controller service entity
         var controllerServiceEntity = {
-            'revision': nf.Client.getRevision(),
             'controllerService': {
                 'type': controllerServiceType
             }
@@ -322,9 +312,6 @@ nf.Settings = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            // update the revision
-            nf.Client.setRevision(response.revision);
-
             // add the item
             var controllerService = response.controllerService;
             var controllerServicesGrid = $('#controller-services-table').data('gridInstance');
@@ -763,7 +750,9 @@ nf.Settings = (function () {
                 } else if (target.hasClass('delete-controller-service')) {
                     nf.ControllerService.remove(controllerService);
                 } else if (target.hasClass('view-state-controller-service')) {
-                    nf.ComponentState.showState(controllerService, controllerService.state === 'DISABLED');
+                    nf.ComponentState.showState(controllerService, {
+                        'version': 0
+                    }, controllerService.state === 'DISABLED');
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-controller-service')) {
@@ -1041,7 +1030,6 @@ nf.Settings = (function () {
         
         // build the reporting task entity
         var reportingTaskEntity = {
-            'revision': nf.Client.getRevision(),
             'reportingTask': {
                 'type': reportingTaskType
             }
@@ -1055,9 +1043,6 @@ nf.Settings = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            // update the revision
-            nf.Client.setRevision(response.revision);
-
             // add the item
             var reportingTask = response.reportingTask;
             var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
@@ -1419,7 +1404,9 @@ nf.Settings = (function () {
                     nf.ReportingTask.remove(reportingTask);
                 } else if (target.hasClass('view-state-reporting-task')) {
                     var canClear = reportingTask.state === 'STOPPED' && reportingTask.activeThreadCount === 0;
-                    nf.ComponentState.showState(reportingTask, canClear);
+                    nf.ComponentState.showState(reportingTask, {
+                        'version': 0
+                    }, canClear);
                 }
             } else if (reportingTasksGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-reporting-task')) {
@@ -1692,7 +1679,7 @@ nf.Settings = (function () {
         /**
          * Loads the settings.
          */
-        loadSettings: function (reloadStatus) {
+        loadSettings: function () {
             var settings = $.ajax({
                 type: 'GET',
                 url: config.urls.controllerConfig,
@@ -1726,12 +1713,7 @@ nf.Settings = (function () {
             var reportingTasks = loadReportingTasks();
 
             // return a deferred for all parts of the settings
-            return $.when(settings, controllerServices, reportingTasks).done(function () {
-                // always reload the status, unless the flag is specifically set to false
-                if (reloadStatus !== false) {
-                    nf.Canvas.reloadStatus();
-                }
-            }).fail(nf.Common.handleAjaxError);
+            return $.when(settings, controllerServices, reportingTasks).fail(nf.Common.handleAjaxError);
         },
 
         /**

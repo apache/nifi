@@ -28,7 +28,6 @@ nf.ng.TemplateComponent = function (serviceProvider) {
      */
     var createTemplate = function (templateId, pt) {
         var instantiateTemplateInstance = {
-            'revision': nf.Client.getRevision(),
             'templateId': templateId,
             'originX': pt.x,
             'originY': pt.y
@@ -42,9 +41,6 @@ nf.ng.TemplateComponent = function (serviceProvider) {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            // update the revision
-            nf.Client.setRevision(response.revision);
-
             // populate the graph accordingly
             nf.Graph.add(response.flow, true);
 

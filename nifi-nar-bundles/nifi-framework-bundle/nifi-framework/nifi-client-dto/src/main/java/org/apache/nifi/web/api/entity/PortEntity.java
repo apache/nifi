@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -27,6 +29,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class PortEntity extends ComponentEntity {
 
     private PortDTO component;
+    private PortStatusDTO status;
     private String portType;
 
     /**
@@ -38,6 +41,20 @@ public class PortEntity extends ComponentEntity {
 
     public void setComponent(PortDTO component) {
         this.component = component;
+    }
+
+    /**
+     * @return the port status
+     */
+    @ApiModelProperty(
+        value = "The status of the port."
+    )
+    public PortStatusDTO getStatus() {
+        return status;
+    }
+
+    public void setStatus(PortStatusDTO status) {
+        this.status = status;
     }
 
     public String getPortType() {

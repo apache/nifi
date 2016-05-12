@@ -302,7 +302,6 @@ nf.ProcessorConfiguration = (function () {
 
         // create the processor entity
         var processorEntity = {};
-        processorEntity['revision'] = nf.Client.getRevision();
         processorEntity['component'] = processorDto;
 
         // return the marshaled details
@@ -428,6 +427,10 @@ nf.ProcessorConfiguration = (function () {
 
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedProcessor)) {
+            // set the revision
+            var d = nf.Processor.get(processor.id);
+            updatedProcessor['revision'] = nf.Client.getRevision(d);
+            
             // update the selected component
             return $.ajax({
                 type: 'PUT',
@@ -436,11 +439,6 @@ nf.ProcessorConfiguration = (function () {
                 dataType: 'json',
                 processData: false,
                 contentType: 'application/json'
-            }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.component)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-                }
             }).fail(handleProcessorConfigurationError);
         } else {
             return $.Deferred(function (deferred) {
@@ -543,6 +541,7 @@ nf.ProcessorConfiguration = (function () {
             // initialize the property table
             $('#processor-properties').propertytable({
                 readOnly: false,
+                groupId: nf.Canvas.getGroupId(),
                 dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function(propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');

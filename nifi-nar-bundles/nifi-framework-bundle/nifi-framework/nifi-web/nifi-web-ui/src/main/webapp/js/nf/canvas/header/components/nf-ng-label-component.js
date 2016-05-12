@@ -64,7 +64,6 @@ nf.ng.LabelComponent = function (serviceProvider) {
          */
         createLabel: function(pt) {
             var labelEntity = {
-                'revision': nf.Client.getRevision(),
                 'component': {
                     'width': nf.Label.config.width,
                     'height': nf.Label.config.height,
@@ -84,9 +83,6 @@ nf.ng.LabelComponent = function (serviceProvider) {
                 contentType: 'application/json'
             }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.component)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-
                     // add the label to the graph
                     nf.Graph.add({
                         'labels': [response]

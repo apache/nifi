@@ -247,9 +247,6 @@ nf.Connection = (function () {
             .attr({
                 'class': 'connection-path',
                 'pointer-events': 'none'
-            })
-            .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
             });
 
         // path to show when selection
@@ -260,7 +257,7 @@ nf.Connection = (function () {
             });
 
         // path to make selection easier
-        var selectableConnection = connection.append('path')
+        connection.append('path')
             .attr({
                 'class': 'connection-path-selectable',
                 'pointer-events': 'stroke'
@@ -270,49 +267,6 @@ nf.Connection = (function () {
                 nf.Selectable.select(d3.select(this.parentNode));
             })
             .call(nf.ContextMenu.activate);
-
-        // only support adding bend points when appropriate
-        selectableConnection.filter(function (d) {
-            return d.accessPolicy.canWrite && d.accessPolicy.canRead;
-        }).on('dblclick', function (d) {
-            var position = d3.mouse(this.parentNode);
-
-            // find where to put this bend point
-            var bendIndex = getNearestSegment({
-                'x': position[0],
-                'y': position[1]
-            }, d);
-
-            // copy the original to restore if necessary
-            var bends = d.component.bends.slice();
-
-            // add it to the collection of points
-            bends.splice(bendIndex, 0, {
-                'x': position[0],
-                'y': position[1]
-            });
-
-            var connection = {
-                id: d.id,
-                bends: bends
-            };
-
-            // update the label index if necessary
-            var labelIndex = d.component.labelIndex;
-            if (bends.length === 1) {
-                connection.labelIndex = 0;
-            } else if (bendIndex <= labelIndex) {
-                connection.labelIndex = labelIndex + 1;
-            }
-
-            // save the new state
-            save(d, connection);
-
-            d3.event.stopPropagation();
-        });
-
-        // update connection which will establish appropriate start/end points among other things
-        connection.call(updateConnections, true, false);
     };
 
     // determines whether the specified connection contains an unsupported relationship
@@ -333,13 +287,25 @@ nf.Connection = (function () {
     };
 
     // updates the specified connections
-    var updateConnections = function (updated, updatePath, updateLabel) {
+    var updateConnections = function (updated, options) {
         if (updated.empty()) {
             return;
         }
 
+        var updatePath = true;
+        var updateLabel = true;
+        var transition = false;
+
+        // extract the options if specified
+        if (nf.Common.isDefinedAndNotNull(options)) {
+            updatePath = nf.Common.isDefinedAndNotNull(options.updatePath) ? options.updatePath : updatePath;
+            updateLabel = nf.Common.isDefinedAndNotNull(options.updateLabel) ? options.updateLabel : updateLabel;
+            transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+        }
+
         if (updatePath === true) {
-            updated.classed('grouped', function (d) {
+            updated
+                .classed('grouped', function (d) {
                     var grouped = false;
 
                     if (d.accessPolicy.canRead) {
@@ -362,6 +328,55 @@ nf.Connection = (function () {
                     }
 
                     return ghost;
+                });
+
+            // update connection path
+            updated.select('path.connection-path')
+                .classed('unauthorized', function (d) {
+                    return d.accessPolicy.canRead === false;
+                });
+
+            // update connection behavior
+            updated.select('path.connection-path-selectable')
+                .on('dblclick', function (d) {
+                    if (d.accessPolicy.canWrite && d.accessPolicy.canRead) {
+                        var position = d3.mouse(this.parentNode);
+
+                        // find where to put this bend point
+                        var bendIndex = getNearestSegment({
+                            'x': position[0],
+                            'y': position[1]
+                        }, d);
+
+                        // copy the original to restore if necessary
+                        var bends = d.component.bends.slice();
+
+                        // add it to the collection of points
+                        bends.splice(bendIndex, 0, {
+                            'x': position[0],
+                            'y': position[1]
+                        });
+
+                        var connection = {
+                            id: d.id,
+                            bends: bends
+                        };
+
+                        // update the label index if necessary
+                        var labelIndex = d.component.labelIndex;
+                        if (bends.length === 1) {
+                            connection.labelIndex = 0;
+                        } else if (bendIndex <= labelIndex) {
+                            connection.labelIndex = labelIndex + 1;
+                        }
+
+                        // save the new state
+                        save(d, connection);
+
+                        d3.event.stopPropagation();
+                    } else {
+                        return null;
+                    }
                 });
         }
 
@@ -442,7 +457,7 @@ nf.Connection = (function () {
                 d.end = end;
 
                 // update the connection paths
-                connection.select('path.connection-path')
+                nf.CanvasUtils.transition(connection.select('path.connection-path'), transition)
                     .attr({
                         'd': function () {
                             var datum = [d.start].concat(d.bends, [d.end]);
@@ -463,14 +478,14 @@ nf.Connection = (function () {
                             return 'url(#' + marker + ')';
                         }
                     });
-                connection.select('path.connection-selection-path')
+                nf.CanvasUtils.transition(connection.select('path.connection-selection-path'), transition)
                     .attr({
                         'd': function () {
                             var datum = [d.start].concat(d.bends, [d.end]);
                             return lineGenerator(datum);
                         }
                     });
-                connection.select('path.connection-path-selectable')
+                nf.CanvasUtils.transition(connection.select('path.connection-path-selectable'), transition)
                     .attr({
                         'd': function () {
                             var datum = [d.start].concat(d.bends, [d.end]);
@@ -482,13 +497,17 @@ nf.Connection = (function () {
                 // bends
                 // -----
 
+                var startpoints = connection.selectAll('rect.startpoint');
+                var endpoints = connection.selectAll('rect.endpoint');
+                var midpoints = connection.selectAll('rect.midpoint');
+
                 if (d.accessPolicy.canWrite) {
 
                     // ------------------
                     // bends - startpoint
                     // ------------------
 
-                    var startpoints = connection.selectAll('rect.startpoint').data([d.start]);
+                    startpoints = startpoints.data([d.start]);
 
                     // create a point for the start
                     startpoints.enter().append('rect')
@@ -505,9 +524,10 @@ nf.Connection = (function () {
                         .call(nf.ContextMenu.activate);
 
                     // update the start point
-                    startpoints.attr('transform', function (p) {
-                        return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
-                    });
+                    nf.CanvasUtils.transition(startpoints, transition)
+                        .attr('transform', function (p) {
+                            return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
+                        });
 
                     // remove old items
                     startpoints.exit().remove();
@@ -516,7 +536,7 @@ nf.Connection = (function () {
                     // bends - endpoint
                     // ----------------
 
-                    var endpoints = connection.selectAll('rect.endpoint').data([d.end]);
+                    var endpoints = endpoints.data([d.end]);
 
                     // create a point for the end
                     endpoints.enter().append('rect')
@@ -534,9 +554,10 @@ nf.Connection = (function () {
                         .call(nf.ContextMenu.activate);
 
                     // update the end point
-                    endpoints.attr('transform', function (p) {
-                        return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
-                    });
+                    nf.CanvasUtils.transition(endpoints, transition)
+                        .attr('transform', function (p) {
+                            return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
+                        });
 
                     // remove old items
                     endpoints.exit().remove();
@@ -545,7 +566,7 @@ nf.Connection = (function () {
                     // bends - midpoints
                     // -----------------
 
-                    var midpoints = connection.selectAll('rect.midpoint').data(d.bends);
+                    var midpoints = midpoints.data(d.bends);
 
                     // create a point for the end
                     midpoints.enter().append('rect')
@@ -560,9 +581,12 @@ nf.Connection = (function () {
                             // stop even propagation
                             d3.event.stopPropagation();
 
+                            var connection = d3.select(this.parentNode);
+                            var connectionData = connection.datum();
+
                             // if this is a self loop prevent removing the last two bends
-                            var sourceComponentId = nf.CanvasUtils.getConnectionSourceComponentId(d);
-                            var destinationComponentId = nf.CanvasUtils.getConnectionDestinationComponentId(d);
+                            var sourceComponentId = nf.CanvasUtils.getConnectionSourceComponentId(connectionData);
+                            var destinationComponentId = nf.CanvasUtils.getConnectionDestinationComponentId(connectionData);
                             if (sourceComponentId === destinationComponentId && d.component.bends.length <= 2) {
                                 nf.Dialog.showOkDialog({
                                     dialogContent: 'Looping connections must have at least two bend points.',
@@ -575,7 +599,7 @@ nf.Connection = (function () {
                             var bendIndex = -1;
 
                             // create a new array of bends without the selected one
-                            $.each(d.component.bends, function (i, bend) {
+                            $.each(connectionData.component.bends, function (i, bend) {
                                 if (p.x !== bend.x && p.y !== bend.y) {
                                     newBends.push(bend);
                                 } else {
@@ -588,12 +612,12 @@ nf.Connection = (function () {
                             }
 
                             var connection = {
-                                id: d.id,
+                                id: connectionData.id,
                                 bends: newBends
                             };
 
                             // update the label index if necessary
-                            var labelIndex = d.component.labelIndex;
+                            var labelIndex = connectionData.component.labelIndex;
                             if (newBends.length <= 1) {
                                 connection.labelIndex = 0;
                             } else if (bendIndex <= labelIndex) {
@@ -601,7 +625,7 @@ nf.Connection = (function () {
                             }
 
                             // save the updated connection
-                            save(d, connection);
+                            save(connectionData, connection);
                         })
                         .on('mousedown.selection', function () {
                             // select the connection when clicking the label
@@ -610,12 +634,18 @@ nf.Connection = (function () {
                         .call(nf.ContextMenu.activate);
 
                     // update the midpoints
-                    midpoints.attr('transform', function (p) {
-                        return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
-                    });
+                    nf.CanvasUtils.transition(midpoints, transition)
+                        .attr('transform', function (p) {
+                            return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
+                        });
 
                     // remove old items
                     midpoints.exit().remove();
+                } else {
+                    // remove the start, mid, and end points
+                    startpoints.remove();
+                    endpoints.remove();
+                    midpoints.remove();
                 }
             }
 
@@ -648,9 +678,6 @@ nf.Connection = (function () {
                                 'x': 0,
                                 'y': 0,
                                 'filter': 'url(#component-drop-shadow)'
-                            })
-                            .classed('unauthorized', function (d) {
-                                return d.accessPolicy.canRead === false;
                             });
 
                         // processor border
@@ -660,9 +687,6 @@ nf.Connection = (function () {
                                 'width': dimensions.width,
                                 'fill': 'transparent',
                                 'stroke': 'transparent'
-                            })
-                            .classed('unauthorized', function (d) {
-                                return d.accessPolicy.canRead === false;
                             });
                     }
 
@@ -1061,10 +1085,16 @@ nf.Connection = (function () {
                     connectionLabelContainer.select('rect.body')
                         .attr('height', function () {
                             return (rowHeight * labelCount);
+                        })
+                        .classed('unauthorized', function () {
+                            return d.accessPolicy.canRead === false;
                         });
                     connectionLabelContainer.select('rect.border')
                         .attr('height', function () {
                             return (rowHeight * labelCount);
+                        })
+                        .classed('unauthorized', function () {
+                            return d.accessPolicy.canRead === false;
                         });
 
                     // update the coloring of the backgrounds
@@ -1111,7 +1141,7 @@ nf.Connection = (function () {
             }
 
             // update the position of the label if possible
-            connection.select('g.connection-label-container')
+            nf.CanvasUtils.transition(connection.select('g.connection-label-container'), transition)
                 .attr('transform', function () {
                     var label = d3.select(this).select('rect.body');
                     var position = getLabelPosition(label);
@@ -1133,21 +1163,13 @@ nf.Connection = (function () {
         // queued count value
         updated.select('text.queued tspan.count')
             .text(function (d) {
-                if (nf.Common.isDefinedAndNotNull(d.status)) {
-                    return nf.Common.substringBeforeFirst(d.status.queued, ' ');
-                } else {
-                    return '-';
-                }
+                return nf.Common.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
         // queued size value
         updated.select('text.queued tspan.size')
             .text(function (d) {
-                if (nf.Common.isDefinedAndNotNull(d.status)) {
-                    return ' ' + nf.Common.substringAfterFirst(d.status.queued, ' ');
-                } else {
-                    return ' (-)';
-                }
+                return ' ' + nf.Common.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
             });
     };
 
@@ -1159,10 +1181,8 @@ nf.Connection = (function () {
      * @param {type} connection
      */
     var save = function (d, connection) {
-        var revision = nf.Client.getRevision();
-
         var entity = {
-            'revision': revision,
+            'revision': nf.Client.getRevision(d),
             'component': connection
         };
 
@@ -1173,9 +1193,6 @@ nf.Connection = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            // update the revision
-            nf.Client.setRevision(response.revision);
-
             // request was successful, update the entry
             nf.Connection.set(response);
         }).fail(function (xhr, status, error) {
@@ -1238,7 +1255,10 @@ nf.Connection = (function () {
                     d.y = d3.event.y;
 
                     // redraw this connection
-                    d3.select(this.parentNode).call(updateConnections, true, false);
+                    d3.select(this.parentNode).call(updateConnections, {
+                        'updatePath': true,
+                        'updateLabel': false
+                    });
                 })
                 .on('dragend', function () {
                     var connection = d3.select(this.parentNode);
@@ -1270,7 +1290,10 @@ nf.Connection = (function () {
                                 });
 
                                 // refresh the connection
-                                connection.call(updateConnections, true, false);
+                                connection.call(updateConnections, {
+                                    'updatePath': true,
+                                    'updateLabel': false
+                                });
                             });
                         }
                     }
@@ -1298,7 +1321,10 @@ nf.Connection = (function () {
                     });
 
                     // redraw this connection
-                    d3.select(this.parentNode).call(updateConnections, true, false);
+                    d3.select(this.parentNode).call(updateConnections, {
+                        'updatePath': true,
+                        'updateLabel': false
+                    });
                 })
                 .on('dragend', function (d) {
                     // indicate that dragging as stopped
@@ -1314,7 +1340,10 @@ nf.Connection = (function () {
 
                     // resets the connection if we're not over a new destination
                     if (destination.empty()) {
-                        connection.call(updateConnections, true, false);
+                        connection.call(updateConnections, {
+                            'updatePath': true,
+                            'updateLabel': false
+                        });
                     } else {
                         // prompt for the new port if appropriate
                         if (nf.CanvasUtils.isProcessGroup(destination) || nf.CanvasUtils.isRemoteProcessGroup(destination)) {
@@ -1324,7 +1353,10 @@ nf.Connection = (function () {
                                 nf.CanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
                             }).fail(function () {
                                 // reset the connection
-                                connection.call(updateConnections, true, false);
+                                connection.call(updateConnections, {
+                                    'updatePath': true,
+                                    'updateLabel': false
+                                });
                             });
                         } else {
                             // get the destination details
@@ -1332,7 +1364,7 @@ nf.Connection = (function () {
                             var destinationType = nf.CanvasUtils.getConnectableTypeForDestination(destination);
 
                             var connectionEntity = {
-                                'revision': nf.Client.getRevision(),
+                                'revision': nf.Client.getRevision(connectionData),
                                 'component': {
                                     'id': connectionData.id,
                                     'destination': {
@@ -1372,9 +1404,6 @@ nf.Connection = (function () {
                             }).done(function (response) {
                                 var updatedConnectionData = response.component;
 
-                                // update the revision
-                                nf.Client.setRevision(response.revision);
-
                                 // refresh to update the label
                                 nf.Connection.set(response);
 
@@ -1389,7 +1418,10 @@ nf.Connection = (function () {
                                     });
 
                                     // reset the connection
-                                    connection.call(updateConnections, true, false);
+                                    connection.call(updateConnections, {
+                                        'updatePath': true,
+                                        'updateLabel': false
+                                    });
                                 } else {
                                     nf.Common.handleAjaxError(xhr, status, error);
                                 }
@@ -1442,9 +1474,9 @@ nf.Connection = (function () {
                         } else {
                             // update the position of the drag selection
                             drag.attr('x', function (d) {
-                                    d.x += d3.event.dx;
-                                    return d.x;
-                                })
+                                d.x += d3.event.dx;
+                                return d.x;
+                            })
                                 .attr('y', function (d) {
                                     d.y += d3.event.dy;
                                     return d.y;
@@ -1480,7 +1512,10 @@ nf.Connection = (function () {
                         d.labelIndex = closestBendIndex;
 
                         // refresh the connection
-                        d3.select(this.parentNode).call(updateConnections, true, false);
+                        d3.select(this.parentNode).call(updateConnections, {
+                            'updatePath': true,
+                            'updateLabel': false
+                        });
                     }
                 })
                 .on('dragend', function (d) {
@@ -1508,7 +1543,10 @@ nf.Connection = (function () {
                                 d.labelIndex = d.component.labelIndex;
 
                                 // refresh the connection
-                                connection.call(updateConnections, true, false);
+                                connection.call(updateConnections, {
+                                    'updatePath': true,
+                                    'updateLabel': false
+                                });
                             });
                         }
                     }
@@ -1519,18 +1557,21 @@ nf.Connection = (function () {
         },
 
         /**
-         * Populates the graph with the specified connections.
+         * Adds the specified connection entity.
          *
-         * @argument {object | array} connectionEntities               The connections to add
-         * @argument {boolean} selectAll                Whether or not to select the new contents
+         * @param connectionEntities       The connection
+         * @param options           Configuration options
          */
-        add: function (connectionEntities, selectAll) {
-            selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
+        add: function (connectionEntities, options) {
+            var selectAll = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            }
 
             var add = function (connectionEntity) {
                 // add the connection
                 connectionMap.set(connectionEntity.id, $.extend({
-                    type: 'Connection',
+                    type: 'Connection'
                 }, connectionEntity));
             };
 
@@ -1539,12 +1580,61 @@ nf.Connection = (function () {
                 $.each(connectionEntities, function (_, connectionEntity) {
                     add(connectionEntity);
                 });
-            } else {
+            } else if (nf.Common.isDefinedAndNotNull(connectionEntities)) {
                 add(connectionEntities);
             }
 
+            // apply the selection and handle new connections
+            var selection = select();
+            selection.enter().call(renderConnections, selectAll);
+            selection.call(updateConnections, {
+                'updatePath': true,
+                'updateLabel': false
+            });
+        },
+
+        /**
+         * Populates the graph with the specified connections.
+         *
+         * @argument {object | array} connectionEntities               The connections to add
+         * @argument {object} options                Configuration options
+         */
+        set: function (connectionEntities, options) {
+            var selectAll = false;
+            var transition = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            }
+
+            var set = function (connectionEntity) {
+                // add the connection
+                connectionMap.set(connectionEntity.id, $.extend({
+                    type: 'Connection'
+                }, connectionEntity));
+            };
+
+            // determine how to handle the specified connection
+            if ($.isArray(connectionEntities)) {
+                $.each(connectionMap.keys(), function (_, key) {
+                    connectionMap.remove(key);
+                });
+                $.each(connectionEntities, function (_, connectionEntity) {
+                    set(connectionEntity);
+                });
+            } else if (nf.Common.isDefinedAndNotNull(connectionEntities)) {
+                set(connectionEntities);
+            }
+
             // apply the selection and handle all new connection
-            select().enter().call(renderConnections, selectAll);
+            var selection = select();
+            selection.enter().call(renderConnections, selectAll);
+            selection.call(updateConnections, {
+                'updatePath': true,
+                'updateLabel': true,
+                'transition': transition
+            });
+            selection.exit().call(removeConnections);
         },
 
         /**
@@ -1552,33 +1642,6 @@ nf.Connection = (function () {
          */
         reorder: function () {
             d3.selectAll('g.connection').call(sort);
-        },
-
-        /**
-         * Sets the value of the specified connection.
-         *
-         * @param {type} connectionEntities
-         */
-        set: function (connectionEntities) {
-            var set = function (connectionEntity) {
-                if (connectionMap.has(connectionEntity.id)) {
-                    // update the current entry
-                    var connectionEntry = connectionMap.get(connectionEntity.id);
-                    $.extend(connectionEntry, connectionEntity);
-
-                    // update the connection in the UI
-                    d3.select('#id-' + connectionEntity.id).call(updateConnections, true, true);
-                }
-            };
-
-            // determine how to handle the specified connection
-            if ($.isArray(connectionEntities)) {
-                $.each(connectionEntities, function (_, connectionEntity) {
-                    set(connectionEntity);
-                });
-            } else {
-                set(connectionEntities);
-            }
         },
 
         /**
@@ -1610,9 +1673,15 @@ nf.Connection = (function () {
          */
         refresh: function (connectionId) {
             if (nf.Common.isDefinedAndNotNull(connectionId)) {
-                d3.select('#id-' + connectionId).call(updateConnections, true, true);
+                d3.select('#id-' + connectionId).call(updateConnections, {
+                    'updatePath': true,
+                    'updateLabel': true
+                });
             } else {
-                d3.selectAll('g.connection').call(updateConnections, true, true);
+                d3.selectAll('g.connection').call(updateConnections, {
+                    'updatePath': true,
+                    'updateLabel': true
+                });
             }
         },
 
@@ -1620,7 +1689,10 @@ nf.Connection = (function () {
          * Refreshes the components necessary after a pan event.
          */
         pan: function () {
-            d3.selectAll('g.connection.entering, g.connection.leaving').call(updateConnections, false, true);
+            d3.selectAll('g.connection.entering, g.connection.leaving').call(updateConnections, {
+                'updatePath': false,
+                'updateLabel': true
+            });
         },
 
         /**

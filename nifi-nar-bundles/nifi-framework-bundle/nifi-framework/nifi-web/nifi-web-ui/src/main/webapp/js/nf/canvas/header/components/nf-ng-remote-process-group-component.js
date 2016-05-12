@@ -28,7 +28,6 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
      */
     var createRemoteProcessGroup = function (remoteProcessGroupUri, pt) {
         var remoteProcessGroupEntity = {
-            'revision': nf.Client.getRevision(),
             'component': {
                 'targetUri': remoteProcessGroupUri,
                 'position': {
@@ -47,9 +46,6 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
             contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.component)) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
-
                 // add the processor to the graph
                 nf.Graph.add({
                     'remoteProcessGroups': [response]

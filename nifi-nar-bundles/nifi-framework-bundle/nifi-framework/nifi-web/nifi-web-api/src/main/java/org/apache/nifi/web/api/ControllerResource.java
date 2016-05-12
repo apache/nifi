@@ -102,7 +102,6 @@ public class ControllerResource extends ApplicationResource {
      * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
      *
      * @param httpServletRequest request
-     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
      * @return A processGroupEntity.
      */
     @POST
@@ -129,17 +128,7 @@ public class ControllerResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response createArchive(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                value = "The revision used to verify the client is working with the latest version of the flow.",
-                required = true
-            ) Entity revisionEntity) {
-
-        // ensure the revision was specified
-        if (revisionEntity == null || revisionEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
+    public Response createArchive(@Context HttpServletRequest httpServletRequest) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -154,8 +143,7 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // create the archive
-        final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ProcessGroupEntity entity = serviceFacade.createArchive(new Revision(requestRevision.getVersion(), requestRevision.getClientId()));
+        final ProcessGroupEntity entity = serviceFacade.createArchive();
 
         // generate the response
         URI uri = URI.create(generateResourceUri("controller", "archive"));

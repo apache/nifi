@@ -464,7 +464,7 @@ nf.ContextMenu = (function () {
 
     // defines the available actions and the conditions which they apply
     var actions = [
-        {condition: emptySelection, menuItem: {img: 'images/iconRefresh.png', text: 'Refresh status', action: 'reloadStatus'}},
+        {condition: emptySelection, menuItem: {img: 'images/iconRefresh.png', text: 'Refresh', action: 'reload'}},
         {condition: isNotRootGroup, menuItem: {img: 'images/iconGoTo.png', text: 'Leave group', action: 'leaveGroup'}},
         {condition: isConfigurable, menuItem: {img: 'images/iconConfigure.png', text: 'Configure', action: 'showConfiguration'}},
         {condition: hasDetails, menuItem: {img: 'images/iconConfigure.png', text: 'View configuration', action: 'showDetails'}},

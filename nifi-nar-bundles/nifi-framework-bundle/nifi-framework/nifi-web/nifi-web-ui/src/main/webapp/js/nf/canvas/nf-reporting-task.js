@@ -204,8 +204,8 @@ nf.ReportingTask = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            // update the revision
-            nf.Client.setRevision(response.revision);
+            // TODO - update the revision
+            // nf.Client.setRevision(response.revision);
             
             // update the task
             renderReportingTask(response.reportingTask);
@@ -265,8 +265,8 @@ nf.ReportingTask = (function () {
                 contentType: 'application/json'
             }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.reportingTask)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
+                    // TODO - update the revision
+                    // nf.Client.setRevision(response.revision);
                 }
             }).fail(handleReportingTaskConfigurationError);
         } else {
@@ -355,6 +355,7 @@ nf.ReportingTask = (function () {
             // initialize the property table
             $('#reporting-task-properties').propertytable({
                 readOnly: false,
+                groupId: nf.Canvas.getGroupId(),
                 dialogContainer: '#new-reporting-task-property-container',
                 descriptorDeferred: getReportingTaskPropertyDescriptor,
                 goToServiceDeferred: goToServiceFromProperty
@@ -376,6 +377,7 @@ nf.ReportingTask = (function () {
                 // initialize the property table
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
                     readOnly: false,
+                    groupId: nf.Canvas.getGroupId(),
                     dialogContainer: '#new-reporting-task-property-container',
                     descriptorDeferred: getReportingTaskPropertyDescriptor,
                     goToServiceDeferred: goToServiceFromProperty
@@ -722,8 +724,8 @@ nf.ReportingTask = (function () {
                 }),
                 dataType: 'json'
             }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
+                // TODO - update the revision
+                // nf.Client.setRevision(response.revision);
 
                 // remove the task
                 var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');

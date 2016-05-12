@@ -55,7 +55,7 @@ nf.PortConfiguration = (function () {
                             
                             // build the port entity
                             var portEntity = {
-                                'revision': nf.Client.getRevision(),
+                                'revision': nf.Client.getRevision(portData),
                                 'component': port
                             };
 
@@ -67,9 +67,6 @@ nf.PortConfiguration = (function () {
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
-                                // update the revision
-                                nf.Client.setRevision(response.revision);
-
                                 // refresh the port component
                                 nf.Port.set(response);
 

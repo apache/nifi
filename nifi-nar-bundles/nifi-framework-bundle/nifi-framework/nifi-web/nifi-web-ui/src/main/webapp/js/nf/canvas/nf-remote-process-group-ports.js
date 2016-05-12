@@ -40,7 +40,7 @@ nf.RemoteProcessGroupPorts = (function () {
 
                                 // create the remote process group details
                                 var remoteProcessGroupPortEntity = {
-                                    'revision': nf.Client.getRevision(),
+                                    'revision': nf.Client.getRevision(remoteProcessGroupData),
                                     'remoteProcessGroupPort': {
                                         id: remotePortId,
                                         useCompression: $('#remote-port-use-compression').hasClass('checkbox-checked'),
@@ -62,8 +62,8 @@ nf.RemoteProcessGroupPorts = (function () {
                                     dataType: 'json',
                                     contentType: 'application/json'
                                 }).done(function (response) {
-                                    // update the revision
-                                    nf.Client.setRevision(response.revision);
+                                    // TODO - update the revision
+                                    // nf.Client.setRevision(response.revision);
 
                                     // get the response
                                     var remotePort = response.remoteProcessGroupPort;
@@ -256,7 +256,7 @@ nf.RemoteProcessGroupPorts = (function () {
 
                     // create the remote process group details
                     var remoteProcessGroupPortEntity = {
-                        'revision': nf.Client.getRevision(),
+                        'revision': nf.Client.getRevision(remoteProcessGroupData),
                         'remoteProcessGroupPort': {
                             id: port.id,
                             transmitting: isTransmitting
@@ -277,8 +277,8 @@ nf.RemoteProcessGroupPorts = (function () {
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function (response) {
-                        // update the revision
-                        nf.Client.setRevision(response.revision);
+                        // TODO - update the revision
+                        // nf.Client.setRevision(response.revision);
 
                         // get the response
                         var remotePort = response.remoteProcessGroupPort;

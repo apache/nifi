@@ -415,8 +415,7 @@ nf.Common = (function () {
                 nf.ContextMenu.hide();
 
                 // shut off the auto refresh
-                nf.Canvas.stopRevisionPolling();
-                nf.Canvas.stopStatusPolling();
+                nf.Canvas.stopPolling();
             }
         },
 

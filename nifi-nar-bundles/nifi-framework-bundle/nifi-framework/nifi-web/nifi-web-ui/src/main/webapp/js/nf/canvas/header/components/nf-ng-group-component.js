@@ -28,7 +28,6 @@ nf.ng.GroupComponent = function (serviceProvider) {
      */
     var createGroup = function (groupName, pt) {
         var processGroupEntity = {
-            'revision': nf.Client.getRevision(),
             'component': {
                 'name': groupName,
                 'position': {
@@ -47,9 +46,6 @@ nf.ng.GroupComponent = function (serviceProvider) {
             contentType: 'application/json'
         }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.component)) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
-
                 // add the process group to the graph
                 nf.Graph.add({
                     'processGroups': [response]
