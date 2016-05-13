@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.net.Proxy;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,6 +46,7 @@ public class SiteInfoProvider {
     private Integer siteToSitePort;
     private Boolean siteToSiteSecure;
     private long remoteRefreshTime;
+    private Proxy proxy;
 
     private final Map<String, String> inputPortMap = new HashMap<>(); // map input port name to identifier
     private final Map<String, String> outputPortMap = new HashMap<>(); // map output port name to identifier
@@ -56,7 +58,7 @@ public class SiteInfoProvider {
 
     private ControllerDTO refreshRemoteInfo() throws IOException {
         final boolean webInterfaceSecure = isWebInterfaceSecure();
-        final NiFiRestApiUtil utils = new NiFiRestApiUtil(webInterfaceSecure ? sslContext : null);
+        final NiFiRestApiUtil utils = new NiFiRestApiUtil(webInterfaceSecure ? sslContext : null, proxy);
         utils.resolveBaseUrl(clusterUrl);
         utils.setConnectTimeoutMillis(connectTimeoutMillis);
         utils.setReadTimeoutMillis(readTimeoutMillis);
@@ -192,5 +194,9 @@ public class SiteInfoProvider {
 
     public void setReadTimeoutMillis(int readTimeoutMillis) {
         this.readTimeoutMillis = readTimeoutMillis;
+    }
+
+    public void setProxy(Proxy proxy) {
+        this.proxy = proxy;
     }
 }

@@ -16,20 +16,7 @@
  */
 package org.apache.nifi.remote.client;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
@@ -41,6 +28,21 @@ import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -166,6 +168,8 @@ public interface SiteToSiteClient extends Closeable {
         private long batchSize;
         private long batchNanos;
         private SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
+        private String proxyHost;
+        private int proxyPort;
 
         /**
          * Populates the builder with values from the provided config
@@ -194,6 +198,12 @@ public interface SiteToSiteClient extends Closeable {
             this.batchCount = config.getPreferredBatchCount();
             this.batchSize = config.getPreferredBatchSize();
             this.batchNanos = config.getPreferredBatchDuration(TimeUnit.NANOSECONDS);
+            Proxy proxy = config.getProxy();
+            if (proxy != null && proxy.type() != Proxy.Type.DIRECT) {
+                InetSocketAddress address = (InetSocketAddress) proxy.address();
+                this.proxyHost = address.getHostName();
+                this.proxyPort = address.getPort();
+            }
 
             return this;
         }
@@ -693,6 +703,25 @@ public interface SiteToSiteClient extends Closeable {
         public String getPortIdentifier() {
             return portIdentifier;
         }
+
+
+        public String getProxyHost() {
+            return proxyHost;
+        }
+
+        public Builder proxyHost(String proxyHost) {
+            this.proxyHost = proxyHost;
+            return this;
+        }
+
+        public int getProxyPort() {
+            return proxyPort;
+        }
+
+        public Builder proxyPort(int proxyPort) {
+            this.proxyPort = proxyPort;
+            return this;
+        }
     }
 
 
@@ -720,6 +749,8 @@ public interface SiteToSiteClient extends Closeable {
         private final int batchCount;
         private final long batchSize;
         private final long batchNanos;
+        private final String proxyHost;
+        private final int proxyPort;
 
         // some serialization frameworks require a default constructor
         private StandardSiteToSiteClientConfig() {
@@ -743,6 +774,8 @@ public interface SiteToSiteClient extends Closeable {
             this.batchSize = 0;
             this.batchNanos = 0;
             this.transportProtocol = null;
+            this.proxyHost = null;
+            this.proxyPort = 80;
         }
 
         private StandardSiteToSiteClientConfig(final SiteToSiteClient.Builder builder) {
@@ -766,6 +799,8 @@ public interface SiteToSiteClient extends Closeable {
             this.batchSize = builder.batchSize;
             this.batchNanos = builder.batchNanos;
             this.transportProtocol = builder.getTransportProtocol();
+            this.proxyHost = builder.getProxyHost();
+            this.proxyPort = builder.getProxyPort();
         }
 
         @Override
@@ -867,5 +902,16 @@ public interface SiteToSiteClient extends Closeable {
         public SiteToSiteTransportProtocol getTransportProtocol() {
             return transportProtocol;
         }
+
+        @Override
+        public Proxy getProxy() {
+            if(!StringUtils.isEmpty(proxyHost)) {
+                InetSocketAddress proxyAddress = new InetSocketAddress(proxyHost, proxyPort);
+                Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddress);
+                return proxy;
+            }
+            return null;
+        }
+
     }
 }

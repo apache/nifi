@@ -16,12 +16,8 @@
  */
 package org.apache.nifi.remote.protocol.socket;
 
-import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.connectable.Port;
 import org.apache.nifi.remote.Peer;
-import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.RemoteResourceFactory;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.codec.FlowFileCodec;
@@ -39,7 +35,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
 

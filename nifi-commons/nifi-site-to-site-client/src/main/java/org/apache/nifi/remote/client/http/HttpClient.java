@@ -84,7 +84,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
         // TODO: Set protocol version header.
         String clusterUrl = config.getUrl();
-        SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext());
+        SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext(), config.getProxy());
         String clusterApiUri = apiUtil.resolveBaseUrl(clusterUrl);
 
         int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
@@ -121,7 +121,8 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         HttpClientTransaction transaction = new HttpClientTransaction(protocolVersion, peer, direction,
                 config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
 
-        SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext());
+        SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext(), config.getProxy());
+
         apiUtil.setBaseUrl(peer.getUrl());
         apiUtil.setConnectTimeoutMillis(timeoutMillis);
         apiUtil.setReadTimeoutMillis(timeoutMillis);

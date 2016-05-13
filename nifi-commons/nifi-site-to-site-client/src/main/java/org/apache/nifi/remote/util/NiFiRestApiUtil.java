@@ -16,24 +16,24 @@
  */
 package org.apache.nifi.remote.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.regex.Pattern;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.codehaus.jackson.map.ObjectMapper;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.Proxy;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.regex.Pattern;
 
 public class NiFiRestApiUtil {
 
@@ -47,13 +47,15 @@ public class NiFiRestApiUtil {
 
     private String baseUrl;
     private final SSLContext sslContext;
+    private final Proxy proxy;
 
     private int connectTimeoutMillis;
     private int readTimeoutMillis;
     private static final Pattern HTTP_ABS_URL = Pattern.compile("^https?://.+$");
 
-    public NiFiRestApiUtil(final SSLContext sslContext) {
+    public NiFiRestApiUtil(final SSLContext sslContext, final Proxy proxy) {
         this.sslContext = sslContext;
+        this.proxy = proxy;
     }
 
     protected HttpURLConnection getConnection(final String path) throws IOException {
@@ -66,7 +68,7 @@ public class NiFiRestApiUtil {
             }
             url = new URL(baseUrl + path);
         }
-        final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        final HttpURLConnection connection = (HttpURLConnection) (proxy != null ? url.openConnection(proxy) : url.openConnection());
         connection.setConnectTimeout(connectTimeoutMillis);
         connection.setReadTimeout(readTimeoutMillis);
 
@@ -159,4 +161,5 @@ public class NiFiRestApiUtil {
         this.setBaseUrl(baseUri);
         return baseUri;
     }
+
 }

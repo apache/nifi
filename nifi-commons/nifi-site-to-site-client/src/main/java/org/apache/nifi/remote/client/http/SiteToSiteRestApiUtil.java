@@ -40,6 +40,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.util.Collection;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -63,8 +64,8 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
     private long batchSize = 0;
     private long batchDurationMillis = 0;
 
-    public SiteToSiteRestApiUtil(SSLContext sslContext) {
-        super(sslContext);
+    public SiteToSiteRestApiUtil(SSLContext sslContext, Proxy proxy) {
+        super(sslContext, proxy);
     }
 
     public Collection<PeerDTO> getPeers() throws IOException {

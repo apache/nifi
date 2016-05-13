@@ -43,6 +43,7 @@ public abstract class AbstractSiteToSiteClient implements SiteToSiteClient {
         siteInfoProvider.setSslContext(config.getSslContext());
         siteInfoProvider.setConnectTimeoutMillis(commsTimeout);
         siteInfoProvider.setReadTimeoutMillis(commsTimeout);
+        siteInfoProvider.setProxy(config.getProxy());
 
     }
 
