@@ -17,6 +17,12 @@
 
 package org.apache.nifi.controller.state.providers.zookeeper;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.curator.test.TestingServer;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -27,14 +33,8 @@ import org.apache.nifi.components.state.exception.StateTooLargeException;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.testng.Assert;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
@@ -117,9 +117,8 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
     }
 
 
-    @Test
-    @Ignore("Needs to be fixed as it intermittently fails.")
-    public void testStateTooLargeExceptionThrownOnSetState() {
+    @Test(timeout = 20000)
+    public void testStateTooLargeExceptionThrownOnSetState() throws InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
 
@@ -133,21 +132,29 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             state.put("numbers." + i, sb.toString());
         }
 
-        try {
-            getProvider().setState(state, componentId);
-            Assert.fail("Expected StateTooLargeException");
-        } catch (final StateTooLargeException stle) {
-            // expected behavior.
-        } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+        while (true) {
+            try {
+                getProvider().setState(state, componentId);
+                Assert.fail("Expected StateTooLargeException");
+            } catch (final StateTooLargeException stle) {
+                // expected behavior.
+                break;
+            } catch (final IOException ioe) {
+                // If we attempt to interact with the server too quickly, we will get a
+                // ZooKeeper ConnectionLoss Exception, which the provider wraps in an IOException.
+                // We will wait 1 second in this case and try again. The test will timeout if this
+                // does not succeeed within 20 seconds.
+                Thread.sleep(1000L);
+            } catch (final Exception e) {
+                e.printStackTrace();
+                Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+            }
         }
     }
 
 
-    @Test
-    @Ignore("Needs to be fixed as it intermittently fails.")
-    public void testStateTooLargeExceptionThrownOnReplace() throws IOException {
+    @Test(timeout = 20000)
+    public void testStateTooLargeExceptionThrownOnReplace() throws IOException, InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
 
@@ -163,7 +170,19 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
         final Map<String, String> smallState = new HashMap<>();
         smallState.put("abc", "xyz");
-        getProvider().setState(smallState, componentId);
+
+        while (true) {
+            try {
+                getProvider().setState(smallState, componentId);
+                break;
+            } catch (final IOException ioe) {
+                // If we attempt to interact with the server too quickly, we will get a
+                // ZooKeeper ConnectionLoss Exception, which the provider wraps in an IOException.
+                // We will wait 1 second in this case and try again. The test will timeout if this
+                // does not succeeed within 20 seconds.
+                Thread.sleep(1000L);
+            }
+        }
 
         try {
             getProvider().replace(getProvider().getState(componentId), state, componentId);
