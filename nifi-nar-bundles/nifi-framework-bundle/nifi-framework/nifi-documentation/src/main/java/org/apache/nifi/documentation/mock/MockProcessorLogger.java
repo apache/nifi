@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.documentation.mock;
 
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.logging.ProcessorLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
  * be used during initialization of a component.
  *
  */
-public class MockProcessorLogger implements ProcessorLog {
+public class MockProcessorLogger implements ComponentLog {
 
     private static final Logger logger = LoggerFactory
             .getLogger(MockProcessorLogger.class);

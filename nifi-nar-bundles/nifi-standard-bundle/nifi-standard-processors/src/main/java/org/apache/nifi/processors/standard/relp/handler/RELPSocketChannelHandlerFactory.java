@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard.relp.handler;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -39,7 +39,7 @@ public class RELPSocketChannelHandlerFactory<E extends Event<SocketChannel>> imp
                                            final Charset charset,
                                            final EventFactory<E> eventFactory,
                                            final BlockingQueue<E> events,
-                                           final ProcessorLog logger) {
+                                           final ComponentLog logger) {
         return new RELPSocketChannelHandler<>(key, dispatcher, charset, eventFactory, events, logger);
     }
 
@@ -49,7 +49,7 @@ public class RELPSocketChannelHandlerFactory<E extends Event<SocketChannel>> imp
                                               final Charset charset,
                                               final EventFactory<E> eventFactory,
                                               final BlockingQueue<E> events,
-                                              final ProcessorLog logger) {
+                                              final ComponentLog logger) {
         return new RELPSSLSocketChannelHandler<>(key, dispatcher, charset, eventFactory, events, logger);
     }
 

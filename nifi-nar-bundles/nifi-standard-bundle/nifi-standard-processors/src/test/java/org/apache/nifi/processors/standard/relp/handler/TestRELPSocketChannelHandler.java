@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.standard.relp.handler;
 
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
@@ -50,7 +50,7 @@ public class TestRELPSocketChannelHandler {
     private ChannelHandlerFactory<TestEvent,AsyncChannelDispatcher> channelHandlerFactory;
     private BlockingQueue<ByteBuffer> byteBuffers;
     private BlockingQueue<TestEvent> events;
-    private ProcessorLog logger = Mockito.mock(ProcessorLog.class);
+    private ComponentLog logger = Mockito.mock(ComponentLog.class);
     private int maxConnections;
     private SSLContext sslContext;
     private Charset charset;
@@ -65,7 +65,7 @@ public class TestRELPSocketChannelHandler {
         byteBuffers.add(ByteBuffer.allocate(4096));
 
         events = new LinkedBlockingQueue<>();
-        logger = Mockito.mock(ProcessorLog.class);
+        logger = Mockito.mock(ComponentLog.class);
 
         maxConnections = 1;
         sslContext = null;

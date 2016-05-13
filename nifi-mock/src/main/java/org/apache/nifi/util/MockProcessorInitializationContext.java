@@ -26,13 +26,13 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 
 public class MockProcessorInitializationContext implements ProcessorInitializationContext, ControllerServiceLookup {
 
-    private final MockProcessorLog logger;
+    private final MockComponentLog logger;
     private final String processorId;
     private final MockProcessContext context;
 
     public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context) {
         processorId = UUID.randomUUID().toString();
-        logger = new MockProcessorLog(processorId, processor);
+        logger = new MockComponentLog(processorId, processor);
         this.context = context;
     }
 
@@ -42,7 +42,7 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
-    public MockProcessorLog getLogger() {
+    public MockComponentLog getLogger() {
         return logger;
     }
 

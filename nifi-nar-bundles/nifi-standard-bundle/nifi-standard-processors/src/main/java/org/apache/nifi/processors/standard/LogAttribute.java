@@ -37,7 +37,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -132,9 +132,9 @@ public class LogAttribute extends AbstractProcessor {
         return supportedDescriptors;
     }
 
-    protected String processFlowFile(final ProcessorLog logger, final DebugLevels logLevel, final FlowFile flowFile, final ProcessSession session, final ProcessContext context) {
+    protected String processFlowFile(final ComponentLog logger, final DebugLevels logLevel, final FlowFile flowFile, final ProcessSession session, final ProcessContext context) {
         final Set<String> attributeKeys = getAttributesToLog(flowFile.getAttributes().keySet(), context);
-        final ProcessorLog LOG = getLogger();
+        final ComponentLog LOG = getLogger();
         final String dashedLine;
 
         String logPrefix = context.getProperty(LOG_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
@@ -240,7 +240,7 @@ public class LogAttribute extends AbstractProcessor {
             throw new ProcessException(e);
         }
 
-        final ProcessorLog LOG = getLogger();
+        final ComponentLog LOG = getLogger();
         boolean isLogLevelEnabled = false;
         switch (logLevel) {
             case trace:

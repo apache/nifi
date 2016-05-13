@@ -17,8 +17,7 @@
 package org.apache.nifi.processor.util.put.sender;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.logging.ProcessorLog;
-
+import org.apache.nifi.logging.ComponentLog;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -33,7 +32,7 @@ public class DatagramChannelSender extends ChannelSender {
 
     private DatagramChannel channel;
 
-    public DatagramChannelSender(final String host, final int port, final int maxSendBufferSize, final ProcessorLog logger) {
+    public DatagramChannelSender(final String host, final int port, final int maxSendBufferSize, final ComponentLog logger) {
         super(host, port, maxSendBufferSize, logger);
     }
 

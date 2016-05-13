@@ -52,7 +52,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -192,7 +192,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
 
@@ -236,7 +236,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
     private void updateMapping(final ProcessContext context) {
         if (processorLock.tryLock()) {
-            final ProcessorLog logger = getLogger();
+            final ComponentLog logger = getLogger();
             try {
                 // if not queried mapping file lastUpdate time in
                 // mapppingRefreshPeriodSecs, do so.

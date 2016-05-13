@@ -17,7 +17,7 @@
 package org.apache.nifi.documentation.mock;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
 /**
@@ -34,7 +34,7 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
-    public ProcessorLog getLogger() {
+    public ComponentLog getLogger() {
         return new MockProcessorLogger();
     }
 

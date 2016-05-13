@@ -90,8 +90,8 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     private static final Set<Class<? extends Annotation>> deprecatedTypeAnnotations = new HashSet<>();
     private static final Set<Class<? extends Annotation>> deprecatedMethodAnnotations = new HashSet<>();
-    private final Map<String, MockProcessorLog> controllerServiceLoggers = new HashMap<>();
-    private final MockProcessorLog logger;
+    private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
+    private final MockComponentLog logger;
 
     static {
         // do this in a separate method, just so that we can add a @SuppressWarnings annotation
@@ -607,7 +607,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         // }
         // }
 
-        final MockProcessorLog logger = new MockProcessorLog(identifier, service);
+        final MockComponentLog logger = new MockComponentLog(identifier, service);
         controllerServiceLoggers.put(identifier, logger);
         final MockStateManager serviceStateManager = new MockStateManager(service);
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger, serviceStateManager);
@@ -835,11 +835,11 @@ public class StandardProcessorTestRunner implements TestRunner {
         return controllerServiceStateManagers.get(controllerService.getIdentifier());
     }
 
-    public MockProcessorLog getLogger() {
+    public MockComponentLog getLogger() {
         return logger;
     }
 
-    public MockProcessorLog getControllerServiceLogger(final String identifier) {
+    public MockComponentLog getControllerServiceLogger(final String identifier) {
         return controllerServiceLoggers.get(identifier);
     }
 

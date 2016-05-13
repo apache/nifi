@@ -43,7 +43,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -167,7 +167,7 @@ public class MonitorActivity extends AbstractProcessor {
         final long thresholdMillis = context.getProperty(THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS);
         final long now = System.currentTimeMillis();
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final List<FlowFile> flowFiles = session.get(50);
         if (flowFiles.isEmpty()) {
             final long previousSuccessMillis = latestSuccessTransfer.get();

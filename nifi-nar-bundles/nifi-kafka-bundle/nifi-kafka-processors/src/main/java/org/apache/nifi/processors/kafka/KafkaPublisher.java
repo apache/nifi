@@ -32,7 +32,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.stream.io.util.StreamScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +54,7 @@ class KafkaPublisher implements AutoCloseable {
 
     private final long ackWaitTime;
 
-    private ProcessorLog processLog;
+    private ComponentLog processLog;
 
     /**
      * Creates an instance of this class as well as the instance of the
@@ -80,7 +80,7 @@ class KafkaPublisher implements AutoCloseable {
     /**
      *
      */
-    void setProcessLog(ProcessorLog processLog) {
+    void setProcessLog(ComponentLog processLog) {
         this.processLog = processLog;
     }
 

@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.slf4j.LoggerFactory;
@@ -107,7 +107,7 @@ public class SFTPTransfer implements FileTransfer {
         .defaultValue("false")
         .build();
 
-    private final ProcessorLog logger;
+    private final ComponentLog logger;
 
     private final ProcessContext ctx;
     private Session session;
@@ -117,7 +117,7 @@ public class SFTPTransfer implements FileTransfer {
 
     private final boolean disableDirectoryListing;
 
-    public SFTPTransfer(final ProcessContext processContext, final ProcessorLog logger) {
+    public SFTPTransfer(final ProcessContext processContext, final ComponentLog logger) {
         this.ctx = processContext;
         this.logger = logger;
 
