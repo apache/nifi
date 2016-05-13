@@ -214,7 +214,7 @@ public class SiteToSiteResource extends ApplicationResource {
             peers = new ArrayList<>(nodeInfos.size());
             for(NodeInformation nodeInfo : nodeInfos){
                 PeerDTO peer = new PeerDTO();
-                // TODO: Need to set API host name instead.
+                // TODO: Need to set API host name instead?
                 peer.setHostname(nodeInfo.getSiteToSiteHostname());
                 // TODO: Determine which hostname:port to use based on isSiteToSiteSecure.
                 // This port is configured in a context of NiFi Cluster Manager's use,
@@ -229,7 +229,9 @@ public class SiteToSiteResource extends ApplicationResource {
             // Standalone mode.
             // If this request is sent via HTTPS, subsequent requests should be sent via HTTPS.
             PeerDTO peer = new PeerDTO();
-            peer.setHostname(req.getLocalName());
+            // req.getLocalName returns private IP address in some environments, that can't be accessed from client.
+            // So instead use the value defined in nifi.properties.
+            peer.setHostname(properties.getRemoteInputHost());
             peer.setPort(req.getLocalPort());
             peer.setSecure(req.isSecure());
             peer.setFlowFileCount(0);  // doesn't matter how many FlowFiles we have, because we're the only host.

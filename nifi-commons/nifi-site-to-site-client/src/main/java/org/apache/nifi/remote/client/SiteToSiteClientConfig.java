@@ -18,6 +18,7 @@ package org.apache.nifi.remote.client;
 
 import java.io.File;
 import java.io.Serializable;
+import java.net.Proxy;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
@@ -150,5 +151,11 @@ public interface SiteToSiteClientConfig extends Serializable {
      * @return the EventReporter that is to be used by clients to report events
      */
     EventReporter getEventReporter();
+
+    /**
+     * Return Proxy for HTTP Transport Protocol.
+     * @return proxy or null if not specified
+     */
+    Proxy getProxy();
 
 }
