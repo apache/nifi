@@ -18,8 +18,6 @@ package org.apache.nifi.processors.script;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -35,6 +33,7 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import java.io.FileInputStream;
@@ -45,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@TriggerSerially
 @Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Experimental - Executes a script given the flow file and a process session.  The script is responsible for "
         + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
@@ -128,7 +126,9 @@ public class ExecuteScript extends AbstractScriptProcessor {
         } else {
             modules = new String[0];
         }
-        super.setup();
+        // Create a script engine for each possible task
+        int maxTasks = context.getMaxConcurrentTasks();
+        super.setup(maxTasks);
         scriptToRun = scriptBody;
 
         try {
@@ -160,6 +160,11 @@ public class ExecuteScript extends AbstractScriptProcessor {
             if (!isInitialized.get()) {
                 createResources();
             }
+        }
+        ScriptEngine scriptEngine = engineQ.poll();
+        if (scriptEngine == null) {
+            // No engine available so nothing more to do here
+            return;
         }
         ProcessorLog log = getLogger();
         ProcessSession session = sessionFactory.createSession();
@@ -211,11 +216,8 @@ public class ExecuteScript extends AbstractScriptProcessor {
             getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
             session.rollback(true);
             throw t;
+        } finally {
+            engineQ.offer(scriptEngine);
         }
-    }
-
-    @OnStopped
-    public void stop() {
-        scriptEngine = null;
     }
 }
