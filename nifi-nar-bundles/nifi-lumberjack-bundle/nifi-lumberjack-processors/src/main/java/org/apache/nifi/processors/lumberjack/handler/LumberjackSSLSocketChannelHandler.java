@@ -70,7 +70,6 @@ public class LumberjackSSLSocketChannelHandler<E extends Event<SocketChannel>> e
                     final List<LumberjackFrame> frames = decoder.getFrames();
                     // A list of events has been generated
                     for (LumberjackFrame frame : frames) {
-                        //TODO: Clean this
                         logger.debug("Received Lumberjack frame with transaction {} and command {}",
                                 new Object[]{frame.getSeqNumber(), frame.getSeqNumber()});
                         // Ignore the WINDOWS type frames as they contain no payload.

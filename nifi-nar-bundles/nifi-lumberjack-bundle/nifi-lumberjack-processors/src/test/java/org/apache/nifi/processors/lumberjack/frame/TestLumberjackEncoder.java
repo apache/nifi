@@ -16,8 +16,33 @@
  */
 package org.apache.nifi.processors.lumberjack.frame;
 
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import javax.xml.bind.DatatypeConverter;
+import java.nio.ByteBuffer;
 
 
 public class TestLumberjackEncoder {
-// TODO: Implement
+    private LumberjackEncoder encoder;
+
+
+    @Before
+    public void setup() {
+        this.encoder = new LumberjackEncoder();
+    }
+
+    @Test
+    public void testEncode() {
+        LumberjackFrame frame = new LumberjackFrame.Builder()
+                .version((byte) 0x31)
+                .frameType((byte) 0x41)
+                .payload(ByteBuffer.allocate(8).putLong(123).array())
+                .build();
+
+        byte[] encoded = encoder.encode(frame);
+
+        Assert.assertArrayEquals(DatatypeConverter.parseHexBinary("3141000000000000007B"), encoded);
+    }
 }

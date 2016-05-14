@@ -28,7 +28,8 @@ import java.util.List;
 
 public class TestLumberjackDecoder {
 
-    // Because no encoder is put in place, add Static hex data to compression
+    // Because no encoder for type 43 was coded, added Static hex
+    // representation of compressed data
     //
     private static final String singleFrameData = "3143000000aa785e4c8e4daac3300c8413c8cbfeddc017681da7b48540775df51245103936f54fb" +
             "04c4a6e5f6917d03020e91bc93c9ba669597faccefa80ec0fed72440dd1174833e819370c798d98aa0e79a10ae44e36972f94198b26886bc" +

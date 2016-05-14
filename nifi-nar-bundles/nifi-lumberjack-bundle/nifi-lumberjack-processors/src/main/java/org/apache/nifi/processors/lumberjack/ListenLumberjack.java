@@ -76,7 +76,9 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
-                    "messages will be received over a secure connection.")
+                    "messages will be received over a secure connection. Note that as Lumberjack client requires"+
+                    "two-way SSL authentication, the controller MUST have a truststore and a keystore to work"+
+                    "properly.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
@@ -182,7 +184,7 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
 
         Map<String, String> fields = jsonObject.fromJson(serialFields, Map.class);
 
-        // TODO: Allow user to select what fields get added
+        // Should possibly allow user to select what fields get added? Maybe not.
         for (Map.Entry<String, String> entry : fields.entrySet()) {
             attributes.put(LumberjackAttributes.FIELDS.key().concat(".").concat(entry.getKey()), entry.getValue());
         }
