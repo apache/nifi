@@ -199,13 +199,14 @@ public class PutKafka extends AbstractProcessor {
             .expressionLanguageSupported(false)
             .build();
     public static final PropertyDescriptor BATCH_NUM_MESSAGES = new PropertyDescriptor.Builder()
-            .name("Async Batch Size").displayName("Batch Size")
-            .description("The number of messages to send in one batch. The producer will wait until either this number of messages are ready "
-                            + "to send or \"Queue Buffering Max Time\" is reached. NOTE: This property will be ignored unless the 'Message Delimiter' "
-                            + "property is specified.")
+            .name("Batch Size").displayName("Batch Size")
+            .description("The producer will attempt to batch records together into fewer requests whenever multiple " +
+                "records are being sent to the same partition. This helps performance on both the client and the server. " +
+                "This configuration controls the default batch size in bytes. As events enter a queue, they are buffered in a queue, " +
+                "until either \"QUEUE_BUFFERING_MAX\" or this size is reached")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("200")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR).required(true)
+            .defaultValue("16384 B")
             .build();
     public static final PropertyDescriptor QUEUE_BUFFERING_MAX = new PropertyDescriptor.Builder()
             .name("Queue Buffering Max Time")
@@ -451,7 +452,7 @@ public class PutKafka extends AbstractProcessor {
         properties.setProperty("buffer.memory", String.valueOf(context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).longValue()));
         properties.setProperty("compression.type", context.getProperty(COMPRESSION_CODEC).getValue());
         if (context.getProperty(MESSAGE_DELIMITER).isSet()) {
-            properties.setProperty("batch.size", context.getProperty(BATCH_NUM_MESSAGES).getValue());
+            properties.setProperty("batch.size", String.valueOf(context.getProperty(BATCH_NUM_MESSAGES).asDataSize(DataUnit.B).longValue()));
         } else {
             properties.setProperty("batch.size", "1");
         }
