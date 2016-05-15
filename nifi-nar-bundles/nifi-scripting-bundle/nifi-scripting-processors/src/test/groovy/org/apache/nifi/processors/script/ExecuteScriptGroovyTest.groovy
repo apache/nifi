@@ -36,10 +36,6 @@ import static org.junit.Assert.assertNotNull
 class ExecuteScriptGroovyTest extends BaseScriptTest {
     private static final Logger logger = LoggerFactory.getLogger(ExecuteScriptGroovyTest.class)
 
-    private static final String TEST_CSV_DATA = "gender,title,first,last\n" +
-            "female,miss,marlene,shaw\n" +
-            "male,mr,todd,graham"
-
     @BeforeClass
     public static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
