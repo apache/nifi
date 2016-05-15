@@ -54,7 +54,6 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private boolean allowExpressionValidation = true;
     private volatile boolean incomingConnection = true;
     private volatile boolean nonLoopConnection = true;
- 
     private int maxConcurrentTasks = 1;
 
     private volatile Set<Relationship> connections = new HashSet<>();
