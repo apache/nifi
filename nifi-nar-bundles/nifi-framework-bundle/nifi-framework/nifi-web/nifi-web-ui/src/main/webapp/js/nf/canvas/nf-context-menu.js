@@ -442,19 +442,6 @@ nf.ContextMenu = (function () {
         {condition: isDeletable, menuItem: {img: 'images/iconDelete.png', text: 'Delete', action: 'delete'}}
     ];
 
-    /**
-     * Positions and shows the context menu.
-     * 
-     * @param {jQuery} contextMenu  The context menu
-     * @param {object} options      The context menu configuration
-     */
-    var positionAndShow = function (contextMenu, options) {
-        contextMenu.css({
-            'left': options.x + 'px',
-            'top': options.y + 'px'
-        }).show();
-    };
-
     return {
         init: function () {
             $('#context-menu').on('contextmenu', function(evt) {
@@ -468,8 +455,9 @@ nf.ContextMenu = (function () {
          * Shows the context menu. 
          */
         show: function () {
-            var canvasBody = $('#canvas-body').get(0);
             var contextMenu = $('#context-menu').empty();
+            var canvasBody = $('#canvas-body').get(0);
+            var bannerFooter = $('#banner-footer').get(0);
 
             // get the current selection
             var selection = nf.CanvasUtils.getSelection();
@@ -493,6 +481,14 @@ nf.ContextMenu = (function () {
 
             // get the location for the context menu
             var position = d3.mouse(canvasBody);
+
+            // nifi 1864 make sure the context menu is not hidden by the browser boundaries
+            if (position[0] + contextMenu.width() > canvasBody.clientWidth) {
+                position[0] = canvasBody.clientWidth - contextMenu.width() - 2;
+            }
+            if (position[1] + contextMenu.height() > (canvasBody.clientHeight - bannerFooter.clientHeight)) {
+                position[1] = canvasBody.clientHeight - bannerFooter.clientHeight - contextMenu.height() - 2;
+            }
 
             // show the context menu
             positionAndShow(contextMenu, {
