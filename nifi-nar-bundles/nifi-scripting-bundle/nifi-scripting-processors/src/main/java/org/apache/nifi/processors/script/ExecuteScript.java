@@ -162,7 +162,6 @@ public class ExecuteScript extends AbstractScriptProcessor {
         }
         ScriptEngine scriptEngine = engineQ.poll();
         ProcessorLog log = getLogger();
-        log.info("[REMOVE] After polling engine, Script Engine queue size: " + engineQ.size());
         if (scriptEngine == null) {
             // No engine available so nothing more to do here
             return;
@@ -218,7 +217,6 @@ public class ExecuteScript extends AbstractScriptProcessor {
             throw t;
         } finally {
             engineQ.offer(scriptEngine);
-            log.info("[REMOVE] After offering engine, Script Engine queue size: " + engineQ.size());
         }
     }
 }
