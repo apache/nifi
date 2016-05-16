@@ -81,7 +81,7 @@ abstract class AbstractKafkaProcessor<T extends Closeable> extends AbstractSessi
     static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
             .name(ProducerConfig.CLIENT_ID_CONFIG)
             .displayName("Client ID")
-            .description("String value uniquely identifying this client application. Correspons to Kafka's 'client.id' property.")
+            .description("String value uniquely identifying this client application. Corresponds to Kafka's 'client.id' property.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(true)

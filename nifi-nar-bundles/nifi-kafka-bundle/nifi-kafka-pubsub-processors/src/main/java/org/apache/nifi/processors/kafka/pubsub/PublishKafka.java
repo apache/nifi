@@ -43,7 +43,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.kafka.pubsub.KafkaPublisher.KafkaPublisherResult;
@@ -224,7 +223,7 @@ public class PublishKafka extends AbstractKafkaProcessor<KafkaPublisher> {
      * Builds and instance of {@link KafkaPublisher}.
      */
     @Override
-    protected KafkaPublisher buildKafkaResource(ProcessContext context, ProcessSession session)  throws ProcessException {
+    protected KafkaPublisher buildKafkaResource(ProcessContext context, ProcessSession session) {
         Properties kafkaProperties = this.buildKafkaProperties(context);
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());

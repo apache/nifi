@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -45,14 +46,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes messages from Apache Kafka")
 @Tags({ "Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume" })
-public class ConsumeKafka extends AbstractKafkaProcessor<KafkaConsumer<byte[], byte[]>> {
+public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]>> {
 
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
 
@@ -209,7 +209,7 @@ public class ConsumeKafka extends AbstractKafkaProcessor<KafkaConsumer<byte[], b
      * topic.
      */
     @Override
-    protected KafkaConsumer<byte[], byte[]> buildKafkaResource(ProcessContext context, ProcessSession session) throws ProcessException {
+    protected Consumer<byte[], byte[]> buildKafkaResource(ProcessContext context, ProcessSession session) {
         this.demarcatorBytes = context.getProperty(MESSAGE_DEMARCATOR).isSet()
                 ? context.getProperty(MESSAGE_DEMARCATOR).evaluateAttributeExpressions().getValue().getBytes(StandardCharsets.UTF_8)
                 : null;

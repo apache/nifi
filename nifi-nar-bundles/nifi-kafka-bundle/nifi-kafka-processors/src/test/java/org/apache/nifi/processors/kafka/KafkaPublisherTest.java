@@ -34,7 +34,6 @@ import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import kafka.consumer.Consumer;
@@ -44,7 +43,6 @@ import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 
-@Ignore
 // The test is valid and should be ran when working on this module. @Ignore is
 // to speed up the overall build
 public class KafkaPublisherTest {
