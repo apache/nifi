@@ -25,6 +25,8 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
 import org.apache.nifi.processor.DataUnit;
@@ -54,6 +56,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
+import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -83,15 +87,35 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
             .identifiesControllerService(SSLContextService.class)
             .build();
 
+    @Override
+    protected List<PropertyDescriptor> getAdditionalProperties() {
+        return Arrays.asList(
+                MAX_CONNECTIONS,
+                SSL_CONTEXT_SERVICE
+        );
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        final SSLContextService sslContextService = validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+
+
+
+        if (sslContextService != null && sslContextService.isTrustStoreConfigured() == false) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("The context service must have a truststore  configured for the lumberjack forwarder client to work correctly")
+                    .valid(false).subject(SSL_CONTEXT_SERVICE.getName()).build());
+        }
+
+        return results;
+    }
+
     private volatile LumberjackEncoder lumberjackEncoder;
     private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
 
 
-
-    @Override
-    protected List<PropertyDescriptor> getAdditionalProperties() {
-        return Arrays.asList(MAX_CONNECTIONS, SSL_CONTEXT_SERVICE);
-    }
 
     @Override
     @OnScheduled
