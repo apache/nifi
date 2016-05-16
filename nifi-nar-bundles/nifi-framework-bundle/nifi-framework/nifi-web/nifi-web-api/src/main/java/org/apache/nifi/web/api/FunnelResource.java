@@ -231,7 +231,7 @@ public class FunnelResource extends ApplicationResource {
             headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
 
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(funnelEntity), getHeaders(headersToOverride)).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), funnelEntity, getHeaders(headersToOverride)).getResponse();
         }
 
         // Extract the revision

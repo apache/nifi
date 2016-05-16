@@ -17,16 +17,16 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 public class ReportingTaskEndpointMerger extends AbstractSingleEntityEndpoint<ReportingTaskEntity, ReportingTaskDTO> {
     public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks/node";
@@ -50,7 +50,7 @@ public class ReportingTaskEndpointMerger extends AbstractSingleEntityEndpoint<Re
 
     @Override
     protected ReportingTaskDTO getDto(ReportingTaskEntity entity) {
-        return entity.getReportingTask();
+        return entity.getComponent();
     }
 
     @Override

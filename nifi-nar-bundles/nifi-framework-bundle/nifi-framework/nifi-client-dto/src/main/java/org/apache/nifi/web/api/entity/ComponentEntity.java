@@ -42,11 +42,7 @@ public class ComponentEntity extends Entity {
             value = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
     )
     public RevisionDTO getRevision() {
-        if (revision == null) {
-            return new RevisionDTO();
-        } else {
-            return revision;
-        }
+        return revision;
     }
 
     public void setRevision(RevisionDTO revision) {

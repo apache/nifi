@@ -17,12 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -30,6 +24,12 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoint<ControllerServiceEntity, ControllerServiceDTO> {
     public static final String CONTROLLER_SERVICES_URI = "/nifi-api/controller-services/node";
@@ -53,7 +53,7 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
 
     @Override
     protected ControllerServiceDTO getDto(ControllerServiceEntity entity) {
-        return entity.getControllerService();
+        return entity.getComponent();
     }
 
     @Override
@@ -104,7 +104,7 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
             // go through all the nodes referencing components
             if (nodeReferencingComponents != null) {
                 for (final ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity : nodeReferencingComponents) {
-                    final ControllerServiceReferencingComponentDTO nodeReferencingComponent = nodeReferencingComponentEntity.getControllerServiceReferencingComponent();
+                    final ControllerServiceReferencingComponentDTO nodeReferencingComponent = nodeReferencingComponentEntity.getComponent();
 
                     // handle active thread counts
                     if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
@@ -133,12 +133,12 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
         for (final ControllerServiceReferencingComponentEntity referencingComponent : referencingComponents) {
             final Integer activeThreadCount = activeThreadCounts.get(referencingComponent.getId());
             if (activeThreadCount != null) {
-                referencingComponent.getControllerServiceReferencingComponent().setActiveThreadCount(activeThreadCount);
+                referencingComponent.getComponent().setActiveThreadCount(activeThreadCount);
             }
 
             final String state = states.get(referencingComponent.getId());
             if (state != null) {
-                referencingComponent.getControllerServiceReferencingComponent().setState(state);
+                referencingComponent.getComponent().setState(state);
             }
         }
     }

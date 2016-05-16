@@ -30,7 +30,6 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
@@ -39,9 +38,7 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
-import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -364,7 +361,7 @@ public class ProcessorResource extends ApplicationResource {
             value = "The revision used to verify the client is working with the latest version of the flow.",
             required = true
         )
-        Entity revisionEntity,
+        ComponentStateEntity revisionEntity,
         @ApiParam(
             value = "The processor id.",
             required = true
@@ -372,7 +369,7 @@ public class ProcessorResource extends ApplicationResource {
         @PathParam("id") String id) {
 
         // ensure the revision was specified
-        if (revisionEntity == null || revisionEntity.getRevision() == null) {
+        if (revisionEntity == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
@@ -382,28 +379,16 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision revision = getRevision(revisionEntity.getRevision(), id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
-
-        if (validationPhase) {
+        if (isValidationPhase(httpServletRequest)) {
             serviceFacade.verifyCanClearProcessorState(id);
             return generateContinueResponse().build();
         }
 
         // get the component state
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearProcessorState(revision, id);
-
-        // create the revision
-        final RevisionDTO responseRevision = new RevisionDTO();
-        responseRevision.setClientId(revision.getClientId());
-        responseRevision.setVersion(snapshot.getVersion());
+        serviceFacade.clearProcessorState(id);
 
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(responseRevision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -478,7 +463,7 @@ public class ProcessorResource extends ApplicationResource {
             }
 
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(processorEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), processorEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)

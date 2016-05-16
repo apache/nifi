@@ -18,7 +18,6 @@ package org.apache.nifi.web.api;
 
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import io.jsonwebtoken.JwtException;
@@ -37,10 +36,8 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AccessStatusEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
@@ -62,13 +59,11 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -104,7 +99,6 @@ public class AccessResource extends ApplicationResource {
      * Retrieves the access configuration for this NiFi.
      *
      * @param httpServletRequest the servlet request
-     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A accessConfigurationEntity
      */
     @GET
@@ -115,13 +109,7 @@ public class AccessResource extends ApplicationResource {
             value = "Retrieves the access configuration for this NiFi",
             response = AccessConfigurationEntity.class
     )
-    public Response getLoginConfig(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getLoginConfig(@Context HttpServletRequest httpServletRequest) {
 
         final AccessConfigurationDTO accessConfiguration = new AccessConfigurationDTO();
 
@@ -129,13 +117,8 @@ public class AccessResource extends ApplicationResource {
         accessConfiguration.setSupportsLogin(loginIdentityProvider != null && httpServletRequest.isSecure());
         accessConfiguration.setSupportsAnonymous(false);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final AccessConfigurationEntity entity = new AccessConfigurationEntity();
-        entity.setRevision(revision);
         entity.setConfig(accessConfiguration);
 
         // generate the response
@@ -146,7 +129,6 @@ public class AccessResource extends ApplicationResource {
      * Gets the status the client's access.
      *
      * @param httpServletRequest the servlet request
-     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A accessStatusEntity
      */
     @GET
@@ -166,13 +148,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 500, message = "Unable to determine access status because an unexpected error occurred.")
             }
     )
-    public Response getAccessStatus(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getAccessStatus(@Context HttpServletRequest httpServletRequest) {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
@@ -253,13 +229,8 @@ public class AccessResource extends ApplicationResource {
             throw new AdministrationException(ase.getMessage(), ase);
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the entity
         final AccessStatusEntity entity = new AccessStatusEntity();
-        entity.setRevision(revision);
         entity.setAccessStatus(accessStatus);
 
         return generateOkResponse(entity).build();

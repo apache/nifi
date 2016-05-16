@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.controller.reporting;
 
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -31,6 +35,16 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
             final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory) {
         super(reportingTask, id, controller, processScheduler, validationContextFactory);
         this.flowController = controller;
+    }
+
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return flowController;
+    }
+
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getComponentResource(ResourceType.ReportingTask, getIdentifier(), getName());
     }
 
     @Override

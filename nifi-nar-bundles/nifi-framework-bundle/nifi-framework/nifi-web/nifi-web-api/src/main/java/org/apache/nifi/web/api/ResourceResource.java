@@ -18,26 +18,20 @@ package org.apache.nifi.web.api;
 
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ResourceDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ResourcesEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
@@ -59,9 +53,6 @@ public class ResourceResource extends ApplicationResource {
     /**
      * Gets the available resources that support access/authorization policies.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @return A resourcesEntity.
      */
     @GET
@@ -82,12 +73,7 @@ public class ResourceResource extends ApplicationResource {
                 @ApiResponse(code = 401, message = "Client could not be authenticated."),
                 @ApiResponse(code = 403, message = "Client is not authorized to make this request."),}
     )
-    public Response getResources(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getResources() {
 
         // replicate if the cluster manager
         if (properties.isClusterManager()) {
@@ -97,13 +83,8 @@ public class ResourceResource extends ApplicationResource {
         // TODO - if unsecure, return no resources?
         final List<ResourceDTO> resources = serviceFacade.getResources();
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response
         final ResourcesEntity entity = new ResourcesEntity();
-        entity.setRevision(revision);
         entity.setResources(resources);
 
         // generate the response

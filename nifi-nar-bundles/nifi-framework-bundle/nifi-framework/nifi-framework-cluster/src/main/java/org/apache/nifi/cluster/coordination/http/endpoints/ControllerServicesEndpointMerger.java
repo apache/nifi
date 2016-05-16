@@ -17,16 +17,17 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+
 import java.net.URI;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.entity.ControllerServicesEntity;
-
-public class ControllerServicesEndpointMerger extends AbstractMultiEntityEndpoint<ControllerServicesEntity, ControllerServiceDTO> {
+public class ControllerServicesEndpointMerger extends AbstractMultiEntityEndpoint<ControllerServicesEntity, ControllerServiceEntity> {
     public static final String CONTROLLER_SERVICES_URI = "/nifi-api/controller-services/node";
 
     @Override
@@ -40,17 +41,23 @@ public class ControllerServicesEndpointMerger extends AbstractMultiEntityEndpoin
     }
 
     @Override
-    protected Set<ControllerServiceDTO> getDtos(ControllerServicesEntity entity) {
+    protected Set<ControllerServiceEntity> getDtos(ControllerServicesEntity entity) {
         return entity.getControllerServices();
     }
 
     @Override
-    protected String getComponentId(ControllerServiceDTO dto) {
-        return dto.getId();
+    protected String getComponentId(ControllerServiceEntity entity) {
+        return entity.getComponent().getId();
     }
 
     @Override
-    protected void mergeResponses(ControllerServiceDTO clientDto, Map<NodeIdentifier, ControllerServiceDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        new ControllerServiceEndpointMerger().mergeResponses(clientDto, dtoMap, successfulResponses, problematicResponses);
+    protected void mergeResponses(ControllerServiceEntity entity, Map<NodeIdentifier, ControllerServiceEntity> entityMap,
+                                  Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+
+        new ControllerServiceEndpointMerger().mergeResponses(
+            entity.getComponent(),
+            entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getComponent())),
+            successfulResponses,
+            problematicResponses);
     }
 }

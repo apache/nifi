@@ -25,17 +25,17 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 @XmlRootElement(name = "controllerServiceEntity")
 public class ControllerServiceEntity extends ComponentEntity {
 
-    private ControllerServiceDTO controllerService;
+    private ControllerServiceDTO component;
 
     /**
      * @return controller service that is being serialized
      */
-    public ControllerServiceDTO getControllerService() {
-        return controllerService;
+    public ControllerServiceDTO getComponent() {
+        return component;
     }
 
-    public void setControllerService(ControllerServiceDTO controllerService) {
-        this.controllerService = controllerService;
+    public void setComponent(ControllerServiceDTO component) {
+        this.component = component;
     }
 
 }

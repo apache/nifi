@@ -145,20 +145,6 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(revision);
-        if (dto != null) {
-            entity.setAccessPolicy(accessPolicy);
-            entity.setId(dto.getId());
-            entity.setPosition(dto.getPosition());
-            if (accessPolicy != null && accessPolicy.getCanRead()) {
-                entity.setControllerService(dto);
-            }
-        }
-        return entity;
-    }
-
     public RemoteProcessGroupEntity createRemoteProcessGroupEntity(
         final RemoteProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy,final RemoteProcessGroupStatusDTO status) {
 
@@ -213,10 +199,24 @@ public final class EntityFactory {
             entity.setAccessPolicy(accessPolicy);
             entity.setId(dto.getId());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
-                entity.setReportingTask(dto);
+                entity.setComponent(dto);
             }
         }
 
+        return entity;
+    }
+
+    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final ControllerServiceEntity entity = new ControllerServiceEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            entity.setPosition(dto.getPosition());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
         return entity;
     }
 
@@ -229,7 +229,7 @@ public final class EntityFactory {
             entity.setAccessPolicy(accessPolicy);
             entity.setId(dto.getId());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
-                entity.setControllerServiceReferencingComponent(dto);
+                entity.setComponent(dto);
             }
         }
 

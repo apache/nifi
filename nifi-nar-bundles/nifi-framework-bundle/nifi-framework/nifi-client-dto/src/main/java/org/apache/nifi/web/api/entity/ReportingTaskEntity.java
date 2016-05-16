@@ -26,17 +26,17 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 @XmlRootElement(name = "reportingTaskEntity")
 public class ReportingTaskEntity extends ComponentEntity {
 
-    private ReportingTaskDTO reportingTask;
+    private ReportingTaskDTO component;
 
     /**
      * @return reporting task that is being serialized
      */
-    public ReportingTaskDTO getReportingTask() {
-        return reportingTask;
+    public ReportingTaskDTO getComponent() {
+        return component;
     }
 
-    public void setReportingTask(ReportingTaskDTO reportingTask) {
-        this.reportingTask = reportingTask;
+    public void setComponent(ReportingTaskDTO component) {
+        this.component = component;
     }
 
 }

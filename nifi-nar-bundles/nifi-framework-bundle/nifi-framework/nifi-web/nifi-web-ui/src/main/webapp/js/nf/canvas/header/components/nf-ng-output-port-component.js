@@ -49,7 +49,9 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
                 // add the port to the graph
                 nf.Graph.add({
                     'outputPorts': [response]
-                }, true);
+                }, {
+                    'selectAll': true
+                });
 
                 // update component visibility
                 nf.Canvas.View.updateVisibility();

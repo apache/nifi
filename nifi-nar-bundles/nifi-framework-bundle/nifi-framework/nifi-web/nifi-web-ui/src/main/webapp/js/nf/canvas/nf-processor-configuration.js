@@ -437,8 +437,10 @@ nf.ProcessorConfiguration = (function () {
                 data: JSON.stringify(updatedProcessor),
                 url: processor.uri,
                 dataType: 'json',
-                processData: false,
                 contentType: 'application/json'
+            }).done(function (response) {
+                // set the new processor state based on the response
+                nf.Processor.set(response);
             }).fail(handleProcessorConfigurationError);
         } else {
             return $.Deferred(function (deferred) {
@@ -714,9 +716,6 @@ nf.ProcessorConfiguration = (function () {
 
                                     // save the processor
                                     saveProcessor(processor).done(function (response) {
-                                        // set the new processor state based on the response
-                                        nf.Processor.set(response);
-
                                         // reload the processor's outgoing connections
                                         reloadProcessorConnections(processor);
 

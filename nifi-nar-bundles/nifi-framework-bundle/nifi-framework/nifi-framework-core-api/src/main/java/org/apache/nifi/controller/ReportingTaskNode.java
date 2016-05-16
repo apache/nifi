@@ -19,12 +19,13 @@ package org.apache.nifi.controller;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
-public interface ReportingTaskNode extends ConfiguredComponent {
+public interface ReportingTaskNode extends ConfiguredComponent, Authorizable {
 
     void setSchedulingStrategy(SchedulingStrategy schedulingStrategy);
 

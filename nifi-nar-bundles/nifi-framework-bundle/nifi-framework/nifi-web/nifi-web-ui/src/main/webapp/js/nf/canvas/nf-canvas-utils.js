@@ -897,6 +897,11 @@ nf.CanvasUtils = (function () {
         supportsModification: function (selection) {
             var selectionData = selection.datum();
 
+            // check access policies first
+            if (selectionData.accessPolicy.canRead === false || selectionData.accessPolicy.canWrite === false) {
+                return false;
+            }
+
             var supportsModification = false;
             if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
                 if (nf.Common.isDefinedAndNotNull(selectionData.status)) {

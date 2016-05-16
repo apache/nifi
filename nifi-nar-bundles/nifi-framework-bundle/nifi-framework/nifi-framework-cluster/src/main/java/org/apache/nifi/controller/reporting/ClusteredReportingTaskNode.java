@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.controller.reporting;
 
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.cluster.manager.impl.ClusteredReportingContext;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -42,6 +46,26 @@ public class ClusteredReportingTaskNode extends AbstractReportingTaskNode {
         this.bulletinRepository = bulletinRepository;
         this.serviceProvider = serviceProvider;
         this.stateManager = stateManager;
+    }
+
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return new Authorizable() {
+            @Override
+            public Authorizable getParentAuthorizable() {
+                return null;
+            }
+
+            @Override
+            public Resource getResource() {
+                return ResourceFactory.getControllerResource();
+            }
+        };
+    }
+
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getComponentResource(ResourceType.ReportingTask, getIdentifier(), getName());
     }
 
     @Override

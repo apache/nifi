@@ -42,7 +42,9 @@ nf.ng.TemplateComponent = function (serviceProvider) {
             contentType: 'application/json'
         }).done(function (response) {
             // populate the graph accordingly
-            nf.Graph.add(response.flow, true);
+            nf.Graph.add(response.flow, {
+                'selectAll': true
+            });
 
             // update component visibility
             nf.Canvas.View.updateVisibility();

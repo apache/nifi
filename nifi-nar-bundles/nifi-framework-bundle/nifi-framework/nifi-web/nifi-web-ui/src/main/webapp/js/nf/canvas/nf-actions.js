@@ -1089,7 +1089,7 @@ nf.Actions = (function () {
             var processor = selection.datum();
 
             // view the state for the selected processor
-            nf.ComponentState.showState(processor.component, processor.revision, nf.CanvasUtils.supportsModification(selection));
+            nf.ComponentState.showState(processor.component, nf.CanvasUtils.supportsModification(selection));
         },
 
         /**
@@ -1340,7 +1340,9 @@ nf.Actions = (function () {
                             var snippetFlow = copyResponse.flow;
 
                             // update the graph accordingly
-                            nf.Graph.add(snippetFlow, true);
+                            nf.Graph.add(snippetFlow, {
+                                'selectAll': true
+                            });
 
                             // update component visibility
                             nf.Canvas.View.updateVisibility();

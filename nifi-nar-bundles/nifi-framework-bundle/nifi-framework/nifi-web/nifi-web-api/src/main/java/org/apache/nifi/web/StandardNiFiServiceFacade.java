@@ -16,30 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -191,6 +167,28 @@ import org.apache.nifi.web.revision.UpdateRevisionTask;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -959,29 +957,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ConfigurationSnapshot<Void> clearProcessorState(final Revision revision, final String processorId) {
-        return clearComponentState(revision, () -> processorDAO.clearState(processorId));
+    public void clearProcessorState(final String processorId) {
+        clearComponentState(processorId, () -> processorDAO.clearState(processorId));
     }
 
-    private ConfigurationSnapshot<Void> clearComponentState(final Revision revision, final Runnable clearState) {
-        final RevisionClaim claim = new StandardRevisionClaim(revision);
-        final String modifier = NiFiUserUtils.getNiFiUserName();
-        try {
-            final RevisionUpdate<Void> component = revisionManager.updateRevision(claim, modifier, new UpdateRevisionTask<Void>() {
-                @Override
-                public RevisionUpdate<Void> update() {
-                    // clear the state for the specified component
-                    clearState.run();
-
-                    final FlowModification lastMod = new FlowModification(incrementRevision(revision), modifier);
-                    return new StandardRevisionUpdate<Void>(null, lastMod);
-                }
-            });
-
-            return new ConfigurationSnapshot<>(component.getLastModification().getRevision().getVersion(), component.getComponent());
-        } catch (ExpiredRevisionClaimException e) {
-            throw new InvalidRevisionException("Unable to clear component state", e);
-        }
+    private void clearComponentState(final String componentId, final Runnable clearState) {
+        revisionManager.get(componentId, rev -> {
+            clearState.run();
+            return null;
+        });
     }
 
     @Override
@@ -995,8 +979,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ConfigurationSnapshot<Void> clearControllerServiceState(final Revision revision, final String controllerServiceId) {
-        return clearComponentState(revision, () -> controllerServiceDAO.clearState(controllerServiceId));
+    public void clearControllerServiceState(final String controllerServiceId) {
+        clearComponentState(controllerServiceId, () -> controllerServiceDAO.clearState(controllerServiceId));
     }
 
     @Override
@@ -1010,8 +994,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ConfigurationSnapshot<Void> clearReportingTaskState(final Revision revision, final String reportingTaskId) {
-        return clearComponentState(revision, () -> reportingTaskDAO.clearState(reportingTaskId));
+    public void clearReportingTaskState(final String reportingTaskId) {
+        clearComponentState(reportingTaskId, () -> reportingTaskDAO.clearState(reportingTaskId));
     }
 
     @Override
@@ -1283,23 +1267,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final String groupId = componentDto.getParentGroupId();
-        return revisionManager.get(groupId, new ReadOnlyRevisionCallback<RevisionUpdate<D>>() {
-            @Override
-            public RevisionUpdate<D> withRevision(final Revision revision) {
-                // ensure access to process group
-                final ProcessGroup parent = processGroupDAO.getProcessGroup(groupId);
-                parent.authorize(authorizer, RequestAction.WRITE);
+        return revisionManager.get(groupId, rev -> {
+            // ensure access to process group
+            final ProcessGroup parent = processGroupDAO.getProcessGroup(groupId);
+            parent.authorize(authorizer, RequestAction.WRITE);
 
-                // add the component
-                final C component = daoCreation.get();
+            // add the component
+            final C component = daoCreation.get();
 
-                // save the flow
-                controllerFacade.save();
+            // save the flow
+            controllerFacade.save();
 
-                final D dto = dtoCreation.apply(component);
-                final FlowModification lastMod = new FlowModification(new Revision(0L, revision.getClientId(), componentDto.getId()), modifier);
-                return new StandardRevisionUpdate<D>(dto, lastMod);
-            }
+            final D dto = dtoCreation.apply(component);
+            final FlowModification lastMod = new FlowModification(new Revision(0L, rev.getClientId(), componentDto.getId()), modifier);
+            return new StandardRevisionUpdate<D>(dto, lastMod);
         });
     }
 
@@ -1678,123 +1659,151 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ControllerServiceEntity createControllerService(final Revision revision, final String groupId, final ControllerServiceDTO controllerServiceDTO) {
-        // TODO: Instead of "root" we need the ID of the Process Group that the Controller Service is being created in.
-        // Right now, though, they are not scoped to a particular group.
-        return revisionManager.get("root", new ReadOnlyRevisionCallback<RevisionUpdate<ControllerServiceEntity>>() {
-            @Override
-            public RevisionUpdate<ControllerServiceEntity> withRevision(final Revision revision) {
-                // ensure id is set
-                if (StringUtils.isBlank(controllerServiceDTO.getId())) {
-                    controllerServiceDTO.setId(UUID.randomUUID().toString());
-                }
-
+    public ControllerServiceEntity createControllerService(final String groupId, final ControllerServiceDTO controllerServiceDTO) {
+        final RevisionUpdate<ControllerServiceDTO> snapshot = createComponent(
+            controllerServiceDTO,
+            () -> {
                 // create the controller service
                 final ControllerServiceNode controllerService = controllerServiceDAO.createControllerService(controllerServiceDTO);
 
+                // TODO - this logic should be part of the controllerServiceDAO
                 final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
-                group.authorize(authorizer, RequestAction.WRITE);
                 group.addControllerService(controllerService);
+                return controllerService;
+            },
+            controllerService -> dtoFactory.createControllerServiceDto(controllerService));
 
-                // save the update
-                controllerFacade.save();
-
-                final Revision updatedRevision = new Revision(0L, revision.getClientId(), controllerService.getIdentifier());
-                final FlowModification lastMod = new FlowModification(updatedRevision, NiFiUserUtils.getNiFiUserName());
-                final RevisionDTO updatedRevisionDto = dtoFactory.createRevisionDTO(lastMod);
-                final ControllerServiceDTO updatedDto = dtoFactory.createControllerServiceDto(controllerService);
-
-                // TODO: When ControllerServiceNode implements Authorizable, we need to update the access policy.
-                final AccessPolicyDTO accessPolicy = allAccess();
-                final ControllerServiceEntity entity = entityFactory.createControllerServiceEntity(updatedDto, updatedRevisionDto, accessPolicy);
-                final RevisionUpdate<ControllerServiceEntity> update = new StandardRevisionUpdate<>(entity, lastMod);
-                return update;
-            }
-        }).getComponent();
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceDTO.getId());
+        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(controllerService);
+        return entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy);
     }
 
     @Override
     public UpdateResult<ControllerServiceEntity> updateControllerService(final Revision revision, final ControllerServiceDTO controllerServiceDTO) {
         // if controller service does not exist, then create new controller service
         if (controllerServiceDAO.hasControllerService(controllerServiceDTO.getId()) == false) {
-            return new UpdateResult<>(createControllerService(revision, controllerServiceDTO.getParentGroupId(), controllerServiceDTO), true);
+            return new UpdateResult<>(createControllerService(controllerServiceDTO.getParentGroupId(), controllerServiceDTO), true);
         }
 
-        final String modifier = NiFiUserUtils.getNiFiUserName();
-        final RevisionUpdate<ControllerServiceEntity> update = revisionManager.updateRevision(new StandardRevisionClaim(revision), modifier,
-            new UpdateRevisionTask<ControllerServiceEntity>() {
-            @Override
-                public RevisionUpdate<ControllerServiceEntity> update() {
-                final ControllerServiceNode controllerService = controllerServiceDAO.updateControllerService(controllerServiceDTO);
+        // get the component, ensure we have access to it, and perform the update request
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceDTO.getId());
+        final RevisionUpdate<ControllerServiceDTO> snapshot = updateComponent(revision,
+            controllerService,
+            () -> controllerServiceDAO.updateControllerService(controllerServiceDTO),
+            cs -> dtoFactory.createControllerServiceDto(cs));
 
-                // save the update
-                controllerFacade.save();
-
-                final Revision updatedRevision = incrementRevision(revision);
-                final ControllerServiceDTO controllerServiceDto = dtoFactory.createControllerServiceDto(controllerService);
-                final FlowModification lastMod = new FlowModification(updatedRevision, modifier);
-                final RevisionDTO updatedRevisionDto = dtoFactory.createRevisionDTO(lastMod);
-
-                // TODO: When ControllerServiceNode implements Authorizable, we need to update the access policy.
-                    final AccessPolicyDTO accessPolicy = allAccess();
-                final ControllerServiceEntity entity = entityFactory.createControllerServiceEntity(controllerServiceDto, updatedRevisionDto, accessPolicy);
-                final RevisionUpdate<ControllerServiceEntity> update = new StandardRevisionUpdate<>(entity, lastMod);
-                return update;
-            }
-        });
-
-        return new UpdateResult<>(update.getComponent(), false);
+        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(controllerService);
+        return new UpdateResult<>(entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
     }
 
     @Override
     public ControllerServiceReferencingComponentsEntity updateControllerServiceReferencingComponents(
-        final Revision revision, final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
+        final Map<String, Revision> referenceRevisions, final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
 
-        // Get a set of all component ID's that are referencing the controller service, because we will need.
-        // to lock on those components. We do not need a Read Lock here from the Revision Manager because
-        // we already have a claim on the controller service.
-        final Set<Revision> referencingRevisions = controllerServiceDAO.getControllerService(controllerServiceId).getReferences().getReferencingComponents().stream()
-            .map(component -> revisionManager.getRevision(component.getIdentifier()))
-            .collect(Collectors.toSet());
-
-        // TODO: Need to figure out how to handle this. We need the Revision Claim to encapsulate the controller service
-        // as well as all of the referencing components. One option is for the verifyCanUpdateControllerServiceReferencingComponents()
-        // to obtain these claims and return to client. Another option is to just not obtain a claim on them and have an override
-        // to the revisionManager.updateRevision() method that allows us to specify a RevisionClaim and a Set<String> that contains
-        // additional component ID's that must be claimed before the operation can proceed.
-        revisionManager.requestClaim(referencingRevisions);
-        final Set<Revision> requiredRevisions = new HashSet<>(referencingRevisions);
-        requiredRevisions.add(revision);
-        final RevisionClaim claim = new StandardRevisionClaim(requiredRevisions);
+        final RevisionClaim claim = new StandardRevisionClaim(referenceRevisions.values());
         final String modifier = NiFiUserUtils.getNiFiUserName();
 
         final RevisionUpdate<ControllerServiceReferencingComponentsEntity> update = revisionManager.updateRevision(claim, modifier,
-                new UpdateRevisionTask<ControllerServiceReferencingComponentsEntity>() {
-            @Override
-            public RevisionUpdate<ControllerServiceReferencingComponentsEntity> update() {
-                final Set<ConfiguredComponent> updated = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
-                final ControllerServiceReference reference = controllerServiceDAO.getControllerService(controllerServiceId).getReferences();
-
-                final Map<String, Revision> updatedRevisions = new HashMap<>();
-                    for (final Revision refRevision : referencingRevisions) {
-                        updatedRevisions.put(refRevision.getComponentId(), refRevision);
+            new UpdateRevisionTask<ControllerServiceReferencingComponentsEntity>() {
+                @Override
+                public RevisionUpdate<ControllerServiceReferencingComponentsEntity> update() {
+                    final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+                    final ControllerServiceReference reference = controllerService.getReferences();
+                    for (final ConfiguredComponent component : reference.getReferencingComponents()) {
+                        if (component instanceof Authorizable) {
+                            // ensure we can write the referencing components
+                            ((Authorizable) component).authorize(authorizer, RequestAction.WRITE);
+                        }
                     }
 
-                for (final ConfiguredComponent component : updated) {
-                    final Revision currentRevision = revisionManager.getRevision(component.getIdentifier());
-                    final Revision updatedRevision = incrementRevision(currentRevision);
-                    updatedRevisions.put(component.getIdentifier(), updatedRevision);
-                }
+                    final Set<ConfiguredComponent> updated = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
+                    final ControllerServiceReference updatedReference = controllerServiceDAO.getControllerService(controllerServiceId).getReferences();
 
-                final ControllerServiceReferencingComponentsEntity entity = createControllerServiceReferencingComponentsEntity(reference, updatedRevisions);
-                return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
-            }
-        });
+                    final Map<String, Revision> updatedRevisions = new HashMap<>();
+                        for (final Revision refRevision : referenceRevisions.values()) {
+                            updatedRevisions.put(refRevision.getComponentId(), refRevision);
+                        }
+
+                    for (final ConfiguredComponent component : updated) {
+                        final Revision currentRevision = revisionManager.getRevision(component.getIdentifier());
+                        final Revision updatedRevision = incrementRevision(currentRevision);
+                        updatedRevisions.put(component.getIdentifier(), updatedRevision);
+                    }
+
+                    final ControllerServiceReferencingComponentsEntity entity = createControllerServiceReferencingComponentsEntity(updatedReference, updatedRevisions);
+                    return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
+                }
+            });
 
         return update.getComponent();
     }
 
-    private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(final ControllerServiceReference reference, final Map<String, Revision> revisions) {
+    /**
+     * Finds the identifiers for all components referencing a ControllerService.
+     *
+     * @param reference         ControllerServiceReference
+     * @param referencingIds    Collection of identifiers
+     * @param visited           ControllerServices we've already visited
+     */
+    private void findControllerServiceReferencingComponentIdentifiers(final ControllerServiceReference reference, final Set<String> referencingIds, final Set<ControllerServiceNode> visited) {
+        for (final ConfiguredComponent component : reference.getReferencingComponents()) {
+            referencingIds.add(component.getIdentifier());
+
+            // if this is a ControllerService consider it's referencing components
+            if (component instanceof ControllerServiceNode) {
+                final ControllerServiceNode node = (ControllerServiceNode) component;
+                if (!visited.contains(node)) {
+                    findControllerServiceReferencingComponentIdentifiers(node.getReferences(), referencingIds, visited);
+                }
+                visited.add(node);
+            }
+        }
+    }
+
+    /**
+     * Creates entities for components referencing a ControllerService using their current revision.
+     *
+     * @param reference         ControllerServiceReference
+     * @return                  The entity
+     */
+    private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(final ControllerServiceReference reference) {
+        final Set<String> referencingIds = new HashSet<>();
+        final Set<ControllerServiceNode> visited = new HashSet<>();
+        visited.add(reference.getReferencedComponent());
+        findControllerServiceReferencingComponentIdentifiers(reference, referencingIds, visited);
+
+        return revisionManager.get(referencingIds, () -> {
+            final Map<String, Revision> referencingRevisions = new HashMap<>();
+            for (final ConfiguredComponent component : reference.getReferencingComponents()) {
+                referencingRevisions.put(component.getIdentifier(), revisionManager.getRevision(component.getIdentifier()));
+            }
+            return createControllerServiceReferencingComponentsEntity(reference, referencingRevisions);
+        });
+    }
+
+    /**
+     * Creates entities for components referencing a ControllerService using the specified revisions.
+     *
+     * @param reference         ControllerServiceReference
+     * @param revisions         The revisions
+     * @return                  The entity
+     */
+    private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(
+        final ControllerServiceReference reference, final Map<String, Revision> revisions) {
+        return createControllerServiceReferencingComponentsEntity(reference, revisions, new HashSet<>());
+    }
+
+    /**
+     * Creates entities for compnents referencing a ControllerServcie using the specified revisions.
+     *
+     * @param reference         ControllerServiceReference
+     * @param revisions         The revisions
+     * @param visited           Which services we've already considered (in case of cycle)
+     * @return                  The entity
+     */
+    private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(
+        final ControllerServiceReference reference, final Map<String, Revision> revisions, final Set<ControllerServiceNode> visited) {
+
         final String modifier = NiFiUserUtils.getNiFiUserName();
         final Set<ConfiguredComponent> referencingComponents = reference.getReferencingComponents();
 
@@ -1809,68 +1818,67 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final FlowModification flowMod = new FlowModification(revision, modifier);
             final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(flowMod);
             final ControllerServiceReferencingComponentDTO dto = dtoFactory.createControllerServiceReferencingComponentDTO(refComponent);
+
+            if (refComponent instanceof ControllerServiceNode) {
+                final ControllerServiceNode node = (ControllerServiceNode) refComponent;
+
+                // indicate if we've hit a cycle
+                dto.setReferenceCycle(visited.contains(node));
+
+                // if we haven't encountered this service before include it's referencing components
+                if (!dto.getReferenceCycle()) {
+                    final ControllerServiceReferencingComponentsEntity references = createControllerServiceReferencingComponentsEntity(node.getReferences(), revisions, visited);
+                    dto.setReferencingComponents(references.getControllerServiceReferencingComponents());
+                }
+
+                // mark node as visited
+                visited.add(node);
+            }
+
             componentEntities.add(entityFactory.createControllerServiceReferencingComponentEntity(dto, revisionDto, accessPolicy));
         }
 
         final ControllerServiceReferencingComponentsEntity entity = new ControllerServiceReferencingComponentsEntity();
         entity.setControllerServiceReferencingComponents(componentEntities);
-
         return entity;
     }
 
-
     @Override
     public ControllerServiceEntity deleteControllerService(final Revision revision, final String controllerServiceId) {
-        final RevisionClaim claim = new StandardRevisionClaim(revision);
-        final String modifier = NiFiUserUtils.getNiFiUserName();
-        return revisionManager.updateRevision(claim, modifier, new UpdateRevisionTask<ControllerServiceEntity>() {
-            @Override
-            public RevisionUpdate<ControllerServiceEntity> update() {
-                // TODO: Verify authorizations once ControllerServiceNode implements Authorizable
-                // ensure access to the component
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+        final ControllerServiceDTO snapshot = deleteComponent(
+            revision,
+            controllerService,
+            () -> controllerServiceDAO.deleteControllerService(controllerServiceId),
+            dtoFactory.createControllerServiceDto(controllerService));
 
-                final ControllerServiceNode controllerServiceNode = controllerServiceDAO.getControllerService(controllerServiceId);
-                final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(controllerServiceNode);
-
-                // delete the controller service
-                controllerServiceDAO.deleteControllerService(controllerServiceId);
-
-                // save the update
-                controllerFacade.save();
-
-                final ControllerServiceEntity entity = entityFactory.createControllerServiceEntity(dto, null, null);
-                return new StandardRevisionUpdate<>(entity, null);
-            }
-        }).getComponent();
+        return entityFactory.createControllerServiceEntity(snapshot, null, null);
     }
 
 
     @Override
-    public ReportingTaskEntity createReportingTask(final Revision revision, final ReportingTaskDTO reportingTaskDTO) {
-        // TODO: replace "root" with the ID of the process group once the reporting tasks are scoped by group
-        return revisionManager.get("root", new ReadOnlyRevisionCallback<ReportingTaskEntity>() {
-            @Override
-            public ReportingTaskEntity withRevision(Revision revision) {
-                // ensure id is set
-                if (StringUtils.isBlank(reportingTaskDTO.getId())) {
-                    reportingTaskDTO.setId(UUID.randomUUID().toString());
-                }
+    public ReportingTaskEntity createReportingTask(final ReportingTaskDTO reportingTaskDTO) {
+        final String modifier = NiFiUserUtils.getNiFiUserName();
 
-                // create the reporting
-                final ReportingTaskNode reportingTask = reportingTaskDAO.createReportingTask(reportingTaskDTO);
+        // ensure id is set
+        if (StringUtils.isBlank(reportingTaskDTO.getId())) {
+            reportingTaskDTO.setId(UUID.randomUUID().toString());
+        }
 
-                // save the update
-                if (properties.isClusterManager()) {
-                    clusterManager.saveReportingTasks();
-                } else {
-                    controllerFacade.save();
-                }
+        return revisionManager.get(controllerFacade.getInstanceId(), rev -> {
+            // ensure access to the controller
+            controllerFacade.authorize(authorizer, RequestAction.WRITE);
 
-                final ReportingTaskDTO dto = dtoFactory.createReportingTaskDto(reportingTask);
-                final RevisionDTO updatedRevision = new RevisionDTO();
-                final AccessPolicyDTO accessPolicy = allAccess(); // TODO: Fix this once ReportingTask extends Authorizable
-                return entityFactory.createReportingTaskEntity(dto, updatedRevision, accessPolicy);
-            }
+            // create the reporting task
+            final ReportingTaskNode reportingTask = reportingTaskDAO.createReportingTask(reportingTaskDTO);
+
+            // save the update
+            controllerFacade.save();
+
+            final ReportingTaskDTO dto = dtoFactory.createReportingTaskDto(reportingTask);
+            final FlowModification lastMod = new FlowModification(new Revision(0L, rev.getClientId(), dto.getId()), modifier);
+            final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
+            return entityFactory.createReportingTaskEntity(dto, dtoFactory.createRevisionDTO(lastMod), accessPolicy);
         });
     }
 
@@ -1878,57 +1886,30 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public UpdateResult<ReportingTaskEntity> updateReportingTask(final Revision revision, final ReportingTaskDTO reportingTaskDTO) {
         // if reporting task does not exist, then create new reporting task
         if (reportingTaskDAO.hasReportingTask(reportingTaskDTO.getId()) == false) {
-            return new UpdateResult<>(createReportingTask(revision, reportingTaskDTO), true);
+            return new UpdateResult<>(createReportingTask(reportingTaskDTO), true);
         }
 
-        final String modifier = NiFiUserUtils.getNiFiUserName();
-        final RevisionUpdate<ReportingTaskEntity> update = revisionManager.updateRevision(new StandardRevisionClaim(revision), modifier, new UpdateRevisionTask<ReportingTaskEntity>() {
-            @Override
-            public RevisionUpdate<ReportingTaskEntity> update() {
-                final ReportingTaskNode reportingTask = reportingTaskDAO.updateReportingTask(reportingTaskDTO);
+        // get the component, ensure we have access to it, and perform the update request
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskDTO.getId());
+        final RevisionUpdate<ReportingTaskDTO> snapshot = updateComponent(revision,
+            reportingTask,
+            () -> reportingTaskDAO.updateReportingTask(reportingTaskDTO),
+            rt -> dtoFactory.createReportingTaskDto(rt));
 
-                // save the update
-                if (properties.isClusterManager()) {
-                    clusterManager.saveReportingTasks();
-                } else {
-                    controllerFacade.save();
-                }
-
-                final ReportingTaskDTO dto = dtoFactory.createReportingTaskDto(reportingTask);
-                final RevisionDTO updatedRevision = new RevisionDTO();
-                final AccessPolicyDTO accessPolicy = allAccess(); // TODO: Remove this once Reporting Task extends Authorizable
-                final ReportingTaskEntity entity = entityFactory.createReportingTaskEntity(dto, updatedRevision, accessPolicy);
-                final FlowModification lastMod = new FlowModification(incrementRevision(revision), modifier);
-                return new StandardRevisionUpdate<>(entity, lastMod);
-            }
-        });
-
-        final ReportingTaskEntity entity = update.getComponent();
-        return new UpdateResult<>(entity, false);
+        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
+        return new UpdateResult<>(entityFactory.createReportingTaskEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
     }
 
     @Override
     public ReportingTaskEntity deleteReportingTask(final Revision revision, final String reportingTaskId) {
-        // TODO: replace "root" with the ID of the process group once the reporting tasks are scoped by group
-        return revisionManager.get("root", new ReadOnlyRevisionCallback<ReportingTaskEntity>() {
-            @Override
-            public ReportingTaskEntity withRevision(final Revision revision) {
-                final ReportingTaskNode reportingTaskNode = reportingTaskDAO.getReportingTask(reportingTaskId);
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
+        final ReportingTaskDTO snapshot = deleteComponent(
+            revision,
+            reportingTask,
+            () -> reportingTaskDAO.deleteReportingTask(reportingTaskId),
+            dtoFactory.createReportingTaskDto(reportingTask));
 
-                // delete the reporting task
-                reportingTaskDAO.deleteReportingTask(reportingTaskId);
-
-                // save the update
-                if (properties.isClusterManager()) {
-                    clusterManager.saveReportingTasks();
-                } else {
-                    controllerFacade.save();
-                }
-
-                final ReportingTaskDTO dto = dtoFactory.createReportingTaskDto(reportingTaskNode);
-                return entityFactory.createReportingTaskEntity(dto, null, null);
-            }
-        });
+        return entityFactory.createReportingTaskEntity(snapshot, null, null);
     }
 
     @Override
@@ -2682,6 +2663,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     .flatMap(remoteGroup -> remoteGroup.getOutputPorts().stream())
                     .map(remoteOutputPort -> remoteOutputPort.getIdentifier())
                     .forEach(id -> identifiers.add(id));
+                processGroup.getControllerServices(false).stream()
+                    .map(controllerService -> controllerService.getIdentifier())
+                    .forEach(id -> identifiers.add(id));
 
                 // read lock on every component being accessed in the dto conversion
                 return revisionManager.get(identifiers,
@@ -2708,24 +2692,45 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<ControllerServiceDTO> getControllerServices(String groupId) {
-        final Set<ControllerServiceDTO> controllerServiceDtos = new LinkedHashSet<>();
-        final Set<ControllerServiceNode> serviceNodes = getGroup(groupId).getControllerServices(true);
+    public Set<ControllerServiceEntity> getControllerServices(String groupId) {
+        // TODO - move this logic into the ControllerServiceDAO
+        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+        final Set<ControllerServiceNode> serviceNodes = group.getControllerServices(true);
         final Set<String> serviceIds = serviceNodes.stream().map(service -> service.getIdentifier()).collect(Collectors.toSet());
 
-        revisionManager.get(serviceIds, () -> {
-            for (ControllerServiceNode controllerService : serviceNodes) {
-                controllerServiceDtos.add(dtoFactory.createControllerServiceDto(controllerService));
-            }
-            return null;
-        });
+        return revisionManager.get(serviceIds, () -> {
+            return serviceNodes.stream()
+                .map(serviceNode -> {
+                    final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(serviceNode);
 
-        return controllerServiceDtos;
+                    final ControllerServiceReference ref = serviceNode.getReferences();
+                    final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
+                    dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
+
+                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier()));
+                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(serviceNode);
+                    return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy);
+                })
+                .collect(Collectors.toSet());
+        });
     }
 
     @Override
-    public ControllerServiceDTO getControllerService(String controllerServiceId) {
-        return revisionManager.get(controllerServiceId, rev -> dtoFactory.createControllerServiceDto(controllerServiceDAO.getControllerService(controllerServiceId)));
+    public ControllerServiceEntity getControllerService(String controllerServiceId) {
+        return revisionManager.get(controllerServiceId, rev -> {
+            final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+            controllerService.authorize(authorizer, RequestAction.READ);
+
+            final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
+            final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(controllerService);
+            final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(controllerService);
+
+            final ControllerServiceReference ref = controllerService.getReferences();
+            final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
+            dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
+
+            return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy);
+        });
     }
 
     @Override
@@ -2748,26 +2753,36 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return revisionManager.get(controllerServiceId, rev -> {
             final ControllerServiceNode service = controllerServiceDAO.getControllerService(controllerServiceId);
             final ControllerServiceReference ref = service.getReferences();
-            return createControllerServiceReferencingComponentsEntity(ref, Collections.emptyMap());
+            return createControllerServiceReferencingComponentsEntity(ref);
         });
     }
 
     @Override
-    public Set<ReportingTaskDTO> getReportingTasks() {
+    public Set<ReportingTaskEntity> getReportingTasks() {
         final Set<ReportingTaskNode> reportingTasks = reportingTaskDAO.getReportingTasks();
         final Set<String> ids = reportingTasks.stream().map(task -> task.getIdentifier()).collect(Collectors.toSet());
+
         return revisionManager.get(ids, () -> {
-            final Set<ReportingTaskDTO> reportingTaskDtos = new LinkedHashSet<>();
-            for (ReportingTaskNode reportingTask : reportingTasks) {
-                reportingTaskDtos.add(dtoFactory.createReportingTaskDto(reportingTask));
-            }
-            return reportingTaskDtos;
+            return reportingTasks.stream()
+                .map(reportingTask -> {
+                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(reportingTask.getIdentifier()));
+                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
+                    return entityFactory.createReportingTaskEntity(dtoFactory.createReportingTaskDto(reportingTask), revision, accessPolicy);
+                })
+                .collect(Collectors.toSet());
         });
     }
 
     @Override
-    public ReportingTaskDTO getReportingTask(String reportingTaskId) {
-        return revisionManager.get(reportingTaskId, rev -> dtoFactory.createReportingTaskDto(reportingTaskDAO.getReportingTask(reportingTaskId)));
+    public ReportingTaskEntity getReportingTask(String reportingTaskId) {
+        return revisionManager.get(reportingTaskId, rev -> {
+            final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
+            reportingTask.authorize(authorizer, RequestAction.READ);
+
+            final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
+            final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
+            return entityFactory.createReportingTaskEntity(dtoFactory.createReportingTaskDto(reportingTask), revision, accessPolicy);
+        });
     }
 
     @Override

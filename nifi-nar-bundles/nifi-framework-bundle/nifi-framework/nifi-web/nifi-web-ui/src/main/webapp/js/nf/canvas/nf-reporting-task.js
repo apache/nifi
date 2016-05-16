@@ -136,8 +136,7 @@ nf.ReportingTask = (function () {
         
         // create the reporting task entity
         var reportingTaskEntity = {};
-        reportingTaskEntity['revision'] = nf.Client.getRevision();
-        reportingTaskEntity['reportingTask'] = reportingTaskDto;
+        reportingTaskEntity['component'] = reportingTaskDto;
 
         // return the marshaled details
         return reportingTaskEntity;
@@ -150,7 +149,7 @@ nf.ReportingTask = (function () {
      */
     var validateDetails = function (details) {
         var errors = [];
-        var reportingTask = details['reportingTask'];
+        var reportingTask = details['component'];
         
         if (nf.Common.isBlank(reportingTask['schedulingPeriod'])) {
             errors.push('Run schedule must be specified');
@@ -173,43 +172,40 @@ nf.ReportingTask = (function () {
      * 
      * @param {object} reportingTask
      */
-    var renderReportingTask = function (reportingTask) {
+    var renderReportingTask = function (reportingTaskEntity) {
         // get the table and update the row accordingly
         var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
         var reportingTaskData = reportingTaskGrid.getData();
-        var currentReportingTask = reportingTaskData.getItemById(reportingTask.id);
-        reportingTaskData.updateItem(reportingTask.id, $.extend({
+        var currentReportingTask = reportingTaskData.getItemById(reportingTaskEntity.id);
+        reportingTaskData.updateItem(reportingTaskEntity.id, $.extend({
             bulletins: currentReportingTask.bulletins
-        }, reportingTask));
+        }, reportingTaskEntity));
     };
     
     /**
      * 
-     * @param {object} reportingTask
+     * @param {object} reportingTaskEntity
      * @param {boolean} running
      */
-    var setRunning = function (reportingTask, running) {
+    var setRunning = function (reportingTaskEntity, running) {
         var entity = {
-            'revision': nf.Client.getRevision(),
-            'reportingTask': {
-                'id': reportingTask.id,
+            'revision': nf.Client.getRevision(reportingTaskEntity),
+            'component': {
+                'id': reportingTaskEntity.id,
                 'state': running === true ? 'RUNNING' : 'STOPPED'
             }
         };
 
         return $.ajax({
             type: 'PUT',
-            url: reportingTask.uri,
+            url: reportingTaskEntity.component.uri,
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            // TODO - update the revision
-            // nf.Client.setRevision(response.revision);
-            
             // update the task
-            renderReportingTask(response.reportingTask);
-            nf.ControllerService.reloadReferencedServices(response.reportingTask);
+            renderReportingTask(response);
+            nf.ControllerService.reloadReferencedServices(response.component);
         }).fail(nf.Common.handleAjaxError);
     };
     
@@ -250,24 +246,24 @@ nf.ReportingTask = (function () {
      * 
      * @param {type} reportingTask
      */
-    var saveReportingTask = function (reportingTask) {
+    var saveReportingTask = function (reportingTaskEntity) {
         // marshal the settings and properties and update the reporting task
         var updatedReportingTask = marshalDetails();
 
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedReportingTask)) {
+            updatedReportingTask['revision'] = nf.Client.getRevision(reportingTaskEntity);
+
             // update the selected component
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedReportingTask),
-                url: reportingTask.uri,
+                url: reportingTaskEntity.component.uri,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.reportingTask)) {
-                    // TODO - update the revision
-                    // nf.Client.setRevision(response.revision);
-                }
+                // update the reporting task
+                renderReportingTask(response);
             }).fail(handleReportingTaskConfigurationError);
         } else {
             return $.Deferred(function (deferred) {
@@ -326,11 +322,6 @@ nf.ReportingTask = (function () {
                 }
             });
             
-            // we clustered we need to show the controls for editing the availability
-            if (nf.Canvas.isClustered()) {
-                $('#reporting-task-availability-setting-container').show();
-            }
-
             // initialize the reporting task configuration dialog
             $('#reporting-task-configuration').data('mode', config.edit).modal({
                 headerText: 'Configure Reporting Task',
@@ -365,9 +356,9 @@ nf.ReportingTask = (function () {
         /**
          * Shows the configuration dialog for the specified reporting task.
          * 
-         * @argument {reportingTask} reportingTask      The reporting task
+         * @argument {reportingTask} reportingTaskEntity      The reporting task
          */
-        showConfiguration: function (reportingTask) {
+        showConfiguration: function (reportingTaskEntity) {
             var reportingTaskDialog = $('#reporting-task-configuration');
             if (reportingTaskDialog.data('mode') === config.readOnly) {
                 // update the visibility
@@ -390,27 +381,28 @@ nf.ReportingTask = (function () {
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
-                url: reportingTask.uri,
+                url: reportingTaskEntity.component.uri,
                 dataType: 'json'
             });
             
             // get the reporting task history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTask.id),
+                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTaskEntity.id),
                 dataType: 'json'
             });
             
             // once everything is loaded, show the dialog
             $.when(reloadTask, loadHistory).done(function (taskResponse, historyResponse) {
                 // get the updated reporting task
-                reportingTask = taskResponse[0].reportingTask;
+                reportingTaskEntity = taskResponse[0];
+                var reportingTask = reportingTaskEntity.component;
                 
                 // get the reporting task history
                 var reportingTaskHistory = historyResponse[0].componentHistory;
                 
                 // record the reporting task details
-                $('#reporting-task-configuration').data('reportingTaskDetails', reportingTask);
+                $('#reporting-task-configuration').data('reportingTaskDetails', reportingTaskEntity);
 
                 // determine if the enabled checkbox is checked or not
                 var reportingTaskEnableStyle = 'checkbox-checked';
@@ -425,15 +417,6 @@ nf.ReportingTask = (function () {
                 $('#reporting-task-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(reportingTaskEnableStyle);
                 $('#reporting-task-comments').val(reportingTask['comments']);
 
-                // select the availability when appropriate
-                if (nf.Canvas.isClustered()) {
-                    if (reportingTask['availability'] === 'node') {
-                        $('#reporting-task-availability').text('Node');
-                    } else {
-                        $('#reporting-task-availability').text('Cluster Manager');
-                    }
-                }
-                
                 // get the default schedule period
                 var defaultSchedulingPeriod = reportingTask['defaultSchedulingPeriod'];
                 var cronSchedulingPeriod = $('#reporting-task-cron-driven-scheduling-period').val(defaultSchedulingPeriod['CRON_DRIVEN']);
@@ -479,10 +462,9 @@ nf.ReportingTask = (function () {
                                 $('#reporting-task-properties').propertytable('saveRow');
 
                                 // save the reporting task
-                                saveReportingTask(reportingTask).done(function (response) {
+                                saveReportingTask(reportingTaskEntity).done(function (response) {
                                     // reload the reporting task
-                                    renderReportingTask(response.reportingTask);
-                                    nf.ControllerService.reloadReferencedServices(response.reportingTask);
+                                    nf.ControllerService.reloadReferencedServices(response.component);
 
                                     // close the details panel
                                     $('#reporting-task-configuration').modal('hide');
@@ -514,7 +496,7 @@ nf.ReportingTask = (function () {
                                     // show the custom ui
                                     nf.CustomUi.showCustomUi($('#reporting-task-id').text(), reportingTask.customUiUrl, true).done(function () {
                                         // once the custom ui is closed, reload the reporting task
-                                        nf.ReportingTask.reload(reportingTask.id).done(function (response) {
+                                        nf.ReportingTask.reload(reportingTaskEntity.id).done(function (response) {
                                             nf.ControllerService.reloadReferencedServices(response.reportingTask);
                                         });
                                         
@@ -534,7 +516,7 @@ nf.ReportingTask = (function () {
                                         overlayBackground: false,
                                         noHandler: openCustomUi,
                                         yesHandler: function () {
-                                            saveReportingTask(reportingTask).done(function () {
+                                            saveReportingTask(reportingTaskEntity).done(function () {
                                                 // open the custom ui
                                                 openCustomUi();
                                             });
@@ -563,9 +545,9 @@ nf.ReportingTask = (function () {
         /**
          * Shows the reporting task details in a read only dialog.
          * 
-         * @param {object} reportingTask
+         * @param {object} reportingTaskEntity
          */
-        showDetails: function(reportingTask) {
+        showDetails: function(reportingTaskEntity) {
             var reportingTaskDialog = $('#reporting-task-configuration');
             if (reportingTaskDialog.data('mode') === config.edit) {
                 // update the visibility
@@ -584,21 +566,22 @@ nf.ReportingTask = (function () {
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
-                url: reportingTask.uri,
+                url: reportingTaskEntity.component.uri,
                 dataType: 'json'
             });
             
             // get the reporting task history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTask.id),
+                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTaskEntity.id),
                 dataType: 'json'
             });
             
             // once everything is loaded, show the dialog
             $.when(reloadTask, loadHistory).done(function (taskResponse, historyResponse) {
                 // get the updated reporting task
-                reportingTask = taskResponse[0].reportingTask;
+                reportingTaskEntity = taskResponse[0];
+                var reportingTask = reportingTaskEntity.component;
                 
                 // get the reporting task history
                 var reportingTaskHistory = historyResponse[0].componentHistory;
@@ -609,15 +592,6 @@ nf.ReportingTask = (function () {
                 nf.Common.populateField('read-only-reporting-task-name', reportingTask['name']);
                 nf.Common.populateField('read-only-reporting-task-comments', reportingTask['comments']);
 
-                // select the availability when appropriate
-                if (nf.Canvas.isClustered()) {
-                    if (reportingTask['availability'] === 'node') {
-                        $('#reporting-task-availability').text('Node');
-                    } else {
-                        $('#reporting-task-availability').text('Cluster Manager');
-                    }
-                }
-                
                 // make the scheduling strategy human readable
                 var schedulingStrategy = reportingTask['schedulingStrategy'];
                 if (schedulingStrategy === 'CRON_DRIVEN') {
@@ -673,19 +647,19 @@ nf.ReportingTask = (function () {
         /**
          * Starts the specified reporting task.
          * 
-         * @param {object} reportingTask
+         * @param {object} reportingTaskEntity
          */
-        start: function(reportingTask) {
-            setRunning(reportingTask, true);
+        start: function(reportingTaskEntity) {
+            setRunning(reportingTaskEntity, true);
         },
         
         /**
          * Stops the specified reporting task.
          * 
-         * @param {object} reportingTask
+         * @param {object} reportingTaskEntity
          */
-        stop: function(reportingTask) {
-            setRunning(reportingTask, false);
+        stop: function(reportingTaskEntity) {
+            setRunning(reportingTaskEntity, false);
         },
         
         /**
@@ -696,41 +670,38 @@ nf.ReportingTask = (function () {
         reload: function (id) {
             var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
             var reportingTaskData = reportingTaskGrid.getData();
-            var reportingTask = reportingTaskData.getItemById(id);
+            var reportingTaskEntity = reportingTaskData.getItemById(id);
         
             return $.ajax({
                 type: 'GET',
-                url: reportingTask.uri,
+                url: reportingTaskEntity.component.uri,
                 dataType: 'json'
             }).done(function (response) {
-                renderReportingTask(response.reportingTask);
+                renderReportingTask(response);
             }).fail(nf.Common.handleAjaxError);
         },
         
         /**
          * Deletes the specified reporting task.
          * 
-         * @param {object} reportingTask
+         * @param {object} reportingTaskEntity
          */
-        remove: function(reportingTask) {
+        remove: function(reportingTaskEntity) {
             // prompt for removal?
                     
-            var revision = nf.Client.getRevision();
+            var revision = nf.Client.getRevision(reportingTaskEntity);
             $.ajax({
                 type: 'DELETE',
-                url: reportingTask.uri + '?' + $.param({
+                url: reportingTaskEntity.component.uri + '?' + $.param({
                     version: revision.version,
                     clientId: revision.clientId
                 }),
                 dataType: 'json'
             }).done(function (response) {
-                // TODO - update the revision
-                // nf.Client.setRevision(response.revision);
-
                 // remove the task
                 var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
                 var reportingTaskData = reportingTaskGrid.getData();
-                reportingTaskData.deleteItem(reportingTask.id);
+                reportingTaskData.deleteItem(reportingTaskEntity.id);
             }).fail(nf.Common.handleAjaxError);
         }
     };

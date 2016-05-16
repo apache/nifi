@@ -43,10 +43,5 @@
             </div>
         </div>
         <div class="clear"></div>
-        <div id="controller-service-availability-container" class="hidden">
-            <div class="setting-name availability-label">Available on</div>
-            <div id="controller-service-availability-combo"></div>
-            <div class="clear"></div>
-        </div>
     </div>
 </div>
