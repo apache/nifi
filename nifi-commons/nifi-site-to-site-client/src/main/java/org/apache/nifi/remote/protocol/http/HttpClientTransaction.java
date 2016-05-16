@@ -44,13 +44,13 @@ public class HttpClientTransaction extends AbstractTransaction {
         super(peer, direction, useCompression, new StandardFlowFileCodec(), eventReporter, protocolVersion, penaltyMillis, portId);
     }
 
-    public void initialize(SiteToSiteRestApiUtil apiUtil) throws IOException {
+    public void initialize(SiteToSiteRestApiUtil apiUtil, String transactionUrl) throws IOException {
         this.apiUtil = apiUtil;
         if(TransferDirection.RECEIVE.equals(direction)){
-            holdUri = apiUtil.openConnectionForReceive(destinationId, peer.getCommunicationsSession());
+            holdUri = apiUtil.openConnectionForReceive(transactionUrl, peer.getCommunicationsSession());
             dataAvailable = (holdUri != null);
         } else {
-            apiUtil.openConnectionForSend(destinationId, peer.getCommunicationsSession());
+            apiUtil.openConnectionForSend(transactionUrl, peer.getCommunicationsSession());
         }
     }
 

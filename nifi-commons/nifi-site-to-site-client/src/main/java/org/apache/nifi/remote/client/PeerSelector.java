@@ -330,7 +330,7 @@ public class PeerSelector {
         } catch (Exception e) {
             warn(logger, eventReporter, "{} Unable to refresh Remote Group's peers due to {}", this, e);
             if (logger.isDebugEnabled()) {
-                logger.warn("", e);
+                logger.debug("", e);
             }
         }
     }

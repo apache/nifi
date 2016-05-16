@@ -72,7 +72,6 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
     protected static final long DEFAULT_BATCH_NANOS = TimeUnit.SECONDS.toNanos(5L);
 
-    private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
@@ -337,7 +336,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             logger.debug("{} Received {}  from {}", this, transactionConfirmationResponse, peer);
             final String receivedCRC = transactionConfirmationResponse.getMessage();
 
-            if (versionNegotiator.getVersion() > 3) {
+            if (getVersionNegotiator().getVersion() > 3) {
                 String calculatedCRC = transaction.getCalculatedCRC();
                 if (!receivedCRC.equals(calculatedCRC)) {
                     writeTransactionResponse(true, ResponseCode.BAD_CHECKSUM, commsSession);
@@ -535,11 +534,6 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
                 this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
 
         return flowFilesReceived.size();
-    }
-
-    @Override
-    public VersionNegotiator getVersionNegotiator() {
-        return versionNegotiator;
     }
 
     @Override

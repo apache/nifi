@@ -88,16 +88,22 @@ public class NiFiRestApiUtil {
     protected <T> T getEntity(final String path, final Class<T> entityClass) throws IOException {
         final HttpURLConnection connection = getConnection(path);
         connection.setRequestMethod("GET");
+        return getEntity(connection, entityClass);
+    }
+
+    protected  <T> T getEntity(HttpURLConnection connection, Class<T> entityClass) throws IOException {
         final int responseCode = connection.getResponseCode();
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        StreamUtils.copy(connection.getInputStream(), baos);
-        final String responseMessage = baos.toString();
-
         if (responseCode == RESPONSE_CODE_OK) {
+            StreamUtils.copy(connection.getInputStream(), baos);
+            final String responseMessage = baos.toString();
+
             final ObjectMapper mapper = new ObjectMapper();
             return mapper.readValue(responseMessage, entityClass);
         } else {
+            StreamUtils.copy(connection.getErrorStream(), baos);
+            final String responseMessage = baos.toString();
             throw new IOException("Got HTTP response Code " + responseCode + ": " + connection.getResponseMessage() + " with explanation: " + responseMessage);
         }
     }
