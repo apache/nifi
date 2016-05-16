@@ -104,6 +104,10 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
 
         final PeerStatus peerStatus = peerSelector.getNextPeerStatus(direction);
+        logger.debug("peerStatus={}", peerStatus);
+        if(peerStatus == null) {
+            return null;
+        }
 
         CommunicationsSession commSession = new HttpCommunicationsSession();
         String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
@@ -111,15 +115,11 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         String clusterUrl = config.getUrl();
         Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
 
-        // TODO: add version negotiation
         int penaltyMillis = (int)config.getPenalizationPeriod(TimeUnit.MILLISECONDS);
-        int protocolVersion = 5;
         String portId = config.getPortIdentifier();
         if(StringUtils.isEmpty(portId)){
             portId = siteInfoProvider.getPortIdentifier(config.getPortName(), direction);
         }
-        HttpClientTransaction transaction = new HttpClientTransaction(protocolVersion, peer, direction,
-                config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
 
         SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext(), config.getProxy());
 
@@ -133,7 +133,12 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         apiUtil.setBatchSize(config.getPreferredBatchSize());
         apiUtil.setBatchDurationMillis(config.getPreferredBatchDuration(TimeUnit.MILLISECONDS));
 
-        transaction.initialize(apiUtil);
+        String transactionUrl = apiUtil.initiateTransaction(direction, portId);
+        Integer transactionProtocolVersion = apiUtil.getTransactionProtocolVersion();
+
+        HttpClientTransaction transaction = new HttpClientTransaction(transactionProtocolVersion, peer, direction,
+                config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
+        transaction.initialize(apiUtil, transactionUrl);
 
         return transaction;
     }

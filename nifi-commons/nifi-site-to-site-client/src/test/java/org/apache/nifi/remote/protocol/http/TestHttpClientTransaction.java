@@ -90,7 +90,7 @@ public class TestHttpClientTransaction {
         int protocolVersion = 5;
 
         HttpClientTransaction transaction = new HttpClientTransaction(protocolVersion, peer, direction, useCompression, portId, penaltyMillis, eventReporter);
-        transaction.initialize(apiUtil);
+        transaction.initialize(apiUtil, "transaction-url");
 
         return transaction;
     }
@@ -99,7 +99,7 @@ public class TestHttpClientTransaction {
     public void testReceiveZeroFlowFile() throws IOException {
 
         SiteToSiteRestApiUtil apiUtil = mock(SiteToSiteRestApiUtil.class);
-        doReturn(null).when(apiUtil).openConnectionForReceive(eq("portId"), any(CommunicationsSession.class));
+        doReturn(null).when(apiUtil).openConnectionForReceive(eq("transaction-url"), any(CommunicationsSession.class));
 
         ByteArrayInputStream serverResponse = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream clientRequest = new ByteArrayOutputStream();
@@ -115,7 +115,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiUtil apiUtil = mock(SiteToSiteRestApiUtil.class);
         final String holdUri = "http://www.example.com/site-to-site/ports/portId/tr/transactionId";
-        doReturn(holdUri).when(apiUtil).openConnectionForReceive(eq("portId"), any(CommunicationsSession.class));
+        doReturn(holdUri).when(apiUtil).openConnectionForReceive(eq("transaction-url"), any(CommunicationsSession.class));
         TransactionResultEntity resultEntity = new TransactionResultEntity();
         resultEntity.setResponseCode(ResponseCode.CONFIRM_TRANSACTION.getCode());
         doReturn(resultEntity).when(apiUtil).commitReceivingFlowFiles(eq(holdUri), eq("3680976076"));
@@ -137,7 +137,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiUtil apiUtil = mock(SiteToSiteRestApiUtil.class);
         final String holdUri = "http://www.example.com/site-to-site/ports/portId/tr/transactionId";
-        doReturn(holdUri).when(apiUtil).openConnectionForReceive(eq("portId"), any(CommunicationsSession.class));
+        doReturn(holdUri).when(apiUtil).openConnectionForReceive(eq("transaction-url"), any(CommunicationsSession.class));
         TransactionResultEntity resultEntity = new TransactionResultEntity();
         resultEntity.setResponseCode(ResponseCode.CONFIRM_TRANSACTION.getCode());
         doReturn(resultEntity).when(apiUtil).commitReceivingFlowFiles(eq(holdUri), eq("2969091230"));
@@ -160,7 +160,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiUtil apiUtil = mock(SiteToSiteRestApiUtil.class);
         final String holdUri = "http://www.example.com/site-to-site/ports/portId/tr/transactionId";
-        doReturn(holdUri).when(apiUtil).openConnectionForReceive(eq("portId"), any(CommunicationsSession.class));
+        doReturn(holdUri).when(apiUtil).openConnectionForReceive(eq("transaction-url"), any(CommunicationsSession.class));
         // The checksum is correct, but here we simulate as if it's wrong, BAD_CHECKSUM.
         TransactionResultEntity resultEntity = new TransactionResultEntity();
         resultEntity.setResponseCode(ResponseCode.BAD_CHECKSUM.getCode());

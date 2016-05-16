@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote.client.http;
 
+import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
@@ -23,6 +24,7 @@ import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.io.http.HttpInput;
 import org.apache.nifi.remote.io.http.HttpOutput;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.socket.ResponseCode;
 import org.apache.nifi.remote.util.NiFiRestApiUtil;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
@@ -63,26 +65,42 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
     private int batchCount = 0;
     private long batchSize = 0;
     private long batchDurationMillis = 0;
+    private TransportProtocolVersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
 
     public SiteToSiteRestApiUtil(SSLContext sslContext, Proxy proxy) {
         super(sslContext, proxy);
     }
 
     public Collection<PeerDTO> getPeers() throws IOException {
-        return getEntity("/site-to-site/peers", PeersEntity.class).getPeers();
+        urlConnection = getConnection("/site-to-site/peers");
+        urlConnection.setDoOutput(false);
+        urlConnection.setRequestMethod("GET");
+        urlConnection.setRequestProperty("Accept", "application/json");
+        urlConnection.setRequestProperty(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
+
+        return getEntity(urlConnection, PeersEntity.class).getPeers();
+    }
+
+    public String initiateTransaction(TransferDirection direction, String portId) throws IOException {
+        if (TransferDirection.RECEIVE.equals(direction)) {
+            return initiateTransaction("output-ports", portId);
+        } else {
+            return initiateTransaction("input-ports", portId);
+        }
     }
 
     private String initiateTransaction(String portType, String portId) throws IOException {
-        logger.debug("openConnectionForSend handshaking portId={}", portId);
+        logger.debug("initiateTransaction handshaking portType={}, portId={}", portId);
         urlConnection = getConnection("/site-to-site/" + portType + "/" + portId + "/transactions");
         urlConnection.setDoOutput(false);
         urlConnection.setRequestMethod("POST");
         urlConnection.setRequestProperty("Accept", "application/json");
+        urlConnection.setRequestProperty(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties();
 
         int responseCode = urlConnection.getResponseCode();
-        logger.debug("openConnectionForSend responseCode={}", responseCode);
+        logger.debug("initiateTransaction responseCode={}", responseCode);
 
         String transactionUrl;
         switch (responseCode) {
@@ -91,25 +109,31 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
                 if (isEmpty(transactionUrl)) {
                     throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
                 }
+                String protocolVersionConfirmedByServerStr = urlConnection.getHeaderField(HttpHeaders.PROTOCOL_VERSION);
+                if (isEmpty(protocolVersionConfirmedByServerStr)) {
+                    throw new ProtocolException("Server didn't return confirmed protocol version");
+                }
+                Integer protocolVersionConfirmedByServer = Integer.valueOf(protocolVersionConfirmedByServerStr);
+                logger.debug("Finished version negotiation, protocolVersionConfirmedByServer={}", protocolVersionConfirmedByServer);
+                transportProtocolVersionNegotiator.setVersion(protocolVersionConfirmedByServer);
                 break;
 
             default:
                 throw handleErrResponse(responseCode);
         }
+        logger.debug("initiateTransaction handshaking finished, transactionUrl={}", transactionUrl);
         return transactionUrl;
     }
 
-    public void openConnectionForSend(String portId, CommunicationsSession commSession) throws IOException {
+    public void openConnectionForSend(String transactionUrl, CommunicationsSession commSession) throws IOException {
 
-        String transactionUrl = initiateTransaction("input-ports", portId);
-
-        logger.debug("openConnectionForSend prepared for sending... portId={}, transactionUrl={}", portId, transactionUrl);
         urlConnection = getConnection(transactionUrl);
         urlConnection.setDoOutput(true);
         urlConnection.setRequestMethod("POST");
         urlConnection.setRequestProperty("Content-Type", "application/octet-stream");
         urlConnection.setRequestProperty("Accept", "text/plain");
         urlConnection.setInstanceFollowRedirects(false);
+        urlConnection.setRequestProperty(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties();
 
@@ -125,15 +149,13 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         if(batchDurationMillis > 0) urlConnection.setRequestProperty(HANDSHAKE_PROPERTY_BATCH_DURATION, String.valueOf(batchDurationMillis));
     }
 
-    public String openConnectionForReceive(String portId, CommunicationsSession commSession) throws IOException {
+    public String openConnectionForReceive(String transactionUrl, CommunicationsSession commSession) throws IOException {
 
-        String transactionUrl = initiateTransaction("output-ports", portId);
-
-        logger.debug("openConnectionForReceive prepared for receiving... portId={}, transactionUrl={}", portId, transactionUrl);
         urlConnection = getConnection(transactionUrl);
         urlConnection.setRequestMethod("GET");
         urlConnection.setRequestProperty("Accept", "application/octet-stream");
         urlConnection.setInstanceFollowRedirects(false);
+        urlConnection.setRequestProperty(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties();
 
@@ -223,6 +245,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         urlConnection = getConnection(holdUri + "?checksum=" + checksum);
         urlConnection.setRequestMethod("DELETE");
         urlConnection.setRequestProperty("Accept", "application/json");
+        urlConnection.setRequestProperty(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties();
 
@@ -250,7 +273,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         String responseMessage = null;
         try {
             responseMessage = new String(bos.toByteArray(), "UTF-8");
-            logger.debug("commitReceivingFlowFiles responseMessage={}", responseMessage);
+            logger.debug("readResponse responseMessage={}", responseMessage);
 
             final ObjectMapper mapper = new ObjectMapper();
             return mapper.readValue(responseMessage, TransactionResultEntity.class);
@@ -273,6 +296,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         urlConnection = getConnection(requestUrl);
         urlConnection.setRequestMethod("DELETE");
         urlConnection.setRequestProperty("Accept", "application/json");
+        urlConnection.setRequestProperty(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties();
 
@@ -314,5 +338,9 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
     public void setBatchDurationMillis(long batchDurationMillis) {
         if(batchDurationMillis < 0) throw new IllegalArgumentException("batchDurationMillis can't be a negative value.");
         this.batchDurationMillis = batchDurationMillis;
+    }
+
+    public Integer getTransactionProtocolVersion() {
+        return transportProtocolVersionNegotiator.getTransactionProtocolVersion();
     }
 }

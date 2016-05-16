@@ -44,13 +44,14 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
     public static final String RESOURCE_NAME = "HttpFlowFileProtocol";
 
     private final FlowFileCodec codec = new StandardFlowFileCodec();
-    private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
+    private final VersionNegotiator versionNegotiator;
 
     private ConcurrentMap<String, FlowFileTransaction> transactionOnHold;
 
-    public HttpFlowFileServerProtocol(ConcurrentMap<String, FlowFileTransaction> transactionOnHold) {
+    public HttpFlowFileServerProtocol(ConcurrentMap<String, FlowFileTransaction> transactionOnHold, VersionNegotiator versionNegotiator) {
         super();
         this.transactionOnHold = transactionOnHold;
+        this.versionNegotiator = versionNegotiator;
     }
 
     @Override

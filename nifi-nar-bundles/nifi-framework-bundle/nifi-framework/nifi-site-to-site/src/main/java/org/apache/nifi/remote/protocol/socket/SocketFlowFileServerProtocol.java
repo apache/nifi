@@ -182,4 +182,8 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     }
 
 
+    @Override
+    public VersionNegotiator getVersionNegotiator() {
+        return versionNegotiator;
+    }
 }
