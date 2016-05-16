@@ -17,8 +17,10 @@
 package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Map;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request to the API.
@@ -28,6 +30,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
 
     private String id;
     private String state;
+    private Map<String, RevisionDTO> referencingComponentRevisions;
 
     @ApiModelProperty(
         value = "The identifier of the Controller Service."
@@ -50,5 +53,16 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+    @ApiModelProperty(
+        value = "The revisions for all referencing components."
+    )
+    public Map<String, RevisionDTO> getReferencingComponentRevisions() {
+        return referencingComponentRevisions;
+    }
+
+    public void setReferencingComponentRevisions(Map<String, RevisionDTO> referencingComponentRevisions) {
+        this.referencingComponentRevisions = referencingComponentRevisions;
     }
 }

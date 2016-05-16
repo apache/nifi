@@ -35,7 +35,6 @@ public class ControllerServiceDTO extends ComponentDTO {
     private String name;
     private String type;
     private String comments;
-    private String availability;
     private String state;
     private Boolean persistsState;
 
@@ -89,21 +88,6 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setComments(String comments) {
         this.comments = comments;
-    }
-
-    /**
-     * @return Where this service is available. Possible values are NCM, NODE
-     */
-    @ApiModelProperty(
-            value = "Where the servcie is available.",
-            allowableValues = "NCM, NODE"
-    )
-    public String getAvailability() {
-        return availability;
-    }
-
-    public void setAvailability(String availability) {
-        this.availability = availability;
     }
 
     /**

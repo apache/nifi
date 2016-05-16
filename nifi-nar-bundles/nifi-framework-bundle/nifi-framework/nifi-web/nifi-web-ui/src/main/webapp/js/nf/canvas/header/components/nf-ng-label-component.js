@@ -86,7 +86,9 @@ nf.ng.LabelComponent = function (serviceProvider) {
                     // add the label to the graph
                     nf.Graph.add({
                         'labels': [response]
-                    }, true);
+                    }, {
+                        'selectAll': true
+                    });
 
                     // update the birdseye
                     nf.Birdseye.refresh();

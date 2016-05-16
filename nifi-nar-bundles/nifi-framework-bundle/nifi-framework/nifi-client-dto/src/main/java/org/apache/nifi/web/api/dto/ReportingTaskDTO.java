@@ -31,7 +31,6 @@ public class ReportingTaskDTO extends ComponentDTO {
     private String name;
     private String type;
     private String state;
-    private String availability;
     private String comments;
     private Boolean persistsState;
 
@@ -147,21 +146,6 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setSchedulingStrategy(String schedulingStrategy) {
         this.schedulingStrategy = schedulingStrategy;
-    }
-
-    /**
-     * @return Where this service is available. Possible values are NCM, NODE
-     */
-    @ApiModelProperty(
-            value = "Where the reporting task is available.",
-            allowableValues = "NCM, NODE"
-    )
-    public String getAvailability() {
-        return availability;
-    }
-
-    public void setAvailability(String availability) {
-        this.availability = availability;
     }
 
     /**

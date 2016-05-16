@@ -33,17 +33,14 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -67,7 +64,6 @@ import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.util.Availability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +92,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -341,7 +336,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(processGroupEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), processGroupEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -495,7 +490,7 @@ public class ProcessGroupResource extends ApplicationResource {
         processGroupEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(processGroupEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), processGroupEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -644,7 +639,7 @@ public class ProcessGroupResource extends ApplicationResource {
         processorEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(processorEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), processorEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -782,7 +777,7 @@ public class ProcessGroupResource extends ApplicationResource {
         portEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(portEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), portEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -917,7 +912,7 @@ public class ProcessGroupResource extends ApplicationResource {
         portEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(portEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), portEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1053,7 +1048,7 @@ public class ProcessGroupResource extends ApplicationResource {
         funnelEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(funnelEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), funnelEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1189,7 +1184,7 @@ public class ProcessGroupResource extends ApplicationResource {
         labelEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(labelEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), labelEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1331,7 +1326,7 @@ public class ProcessGroupResource extends ApplicationResource {
         requestProcessGroupDTO.setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(remoteProcessGroupEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), remoteProcessGroupEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1507,7 +1502,7 @@ public class ProcessGroupResource extends ApplicationResource {
         connectionEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(connectionEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), connectionEntity, getHeaders()).getResponse();
         }
 
         // get the connection
@@ -1655,7 +1650,7 @@ public class ProcessGroupResource extends ApplicationResource {
         snippetEntity.getSnippet().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(snippetEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), snippetEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1797,7 +1792,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(snippetEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), snippetEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1962,7 +1957,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(copySnippetEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), copySnippetEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1982,7 +1977,6 @@ public class ProcessGroupResource extends ApplicationResource {
         for (ProcessGroupEntity childGroupEntity : flow.getProcessGroups()) {
             childGroupEntity.getComponent().setContents(null);
         }
-
 
         // create the response entity
         populateRemainingSnippetContent(flow);
@@ -2046,7 +2040,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(instantiateTemplateRequestEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), instantiateTemplateRequestEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2065,7 +2059,6 @@ public class ProcessGroupResource extends ApplicationResource {
         for (ProcessGroupEntity childGroupEntity : flowSnippet.getProcessGroups()) {
             childGroupEntity.getComponent().setContents(null);
         }
-
 
         // create the response entity
         populateRemainingSnippetContent(flowSnippet);
@@ -2120,12 +2113,8 @@ public class ProcessGroupResource extends ApplicationResource {
         // get all the templates
         final Set<TemplateDTO> templates = templateResource.populateRemainingTemplatesContent(serviceFacade.getTemplates());
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
         // create the response entity
         final TemplatesEntity entity = new TemplatesEntity();
-        entity.setRevision(revision);
         entity.setTemplates(templates);
         entity.setGenerated(new Date());
 
@@ -2177,7 +2166,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(createTemplateRequestEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), createTemplateRequestEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2187,18 +2176,12 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the template and generate the json
-        final RevisionDTO revisionDTO = createTemplateRequestEntity.getRevision();
         final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(),
             createTemplateRequestEntity.getSnippetId(), groupId);
         templateResource.populateRemainingTemplateContent(template);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(revisionDTO.getClientId());
-
         // build the response entity
         final TemplateEntity entity = new TemplateEntity();
-        entity.setRevision(revision);
         entity.setTemplate(template);
 
         // build the response
@@ -2252,13 +2235,8 @@ public class ProcessGroupResource extends ApplicationResource {
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // build the response entity
         TemplateEntity entity = new TemplateEntity();
-        entity.setRevision(revision);
         entity.setTemplate(template);
 
         // replicate if cluster manager
@@ -2276,7 +2254,7 @@ public class ProcessGroupResource extends ApplicationResource {
             headersToOverride.put("content-type", MediaType.APPLICATION_XML);
 
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.POST, importUri, updateClientId(entity), getHeaders(headersToOverride)).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, importUri, entity, getHeaders(headersToOverride)).getResponse();
         }
 
         // otherwise import the template locally
@@ -2306,7 +2284,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(templateEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), templateEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2325,17 +2303,8 @@ public class ProcessGroupResource extends ApplicationResource {
             final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate(), groupId);
             templateResource.populateRemainingTemplateContent(template);
 
-            // create the revision
-            final RevisionDTO revision = new RevisionDTO();
-            if (templateEntity.getRevision() == null) {
-                revision.setClientId(new ClientIdParameter().getClientId());
-            } else {
-                revision.setClientId(templateEntity.getRevision().getClientId());
-            }
-
             // build the response entity
             TemplateEntity entity = new TemplateEntity();
-            entity.setRevision(revision);
             entity.setTemplate(template);
 
             // build the response
@@ -2360,16 +2329,13 @@ public class ProcessGroupResource extends ApplicationResource {
      * Creates a new Controller Service.
      *
      * @param httpServletRequest request
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
      * @param controllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/controller-services/{availability}")
+    @Path("{id}/controller-services")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Creates a new controller service",
@@ -2394,41 +2360,30 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") String groupId,
         @ApiParam(
-            value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-            allowableValues = "NCM, NODE",
-            required = true
-        )
-        @PathParam("availability") String availability,
-        @ApiParam(
             value = "The controller service configuration details.",
             required = true
         ) ControllerServiceEntity controllerServiceEntity) {
 
-        final Availability avail = controllerServiceResource.parseAvailability(availability);
-
-        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
+        if (controllerServiceEntity == null || controllerServiceEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
         }
 
-        if (controllerServiceEntity.getControllerService().getId() != null) {
+        if (controllerServiceEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Controller service ID cannot be specified.");
         }
 
-        if (StringUtils.isBlank(controllerServiceEntity.getControllerService().getType())) {
+        if (StringUtils.isBlank(controllerServiceEntity.getComponent().getType())) {
             throw new IllegalArgumentException("The type of controller service to create must be specified.");
         }
 
-        if (controllerServiceEntity.getControllerService().getParentGroupId() != null && !groupId.equals(controllerServiceEntity.getControllerService().getParentGroupId())) {
+        if (controllerServiceEntity.getComponent().getParentGroupId() != null && !groupId.equals(controllerServiceEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                controllerServiceEntity.getControllerService().getParentGroupId(), groupId));
+                controllerServiceEntity.getComponent().getParentGroupId(), groupId));
         }
-        controllerServiceEntity.getControllerService().setParentGroupId(groupId);
-
-        // get the revision
-        final RevisionDTO revision = controllerServiceEntity.getRevision();
+        controllerServiceEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(controllerServiceEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), controllerServiceEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2440,90 +2395,17 @@ public class ProcessGroupResource extends ApplicationResource {
         // set the processor id as appropriate
         final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
         if (clusterContext != null) {
-            controllerServiceEntity.getControllerService().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
+            controllerServiceEntity.getComponent().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
         } else {
-            controllerServiceEntity.getControllerService().setId(UUID.randomUUID().toString());
+            controllerServiceEntity.getComponent().setId(UUID.randomUUID().toString());
         }
 
         // create the controller service and generate the json
-        final ControllerServiceEntity entity = serviceFacade.createControllerService(
-            new Revision(revision.getVersion(), revision.getClientId()), groupId, controllerServiceEntity.getControllerService());
-
-        // build the response entity
-        controllerServiceResource.populateRemainingControllerServiceContent(availability, entity.getControllerService());
+        final ControllerServiceEntity entity = serviceFacade.createControllerService(groupId, controllerServiceEntity.getComponent());
+        controllerServiceResource.populateRemainingControllerServiceContent(entity.getComponent());
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getControllerService().getUri()), entity)).build();
-    }
-
-    /**
-     * Retrieves all the of controller services in this NiFi.
-     *
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @return A controllerServicesEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/controller-services/{availability}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-        value = "Gets all controller services",
-        response = ControllerServicesEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
-    )
-    @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
-    )
-    public Response getControllerServices(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") String groupId,
-        @ApiParam(
-            value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-            allowableValues = "NCM, NODE",
-            required = true
-        )
-        @PathParam("availability") String availability) {
-
-        final Availability avail = controllerServiceResource.parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        } else if (properties.isClusterManager()) {
-            // create the response entity
-            final ControllerServicesEntity entity = new ControllerServicesEntity();
-            entity.setControllerServices(Collections.emptySet());
-            return clusterContext(generateOkResponse(entity)).build();
-        }
-
-        // get all the controller services
-        final Set<ControllerServiceDTO> controllerServices = controllerServiceResource.populateRemainingControllerServicesContent(availability, serviceFacade.getControllerServices(groupId));
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
-        // create the response entity
-        final ControllerServicesEntity entity = new ControllerServicesEntity();
-        entity.setRevision(revision);
-        entity.setControllerServices(controllerServices);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
     }
 
     // setters

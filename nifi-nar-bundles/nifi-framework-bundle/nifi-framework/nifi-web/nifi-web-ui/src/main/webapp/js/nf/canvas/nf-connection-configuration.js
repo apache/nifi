@@ -875,7 +875,9 @@ nf.ConnectionConfiguration = (function () {
                 // add the connection
                 nf.Graph.add({
                     'connections': [response]
-                }, true);
+                }, {
+                    'selectAll': true
+                });
 
                 // reload the connections source/destination components
                 nf.CanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);

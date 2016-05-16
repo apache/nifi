@@ -177,12 +177,12 @@ public class ControllerFacade implements Authorizable {
 
     @Override
     public Authorizable getParentAuthorizable() {
-        return null;
+        return flowController.getParentAuthorizable();
     }
 
     @Override
     public Resource getResource() {
-        return ResourceFactory.getControllerResource();
+        return flowController.getResource();
     }
 
     /**

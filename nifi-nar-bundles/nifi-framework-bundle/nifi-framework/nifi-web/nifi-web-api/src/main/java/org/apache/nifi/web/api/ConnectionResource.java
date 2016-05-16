@@ -266,7 +266,7 @@ public class ConnectionResource extends ApplicationResource {
             headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
 
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(connectionEntity), getHeaders(headersToOverride)).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), connectionEntity, getHeaders(headersToOverride)).getResponse();
         }
 
         // handle expects request

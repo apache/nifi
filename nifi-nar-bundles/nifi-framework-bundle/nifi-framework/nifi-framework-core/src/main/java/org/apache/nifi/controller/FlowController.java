@@ -61,6 +61,9 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
@@ -227,7 +230,7 @@ import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.api.client.ClientHandlerException;
 
-public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider {
+public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable {
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -538,6 +541,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             leaderElectionManager = null;
             heartbeater = null;
         }
+    }
+
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return null;
+    }
+
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getControllerResource();
     }
 
     private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ResourceClaimManager contentClaimManager) {

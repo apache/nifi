@@ -687,8 +687,7 @@ nf.Canvas = (function () {
                 // get the process group to refresh everything
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
                 var statusXhr = nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl.flowStatusCtrl').reloadFlowStatus();
-                var settingsXhr = nf.Settings.loadSettings(false); // don't reload the status as we want to wait for deferreds to complete
-                $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
+                $.when(processGroupXhr, statusXhr).done(function (processGroupResult) {
                     deferred.resolve(processGroupResult);
                 }).fail(function () {
                     deferred.reject();

@@ -52,7 +52,7 @@
 
     <!-- dto factory -->
     <bean id="dtoFactory" class="org.apache.nifi.web.api.dto.DtoFactory">
-        <property name="controllerServiceLookup" ref="controllerServiceProvider" />
+        <property name="controllerServiceProvider" ref="controllerServiceProvider" />
         <property name="entityFactory" ref="entityFactory"/>
         <property name="authorizer" ref="authorizer"/>
     </bean>

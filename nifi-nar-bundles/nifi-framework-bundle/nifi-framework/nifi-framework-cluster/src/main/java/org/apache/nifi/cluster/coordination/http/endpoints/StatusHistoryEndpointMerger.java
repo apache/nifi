@@ -136,7 +136,6 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
 
         final StatusHistoryEntity clusterEntity = new StatusHistoryEntity();
         clusterEntity.setStatusHistory(clusterStatusHistory);
-        clusterEntity.setRevision(responseEntity.getRevision());
 
         return new NodeResponse(clientResponse, clusterEntity);
     }

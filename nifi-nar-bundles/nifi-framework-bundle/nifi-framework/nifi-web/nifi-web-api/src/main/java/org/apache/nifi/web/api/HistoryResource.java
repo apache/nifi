@@ -219,7 +219,6 @@ public class HistoryResource extends ApplicationResource {
 
         // create the response entity
         final HistoryEntity entity = new HistoryEntity();
-        entity.setRevision(revision);
         entity.setHistory(history);
 
         // generate the response
@@ -284,7 +283,6 @@ public class HistoryResource extends ApplicationResource {
 
         // create the response entity
         final ActionEntity entity = new ActionEntity();
-        entity.setRevision(revision);
         entity.setAction(action);
 
         // generate the response
@@ -346,7 +344,6 @@ public class HistoryResource extends ApplicationResource {
 
         // create the response entity
         final HistoryEntity entity = new HistoryEntity();
-        entity.setRevision(revision);
 
         // generate the response
         return generateOkResponse(entity).build();
@@ -402,7 +399,6 @@ public class HistoryResource extends ApplicationResource {
 
         // create the response entity
         final ComponentHistoryEntity entity = new ComponentHistoryEntity();
-        entity.setRevision(revision);
         entity.setComponentHistory(serviceFacade.getComponentHistory(processorId));
 
         // generate the response
@@ -459,7 +455,6 @@ public class HistoryResource extends ApplicationResource {
 
         // create the response entity
         final ComponentHistoryEntity entity = new ComponentHistoryEntity();
-        entity.setRevision(revision);
         entity.setComponentHistory(serviceFacade.getComponentHistory(controllerServiceId));
 
         // generate the response
@@ -516,7 +511,6 @@ public class HistoryResource extends ApplicationResource {
 
         // create the response entity
         final ComponentHistoryEntity entity = new ComponentHistoryEntity();
-        entity.setRevision(revision);
         entity.setComponentHistory(serviceFacade.getComponentHistory(reportingTaskId));
 
         // generate the response

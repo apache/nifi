@@ -22,7 +22,6 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
@@ -31,10 +30,8 @@ import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.entity.SystemDiagnosticsEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -66,9 +63,6 @@ public class SystemDiagnosticsResource extends ApplicationResource {
     /**
      * Gets the system diagnostics for this NiFi instance.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @return A systemDiagnosticsEntity.
      */
     @GET
@@ -90,11 +84,6 @@ public class SystemDiagnosticsResource extends ApplicationResource {
                 @ApiResponse(code = 403, message = "Client is not authorized to make this request."),}
     )
     public Response getSystemDiagnostics(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                 value = "Whether or not to include the breakdown per node. Optional, defaults to false",
                 required = false
@@ -140,13 +129,8 @@ public class SystemDiagnosticsResource extends ApplicationResource {
 
         final SystemDiagnosticsDTO systemDiagnosticsDto = serviceFacade.getSystemDiagnostics();
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response
         final SystemDiagnosticsEntity entity = new SystemDiagnosticsEntity();
-        entity.setRevision(revision);
         entity.setSystemDiagnostics(systemDiagnosticsDto);
 
         // generate the response

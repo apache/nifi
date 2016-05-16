@@ -49,7 +49,9 @@ nf.ng.GroupComponent = function (serviceProvider) {
                 // add the process group to the graph
                 nf.Graph.add({
                     'processGroups': [response]
-                }, true);
+                }, {
+                    'selectAll': true
+                });
 
                 // update component visibility
                 nf.Canvas.View.updateVisibility();

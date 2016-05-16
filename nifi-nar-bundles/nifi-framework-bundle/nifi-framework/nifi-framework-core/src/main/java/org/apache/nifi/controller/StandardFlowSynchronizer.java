@@ -16,30 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPInputStream;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
@@ -105,6 +81,29 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
 
 /**
  */
@@ -512,6 +511,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // get the real process group and ID
         final ProcessGroup processGroup = controller.getGroup(processGroupDto.getId());
 
+        // Update Controller Services
+        final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
+        for (final Element serviceNodeElement : serviceNodeList) {
+            updateControllerService(controller, serviceNodeElement, encryptor);
+        }
+
         // processors & ports cannot be updated - they must be the same. Except for the scheduled state.
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
         for (final Element processorElement : processorNodeList) {
@@ -686,12 +691,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        // Update Controller Services
-        final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
-        for (final Element serviceNodeElement : serviceNodeList) {
-            updateControllerService(controller, serviceNodeElement, encryptor);
-        }
-
         // Replace the templates with those from the proposed flow
         final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");
         for (final Template template : processGroup.getTemplates()) {
@@ -776,6 +775,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             controller.setRootGroup(processGroup);
         } else {
             parentGroup.addProcessGroup(processGroup);
+        }
+
+        // Add Controller Services
+        final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
+        if (!serviceNodeList.isEmpty()) {
+            ControllerServiceLoader.loadControllerServices(serviceNodeList, controller, processGroup, encryptor, controller.getBulletinRepository(), autoResumeState);
         }
 
         // add processors
@@ -1036,12 +1041,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             processGroup.addConnection(connection);
-        }
-
-        // Add Controller Services
-        final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
-        if (!serviceNodeList.isEmpty()) {
-            ControllerServiceLoader.loadControllerServices(serviceNodeList, controller, processGroup, encryptor, controller.getBulletinRepository(), autoResumeState);
         }
 
         final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");

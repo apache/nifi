@@ -84,7 +84,9 @@ nf.ng.FunnelComponent = function (serviceProvider) {
                     // add the funnel to the graph
                     nf.Graph.add({
                         'funnels': [response]
-                    }, true);
+                    }, {
+                        'selectAll': true
+                    });
 
                     // update the birdseye
                     nf.Birdseye.refresh();

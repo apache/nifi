@@ -19,26 +19,20 @@ package org.apache.nifi.web.api;
 import com.sun.jersey.api.core.ResourceContext;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ControllerDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ControllerEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -63,7 +57,6 @@ public class SiteToSiteResource extends ApplicationResource {
     /**
      * Returns the details of this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A controllerEntity.
      */
     @GET
@@ -83,12 +76,7 @@ public class SiteToSiteResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getController(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getController() {
 
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -97,13 +85,8 @@ public class SiteToSiteResource extends ApplicationResource {
         // get the controller dto
         final ControllerDTO controller = serviceFacade.getController();
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // build the response entity
         final ControllerEntity entity = new ControllerEntity();
-        entity.setRevision(revision);
         entity.setController(controller);
 
         // generate the response

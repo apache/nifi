@@ -224,7 +224,9 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                 // add the processor to the graph
                 nf.Graph.add({
                     'processors': [response]
-                }, true);
+                }, {
+                    'selectAll': true
+                });
 
                 // update component visibility
                 nf.Canvas.View.updateVisibility();

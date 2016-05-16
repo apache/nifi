@@ -27,17 +27,18 @@ import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
  */
 @XmlRootElement(name = "controllerServiceReferencingComponentEntity")
 public class ControllerServiceReferencingComponentEntity extends ComponentEntity {
-    private ControllerServiceReferencingComponentDTO controllerServiceReferencingComponent;
+
+    private ControllerServiceReferencingComponentDTO component;
 
     /**
      * @return controller service referencing components that is being serialized
      */
-    public ControllerServiceReferencingComponentDTO getControllerServiceReferencingComponent() {
-        return controllerServiceReferencingComponent;
+    public ControllerServiceReferencingComponentDTO getComponent() {
+        return component;
     }
 
-    public void setControllerServiceReferencingComponent(ControllerServiceReferencingComponentDTO controllerServiceReferencingComponent) {
-        this.controllerServiceReferencingComponent = controllerServiceReferencingComponent;
+    public void setComponent(ControllerServiceReferencingComponentDTO component) {
+        this.component = component;
     }
 
 }

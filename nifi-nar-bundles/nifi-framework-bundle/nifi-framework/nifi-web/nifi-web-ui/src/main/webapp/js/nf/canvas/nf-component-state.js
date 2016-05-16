@@ -205,7 +205,6 @@ nf.ComponentState = (function () {
 
         // clear the component
         $('#component-state-table').removeData('component');
-        $('#component-state-table').removeData('revision');
     };
 
     return {
@@ -252,23 +251,12 @@ nf.ComponentState = (function () {
                     var stateEntryCount = componentStateGrid.getDataLength();
 
                     if (stateEntryCount > 0) {
-                        var revision = componentStateTable.data('revision');
-
-                        // clear the state
-                        var revision = {
-                            'revision': revision
-                        };
-
                         var component = componentStateTable.data('component');
                         $.ajax({
                             type: 'POST',
                             url: component.uri + '/state/clear-requests',
-                            data: JSON.stringify(revision),
                             dataType: 'json'
                         }).done(function (response) {
-                            // TODO - update the revision
-                            // nf.Client.setRevision(response.revision);
-
                             // clear the table
                             clearTable();
 
@@ -359,7 +347,7 @@ nf.ComponentState = (function () {
          * @param {object} component
          * @param {boolean} canClear
          */
-        showState: function (component, revision, canClear) {
+        showState: function (component, canClear) {
             return $.ajax({
                 type: 'GET',
                 url: component.uri + '/state',
@@ -377,7 +365,6 @@ nf.ComponentState = (function () {
 
                 // store the component
                 componentStateTable.data('component', component);
-                componentStateTable.data('revision', revision);
 
                 // show the dialog
                 $('#component-state-dialog').modal('show');

@@ -49,7 +49,9 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
                 // add the processor to the graph
                 nf.Graph.add({
                     'remoteProcessGroups': [response]
-                }, true);
+                }, {
+                    'selectAll': true
+                });
 
                 // update component visibility
                 nf.Canvas.View.updateVisibility();

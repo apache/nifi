@@ -80,6 +80,7 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -998,11 +999,9 @@ public interface NiFiServiceFacade {
     /**
      * Clears the state for the specified processor.
      *
-     * @param revision Revision to compare with current base revision
      * @param processorId the processor id
-     * @return snapshot
      */
-    ConfigurationSnapshot<Void> clearProcessorState(Revision revision, String processorId);
+    void clearProcessorState(String processorId);
 
     /**
      * Gets the state for the specified controller service.
@@ -1022,11 +1021,9 @@ public interface NiFiServiceFacade {
     /**
      * Clears the state for the specified controller service.
      *
-     * @param revision Revision to compare with current base revision
      * @param controllerServiceId the controller service id
-     * @return snapshot
      */
-    ConfigurationSnapshot<Void> clearControllerServiceState(Revision revision, String controllerServiceId);
+    void clearControllerServiceState(String controllerServiceId);
 
     /**
      * Gets the state for the specified reporting task.
@@ -1046,11 +1043,9 @@ public interface NiFiServiceFacade {
     /**
      * Clears the state for the specified reporting task.
      *
-     * @param revision Revision to compare with current base revision
      * @param reportingTaskId the reporting task id
-     * @return snapshot
      */
-    ConfigurationSnapshot<Void> clearReportingTaskState(Revision revision, String reportingTaskId);
+    void clearReportingTaskState(String reportingTaskId);
 
     // ----------------------------------------
     // Label methods
@@ -1104,12 +1099,11 @@ public interface NiFiServiceFacade {
     /**
      * Creates a controller service.
      *
-     * @param revision Revision to compare with current base revision
      * @param groupId the ID of the Process Group to add the Controller Service to
      * @param controllerServiceDTO The controller service DTO
      * @return The controller service DTO
      */
-    ControllerServiceEntity createControllerService(Revision revision, String groupId, ControllerServiceDTO controllerServiceDTO);
+    ControllerServiceEntity createControllerService(String groupId, ControllerServiceDTO controllerServiceDTO);
 
     /**
      * Gets all controller services that belong to the given group and its parent/ancestor groups
@@ -1117,7 +1111,7 @@ public interface NiFiServiceFacade {
      * @param groupId the id of the process group of interest
      * @return services
      */
-    Set<ControllerServiceDTO> getControllerServices(String groupId);
+    Set<ControllerServiceEntity> getControllerServices(String groupId);
 
     /**
      * Gets the specified controller service.
@@ -1125,7 +1119,7 @@ public interface NiFiServiceFacade {
      * @param controllerServiceId id
      * @return service
      */
-    ControllerServiceDTO getControllerService(String controllerServiceId);
+    ControllerServiceEntity getControllerService(String controllerServiceId);
 
     /**
      * Get the descriptor for the specified property of the specified controller service.
@@ -1147,14 +1141,14 @@ public interface NiFiServiceFacade {
     /**
      * Updates the referencing components for the specified controller service.
      *
-     * @param revision revision
+     * @param referenceRevisions revisions
      * @param controllerServiceId id
      * @param scheduledState state
      * @param controllerServiceState the value of state
      * @return The referencing component dtos
      */
     ControllerServiceReferencingComponentsEntity updateControllerServiceReferencingComponents(
-            Revision revision, String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
+        Map<String, Revision> referenceRevisions, String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
 
     /**
      * Updates the specified label.
@@ -1203,18 +1197,17 @@ public interface NiFiServiceFacade {
     /**
      * Creates a reporting task.
      *
-     * @param revision Revision to compare with current base revision
      * @param reportingTaskDTO The reporting task DTO
      * @return The reporting task DTO
      */
-    ReportingTaskEntity createReportingTask(Revision revision, ReportingTaskDTO reportingTaskDTO);
+    ReportingTaskEntity createReportingTask(ReportingTaskDTO reportingTaskDTO);
 
     /**
      * Gets all reporting tasks.
      *
      * @return tasks
      */
-    Set<ReportingTaskDTO> getReportingTasks();
+    Set<ReportingTaskEntity> getReportingTasks();
 
     /**
      * Gets the specified reporting task.
@@ -1222,7 +1215,7 @@ public interface NiFiServiceFacade {
      * @param reportingTaskId id
      * @return task
      */
-    ReportingTaskDTO getReportingTask(String reportingTaskId);
+    ReportingTaskEntity getReportingTask(String reportingTaskId);
 
     /**
      * Get the descriptor for the specified property of the specified reporting task.

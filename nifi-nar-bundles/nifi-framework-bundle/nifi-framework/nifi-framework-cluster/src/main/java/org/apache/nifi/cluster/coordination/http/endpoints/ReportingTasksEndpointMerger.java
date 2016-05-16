@@ -17,16 +17,17 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.ReportingTasksEntity;
+
 import java.net.URI;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.entity.ReportingTasksEntity;
-
-public class ReportingTasksEndpointMerger extends AbstractMultiEntityEndpoint<ReportingTasksEntity, ReportingTaskDTO> {
+public class ReportingTasksEndpointMerger extends AbstractMultiEntityEndpoint<ReportingTasksEntity, ReportingTaskEntity> {
     public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks/node";
 
     @Override
@@ -40,17 +41,23 @@ public class ReportingTasksEndpointMerger extends AbstractMultiEntityEndpoint<Re
     }
 
     @Override
-    protected Set<ReportingTaskDTO> getDtos(ReportingTasksEntity entity) {
+    protected Set<ReportingTaskEntity> getDtos(ReportingTasksEntity entity) {
         return entity.getReportingTasks();
     }
 
     @Override
-    protected String getComponentId(ReportingTaskDTO dto) {
-        return dto.getId();
+    protected String getComponentId(ReportingTaskEntity entity) {
+        return entity.getComponent().getId();
     }
 
     @Override
-    protected void mergeResponses(ReportingTaskDTO clientDto, Map<NodeIdentifier, ReportingTaskDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        new ReportingTaskEndpointMerger().mergeResponses(clientDto, dtoMap, successfulResponses, problematicResponses);
+    protected void mergeResponses(ReportingTaskEntity entity, Map<NodeIdentifier, ReportingTaskEntity> entityMap,
+                                  Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+
+        new ReportingTaskEndpointMerger().mergeResponses(
+            entity.getComponent(),
+            entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getComponent())),
+            successfulResponses,
+            problematicResponses);
     }
 }

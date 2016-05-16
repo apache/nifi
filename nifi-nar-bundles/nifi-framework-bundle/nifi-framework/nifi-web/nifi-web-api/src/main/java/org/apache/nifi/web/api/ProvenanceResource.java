@@ -22,7 +22,6 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
@@ -34,7 +33,6 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
@@ -45,7 +43,6 @@ import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
 import org.apache.nifi.web.api.entity.ProvenanceOptionsEntity;
 import org.apache.nifi.web.api.entity.SubmitReplayRequestEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +50,6 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -113,7 +109,6 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the provenance search options for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A provenanceOptionsEntity
      */
     @GET
@@ -136,12 +131,7 @@ public class ProvenanceResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getSearchOptions(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getSearchOptions() {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -151,14 +141,9 @@ public class ProvenanceResource extends ApplicationResource {
         // get provenance search options
         final ProvenanceOptionsDTO searchOptions = serviceFacade.getProvenanceSearchOptions();
 
-        // create a revision to return
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ProvenanceOptionsEntity entity = new ProvenanceOptionsEntity();
         entity.setProvenanceOptions(searchOptions);
-        entity.setRevision(revision);
 
         // generate the response
         return clusterContext(noCache(Response.ok(entity))).build();
@@ -231,17 +216,11 @@ public class ProvenanceResource extends ApplicationResource {
         }
 
         // submit the provenance replay request
-        final RevisionDTO requestRevision = replayRequestEntity.getRevision();
         final ProvenanceEventDTO event = serviceFacade.submitReplay(replayRequestEntity.getEventId());
-
-        // create a revision to return
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(requestRevision.getClientId());
 
         // create a response entity
         final ProvenanceEventEntity entity = new ProvenanceEventEntity();
         entity.setProvenanceEvent(event);
-        entity.setRevision(revision);
 
         // generate the response
         URI uri = URI.create(generateResourceUri("provenance", "events", event.getId()));
@@ -251,7 +230,6 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the content for the input of the specified event.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param clusterNodeId The id of the node within the cluster this content is on. Required if clustered.
      * @param id The id of the provenance event associated with this content.
      * @return The content stream
@@ -277,11 +255,6 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response getInputContent(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "The id of the node where the content exists if clustered.",
                     required = false
@@ -350,7 +323,6 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the content for the output of the specified event.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param clusterNodeId The id of the node within the cluster this content is on. Required if clustered.
      * @param id The id of the provenance event associated with this content.
      * @return The content stream
@@ -376,11 +348,6 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response getOutputContent(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "The id of the node where the content exists if clustered.",
                     required = false
@@ -505,7 +472,7 @@ public class ProvenanceResource extends ApplicationResource {
             // determine where this request should be sent
             if (provenanceDto.getClusterNodeId() == null) {
                 // replicate to all nodes
-                return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(provenanceEntity), getHeaders(headersToOverride)).getResponse();
+                return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), provenanceEntity, getHeaders(headersToOverride)).getResponse();
             } else {
                 // get the target node and ensure it exists
                 final Node targetNode = clusterManager.getNode(provenanceDto.getClusterNodeId());
@@ -517,7 +484,7 @@ public class ProvenanceResource extends ApplicationResource {
                 targetNodes.add(targetNode.getNodeId());
 
                 // send to every node
-                return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(provenanceEntity), getHeaders(headersToOverride), targetNodes).getResponse();
+                return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), provenanceEntity, getHeaders(headersToOverride), targetNodes).getResponse();
             }
         }
 
@@ -544,18 +511,9 @@ public class ProvenanceResource extends ApplicationResource {
         dto.setClusterNodeId(provenanceDto.getClusterNodeId());
         populateRemainingProvenanceContent(dto);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        if (provenanceEntity.getRevision() == null) {
-            revision.setClientId(new ClientIdParameter().getClientId());
-        } else {
-            revision.setClientId(provenanceEntity.getRevision().getClientId());
-        }
-
         // create the response entity
         final ProvenanceEntity entity = new ProvenanceEntity();
         entity.setProvenance(dto);
-        entity.setRevision(revision);
 
         // generate the response
         return clusterContext(generateCreatedResponse(URI.create(dto.getUri()), entity)).build();
@@ -564,7 +522,6 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the provenance with the specified id.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the provenance
      * @param clusterNodeId The id of node in the cluster to search. This is optional and only relevant when clustered. If clustered and it is not specified the entire cluster is searched.
      * @return A provenanceEntity
@@ -591,11 +548,6 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response getProvenance(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "The id of the node where this query exists if clustered.",
                     required = false
@@ -633,14 +585,9 @@ public class ProvenanceResource extends ApplicationResource {
         dto.setClusterNodeId(clusterNodeId);
         populateRemainingProvenanceContent(dto);
 
-        // create a revision to return
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ProvenanceEntity entity = new ProvenanceEntity();
         entity.setProvenance(dto);
-        entity.setRevision(revision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -650,7 +597,6 @@ public class ProvenanceResource extends ApplicationResource {
      * Deletes the provenance with the specified id.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the provenance
      * @param clusterNodeId The id of node in the cluster to search. This is optional and only relevant when clustered. If clustered and it is not specified the entire cluster is searched.
      * @return A provenanceEntity
@@ -678,11 +624,6 @@ public class ProvenanceResource extends ApplicationResource {
     )
     public Response deleteProvenance(
             @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "The id of the node where this query exists if clustered.",
                     required = false
@@ -724,13 +665,8 @@ public class ProvenanceResource extends ApplicationResource {
         // delete the provenance
         serviceFacade.deleteProvenance(id);
 
-        // create a revision to return
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ProvenanceEntity entity = new ProvenanceEntity();
-        entity.setRevision(revision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -739,7 +675,6 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the details for a provenance event.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the event
      * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
      * @return A provenanceEventEntity
@@ -766,11 +701,6 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response getProvenanceEvent(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "The id of the node where this event exists if clustered.",
                     required = false
@@ -810,17 +740,9 @@ public class ProvenanceResource extends ApplicationResource {
         // get the provenance event
         final ProvenanceEventDTO event = serviceFacade.getProvenanceEvent(id.getLong());
 
-        // event clusterNodeId is set in the NCM where the request is replicated. it is not set
-        // here because we also need the clusterNodeAddress (address:apiPort) that is unknown
-        // at ths point.
-        // create a revision to return
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create a response entity
         final ProvenanceEventEntity entity = new ProvenanceEventEntity();
         entity.setProvenanceEvent(event);
-        entity.setRevision(revision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -921,7 +843,7 @@ public class ProvenanceResource extends ApplicationResource {
             headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
 
             // send to every node
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(lineageEntity), getHeaders(headersToOverride), targetNodes).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), lineageEntity, getHeaders(headersToOverride), targetNodes).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -935,18 +857,9 @@ public class ProvenanceResource extends ApplicationResource {
         dto.setClusterNodeId(lineageDto.getClusterNodeId());
         populateRemainingLineageContent(dto);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        if (lineageEntity.getRevision() == null) {
-            revision.setClientId(new ClientIdParameter().getClientId());
-        } else {
-            revision.setClientId(lineageEntity.getRevision().getClientId());
-        }
-
         // create a response entity
         final LineageEntity entity = new LineageEntity();
         entity.setLineage(dto);
-        entity.setRevision(revision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -955,7 +868,6 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the lineage with the specified id.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
      * @param id The id of the lineage
      * @return A lineageEntity
@@ -982,11 +894,6 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response getLineage(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "The id of the node where this query exists if clustered.",
                     required = false
@@ -1022,14 +929,9 @@ public class ProvenanceResource extends ApplicationResource {
         dto.setClusterNodeId(clusterNodeId);
         populateRemainingLineageContent(dto);
 
-        // create a revision to return
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final LineageEntity entity = new LineageEntity();
         entity.setLineage(dto);
-        entity.setRevision(revision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -1039,7 +941,6 @@ public class ProvenanceResource extends ApplicationResource {
      * Deletes the lineage with the specified id.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
      * @param id The id of the lineage
      * @return A lineageEntity
@@ -1067,11 +968,6 @@ public class ProvenanceResource extends ApplicationResource {
     )
     public Response deleteLineage(
             @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                     value = "The id of the node where this query exists if clustered.",
                     required = false
@@ -1111,13 +1007,8 @@ public class ProvenanceResource extends ApplicationResource {
         // delete the lineage
         serviceFacade.deleteLineage(id);
 
-        // create a revision to return
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final LineageEntity entity = new LineageEntity();
-        entity.setRevision(revision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

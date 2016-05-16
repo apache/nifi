@@ -31,6 +31,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -74,6 +78,31 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         this.implementation = implementation;
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
+    }
+
+    @Override
+    public Authorizable getParentAuthorizable() {
+        final ProcessGroup processGroup = getProcessGroup();
+        if (processGroup == null) {
+            return new Authorizable() {
+                @Override
+                public Authorizable getParentAuthorizable() {
+                    return null;
+                }
+
+                @Override
+                public Resource getResource() {
+                    return ResourceFactory.getControllerResource();
+                }
+            };
+        } else {
+            return processGroup;
+        }
+    }
+
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getComponentResource(ResourceType.ControllerService, getIdentifier(), getName());
     }
 
     @Override
