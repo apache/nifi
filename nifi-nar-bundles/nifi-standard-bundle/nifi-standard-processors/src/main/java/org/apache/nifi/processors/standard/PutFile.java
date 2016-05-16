@@ -213,7 +213,7 @@ public class PutFile extends AbstractProcessor {
 
                 if (numFiles >= maxDestinationFiles) {
                     flowFile = session.penalize(flowFile);
-                    logger.info("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the "
+                    logger.warn("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the "
                             + "configured maximum number of files", new Object[]{flowFile, finalCopyFileDir, numFiles});
                     session.transfer(flowFile, REL_FAILURE);
                     return;
@@ -232,7 +232,7 @@ public class PutFile extends AbstractProcessor {
                         return;
                     case FAIL_RESOLUTION:
                         flowFile = session.penalize(flowFile);
-                        logger.info("Penalizing {} and routing to failure as configured because file with the same name already exists", new Object[]{flowFile});
+                        logger.warn("Penalizing {} and routing to failure as configured because file with the same name already exists", new Object[]{flowFile});
                         session.transfer(flowFile, REL_FAILURE);
                         return;
                     default:

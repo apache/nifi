@@ -215,7 +215,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
         }
 
         if (remoteFileInfo.isDirectory()) {
-            logger.info("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
+            logger.warn("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
             return new ConflictResult(REL_REJECT, false, fileName, false);
         }
 
@@ -227,7 +227,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 destinationRelationship = REL_REJECT;
                 transferFile = false;
                 penalizeFile = false;
-                logger.info("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
+                logger.warn("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
                 transfer.deleteFile(path, fileName);
@@ -256,7 +256,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     destinationRelationship = REL_REJECT;
                     transferFile = false;
                     penalizeFile = false;
-                    logger.info("Could not determine a unique name after 99 attempts for.  Switching resolution mode to REJECT for " + flowFile);
+                    logger.warn("Could not determine a unique name after 99 attempts for.  Switching resolution mode to REJECT for " + flowFile);
                 }
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
@@ -269,7 +269,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 destinationRelationship = REL_FAILURE;
                 transferFile = false;
                 penalizeFile = true;
-                logger.info("Resolved filename conflict for {} as configured by routing to FAILURE relationship.", new Object[]{flowFile});
+                logger.warn("Resolved filename conflict for {} as configured by routing to FAILURE relationship.", new Object[]{flowFile});
             default:
                 break;
         }
