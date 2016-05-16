@@ -39,6 +39,303 @@ public class TestSplitText {
             + "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nLastLine\n";
 
     @Test
+    public void testLastLineExceedsSizeLimit() {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "20 B");
+
+        runner.enqueue("Line #1\nLine #2\nLine #3\nLong line exceeding limit");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 3);
+    }
+
+    @Test
+    public void testIncompleteHeader() {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "50 B");
+
+        runner.enqueue("Header Line #1");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 1);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 0);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 0);
+    }
+
+    @Test
+    public void testSingleCharacterHeaderMarker() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "7");
+        runner.setProperty(SplitText.HEADER_MARKER, "H");
+        runner.setProperty(SplitText.REMOVE_TRAILING_NEWLINES, "false");
+
+        runner.enqueue(file);
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 2);
+
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splits.get(0).assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "7");
+        splits.get(0).assertAttributeEquals(SplitText.FRAGMENT_SIZE, "86");
+        splits.get(1).assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "3");
+        splits.get(1).assertAttributeEquals(SplitText.FRAGMENT_SIZE, "54");
+        final String fragmentUUID = splits.get(0).getAttribute("fragment.identifier");
+        for (int i = 0; i < splits.size(); i++) {
+            final MockFlowFile split = splits.get(i);
+            split.assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(i+1));
+            split.assertAttributeEquals(SplitText.FRAGMENT_ID, fragmentUUID);
+            split.assertAttributeEquals(SplitText.FRAGMENT_COUNT, String.valueOf(splits.size()));
+            split.assertAttributeEquals(SplitText.SEGMENT_ORIGINAL_FILENAME, file.getFileName().toString());
+        }
+    }
+
+    @Test
+    public void testMultipleHeaderIndicators() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "1");
+        runner.setProperty(SplitText.HEADER_MARKER, "Head");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "5");
+        runner.setProperty(SplitText.REMOVE_TRAILING_NEWLINES, "false");
+
+        runner.enqueue(file);
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 3);
+
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splits.get(0).assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "5");
+        splits.get(0).assertAttributeEquals(SplitText.FRAGMENT_SIZE, "62");
+        splits.get(1).assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "5");
+        splits.get(1).assertAttributeEquals(SplitText.FRAGMENT_SIZE, "55");
+        splits.get(2).assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "1");
+        splits.get(2).assertAttributeEquals(SplitText.FRAGMENT_SIZE, "23");
+        final String fragmentUUID = splits.get(0).getAttribute("fragment.identifier");
+        for (int i = 0; i < splits.size(); i++) {
+            final MockFlowFile split = splits.get(i);
+            split.assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(i + 1));
+            split.assertAttributeEquals(SplitText.FRAGMENT_ID, fragmentUUID);
+            split.assertAttributeEquals(SplitText.FRAGMENT_COUNT, String.valueOf(splits.size()));
+            split.assertAttributeEquals(SplitText.SEGMENT_ORIGINAL_FILENAME, file.getFileName().toString());
+        }
+    }
+
+    @Test
+    public void testZeroLinesNoMaxSize() {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "0");
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testMultipleSplitDirectives() {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "50 B");
+        runner.setProperty(SplitText.REMOVE_TRAILING_NEWLINES, "false");
+
+        runner.enqueue("Header Line #1\nHeader Line #2\nLine #1\nLine #2\n"
+                + "Line #3 This line has additional text added so that it exceeds the maximum fragment size\n"
+                + "Line #4\nLine #5\nLine #6\nLine #7\nLine #8\nLine #9\nLine #10\n");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 6);
+
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        assertEquals(46, splits.get(0).getSize());
+        assertEquals(119, splits.get(1).getSize());
+        assertEquals(46, splits.get(2).getSize());
+        assertEquals(46, splits.get(3).getSize());
+        assertEquals(46, splits.get(4).getSize());
+        assertEquals(39, splits.get(5).getSize());
+    }
+
+    @Test
+    public void testFlowFileIsOnlyHeader() {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "50 B");
+        runner.setProperty(SplitText.HEADER_MARKER, "Head");
+
+        runner.enqueue("Header Line #1\nHeaderLine#2\n");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 0);
+
+        // repeat with header cou8nt versus header marker
+        runner.clearTransferState();
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "50 B");
+
+        runner.enqueue("Header Line #1\nHeaderLine #2\n");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 0);
+
+        // repeat single header line with no newline characters
+        runner.clearTransferState();
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "1");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "2");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "50 B");
+
+        runner.enqueue("Header Line #1");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 0);
+    }
+
+    @Test
+    public void testMaxSizeExceeded() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "0");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "71 B");
+        runner.setProperty(SplitText.REMOVE_TRAILING_NEWLINES, "false");
+
+        runner.enqueue(file);
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 2);
+
+        List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        String fragmentUUID = splits.get(0).getAttribute("fragment.identifier");
+        for (int i = 0; i < splits.size(); i++) {
+            final MockFlowFile split = splits.get(i);
+            split.assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "5");
+            split.assertAttributeEquals(SplitText.FRAGMENT_SIZE, "70");
+            split.assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(i + 1));
+            split.assertAttributeEquals(SplitText.FRAGMENT_ID, fragmentUUID);
+            split.assertAttributeEquals(SplitText.FRAGMENT_COUNT, String.valueOf(splits.size()));
+            split.assertAttributeEquals(SplitText.SEGMENT_ORIGINAL_FILENAME, file.getFileName().toString());
+        }
+
+        // Repeat test without header
+        runner.clearTransferState();
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "0");
+        runner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "71 B");
+        runner.setProperty(SplitText.REMOVE_TRAILING_NEWLINES, "false");
+
+        runner.enqueue(file);
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 2);
+
+        splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        fragmentUUID = splits.get(0).getAttribute("fragment.identifier");
+        splits.get(0).assertContentEquals("Header Line #1\nHeader Line #2\nLine #1\nLine #2\nLine #3\nLine #4\nLine #5\n");
+        splits.get(1).assertContentEquals("Line #6\nLine #7\nLine #8\nLine #9\nLine #10");
+        splits.get(0).assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "7");
+        splits.get(0).assertAttributeEquals(SplitText.FRAGMENT_SIZE, "70");
+        splits.get(0).assertAttributeEquals(SplitText.FRAGMENT_INDEX, "1");
+        splits.get(0).assertAttributeEquals(SplitText.FRAGMENT_ID, fragmentUUID);
+        splits.get(0).assertAttributeEquals(SplitText.FRAGMENT_COUNT, "2");
+        splits.get(0).assertAttributeEquals(SplitText.SEGMENT_ORIGINAL_FILENAME, file.getFileName().toString());
+        splits.get(1).assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "5");
+        splits.get(1).assertAttributeEquals(SplitText.FRAGMENT_SIZE, "40");
+        splits.get(1).assertAttributeEquals(SplitText.FRAGMENT_INDEX, "2");
+        splits.get(1).assertAttributeEquals(SplitText.FRAGMENT_ID, fragmentUUID);
+        splits.get(1).assertAttributeEquals(SplitText.FRAGMENT_COUNT, "2");
+        splits.get(1).assertAttributeEquals(SplitText.SEGMENT_ORIGINAL_FILENAME, file.getFileName().toString());
+    }
+
+    @Test
+    public void testSplitWithOnlyCarriageReturn() {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "3");
+
+        runner.enqueue("H1\rH2\r1\r2\r3\r\r\r\r\r\r\r10\r11\r12\r");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 4);
+
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splits.get(0).assertContentEquals("H1\rH2\r1\r2\r3");
+        splits.get(1).assertContentEquals("H1\rH2");
+        splits.get(2).assertContentEquals("H1\rH2");
+        splits.get(3).assertContentEquals("H1\rH2\r10\r11\r12");
+
+        runner.clearTransferState();
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "3");
+
+        runner.enqueue("1\r2\r3\r\r\r\r\r\r\r10\r11\r12\r");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 2);
+
+        final List<MockFlowFile> splitsWithNoHeader = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splitsWithNoHeader.get(0).assertContentEquals("1\r2\r3");
+        splitsWithNoHeader.get(1).assertContentEquals("10\r11\r12");
+
+    }
+
+    @Test
+    public void testSplitWithCarriageReturnAndNewLines() {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "3");
+
+        runner.enqueue("H1\r\nH2\r\n1\r\n2\r\n3\r\n\r\n\r\n\r\n\r\n\r\n\r\n10\r\n11\r\n12\r\n");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 4);
+
+        final List<MockFlowFile> splits =runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splits.get(0).assertContentEquals("H1\r\nH2\r\n1\r\n2\r\n3");
+        splits.get(1).assertContentEquals("H1\r\nH2");
+        splits.get(2).assertContentEquals("H1\r\nH2");
+        splits.get(3).assertContentEquals("H1\r\nH2\r\n10\r\n11\r\n12");
+
+        runner.clearTransferState();
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "3");
+
+        runner.enqueue("1\r\n2\r\n3\r\n\r\n\r\n\r\n\r\n\r\n\r\n10\r\n11\r\n12\r\n");
+        runner.run();
+
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_SPLITS, 2);
+
+        final List<MockFlowFile> splitsWithNoHeader =runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splitsWithNoHeader.get(0).assertContentEquals("1\r\n2\r\n3");
+        splitsWithNoHeader.get(1).assertContentEquals("10\r\n11\r\n12");
+    }
+
+    @Test
     public void testRoutesToFailureIfHeaderLinesNotAllPresent() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "100");
