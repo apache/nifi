@@ -167,6 +167,14 @@ public interface RemoteProcessGroup extends Authorizable {
 
     void setTransportProtocol(SiteToSiteTransportProtocol transportProtocol);
 
+    String getProxyHost();
+
+    void setProxyHost(String proxyHost);
+
+    Integer getProxyPort();
+
+    void setProxyPort(Integer proxyPort);
+
     /**
      * Initiates a task in the remote process group to re-initialize, as a
      * result of clustering changes

@@ -37,7 +37,9 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                         id: remoteProcessGroupId,
                                         communicationsTimeout: $('#remote-process-group-timeout').val(),
                                         yieldDuration: $('#remote-process-group-yield-duration').val(),
-                                        transportProtocol: $('#remote-process-group-transport-protocol-combo').combo('getSelectedOption').value
+                                        transportProtocol: $('#remote-process-group-transport-protocol-combo').combo('getSelectedOption').value,
+                                        proxyHost: $('#remote-process-group-proxy-host').val(),
+                                        proxyPort: $('#remote-process-group-proxy-port').val()
                                     }
                                 };
 
@@ -95,6 +97,8 @@ nf.RemoteProcessGroupConfiguration = (function () {
                         $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
                             value: 'RAW'
                         });
+                        $('#remote-process-group-proxy-host').val('');
+                        $('#remote-process-group-proxy-port').val('');
                     }
                 }
             });
@@ -128,6 +132,8 @@ nf.RemoteProcessGroupConfiguration = (function () {
                 // populate the text fields
                 $('#remote-process-group-timeout').val(selectionData.component.communicationsTimeout);
                 $('#remote-process-group-yield-duration').val(selectionData.component.yieldDuration);
+                $('#remote-process-group-proxy-host').val(selectionData.component.proxyHost);
+                $('#remote-process-group-proxy-port').val(selectionData.component.proxyPort);
 
                 // select the appropriate transport-protocol
                 $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {

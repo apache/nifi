@@ -935,6 +935,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol.toUpperCase()));
             }
 
+            if (remoteGroupDto.getProxyHost() != null) {
+                remoteGroup.setProxyHost(remoteGroupDto.getProxyHost());
+            }
+
+            if (remoteGroupDto.getProxyPort() != null) {
+                remoteGroup.setProxyPort(remoteGroupDto.getProxyPort());
+            }
+
             final Set<RemoteProcessGroupPortDescriptor> inputPorts = new HashSet<>();
             for (final Element portElement : getChildrenByTagName(remoteProcessGroupElement, "inputPort")) {
                 inputPorts.add(FlowFromDOMFactory.getRemoteProcessGroupPort(portElement));

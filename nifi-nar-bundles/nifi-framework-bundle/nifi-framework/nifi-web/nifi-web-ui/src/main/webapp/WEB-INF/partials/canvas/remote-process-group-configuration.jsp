@@ -59,5 +59,23 @@
                 <div id="remote-process-group-transport-protocol-combo"></div>
             </div>
         </div>
+        <div class="setting">
+            <div class="setting-name">
+                HTTP Proxy server hostname
+                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Specify the proxy server's hostname to use. If not specified, HTTP traffics are sent directly to the target NiFi instance."/>
+            </div>
+            <div class="setting-field">
+                <input type="text" id="remote-process-group-proxy-host"/>
+            </div>
+        </div>
+        <div class="setting">
+            <div class="setting-name">
+                HTTP Proxy server port
+                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Specify the proxy server's port number, optional. If not specified, default port 80 will be used."/>
+            </div>
+            <div class="setting-field">
+                <input type="text" id="remote-process-group-proxy-port"/>
+            </div>
+        </div>
     </div>
 </div>

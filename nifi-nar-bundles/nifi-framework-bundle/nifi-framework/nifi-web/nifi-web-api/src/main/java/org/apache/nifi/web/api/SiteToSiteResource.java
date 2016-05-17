@@ -588,7 +588,7 @@ public class SiteToSiteResource extends ApplicationResource {
             @Context ServletContext context,
             InputStream inputStream) {
 
-        logger.debug("commitTxTransaction request: clientId={}, portId={}, transactionId={}", clientId, portId, transactionId);
+        logger.debug("commitOutputPortTransaction request: clientId={}, portId={}, transactionId={}", clientId, portId, transactionId);
 
         if (properties.isClusterManager()) {
             return responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");

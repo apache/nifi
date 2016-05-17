@@ -37,6 +37,8 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     private String communicationsTimeout;
     private String yieldDuration;
     private String transportProtocol;
+    private String proxyHost;
+    private Integer proxyPort;
 
     private List<String> authorizationIssues;
     private Boolean transmitting;
@@ -295,5 +297,22 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
 
     public void setTransportProtocol(String transportProtocol) {
         this.transportProtocol = transportProtocol;
+    }
+
+
+    public String getProxyHost() {
+        return proxyHost;
+    }
+
+    public void setProxyHost(String proxyHost) {
+        this.proxyHost = proxyHost;
+    }
+
+    public Integer getProxyPort() {
+        return proxyPort;
+    }
+
+    public void setProxyPort(Integer proxyPort) {
+        this.proxyPort = proxyPort;
     }
 }

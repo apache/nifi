@@ -255,7 +255,10 @@ public class FlowFromDOMFactory {
         dto.setPosition(getPosition(DomUtils.getChild(element, "position")));
         dto.setCommunicationsTimeout(getString(element, "timeout"));
         dto.setComments(getString(element, "comment"));
+        dto.setYieldDuration(getString(element, "yieldPeriod"));
         dto.setTransportProtocol(getString(element, "transportProtocol"));
+        dto.setProxyHost(getString(element, "proxyHost"));
+        dto.setProxyPort(getOptionalInt(element, "proxyPort"));
 
         return dto;
     }

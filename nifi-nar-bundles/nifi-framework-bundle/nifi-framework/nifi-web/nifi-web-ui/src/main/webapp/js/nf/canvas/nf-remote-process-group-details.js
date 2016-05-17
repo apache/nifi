@@ -40,6 +40,8 @@ nf.RemoteProcessGroupDetails = (function () {
                         nf.Common.clearField('read-only-remote-process-group-timeout');
                         nf.Common.clearField('read-only-remote-process-group-yield-duration');
                         nf.Common.clearField('read-only-remote-process-group-transport-protocol');
+                        nf.Common.clearField('read-only-remote-process-group-proxy-host');
+                        nf.Common.clearField('read-only-remote-process-group-proxy-port');
                     }
                 }
             });
@@ -62,6 +64,8 @@ nf.RemoteProcessGroupDetails = (function () {
                 nf.Common.populateField('read-only-remote-process-group-timeout', selectionData.component.communicationsTimeout);
                 nf.Common.populateField('read-only-remote-process-group-yield-duration', selectionData.component.yieldDuration);
                 nf.Common.populateField('read-only-remote-process-group-transport-protocol', selectionData.component.transportProtocol);
+                nf.Common.populateField('read-only-remote-process-group-proxy-host', selectionData.component.proxyHost);
+                nf.Common.populateField('read-only-remote-process-group-proxy-port', selectionData.component.proxyPort);
 
                 // show the details
                 $('#remote-process-group-details').modal('show');
