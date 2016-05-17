@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -73,29 +74,29 @@ import java.util.concurrent.atomic.AtomicBoolean;
         " TesseractOCRProcessor only supports installations of Tesseract version 3.0 and greater.")
 public class TesseractOCRProcessor extends AbstractProcessor {
 
-    public static String[] SUPPORTED_LANGUAGES;
+    public static Set<String> SUPPORTED_LANGUAGES;
     private static final String TESS_LANG_EXTENSION = ".traineddata";
-    private static String[] PAGE_SEGMENTATION_MODES;
+    private static List<AllowableValue> PAGE_SEGMENTATION_MODES;
     private static ITesseract tessInstance;
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
 
     static {
-        SUPPORTED_LANGUAGES = new String[1];
-        SUPPORTED_LANGUAGES[0] = "eng"; //Since this is the default value we need to ensure it is present in the allowableValues.
+        SUPPORTED_LANGUAGES = new HashSet<String>();
+        SUPPORTED_LANGUAGES.add("eng"); //Since this is the default value we need to ensure it is present in the allowableValues.
 
-        PAGE_SEGMENTATION_MODES = new String[11];
-        PAGE_SEGMENTATION_MODES[0] = "0 = Orientation and script detection (OSD) only";
-        PAGE_SEGMENTATION_MODES[1] = "1 = Automatic page segmentation with OSD";
-        PAGE_SEGMENTATION_MODES[2] = "2 = Automatic page segmentation, but no OSD, or OCR";
-        PAGE_SEGMENTATION_MODES[3] = "3 = Fully automatic page segmentation, but no OSD";
-        PAGE_SEGMENTATION_MODES[4] = "4 = Assume a single column of text of variable sizes";
-        PAGE_SEGMENTATION_MODES[5] = "5 = Assume a single uniform block of vertically aligned text";
-        PAGE_SEGMENTATION_MODES[6] = "6 = Assume a single uniform block of text";
-        PAGE_SEGMENTATION_MODES[7] = "7 = Treat the image as a single text line";
-        PAGE_SEGMENTATION_MODES[8] = "8 = Treat the image as a single word";
-        PAGE_SEGMENTATION_MODES[9] = "9 = Treat the image as a single word in a circle";
-        PAGE_SEGMENTATION_MODES[10] = "10 = Treat the image as a single character";
+        PAGE_SEGMENTATION_MODES = new ArrayList<AllowableValue>();
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("0","0 = Orientation and script detection (OSD) only"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("1","1 = Automatic page segmentation with OSD"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("2","2 = Automatic page segmentation, but no OSD, or OCR"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("3","3 = Fully automatic page segmentation, but no OSD"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("4","4 = Assume a single column of text of variable sizes"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("5","5 = Assume a single uniform block of vertically aligned text"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("6","6 = Assume a single uniform block of text"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("7","7 = Treat the image as a single text line"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("8","8 = Treat the image as a single word"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("9","9 = Treat the image as a single word in a circle"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("10","10 = Treat the image as a single character"));
     }
 
     public static final PropertyDescriptor TESS_DATA_PATH = new PropertyDescriptor
@@ -140,7 +141,8 @@ public class TesseractOCRProcessor extends AbstractProcessor {
             .Builder().name("Tesseract Language")
             .description("Language that Tesseract will use to perform OCR on image coming in the incoming FlowFile's content")
             .required(true)
-            .defaultValue("eng")
+            .defaultValue(SUPPORTED_LANGUAGES.iterator().next())
+            .allowableValues(SUPPORTED_LANGUAGES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -148,7 +150,7 @@ public class TesseractOCRProcessor extends AbstractProcessor {
             .Builder().name("Tesseract Page Segmentation Mode")
             .description("Set Tesseract to only run a subset of layout analysis and assume a certain form of image.")
             .required(true)
-            .defaultValue(PAGE_SEGMENTATION_MODES[3])
+            .defaultValue(PAGE_SEGMENTATION_MODES.get(3).getValue())
             .allowableValues(PAGE_SEGMENTATION_MODES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -228,17 +230,16 @@ public class TesseractOCRProcessor extends AbstractProcessor {
 
         if (descriptor.equals(TESS_DATA_PATH)) {
             getLogger().debug("Tesseract Install path was changed. Building list of supported languages");
-
+            SUPPORTED_LANGUAGES.clear();
+            SUPPORTED_LANGUAGES.add("eng");
             //File will always exist since the Validator will take care of that.
             File[] files = getTesseractLanguages(newValue);
 
             //Guard against creating an empty list of allowable values in case the user points to an invalid directory
             if (files != null && files.length > 0) {
-                SUPPORTED_LANGUAGES = new String[files.length];
-
                 for (int i = 0; i < files.length; i++) {
                     getLogger().debug("Found Tesseract supported language: " + files[i].getName());
-                    SUPPORTED_LANGUAGES[i] = StringUtils.split(files[i].getName(), ".")[0];
+                    SUPPORTED_LANGUAGES.add(StringUtils.split(files[i].getName(), ".")[0]);
                 }
             } else {
                 getLogger().debug("No languages found in user specified Tessdata directory: '" + newValue + "'");
@@ -271,7 +272,7 @@ public class TesseractOCRProcessor extends AbstractProcessor {
             public void process(InputStream inputStream, OutputStream outputStream) throws IOException {
                 tessInstance.setLanguage(context.getProperty(TESSERACT_LANGUAGE).getValue());
                 tessInstance.setDatapath(context.getProperty(TESS_DATA_PATH).evaluateAttributeExpressions(flowFile).getValue());
-                tessInstance.setPageSegMode(getPageSegMode(context.getProperty(TESSERACT_PAGE_SEG_MODE).getValue()));
+                tessInstance.setPageSegMode((context.getProperty(TESSERACT_PAGE_SEG_MODE).asInteger()));
 
                 //Builds the list of Tesseract configs.
                 Map<String, String> configs = buildTesseractConfigs(context.getProperty(TESSERACT_CONFIGS).getValue());
@@ -307,26 +308,7 @@ public class TesseractOCRProcessor extends AbstractProcessor {
 
     }
 
-    /**
-     * Searches the PAGE_SEGMENTATION_MODES array to find the index and Integer value that should
-     * ultimately be passed to Tesseract.
-     *
-     * @param pageSegText
-     *  Full description text String for the Tesseract mode. This string will be used to examine the array
-     *  of values and return the corresponding index.
-     *
-     * @return
-     *  Int value mapping to the String representation of the Tesseract mode.
-     */
-    private Integer getPageSegMode(String pageSegText) {
-        Integer i = null;
-        for (int x = 0; x < PAGE_SEGMENTATION_MODES.length; x++) {
-            if (PAGE_SEGMENTATION_MODES[x].equals(pageSegText)) {
-                i = x;
-            }
-        }
-        return i;
-    }
+
 
     /**
      * Build the key/value pairs of Tesseract configuration values that will be passed to Tesseract.

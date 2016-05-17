@@ -40,7 +40,7 @@ public class TesseractOCRProcessorTest {
     public void init() {
         testRunner = TestRunners.newTestRunner(TesseractOCRProcessor.class);
         testRunner.setProperty(TesseractOCRProcessor.TESS_DATA_PATH, VALID_TESS_DATA_DIR);
-        testRunner.setProperty(TesseractOCRProcessor.TESSERACT_LANGUAGE, "eng");
+        testRunner.setProperty(TesseractOCRProcessor.TESSERACT_LANGUAGE,TesseractOCRProcessor.SUPPORTED_LANGUAGES.iterator().next());
     }
 
     @Test(expected = AssertionError.class)
