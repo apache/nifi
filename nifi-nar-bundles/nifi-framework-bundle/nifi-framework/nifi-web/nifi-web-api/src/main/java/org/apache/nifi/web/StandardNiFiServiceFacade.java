@@ -16,6 +16,30 @@
  */
 package org.apache.nifi.web;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -30,8 +54,6 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
@@ -42,6 +64,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -168,28 +191,6 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
  */
@@ -199,9 +200,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     // nifi core components
     private ControllerFacade controllerFacade;
     private SnippetUtils snippetUtils;
-
-    // optimistic locking manager
-//    private OptimisticLockingManager optimisticLockingManager;
 
     // revision manager
     private RevisionManager revisionManager;
@@ -239,7 +237,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     // -----------------------------------------
     @Override
     public void claimRevision(Revision revision) {
-        revisionManager.requestClaim(revision);
+        revisionManager.requestClaim(revision, NiFiUserUtils.getNiFiUser());
     }
 
     // -----------------------------------------
@@ -274,22 +272,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteConnection(String connectionId) {
-        try {
-            connectionDAO.verifyDelete(connectionId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(connectionId);
-            throw e;
-        }
+        connectionDAO.verifyDelete(connectionId);
     }
 
     @Override
     public void verifyDeleteFunnel(String funnelId) {
-        try {
-            funnelDAO.verifyDelete(funnelId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(funnelId);
-            throw e;
-        }
+        funnelDAO.verifyDelete(funnelId);
     }
 
     @Override
@@ -308,12 +296,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteInputPort(String inputPortId) {
-        try {
-            inputPortDAO.verifyDelete(inputPortId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(inputPortId);
-            throw e;
-        }
+        inputPortDAO.verifyDelete(inputPortId);
     }
 
     @Override
@@ -332,12 +315,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteOutputPort(String outputPortId) {
-        try {
-            outputPortDAO.verifyDelete(outputPortId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(outputPortId);
-            throw e;
-        }
+        outputPortDAO.verifyDelete(outputPortId);
     }
 
     @Override
@@ -356,12 +334,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteProcessor(String processorId) {
-        try {
-            processorDAO.verifyDelete(processorId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(processorId);
-            throw e;
-        }
+        processorDAO.verifyDelete(processorId);
     }
 
     @Override
@@ -380,12 +353,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteProcessGroup(String groupId) {
-        try {
-            processGroupDAO.verifyDelete(groupId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(groupId);
-            throw e;
-        }
+        processGroupDAO.verifyDelete(groupId);
     }
 
     @Override
@@ -424,12 +392,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteRemoteProcessGroup(String remoteProcessGroupId) {
-        try {
-            remoteProcessGroupDAO.verifyDelete(remoteProcessGroupId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(remoteProcessGroupId);
-            throw e;
-        }
+        remoteProcessGroupDAO.verifyDelete(remoteProcessGroupId);
     }
 
     @Override
@@ -458,12 +421,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteControllerService(String controllerServiceId) {
-        try {
-            controllerServiceDAO.verifyDelete(controllerServiceId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(controllerServiceId);
-            throw e;
-        }
+        controllerServiceDAO.verifyDelete(controllerServiceId);
     }
 
     @Override
@@ -482,12 +440,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteReportingTask(String reportingTaskId) {
-        try {
-            reportingTaskDAO.verifyDelete(reportingTaskId);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(reportingTaskId);
-            throw e;
-        }
+        reportingTaskDAO.verifyDelete(reportingTaskId);
     }
 
     // -----------------------------------------
@@ -581,9 +534,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @return A ConfigurationSnapshot that represents the new configuration
      */
     private <D, C> RevisionUpdate<D> updateComponent(final Revision revision, final Authorizable authorizable, final Supplier<C> daoUpdate, final Function<C, D> dtoCreation) {
-        final String modifier = NiFiUserUtils.getNiFiUserName();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final String modifier = user.getUserName();
         try {
-            final RevisionUpdate<D> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(revision), modifier, new UpdateRevisionTask<D>() {
+            final RevisionUpdate<D> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(revision), user, new UpdateRevisionTask<D>() {
                 @Override
                 public RevisionUpdate<D> update() {
                     // ensure write access to the flow
@@ -706,12 +660,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             requestProcessGroup.authorize(authorizer, RequestAction.WRITE);
         }
 
-        final String modifier = NiFiUserUtils.getNiFiUserName();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final String modifier = user.getUserName();
         final RevisionClaim revisionClaim = new StandardRevisionClaim(requiredRevisions);
 
         RevisionUpdate<SnippetDTO> versionedSnippet;
         try {
-            versionedSnippet = revisionManager.updateRevision(revisionClaim, modifier, new UpdateRevisionTask<SnippetDTO>() {
+            versionedSnippet = revisionManager.updateRevision(revisionClaim, user, new UpdateRevisionTask<SnippetDTO>() {
                 @Override
                 public RevisionUpdate<SnippetDTO> update() {
                     // get the updated component
@@ -1081,13 +1036,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      */
     private <D, C> D deleteComponent(final Revision revision, final Authorizable authorizable, final Runnable deleteAction, final D dto) {
         final RevisionClaim claim = new StandardRevisionClaim(revision);
-        return revisionManager.deleteRevision(claim, new DeleteRevisionTask<D>() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        return revisionManager.deleteRevision(claim, user, new DeleteRevisionTask<D>() {
             @Override
             public D performTask() {
                 logger.debug("Attempting to delete component {} with claim {}", authorizable, claim);
 
                 // ensure access to the component
                 authorizable.authorize(authorizer, RequestAction.WRITE);
+
+                // If the component has outgoing connections, ensure that we can delete them all.
+                if (authorizable instanceof Connectable) {
+                    final Connectable connectable = (Connectable) authorizable;
+                    for (final Connection connection : connectable.getConnections()) {
+                        connection.authorize(authorizer, RequestAction.WRITE);
+                    }
+                }
 
                 deleteAction.run();
 
@@ -1102,12 +1067,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteSnippet(String id) {
-        try {
-            snippetDAO.verifyDelete(id);
-        } catch (final Exception e) {
-            revisionManager.cancelClaim(id);
-            throw e;
-        }
+        snippetDAO.verifyDelete(id);
     }
 
     @Override
@@ -1356,7 +1316,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowEntity copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY) {
+    public FlowEntity copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY, final String idGenerationSeed) {
         final FlowDTO flowDto = revisionManager.get(groupId,
             rev -> {
                 // ensure access to process group
@@ -1364,7 +1324,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 processGroup.authorize(authorizer, RequestAction.WRITE);
 
                 // create the new snippet
-                final FlowSnippetDTO snippet = snippetDAO.copySnippet(groupId, snippetId, originX, originY);
+                final FlowSnippetDTO snippet = snippetDAO.copySnippet(groupId, snippetId, originX, originY, idGenerationSeed);
 
                 // TODO - READ access to all components in snippet
 
@@ -1505,7 +1465,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public TemplateDTO createTemplate(String name, String description, String snippetId, String groupId) {
+    public TemplateDTO createTemplate(String name, String description, String snippetId, String groupId, Optional<String> idGenerationSeed) {
         // get the specified snippet
         Snippet snippet = snippetDAO.getSnippet(snippetId);
 
@@ -1517,12 +1477,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true));
 
         // set the id based on the specified seed
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            templateDTO.setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
-        } else {
-            templateDTO.setId(UUID.randomUUID().toString());
-        }
+        final String uuid = idGenerationSeed.isPresent() ? (UUID.nameUUIDFromBytes(idGenerationSeed.get().getBytes(StandardCharsets.UTF_8))).toString() : UUID.randomUUID().toString();
+        templateDTO.setId(uuid);
 
         // create the template
         Template template = templateDAO.createTemplate(templateDTO, groupId);
@@ -1531,14 +1487,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId) {
+    public TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId, Optional<String> idGenerationSeed) {
         // ensure id is set
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            templateDTO.setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
-        } else {
-            templateDTO.setId(UUID.randomUUID().toString());
-        }
+        final String uuid = idGenerationSeed.isPresent() ? (UUID.nameUUIDFromBytes(idGenerationSeed.get().getBytes(StandardCharsets.UTF_8))).toString() : UUID.randomUUID().toString();
+        templateDTO.setId(uuid);
 
         // mark the timestamp
         templateDTO.setTimestamp(new Date());
@@ -1551,7 +1503,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowEntity createTemplateInstance(final String groupId, final Double originX, final Double originY, final String templateId) {
+    public FlowEntity createTemplateInstance(final String groupId, final Double originX, final Double originY, final String templateId, final String idGenerationSeed) {
         final FlowDTO flowDto = revisionManager.get(groupId, rev -> {
             // ensure access to process group
             final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
@@ -1559,7 +1511,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // instantiate the template - there is no need to make another copy of the flow snippet since the actual template
             // was copied and this dto is only used to instantiate it's components (which as already completed)
-            final FlowSnippetDTO snippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateId);
+            final FlowSnippetDTO snippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateId, idGenerationSeed);
 
             // TODO - READ access to all components in snippet
 
@@ -1624,9 +1576,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ProcessorEntity setProcessorAnnotationData(final Revision revision, final String processorId, final String annotationData) {
-        final String modifier = NiFiUserUtils.getNiFiUserName();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final String modifier = user.getUserName();
 
-        final RevisionUpdate<ProcessorEntity> update = revisionManager.updateRevision(new StandardRevisionClaim(revision), modifier, new UpdateRevisionTask<ProcessorEntity>() {
+        final RevisionUpdate<ProcessorEntity> update = revisionManager.updateRevision(new StandardRevisionClaim(revision), user, new UpdateRevisionTask<ProcessorEntity>() {
             @Override
             public RevisionUpdate<ProcessorEntity> update() {
                 // create the processor config
@@ -1701,9 +1654,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Map<String, Revision> referenceRevisions, final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
 
         final RevisionClaim claim = new StandardRevisionClaim(referenceRevisions.values());
-        final String modifier = NiFiUserUtils.getNiFiUserName();
 
-        final RevisionUpdate<ControllerServiceReferencingComponentsEntity> update = revisionManager.updateRevision(claim, modifier,
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionUpdate<ControllerServiceReferencingComponentsEntity> update = revisionManager.updateRevision(claim, user,
             new UpdateRevisionTask<ControllerServiceReferencingComponentsEntity>() {
                 @Override
                 public RevisionUpdate<ControllerServiceReferencingComponentsEntity> update() {

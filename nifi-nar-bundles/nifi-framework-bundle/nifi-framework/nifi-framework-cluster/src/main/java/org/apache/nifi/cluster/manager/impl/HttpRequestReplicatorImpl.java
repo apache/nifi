@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -268,8 +267,6 @@ public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
         }
 
         // submit the requests to the nodes
-        final String requestId = UUID.randomUUID().toString();
-        headers.put(WebClusterManager.REQUEST_ID_HEADER, requestId);
         for (final Map.Entry<NodeIdentifier, URI> entry : uriMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
             final URI nodeUri = entry.getValue();
@@ -339,15 +336,15 @@ public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
             }
 
             final StringBuilder sb = new StringBuilder();
-            sb.append("Node Responses for ").append(method).append(" ").append(path).append(" (Request ID ").append(requestId).append("):\n");
+            sb.append("Node Responses for ").append(method).append(" ").append(path).append(":\n");
             for (final NodeResponse response : result) {
                 sb.append(response).append("\n");
             }
 
             final long averageNanos = (nanosAdded == 0) ? -1L : nanosSum / nanosAdded;
             final long averageMillis = (averageNanos < 0) ? averageNanos : TimeUnit.MILLISECONDS.convert(averageNanos, TimeUnit.NANOSECONDS);
-            logger.debug("For {} {} (Request ID {}), minimum response time = {}, max = {}, average = {} ms",
-                    method, path, requestId, min, max, averageMillis);
+            logger.debug("For {} {}, minimum response time = {}, max = {}, average = {} ms",
+                method, path, min, max, averageMillis);
             logger.debug(sb.toString());
         }
 

@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,13 +53,10 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextImpl;
 import org.apache.nifi.cluster.coordination.heartbeat.ClusterProtocolHeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
@@ -76,7 +72,6 @@ import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.flow.ClusterDataFlow;
 import org.apache.nifi.cluster.flow.DaoException;
 import org.apache.nifi.cluster.flow.DataFlowManagementService;
-import org.apache.nifi.cluster.flow.PersistedFlowState;
 import org.apache.nifi.cluster.manager.HttpClusterManager;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.ConflictingNodeIdException;
@@ -165,11 +160,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.ReflectionUtils;
-import org.apache.nifi.web.OptimisticLockingManager;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateRevision;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
@@ -197,58 +188,21 @@ import com.sun.jersey.api.client.config.DefaultClientConfig;
  */
 public class WebClusterManager implements HttpClusterManager, ProtocolHandler, ControllerServiceProvider, ReportingTaskProvider, RequestCompletionCallback {
 
-    public static final String ROOT_GROUP_ID_ALIAS = "root";
     public static final String BULLETIN_CATEGORY = "Clustering";
 
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(WebClusterManager.class));
 
-    /**
-     * The HTTP header to store a cluster context. An example of what may be stored in the context is a node's auditable actions in response to a cluster request. The cluster context is serialized
-     * using Java's serialization mechanism and hex encoded.
-     */
-    public static final String CLUSTER_CONTEXT_HTTP_HEADER = "X-ClusterContext";
-
-    /**
-     * HTTP Header that stores a unique ID for each request that is replicated to the nodes. This is used for logging purposes so that request information, such as timing, can be correlated between
-     * the NCM and the nodes
-     */
-    public static final String REQUEST_ID_HEADER = "X-RequestID";
-
-    /**
-     * The HTTP header that the NCM specifies to ask a node if they are able to process a given request. The value is always 150-NodeContinue. The node will respond with 150 CONTINUE if it is able to
-     * process the request, 417 EXPECTATION_FAILED otherwise.
-     */
-    public static final String NCM_EXPECTS_HTTP_HEADER = "X-NcmExpects";
-    public static final int NODE_CONTINUE_STATUS_CODE = 150;
-
-    /**
-     * The HTTP header that the NCM specifies to indicate that a node should invalidate the specified user group. This is done to ensure that user cache is not stale when an administrator modifies a
-     * group through the UI.
-     */
-    public static final String CLUSTER_INVALIDATE_USER_GROUP_HEADER = "X-ClusterInvalidateUserGroup";
-
-    /**
-     * The HTTP header that the NCM specifies to indicate that a node should invalidate the specified user. This is done to ensure that user cache is not stale when an administrator modifies a user
-     * through the UI.
-     */
-    public static final String CLUSTER_INVALIDATE_USER_HEADER = "X-ClusterInvalidateUser";
 
     /**
      * The default number of seconds to respond to a connecting node if the manager cannot provide it with a current data flow.
      */
     private static final int DEFAULT_CONNECTION_REQUEST_TRY_AGAIN_SECONDS = 5;
 
-
-    public static final Pattern CLUSTER_PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/cluster/processors/[a-f0-9\\-]{36}");
-
-
-    public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile("/nifi-api/controller/reporting-tasks/node/[a-f0-9\\-]{36}");
     public static final Pattern COUNTER_URI_PATTERN = Pattern.compile("/nifi-api/controller/counters/[a-f0-9\\-]{36}");
 
     private final NiFiProperties properties;
     private final DataFlowManagementService dataFlowManagementService;
     private final ClusterManagerProtocolSenderListener senderListener;
-    private final OptimisticLockingManager optimisticLockingManager;
     private final StringEncryptor encryptor;
     private final ReentrantReadWriteLock resourceRWLock = new ReentrantReadWriteLock(true);
     private final ClusterManagerLock readLock = new ClusterManagerLock(resourceRWLock.readLock(), "Read");
@@ -281,8 +235,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private final RequestReplicator httpRequestReplicator;
 
     public WebClusterManager(
-            final DataFlowManagementService dataFlowManagementService, final ClusterManagerProtocolSenderListener senderListener,
-            final NiFiProperties properties, final StringEncryptor encryptor, final OptimisticLockingManager optimisticLockingManager) {
+        final DataFlowManagementService dataFlowManagementService, final ClusterManagerProtocolSenderListener senderListener,
+        final NiFiProperties properties, final StringEncryptor encryptor) {
 
         if (dataFlowManagementService == null) {
             throw new IllegalArgumentException("DataFlowManagementService may not be null.");
@@ -298,7 +252,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         this.instanceId = UUID.randomUUID().toString();
         this.senderListener = senderListener;
         this.encryptor = encryptor;
-        this.optimisticLockingManager = optimisticLockingManager;
         senderListener.addHandler(this);
         senderListener.setBulletinRepository(bulletinRepository);
 
@@ -356,7 +309,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         final Client jerseyClient = WebUtils.createClient(new DefaultClientConfig(), SslContextFactory.createSslContext(properties));
         return new ThreadPoolRequestReplicator(numThreads, jerseyClient, clusterCoordinator, connectionTimeout, readTimeout, this,
-            eventReporter, this, optimisticLockingManager, dataFlowManagementService);
+            eventReporter, this, dataFlowManagementService);
     }
 
     private EventReporter createEventReporter() {
@@ -1734,85 +1687,21 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         logger.debug("Applying prototype request " + uri + " to nodes.");
 
-        // the starting state of the flow (current, stale, unknown)
-        final PersistedFlowState originalPersistedFlowState = dataFlowManagementService.getPersistedFlowState();
+        // replicate request
+        final AsyncClusterResponse clusterResponse = httpRequestReplicator.replicate(nodeIds, method, uri, entity == null ? parameters : entity, headers);
 
-        // check if this request can change the flow
-        final boolean mutableRequest = canChangeNodeState(method, uri);
-
-        final ObjectHolder<NodeResponse> holder = new ObjectHolder<>(null);
-        final UpdateRevision federateRequest = new UpdateRevision() {
-            @Override
-            public Revision execute(Revision currentRevision) {
-                // update headers to contain cluster contextual information to send to the node
-                final Map<String, String> updatedHeaders = new HashMap<>(headers);
-                final ClusterContext clusterCtx = new ClusterContextImpl();
-                clusterCtx.setRequestSentByClusterManager(true);                 // indicate request is sent from cluster manager
-                clusterCtx.setRevision(currentRevision);
-
-                // serialize cluster context and add to request header
-                final String serializedClusterCtx = WebUtils.serializeObjectToHex(clusterCtx);
-                updatedHeaders.put(CLUSTER_CONTEXT_HTTP_HEADER, serializedClusterCtx);
-
-                // replicate request
-                final AsyncClusterResponse clusterResponse = httpRequestReplicator.replicate(nodeIds, method, uri, entity == null ? parameters : entity, updatedHeaders);
-
-                final NodeResponse clientResponse;
-                try {
-                    clientResponse = clusterResponse.awaitMergedResponse();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    logger.warn("Thread was interrupted while waiting for a response from one or more nodes", e);
-                    final Set<NodeIdentifier> noResponses = clusterResponse.getNodesInvolved();
-                    noResponses.removeAll(clusterResponse.getCompletedNodeIdentifiers());
-                    throw new IllegalClusterStateException("Interrupted while waiting for a response from the following nodes: " + noResponses, e);
-                }
-
-                holder.set(clientResponse);
-
-                // if we have a response get the updated cluster context for auditing and revision updating
-                Revision updatedRevision = null;
-                if (mutableRequest && clientResponse != null) {
-                    try {
-                        // get the cluster context from the response header
-                        final String serializedClusterContext = clientResponse.getClientResponse().getHeaders().getFirst(CLUSTER_CONTEXT_HTTP_HEADER);
-                        if (StringUtils.isNotBlank(serializedClusterContext)) {
-                            // deserialize object
-                            final Serializable clusterContextObj = WebUtils.deserializeHexToObject(serializedClusterContext);
-
-                            // if we have a valid object, audit the actions
-                            if (clusterContextObj instanceof ClusterContext) {
-                                final ClusterContext clusterContext = (ClusterContext) clusterContextObj;
-                                if (auditService != null) {
-                                    try {
-                                        auditService.addActions(clusterContext.getActions());
-                                    } catch (final Throwable t) {
-                                        logger.warn("Unable to record actions: " + t.getMessage());
-                                        if (logger.isDebugEnabled()) {
-                                            logger.warn(StringUtils.EMPTY, t);
-                                        }
-                                    }
-                                }
-                                updatedRevision = clusterContext.getRevision();
-                            }
-                        }
-                    } catch (final ClassNotFoundException cnfe) {
-                        logger.warn("Classpath issue detected because failed to deserialize cluster context from node response due to: " + cnfe, cnfe);
-                    }
-                }
-
-                return updatedRevision;
-            }
-        };
-
-        // federate the request and lock on the revision
-        if (mutableRequest) {
-            optimisticLockingManager.setRevision(federateRequest);
-        } else {
-            federateRequest.execute(optimisticLockingManager.getLastModification().getRevision());
+        final NodeResponse clientResponse;
+        try {
+            clientResponse = clusterResponse.awaitMergedResponse();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Thread was interrupted while waiting for a response from one or more nodes", e);
+            final Set<NodeIdentifier> noResponses = clusterResponse.getNodesInvolved();
+            noResponses.removeAll(clusterResponse.getCompletedNodeIdentifiers());
+            throw new IllegalClusterStateException("Interrupted while waiting for a response from the following nodes: " + noResponses, e);
         }
 
-        return holder.get();
+        return clientResponse;
     }
 
 
@@ -2149,20 +2038,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             dataFlowManagementService.setNodeIds(getNodeIds(Status.CONNECTED));
         } finally {
             writeLock.unlock("notifyDataFlowManagementServiceOfNodeStatusChange");
-        }
-    }
-
-    private void notifyDataFlowManagmentServiceOfFlowStateChange(final PersistedFlowState newState) {
-        writeLock.lock();
-        try {
-            logger.debug("Notifying DataFlow Management Service that flow state is " + newState);
-            dataFlowManagementService.setPersistedFlowState(newState);
-            if (newState != PersistedFlowState.CURRENT) {
-                cachedDataFlow = null;
-                /* do not reset primary node ID  because only the data flow has changed */
-            }
-        } finally {
-            writeLock.unlock("notifyDataFlowManagementServiceOfFlowStateChange");
         }
     }
 

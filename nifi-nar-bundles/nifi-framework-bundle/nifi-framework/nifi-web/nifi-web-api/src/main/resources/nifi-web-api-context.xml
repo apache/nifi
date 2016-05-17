@@ -38,7 +38,9 @@
     </bean>
 
     <!-- revision manager -->
-    <bean id="revisionManager" class="org.apache.nifi.web.revision.NaiveRevisionManager" />
+    <bean id="revisionManager" class="org.apache.nifi.web.revision.NaiveRevisionManager">
+        <constructor-arg ref="nifiProperties"></constructor-arg>
+    </bean>
     
     <!-- content access -->
     <bean id="contentAccess" class="org.apache.nifi.web.StandardNiFiContentAccess">

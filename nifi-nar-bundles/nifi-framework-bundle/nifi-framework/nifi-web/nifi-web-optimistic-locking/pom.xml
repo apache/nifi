@@ -35,9 +35,5 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-security</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-cluster-web</artifactId>
-        </dependency>
     </dependencies>
 </project>

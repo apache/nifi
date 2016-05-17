@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.Revision;
 
@@ -82,12 +83,13 @@ public interface RevisionManager {
      *
      * @param revisions a Set of Revisions, each of which corresponds to a different
      *            component for which a Claim is to be acquired.
+     * @param user the user for which the claim is being requested
      *
      * @return the Revision Claim that was granted, if one was granted.
      *
      * @throws InvalidRevisionException if any of the Revisions provided is out-of-date.
      */
-    RevisionClaim requestClaim(Collection<Revision> revisions) throws InvalidRevisionException;
+    RevisionClaim requestClaim(Collection<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
 
     /**
      * <p>
@@ -96,12 +98,13 @@ public interface RevisionManager {
      * </p>
      *
      * @param revision the revision to request a claim for
+     * @param user the user for which the claim is being requested
      *
      * @return the Revision Claim that was granted, if one was granted.
      *
      * @throws InvalidRevisionException if any of the Revisions provided is out-of-date.
      */
-    RevisionClaim requestClaim(Revision revision) throws InvalidRevisionException;
+    RevisionClaim requestClaim(Revision revision, NiFiUser user) throws InvalidRevisionException;
 
     /**
      * Returns the current Revision for the component with the given ID. If no Revision yet exists for the
@@ -121,7 +124,7 @@ public interface RevisionManager {
      *
      * @param claim the Revision Claim that is responsible for holding a Claim on the Revisions for each component that is
      *            to be updated
-     * @param modifier the name of the entity that is modifying the resource
+     * @param modifier the user that is modifying the resource
      * @param task the task that is responsible for updating the components whose Revisions are claimed by the given
      *            RevisionClaim. The returned Revision set should include a Revision for each Revision that is the
      *            supplied Revision Claim. If there exists any Revision in the provided RevisionClaim that is not part
@@ -131,7 +134,7 @@ public interface RevisionManager {
      *
      * @throws ExpiredRevisionClaimException if the Revision Claim has expired
      */
-    <T> RevisionUpdate<T> updateRevision(RevisionClaim claim, String modifier, UpdateRevisionTask<T> task) throws ExpiredRevisionClaimException;
+    <T> RevisionUpdate<T> updateRevision(RevisionClaim claim, NiFiUser modifier, UpdateRevisionTask<T> task) throws ExpiredRevisionClaimException;
 
     /**
      * Performs the given task that is expected to remove a component from the flow. As a result,
@@ -139,12 +142,13 @@ public interface RevisionManager {
      *
      * @param claim the Revision Claim that is responsible for holding a Claim on the Revisions for each component that is
      *            to be removed
+     * @param user the user that is requesting that the revision be deleted
      * @param task the task that is responsible for deleting the components whose Revisions are claimed by the given RevisionClaim
      * @return the value returned from the DeleteRevisionTask
      *
      * @throws ExpiredRevisionClaimException if the Revision Claim has expired
      */
-    <T> T deleteRevision(RevisionClaim claim, DeleteRevisionTask<T> task) throws ExpiredRevisionClaimException;
+    <T> T deleteRevision(RevisionClaim claim, NiFiUser user, DeleteRevisionTask<T> task) throws ExpiredRevisionClaimException;
 
     /**
      * Performs some operation to obtain an object of type T whose identifier is provided via
@@ -173,11 +177,12 @@ public interface RevisionManager {
      * are up-to-date.
      *
      * @param claim the claim that holds the revisions
+     * @param user the user that is releasing the claim. Must be the same user that claimed the revision.
      *
      * @return <code>true</code> if the claim was released, <code>false</code> if the Revisions were not
      *         up-to-date
      */
-    boolean releaseClaim(RevisionClaim claim);
+    boolean releaseClaim(RevisionClaim claim, NiFiUser user);
 
     /**
      * Releases the claim on the revision for the given component if the claim was obtained by the calling thread
@@ -186,4 +191,20 @@ public interface RevisionManager {
      * @return <code>true</code> if the claim was released, false otherwise
      */
     boolean cancelClaim(String componentId);
+
+    /**
+     * Releases the claim on the given revision if the claim was obtained by the calling thread
+     *
+     * @param revision the Revision to cancel the claim for
+     * @return <code>true</code> if the claim was released, false otherwise
+     */
+    boolean cancelClaim(Revision revision);
+
+    /**
+     * Releases the claims on the given revisions if the claim was obtained by the calling thread
+     *
+     * @param revisions the Revisions to cancel claims for
+     * @return <code>true</code> if all claims were released, false otherwise
+     */
+    boolean cancelClaims(Set<Revision> revisions);
 }

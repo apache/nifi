@@ -40,7 +40,6 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.StandardOptimisticLockingManager;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.Assert;
@@ -156,13 +155,12 @@ public class TestThreadPoolRequestReplicator {
 
         final AtomicInteger requestCount = new AtomicInteger(0);
         final DataFlowManagementService dfmService = Mockito.mock(DataFlowManagementService.class);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator,
-            "1 sec", "1 sec", null, null, null, new StandardOptimisticLockingManager(), dfmService) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, null, dfmService) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
-                final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.NCM_EXPECTS_HTTP_HEADER);
+                final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
 
                 final int statusCode;
                 if (requestCount.incrementAndGet() == 1) {
@@ -208,13 +206,12 @@ public class TestThreadPoolRequestReplicator {
 
         final AtomicInteger requestCount = new AtomicInteger(0);
         final DataFlowManagementService dfmService = Mockito.mock(DataFlowManagementService.class);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator,
-            "1 sec", "1 sec", null, null, null, new StandardOptimisticLockingManager(), dfmService) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, null, dfmService) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
-                final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.NCM_EXPECTS_HTTP_HEADER);
+                final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
 
                 final int requestIndex = requestCount.incrementAndGet();
                 assertEquals(ThreadPoolRequestReplicator.NODE_CONTINUE, expectsHeader);
@@ -256,8 +253,7 @@ public class TestThreadPoolRequestReplicator {
         final ClusterCoordinator coordinator = Mockito.mock(ClusterCoordinator.class);
 
         final DataFlowManagementService dfmService = Mockito.mock(DataFlowManagementService.class);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator,
-            "1 sec", "1 sec", null, null, null, new StandardOptimisticLockingManager(), dfmService) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, null, dfmService) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
                 if (delayMillis > 0L) {

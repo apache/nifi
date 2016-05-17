@@ -72,7 +72,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     }
 
     @Override
-    public FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateId) {
+    public FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateId, String idGenerationSeed) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         // get the template id and find the template
@@ -86,7 +86,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
         try {
             // copy the template which pre-processes all ids
             TemplateDTO templateDetails = template.getDetails();
-            FlowSnippetDTO snippet = snippetUtils.copy(templateDetails.getSnippet(), group);
+            FlowSnippetDTO snippet = snippetUtils.copy(templateDetails.getSnippet(), group, idGenerationSeed);
 
             // reposition the template contents
             org.apache.nifi.util.SnippetUtils.moveSnippet(snippet, originX, originY);

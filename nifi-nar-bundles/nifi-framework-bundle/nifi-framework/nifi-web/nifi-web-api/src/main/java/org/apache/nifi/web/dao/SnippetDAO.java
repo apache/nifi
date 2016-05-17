@@ -29,9 +29,10 @@ public interface SnippetDAO {
      * @param snippetId snippet id
      * @param originX x
      * @param originY y
+     * @param idGenerationSeed the seed to use for generating UUID's. May be null.
      * @return snippet
      */
-    FlowSnippetDTO copySnippet(String groupId, String snippetId, Double originX, Double originY);
+    FlowSnippetDTO copySnippet(String groupId, String snippetId, Double originX, Double originY, String idGenerationSeed);
 
     /**
      * Creates a snippet.

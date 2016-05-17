@@ -16,32 +16,16 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.nifi.action.Action;
-import org.apache.nifi.action.FlowChangeAction;
-import org.apache.nifi.action.Operation;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.ComponentEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.util.WebUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -53,14 +37,25 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.apache.nifi.web.util.WebUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.sun.jersey.api.core.HttpContext;
+import com.sun.jersey.api.representation.Form;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 
 /**
  * Base class for controllers.
@@ -77,8 +72,6 @@ public abstract class ApplicationResource {
     public static final String PROXIED_ENTITIES_CHAIN_HTTP_HEADER = "X-ProxiedEntitiesChain";
     public static final String PROXIED_ENTITY_USER_DETAILS_HTTP_HEADER = "X-ProxiedEntityUserDetails";
 
-    private static final int HEADER_BUFFER_SIZE = 16 * 1024; // 16kb
-    private static final int CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES = (int) (0.75 * HEADER_BUFFER_SIZE);
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 
     public static final String NODEWISE = "false";
@@ -173,84 +166,25 @@ public abstract class ApplicationResource {
      * @return builder
      */
     protected ResponseBuilder clusterContext(ResponseBuilder response) {
-
-        NiFiProperties properties = NiFiProperties.getInstance();
-        if (!properties.isNode()) {
-            return response;
-        }
-
-        // get cluster context from threadlocal
-        ClusterContext clusterCtx = ClusterContextThreadLocal.getContext();
-        if (clusterCtx != null) {
-
-            // serialize cluster context
-            String serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
-            if (serializedClusterContext.length() > CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES) {
-                /*
-                 * Actions is the only field that can vary in size. If we have no
-                 * actions and we exceeded the header size, then basic assumptions
-                 * about the cluster context have been violated.
-                 */
-                if (clusterCtx.getActions().isEmpty()) {
-                    throw new IllegalStateException(
-                            String.format("Serialized Cluster context size '%d' is too big for response header", serializedClusterContext.length()));
-                }
-
-                // use the first action as the prototype for creating the "batch" action
-                Action prototypeAction = clusterCtx.getActions().get(0);
-
-                // log the batched actions
-                StringBuilder loggedActions = new StringBuilder();
-                createBatchedActionLogStatement(loggedActions, clusterCtx.getActions());
-                logger.info(loggedActions.toString());
-
-                // remove current actions and replace with batch action
-                clusterCtx.getActions().clear();
-
-                // create the batch action
-                FlowChangeAction batchAction = new FlowChangeAction();
-                batchAction.setOperation(Operation.Batch);
-
-                // copy values from prototype action
-                batchAction.setTimestamp(prototypeAction.getTimestamp());
-                batchAction.setUserIdentity(prototypeAction.getUserIdentity());
-                batchAction.setUserName(prototypeAction.getUserName());
-                batchAction.setSourceId(prototypeAction.getSourceId());
-                batchAction.setSourceName(prototypeAction.getSourceName());
-                batchAction.setSourceType(prototypeAction.getSourceType());
-
-                // add batch action
-                clusterCtx.getActions().add(batchAction);
-
-                // create the final serialized copy of the cluster context
-                serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
-            }
-
-            // put serialized cluster context in response header
-            response.header(WebClusterManager.CLUSTER_CONTEXT_HTTP_HEADER, serializedClusterContext);
-        }
-
+        // TODO: Remove this method. Since ClusterContext was removed, it is no longer needed. However,
+        // it is called by practically every endpoint so for now it is just being stubbed out.
         return response;
     }
 
-    /**
-     * @return the cluster context if found in the request header 'X-CLUSTER_CONTEXT'.
-     */
-    protected ClusterContext getClusterContextFromRequest() {
-        String clusterContextHeaderValue = httpServletRequest.getHeader(WebClusterManager.CLUSTER_CONTEXT_HTTP_HEADER);
-        if (StringUtils.isNotBlank(clusterContextHeaderValue)) {
-            try {
-                // deserialize object
-                Serializable clusterContextObj = WebUtils.deserializeHexToObject(clusterContextHeaderValue);
-                if (clusterContextObj instanceof ClusterContext) {
-                    return (ClusterContext) clusterContextObj;
-                }
-            } catch (ClassNotFoundException cnfe) {
-                logger.warn("Classpath issue detected because failed to deserialize cluster context from request due to: " + cnfe, cnfe);
-            }
-        }
-        return null;
+    protected String generateUuid() {
+        final Optional<String> seed = getIdGenerationSeed();
+        return seed.isPresent() ? UUID.nameUUIDFromBytes(seed.get().getBytes(StandardCharsets.UTF_8)).toString() : UUID.randomUUID().toString();
     }
+
+    protected Optional<String> getIdGenerationSeed() {
+        final String idGenerationSeed = httpServletRequest.getHeader(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER);
+        if (StringUtils.isBlank(idGenerationSeed)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(idGenerationSeed);
+    }
+
 
     /**
      * Generates an Ok response with no content.
@@ -300,7 +234,7 @@ public abstract class ApplicationResource {
      * @return a 150 Node Continue response to be used within the cluster request handshake
      */
     protected ResponseBuilder generateContinueResponse() {
-        return Response.status(WebClusterManager.NODE_CONTINUE_STATUS_CODE);
+        return Response.status(RequestReplicator.NODE_CONTINUE_STATUS_CODE);
     }
 
     protected URI getAbsolutePath() {
@@ -390,13 +324,6 @@ public abstract class ApplicationResource {
         return result;
     }
 
-    private void createBatchedActionLogStatement(StringBuilder strb, Collection<Action> actions) {
-        strb.append("Cluster context too big for response header.  Replacing below actions with 'batch' action...\n");
-        for (Action action : actions) {
-            strb.append(ReflectionToStringBuilder.toString(action, ToStringStyle.MULTI_LINE_STYLE)).append("\n");
-        }
-    }
-
     /**
      * Checks whether the request is part of a two-phase commit style request (either phase 1 or phase 2)
      *
@@ -404,7 +331,7 @@ public abstract class ApplicationResource {
      * @return <code>true</code> if the request represents a two-phase commit style request
      */
     protected boolean isTwoPhaseRequest(HttpServletRequest httpServletRequest) {
-        final String headerValue = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID);
+        final String headerValue = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
         return headerValue != null;
     }
 
@@ -419,7 +346,7 @@ public abstract class ApplicationResource {
      *         first of the two phases.
      */
     protected boolean isValidationPhase(HttpServletRequest httpServletRequest) {
-        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER) != null;
+        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER) != null;
     }
 
     /**
