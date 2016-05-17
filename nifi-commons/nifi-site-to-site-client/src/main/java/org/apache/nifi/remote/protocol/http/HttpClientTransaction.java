@@ -127,7 +127,16 @@ public class HttpClientTransaction extends AbstractTransaction {
                     logger.debug("{} Finished sending flow files.", this);
                     break;
                 case BAD_CHECKSUM:
-                    apiUtil.commitTransferFlowFiles(holdUri, ResponseCode.BAD_CHECKSUM);
+                    TransactionResultEntity resultEntity = apiUtil.commitTransferFlowFiles(holdUri, ResponseCode.BAD_CHECKSUM);
+                    ResponseCode badChecksumCancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
+                    switch (badChecksumCancelResponse) {
+                        case CANCEL_TRANSACTION:
+                            logger.debug("{} BAD_CHECKSUM, The transaction is canceled on server properly.", this);
+                            break;
+                        default:
+                            logger.warn("{} BAD_CHECKSUM, Expected the transaction is canceled on server, but received {}.");
+                            break;
+                    }
                     break;
                 case CONFIRM_TRANSACTION:
                     // The actual HTTP request will be sent in readTransactionResponse.

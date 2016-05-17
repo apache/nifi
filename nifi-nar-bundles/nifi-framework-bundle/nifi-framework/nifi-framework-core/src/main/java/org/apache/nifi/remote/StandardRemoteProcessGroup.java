@@ -113,7 +113,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private volatile String communicationsTimeout = "30 sec";
     private volatile String targetId;
     private volatile String yieldDuration = "10 sec";
-    private SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
+    private volatile SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
+    private volatile String proxyHost;
+    private volatile Integer proxyPort;
+
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -237,6 +240,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         this.targetId = targetId;
     }
 
+    @Override
     public void setTransportProtocol(final SiteToSiteTransportProtocol transportProtocol) {
         this.transportProtocol = transportProtocol;
     }
@@ -244,6 +248,26 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     @Override
     public SiteToSiteTransportProtocol getTransportProtocol() {
         return transportProtocol;
+    }
+
+    @Override
+    public String getProxyHost() {
+        return proxyHost;
+    }
+
+    @Override
+    public void setProxyHost(String proxyHost) {
+        this.proxyHost = proxyHost;
+    }
+
+    @Override
+    public Integer getProxyPort() {
+        return proxyPort;
+    }
+
+    @Override
+    public void setProxyPort(Integer proxyPort) {
+        this.proxyPort = proxyPort;
     }
 
     /**

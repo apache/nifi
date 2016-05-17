@@ -307,6 +307,8 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final String comments = remoteProcessGroupDTO.getComments();
         final String communicationsTimeout = remoteProcessGroupDTO.getCommunicationsTimeout();
         final String yieldDuration = remoteProcessGroupDTO.getYieldDuration();
+        final String proxyHost = remoteProcessGroupDTO.getProxyHost();
+        final Integer proxyPort = remoteProcessGroupDTO.getProxyPort();
         String transportProtocol = remoteProcessGroupDTO.getTransportProtocol();
 
         if (isNotNull(name)) {
@@ -326,6 +328,12 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
         if (isNotNull(transportProtocol)) {
             remoteProcessGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol.toUpperCase()));
+        }
+        if (isNotNull(proxyHost)) {
+            remoteProcessGroup.setProxyHost(proxyHost);
+        }
+        if (isNotNull(proxyPort)) {
+            remoteProcessGroup.setProxyPort(proxyPort);
         }
 
         final Boolean isTransmitting = remoteProcessGroupDTO.isTransmitting();
