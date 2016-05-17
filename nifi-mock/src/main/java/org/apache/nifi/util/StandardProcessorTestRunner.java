@@ -320,7 +320,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void assertAllFlowFilesContainAttribute(String attributeName) {
+    public void assertAllFlowFilesContainAttribute(final String attributeName) {
         assertAllFlowFiles(new FlowFileValidator() {
             @Override
             public void assertFlowFile(FlowFile f) {
@@ -330,7 +330,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void assertAllFlowFilesContainAttribute(Relationship relationship, String attributeName) {
+    public void assertAllFlowFilesContainAttribute(final Relationship relationship, final String attributeName) {
         assertAllFlowFiles(relationship, new FlowFileValidator() {
             @Override
             public void assertFlowFile(FlowFile f) {
@@ -869,10 +869,12 @@ public class StandardProcessorTestRunner implements TestRunner {
         return controllerServiceStateManagers.get(controllerService.getIdentifier());
     }
 
+    @Override
     public MockProcessorLog getLogger() {
         return logger;
     }
 
+    @Override
     public MockProcessorLog getControllerServiceLogger(final String identifier) {
         return controllerServiceLoggers.get(identifier);
     }
