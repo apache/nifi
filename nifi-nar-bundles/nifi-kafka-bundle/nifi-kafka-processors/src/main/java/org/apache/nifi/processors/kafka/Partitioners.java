@@ -40,12 +40,11 @@ final public class Partitioners {
             return partitionIndex;
         }
 
-        private int next(int numberOfPartitions) {
-            if (index == numberOfPartitions) {
-                index = 0;
+        private synchronized int next(int numberOfPartitions) {
+            if (this.index >= numberOfPartitions) {
+                this.index = 0;
             }
-            int indexToReturn = index++;
-            return indexToReturn;
+            return index++;
         }
     }
 

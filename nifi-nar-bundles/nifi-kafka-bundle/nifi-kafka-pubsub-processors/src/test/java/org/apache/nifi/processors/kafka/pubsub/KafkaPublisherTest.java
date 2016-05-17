@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.kafka;
+package org.apache.nifi.processors.kafka.pubsub;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -28,8 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.kafka.clients.producer.Partitioner;
+import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
+import org.apache.nifi.processors.kafka.pubsub.KafkaPublisher.KafkaPublisherResult;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
 import org.junit.AfterClass;
@@ -43,8 +46,6 @@ import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 
-// The test is valid and should be ran when working on this module. @Ignore is
-// to speed up the overall build
 public class KafkaPublisherTest {
 
     private static EmbeddedKafka kafkaLocal;
@@ -52,7 +53,7 @@ public class KafkaPublisherTest {
     private static EmbeddedKafkaProducerHelper producerHelper;
 
     @BeforeClass
-    public static void bforeClass() {
+    public static void beforeClass() {
         kafkaLocal = new EmbeddedKafka();
         kafkaLocal.start();
         producerHelper = new EmbeddedKafkaProducerHelper(kafkaLocal);
@@ -189,7 +190,6 @@ public class KafkaPublisherTest {
         publisher.publish(publishingContext);
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
-
         try {
             iter.next();
             fail();
@@ -232,6 +232,28 @@ public class KafkaPublisherTest {
         assertEquals(data, r);
     }
 
+    @Test
+    public void validateWithNonDefaultPartitioner() throws Exception {
+        String data = "fooandbarandbaz";
+        InputStream contentStream = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
+        String topicName = "validateWithNonDefaultPartitioner";
+
+        Properties kafkaProperties = this.buildProducerProperties();
+        kafkaProperties.setProperty("partitioner.class", TestPartitioner.class.getName());
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
+        PublishingContext publishingContext = new PublishingContext(contentStream, topicName);
+        publishingContext.setDelimiterBytes("and".getBytes(StandardCharsets.UTF_8));
+
+        try {
+            publisher.publish(publishingContext);
+            // partitioner should be invoked 3 times
+            assertTrue(TestPartitioner.counter == 3);
+            publisher.close();
+        } finally {
+            TestPartitioner.counter = 0;
+        }
+    }
+
     private Properties buildProducerProperties() {
         Properties kafkaProperties = new Properties();
         kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
@@ -245,7 +267,7 @@ public class KafkaPublisherTest {
         Properties props = new Properties();
         props.put("zookeeper.connect", "localhost:" + kafkaLocal.getZookeeperPort());
         props.put("group.id", "test");
-        props.put("consumer.timeout.ms", "5000");
+        props.put("consumer.timeout.ms", "500");
         props.put("auto.offset.reset", "smallest");
         ConsumerConfig consumerConfig = new ConsumerConfig(props);
         ConsumerConnector consumer = Consumer.createJavaConsumerConnector(consumerConfig);
@@ -255,5 +277,26 @@ public class KafkaPublisherTest {
         List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
         ConsumerIterator<byte[], byte[]> iter = streams.get(0).iterator();
         return iter;
+    }
+
+    public static class TestPartitioner implements Partitioner {
+        static int counter;
+
+        @Override
+        public void configure(Map<String, ?> configs) {
+            // nothing to do, test
+        }
+
+        @Override
+        public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes,
+                Cluster cluster) {
+            counter++;
+            return 0;
+        }
+
+        @Override
+        public void close() {
+            counter = 0;
+        }
     }
 }
