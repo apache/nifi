@@ -43,8 +43,6 @@ import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextImpl;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
@@ -62,8 +60,6 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.OptimisticLockingManager;
-import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,21 +71,6 @@ import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 public class ThreadPoolRequestReplicator implements RequestReplicator {
-    /**
-     * The HTTP header to store a cluster context. An example of what may be stored in the context is a node's
-     * auditable actions in response to a cluster request. The cluster context is serialized
-     * using Java's serialization mechanism and hex encoded.
-     */
-    static final String CLUSTER_CONTEXT_HTTP_HEADER = "X-ClusterContext";
-
-    /**
-     * The HTTP header that the NCM specifies to ask a node if they are able to process a given request. The value
-     * is always 150-NodeContinue. The node will respond with 150 CONTINUE if it is able to
-     * process the request, 417 EXPECTATION_FAILED otherwise.
-     */
-    static final String NCM_EXPECTS_HTTP_HEADER = "X-NcmExpects";
-    static final String NODE_CONTINUE = "150-NodeContinue";
-    static final int NODE_CONTINUE_STATUS_CODE = 150;
 
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(ThreadPoolRequestReplicator.class));
     private static final int MAX_CONCURRENT_REQUESTS = 100;
@@ -102,7 +83,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     private final EventReporter eventReporter;
     private final RequestCompletionCallback callback;
     private final ClusterCoordinator clusterCoordinator;
-    private final OptimisticLockingManager lockingManager;
     private final DataFlowManagementService dfmService;
 
     private ExecutorService executorService;
@@ -121,8 +101,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      */
     public ThreadPoolRequestReplicator(final int numThreads, final Client client, final ClusterCoordinator clusterCoordinator,
-        final RequestCompletionCallback callback, final EventReporter eventReporter, final OptimisticLockingManager lockingManager, final DataFlowManagementService dfmService) {
-        this(numThreads, client, clusterCoordinator, "3 sec", "3 sec", callback, eventReporter, null, lockingManager, dfmService);
+        final RequestCompletionCallback callback, final EventReporter eventReporter, final DataFlowManagementService dfmService) {
+        this(numThreads, client, clusterCoordinator, "3 sec", "3 sec", callback, eventReporter, null, dfmService);
     }
 
     /**
@@ -138,7 +118,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      */
     public ThreadPoolRequestReplicator(final int numThreads, final Client client, final ClusterCoordinator clusterCoordinator,
         final String connectionTimeout, final String readTimeout, final RequestCompletionCallback callback, final EventReporter eventReporter,
-        final WebClusterManager clusterManager, final OptimisticLockingManager lockingManager, final DataFlowManagementService dfmService) {
+        final WebClusterManager clusterManager, final DataFlowManagementService dfmService) {
         if (numThreads <= 0) {
             throw new IllegalArgumentException("The number of threads must be greater than zero.");
         } else if (client == null) {
@@ -153,7 +133,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         this.responseMerger = new StandardHttpResponseMerger(clusterManager);
         this.eventReporter = eventReporter;
         this.callback = callback;
-        this.lockingManager = lockingManager;
         this.dfmService = dfmService;
 
         client.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, connectionTimeoutMs);
@@ -198,7 +177,9 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
     @Override
     public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers) {
-        return replicate(nodeIds, method, uri, entity, headers, true, null);
+        final Map<String, String> headersPlusIdGenerationSeed = new HashMap<>(headers);
+        headersPlusIdGenerationSeed.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, UUID.randomUUID().toString());
+        return replicate(nodeIds, method, uri, entity, headersPlusIdGenerationSeed, true, null);
     }
 
     /**
@@ -233,7 +214,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // Update headers to indicate the current revision so that we can
         // prevent multiple users changing the flow at the same time
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
-        final String requestId = updatedHeaders.computeIfAbsent(REQUEST_TRANSACTION_ID, key -> UUID.randomUUID().toString());
+        final String requestId = updatedHeaders.computeIfAbsent(REQUEST_TRANSACTION_ID_HEADER, key -> UUID.randomUUID().toString());
 
         if (performVerification) {
             verifyState(method, uri.getPath());
@@ -284,29 +265,16 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, updatedHeaders, nodeCompletionCallback);
         replicateRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, updatedHeaders);
 
-
-        // TODO: Must handle revisions!!
-
         return response;
     }
 
-
-    private void setRevision(final Map<String, String> headers) {
-        final ClusterContext clusterCtx = new ClusterContextImpl();
-        clusterCtx.setRequestSentByClusterManager(true); // indicate request is sent from cluster manager
-        clusterCtx.setRevision(lockingManager.getLastModification().getRevision());
-
-        // serialize cluster context and add to request header
-        final String serializedClusterCtx = WebUtils.serializeObjectToHex(clusterCtx);
-        headers.put(CLUSTER_CONTEXT_HTTP_HEADER, serializedClusterCtx);
-    }
 
 
     private void performVerification(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, StandardAsyncClusterResponse clusterResponse) {
         logger.debug("Verifying that mutable request {} {} can be made", method, uri.getPath());
 
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
-        updatedHeaders.put(NCM_EXPECTS_HTTP_HEADER, NODE_CONTINUE);
+        updatedHeaders.put(REQUEST_VALIDATION_HTTP_HEADER, NODE_CONTINUE);
 
         final int numNodes = nodeIds.size();
         final NodeRequestCompletionCallback completionCallback = new NodeRequestCompletionCallback() {
@@ -474,6 +442,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
     }
 
+    /**
+     * Removes the AsyncClusterResponse with the given ID from the map and handles any cleanup
+     * or post-processing related to the request after the client has consumed the response
+     *
+     * @param requestId the ID of the request that has been consumed by the client
+     */
     private void onResponseConsumed(final String requestId) {
         final AsyncClusterResponse response = responseMap.remove(requestId);
 
@@ -482,6 +456,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
     }
 
+    /**
+     * When all nodes have completed a request and provided a response (or have timed out), this method will be invoked
+     * to handle calling the Callback that was provided for the request, if any, and handle any cleanup or post-processing
+     * related to the request
+     *
+     * @param requestId the ID of the request that has completed
+     */
     private void onCompletedResponse(final String requestId) {
         final AsyncClusterResponse response = responseMap.get(requestId);
 
@@ -543,16 +524,15 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     }
 
 
-    private void replicateRequest(final Set<NodeIdentifier> nodeIds, final String scheme,
-        final String path, final Function<NodeIdentifier, NodeHttpRequest> callableFactory, final Map<String, String> headers) {
+
+    private void replicateRequest(final Set<NodeIdentifier> nodeIds, final String scheme, final String path,
+        final Function<NodeIdentifier, NodeHttpRequest> callableFactory, final Map<String, String> headers) {
 
         if (nodeIds.isEmpty()) {
             return; // return quickly for trivial case
         }
 
         // submit the requests to the nodes
-        final String requestId = UUID.randomUUID().toString();
-        headers.put(WebClusterManager.REQUEST_ID_HEADER, requestId);
         for (final NodeIdentifier nodeId : nodeIds) {
             final NodeHttpRequest callable = callableFactory.apply(nodeId);
             executorService.submit(callable);

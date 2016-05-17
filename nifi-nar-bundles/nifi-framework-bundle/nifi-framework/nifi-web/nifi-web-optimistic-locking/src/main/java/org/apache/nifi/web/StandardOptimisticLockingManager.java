@@ -20,8 +20,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.web.revision.NaiveRevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,13 +113,7 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
     public FlowModification getLastModification() {
         lock();
         try {
-            final Revision revision;
-            final ClusterContext ctx = ClusterContextThreadLocal.getContext();
-            if (ctx == null || ctx.getRevision() == null) {
-                revision = currentRevision;
-            } else {
-                revision = ctx.getRevision();
-            }
+            final Revision revision = currentRevision;
 
             return new FlowModification(revision, lastModifier);
         } finally {
@@ -136,12 +128,7 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
             lastModifier = lastModification.getLastModifier();
 
             // record the updated revision in the cluster context if possible
-            final ClusterContext ctx = ClusterContextThreadLocal.getContext();
-            if (ctx != null) {
-                ctx.setRevision(lastModification.getRevision());
-            } else {
-                currentRevision = lastModification.getRevision();
-            }
+            currentRevision = lastModification.getRevision();
         } finally {
             unlock();
         }

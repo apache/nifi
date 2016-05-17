@@ -36,6 +36,9 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.Revision;
@@ -61,6 +64,10 @@ public class NaiveRevisionManager implements RevisionManager {
         this(1, TimeUnit.MINUTES);
     }
 
+    public NaiveRevisionManager(final NiFiProperties properties) {
+        this(getRequestTimeoutMillis(properties), TimeUnit.MILLISECONDS);
+    }
+
     /**
      * Constructs a new NaiveRevisionManager that uses the given amount of time as the expiration time
      * for a Revision Claims
@@ -72,13 +79,20 @@ public class NaiveRevisionManager implements RevisionManager {
         this.claimExpirationNanos = timeUnit.toNanos(claimExpiration);
     }
 
-    @Override
-    public RevisionClaim requestClaim(Revision revision) throws InvalidRevisionException {
-        return requestClaim(Collections.singleton(revision));
+    private static long getRequestTimeoutMillis(final NiFiProperties properties) {
+        return FormatUtils.getTimeDuration(properties.getProperty(NiFiProperties.REQUEST_REPLICATION_CLAIM_TIMEOUT,
+            NiFiProperties.DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT), TimeUnit.MILLISECONDS);
     }
 
     @Override
-    public RevisionClaim requestClaim(final Collection<Revision> revisions) {
+    public RevisionClaim requestClaim(final Revision revision, final NiFiUser user) throws InvalidRevisionException {
+        Objects.requireNonNull(user);
+        return requestClaim(Collections.singleton(revision), user);
+    }
+
+    @Override
+    public RevisionClaim requestClaim(final Collection<Revision> revisions, final NiFiUser user) {
+        Objects.requireNonNull(user);
         logger.debug("Attempting to claim Revisions {}", revisions);
 
         // Try to obtain a Revision Claim (temporary lock) on all revisions
@@ -91,7 +105,7 @@ public class NaiveRevisionManager implements RevisionManager {
             final Revision revision = revisionList.get(i);
             final RevisionLock revisionLock = getRevisionLock(revision);
 
-            final ClaimResult claimResult = revisionLock.requestClaim(revision);
+            final ClaimResult claimResult = revisionLock.requestClaim(revision, user);
             logger.trace("Obtained Revision Claim for {}", revision);
 
             if (claimResult.isSuccessful()) {
@@ -147,7 +161,8 @@ public class NaiveRevisionManager implements RevisionManager {
     }
 
     @Override
-    public <T> T deleteRevision(final RevisionClaim claim, final DeleteRevisionTask<T> task) throws ExpiredRevisionClaimException {
+    public <T> T deleteRevision(final RevisionClaim claim, final NiFiUser user, final DeleteRevisionTask<T> task) throws ExpiredRevisionClaimException {
+        Objects.requireNonNull(user);
         logger.debug("Attempting to delete revision using {}", claim);
         int successCount = 0;
         final List<Revision> revisionList = new ArrayList<>(claim.getRevisions());
@@ -156,7 +171,7 @@ public class NaiveRevisionManager implements RevisionManager {
         String failedId = null;
         for (final Revision revision : revisionList) {
             final RevisionLock revisionLock = getRevisionLock(revision);
-            final boolean verified = revisionLock.requestWriteLock(revision);
+            final boolean verified = revisionLock.requestWriteLock(revision, user);
 
             if (verified) {
                 logger.trace("Verified Revision Claim for {}", revision);
@@ -185,7 +200,7 @@ public class NaiveRevisionManager implements RevisionManager {
         for (int i = 0; i < successCount; i++) {
             final Revision revision = revisionList.get(i);
             final RevisionLock revisionLock = getRevisionLock(revision);
-            revisionLock.relinquishRevisionClaim(revision);
+            revisionLock.relinquishRevisionClaim(revision, null);
             logger.debug("Relinquished lock for {}", revision);
         }
 
@@ -194,7 +209,8 @@ public class NaiveRevisionManager implements RevisionManager {
     }
 
     @Override
-    public <T> RevisionUpdate<T> updateRevision(final RevisionClaim originalClaim, final String modifier, final UpdateRevisionTask<T> task) throws ExpiredRevisionClaimException {
+    public <T> RevisionUpdate<T> updateRevision(final RevisionClaim originalClaim, final NiFiUser user, final UpdateRevisionTask<T> task) throws ExpiredRevisionClaimException {
+        Objects.requireNonNull(user);
         int successCount = 0;
         logger.debug("Attempting to update revision using {}", originalClaim);
 
@@ -204,7 +220,7 @@ public class NaiveRevisionManager implements RevisionManager {
         String failedId = null;
         for (final Revision revision : revisionList) {
             final RevisionLock revisionLock = getRevisionLock(revision);
-            final boolean verified = revisionLock.requestWriteLock(revision);
+            final boolean verified = revisionLock.requestWriteLock(revision, user);
 
             if (verified) {
                 logger.trace("Verified Revision Claim for {}", revision);
@@ -247,7 +263,7 @@ public class NaiveRevisionManager implements RevisionManager {
 
                 for (final Revision revision : revisionList) {
                     final Revision updatedRevision = updatedRevisions.get(revision);
-                    getRevisionLock(revision).unlock(revision, updatedRevision, modifier);
+                    getRevisionLock(revision).unlock(revision, updatedRevision, user.getUserName());
 
                     if (updatedRevision.getVersion() != revision.getVersion()) {
                         logger.debug("Unlocked Revision {} and updated associated Version to {}", revision, updatedRevision.getVersion());
@@ -274,7 +290,8 @@ public class NaiveRevisionManager implements RevisionManager {
     }
 
     @Override
-    public boolean releaseClaim(final RevisionClaim claim) {
+    public boolean releaseClaim(final RevisionClaim claim, final NiFiUser user) {
+        Objects.requireNonNull(user);
         boolean success = true;
 
         final List<Revision> revisions = new ArrayList<>(claim.getRevisions());
@@ -282,7 +299,7 @@ public class NaiveRevisionManager implements RevisionManager {
 
         for (final Revision revision : revisions) {
             final RevisionLock revisionLock = getRevisionLock(revision);
-            success = revisionLock.relinquishRevisionClaim(revision) && success;
+            success = revisionLock.relinquishRevisionClaim(revision, user) && success;
         }
 
         return success;
@@ -299,14 +316,37 @@ public class NaiveRevisionManager implements RevisionManager {
             return false;
         }
 
-        return revisionLock.releaseClaimIfCurrentThread();
+        return revisionLock.releaseClaimIfCurrentThread(null);
+    }
+
+    @Override
+    public boolean cancelClaim(Revision revision) {
+        logger.debug("Attempting to cancel claim for {}", revision);
+
+        final RevisionLock revisionLock = getRevisionLock(revision);
+        if (revisionLock == null) {
+            logger.debug("No Revision Lock exists for {} - there is no claim to cancel", revision);
+            return false;
+        }
+
+        return revisionLock.releaseClaimIfCurrentThread(revision);
+    }
+
+    @Override
+    public boolean cancelClaims(final Set<Revision> revisions) {
+        boolean successful = false;
+        for (final Revision revision : revisions) {
+            successful = cancelClaim(revision);
+        }
+
+        return successful;
     }
 
     @Override
     public <T> T get(final String componentId, final ReadOnlyRevisionCallback<T> callback) {
         final RevisionLock revisionLock = revisionLockMap.computeIfAbsent(componentId, id -> new RevisionLock(new FlowModification(new Revision(0L, null, id), null), claimExpirationNanos));
         logger.debug("Attempting to obtain read lock for {}", revisionLock.getRevision());
-        revisionLock.acquireReadLock();
+        revisionLock.acquireReadLock(null, revisionLock.getRevision().getClientId());
         logger.debug("Obtained read lock for {}", revisionLock.getRevision());
 
         try {
@@ -327,7 +367,7 @@ public class NaiveRevisionManager implements RevisionManager {
         for (final String componentId : sortedIds) {
             final RevisionLock revisionLock = revisionLockMap.computeIfAbsent(componentId, id -> new RevisionLock(new FlowModification(new Revision(0L, null, id), null), claimExpirationNanos));
             logger.trace("Attempting to obtain read lock for {}", revisionLock.getRevision());
-            revisionLock.acquireReadLock();
+            revisionLock.acquireReadLock(null, revisionLock.getRevision().getClientId());
             revisionLocks.push(revisionLock);
             logger.trace("Obtained read lock for {}", revisionLock.getRevision());
         }
@@ -376,9 +416,9 @@ public class NaiveRevisionManager implements RevisionManager {
          *
          * @return <code>true</code> if the Revision is valid and a Claim has been granted, <code>false</code> otherwise
          */
-        public ClaimResult requestClaim(final Revision proposedRevision) {
+        public ClaimResult requestClaim(final Revision proposedRevision, final NiFiUser user) {
             // acquire the claim, blocking if necessary.
-            acquireClaim(proposedRevision.getClientId());
+            acquireClaim(user, proposedRevision.getClientId());
 
             threadLock.writeLock().lock();
             try {
@@ -408,7 +448,7 @@ public class NaiveRevisionManager implements RevisionManager {
          * @return <code>true</code> if the Revision Claim was upgraded to a lock, <code>false</code> otherwise
          * @throws ExpiredRevisionClaimException if the Revision Claim for the given Revision has already expired
          */
-        public boolean requestWriteLock(final Revision proposedRevision) throws ExpiredRevisionClaimException {
+        public boolean requestWriteLock(final Revision proposedRevision, final NiFiUser user) throws ExpiredRevisionClaimException {
             Objects.requireNonNull(proposedRevision);
             threadLock.writeLock().lock();
 
@@ -423,26 +463,34 @@ public class NaiveRevisionManager implements RevisionManager {
                         throw ise;
                     }
 
-                    if (stamp.getClientId() == null || stamp.getClientId().equals(proposedRevision.getClientId())) {
-                        // TODO - Must make sure that we don't have an expired stamp if it is the result of another
-                        // operation taking a long time. I.e., Client A fires off two requests for Component X. If the
-                        // first one takes 2 minutes to complete, it should not result in the second request getting
-                        // rejected. I.e., we want to ensure that if the request is received before the Claim expired,
-                        // that we do not throw an ExpiredRevisionClaimException. Expiration of the Revision is intended
-                        // only to avoid the case where a node obtains a Claim and then the node is lost or otherwise does
-                        // not fulfill the second phase of the two-phase commit.
-                        // We may need a Queue of updates (queue would need to be bounded, with a request getting
-                        // rejected if queue is full).
-                        if (stamp.isExpired()) {
-                            throw new ExpiredRevisionClaimException("Claim for " + proposedRevision + " has expired");
-                        }
-
-                        // Intentionally leave the thread lock in a locked state!
-                        releaseLock = false;
-                        return true;
-                    } else {
-                        logger.debug("Failed to verify {} because the Client ID was not the same as the Lock Stamp's Client ID (Lock Stamp was {})", proposedRevision, stamp);
+                    final boolean userEqual = stamp.getUser() == null || stamp.getUser().equals(user);
+                    if (!userEqual) {
+                        logger.debug("Failed to verify {} because the User was not the same as the Lock Stamp's User (Lock Stamp was {})", proposedRevision, stamp);
+                        throw new InvalidRevisionException("Cannot obtain write lock for " + proposedRevision + " because it was claimed by " + stamp.getUser());
                     }
+
+                    final boolean clientIdEqual = stamp.getClientId() == null || stamp.getClientId().equals(proposedRevision.getClientId());
+                    if (!clientIdEqual) {
+                        logger.debug("Failed to verify {} because the Client ID was not the same as the Lock Stamp's Client ID (Lock Stamp was {})", proposedRevision, stamp);
+                        throw new InvalidRevisionException("Cannot obtain write lock for " + proposedRevision + " because it was claimed with a different Client ID");
+                    }
+
+                    // TODO - Must make sure that we don't have an expired stamp if it is the result of another
+                    // operation taking a long time. I.e., Client A fires off two requests for Component X. If the
+                    // first one takes 2 minutes to complete, it should not result in the second request getting
+                    // rejected. I.e., we want to ensure that if the request is received before the Claim expired,
+                    // that we do not throw an ExpiredRevisionClaimException. Expiration of the Revision is intended
+                    // only to avoid the case where a node obtains a Claim and then the node is lost or otherwise does
+                    // not fulfill the second phase of the two-phase commit.
+                    // We may need a Queue of updates (queue would need to be bounded, with a request getting
+                    // rejected if queue is full).
+                    if (stamp.isExpired()) {
+                        throw new ExpiredRevisionClaimException("Claim for " + proposedRevision + " has expired");
+                    }
+
+                    // Intentionally leave the thread lock in a locked state!
+                    releaseLock = false;
+                    return true;
                 }
             } finally {
                 if (releaseLock) {
@@ -453,13 +501,13 @@ public class NaiveRevisionManager implements RevisionManager {
             return false;
         }
 
-        private void acquireClaim(final String clientId) {
+        private void acquireClaim(final NiFiUser user, final String clientId) {
             while (true) {
                 final LockStamp stamp = lockStamp.get();
 
                 if (stamp == null || stamp.isExpired()) {
                     final long now = System.nanoTime();
-                    final boolean lockObtained = lockStamp.compareAndSet(stamp, new LockStamp(clientId, now + lockNanos));
+                    final boolean lockObtained = lockStamp.compareAndSet(stamp, new LockStamp(user, clientId, now + lockNanos));
                     if (lockObtained) {
                         return;
                     }
@@ -469,7 +517,7 @@ public class NaiveRevisionManager implements RevisionManager {
             }
         }
 
-        public void acquireReadLock() {
+        public void acquireReadLock(final NiFiUser user, final String clientId) {
             // Wait until we can claim the lock stamp
             boolean obtained = false;
             while (!obtained) {
@@ -477,7 +525,7 @@ public class NaiveRevisionManager implements RevisionManager {
                 // write lock held. Wait until it is null and then replace it atomically
                 // with a LockStamp that does not expire (expiration time is Long.MAX_VALUE).
                 final LockStamp curStamp = lockStamp.get();
-                obtained = (curStamp == null || curStamp.isExpired()) && lockStamp.compareAndSet(curStamp, new LockStamp(null, Long.MAX_VALUE));
+                obtained = (curStamp == null || curStamp.isExpired()) && lockStamp.compareAndSet(curStamp, new LockStamp(user, clientId, Long.MAX_VALUE));
 
                 if (!obtained) {
                     // Could not obtain lock. Yield so that we don't sit
@@ -499,9 +547,13 @@ public class NaiveRevisionManager implements RevisionManager {
             lockStamp.set(null);
         }
 
-        public boolean releaseClaimIfCurrentThread() {
+        public boolean releaseClaimIfCurrentThread(final Revision revision) {
             threadLock.writeLock().lock();
             try {
+                if (revision != null && !getRevision().equals(revision)) {
+                    throw new InvalidRevisionException("Cannot release claim because the provided Revision is not valid");
+                }
+
                 final LockStamp stamp = lockStamp.get();
                 if (stamp == null) {
                     logger.debug("Cannot cancel claim for {} because there is no claim held", getRevision());
@@ -528,12 +580,17 @@ public class NaiveRevisionManager implements RevisionManager {
          * @param proposedRevision the proposed revision to check against the current revision
          * @return <code>true</code> if the Revision Claim was relinquished, <code>false</code> otherwise
          */
-        public boolean relinquishRevisionClaim(final Revision proposedRevision) {
+        public boolean relinquishRevisionClaim(final Revision proposedRevision, final NiFiUser user) {
             threadLock.writeLock().lock();
             try {
-                if (getRevision().equals(proposedRevision)) {
-                    releaseClaim();
-                    return true;
+                final LockStamp stamp = lockStamp.get();
+                if (stamp == null || stamp.getUser().equals(user)) {
+                    if (getRevision().equals(proposedRevision)) {
+                        releaseClaim();
+                        return true;
+                    }
+                } else {
+                    throw new InvalidRevisionException("Cannot relinquish claim for " + proposedRevision + " because it was claimed by " + stamp.getUser());
                 }
 
                 return false;
@@ -581,8 +638,18 @@ public class NaiveRevisionManager implements RevisionManager {
          */
         public void renewExpiration(final long timestamp) {
             final LockStamp stamp = lockStamp.get();
-            final String clientId = stamp == null ? null : stamp.getClientId();
-            lockStamp.set(new LockStamp(clientId, timestamp));
+
+            final NiFiUser user;
+            final String clientId;
+            if (stamp == null) {
+                user = null;
+                clientId = null;
+            } else {
+                user = stamp.getUser();
+                clientId = stamp.getClientId();
+            }
+
+            lockStamp.set(new LockStamp(user, clientId, timestamp));
         }
 
         public Revision getRevision() {
@@ -593,14 +660,20 @@ public class NaiveRevisionManager implements RevisionManager {
 
 
     private static class LockStamp {
+        private final NiFiUser user;
         private final String clientId;
         private final long expirationTimestamp;
         private final Thread obtainingThread;
 
-        public LockStamp(final String clientId, final long expirationTimestamp) {
+        public LockStamp(final NiFiUser user, final String clientId, final long expirationTimestamp) {
+            this.user = user;
             this.clientId = clientId;
             this.expirationTimestamp = expirationTimestamp;
             this.obtainingThread = Thread.currentThread();
+        }
+
+        public NiFiUser getUser() {
+            return user;
         }
 
         public String getClientId() {
@@ -617,7 +690,7 @@ public class NaiveRevisionManager implements RevisionManager {
 
         @Override
         public String toString() {
-            return clientId;
+            return "LockStamp[user=" + user + ", clientId=" + clientId + "]";
         }
     }
 

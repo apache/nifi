@@ -81,6 +81,7 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -306,19 +307,21 @@ public interface NiFiServiceFacade {
      * @param description description
      * @param snippetId id
      * @param groupId id of the process group
+     * @param idGenerationSeed the seed to use for generating a UUID
      * @return template
      */
-    TemplateDTO createTemplate(String name, String description, String snippetId, String groupId);
+    TemplateDTO createTemplate(String name, String description, String snippetId, String groupId, Optional<String> idGenerationSeed);
 
     /**
      * Imports the specified Template.
      *
      * @param templateDTO The template dto
      * @param groupId id of the process group
+     * @param idGenerationSeed the seed to use for generating a UUID
      *
      * @return The new template dto
      */
-    TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId);
+    TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId, Optional<String> idGenerationSeed);
 
     /**
      * Instantiate the corresponding template.
@@ -327,9 +330,10 @@ public interface NiFiServiceFacade {
      * @param templateId template id
      * @param originX x
      * @param originY y
+     * @param idGenerationSeed the ID to use for generating UUID's. May be null.
      * @return snapshot
      */
-    FlowEntity createTemplateInstance(String groupId, Double originX, Double originY, String templateId);
+    FlowEntity createTemplateInstance(String groupId, Double originX, Double originY, String templateId, String idGenerationSeed);
 
     /**
      * Gets the template with the specified id.
@@ -1302,9 +1306,10 @@ public interface NiFiServiceFacade {
      * @param snippetId snippet id
      * @param originX x
      * @param originY y
+     * @param idGenerationSeed the seed to use for generating UUID's. May be null.
      * @return snapshot
      */
-    FlowEntity copySnippet(String groupId, String snippetId, Double originX, Double originY);
+    FlowEntity copySnippet(String groupId, String snippetId, Double originX, Double originY, String idGenerationSeed);
 
     /**
      * Creates a new snippet.

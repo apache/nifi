@@ -24,7 +24,19 @@ import java.util.Set;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 public interface RequestReplicator {
-    public static final String REQUEST_TRANSACTION_ID = "X-RequestTransactionId";
+
+    public static final String REQUEST_TRANSACTION_ID_HEADER = "X-RequestTransactionId";
+    public static final String CLUSTER_ID_GENERATION_SEED_HEADER = "X-Cluster-Id-Generation-Seed";
+
+    /**
+     * The HTTP header that the requestor specifies to ask a node if they are able to process a given request. The value
+     * is always 150-NodeContinue. The node will respond with 150 CONTINUE if it is able to
+     * process the request, 417 EXPECTATION_FAILED otherwise.
+     */
+    public static final String REQUEST_VALIDATION_HTTP_HEADER = "X-Validation-Expects";
+    public static final String NODE_CONTINUE = "150-NodeContinue";
+    public static final int NODE_CONTINUE_STATUS_CODE = 150;
+
 
     /**
      * Starts the instance for replicating requests. Calling this method on an already started instance has no effect.

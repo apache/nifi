@@ -59,7 +59,7 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     @Override
-    public FlowSnippetDTO copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY) {
+    public FlowSnippetDTO copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY, final String idGenerationSeed) {
         try {
             // ensure the parent group exist
             final ProcessGroup processGroup = flowController.getGroup(groupId);
@@ -85,7 +85,7 @@ public class StandardSnippetDAO implements SnippetDAO {
             lookupSensitiveProperties(snippetContents);
 
             // copy snippet
-            snippetContents = snippetUtils.copy(snippetContents, processGroup);
+            snippetContents = snippetUtils.copy(snippetContents, processGroup, idGenerationSeed);
 
             // move the snippet if necessary
             if (originX != null && originY != null) {

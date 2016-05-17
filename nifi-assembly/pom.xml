@@ -467,6 +467,8 @@ language governing permissions and limitations under the License. -->
         <nifi.cluster.manager.protocol.threads>10</nifi.cluster.manager.protocol.threads>
         <nifi.cluster.manager.safemode.duration>0 sec</nifi.cluster.manager.safemode.duration>
 
+        <nifi.cluster.request.replication.claim.timeout>1 min</nifi.cluster.request.replication.claim.timeout>
+
         <!--  nifi.properties: zookeeper properties -->
         <nifi.zookeeper.connect.string></nifi.zookeeper.connect.string>
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
