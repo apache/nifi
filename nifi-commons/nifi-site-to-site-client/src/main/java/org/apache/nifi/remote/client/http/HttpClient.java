@@ -82,7 +82,6 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
     @Override
     public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
-        // TODO: Set protocol version header.
         String clusterUrl = config.getUrl();
         SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext(), config.getProxy());
         String clusterApiUri = apiUtil.resolveBaseUrl(clusterUrl);

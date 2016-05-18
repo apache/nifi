@@ -16,44 +16,8 @@
  */
 package org.apache.nifi.cluster.manager.impl;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.Serializable;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.regex.Pattern;
-
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.HttpMethod;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
@@ -181,8 +145,42 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.HttpMethod;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Pattern;
 
 /**
  * Provides a cluster manager implementation. The manager federates incoming HTTP client requests to the nodes' external API using the HTTP protocol. The manager also communicates with nodes using the
@@ -1122,7 +1120,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private NodeIdentifier addRequestorDn(final NodeIdentifier nodeId, final String dn) {
         return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort(),
             nodeId.getSocketAddress(), nodeId.getSocketPort(),
-            nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(), nodeId.isSiteToSiteSecure(), dn);
+            nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(),
+            nodeId.getSiteToSiteHttpApiPort(), nodeId.isSiteToSiteSecure(), dn);
     }
 
     private ConnectionResponseMessage handleConnectionRequest(final ConnectionRequestMessage requestMessage) {
@@ -2151,7 +2150,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     return new NodeIdentifier(nodeId.getId(),
                         proposedNodeId.getApiAddress(), proposedNodeId.getApiPort(),
                         proposedNodeId.getSocketAddress(), proposedNodeId.getSocketPort(),
-                        proposedNodeId.getSiteToSiteAddress(), proposedNodeId.getSiteToSitePort(), proposedNodeId.isSiteToSiteSecure());
+                        proposedNodeId.getSiteToSiteAddress(), proposedNodeId.getSiteToSitePort(),
+                        proposedNodeId.getSiteToSiteHttpApiPort(), proposedNodeId.isSiteToSiteSecure());
                 }
 
             }
@@ -2159,7 +2159,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             // proposal does not conflict with existing nodes - this is a new node. Assign a new Node Index to it
             return new NodeIdentifier(proposedNodeId.getId(), proposedNodeId.getApiAddress(), proposedNodeId.getApiPort(),
                 proposedNodeId.getSocketAddress(), proposedNodeId.getSocketPort(),
-                proposedNodeId.getSiteToSiteAddress(), proposedNodeId.getSiteToSitePort(), proposedNodeId.isSiteToSiteSecure());
+                proposedNodeId.getSiteToSiteAddress(), proposedNodeId.getSiteToSitePort(),
+                proposedNodeId.getSiteToSiteHttpApiPort(), proposedNodeId.isSiteToSiteSecure());
         } finally {
             readLock.unlock("resolveProposedNodeIdentifier");
         }
@@ -2212,13 +2213,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
 
                 final Integer siteToSitePort = id.getSiteToSitePort();
-                if (siteToSitePort == null) {
+                final Integer siteToSiteHttpApiPort = id.getSiteToSiteHttpApiPort();
+                if (siteToSitePort == null && siteToSiteHttpApiPort == null) {
                     continue;
                 }
 
                 final int flowFileCount = nodeHeartbeat.getFlowFileCount();
-                final NodeInformation nodeInfo = new NodeInformation(id.getSiteToSiteAddress(), siteToSitePort, id.getApiPort(),
-                    id.isSiteToSiteSecure(), flowFileCount);
+                final NodeInformation nodeInfo = new NodeInformation(id.getSiteToSiteAddress(), siteToSitePort, siteToSiteHttpApiPort,
+                    id.getApiPort(), id.isSiteToSiteSecure(), flowFileCount);
                 nodeInfos.add(nodeInfo);
             }
 

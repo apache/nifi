@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.remote.exception;
 
-import org.apache.nifi.remote.protocol.socket.ResponseCode;
+import org.apache.nifi.remote.protocol.ResponseCode;
 
 import java.io.IOException;
 

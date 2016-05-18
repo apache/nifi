@@ -25,7 +25,7 @@ import org.apache.nifi.remote.io.http.HttpInput;
 import org.apache.nifi.remote.io.http.HttpOutput;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
-import org.apache.nifi.remote.protocol.socket.ResponseCode;
+import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.util.NiFiRestApiUtil;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -127,7 +127,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
 
     public void openConnectionForSend(String transactionUrl, CommunicationsSession commSession) throws IOException {
 
-        urlConnection = getConnection(transactionUrl);
+        urlConnection = getConnection(transactionUrl + "/flow-files");
         urlConnection.setDoOutput(true);
         urlConnection.setRequestMethod("POST");
         urlConnection.setRequestProperty("Content-Type", "application/octet-stream");
@@ -151,7 +151,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
 
     public boolean openConnectionForReceive(String transactionUrl, CommunicationsSession commSession) throws IOException {
 
-        urlConnection = getConnection(transactionUrl);
+        urlConnection = getConnection(transactionUrl + "/flow-files");
         urlConnection.setRequestMethod("GET");
         urlConnection.setRequestProperty("Accept", "application/octet-stream");
         urlConnection.setInstanceFollowRedirects(false);

@@ -29,8 +29,8 @@ import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
 import org.apache.nifi.remote.protocol.HandshakenProperties;
 import org.apache.nifi.remote.protocol.RequestType;
-import org.apache.nifi.remote.protocol.socket.Response;
-import org.apache.nifi.remote.protocol.socket.ResponseCode;
+import org.apache.nifi.remote.protocol.Response;
+import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 

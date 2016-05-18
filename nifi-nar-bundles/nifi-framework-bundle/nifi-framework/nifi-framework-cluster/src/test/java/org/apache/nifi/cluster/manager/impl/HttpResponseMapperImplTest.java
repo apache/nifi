@@ -122,7 +122,7 @@ public class HttpResponseMapperImplTest {
         when(clientResponse.getHeaders()).thenReturn(new MultivaluedMapImpl());
         when(clientResponse.getEntityInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
 
-        NodeIdentifier nodeIdentifier = new NodeIdentifier(nodeId, "localhost", 1, "localhost", 1, "localhost", 1234, false);
+        NodeIdentifier nodeIdentifier = new NodeIdentifier(nodeId, "localhost", 1, "localhost", 1, "localhost", 1234, null, false);
         return new NodeResponse(nodeIdentifier, "GET", dummyUri, clientResponse, 1L, "111");
     }
 }

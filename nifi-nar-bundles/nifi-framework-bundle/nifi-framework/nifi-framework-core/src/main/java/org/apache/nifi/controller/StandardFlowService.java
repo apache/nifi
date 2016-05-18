@@ -16,31 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.ConnectionException;
 import org.apache.nifi.cluster.HeartbeatPayload;
@@ -83,6 +58,31 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
@@ -196,7 +196,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             this.nodeId = new NodeIdentifier(nodeUuid,
                 nodeApiAddress.getHostName(), nodeApiAddress.getPort(),
                 nodeSocketAddress.getHostName(), nodeSocketAddress.getPort(),
-                properties.getRemoteInputHost(), properties.getRemoteInputPort(), properties.isSiteToSiteSecure());
+                properties.getRemoteInputHost(), properties.getRemoteInputPort(),
+                properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
 
         } else {
             this.configuredForClustering = false;
