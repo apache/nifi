@@ -37,7 +37,7 @@ import java.io.IOException;
 public class HttpClientTransaction extends AbstractTransaction {
 
     private SiteToSiteRestApiUtil apiUtil;
-    private String holdUri;
+    private String transactionUrl;
 
     public HttpClientTransaction(final int protocolVersion, final Peer peer, TransferDirection direction,
                                  final boolean useCompression, final String portId, int penaltyMillis, EventReporter eventReporter) throws IOException {
@@ -45,10 +45,10 @@ public class HttpClientTransaction extends AbstractTransaction {
     }
 
     public void initialize(SiteToSiteRestApiUtil apiUtil, String transactionUrl) throws IOException {
+        this.transactionUrl = transactionUrl;
         this.apiUtil = apiUtil;
         if(TransferDirection.RECEIVE.equals(direction)){
-            holdUri = apiUtil.openConnectionForReceive(transactionUrl, peer.getCommunicationsSession());
-            dataAvailable = (holdUri != null);
+            dataAvailable = apiUtil.openConnectionForReceive(transactionUrl, peer.getCommunicationsSession());
         } else {
             apiUtil.openConnectionForSend(transactionUrl, peer.getCommunicationsSession());
         }
@@ -69,11 +69,11 @@ public class HttpClientTransaction extends AbstractTransaction {
                         ResponseCode.CONTINUE_TRANSACTION.writeResponse(dos);
                     } else {
                         // We got a checksum to send to server.
-                        if(holdUri == null){
+                        if (TransactionState.TRANSACTION_STARTED.equals(state)) {
                             logger.debug("{} {} There's no transaction to confirm.", this, peer);
                             ResponseCode.CONFIRM_TRANSACTION.writeResponse(dos, "");
                         } else {
-                            TransactionResultEntity transactionResult = apiUtil.commitReceivingFlowFiles(holdUri, commSession.getChecksum());
+                            TransactionResultEntity transactionResult = apiUtil.commitReceivingFlowFiles(transactionUrl, commSession.getChecksum());
                             ResponseCode responseCode = ResponseCode.fromCode(transactionResult.getResponseCode());
                             if(responseCode.containsMessage()){
                                 String message = transactionResult.getMessage();
@@ -89,11 +89,11 @@ public class HttpClientTransaction extends AbstractTransaction {
             switch (state){
                 case DATA_EXCHANGED:
                     // Some flow files have been sent via stream, finish transferring.
-                    holdUri = apiUtil.finishTransferFlowFiles(commSession);
+                    apiUtil.finishTransferFlowFiles(commSession);
                     ResponseCode.CONFIRM_TRANSACTION.writeResponse(dos, commSession.getChecksum());
                     break;
                 case TRANSACTION_CONFIRMED:
-                    TransactionResultEntity resultEntity = apiUtil.commitTransferFlowFiles(holdUri, ResponseCode.CONFIRM_TRANSACTION);
+                    TransactionResultEntity resultEntity = apiUtil.commitTransferFlowFiles(transactionUrl, ResponseCode.CONFIRM_TRANSACTION);
                     ResponseCode responseCode = ResponseCode.fromCode(resultEntity.getResponseCode());
                     if(responseCode.containsMessage()){
                         responseCode.writeResponse(dos, resultEntity.getMessage());
@@ -127,7 +127,7 @@ public class HttpClientTransaction extends AbstractTransaction {
                     logger.debug("{} Finished sending flow files.", this);
                     break;
                 case BAD_CHECKSUM:
-                    TransactionResultEntity resultEntity = apiUtil.commitTransferFlowFiles(holdUri, ResponseCode.BAD_CHECKSUM);
+                    TransactionResultEntity resultEntity = apiUtil.commitTransferFlowFiles(transactionUrl, ResponseCode.BAD_CHECKSUM);
                     ResponseCode badChecksumCancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
                     switch (badChecksumCancelResponse) {
                         case CANCEL_TRANSACTION:

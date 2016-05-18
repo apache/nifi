@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.remote.protocol.http;
 
+import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
-import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.codec.FlowFileCodec;
@@ -37,7 +37,6 @@ import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.concurrent.ConcurrentMap;
 
 public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
 
@@ -45,12 +44,10 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
 
     private final FlowFileCodec codec = new StandardFlowFileCodec();
     private final VersionNegotiator versionNegotiator;
+    private final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
 
-    private ConcurrentMap<String, FlowFileTransaction> transactionOnHold;
-
-    public HttpFlowFileServerProtocol(ConcurrentMap<String, FlowFileTransaction> transactionOnHold, VersionNegotiator versionNegotiator) {
+    public HttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
         super();
-        this.transactionOnHold = transactionOnHold;
         this.versionNegotiator = versionNegotiator;
     }
 
@@ -161,11 +158,6 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
         return Response.read(new DataInputStream(bis));
     }
 
-    @Override
-    protected int commitTransferTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
-        return holdTransaction(peer, transaction);
-    }
-
     private int holdTransaction(Peer peer, FlowFileTransaction transaction) {
         // We don't commit the session here yet,
         // to avoid losing sent flow files in case some issue happens at client side while it is processing,
@@ -173,19 +165,21 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         String transactionId = commSession.getTransactionId();
         logger.debug("{} Holding transaction. transactionId={}", this, transactionId);
-        transactionOnHold.put(transactionId, transaction);
+        transactionManager.proceedTransaction(transactionId, transaction);
 
         return transaction.getFlowFilesSent().size();
     }
 
-    public int commitTransferTransaction(Peer peer, String clientChecksum) throws IOException {
+    @Override
+    protected int commitTransferTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
+        return holdTransaction(peer, transaction);
+    }
+
+    public int commitTransferTransaction(Peer peer, String clientChecksum) throws IOException, IllegalStateException {
         logger.debug("{} Committing the transfer transaction. peer={} clientChecksum={}", this, peer, clientChecksum);
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         String transactionId = commSession.getTransactionId();
-        FlowFileTransaction transaction = transactionOnHold.remove(transactionId);
-        if(transaction == null){
-            throw new IOException("Transaction was not found. transactionId=" + transactionId);
-        }
+        FlowFileTransaction transaction = transactionManager.finalizeTransaction(transactionId);
         commSession.setChecksum(clientChecksum);
         commSession.setStatus(Transaction.TransactionState.DATA_EXCHANGED);
         return super.commitTransferTransaction(peer, transaction);
@@ -196,14 +190,11 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
         return holdTransaction(peer, transaction);
     }
 
-    public int commitReceiveTransaction(Peer peer) throws IOException {
+    public int commitReceiveTransaction(Peer peer) throws IOException, IllegalStateException {
         logger.debug("{} Committing the receive transaction. peer={}", this, peer);
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         String transactionId = commSession.getTransactionId();
-        FlowFileTransaction transaction = transactionOnHold.remove(transactionId);
-        if(transaction == null){
-            throw new IOException("Transaction was not found. transactionId=" + transactionId);
-        }
+        FlowFileTransaction transaction = transactionManager.finalizeTransaction(transactionId);
         commSession.setStatus(Transaction.TransactionState.TRANSACTION_CONFIRMED);
         return super.commitReceiveTransaction(peer, transaction);
     }
@@ -226,5 +217,6 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
     public String getResourceName() {
         return RESOURCE_NAME;
     }
+
 
 }
