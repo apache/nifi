@@ -33,12 +33,13 @@ public class StandardValidationContextFactory implements ValidationContextFactor
     }
 
     @Override
-    public ValidationContext newValidationContext(final Map<PropertyDescriptor, String> properties, final String annotationData) {
-        return new StandardValidationContext(serviceProvider, properties, annotationData);
+    public ValidationContext newValidationContext(final Map<PropertyDescriptor, String> properties, final String annotationData, final String groupId) {
+        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId);
     }
 
     @Override
-    public ValidationContext newValidationContext(final Set<String> serviceIdentifiersToNotValidate, final Map<PropertyDescriptor, String> properties, final String annotationData) {
-        return new StandardValidationContext(serviceProvider, serviceIdentifiersToNotValidate, properties, annotationData);
+    public ValidationContext newValidationContext(final Set<String> serviceIdentifiersToNotValidate,
+        final Map<PropertyDescriptor, String> properties, final String annotationData, final String groupId) {
+        return new StandardValidationContext(serviceProvider, serviceIdentifiersToNotValidate, properties, annotationData, groupId);
     }
 }

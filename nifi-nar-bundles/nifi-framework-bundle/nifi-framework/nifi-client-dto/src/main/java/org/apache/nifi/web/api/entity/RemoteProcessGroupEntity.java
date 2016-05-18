@@ -17,7 +17,10 @@
 package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupDTO.
@@ -26,6 +29,10 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 public class RemoteProcessGroupEntity extends ComponentEntity {
 
     private RemoteProcessGroupDTO component;
+    private RemoteProcessGroupStatusDTO status;
+
+    private Integer inputPortCount;
+    private Integer outputPortCount;
 
     /**
      * The RemoteProcessGroupDTO that is being serialized.
@@ -40,4 +47,45 @@ public class RemoteProcessGroupEntity extends ComponentEntity {
         this.component = component;
     }
 
+    /**
+     * @return the remote process group status
+     */
+    @ApiModelProperty(
+        value = "The status of the remote process group."
+    )
+    public RemoteProcessGroupStatusDTO getStatus() {
+        return status;
+    }
+
+    public void setStatus(RemoteProcessGroupStatusDTO status) {
+        this.status = status;
+    }
+
+    /**
+     * @return number of Remote Input Ports currently available in the remote NiFi instance
+     */
+    @ApiModelProperty(
+        value = "The number of remote input ports currently available on the target."
+    )
+    public Integer getInputPortCount() {
+        return inputPortCount;
+    }
+
+    public void setInputPortCount(Integer inputPortCount) {
+        this.inputPortCount = inputPortCount;
+    }
+
+    /**
+     * @return number of Remote Output Ports currently available in the remote NiFi instance
+     */
+    @ApiModelProperty(
+        value = "The number of remote output ports currently available on the target."
+    )
+    public Integer getOutputPortCount() {
+        return outputPortCount;
+    }
+
+    public void setOutputPortCount(Integer outputPortCount) {
+        this.outputPortCount = outputPortCount;
+    }
 }

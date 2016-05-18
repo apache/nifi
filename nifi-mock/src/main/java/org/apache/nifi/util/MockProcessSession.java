@@ -988,6 +988,39 @@ public class MockProcessSession implements ProcessSession {
     }
 
     /**
+     * Asserts that all FlowFiles that were transferred are compliant with the
+     * given validator.
+     *
+     * @param validator validator to use
+     */
+    public void assertAllFlowFiles(FlowFileValidator validator) {
+        for (final Map.Entry<Relationship, List<MockFlowFile>> entry : transferMap.entrySet()) {
+            final List<MockFlowFile> flowFiles = entry.getValue();
+            for (MockFlowFile mockFlowFile : flowFiles) {
+                validator.assertFlowFile(mockFlowFile);
+            }
+        }
+    }
+
+    /**
+     * Asserts that all FlowFiles that were transferred in the given relationship
+     * are compliant with the given validator.
+     *
+     * @param validator validator to use
+     */
+    public void assertAllFlowFiles(Relationship relationship, FlowFileValidator validator) {
+        for (final Map.Entry<Relationship, List<MockFlowFile>> entry : transferMap.entrySet()) {
+            final List<MockFlowFile> flowFiles = entry.getValue();
+            final Relationship rel = entry.getKey();
+            for (MockFlowFile mockFlowFile : flowFiles) {
+                if(rel.equals(relationship)) {
+                    validator.assertFlowFile(mockFlowFile);
+                }
+            }
+        }
+    }
+
+    /**
      * Removes all state information about FlowFiles that have been transferred
      */
     public void clearTransferState() {

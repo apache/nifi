@@ -42,18 +42,6 @@
                             <span id="controller-service-type"></span>
                         </div>
                     </div>
-                    <div id="controller-service-availability-setting-container" class="setting hidden">
-                        <div class="availability-setting">
-                            <div class="setting-name">
-                                Availability
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Where this controller service is available."/>
-                            </div>
-                            <div class="setting-field">
-                                <div id="controller-service-availability"></div>
-                            </div>
-                        </div>
-                        <div class="clear"></div>
-                    </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
                 <div class="settings-right">

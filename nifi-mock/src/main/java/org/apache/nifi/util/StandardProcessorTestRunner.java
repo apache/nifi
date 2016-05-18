@@ -43,7 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -320,6 +319,40 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void assertAllFlowFilesContainAttribute(final String attributeName) {
+        assertAllFlowFiles(new FlowFileValidator() {
+            @Override
+            public void assertFlowFile(FlowFile f) {
+                Assert.assertTrue(f.getAttribute(attributeName) != null);
+            }
+        });
+    }
+
+    @Override
+    public void assertAllFlowFilesContainAttribute(final Relationship relationship, final String attributeName) {
+        assertAllFlowFiles(relationship, new FlowFileValidator() {
+            @Override
+            public void assertFlowFile(FlowFile f) {
+                Assert.assertTrue(f.getAttribute(attributeName) != null);
+            }
+        });
+    }
+
+    @Override
+    public void assertAllFlowFiles(FlowFileValidator validator) {
+        for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
+            session.assertAllFlowFiles(validator);
+        }
+    }
+
+    @Override
+    public void assertAllFlowFiles(Relationship relationship, FlowFileValidator validator) {
+        for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
+            session.assertAllFlowFiles(relationship, validator);
+        }
+    }
+
+    @Override
     public void assertAllFlowFilesTransferred(final Relationship relationship, final int count) {
         assertAllFlowFilesTransferred(relationship);
         assertTransferCount(relationship, count);
@@ -402,7 +435,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void enqueue(final String data) {
-        enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.<String, String> emptyMap());
+        enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.emptyMap());
     }
 
     @Override
@@ -531,7 +564,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         this.numThreads = threadCount;
-        this.context.setNumThreads(threadCount);
+        this.context.setMaxConcurrentTasks(threadCount);
     }
 
     @Override
@@ -835,10 +868,12 @@ public class StandardProcessorTestRunner implements TestRunner {
         return controllerServiceStateManagers.get(controllerService.getIdentifier());
     }
 
+    @Override
     public MockProcessorLog getLogger() {
         return logger;
     }
 
+    @Override
     public MockProcessorLog getControllerServiceLogger(final String identifier) {
         return controllerServiceLoggers.get(identifier);
     }

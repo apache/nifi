@@ -31,6 +31,7 @@ public class TemplateDTO {
     private String uri;
 
     private String id;
+    private String groupId;
     private String name;
     private String description;
     private Date timestamp;
@@ -40,9 +41,7 @@ public class TemplateDTO {
     /**
      * @return id for this template
      */
-    @ApiModelProperty(
-            value = "The id of the template."
-    )
+    @ApiModelProperty("The id of the template.")
     public String getId() {
         return id;
     }
@@ -50,6 +49,16 @@ public class TemplateDTO {
     public void setId(String id) {
         this.id = id;
     }
+
+    @ApiModelProperty("The id of the Process Group that the template belongs to.")
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
 
     /**
      * @return uri for this template

@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.entity;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.List;
 public class ConnectionEntity extends ComponentEntity {
 
     private ConnectionDTO component;
+    private ConnectionStatusDTO status;
     private List<PositionDTO> bends;
     private Integer labelIndex;
     private String sourceId;
@@ -46,6 +48,20 @@ public class ConnectionEntity extends ComponentEntity {
 
     public void setComponent(ConnectionDTO component) {
         this.component = component;
+    }
+
+    /**
+     * @return the connection status
+     */
+    @ApiModelProperty(
+        value = "The status of the connection."
+    )
+    public ConnectionStatusDTO getStatus() {
+        return status;
+    }
+
+    public void setStatus(ConnectionStatusDTO status) {
+        this.status = status;
     }
 
     /**

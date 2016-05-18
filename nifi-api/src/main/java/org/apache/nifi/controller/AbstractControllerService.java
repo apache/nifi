@@ -18,7 +18,6 @@ package org.apache.nifi.controller;
 
 import java.util.Map;
 
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;

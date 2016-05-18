@@ -241,8 +241,7 @@ location that it was dropped.
 
 *Note*: For any component added to the canvas, it is possible to select it with the mouse and move it anywhere on the canvas. Also, it is possible to select multiple items at once by either holding down the Shift key and selecting each item or by holding down the Shift key and dragging a selection box around the desired components. 
 
-Once a Processor has been dragged onto the canvas, the user may interact with it by right-clicking on the Processor and selecting an option from
-context menu. 
+Once a Processor has been dragged onto the canvas, the user may interact with it by right-clicking on the Processor and selecting an option from the context menu. 
 
 image::nifi-processor-menu.png["Processor Menu", width=300]
 
@@ -321,7 +320,7 @@ image:iconRemoteProcessGroup.png["Remote Process Group", width=32]
 references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM
 is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, the URL that should be used
 is the URL of the remote instance's NiFi Cluster Manager (NCM). When data is transferred to a clustered instance of NiFi
-via an RPG, the RPG it will first connect to the remote instance's NCM to determine which nodes are in the cluster and
+via an RPG, the RPG will first connect to the remote instance's NCM to determine which nodes are in the cluster and
 how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote NCM is
 then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to 
 recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
@@ -378,18 +377,18 @@ image:iconLabel.png["Label"]
 *Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
 it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner.
 The Label has no text when initially created. The text of the Label can be added by right-clicking on the Label and
-choosing `Configure...`
+choosing `Configure`
 
 
 
 [[Configuring_a_Processor]]
 === Configuring a Processor
 
-To configure a processor, right-click on the Processor and select the `Configure...` option from the context menu. The configuration dialog is opened with four
+To configure a processor, right-click on the Processor and select the `Configure` option from the context menu. The configuration dialog is opened with four
 different tabs, each of which is discussed below. Once you have finished configuring the Processor, you can apply
 the changes by clicking the `Apply` button or cancel all changes by clicking the `Cancel` button.
 
-Note that after a Processor has been started, the context menu shown for the Processor no longer has a `Configure...`
+Note that after a Processor has been started, the context menu shown for the Processor no longer has a `Configure`
 option but rather has a `View Configuration` option. Processor configuration cannot be changed while the Processor is
 running. You must first stop the Processor and wait for all of its active tasks to complete before configuring
 the Processor again.
@@ -446,7 +445,7 @@ The second tab in the Processor Configuration dialog is the Scheduling Tab:
 
 image::scheduling-tab.png["Scheduling Tab"]
 
-The first configuration option is the Scheduling Strategy. There are three options for scheduling components:
+The first configuration option is the Scheduling Strategy. There are three possible options for scheduling components:
 
 - *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
 	at which the Processor is run is defined by the `Run schedule' option (see below).
@@ -514,7 +513,7 @@ must define which Properties make sense for its use case. Below, we see the Prop
 
 image::properties-tab.png["Properties Tab"]
 
-This Processor, by default, has only a single property: `Routing Strategy.' The default value is `Route on Property name.' Next to
+This Processor, by default, has only a single property: `Routing Strategy.' The default value is `Route to Property name.' Next to
 the name of this property is a small question-mark symbol (
 image:iconInfo.png["Question Mark"]
 ). This help symbol is seen in other places throughout the User Interface, and it indicates that more information is available.
@@ -535,7 +534,7 @@ image:edit-property-textarea.png["Edit Property with Text Area"]
 
 Note that after a User-Defined property has been added, an icon will appear on the right-hand side of that row (
 image:iconDelete.png["Delete Icon"]
-). Clicking this button will remove the User-Defined property from the Processor.
+). Clicking it will remove the User-Defined property from the Processor.
 
 Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the `Advanced` button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button. 
 
@@ -687,9 +686,9 @@ prioritizers' list to the `Available prioritizers' list.
 
 The following prioritizers are available:
 
-- *FirstInFirstOutPrioritizer*: Given two FlowFiles, the on that reached the connection first will be processed first.
+- *FirstInFirstOutPrioritizer*: Given two FlowFiles, the one that reached the connection first will be processed first.
 - *NewestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is newest in the dataflow will be processed first.
-- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the on that is oldest in the dataflow will be processed first. This is the default scheme that is used if no prioritizers are selected.
+- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. This is the default scheme that is used if no prioritizers are selected.
 - *PriorityAttributePrioritizer*: Given two FlowFiles that both have a "priority" attribute, the one that has the highest priority value will be processed first. Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set. Values for the "priority" attribute may be alphanumeric, where "a" is a higher priority than "z", and "1" is a higher priority than "9", for example.
 
 *Note*: After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
@@ -1110,7 +1109,7 @@ The Process Group consists of the following elements:
 	
 - *Bulletin Indicator*: When a child component of a Process Group emits a bulletin, that bulletin is propagated to
 	the component's parent Process Group, as well. When any component has an active Bulletin, this indicator will appear,
-	allowing the user to hover over the icon with the mouse to see Bulletin.
+	allowing the user to hover over the icon with the mouse to see the Bulletin.
 	
 - *Active Tasks*: The number of tasks that are currently executing by the components within this
 	Process Group. Here, we can see that the Process Group is currently performing one task. If the 
@@ -1153,7 +1152,7 @@ The Process Group consists of the following elements:
 			
 	** image:iconOutputPortSmall.png["Output Port"]
 		*Output Ports*: The number of Output Ports that exist directly within this Process Group. This does not include any
-			 Output Ports that exist within child Process Group as child groups' ports cannot be accessed directly.
+			 Output Ports that exist within child Process Groups as child groups' ports cannot be accessed directly.
 			 
 	** image:iconTransmissionActive.png["Transmission Active"]
 		*Transmitting Ports*: The number of Remote Process Group Ports that currently are configured to transmit data to remote
@@ -1281,7 +1280,7 @@ image:iconNotSecure.png["Not Secure"]
 [[Queue_Interaction]]
 === Queue Interaction
 
-The FlowFiles enqueued in a Connection can be viewed when necessary. The Queue listing is opened via a menu item in
+The FlowFiles enqueued in a Connection can be viewed when necessary. The Queue listing is opened via `List queue` in
 a Connection's context menu. The listing will return the top 100 FlowFiles in the active queue according to the
 configured priority. The listing can be performed even if the source and destination are actively running.
 
@@ -1293,7 +1292,7 @@ If the source or destination of the Connection are actively running, there is a 
 no longer be in the active queue.
 
 The FlowFiles enqueued in a Connection can also be deleted when necessary. The removal of the FlowFiles is initiated
-via a menu item in the Connection's context menu. This action can also be performed if the source and destination
+via `Empty queue` in the Connection's context menu. This action can also be performed if the source and destination
 are actively running.
 
 
@@ -1316,10 +1315,10 @@ the different elements within the dialog in order to make the discussion of the 
 
 image::summary-annotated.png["Summary Table Annotated"]
 
-The Summary page consists mostly of a table that provides information about each of the components on the canvas. Above this
+The Summary page is primarily comprised of a table that provides information about each of the components on the canvas. Above this
 table is a set of five tabs that can be used to view the different types of components. The information provided in the table
 is the same information that is provided for each component on the canvas. Each of the columns in the table may be sorted by
-double-clicking on the heading of the column. For more on the types of information displayed, see the sections
+clicking on the heading of the column. For more on the types of information displayed, see the sections
 <<processor_anatomy>>, <<process_group_anatomy>>, and <<remote_group_anatomy>> above.
 
 The Summary page also includes the following elements:
@@ -1328,7 +1327,7 @@ The Summary page also includes the following elements:
 	provide information about the Bulletin that was generated, including the message, the severity level, the time at which
 	the Bulletin was generated, and (in a clustered environment) the node that generated the Bulletin. Like all the columns in the
 	Summary table, this column where bulletins are shown may be sorted
-	by double-clicking on the heading so that all the currently existing bulletins are shown at the top of the list.
+	by clicking on the heading so that all the currently existing bulletins are shown at the top of the list.
 	
 - *Details*: Clicking the Details icon will provide the user with the details of the component. This dialog is the same as the
 	dialog provided when the user right-clicks on the component and chooses the ``View configuration'' menu item.
@@ -1347,7 +1346,7 @@ The Summary page also includes the following elements:
 - *Filter*: The Filter element allows users to filter the contents of the Summary table by typing in all or part of some criteria,
 	such as a Processor Type or Processor Name. The types of filters available differ according to the selected tab. For instance,
 	if viewing the Processor tab, the user is able to filter by name or by type. When viewing the Connections tab, the user
-	is able to filter by source name, destination name, or Connection name. The filter is automatically applied when the contents
+	is able to filter by source, by name, or by destination name. The filter is automatically applied when the contents
 	of the text box are changed. Below the text box is an indicator of how many entries in the table match the filter and how many
 	entries exist in the table.
 
@@ -1405,14 +1404,14 @@ The right-hand side of the dialog provides a drop-down list of the different typ
 The top graph is larger so as to provide an easier-to-read rendering of the information. In the bottom-right corner of
 this graph is a small handle (
 image:iconResize.png["Resize"]
-) that can be dragged to resize the graph. The blank area of the dialog above this graph can also be dragged around
+) that can be dragged to resize the graph. The blank areas of the dialog can also be dragged around
 to move the entire dialog.
 
 The bottom graph is much shorter and provides the ability to select a time range. Selecting a time range here will 
 cause the top graph to show only the time range selected, but in a more detailed manner. Additionally, this will cause the 
 Min/Max/Mean values on the left-hand side to be recalculated. Once a selection has been created by dragging a 
 rectangle over the graph, double-clicking on the selected portion will cause the selection to fully expand in the 
-vertical direction. I.e., it will select all values in this time range. Clicking on the bottom graph without dragging 
+vertical direction (i.e., it will select all values in this time range). Clicking on the bottom graph without dragging 
 will remove the selection.
  
 
@@ -1462,7 +1461,7 @@ image:iconTemplate.png["Template"]
 ) from the Components Toolbar (see <<User_Interface>>) onto the canvas.
 
 This will present a dialog to choose which Template to add to the canvas. After choosing the Template to add, simply
-click the ``Add'' button. The Template will be added to the canvas with the upper-right-hand side of the Template
+click the ``Add'' button. The Template will be added to the canvas with the upper-left-hand side of the Template
 being placed wherever the user dropped the Template icon.
 
 This leaves the contents of the newly instantiated Template selected. If there was a mistake, and this Template is no
@@ -1553,7 +1552,7 @@ image:search-receive-event-abc.png["Search for RECEIVE Event", width=400]
 
 [[event_details]]
 === Details of an Event
-In the far-left column of the Data Provenance page, there is a View Details icon for each event ( image:iconViewDetails.png["View Details", width=32] ).
+In the far-left column of the Data Provenance page, there is a View Details icon for each event (image:iconDetails.png["Details"]).
 Clicking this button opens a dialog window with three tabs: Details, Attributes, and Content.
 
 image:event-details.png["Event Details", width=700]
@@ -1572,7 +1571,7 @@ image:event-attributes.png["Event Attributes", width=700]
 
 A DFM may need to inspect a FlowFile's content at some point in the dataflow to ensure that it is being processed as expected. And if it
 is not being processed properly, the DFM may need to make adjustments to the dataflow and replay the FlowFile again. The Content tab of the View Details dialog window is where the DFM can do these things. The Content tab shows information about the FlowFile's content, such as its location in the Content Repository
-and its size. In addition, it is here that the user may click the `Download` button in order to download a copy of the FlowFile's content as it existed
+and its size. In addition, it is here that the user may click the `Download` button to download a copy of the FlowFile's content as it existed
 at this point in the flow. The user may also click the `Submit` button to replay the FlowFile at this point in the flow. Upon clicking `Submit`, 
 the FlowFile is sent to the connection feeding the component that produced this processing event.
 
@@ -1581,7 +1580,7 @@ image:event-content.png["Event Content", width=700]
 === Viewing FlowFile Lineage
 
 It is often useful to see a graphical representation of the lineage or path a FlowFile took within the dataflow. To see a FlowFile's lineage, click on the "Show Lineage" icon ( image:iconLineage.png["Show Lineage", width=28] ) in the far-right column
-of the Data Provenance table. This opens a graph displaying the FlowFile ( image:lineage-flowfile.png["FlowFile", width=32] ) and the various processing events that have occurred. The selected event will be highlighted in yellow. It is possible to right-click on any event to see that event's details (See <<event_details>>) 
+of the Data Provenance table. This opens a graph displaying the FlowFile ( image:lineage-flowfile.png["FlowFile", width=32] ) and the various processing events that have occurred. The selected event will be highlighted in yellow. It is possible to right-click on any event to see that event's details (See <<event_details>>). 
 To see how the lineage evolved over time, click the slider at the bottom-left of the window and move it to the left to see the state of the lineage at earlier stages in the dataflow.
 
 image:lineage-graph-annotated.png["Lineage Graph", width=900]
@@ -1614,7 +1613,7 @@ Other Management Features
 
 In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are other tools in the Management Toolbar (See <<User_Interface>>) that are useful to the DFM. The Flow Configuration History, which is available by clicking on the clock icon ( image:iconFlowHistory.png["Flow History", width=28] ) in the Management Toolbar, shows all the changes that have been made to the dataflow. The history can aid in troubleshooting, such as if a recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and adjust the flow as needed to fix the problem. While NiFi does not have an "undo" feature, the DFM can make new changes to the dataflow that will fix the problem.
 
-Two other tools in the Management Toolbar are the Controller Settings page ( image:iconSettings.png["Settings", width=28] ) and the Users page ( image:iconUsers.png["Users", width=28] ). The Controller Settings page provides the ability to change the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available to the application, and create a back-up copy of the dataflow(s) currently on the canvas. It also provides tabs where DFMs may add and configure Controller Services and Reporting Tasks (see <<Controller_Services_and_Reporting_Tasks>>). The Users page is used to manage user access, which is described in the Admin Guide. 
+Two other tools in the Management Toolbar are the Controller Settings page ( image:iconSettings.png["Settings", width=28] ) and the Users page ( image:iconUsers.png["Users", width=28] ). The Controller Settings page provides the ability to change the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available to the application, and create a back-up copy of the dataflow(s) currently on the canvas. It also provides tabs where DFMs may add and configure Controller Services and Reporting Tasks (see <<Controller_Services_and_Reporting_Tasks>>). The Users page is used to manage user access, which is described in the link:administration-guide.html[Admin Guide]. 
 
 
 

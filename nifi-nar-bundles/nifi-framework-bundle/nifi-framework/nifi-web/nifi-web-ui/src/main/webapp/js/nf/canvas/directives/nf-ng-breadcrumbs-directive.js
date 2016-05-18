@@ -17,25 +17,18 @@
 
 /* global nf, d3 */
 
-nf.ng.BreadcrumbsDirective = (function () {
-
-    function BreadcrumbsDirective(breadcrumbsCtrl) {
-        return {
-            restrict: 'E',
-            templateUrl: 'views/nf-ng-breadcrumbs-directive-view.html',
-            scope: {
-                'breadcrumbs': '=',
-                'clickFunc': '=',
-                'highlightCrumbId': '=',
-                'separatorFunc': '='
-            },
-            link: function (scope, element, attrs) {
-                breadcrumbsCtrl.registerMouseWheelEvent(element);
-            }
-        };
-    }
-
-    BreadcrumbsDirective.$inject = ['breadcrumbsCtrl'];
-
-    return BreadcrumbsDirective;
-}());
+nf.ng.BreadcrumbsDirective = function (breadcrumbsCtrl) {
+    return {
+        restrict: 'E',
+        templateUrl: 'views/nf-ng-breadcrumbs-directive-view.html',
+        scope: {
+            'breadcrumbs': '=',
+            'clickFunc': '=',
+            'highlightCrumbId': '=',
+            'separatorFunc': '='
+        },
+        link: function (scope, element, attrs) {
+            breadcrumbsCtrl.registerMouseWheelEvent(element);
+        }
+    };
+};

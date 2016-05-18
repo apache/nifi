@@ -445,6 +445,7 @@ public class ProcessGroupStatus implements Cloneable {
             merged.setOutputBytes(merged.getOutputBytes() + statusToMerge.getOutputBytes());
             merged.setOutputCount(merged.getOutputCount() + statusToMerge.getOutputCount());
             merged.setProcessingNanos(merged.getProcessingNanos() + statusToMerge.getProcessingNanos());
+            merged.setFlowFilesRemoved(merged.getFlowFilesRemoved() + statusToMerge.getFlowFilesRemoved());
 
             // if the status to merge is invalid allow it to take precedence. whether the
             // processor run status is disabled/stopped/running is part of the flow configuration

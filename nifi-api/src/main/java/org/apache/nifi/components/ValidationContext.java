@@ -92,4 +92,11 @@ public interface ValidationContext {
      * support the Expression Language or is not a valid property name
      */
     boolean isExpressionLanguageSupported(String propertyName);
+
+    /**
+     * Returns the identifier of the ProcessGroup that the component being validated lives in
+     *
+     * @return the identifier of the ProcessGroup that the component being validated lives in
+     */
+    String getProcessGroupIdentifier();
 }

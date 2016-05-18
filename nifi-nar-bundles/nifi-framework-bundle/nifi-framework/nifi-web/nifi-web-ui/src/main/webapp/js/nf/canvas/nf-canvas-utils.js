@@ -57,11 +57,9 @@ nf.CanvasUtils = (function () {
             nf.CanvasUtils.eligibleForMove(components, groupId).done(function () {
                 // create a snippet for the specified components and link to the data flow
                 var snippetDetails = nf.Snippet.marshal(components, true);
-                nf.Snippet.create(snippetDetails).done(function (response) {
-                    var snippet = response.snippet;
-
+                nf.Snippet.create(snippetDetails).done(function (snippetEntity) {
                     // move the snippet into the target
-                    nf.Snippet.move(snippet.id, groupId).done(function () {
+                    nf.Snippet.move(snippetEntity, groupId).done(function () {
                         var componentMap = d3.map();
 
                         // add the id to the type's array
@@ -90,8 +88,8 @@ nf.CanvasUtils = (function () {
                     }).always(function () {
                         // unable to acutally move the components so attempt to
                         // unlink and remove just the snippet
-                        nf.Snippet.unlink(snippet.id).done(function () {
-                            nf.Snippet.remove(snippet.id);
+                        nf.Snippet.unlink(snippetEntity).done(function (unlinkedSnippetEntity) {
+                            nf.Snippet.remove(unlinkedSnippetEntity);
                         });
                     });
                 }).fail(nf.Common.handleAjaxError).fail(function () {
@@ -200,7 +198,10 @@ nf.CanvasUtils = (function () {
                 var refreshGraph = $.Deferred(function (deferred) {
                     // load a different group if necessary
                     if (groupId !== nf.Canvas.getGroupId()) {
+                        // set the new group id
                         nf.Canvas.setGroupId(groupId);
+
+                        // reload
                         nf.Canvas.reload().done(function () {
                             deferred.resolve();
                         }).fail(function () {
@@ -258,21 +259,60 @@ nf.CanvasUtils = (function () {
             // calculate the difference between the center point and the position of this component and convert to screen space
             nf.Canvas.View.translate([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale]);
         },
+
+        /**
+         * Enables/disables the editable behavior for the specified selection based on their access policies.
+         * 
+         * @param selection     selection
+         */
+        editable: function (selection) {
+            var selectionData = selection.datum();
+            
+            if (selectionData.accessPolicy.canWrite && selectionData.accessPolicy.canRead) {
+                if (!selection.classed('connectable')) {
+                    selection.call(nf.Connectable.activate);
+                }
+                if (!selection.classed('moveable')) {
+                    selection.call(nf.Draggable.activate);
+                }
+            } else {
+                if (selection.classed('connectable')) {
+                    selection.call(nf.Connectable.deactivate);
+                }
+                if (selection.classed('moveable')) {
+                    selection.call(nf.Draggable.deactivate);
+                }
+            }
+        },
         
+        /**
+         * Conditionally apply the transition.
+         *
+         * @param selection     selection
+         * @param transition    transition
+         */
+        transition: function (selection, transition) {
+            if (transition && !selection.empty()) {
+                return selection.transition().duration(400);
+            } else {
+                return selection;
+            }
+        },
+
         /**
          * Position the component accordingly.
          * 
          * @param {selection} updated
          */
-        position: function (updated) {
+        position: function (updated, transition) {
             if (updated.empty()) {
                 return;
             }
-
-            // update the processors positioning
-            updated.attr('transform', function (d) {
-                return 'translate(' + d.position.x + ', ' + d.position.y + ')';
-            });
+            
+            return nf.CanvasUtils.transition(updated, transition)
+                .attr('transform', function (d) {
+                    return 'translate(' + d.position.x + ', ' + d.position.y + ')';
+                });
         },
         
         /**
@@ -405,16 +445,12 @@ nf.CanvasUtils = (function () {
                         .each(function () {
                             var bBox = this.getBBox();
                             d3.select(this).attr('x', function () {
-                                return d.dimensions.width - bBox.width - 4;
+                                return d.dimensions.width - bBox.width - 15;
                             });
                         });
 
                 // update the background width
-                selection.select('rect.active-thread-count-background')
-                        .attr('width', function () {
-                            var bBox = activeThreadCount.node().getBBox();
-                            return bBox.width + 8;
-                        })
+                selection.select('text.active-thread-count-icon')
                         .attr('x', function () {
                             var bBox = activeThreadCount.node().getBBox();
 
@@ -423,22 +459,11 @@ nf.CanvasUtils = (function () {
                                 setOffset(bBox.width + 6);
                             }
 
-                            return d.dimensions.width - bBox.width - 8;
-                        })
-                        .attr('stroke-dasharray', function() {
-                            var rect = d3.select(this);
-                            var width = parseFloat(rect.attr('width'));
-                            var height = parseFloat(rect.attr('height'));
-                            
-                            var dashArray = [];
-                            dashArray.push(0);
-                            dashArray.push(width + height);
-                            dashArray.push(width + height);
-                            return dashArray.join(' ');
+                            return d.dimensions.width - bBox.width - 20;
                         })
                         .style('display', 'block');
             } else {
-                selection.selectAll('text.active-thread-count, rect.active-thread-count-background').style('display', 'none');
+                selection.selectAll('text.active-thread-count, text.active-thread-count-icon').style('display', 'none');
             }
         },
         
@@ -473,18 +498,10 @@ nf.CanvasUtils = (function () {
             }
 
             // if there are bulletins show them, otherwise hide
-            if (nf.Common.isDefinedAndNotNull(d.status) && !nf.Common.isEmpty(d.status.bulletins)) {
+            if (!nf.Common.isEmpty(d.status.bulletins)) {
                 // update the tooltip
-                selection.select('image.bulletin-icon')
-                        .style('display', 'block')
+                selection.select('text.bulletin-icon')
                         .each(function () {
-                            var bBox = this.getBBox();
-                            var bulletinIcon = d3.select(this);
-
-                            bulletinIcon.attr('x', function () {
-                                return d.dimensions.width - offset - bBox.width - 4;
-                            });
-
                             // if there are bulletins generate a tooltip
                             tip = getTooltipContainer().append('div')
                                     .attr('id', function () {
@@ -505,10 +522,8 @@ nf.CanvasUtils = (function () {
                                     });
 
                             // add the tooltip
-                            nf.CanvasUtils.canvasTooltip(tip, bulletinIcon);
+                            nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
                         });
-            } else {
-                selection.selectAll('image.bulletin-icon').style('display', 'none');
             }
         },
         
@@ -882,6 +897,11 @@ nf.CanvasUtils = (function () {
         supportsModification: function (selection) {
             var selectionData = selection.datum();
 
+            // check access policies first
+            if (selectionData.accessPolicy.canRead === false || selectionData.accessPolicy.canWrite === false) {
+                return false;
+            }
+
             var supportsModification = false;
             if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
                 if (nf.Common.isDefinedAndNotNull(selectionData.status)) {
@@ -1159,9 +1179,6 @@ nf.CanvasUtils = (function () {
         enterGroup: function (groupId) {
             // set the new group id
             nf.Canvas.setGroupId(groupId);
-
-            // clear the current components
-            nf.Graph.removeAll();
 
             // reload the graph
             return nf.Canvas.reload().done(function () {

@@ -37,7 +37,6 @@ import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
@@ -77,6 +76,7 @@ import java.util.UUID;
     value = "/flowfile-queues",
     description = "Endpoint for managing a FlowFile Queue."
 )
+// TODO: Need revisions of the Connections for these endpoints!
 public class FlowFileQueueResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -118,7 +118,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Gets the specified flowfile from the specified connection.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
      * @param flowFileUuid The flowfile uuid
      * @param clusterNodeId The cluster node id where the flowfile resides
@@ -145,11 +144,6 @@ public class FlowFileQueueResource extends ApplicationResource {
         }
     )
     public Response getFlowFile(
-            @ApiParam(
-                value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                 value = "The connection id.",
                 required = true
@@ -190,13 +184,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         final FlowFileDTO flowfileDto = serviceFacade.getFlowFile(connectionId, flowFileUuid);
         populateRemainingFlowFileContent(connectionId, flowfileDto);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final FlowFileEntity entity = new FlowFileEntity();
-        entity.setRevision(revision);
         entity.setFlowFile(flowfileDto);
 
         return generateOkResponse(entity).build();
@@ -364,12 +353,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(id, listingRequestId);
         populateRemainingFlowFileListingContent(id, listingRequest);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
         // create the response entity
         final ListingRequestEntity entity = new ListingRequestEntity();
-        entity.setRevision(revision);
         entity.setListingRequest(listingRequest);
 
         // generate the URI where the response will be
@@ -380,7 +365,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Checks the status of an outstanding listing request.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The id of the connection
      * @param listingRequestId The id of the drop request
      * @return A dropRequestEntity
@@ -408,11 +392,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     )
     public Response getListingRequest(
             @ApiParam(
-                value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                 value = "The connection id.",
                 required = true
             )
@@ -432,13 +411,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         final ListingRequestDTO listingRequest = serviceFacade.getFlowFileListingRequest(connectionId, listingRequestId);
         populateRemainingFlowFileListingContent(connectionId, listingRequest);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ListingRequestEntity entity = new ListingRequestEntity();
-        entity.setRevision(revision);
         entity.setListingRequest(listingRequest);
 
         return generateOkResponse(entity).build();
@@ -448,7 +422,6 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Deletes the specified listing request.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
      * @param listingRequestId The drop request id
      * @return A dropRequestEntity
@@ -476,11 +449,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     )
     public Response deleteListingRequest(
             @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                 value = "The connection id.",
                 required = true
@@ -512,13 +480,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         // populate remaining content
         populateRemainingFlowFileListingContent(connectionId, listingRequest);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ListingRequestEntity entity = new ListingRequestEntity();
-        entity.setRevision(revision);
         entity.setListingRequest(listingRequest);
 
         return generateOkResponse(entity).build();
@@ -585,12 +548,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(id, dropRequestId);
         dropRequest.setUri(generateResourceUri("flowfile-queues", id, "drop-requests", dropRequest.getId()));
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
         // create the response entity
         final DropRequestEntity entity = new DropRequestEntity();
-        entity.setRevision(revision);
         entity.setDropRequest(dropRequest);
 
         // generate the URI where the response will be
@@ -601,7 +560,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Checks the status of an outstanding drop request.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The id of the connection
      * @param dropRequestId The id of the drop request
      * @return A dropRequestEntity
@@ -629,11 +587,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     )
     public Response getDropRequest(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The connection id.",
                     required = true
             )
@@ -653,13 +606,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         final DropRequestDTO dropRequest = serviceFacade.getFlowFileDropRequest(connectionId, dropRequestId);
         dropRequest.setUri(generateResourceUri("flowfile-queues", connectionId, "drop-requests", dropRequestId));
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final DropRequestEntity entity = new DropRequestEntity();
-        entity.setRevision(revision);
         entity.setDropRequest(dropRequest);
 
         return generateOkResponse(entity).build();
@@ -669,7 +617,6 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Deletes the specified drop request.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
      * @param dropRequestId The drop request id
      * @return A dropRequestEntity
@@ -698,11 +645,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     public Response removeDropRequest(
             @Context HttpServletRequest httpServletRequest,
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The connection id.",
                     required = true
             )
@@ -728,13 +670,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         final DropRequestDTO dropRequest = serviceFacade.deleteFlowFileDropRequest(connectionId, dropRequestId);
         dropRequest.setUri(generateResourceUri("flowfile-queues", connectionId, "drop-requests", dropRequestId));
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final DropRequestEntity entity = new DropRequestEntity();
-        entity.setRevision(revision);
         entity.setDropRequest(dropRequest);
 
         return generateOkResponse(entity).build();

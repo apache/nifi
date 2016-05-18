@@ -53,16 +53,78 @@ text.unset {
 */
 
 g.component {
-    font-family: Arial, sans-serif;
+    font-family: Roboto;
+}
+
+g.component rect.body {
+    fill: #ffffff;
+}
+
+g.component rect.body.unauthorized {
+    fill: #f4f6f7;
+}
+
+g.component rect.border.unauthorized {
+    stroke-width: 1.5;
+    stroke: #ba554a;
+    stroke-dasharray: 3,3;
 }
 
 g.component.selected rect.border {
-    stroke: #ffcc00;
-    stroke-width: 5;
+    stroke: #004849;
+    stroke-width: 3;
 }
 
-g.funnel.selected rect.border {
-    stroke-width: 2.5;
+text.stats-label {
+    fill: #262626;
+    font-size: 12px;
+    font-family: Roboto Slab;
+}
+
+text.stats-value {
+    fill: #775351;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+text.stats-value tspan.size, text.stats-value tspan.size {
+    font-weight: normal;
+}
+
+text.stats-info {
+    fill: #728E9B;
+    font-size: 12px;
+}
+
+text.bulletin-icon {
+    font-size: 13px;
+    font-family: FontAwesome;
+    fill: #ffffff;
+}
+
+rect.bulletin-background {
+    fill: #728e9b;
+}
+
+rect.bulletin-background.has-bulletins {
+    fill: #ba554a;
+}
+
+text.process-group-invalid.has-validation-errors {
+    fill: #ba554a;
+}
+
+text.active-thread-count-icon {
+    font-family: flowfont;
+    font-size: 12px;
+    fill: #728e9b;
+    text-anchor: end;
+}
+
+text.active-thread-count {
+    fill: #775351;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 /*
@@ -88,19 +150,24 @@ image.add-connect {
     Processor
 */
 
-text.processor-stats-label {
-    fill: #fff;
-    font-size: 11px;
-    font-weight: bold;
+text.processor-name {
+    fill: #262626;
+    font-size: 14px;
 }
 
-text.processor-stats-value {
-    font-size: 11px;
+text.processor-type {
+    fill: #728e9b;
+    font-size: 12px;
 }
 
-text.processor-stats-info {
-    fill: #999999;
-    font-size: 11px;
+text.processor-icon {
+    fill: #ad9897;
+    font-family: flowfont;
+    font-size: 30px;
+}
+
+text.run-status-icon {
+    font-size: 13px;
 }
 
 /*
@@ -108,7 +175,27 @@ text.processor-stats-info {
 */
 
 g.connection {
-    font-family: Arial, sans-serif;
+    font-family: Roboto;
+}
+
+g.connection rect.body {
+    fill: #ffffff;
+}
+
+g.connection rect.body.unauthorized {
+    fill: #f4f6f7;
+}
+
+g.connection rect.border.unauthorized {
+    stroke-width: 1.5;
+    stroke: #ba554a;
+    stroke-dasharray: 3,3;
+}
+
+g.connection.selected rect.border {
+    /*stroke: #004849;*/
+    stroke: #ffcc00;
+    stroke-width: 3;
 }
 
 path.connector {
@@ -126,17 +213,26 @@ path.connector.connectable {
     stroke-dasharray: 4;
 }
 
-g.connection rect.connection-label {
-    fill: #ffffff;
-    stroke: #000000;
-    stroke-width: 2;
-}
-
 g.connection path.connection-path {
     fill: none;
     stroke: #000000;
     stroke-width: 2;
     cursor: pointer;
+}
+
+g.connection path.connection-path.unauthorized {
+    stroke: #ba554a;
+    stroke-dasharray: 3,3;
+}
+
+text.connection-from-run-status, text.connection-to-run-status {
+    fill: #728e9b;
+    font-family: FontAwesome;
+    font-size: 10px;
+}
+
+text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port {
+    fill: #ba554a;
 }
 
 /* grouped connection */
@@ -196,12 +292,6 @@ g.connection rect.endpoint {
     cursor: pointer;
 }
 
-g.connection text.connection-stats-label {
-    font-size: 11px;
-    font-weight: bold;
-    fill: #598599;
-}
-
 /* labels */
 
 g.label rect.labelpoint {
@@ -218,7 +308,29 @@ g.label.selected rect.labelpoint {
 
 /* funnels */
 
+text.funnel-icon {
+    fill: #ad9897;
+    font-family: flowfont;
+    font-size: 30px;
+}
+
 /* ports */
+
+text.port-name {
+    fill: #262626;
+    font-size: 14px;
+}
+
+text.port-icon {
+    fill: #ad9897;
+    font-family: flowfont;
+    font-size: 30px;
+}
+
+text.port-transmission-icon {
+    font-size: 11px;
+    fill: #728e9b
+}
 
 /* active thread count */
 
@@ -228,35 +340,55 @@ text.active-thread-count {
 
 /* process groups */
 
+text.process-group-name {
+    fill: #262626;
+    font-size: 14px;
+}
+
+text.process-group-contents-count {
+    font-weight: bold;
+    font-size: 13px;
+    fill: #294c58;
+}
+
 g.process-group.drop rect.border {
     stroke: #0000ff;
     stroke-width: 3;
 }
 
-text.process-group-contents-count {
-    font-weight: bold;
-    fill: #294c58;
-}
-
-text.process-group-stats-label {
-    font-size: 11px;
-    font-weight: bold;
-    fill: #598599;
-}
-
-text.process-group-stats-value {
-    font-size: 11px;
-}
-
-text.process-group-stats-info {
-    fill: #999999;
-    font-size: 11px;
+text.process-group-contents-icon {
+    font-size: 13px;
+    fill: #728e9b;
 }
 
 /* remote process group */
 
+text.remote-process-group-name {
+    fill: #262626;
+    font-size: 14px;
+}
+
+text.remote-process-group-uri {
+    fill: #004849;
+    font-size: 12px;
+}
+
+text.remote-process-group-transmission-status {
+    font-size: 13px;
+    fill: #728e9b
+}
+
+text.remote-process-group-transmission-status.has-authorization-errors {
+    fill: #ba554a;
+}
+
+text.remote-process-group-transmission-secure {
+    font-family: FontAwesome;
+    font-size: 13px;
+    fill: #004849;
+}
+
 text.remote-process-group-last-refresh {
-    fill: #cccccc;
-    font-style: italic;
+    fill: #728e9b;
     text-anchor: end;
 }

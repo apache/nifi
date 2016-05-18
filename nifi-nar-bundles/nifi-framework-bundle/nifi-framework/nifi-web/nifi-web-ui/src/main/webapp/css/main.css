@@ -69,7 +69,7 @@
 }
 
 @font-face {
-    font-family: 'Roboto+Slab';
+    font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: normal;
     src:    local('RobotoSlab Regular'),
@@ -78,7 +78,7 @@
 }
 
 @font-face {
-    font-family: 'Roboto+Slab';
+    font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
     src:    local('RobotoSlab Bold'),

@@ -89,11 +89,6 @@ div.reporting-task-enabled-container {
     margin-left: 10px;
 }
 
-div.availability-setting {
-    float: left;
-    width: 140px;
-}
-
 #reporting-task-scheduling-strategy-combo {
     width: 150px;
     height: 18px;

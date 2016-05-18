@@ -28,7 +28,9 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Processor;
 
@@ -434,6 +436,19 @@ public interface ProcessGroup extends Authorizable {
     Funnel findFunnel(String id);
 
     /**
+     * @param id of the Controller Service
+     * @return the Controller Service with the given ID, if it exists as a child or
+     *         descendant of this ProcessGroup. This performs a recursive search of all
+     *         descendant ProcessGroups
+     */
+    ControllerServiceNode findControllerService(String id);
+
+    /**
+     * @return a List of all Controller Services contained within this ProcessGroup and any child Process Groups
+     */
+    Set<ControllerServiceNode> findAllControllerServices();
+
+    /**
      * Adds the given RemoteProcessGroup to this ProcessGroup
      *
      * @param remoteGroup group to add
@@ -646,6 +661,36 @@ public interface ProcessGroup extends Authorizable {
     void removeFunnel(Funnel funnel);
 
     /**
+     * Adds the given Controller Service to this group
+     *
+     * @param service the service to add
+     */
+    void addControllerService(ControllerServiceNode service);
+
+    /**
+     * Returns the controller service with the given id
+     *
+     * @param id the id of the controller service
+     * @return the controller service with the given id, or <code>null</code> if no service exists with that id
+     */
+    ControllerServiceNode getControllerService(String id);
+
+    /**
+     * Returns a Set of all Controller Services that are available in this Process Group
+     *
+     * @param recursive if <code>true</code>, returns the Controller Services available to the parent Process Group, its parents, etc.
+     * @return a Set of all Controller Services that are available in this Process Group
+     */
+    Set<ControllerServiceNode> getControllerServices(boolean recursive);
+
+    /**
+     * Removes the given Controller Service from this group
+     *
+     * @param service the service to remove
+     */
+    void removeControllerService(ControllerServiceNode service);
+
+    /**
      * @return <code>true</code> if this ProcessGroup has no Processors, Labels,
      * Connections, ProcessGroups, RemoteProcessGroupReferences, or Ports.
      * Otherwise, returns <code>false</code>.
@@ -724,4 +769,45 @@ public interface ProcessGroup extends Authorizable {
      * @throws IllegalStateException if the move is not valid at this time
      */
     void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup);
+
+    /**
+     * Adds the given template to this Process Group
+     *
+     * @param template the template to add
+     */
+    void addTemplate(Template template);
+
+    /**
+     * Removes the given template from the Process Group
+     *
+     * @param template the template to remove
+     */
+    void removeTemplate(Template template);
+
+    /**
+     * Returns the template with the given ID
+     *
+     * @param id the ID of the template
+     * @return the template with the given ID or <code>null</code> if no template
+     *         exists in this Process Group with the given ID
+     */
+    Template getTemplate(String id);
+
+    /**
+     * @param id of the template
+     * @return the Template with the given ID, if it exists as a child or
+     *         descendant of this ProcessGroup. This performs a recursive search of all
+     *         descendant ProcessGroups
+     */
+    Template findTemplate(String id);
+
+    /**
+     * @return a Set of all Templates that belong to this Process Group
+     */
+    Set<Template> getTemplates();
+
+    /**
+     * @return a Set of all Templates that belong to this Process Group and any descendant Process Groups
+     */
+    Set<Template> findAllTemplates();
 }

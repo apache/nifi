@@ -20,8 +20,8 @@
 nf.Funnel = (function () {
 
     var dimensions = {
-        width: 61,
-        height: 61
+        width: 48,
+        height: 48
     };
 
     // -----------------------------
@@ -51,7 +51,7 @@ nf.Funnel = (function () {
 
     /**
      * Renders the funnels in the specified selection.
-     * 
+     *
      * @param {selection} entered           The selection of funnels to be rendered
      * @param {boolean} selected             Whether the element should be selected
      */
@@ -61,63 +61,93 @@ nf.Funnel = (function () {
         }
 
         var funnel = entered.append('g')
-                .attr({
-                    'id': function (d) {
-                        return 'id-' + d.id;
-                    },
-                    'class': 'funnel component'
-                })
-                .classed('selected', selected)
-                .call(nf.CanvasUtils.position);
+            .attr({
+                'id': function (d) {
+                    return 'id-' + d.id;
+                },
+                'class': 'funnel component'
+            })
+            .classed('selected', selected)
+            .call(nf.CanvasUtils.position);
 
         // funnel border
         funnel.append('rect')
-                .attr({
-                    'class': 'border',
-                    'width': function (d) {
-                        return d.dimensions.width;
-                    },
-                    'height': function (d) {
-                        return d.dimensions.height;
-                    },
-                    'fill': 'transparent',
-                    'stroke-opacity': 0.8,
-                    'stroke-width': 1
-                });
+            .attr({
+                'rx': 2,
+                'ry': 2,
+                'class': 'border',
+                'width': function (d) {
+                    return d.dimensions.width;
+                },
+                'height': function (d) {
+                    return d.dimensions.height;
+                },
+                'fill': 'transparent',
+                'stroke': 'transparent'
+            });
 
-        // processor icon
-        funnel.append('image')
-                .call(nf.CanvasUtils.disableImageHref)
-                .attr({
-                    'xlink:href': 'images/iconFunnel.png',
-                    'width': 41,
-                    'height': 41,
-                    'x': 10,
-                    'y': 10
-                });
+        // funnel body
+        funnel.append('rect')
+            .attr({
+                'rx': 2,
+                'ry': 2,
+                'class': 'body',
+                'width': function (d) {
+                    return d.dimensions.width;
+                },
+                'height': function (d) {
+                    return d.dimensions.height;
+                },
+                'filter': 'url(#component-drop-shadow)',
+                'stroke-width': 0
+            });
+
+        // funnel icon
+        funnel.append('text')
+            .attr({
+                'class': 'funnel-icon',
+                'x': 9,
+                'y': 34
+            })
+            .text('\ue803');
 
         // always support selection
         funnel.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
-
-        // only support dragging and connecting when appropriate
-        funnel.filter(function (d) {
-            return d.accessPolicy.canWrite && d.accessPolicy.canRead;
-        }).call(nf.Draggable.activate).call(nf.Connectable.activate);
-
-        return funnel;
     };
 
     /**
      * Updates the funnels in the specified selection.
-     * 
+     *
      * @param {selection} updated               The funnels to be updated
      */
     var updateFunnels = function (updated) {
+        if (updated.empty()) {
+            return;
+        }
+
+        // funnel border authorization
+        updated.select('rect.border')
+            .classed('unauthorized', function (d) {
+                return d.accessPolicy.canRead === false;
+            });
+
+        // funnel body authorization
+        updated.select('rect.body')
+            .classed('unauthorized', function (d) {
+                return d.accessPolicy.canRead === false;
+            });
+
+        updated.each(function () {
+            var funnel = d3.select(this);
+
+            // update the component behavior as appropriate
+            nf.CanvasUtils.editable(funnel);
+        });
     };
 
     /**
      * Removes the funnels in the specified selection.
-     * 
+     *
      * @param {selection} removed               The funnels to be removed
      */
     var removeFunnels = function (removed) {
@@ -133,20 +163,23 @@ nf.Funnel = (function () {
 
             // create the funnel container
             funnelContainer = d3.select('#canvas').append('g')
-                    .attr({
-                        'pointer-events': 'all',
-                        'class': 'funnels'
-                    });
+                .attr({
+                    'pointer-events': 'all',
+                    'class': 'funnels'
+                });
         },
-        
+
         /**
-         * Populates the graph with the specified funnels.
-         * 
-         * @argument {object | array} funnelEntities                    The funnels to add
-         * @argument {boolean} selectAll                Whether or not to select the new contents
+         * Adds the specified funnel entity.
+         *
+         * @param funnelEntities       The funnel
+         * @param options           Configuration options
          */
-        add: function (funnelEntities, selectAll) {
-            selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
+        add: function (funnelEntities, options) {
+            var selectAll = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            }
 
             var add = function (funnelEntity) {
                 // add the funnel
@@ -161,18 +194,61 @@ nf.Funnel = (function () {
                 $.each(funnelEntities, function (_, funnelEntity) {
                     add(funnelEntity);
                 });
-            } else {
+            } else if (nf.Common.isDefinedAndNotNull(funnelEntities)) {
                 add(funnelEntities);
             }
 
-            // apply the selection and handle all new processors
-            select().enter().call(renderFunnels, selectAll);
+            // apply the selection and handle new funnels
+            var selection = select();
+            selection.enter().call(renderFunnels, selectAll);
+            selection.call(updateFunnels);
         },
         
         /**
+         * Populates the graph with the specified funnels.
+         *
+         * @argument {object | array} funnelEntities                    The funnels to add
+         * @argument {object} options                Configuration options
+         */
+        set: function (funnelEntities, options) {
+            var selectAll = false;
+            var transition = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            }
+
+            var set = function (funnelEntity) {
+                // add the funnel
+                funnelMap.set(funnelEntity.id, $.extend({
+                    type: 'Funnel',
+                    dimensions: dimensions
+                }, funnelEntity));
+            };
+
+            // determine how to handle the specified funnel status
+            if ($.isArray(funnelEntities)) {
+                $.each(funnelMap.keys(), function (_, key) {
+                    funnelMap.remove(key);
+                });
+                $.each(funnelEntities, function (_, funnelEntity) {
+                    set(funnelEntity);
+                });
+            } else if (nf.Common.isDefinedAndNotNull(funnelEntities)) {
+                set(funnelEntities);
+            }
+
+            // apply the selection and handle all new processors
+            var selection = select();
+            selection.enter().call(renderFunnels, selectAll);
+            selection.call(updateFunnels).call(nf.CanvasUtils.position, transition);
+            selection.exit().call(removeFunnels);
+        },
+
+        /**
          * If the funnel id is specified it is returned. If no funnel id
          * specified, all funnels are returned.
-         * 
+         *
          * @param {string} id
          */
         get: function (id) {
@@ -182,11 +258,11 @@ nf.Funnel = (function () {
                 return funnelMap.get(id);
             }
         },
-        
+
         /**
-         * If the funnel id is specified it is refresh according to the current 
+         * If the funnel id is specified it is refresh according to the current
          * state. If not funnel id is specified, all funnels are refreshed.
-         * 
+         *
          * @param {string} id      Optional
          */
         refresh: function (id) {
@@ -196,11 +272,11 @@ nf.Funnel = (function () {
                 d3.selectAll('g.funnel').call(updateFunnels);
             }
         },
-        
+
         /**
          * Reloads the funnel state from the server and refreshes the UI.
          * If the funnel is currently unknown, this function just returns.
-         * 
+         *
          * @param {object} funnel The funnel to reload
          */
         reload: function (funnel) {
@@ -214,48 +290,19 @@ nf.Funnel = (function () {
                 });
             }
         },
-        
+
         /**
          * Positions the component.
-         * 
+         *
          * @param {string} id   The id
          */
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
         },
-        
-        /**
-         * Sets the specified funnel(s). If the is an array, it 
-         * will set each funnel. If it is not an array, it will 
-         * attempt to set the specified funnel.
-         * 
-         * @param {object | array} funnelEntities
-         */
-        set: function (funnelEntities) {
-            var set = function (funnelEntity) {
-                if (funnelMap.has(funnelEntity.id)) {
-                    // update the current entry
-                    var funnelEntry = funnelMap.get(funnelEntity.id);
-                    $.extend(funnelEntry, funnelEntity);
-                    
-                    // update the connection in the UI
-                    d3.select('#id-' + funnelEntity.id).call(updateFunnels);
-                }
-            };
-
-            // determine how to handle the specified funnel status
-            if ($.isArray(funnelEntities)) {
-                $.each(funnelEntities, function (_, funnelEntity) {
-                    set(funnelEntity);
-                });
-            } else {
-                set(funnelEntities);
-            }
-        },
 
         /**
          * Removes the specified funnel.
-         * 
+         *
          * @param {array|string} funnels      The funnel id
          */
         remove: function (funnels) {
@@ -270,7 +317,7 @@ nf.Funnel = (function () {
             // apply the selection and handle all removed funnels
             select().exit().call(removeFunnels);
         },
-        
+
         /**
          * Removes all processors.
          */

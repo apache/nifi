@@ -17,8 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
-import java.util.UUID;
 
 /**
  * Current revision for this NiFi.
@@ -42,9 +42,6 @@ public class RevisionDTO {
             + "nature of requests/responses this was implemented to allow the client to make numerous requests without having to wait for the previous response to come back"
     )
     public String getClientId() {
-        if (clientId == null || clientId.trim().isEmpty()) {
-            clientId = UUID.randomUUID().toString();
-        }
         return clientId;
     }
 

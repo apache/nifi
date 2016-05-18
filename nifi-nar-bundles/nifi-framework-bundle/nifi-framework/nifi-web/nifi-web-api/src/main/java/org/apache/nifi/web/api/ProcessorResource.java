@@ -30,7 +30,6 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
@@ -39,13 +38,13 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
-import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -77,6 +76,7 @@ import java.util.Set;
     description = "Endpoint for managing a Processor."
 )
 public class ProcessorResource extends ApplicationResource {
+    private static final Logger logger = LoggerFactory.getLogger(ProcessorResource.class);
 
     private static final List<Long> POSSIBLE_RUN_DURATIONS = Arrays.asList(0L, 25L, 50L, 100L, 250L, 500L, 1000L, 2000L);
 
@@ -361,7 +361,7 @@ public class ProcessorResource extends ApplicationResource {
             value = "The revision used to verify the client is working with the latest version of the flow.",
             required = true
         )
-        Entity revisionEntity,
+        ComponentStateEntity revisionEntity,
         @ApiParam(
             value = "The processor id.",
             required = true
@@ -369,7 +369,7 @@ public class ProcessorResource extends ApplicationResource {
         @PathParam("id") String id) {
 
         // ensure the revision was specified
-        if (revisionEntity == null || revisionEntity.getRevision() == null) {
+        if (revisionEntity == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
@@ -379,24 +379,16 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        if (isValidationPhase(httpServletRequest)) {
             serviceFacade.verifyCanClearProcessorState(id);
             return generateContinueResponse().build();
         }
 
         // get the component state
-        final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearProcessorState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
-
-        // create the revision
-        final RevisionDTO responseRevision = new RevisionDTO();
-        responseRevision.setClientId(requestRevision.getClientId());
-        responseRevision.setVersion(snapshot.getVersion());
+        serviceFacade.clearProcessorState(id);
 
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(responseRevision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -471,19 +463,38 @@ public class ProcessorResource extends ApplicationResource {
             }
 
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(processorEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), processorEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(processorEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
+        final String requestId = getHeaders().get("X-RequestTransactionId");
+
+        logger.debug("For Update Processor, Validation Phase = {}, Two-phase request = {}, Request ID = {}", validationPhase, twoPhaseRequest, requestId);
+        if (validationPhase || !twoPhaseRequest) {
+            serviceFacade.claimRevision(revision);
+            logger.debug("Claimed Revision {}", revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateProcessor(requestProcessorDTO);
+            logger.debug("Verified Update of Processor");
             return generateContinueResponse().build();
         }
 
         // update the processor
-        final RevisionDTO revision = processorEntity.getRevision();
-        final UpdateResult<ProcessorEntity> result = serviceFacade.updateProcessor(new Revision(revision.getVersion(), revision.getClientId()), requestProcessorDTO);
+        final UpdateResult<ProcessorEntity> result;
+        try {
+            logger.debug("Updating Processor with Revision {}", revision);
+            result = serviceFacade.updateProcessor(revision, requestProcessorDTO);
+            logger.debug("Updated Processor with Revision {}", revision);
+        } catch (final Exception e) {
+            final boolean tpr = isTwoPhaseRequest(httpServletRequest);
+            logger.error("Got Exception trying to update processor. two-phase request = {}, validation phase = {}, revision = {}", tpr, validationPhase, revision);
+            logger.error("", e);
+            throw e;
+        }
         final ProcessorEntity entity = result.getResult();
         populateRemainingProcessorEntityContent(entity);
 
@@ -547,21 +558,23 @@ public class ProcessorResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+
+        // We need to claim the revision for the Processor if either this is the first phase of a two-phase
+        // request, or if this is not a two-phase request.
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteProcessor(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the processor
-        final ProcessorEntity entity = serviceFacade.deleteProcessor(new Revision(clientVersion, clientId.getClientId()), id);
+        final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, id);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

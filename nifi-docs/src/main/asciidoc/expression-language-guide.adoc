@@ -1036,6 +1036,28 @@ Each of the following functions is used to search its subject for some value.
 
 
 [.function]
+=== in
+
+*Description*: [.description]#Returns `true` if the Subject is matching one of the provided arguments.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_value1_# : [.argDesc]#First possible matching value#
+	- [.argName]#_valueN_# : [.argDesc]#Nth possible matching value#
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: If the "myEnum" attribute has the value "JOHN", then the Expression
+	`${myEnum:in("PAUL", "JOHN", "MIKE")}` will return `true`. `${myEnum:in("RED", "GREEN", "BLUE")}` will
+	return `false`.
+
+
+
+
+
+[.function]
 === find
 
 *Description*: [.description]#Returns `true` if the Subject contains any sequence of characters that matches the

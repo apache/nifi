@@ -25,6 +25,7 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
@@ -32,7 +33,6 @@ import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -370,8 +370,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
                 processor = entity.getComponent();
             } else {
-                final ConfigurationSnapshot<ProcessorDTO> response = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
-                processor = response.getConfiguration();
+                final ProcessorEntity entity = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
+                processor = entity.getComponent();
             }
 
             // return the processor info
@@ -404,7 +404,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             // if the lookup has the service that means we are either a node or
             // the ncm and the service is available there only
             if (controllerServiceLookup.getControllerService(id) != null) {
-                controllerService = serviceFacade.getControllerService(id);
+                controllerService = serviceFacade.getControllerService(id).getComponent();
             } else {
                 // if this is a standalone instance the service should have been found above... there should
                 // no cluster to replicate the request to
@@ -435,7 +435,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 if (entity == null) {
                     entity = nodeResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
                 }
-                controllerService = entity.getControllerService();
+                controllerService = entity.getComponent();
             }
 
             // return the controller service info
@@ -453,8 +453,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 controllerServiceDto.setId(id);
                 controllerServiceDto.setAnnotationData(annotationData);
 
-                final ConfigurationSnapshot<ControllerServiceDTO> response = serviceFacade.updateControllerService(revision, controllerServiceDto);
-                controllerService = response.getConfiguration();
+                final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, controllerServiceDto);
+                controllerService = updateResult.getResult().getComponent();
             } else {
                 // if this is a standalone instance the service should have been found above... there should
                 // no cluster to replicate the request to
@@ -488,7 +488,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
                 // create the controller service dto
                 ControllerServiceDTO controllerServiceDto = new ControllerServiceDTO();
-                controllerServiceEntity.setControllerService(controllerServiceDto);
+                controllerServiceEntity.setComponent(controllerServiceDto);
                 controllerServiceDto.setId(id);
                 controllerServiceDto.setAnnotationData(annotationData);
 
@@ -507,7 +507,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 if (entity == null) {
                     entity = nodeResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
                 }
-                controllerService = entity.getControllerService();
+                controllerService = entity.getComponent();
             }
 
             // return the controller service info
@@ -539,7 +539,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             // if the provider has the service that means we are either a node or
             // the ncm and the service is available there only
             if (reportingTaskProvider.getReportingTaskNode(id) != null) {
-                reportingTask = serviceFacade.getReportingTask(id);
+                reportingTask = serviceFacade.getReportingTask(id).getComponent();
             } else {
                 // if this is a standalone instance the task should have been found above... there should
                 // no cluster to replicate the request to
@@ -570,7 +570,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 if (entity == null) {
                     entity = nodeResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
                 }
-                reportingTask = entity.getReportingTask();
+                reportingTask = entity.getComponent();
             }
 
             // return the reporting task info
@@ -588,8 +588,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 reportingTaskDto.setId(id);
                 reportingTaskDto.setAnnotationData(annotationData);
 
-                final ConfigurationSnapshot<ReportingTaskDTO> response = serviceFacade.updateReportingTask(revision, reportingTaskDto);
-                reportingTask = response.getConfiguration();
+                final UpdateResult<ReportingTaskEntity> updateResult = serviceFacade.updateReportingTask(revision, reportingTaskDto);
+                reportingTask = updateResult.getResult().getComponent();
             } else {
                 // if this is a standalone instance the task should have been found above... there should
                 // no cluster to replicate the request to
@@ -623,7 +623,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
                 // create the reporting task dto
                 ReportingTaskDTO reportingTaskDto = new ReportingTaskDTO();
-                reportingTaskEntity.setReportingTask(reportingTaskDto);
+                reportingTaskEntity.setComponent(reportingTaskDto);
                 reportingTaskDto.setId(id);
                 reportingTaskDto.setAnnotationData(annotationData);
 
@@ -642,7 +642,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 if (entity == null) {
                     entity = nodeResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
                 }
-                reportingTask = entity.getReportingTask();
+                reportingTask = entity.getComponent();
             }
 
             // return the processor info

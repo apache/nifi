@@ -161,6 +161,9 @@ REPLACE_ALL : 'replaceAll';
 // 4 arg functions
 GET_DELIMITED_FIELD	: 'getDelimitedField';
 
+// unlimited arg functions
+IN : 'in';
+
 // STRINGS
 STRING_LITERAL
 @init{StringBuilder lBuf = new StringBuilder();}

@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -195,21 +194,17 @@ public class TemplateResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        // TODO: NEED VERSION FOR REVISION!
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase) {
             return generateContinueResponse().build();
         }
 
         // delete the specified template
         serviceFacade.deleteTemplate(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // build the response entity
         final TemplateEntity entity = new TemplateEntity();
-        entity.setRevision(revision);
 
         return clusterContext(generateOkResponse(entity)).build();
     }

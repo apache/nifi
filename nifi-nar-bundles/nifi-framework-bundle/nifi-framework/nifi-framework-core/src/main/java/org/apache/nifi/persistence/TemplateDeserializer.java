@@ -24,7 +24,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.nifi.controller.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 
 public class TemplateDeserializer {

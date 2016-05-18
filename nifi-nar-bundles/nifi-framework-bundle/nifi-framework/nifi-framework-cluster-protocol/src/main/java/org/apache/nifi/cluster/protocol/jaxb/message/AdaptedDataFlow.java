@@ -21,7 +21,6 @@ package org.apache.nifi.cluster.protocol.jaxb.message;
 public class AdaptedDataFlow {
 
     private byte[] flow;
-    private byte[] templates;
     private byte[] snippets;
 
     private boolean autoStartProcessors;
@@ -35,14 +34,6 @@ public class AdaptedDataFlow {
 
     public void setFlow(byte[] flow) {
         this.flow = flow;
-    }
-
-    public byte[] getTemplates() {
-        return templates;
-    }
-
-    public void setTemplates(byte[] templates) {
-        this.templates = templates;
     }
 
     public byte[] getSnippets() {

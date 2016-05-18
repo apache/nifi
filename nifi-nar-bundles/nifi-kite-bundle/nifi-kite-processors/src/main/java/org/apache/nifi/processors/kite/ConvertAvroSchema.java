@@ -135,12 +135,12 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             String reason = null;
-            if (value.equals(DEFAULT_LOCALE_VALUE) == false) {
+            if (!value.equals(DEFAULT_LOCALE_VALUE)) {
                 try {
                     final Locale locale = LocaleUtils.toLocale(value);
                     if (locale == null) {
                         reason = "null locale returned";
-                    } else if (LocaleUtils.isAvailableLocale(locale) == false) {
+                    } else if (!LocaleUtils.isAvailableLocale(locale)) {
                         reason = "locale not available";
                     }
                 } catch (final IllegalArgumentException e) {
@@ -153,15 +153,19 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
 
     @VisibleForTesting
     static final PropertyDescriptor INPUT_SCHEMA = new PropertyDescriptor.Builder()
-            .name("Input Schema").description("Avro Schema of Input Flowfiles")
-            .addValidator(SCHEMA_VALIDATOR).expressionLanguageSupported(true)
-            .required(true).build();
+            .name("Input Schema")
+            .description("Avro Schema of Input Flowfiles.  This can be a URI (dataset, view, or resource) or literal JSON schema.")
+            .addValidator(SCHEMA_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .required(true)
+            .build();
 
     @VisibleForTesting
     static final PropertyDescriptor OUTPUT_SCHEMA = new PropertyDescriptor.Builder()
             .name("Output Schema")
-            .description("Avro Schema of Output Flowfiles")
-            .addValidator(MAPPED_SCHEMA_VALIDATOR).expressionLanguageSupported(true)
+            .description("Avro Schema of Output Flowfiles.  This can be a URI (dataset, view, or resource) or literal JSON schema.")
+            .addValidator(MAPPED_SCHEMA_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(true).build();
 
     @VisibleForTesting
@@ -274,7 +278,7 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
         }
         // Set locale
         final String localeProperty = context.getProperty(LOCALE).getValue();
-        final Locale locale = (localeProperty == DEFAULT_LOCALE_VALUE)?Locale.getDefault():LocaleUtils.toLocale(localeProperty);
+        final Locale locale = localeProperty.equals(DEFAULT_LOCALE_VALUE) ? Locale.getDefault() : LocaleUtils.toLocale(localeProperty);
         final AvroRecordConverter converter = new AvroRecordConverter(
                 inputSchema, outputSchema, fieldMapping, locale);
 

@@ -18,6 +18,7 @@
 /* global nf, d3 */
 
 nf.ng.Bridge = (function () {
+    'use strict';
 
     function AngularBridge() {
         this.rootScope;
@@ -60,9 +61,10 @@ nf.ng.Bridge = (function () {
             angular.forEach(funArray, function (value) {
                 fun = fun[value];
             });
+
             var args = Array.prototype.slice.call(arguments, 2);
             var result = fun.apply(obj, args);
-            this.rootScope.$apply();
+
             if (result) {
                 return result;
             }
@@ -81,6 +83,7 @@ nf.ng.Bridge = (function () {
             angular.forEach(objArray, function (value) {
                 obj = obj[value];
             });
+
             return obj;
         },
 
@@ -88,6 +91,7 @@ nf.ng.Bridge = (function () {
             this.rootScope.$digest();
         }
     };
+
     var angularBridge = new AngularBridge();
 
     return angularBridge;

@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -43,36 +40,6 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     private volatile long lastCaptureTime = 0L;
 
-    private static final List<MetricDescriptor<ProcessorStatus>> PROCESSOR_METRIC_DESCRIPTORS;
-    private static final List<MetricDescriptor<ConnectionStatus>> CONNECTION_METRIC_DESCRIPTORS;
-    private static final List<MetricDescriptor<ProcessGroupStatus>> PROCESS_GROUP_METRIC_DESCRIPTORS;
-    private static final List<MetricDescriptor<RemoteProcessGroupStatus>> REMOTE_PROCESS_GROUP_METRIC_DESCRIPTORS;
-
-    static {
-        final List<MetricDescriptor<ProcessorStatus>> procFields = new ArrayList<>();
-        for (final ProcessorStatusDescriptor descriptor : ProcessorStatusDescriptor.values()) {
-            procFields.add(descriptor.getDescriptor());
-        }
-        PROCESSOR_METRIC_DESCRIPTORS = Collections.unmodifiableList(procFields);
-
-        final List<MetricDescriptor<ConnectionStatus>> connFields = new ArrayList<>();
-        for (final ConnectionStatusDescriptor descriptor : ConnectionStatusDescriptor.values()) {
-            connFields.add(descriptor.getDescriptor());
-        }
-        CONNECTION_METRIC_DESCRIPTORS = Collections.unmodifiableList(connFields);
-
-        final List<MetricDescriptor<ProcessGroupStatus>> groupFields = new ArrayList<>();
-        for (final ProcessGroupStatusDescriptor descriptor : ProcessGroupStatusDescriptor.values()) {
-            groupFields.add(descriptor.getDescriptor());
-        }
-        PROCESS_GROUP_METRIC_DESCRIPTORS = Collections.unmodifiableList(groupFields);
-
-        final List<MetricDescriptor<RemoteProcessGroupStatus>> remoteGroupFields = new ArrayList<>();
-        for (final RemoteProcessGroupStatusDescriptor descriptor : RemoteProcessGroupStatusDescriptor.values()) {
-            remoteGroupFields.add(descriptor.getDescriptor());
-        }
-        REMOTE_PROCESS_GROUP_METRIC_DESCRIPTORS = Collections.unmodifiableList(remoteGroupFields);
-    }
 
     public VolatileComponentStatusRepository() {
         final NiFiProperties properties = NiFiProperties.getInstance();
@@ -248,27 +215,5 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         public ComponentStatusReport getStatusReport() {
             return statusReport;
         }
-    }
-
-
-
-    @Override
-    public List<MetricDescriptor<ConnectionStatus>> getConnectionMetricDescriptors() {
-        return CONNECTION_METRIC_DESCRIPTORS;
-    }
-
-    @Override
-    public List<MetricDescriptor<ProcessGroupStatus>> getProcessGroupMetricDescriptors() {
-        return PROCESS_GROUP_METRIC_DESCRIPTORS;
-    }
-
-    @Override
-    public List<MetricDescriptor<RemoteProcessGroupStatus>> getRemoteProcessGroupMetricDescriptors() {
-        return REMOTE_PROCESS_GROUP_METRIC_DESCRIPTORS;
-    }
-
-    @Override
-    public List<MetricDescriptor<ProcessorStatus>> getProcessorMetricDescriptors() {
-        return PROCESSOR_METRIC_DESCRIPTORS;
     }
 }

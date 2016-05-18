@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.script.Invocable;
+import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 import org.apache.commons.io.IOUtils;
@@ -66,6 +67,8 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
             new AtomicReference<>((Collection<ValidationResult>) new ArrayList<ValidationResult>());
 
     private AtomicBoolean scriptNeedsReload = new AtomicBoolean(true);
+
+    private ScriptEngine scriptEngine = null;
 
     /**
      * Returns the valid relationships for this processor. SUCCESS and FAILURE are always returned, and if the script
@@ -174,9 +177,14 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         setup();
     }
 
-    @Override
     public void setup() {
-        super.setup();
+        // Create a single script engine, the Processor object is reused by each task
+        super.setup(1);
+        scriptEngine = engineQ.poll();
+        if (scriptEngine == null) {
+            throw new ProcessException("No script engine available!");
+        }
+
         if (scriptNeedsReload.get() || processor.get() == null) {
             if (isFile(scriptPath)) {
                 reloadScriptFile(scriptPath);
@@ -386,7 +394,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
 
         Collection<ValidationResult> commonValidationResults = super.customValidate(context);
-        if(!commonValidationResults.isEmpty()) {
+        if (!commonValidationResults.isEmpty()) {
             return commonValidationResults;
         }
 
@@ -486,6 +494,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
 
     @OnStopped
     public void stop() {
+        super.stop();
         processor.set(null);
     }
 }

@@ -40,6 +40,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
 import org.apache.nifi.cluster.manager.HttpRequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UriConstructionException;
@@ -475,7 +476,7 @@ public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
             // create the resource
             WebResource resource = client.resource(uri);
 
-            if (WebClusterManager.isResponseInterpreted(uri, method)) {
+            if (new StandardHttpResponseMerger().isResponseInterpreted(uri, method)) {
                 resource.addFilter(new GZIPContentEncodingFilter(false));
             }
 

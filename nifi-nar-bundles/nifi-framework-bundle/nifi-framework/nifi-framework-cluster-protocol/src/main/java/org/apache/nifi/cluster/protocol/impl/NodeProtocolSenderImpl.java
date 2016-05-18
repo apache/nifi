@@ -94,6 +94,7 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
         }
     }
 
+    @Override
     public void heartbeat(final HeartbeatMessage msg, final String address) throws ProtocolException {
         final String hostname;
         final int port;

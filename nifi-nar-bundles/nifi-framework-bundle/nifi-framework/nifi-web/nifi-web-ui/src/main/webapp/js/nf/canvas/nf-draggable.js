@@ -49,7 +49,7 @@ nf.Draggable = (function () {
 
             // build the entity
             var entity = {
-                'revision': nf.Client.getRevision(),
+                'revision': nf.Client.getRevision(d),
                 'component': {
                     'id': d.id,
                     'position': newPosition
@@ -65,9 +65,6 @@ nf.Draggable = (function () {
                     dataType: 'json',
                     contentType: 'application/json'
                 }).done(function (response) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-
                     // update the component
                     nf[d.type].set(response);
 
@@ -106,7 +103,7 @@ nf.Draggable = (function () {
             });
 
             var entity = {
-                'revision': revision,
+                'revision': nf.Client.getRevision(d),
                 'component': {
                     id: d.id,
                     bends: newBends
@@ -122,9 +119,6 @@ nf.Draggable = (function () {
                     dataType: 'json',
                     contentType: 'application/json'
                 }).done(function (response) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-
                     // update the component
                     nf.Connection.set(response);
 
@@ -189,9 +183,6 @@ nf.Draggable = (function () {
                     $.each(componentConnections, function (_, connection) {
                         connections.add(connection.id);
                     });
-
-                    // refresh the component
-                    nf[component.type].position(component.id);
                 }
             });
 
@@ -315,6 +306,15 @@ nf.Draggable = (function () {
          */
         activate: function (components) {
             components.classed('moveable', true).call(drag);
+        },
+
+        /**
+         * Deactivates the drag behavior for the components in the specified selection.
+         * 
+         * @param {selection} components
+         */
+        deactivate: function (components) {
+            components.classed('moveable', false).on('.drag', null);
         }
     };
 }());

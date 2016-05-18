@@ -130,11 +130,11 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
         if (!serviceType.isInterface()) {
             throw new IllegalArgumentException("ControllerServices may be referenced only via their interfaces; " + serviceType + " is not an interface");
         }
-        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType);
+        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType, groupId);
     }
 
     @Override

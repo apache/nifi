@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.http;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -177,8 +176,8 @@ public class StandardHttpContextMap extends AbstractControllerService implements
                         final AsyncContext async = entry.getValue().getAsync();
                         ((HttpServletResponse) async.getResponse()).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                         async.complete();
-                    } catch (final IOException ioe) {
-                        // we are trying to indicate that we are unavailable. If we have an IOException and cannot respond,
+                    } catch (final Exception e) {
+                        // we are trying to indicate that we are unavailable. If we have an exception and cannot respond,
                         // then so be it. Nothing to really do here.
                     }
                 }

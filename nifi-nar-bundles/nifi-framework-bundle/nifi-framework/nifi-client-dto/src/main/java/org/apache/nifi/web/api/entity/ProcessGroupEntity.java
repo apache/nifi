@@ -17,7 +17,10 @@
 package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessGroupDTO.
@@ -26,6 +29,17 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 public class ProcessGroupEntity extends ComponentEntity {
 
     private ProcessGroupDTO component;
+    private ProcessGroupStatusDTO status;
+
+    private Integer runningCount;
+    private Integer stoppedCount;
+    private Integer invalidCount;
+    private Integer disabledCount;
+    private Integer activeRemotePortCount;
+    private Integer inactiveRemotePortCount;
+
+    private Integer inputPortCount;
+    private Integer outputPortCount;
 
     /**
      * The ProcessGroupDTO that is being serialized.
@@ -40,4 +54,129 @@ public class ProcessGroupEntity extends ComponentEntity {
         this.component = component;
     }
 
+    /**
+     * @return the process group status
+     */
+    @ApiModelProperty(
+        value = "The status of the process group."
+    )
+    public ProcessGroupStatusDTO getStatus() {
+        return status;
+    }
+
+    public void setStatus(ProcessGroupStatusDTO status) {
+        this.status = status;
+    }
+
+    /**
+     * @return number of input ports contained in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of input ports in the process group."
+    )
+    public Integer getInputPortCount() {
+        return inputPortCount;
+    }
+
+    public void setInputPortCount(Integer inputPortCount) {
+        this.inputPortCount = inputPortCount;
+    }
+
+    /**
+     * @return number of invalid components in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of invalid components in the process group."
+    )
+    public Integer getInvalidCount() {
+        return invalidCount;
+    }
+
+    public void setInvalidCount(Integer invalidCount) {
+        this.invalidCount = invalidCount;
+    }
+
+    /**
+     * @return number of output ports in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of output ports in the process group."
+    )
+    public Integer getOutputPortCount() {
+        return outputPortCount;
+    }
+
+    public void setOutputPortCount(Integer outputPortCount) {
+        this.outputPortCount = outputPortCount;
+    }
+
+    /**
+     * @return number of running component in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of running componetns in this process group."
+    )
+    public Integer getRunningCount() {
+        return runningCount;
+    }
+
+    public void setRunningCount(Integer runningCount) {
+        this.runningCount = runningCount;
+    }
+
+    /**
+     * @return number of stopped components in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of stopped components in the process group."
+    )
+    public Integer getStoppedCount() {
+        return stoppedCount;
+    }
+
+    public void setStoppedCount(Integer stoppedCount) {
+        this.stoppedCount = stoppedCount;
+    }
+
+    /**
+     * @return number of disabled components in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of disabled components in the process group."
+    )
+    public Integer getDisabledCount() {
+        return disabledCount;
+    }
+
+    public void setDisabledCount(Integer disabledCount) {
+        this.disabledCount = disabledCount;
+    }
+
+    /**
+     * @return number of active remote ports in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of active remote ports in the process group."
+    )
+    public Integer getActiveRemotePortCount() {
+        return activeRemotePortCount;
+    }
+
+    public void setActiveRemotePortCount(Integer activeRemotePortCount) {
+        this.activeRemotePortCount = activeRemotePortCount;
+    }
+
+    /**
+     * @return number of inactive remote ports in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of inactive remote ports in the process group."
+    )
+    public Integer getInactiveRemotePortCount() {
+        return inactiveRemotePortCount;
+    }
+
+    public void setInactiveRemotePortCount(Integer inactiveRemotePortCount) {
+        this.inactiveRemotePortCount = inactiveRemotePortCount;
+    }
 }

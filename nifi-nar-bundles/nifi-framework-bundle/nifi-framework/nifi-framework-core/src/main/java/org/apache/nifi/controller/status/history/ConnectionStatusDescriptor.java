@@ -26,72 +26,42 @@ public enum ConnectionStatusDescriptor {
         "Bytes In (5 mins)",
         "The cumulative size of all FlowFiles that were transferred to this Connection in the past 5 minutes",
         Formatter.DATA_SIZE,
-        new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return status.getInputBytes();
-            }
-        })),
+        s -> s.getInputBytes())),
 
     INPUT_COUNT(new StandardMetricDescriptor<ConnectionStatus>(
         "inputCount",
         "FlowFiles In (5 mins)",
         "The number of FlowFiles that were transferred to this Connection in the past 5 minutes",
         Formatter.COUNT,
-        new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return Long.valueOf(status.getInputCount());
-            }
-        })),
+        s -> Long.valueOf(s.getInputCount()))),
 
     OUTPUT_BYTES(new StandardMetricDescriptor<ConnectionStatus>(
         "outputBytes",
         "Bytes Out (5 mins)",
         "The cumulative size of all FlowFiles that were pulled from this Connection in the past 5 minutes",
         Formatter.DATA_SIZE,
-        new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return status.getOutputBytes();
-            }
-        })),
+        s -> s.getOutputBytes())),
 
     OUTPUT_COUNT(new StandardMetricDescriptor<ConnectionStatus>(
         "outputCount",
         "FlowFiles Out (5 mins)",
         "The number of FlowFiles that were pulled from this Connection in the past 5 minutes",
         Formatter.COUNT,
-        new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return Long.valueOf(status.getOutputCount());
-            }
-        })),
+        s -> Long.valueOf(s.getOutputCount()))),
 
     QUEUED_BYTES(new StandardMetricDescriptor<ConnectionStatus>(
         "queuedBytes",
         "Queued Bytes",
         "The number of Bytes queued in this Connection",
         Formatter.DATA_SIZE,
-        new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return status.getQueuedBytes();
-            }
-        })),
+        s -> s.getQueuedBytes())),
 
     QUEUED_COUNT(new StandardMetricDescriptor<ConnectionStatus>(
         "queuedCount",
         "Queued Count",
         "The number of FlowFiles queued in this Connection",
         Formatter.COUNT,
-        new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return Long.valueOf(status.getQueuedCount());
-            }
-        }));
+        s -> Long.valueOf(s.getQueuedCount())));
 
 
     private MetricDescriptor<ConnectionStatus> descriptor;

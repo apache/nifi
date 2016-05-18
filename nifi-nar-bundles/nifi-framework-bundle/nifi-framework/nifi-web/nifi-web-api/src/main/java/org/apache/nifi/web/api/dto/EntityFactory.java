@@ -16,22 +16,32 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
+import org.apache.nifi.web.api.dto.status.PortStatusDTO;
+import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
+import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
+import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.SnippetEntity;
 
 public final class EntityFactory {
 
-    public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+    public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final ProcessorStatusDTO status) {
         final ProcessorEntity entity = new ProcessorEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setAccessPolicy(accessPolicy);
+            entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
@@ -41,11 +51,12 @@ public final class EntityFactory {
         return entity;
     }
 
-    public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+    public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final PortStatusDTO status) {
         final PortEntity entity = new PortEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setAccessPolicy(accessPolicy);
+            entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
             entity.setPortType(dto.getType());
@@ -56,13 +67,22 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+    public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final ProcessGroupStatusDTO status) {
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setAccessPolicy(accessPolicy);
+            entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
+            entity.setInputPortCount(dto.getInputPortCount());
+            entity.setOutputPortCount(dto.getOutputPortCount());
+            entity.setRunningCount(dto.getRunningCount());
+            entity.setStoppedCount(dto.getStoppedCount());
+            entity.setInvalidCount(dto.getInvalidCount());
+            entity.setDisabledCount(dto.getDisabledCount());
+            entity.setActiveRemotePortCount(dto.getActiveRemotePortCount());
+            entity.setInactiveRemotePortCount(dto.getInactiveRemotePortCount());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
                 entity.setComponent(dto);
             }
@@ -104,11 +124,12 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ConnectionEntity createConnectionEntity(final ConnectionDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+    public ConnectionEntity createConnectionEntity(final ConnectionDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final ConnectionStatusDTO status) {
         final ConnectionEntity entity = new ConnectionEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setAccessPolicy(accessPolicy);
+            entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
             entity.setBends(dto.getBends());
@@ -124,22 +145,69 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
+    public RemoteProcessGroupEntity createRemoteProcessGroupEntity(
+        final RemoteProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy,final RemoteProcessGroupStatusDTO status) {
+
+        final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setAccessPolicy(accessPolicy);
+            entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
+            entity.setInputPortCount(dto.getInputPortCount());
+            entity.setOutputPortCount(dto.getOutputPortCount());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
-                entity.setControllerService(dto);
+                entity.setComponent(dto);
             }
         }
         return entity;
     }
 
-    public RemoteProcessGroupEntity createRemoteProcessGroupEntity(final RemoteProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
-        final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
+    public RemoteProcessGroupPortEntity createRemoteProcessGroupPortEntity(final RemoteProcessGroupPortDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setRemoteProcessGroupPort(dto);
+            }
+        }
+
+        return entity;
+    }
+
+    public SnippetEntity createSnippetEntity(final SnippetDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final SnippetEntity entity = new SnippetEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setSnippet(dto);
+            }
+        }
+
+        return entity;
+    }
+
+    public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final ReportingTaskEntity entity = new ReportingTaskEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+
+        return entity;
+    }
+
+    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final ControllerServiceEntity entity = new ControllerServiceEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setAccessPolicy(accessPolicy);
@@ -152,4 +220,19 @@ public final class EntityFactory {
         return entity;
     }
 
+    public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(
+        final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+
+        final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+
+        return entity;
+    }
 }

@@ -302,7 +302,6 @@ nf.ProcessorConfiguration = (function () {
 
         // create the processor entity
         var processorEntity = {};
-        processorEntity['revision'] = nf.Client.getRevision();
         processorEntity['component'] = processorDto;
 
         // return the marshaled details
@@ -428,19 +427,20 @@ nf.ProcessorConfiguration = (function () {
 
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedProcessor)) {
+            // set the revision
+            var d = nf.Processor.get(processor.id);
+            updatedProcessor['revision'] = nf.Client.getRevision(d);
+            
             // update the selected component
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedProcessor),
                 url: processor.uri,
                 dataType: 'json',
-                processData: false,
                 contentType: 'application/json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.component)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-                }
+                // set the new processor state based on the response
+                nf.Processor.set(response);
             }).fail(handleProcessorConfigurationError);
         } else {
             return $.Deferred(function (deferred) {
@@ -543,6 +543,7 @@ nf.ProcessorConfiguration = (function () {
             // initialize the property table
             $('#processor-properties').propertytable({
                 readOnly: false,
+                groupId: nf.Canvas.getGroupId(),
                 dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function(propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');
@@ -715,9 +716,6 @@ nf.ProcessorConfiguration = (function () {
 
                                     // save the processor
                                     saveProcessor(processor).done(function (response) {
-                                        // set the new processor state based on the response
-                                        nf.Processor.set(response);
-
                                         // reload the processor's outgoing connections
                                         reloadProcessorConnections(processor);
 

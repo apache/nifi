@@ -22,25 +22,19 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.NodeDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.NodeEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -56,13 +50,12 @@ public class NodeResource extends ApplicationResource {
     /**
      * Gets the contents of the specified node in this NiFi cluster.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The node id.
      * @return A nodeEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
@@ -85,11 +78,6 @@ public class NodeResource extends ApplicationResource {
     )
     public Response getNode(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The node id.",
                     required = true
             )
@@ -100,13 +88,8 @@ public class NodeResource extends ApplicationResource {
             // get the specified relationship
             final NodeDTO dto = serviceFacade.getNode(id);
 
-            // create the revision
-            final RevisionDTO revision = new RevisionDTO();
-            revision.setClientId(clientId.getClientId());
-
             // create the response entity
             final NodeEntity entity = new NodeEntity();
-            entity.setRevision(revision);
             entity.setNode(dto);
 
             // generate the response
@@ -117,45 +100,6 @@ public class NodeResource extends ApplicationResource {
         throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
     }
 
-
-    /**
-     * Updates the contents of the specified node in this NiFi cluster.
-     *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id The id of the node.
-     * @param status The status of the node.
-     * @param primary Whether the node should be make primary.
-     * @return A nodeEntity
-     */
-    @PUT
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
-    public Response updateNode(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("id") String id,
-            @FormParam("status") String status,
-            @FormParam("primary") Boolean primary) {
-
-        // create the node dto
-        final NodeDTO nodeDTO = new NodeDTO();
-        nodeDTO.setNodeId(id);
-        nodeDTO.setStatus(status);
-        nodeDTO.setPrimary(primary);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the node entity
-        final NodeEntity nodeEntity = new NodeEntity();
-        nodeEntity.setRevision(revision);
-        nodeEntity.setNode(nodeDTO);
-
-        // update the node
-        return updateNode(id, nodeEntity);
-    }
-
     /**
      * Updates the contents of the specified node in this NiFi cluster.
      *
@@ -164,8 +108,8 @@ public class NodeResource extends ApplicationResource {
      * @return A nodeEntity
      */
     @PUT
-    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @ApiOperation(
@@ -212,17 +156,8 @@ public class NodeResource extends ApplicationResource {
             // update the node
             final NodeDTO node = serviceFacade.updateNode(requestNodeDTO);
 
-            // create the revision
-            final RevisionDTO revision = new RevisionDTO();
-            if (nodeEntity.getRevision() == null) {
-                revision.setClientId(new ClientIdParameter().getClientId());
-            } else {
-                revision.setClientId(nodeEntity.getRevision().getClientId());
-            }
-
             // create the response entity
             NodeEntity entity = new NodeEntity();
-            entity.setRevision(revision);
             entity.setNode(node);
 
             // generate the response
@@ -235,13 +170,12 @@ public class NodeResource extends ApplicationResource {
     /**
      * Removes the specified from this NiFi cluster.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the node
      * @return A nodeEntity
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @ApiOperation(
@@ -262,11 +196,6 @@ public class NodeResource extends ApplicationResource {
     )
     public Response deleteNode(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The node id.",
                     required = true
             )
@@ -276,13 +205,8 @@ public class NodeResource extends ApplicationResource {
 
             serviceFacade.deleteNode(id);
 
-            // create the revision
-            final RevisionDTO revision = new RevisionDTO();
-            revision.setClientId(clientId.getClientId());
-
             // create the response entity
             final NodeEntity entity = new NodeEntity();
-            entity.setRevision(revision);
 
             // generate the response
             return generateOkResponse(entity).build();

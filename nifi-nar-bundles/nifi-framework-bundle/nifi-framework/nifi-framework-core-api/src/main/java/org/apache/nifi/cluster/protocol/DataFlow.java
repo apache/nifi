@@ -24,11 +24,6 @@ public interface DataFlow {
     public byte[] getFlow();
 
     /**
-     * @return the raw byte array of the templates
-     */
-    public byte[] getTemplates();
-
-    /**
      * @return the raw byte array of the snippets
      */
     public byte[] getSnippets();

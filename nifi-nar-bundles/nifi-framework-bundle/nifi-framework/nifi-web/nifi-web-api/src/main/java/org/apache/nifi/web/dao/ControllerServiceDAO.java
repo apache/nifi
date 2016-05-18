@@ -20,10 +20,9 @@ import java.util.Set;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ScheduledState;
-
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 
@@ -72,9 +71,9 @@ public interface ControllerServiceDAO {
      * @param controllerServiceId service id
      * @param scheduledState scheduled state
      * @param controllerServiceState the value of state
-     * @return the org.apache.nifi.controller.service.ControllerServiceReference
+     * @return the set of all components that were modified as a result of this action
      */
-    ControllerServiceReference updateControllerServiceReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
+    Set<ConfiguredComponent> updateControllerServiceReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
 
     /**
      * Determines whether this controller service can be updated.

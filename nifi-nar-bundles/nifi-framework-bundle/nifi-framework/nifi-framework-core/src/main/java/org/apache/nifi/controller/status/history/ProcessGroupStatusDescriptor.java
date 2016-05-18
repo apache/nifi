@@ -25,92 +25,66 @@ import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
 
 public enum ProcessGroupStatusDescriptor {
 
-    BYTES_READ(new StandardMetricDescriptor<ProcessGroupStatus>("bytesRead", "Bytes Read (5 mins)",
-        "The total number of bytes read from Content Repository by Processors in this Process Group in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getBytesRead();
-            }
-        })),
+    BYTES_READ(new StandardMetricDescriptor<ProcessGroupStatus>(
+        "bytesRead",
+        "Bytes Read (5 mins)",
+        "The total number of bytes read from Content Repository by Processors in this Process Group in the past 5 minutes",
+        Formatter.DATA_SIZE,
+        s -> s.getBytesRead())),
 
-    BYTES_WRITTEN(new StandardMetricDescriptor<ProcessGroupStatus>("bytesWritten", "Bytes Written (5 mins)",
-        "The total number of bytes written to Content Repository by Processors in this Process Group in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getBytesWritten();
-            }
-        })),
+    BYTES_WRITTEN(new StandardMetricDescriptor<ProcessGroupStatus>("bytesWritten",
+        "Bytes Written (5 mins)",
+        "The total number of bytes written to Content Repository by Processors in this Process Group in the past 5 minutes",
+        Formatter.DATA_SIZE,
+        s -> s.getBytesWritten())),
 
-    BYTES_TRANSFERRED(new StandardMetricDescriptor<ProcessGroupStatus>("bytesTransferred", "Bytes Transferred (5 mins)",
+    BYTES_TRANSFERRED(new StandardMetricDescriptor<ProcessGroupStatus>("bytesTransferred",
+        "Bytes Transferred (5 mins)",
         "The total number of bytes read from or written to Content Repository by Processors in this Process Group in the past 5 minutes",
-        Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getBytesRead() + status.getBytesWritten();
-            }
-        })),
+        Formatter.DATA_SIZE,
+        s -> s.getBytesRead() + s.getBytesWritten())),
 
-    INPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("inputBytes", "Bytes In (5 mins)",
+    INPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("inputBytes",
+        "Bytes In (5 mins)",
         "The cumulative size of all FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes",
-        Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getInputContentSize();
-            }
-        })),
+        Formatter.DATA_SIZE,
+        s -> s.getInputContentSize())),
 
-    INPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("inputCount", "FlowFiles In (5 mins)",
+    INPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("inputCount",
+        "FlowFiles In (5 mins)",
         "The number of FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes",
-        Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getInputCount().longValue();
-            }
-        })),
+        Formatter.COUNT,
+        s -> s.getInputCount().longValue())),
 
-    OUTPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("outputBytes", "Bytes Out (5 mins)",
+    OUTPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("outputBytes",
+        "Bytes Out (5 mins)",
         "The cumulative size of all FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes",
-        Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getOutputContentSize();
-            }
-        })),
+        Formatter.DATA_SIZE,
+        s -> s.getOutputContentSize())),
 
-    OUTPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("outputCount", "FlowFiles Out (5 mins)",
+    OUTPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("outputCount",
+        "FlowFiles Out (5 mins)",
         "The number of FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes",
-        Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getOutputCount().longValue();
-            }
-        })),
+        Formatter.COUNT,
+        s -> s.getOutputCount().longValue())),
 
-    QUEUED_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("queuedBytes", "Queued Bytes",
+    QUEUED_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("queuedBytes",
+        "Queued Bytes",
         "The cumulative size of all FlowFiles queued in all Connections of this Process Group",
-        Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getQueuedContentSize();
-            }
-        })),
+        Formatter.DATA_SIZE,
+        s -> s.getQueuedContentSize())),
 
-    QUEUED_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("queuedCount", "Queued Count",
-        "The number of FlowFiles queued in all Connections of this Process Group", Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getQueuedCount().longValue();
-            }
-        })),
+    QUEUED_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("queuedCount",
+        "Queued Count",
+        "The number of FlowFiles queued in all Connections of this Process Group",
+        Formatter.COUNT,
+        s -> s.getQueuedCount().longValue())),
 
-    TASK_MILLIS(new StandardMetricDescriptor<ProcessGroupStatus>("taskMillis", "Total Task Duration (5 mins)",
+    TASK_MILLIS(new StandardMetricDescriptor<ProcessGroupStatus>("taskMillis",
+        "Total Task Duration (5 mins)",
         "The total number of thread-milliseconds that the Processors within this ProcessGroup have used to complete their tasks in the past 5 minutes",
-        Formatter.DURATION, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return calculateTaskMillis(status);
-            }
-        }));
+        Formatter.DURATION,
+        s -> calculateTaskMillis(s)));
 
     private MetricDescriptor<ProcessGroupStatus> descriptor;
 

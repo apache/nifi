@@ -256,7 +256,9 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public boolean isValid() {
-        final Collection<ValidationResult> validationResults = validate(validationContextFactory.newValidationContext(getProperties(), getAnnotationData()));
+        final Collection<ValidationResult> validationResults = validate(validationContextFactory.newValidationContext(
+            getProperties(), getAnnotationData(), getProcessGroupIdentifier()));
+
         for (final ValidationResult result : validationResults) {
             if (!result.isValid()) {
                 return false;
@@ -275,7 +277,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         final List<ValidationResult> results = new ArrayList<>();
         lock.lock();
         try {
-            final ValidationContext validationContext = validationContextFactory.newValidationContext(serviceIdentifiersNotToValidate, getProperties(), getAnnotationData());
+            final ValidationContext validationContext = validationContextFactory.newValidationContext(
+                serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier());
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -296,6 +299,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     public abstract void verifyModifiable() throws IllegalStateException;
+
+    protected abstract String getProcessGroupIdentifier();
 
     /**
      *

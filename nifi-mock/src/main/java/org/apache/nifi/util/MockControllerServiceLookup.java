@@ -82,7 +82,7 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
         final Set<String> ids = new HashSet<>();
         for (final Map.Entry<String, ControllerServiceConfiguration> entry : controllerServiceMap.entrySet()) {
             if (serviceType.isAssignableFrom(entry.getValue().getService().getClass())) {

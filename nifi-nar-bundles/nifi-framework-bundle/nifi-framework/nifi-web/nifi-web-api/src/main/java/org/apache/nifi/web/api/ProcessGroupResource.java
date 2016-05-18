@@ -29,22 +29,18 @@ import org.apache.nifi.cluster.context.ClusterContext;
 import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -68,7 +64,6 @@ import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.util.Availability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -206,6 +201,19 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     /**
+     * Populate the uri's for the specified snippet.
+     *
+     * @param entity processors
+     * @return dtos
+     */
+    private SnippetEntity populateRemainingSnippetEntityContent(SnippetEntity entity) {
+        if (entity.getSnippet() != null) {
+            populateRemainingSnippetContent(entity.getSnippet());
+        }
+        return entity;
+    }
+
+    /**
      * Populates the uri for the specified snippet.
      */
     private SnippetDTO populateRemainingSnippetContent(SnippetDTO snippet) {
@@ -328,19 +336,22 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(processGroupEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), processGroupEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(processGroupEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateProcessGroup(requestProcessGroupDTO);
             return generateContinueResponse().build();
         }
 
         // update the process group
-        final RevisionDTO revision = processGroupEntity.getRevision();
-        final UpdateResult<ProcessGroupEntity> updateResult = serviceFacade.updateProcessGroup(new Revision(revision.getVersion(), revision.getClientId()), requestProcessGroupDTO);
+        final UpdateResult<ProcessGroupEntity> updateResult = serviceFacade.updateProcessGroup(revision, requestProcessGroupDTO);
         final ProcessGroupEntity entity = updateResult.getResult();
         populateRemainingProcessGroupEntityContent(entity);
 
@@ -405,20 +416,18 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteProcessGroup(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the process group
-        final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(new Revision(clientVersion, clientId.getClientId()), id);
+        final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(revision, id);
 
         // create the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -470,10 +479,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Process group details must be specified.");
         }
 
-        if (processGroupEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (processGroupEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Process group ID cannot be specified.");
         }
@@ -485,7 +490,7 @@ public class ProcessGroupResource extends ApplicationResource {
         processGroupEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(processGroupEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), processGroupEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -503,8 +508,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the process group contents
-        final RevisionDTO revision = processGroupEntity.getRevision();
-        final ProcessGroupEntity entity = serviceFacade.createProcessGroup(groupId, new Revision(revision.getVersion(), revision.getClientId()), processGroupEntity.getComponent());
+        final ProcessGroupEntity entity = serviceFacade.createProcessGroup(groupId, processGroupEntity.getComponent());
         populateRemainingProcessGroupEntityContent(entity);
 
         // generate a 201 created response
@@ -620,10 +624,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Processor details must be specified.");
         }
 
-        if (processorEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (processorEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Processor ID cannot be specified.");
         }
@@ -639,7 +639,7 @@ public class ProcessGroupResource extends ApplicationResource {
         processorEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(processorEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), processorEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -657,8 +657,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the new processor
-        final RevisionDTO revision = processorEntity.getRevision();
-        final ProcessorEntity entity = serviceFacade.createProcessor(new Revision(revision.getVersion(), revision.getClientId()), groupId, processorEntity.getComponent());
+        final ProcessorEntity entity = serviceFacade.createProcessor(groupId, processorEntity.getComponent());
         processorResource.populateRemainingProcessorEntityContent(entity);
 
         // generate a 201 created response
@@ -767,10 +766,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Port details must be specified.");
         }
 
-        if (portEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (portEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Input port ID cannot be specified.");
         }
@@ -782,7 +777,7 @@ public class ProcessGroupResource extends ApplicationResource {
         portEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(portEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), portEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -800,8 +795,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the input port and generate the json
-        final RevisionDTO revision = portEntity.getRevision();
-        final PortEntity entity = serviceFacade.createInputPort(new Revision(revision.getVersion(), revision.getClientId()), groupId, portEntity.getComponent());
+        final PortEntity entity = serviceFacade.createInputPort(groupId, portEntity.getComponent());
         inputPortResource.populateRemainingInputPortEntityContent(entity);
 
         // build the response
@@ -907,10 +901,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Port details must be specified.");
         }
 
-        if (portEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (portEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Output port ID cannot be specified.");
         }
@@ -922,7 +912,7 @@ public class ProcessGroupResource extends ApplicationResource {
         portEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(portEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), portEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -940,9 +930,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the output port and generate the json
-        final RevisionDTO revision = portEntity.getRevision();
-        final PortEntity entity = serviceFacade.createOutputPort(
-            new Revision(revision.getVersion(), revision.getClientId()), groupId, portEntity.getComponent());
+        final PortEntity entity = serviceFacade.createOutputPort(groupId, portEntity.getComponent());
         outputPortResource.populateRemainingOutputPortEntityContent(entity);
 
         // build the response
@@ -1049,10 +1037,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Funnel details must be specified.");
         }
 
-        if (funnelEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (funnelEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Funnel ID cannot be specified.");
         }
@@ -1064,7 +1048,7 @@ public class ProcessGroupResource extends ApplicationResource {
         funnelEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(funnelEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), funnelEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1082,8 +1066,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the funnel and generate the json
-        final RevisionDTO revision = funnelEntity.getRevision();
-        final FunnelEntity entity = serviceFacade.createFunnel(new Revision(revision.getVersion(), revision.getClientId()), groupId, funnelEntity.getComponent());
+        final FunnelEntity entity = serviceFacade.createFunnel(groupId, funnelEntity.getComponent());
         funnelResource.populateRemainingFunnelEntityContent(entity);
 
         // build the response
@@ -1190,10 +1173,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Label details must be specified.");
         }
 
-        if (labelEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (labelEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Label ID cannot be specified.");
         }
@@ -1205,7 +1184,7 @@ public class ProcessGroupResource extends ApplicationResource {
         labelEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(labelEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), labelEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1223,9 +1202,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the label and generate the json
-        final RevisionDTO revision = labelEntity.getRevision();
-        final LabelEntity entity = serviceFacade.createLabel(
-            new Revision(revision.getVersion(), revision.getClientId()), groupId, labelEntity.getComponent());
+        final LabelEntity entity = serviceFacade.createLabel(groupId, labelEntity.getComponent());
         labelResource.populateRemainingLabelEntityContent(entity);
 
         // build the response
@@ -1332,10 +1309,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Remote process group details must be specified.");
         }
 
-        if (remoteProcessGroupEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         final RemoteProcessGroupDTO requestProcessGroupDTO = remoteProcessGroupEntity.getComponent();
 
         if (requestProcessGroupDTO.getId() != null) {
@@ -1353,7 +1326,7 @@ public class ProcessGroupResource extends ApplicationResource {
         requestProcessGroupDTO.setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(remoteProcessGroupEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), remoteProcessGroupEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1397,8 +1370,7 @@ public class ProcessGroupResource extends ApplicationResource {
         requestProcessGroupDTO.setTargetUri(controllerUri);
 
         // create the remote process group
-        final RevisionDTO revision = remoteProcessGroupEntity.getRevision();
-        final RemoteProcessGroupEntity entity = serviceFacade.createRemoteProcessGroup(new Revision(revision.getVersion(), revision.getClientId()), groupId, requestProcessGroupDTO);
+        final RemoteProcessGroupEntity entity = serviceFacade.createRemoteProcessGroup(groupId, requestProcessGroupDTO);
         remoteProcessGroupResource.populateRemainingRemoteProcessGroupEntityContent(entity);
 
         return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
@@ -1523,10 +1495,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Connection ID cannot be specified.");
         }
 
-        if (connectionEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (connectionEntity.getComponent().getParentGroupId() != null && !groupId.equals(connectionEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                 connectionEntity.getComponent().getParentGroupId(), groupId));
@@ -1534,7 +1502,7 @@ public class ProcessGroupResource extends ApplicationResource {
         connectionEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(connectionEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), connectionEntity, getHeaders()).getResponse();
         }
 
         // get the connection
@@ -1556,8 +1524,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the new relationship target
-        final RevisionDTO revision = connectionEntity.getRevision();
-        final ConnectionEntity entity = serviceFacade.createConnection(new Revision(revision.getVersion(), revision.getClientId()), groupId, connection);
+        final ConnectionEntity entity = serviceFacade.createConnection(groupId, connection);
         connectionResource.populateRemainingConnectionEntityContent(entity);
 
         // extract the href and build the response
@@ -1667,10 +1634,6 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Snippet details must be specified.");
         }
 
-        if (snippetEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (snippetEntity.getSnippet().getId() != null) {
             throw new IllegalArgumentException("Snippet ID cannot be specified.");
         }
@@ -1687,7 +1650,7 @@ public class ProcessGroupResource extends ApplicationResource {
         snippetEntity.getSnippet().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return (Response) clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(snippetEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), snippetEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1705,24 +1668,11 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the snippet
-        final RevisionDTO revision = snippetEntity.getRevision();
-        final ConfigurationSnapshot<SnippetDTO> response = serviceFacade.createSnippet(new Revision(revision.getVersion(), revision.getClientId()), snippetEntity.getSnippet());
-
-        // get the snippet
-        final SnippetDTO snippet = response.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(response.getVersion());
-
-        // build the response entity
-        SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(updatedRevision);
-        entity.setSnippet(populateRemainingSnippetContent(snippet));
+        final SnippetEntity entity = serviceFacade.createSnippet(snippetEntity.getSnippet());
+        populateRemainingSnippetEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(snippet.getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity)).build();
     }
 
     /**
@@ -1772,15 +1722,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // get the snippet
-        final SnippetDTO snippet = serviceFacade.getSnippet(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
-        // create the response entity
-        final SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(revision);
-        entity.setSnippet(populateRemainingSnippetContent(snippet));
+        final SnippetEntity entity = serviceFacade.getSnippet(id);
+        populateRemainingSnippetEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -1849,36 +1792,29 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(snippetEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), snippetEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final Revision revision = getRevision(snippetEntity, id);
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyUpdateSnippet(requestSnippetDTO);
             return generateContinueResponse().build();
         }
 
         // update the snippet
-        final RevisionDTO revision = snippetEntity.getRevision();
-        final ConfigurationSnapshot<SnippetDTO> controllerResponse = serviceFacade.updateSnippet(
-            new Revision(revision.getVersion(), revision.getClientId()), snippetEntity.getSnippet());
+        final UpdateResult<SnippetEntity> updateResult = serviceFacade.updateSnippet(revision, snippetEntity.getSnippet());
 
         // get the results
-        final SnippetDTO snippet = controllerResponse.getConfiguration();
+        final SnippetEntity entity = updateResult.getResult();
+        populateRemainingSnippetEntityContent(entity);
 
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(updatedRevision);
-        entity.setSnippet(populateRemainingSnippetContent(snippet));
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(snippet.getUri()), entity)).build();
+        if (updateResult.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity)).build();
         } else {
             return clusterContext(generateOkResponse(entity)).build();
         }
@@ -1917,7 +1853,7 @@ public class ProcessGroupResource extends ApplicationResource {
             @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
         }
     )
-    public Response removeSnippet(
+    public Response deleteSnippet(
         @Context HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The revision is used to verify the client is working with the latest version of the flow.",
@@ -1945,32 +1881,25 @@ public class ProcessGroupResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+
+        // We need to claim the revision for the Processor if either this is the first phase of a two-phase
+        // request, or if this is not a two-phase request.
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            serviceFacade.claimRevision(revision);
+        }
+        if (validationPhase) {
             serviceFacade.verifyDeleteSnippet(id);
             return generateContinueResponse().build();
         }
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
         // delete the specified snippet
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteSnippet(new Revision(clientVersion, clientId.getClientId()), id);
+        final SnippetEntity snippetEntity = serviceFacade.deleteSnippet(revision, id);
 
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(revision);
-
-        return clusterContext(generateOkResponse(entity)).build();
+        return clusterContext(generateOkResponse(snippetEntity)).build();
     }
 
     // ----------------
@@ -2028,7 +1957,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(copySnippetEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), copySnippetEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2038,31 +1967,22 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // copy the specified snippet
-        final RevisionDTO requestRevision = copySnippetEntity.getRevision();
-        final ConfigurationSnapshot<FlowDTO> controllerResponse = serviceFacade.copySnippet(
-            new Revision(requestRevision.getVersion(), requestRevision.getClientId()),
+        final FlowEntity flowEntity = serviceFacade.copySnippet(
             groupId, copySnippetEntity.getSnippetId(), copySnippetEntity.getOriginX(), copySnippetEntity.getOriginY());
 
         // get the snippet
-        final FlowDTO flow = controllerResponse.getConfiguration();
+        final FlowDTO flow = flowEntity.getFlow();
 
         // prune response as necessary
         for (ProcessGroupEntity childGroupEntity : flow.getProcessGroups()) {
             childGroupEntity.getComponent().setContents(null);
         }
 
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(requestRevision.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
         // create the response entity
-        final FlowEntity entity = new FlowEntity();
-        entity.setRevision(revision);
-        entity.setFlow(populateRemainingSnippetContent(flow));
+        populateRemainingSnippetContent(flow);
 
         // generate the response
-        return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
+        return clusterContext(generateCreatedResponse(getAbsolutePath(), flowEntity)).build();
     }
 
     // -----------------
@@ -2120,7 +2040,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(instantiateTemplateRequestEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), instantiateTemplateRequestEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2130,27 +2050,18 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the template and generate the json
-        final RevisionDTO requestRevision = instantiateTemplateRequestEntity.getRevision();
-        final ConfigurationSnapshot<FlowDTO> response = serviceFacade.createTemplateInstance(
-            new Revision(requestRevision.getVersion(), requestRevision.getClientId()), groupId, instantiateTemplateRequestEntity.getOriginX(),
+        final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(),
             instantiateTemplateRequestEntity.getOriginY(), instantiateTemplateRequestEntity.getTemplateId());
 
-        final FlowDTO flowSnippet = response.getConfiguration();
+        final FlowDTO flowSnippet = entity.getFlow();
 
         // prune response as necessary
         for (ProcessGroupEntity childGroupEntity : flowSnippet.getProcessGroups()) {
             childGroupEntity.getComponent().setContents(null);
         }
 
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(requestRevision.getClientId());
-        revision.setVersion(response.getVersion());
-
         // create the response entity
-        final FlowEntity entity = new FlowEntity();
-        entity.setRevision(revision);
-        entity.setFlow(populateRemainingSnippetContent(flowSnippet));
+        populateRemainingSnippetContent(flowSnippet);
 
         // generate the response
         return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
@@ -2202,12 +2113,8 @@ public class ProcessGroupResource extends ApplicationResource {
         // get all the templates
         final Set<TemplateDTO> templates = templateResource.populateRemainingTemplatesContent(serviceFacade.getTemplates());
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
         // create the response entity
         final TemplatesEntity entity = new TemplatesEntity();
-        entity.setRevision(revision);
         entity.setTemplates(templates);
         entity.setGenerated(new Date());
 
@@ -2259,7 +2166,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(createTemplateRequestEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), createTemplateRequestEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2269,17 +2176,12 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // create the template and generate the json
-        final RevisionDTO revisionDTO = createTemplateRequestEntity.getRevision();
-        final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(), createTemplateRequestEntity.getSnippetId());
+        final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(),
+            createTemplateRequestEntity.getSnippetId(), groupId);
         templateResource.populateRemainingTemplateContent(template);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(revisionDTO.getClientId());
 
         // build the response entity
         final TemplateEntity entity = new TemplateEntity();
-        entity.setRevision(revision);
         entity.setTemplate(template);
 
         // build the response
@@ -2333,13 +2235,8 @@ public class ProcessGroupResource extends ApplicationResource {
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // build the response entity
         TemplateEntity entity = new TemplateEntity();
-        entity.setRevision(revision);
         entity.setTemplate(template);
 
         // replicate if cluster manager
@@ -2357,7 +2254,7 @@ public class ProcessGroupResource extends ApplicationResource {
             headersToOverride.put("content-type", MediaType.APPLICATION_XML);
 
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.POST, importUri, updateClientId(entity), getHeaders(headersToOverride)).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, importUri, entity, getHeaders(headersToOverride)).getResponse();
         }
 
         // otherwise import the template locally
@@ -2387,7 +2284,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(templateEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), templateEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2403,20 +2300,11 @@ public class ProcessGroupResource extends ApplicationResource {
             }
 
             // import the template
-            final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate());
+            final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate(), groupId);
             templateResource.populateRemainingTemplateContent(template);
-
-            // create the revision
-            final RevisionDTO revision = new RevisionDTO();
-            if (templateEntity.getRevision() == null) {
-                revision.setClientId(new ClientIdParameter().getClientId());
-            } else {
-                revision.setClientId(templateEntity.getRevision().getClientId());
-            }
 
             // build the response entity
             TemplateEntity entity = new TemplateEntity();
-            entity.setRevision(revision);
             entity.setTemplate(template);
 
             // build the response
@@ -2441,16 +2329,13 @@ public class ProcessGroupResource extends ApplicationResource {
      * Creates a new Controller Service.
      *
      * @param httpServletRequest request
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
      * @param controllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/controller-services/{availability}")
+    @Path("{id}/controller-services")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Creates a new controller service",
@@ -2475,45 +2360,30 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") String groupId,
         @ApiParam(
-            value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-            allowableValues = "NCM, NODE",
-            required = true
-        )
-        @PathParam("availability") String availability,
-        @ApiParam(
             value = "The controller service configuration details.",
             required = true
         ) ControllerServiceEntity controllerServiceEntity) {
 
-        final Availability avail = controllerServiceResource.parseAvailability(availability);
-
-        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
+        if (controllerServiceEntity == null || controllerServiceEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
         }
 
-        if (controllerServiceEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
-        if (controllerServiceEntity.getControllerService().getId() != null) {
+        if (controllerServiceEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Controller service ID cannot be specified.");
         }
 
-        if (StringUtils.isBlank(controllerServiceEntity.getControllerService().getType())) {
+        if (StringUtils.isBlank(controllerServiceEntity.getComponent().getType())) {
             throw new IllegalArgumentException("The type of controller service to create must be specified.");
         }
 
-        if (controllerServiceEntity.getControllerService().getParentGroupId() != null && !groupId.equals(controllerServiceEntity.getControllerService().getParentGroupId())) {
+        if (controllerServiceEntity.getComponent().getParentGroupId() != null && !groupId.equals(controllerServiceEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                controllerServiceEntity.getControllerService().getParentGroupId(), groupId));
+                controllerServiceEntity.getComponent().getParentGroupId(), groupId));
         }
-        controllerServiceEntity.getControllerService().setParentGroupId(groupId);
-
-        // get the revision
-        final RevisionDTO revision = controllerServiceEntity.getRevision();
+        controllerServiceEntity.getComponent().setParentGroupId(groupId);
 
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(controllerServiceEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), controllerServiceEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2525,93 +2395,17 @@ public class ProcessGroupResource extends ApplicationResource {
         // set the processor id as appropriate
         final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
         if (clusterContext != null) {
-            controllerServiceEntity.getControllerService().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
+            controllerServiceEntity.getComponent().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
         } else {
-            controllerServiceEntity.getControllerService().setId(UUID.randomUUID().toString());
+            controllerServiceEntity.getComponent().setId(UUID.randomUUID().toString());
         }
 
         // create the controller service and generate the json
-        final ConfigurationSnapshot<ControllerServiceDTO> controllerResponse = serviceFacade.createControllerService(
-            new Revision(revision.getVersion(), revision.getClientId()), controllerServiceEntity.getControllerService());
-        final ControllerServiceDTO controllerService = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setControllerService(controllerServiceResource.populateRemainingControllerServiceContent(availability, controllerService));
-        entity.setRevision(updatedRevision);
+        final ControllerServiceEntity entity = serviceFacade.createControllerService(groupId, controllerServiceEntity.getComponent());
+        controllerServiceResource.populateRemainingControllerServiceContent(entity.getComponent());
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(controllerService.getUri()), entity)).build();
-    }
-
-    /**
-     * Retrieves all the of controller services in this NiFi.
-     *
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @return A controllerServicesEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/controller-services/{availability}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-        value = "Gets all controller services",
-        response = ControllerServicesEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
-    )
-    @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
-    )
-    public Response getControllerServices(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") String groupId,
-        @ApiParam(
-            value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-            allowableValues = "NCM, NODE",
-            required = true
-        )
-        @PathParam("availability") String availability) {
-
-        final Availability avail = controllerServiceResource.parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // get all the controller services
-        final Set<ControllerServiceDTO> controllerServices = controllerServiceResource.populateRemainingControllerServicesContent(availability, serviceFacade.getControllerServices());
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
-        // create the response entity
-        final ControllerServicesEntity entity = new ControllerServicesEntity();
-        entity.setRevision(revision);
-        entity.setControllerServices(controllerServices);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
     }
 
     // setters

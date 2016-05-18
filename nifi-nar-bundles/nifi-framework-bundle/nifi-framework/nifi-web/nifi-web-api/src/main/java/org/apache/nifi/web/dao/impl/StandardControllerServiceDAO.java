@@ -17,19 +17,19 @@
 package org.apache.nifi.web.dao.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
-
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -121,7 +121,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public ControllerServiceReference updateControllerServiceReferencingComponents(
+    public Set<ConfiguredComponent> updateControllerServiceReferencingComponents(
             final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
@@ -129,19 +129,19 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         // this request is either acting upon referncing services or schedulable components
         if (controllerServiceState != null) {
             if (ControllerServiceState.ENABLED.equals(controllerServiceState)) {
-                serviceProvider.enableReferencingServices(controllerService);
+                return serviceProvider.enableReferencingServices(controllerService);
             } else {
-                serviceProvider.disableReferencingServices(controllerService);
+                return serviceProvider.disableReferencingServices(controllerService);
             }
         } else if (scheduledState != null) {
             if (ScheduledState.RUNNING.equals(scheduledState)) {
-                serviceProvider.scheduleReferencingComponents(controllerService);
+                return serviceProvider.scheduleReferencingComponents(controllerService);
             } else {
-                serviceProvider.unscheduleReferencingComponents(controllerService);
+                return serviceProvider.unscheduleReferencingComponents(controllerService);
             }
         }
 
-        return controllerService.getReferences();
+        return Collections.emptySet();
     }
 
     private List<String> validateProposedConfiguration(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {

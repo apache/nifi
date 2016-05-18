@@ -17,35 +17,32 @@
 
 /* global nf, d3 */
 
+nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
+    'use strict';
 
-nf.ng.Canvas.HeaderCtrl = (function () {
+    var MIN_TOOLBAR_WIDTH = 640;
 
-    function HeaderCtrl(serviceProvider, toolboxCtrl, globalMenuCtrl) {
+    var config = {
+        urls: {
+            accessConfig: '../nifi-api/access/config'
+        }
+    };
 
-        var MIN_TOOLBAR_WIDTH = 640;
+    function HeaderCtrl(toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
+        this.toolboxCtrl = toolboxCtrl;
+        this.globalMenuCtrl = globalMenuCtrl;
+        this.flowStatusCtrl = flowStatusCtrl;
 
-        function HeaderCtrl(toolboxCtrl, globalMenuCtrl) {
-            this.toolboxCtrl = toolboxCtrl;
-            this.globalMenuCtrl = globalMenuCtrl;
-        };
-        HeaderCtrl.prototype = {
-            constructor: HeaderCtrl,
-
-            /**
-             *  Register the header controller.
-             */
-            register: function () {
-                if (serviceProvider.headerCtrl === undefined) {
-                    serviceProvider.register('headerCtrl', headerCtrl);
-                }
-            },
+        /**
+         * The login controller.
+         */
+        this.loginCtrl = {
 
             /**
-             * Initialize the canvas header.
+             * Initialize the login controller.
              */
             init: function () {
-                this.toolboxCtrl.init();
-                this.globalMenuCtrl.init();
+                var self = this;
 
                 // if the user is not anonymous or accessing via http
                 if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
@@ -56,64 +53,101 @@ nf.ng.Canvas.HeaderCtrl = (function () {
                 if (location.protocol === 'http:') {
                     $('#current-user-container').css('display', 'none');
                 }
-            },
 
-            /**
-             * Reloads and clears any warnings.
-             */
-            reloadAndClearWarnings: function () {
-                nf.Canvas.reload().done(function () {
-                    // update component visibility
-                    nf.Canvas.View.updateVisibility();
-
-                    // refresh the birdseye
-                    nf.Birdseye.refresh();
-
-                    // hide the refresh link on the canvas
-                    $('#stats-last-refreshed').removeClass('alert');
-                    $('#refresh-required-container').hide();
-
-                    // hide the refresh link on the settings
-                    $('#settings-last-refreshed').removeClass('alert');
-                    $('#settings-refresh-required-icon').hide();
-                }).fail(function () {
-                    nf.Dialog.showOkDialog({
-                        dialogContent: 'Unable to refresh the current group.',
-                        overlayBackground: true
-                    });
+                // get the login config
+                var loginXhr = $.ajax({
+                    type: 'GET',
+                    url: config.urls.accessConfig,
+                    dataType: 'json'
                 });
+
+                $.when(loginXhr).done(function (loginResult) {
+                    self.supportsLogin = loginResult.config.supportsLogin;
+                }).fail(nf.Common.handleAjaxError);
             },
 
             /**
-             * The login link.
+             * Boolean describing whether or not the NiFi instance supports login.
              */
-            loginLink: {
-                shell: {
-                    /**
-                     * Launch the login shell.
-                     */
-                    launch: function () {
-                        nf.Shell.showPage('login', false);
-                    }
-                }
-            },
+            supportsLogin: undefined,
 
             /**
-             * Logout.
+             * The login shell controller.
              */
-            logoutLink: {
-                logout: function () {
-                    nf.Storage.removeItem("jwt");
-                    window.location = '/nifi';
+            shell: {
+
+                /**
+                 * Launch the login shell.
+                 */
+                launch: function () {
+                    nf.Shell.showPage('login', false);
                 }
             }
         };
-        var headerCtrl = new HeaderCtrl(toolboxCtrl, globalMenuCtrl);
-        headerCtrl.register();
-        return headerCtrl;
+
+        /**
+         * The logout controller.
+         */
+        this.logoutCtrl = {
+            logout: function () {
+                nf.Storage.removeItem("jwt");
+                window.location = '/nifi';
+            }
+        };
     }
 
-    HeaderCtrl.$inject = ['serviceProvider', 'toolboxCtrl', 'globalMenuCtrl'];
+    HeaderCtrl.prototype = {
+        constructor: HeaderCtrl,
 
-    return HeaderCtrl;
-}());
+        /**
+         *  Register the header controller.
+         */
+        register: function () {
+            if (serviceProvider.headerCtrl === undefined) {
+                serviceProvider.register('headerCtrl', headerCtrl);
+            }
+        },
+
+        /**
+         * Initialize the canvas header.
+         *
+         * @argument {boolean} supportsLogin    Whether login is supported.
+         */
+        init: function () {
+            this.toolboxCtrl.init();
+            this.globalMenuCtrl.init();
+            this.flowStatusCtrl.init();
+            this.loginCtrl.init();
+        },
+
+        /**
+         * Reloads and clears any warnings.
+         */
+        reloadAndClearWarnings: function () {
+            nf.Canvas.reload().done(function () {
+                // update component visibility
+                nf.Canvas.View.updateVisibility();
+
+                // refresh the birdseye
+                nf.Birdseye.refresh();
+
+                // hide the refresh link on the canvas
+                $('#stats-last-refreshed').removeClass('alert');
+                $('#refresh-required-container').hide();
+
+                // hide the refresh link on the settings
+                $('#settings-last-refreshed').removeClass('alert');
+                $('#settings-refresh-required-icon').hide();
+            }).fail(function () {
+                nf.Dialog.showOkDialog({
+                    dialogContent: 'Unable to refresh the current group.',
+                    overlayBackground: true
+                });
+            });
+        }
+    }
+
+    var headerCtrl = new HeaderCtrl(toolboxCtrl, globalMenuCtrl, flowStatusCtrl);
+    headerCtrl.register();
+    return headerCtrl;
+};
