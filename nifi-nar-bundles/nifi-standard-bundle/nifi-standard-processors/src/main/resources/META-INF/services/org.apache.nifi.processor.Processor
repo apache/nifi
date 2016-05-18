@@ -35,6 +35,7 @@ org.apache.nifi.processors.standard.GetFile
 org.apache.nifi.processors.standard.GetFTP
 org.apache.nifi.processors.standard.GetHTTP
 org.apache.nifi.processors.standard.GetSFTP
+org.apache.nifi.processors.standard.GetSCP
 org.apache.nifi.processors.standard.HandleHttpRequest
 org.apache.nifi.processors.standard.HandleHttpResponse
 org.apache.nifi.processors.standard.HashAttribute
@@ -62,6 +63,7 @@ org.apache.nifi.processors.standard.PutFile
 org.apache.nifi.processors.standard.PutFTP
 org.apache.nifi.processors.standard.PutJMS
 org.apache.nifi.processors.standard.PutSFTP
+org.apache.nifi.processors.standard.PutSCP
 org.apache.nifi.processors.standard.PutSQL
 org.apache.nifi.processors.standard.PutSyslog
 org.apache.nifi.processors.standard.PutUDP
