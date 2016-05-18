@@ -105,7 +105,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         String transactionUrl;
         switch (responseCode) {
             case RESPONSE_CODE_CREATED :
-                transactionUrl = getHoldUri();
+                transactionUrl = readTransactionUrl();
                 if (isEmpty(transactionUrl)) {
                     throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
                 }
@@ -149,7 +149,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         if(batchDurationMillis > 0) urlConnection.setRequestProperty(HANDSHAKE_PROPERTY_BATCH_DURATION, String.valueOf(batchDurationMillis));
     }
 
-    public String openConnectionForReceive(String transactionUrl, CommunicationsSession commSession) throws IOException {
+    public boolean openConnectionForReceive(String transactionUrl, CommunicationsSession commSession) throws IOException {
 
         urlConnection = getConnection(transactionUrl);
         urlConnection.setRequestMethod("GET");
@@ -165,16 +165,11 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         switch (responseCode) {
             case RESPONSE_CODE_OK :
                 logger.debug("Server returned RESPONSE_CODE_OK, indicating there was no data.");
-                return null;
+                return false;
 
-            case RESPONSE_CODE_CREATED :
-                String holdUri = getHoldUri();
-                if (holdUri != null) {
-                    ((HttpInput)commSession.getInput()).setInputStream(urlConnection.getInputStream());
-                    return holdUri;
-                }
-
-                throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
+            case RESPONSE_CODE_ACCEPTED :
+                ((HttpInput)commSession.getInput()).setInputStream(urlConnection.getInputStream());
+                return true;
 
             default:
                 throw handleErrResponse(responseCode);
@@ -199,39 +194,35 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         }
     }
 
-    private String getHoldUri() {
+    private String readTransactionUrl() {
         final String locationUriIntentHeader = urlConnection.getHeaderField(LOCATION_URI_INTENT_NAME);
         logger.debug("locationUriIntentHeader={}", locationUriIntentHeader);
         if (locationUriIntentHeader != null) {
             if (LOCATION_URI_INTENT_VALUE.equals(locationUriIntentHeader)) {
-                String holdUri = urlConnection.getHeaderField(LOCATION_HEADER_NAME);
-                logger.debug("holdUri={}", holdUri);
-                return holdUri;
+                String transactionUrl = urlConnection.getHeaderField(LOCATION_HEADER_NAME);
+                logger.debug("transactionUrl={}", transactionUrl);
+                return transactionUrl;
             }
         }
         return null;
     }
 
-    public String finishTransferFlowFiles(CommunicationsSession commSession) throws IOException {
+    public void finishTransferFlowFiles(CommunicationsSession commSession) throws IOException {
 
         commSession.getOutput().getOutputStream().flush();
 
         int responseCode = urlConnection.getResponseCode();
 
         switch (responseCode) {
-            case RESPONSE_CODE_CREATED :
-                String holdUri = getHoldUri();
-                if (holdUri != null) {
-                    ((HttpInput)commSession.getInput()).setInputStream(urlConnection.getInputStream());
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    StreamUtils.copy(commSession.getInput().getInputStream(), bos);
-                    String receivedChecksum = bos.toString("UTF-8");
-                    ((HttpCommunicationsSession)commSession).setChecksum(receivedChecksum);
-                    logger.debug("receivedChecksum={}", receivedChecksum);
-                    return holdUri;
-                }
+            case RESPONSE_CODE_ACCEPTED :
+                ((HttpInput)commSession.getInput()).setInputStream(urlConnection.getInputStream());
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                StreamUtils.copy(commSession.getInput().getInputStream(), bos);
+                String receivedChecksum = bos.toString("UTF-8");
+                ((HttpCommunicationsSession)commSession).setChecksum(receivedChecksum);
+                logger.debug("receivedChecksum={}", receivedChecksum);
+                break;
 
-                throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
 
             default:
                 throw handleErrResponse(responseCode);
@@ -239,10 +230,10 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
 
     }
 
-    public TransactionResultEntity commitReceivingFlowFiles(String holdUri, String checksum) throws IOException {
-        logger.debug("Sending commitReceivingFlowFiles request to holdUri: {}, checksum=", holdUri, checksum);
+    public TransactionResultEntity commitReceivingFlowFiles(String transactionUrl, String checksum) throws IOException {
+        logger.debug("Sending commitReceivingFlowFiles request to transactionUrl: {}, checksum=", transactionUrl, checksum);
 
-        urlConnection = getConnection(holdUri + "?checksum=" + checksum);
+        urlConnection = getConnection(transactionUrl + "?checksum=" + checksum);
         urlConnection.setRequestMethod("DELETE");
         urlConnection.setRequestProperty("Accept", "application/json");
         urlConnection.setRequestProperty(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
@@ -289,9 +280,9 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
         }
     }
 
-    public TransactionResultEntity commitTransferFlowFiles(String holdUri, ResponseCode clientResponse) throws IOException {
-        String requestUrl = holdUri + "?responseCode=" + clientResponse.getCode();
-        logger.debug("Sending commitTransferFlowFiles request to holdUri: {}", requestUrl);
+    public TransactionResultEntity commitTransferFlowFiles(String transactionUrl, ResponseCode clientResponse) throws IOException {
+        String requestUrl = transactionUrl + "?responseCode=" + clientResponse.getCode();
+        logger.debug("Sending commitTransferFlowFiles request to transactionUrl: {}", requestUrl);
 
         urlConnection = getConnection(requestUrl);
         urlConnection.setRequestMethod("DELETE");

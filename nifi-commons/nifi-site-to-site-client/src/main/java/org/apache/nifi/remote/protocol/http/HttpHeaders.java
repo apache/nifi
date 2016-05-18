@@ -20,7 +20,7 @@ public class HttpHeaders {
 
     public static final String LOCATION_HEADER_NAME = "Location";
     public static final String LOCATION_URI_INTENT_NAME = "x-location-uri-intent";
-    public static final String LOCATION_URI_INTENT_VALUE = "transaction-on-hold";
+    public static final String LOCATION_URI_INTENT_VALUE = "transaction-url";
 
     public static final String ACCEPT_ENCODING = "Accept-Encoding";
     public static final String PROTOCOL_VERSION = "x-nifi-site-to-site-protocol-version";

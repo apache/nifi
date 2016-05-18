@@ -39,6 +39,7 @@ public class NiFiRestApiUtil {
 
     protected static final int RESPONSE_CODE_OK = 200;
     protected static final int RESPONSE_CODE_CREATED = 201;
+    protected static final int RESPONSE_CODE_ACCEPTED = 202;
     protected static final int RESPONSE_CODE_SEE_OTHER = 303;
     protected static final int RESPONSE_CODE_BAD_REQUEST = 400;
     protected static final int RESPONSE_CODE_UNAUTHORIZED = 401;

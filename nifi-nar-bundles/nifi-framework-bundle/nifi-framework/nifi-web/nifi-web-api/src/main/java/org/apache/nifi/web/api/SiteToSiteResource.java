@@ -27,11 +27,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
@@ -43,7 +41,6 @@ import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
 import org.apache.nifi.remote.io.http.HttpOutput;
 import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
-import org.apache.nifi.remote.protocol.FlowFileTransaction;
 import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.socket.HandshakeProperty;
@@ -87,9 +84,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -119,7 +113,6 @@ public class SiteToSiteResource extends ApplicationResource {
 
     public static final String CHECK_SUM = "checksum";
     public static final String RESPONSE_CODE = "responseCode";
-    public static final String CONTEXT_ATTRIBUTE_TRANSACTION_ON_HOLD = "siteToSiteTransactionOnHold";
 
 
     private static final String PORT_TYPE_INPUT = "input-ports";
@@ -131,11 +124,10 @@ public class SiteToSiteResource extends ApplicationResource {
     private NiFiProperties properties;
     private final ResponseCreator responseCreator = new ResponseCreator();
     private final VersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
+    private final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
 
     @Context
     private ResourceContext resourceContext;
-
-    private final AtomicReference<ProcessGroup> rootGroup = new AtomicReference<>();
 
     /**
      * Returns the details of this NiFi.
@@ -352,17 +344,12 @@ public class SiteToSiteResource extends ApplicationResource {
         }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        String transactionId = UUID.randomUUID().toString();
+        String transactionId = transactionManager.createTransaction();
         Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
 
         try {
-            ConcurrentMap<String, FlowFileTransaction> transactionOnHold =
-                    (ConcurrentMap<String, FlowFileTransaction>)context.getAttribute(CONTEXT_ATTRIBUTE_TRANSACTION_ON_HOLD);
-
             // Execute handshake.
-            initiateServerProtocol(peer, transactionOnHold, transportProtocolVersion);
-
-            transactionOnHold.put(transactionId, new FlowFileTransaction());
+            initiateServerProtocol(peer, transportProtocolVersion);
 
             TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.PROPERTIES_OK.getCode());
@@ -431,20 +418,15 @@ public class SiteToSiteResource extends ApplicationResource {
             return responseCreator.badRequestResponse(e);
         }
 
-        final ConcurrentMap<String, FlowFileTransaction> transactionOnHold =
-                (ConcurrentMap<String, FlowFileTransaction>)context.getAttribute(CONTEXT_ATTRIBUTE_TRANSACTION_ON_HOLD);
-
-        FlowFileTransaction transaction = transactionOnHold.remove(transactionId);
-        if(transaction == null) {
+        if(!transactionManager.isTransactionActive(transactionId)) {
             return responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
         }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        String receiveTransactionId = UUID.randomUUID().toString();
-        Peer peer = constructPeer(req, inputStream, out, portId, receiveTransactionId);
+        Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
 
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transactionOnHold, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
             int numOfFlowFiles = serverProtocol.getPort().receiveFlowFiles(peer, serverProtocol);
             logger.debug("finished receiving flow files, numOfFlowFiles={}", numOfFlowFiles);
             if (numOfFlowFiles < 1) {
@@ -465,21 +447,14 @@ public class SiteToSiteResource extends ApplicationResource {
         }
 
         String serverChecksum = ((HttpServerCommunicationsSession)peer.getCommunicationsSession()).getChecksum();
-        return responseCreator.locationResponse(uriInfo, PORT_TYPE_INPUT, portId, receiveTransactionId, serverChecksum, transportProtocolVersion);
+        return responseCreator.acceptedResponse(serverChecksum, transportProtocolVersion);
     }
 
-    private HttpFlowFileServerProtocol initiateServerProtocol(Peer peer, ServletContext context, Integer transportProtocolVersion) throws IOException {
-        ConcurrentMap<String, FlowFileTransaction> transactionOnHold =
-                (ConcurrentMap<String, FlowFileTransaction>)context.getAttribute(CONTEXT_ATTRIBUTE_TRANSACTION_ON_HOLD);
-
-        return initiateServerProtocol(peer, transactionOnHold, transportProtocolVersion);
-    }
-
-    private HttpFlowFileServerProtocol initiateServerProtocol(Peer peer, ConcurrentMap<String, FlowFileTransaction> transactionOnHold, Integer transportProtocolVersion) throws IOException {
+    private HttpFlowFileServerProtocol initiateServerProtocol(Peer peer, Integer transportProtocolVersion) throws IOException {
         // Switch transaction protocol version based on transport protocol version.
         TransportProtocolVersionNegotiator negotiatedTransportProtocolVersion = new TransportProtocolVersionNegotiator(transportProtocolVersion);
         VersionNegotiator versionNegotiator = new StandardVersionNegotiator(negotiatedTransportProtocolVersion.getTransactionProtocolVersion());
-        HttpFlowFileServerProtocol serverProtocol = new HttpFlowFileServerProtocol(transactionOnHold, versionNegotiator);
+        HttpFlowFileServerProtocol serverProtocol = new HttpFlowFileServerProtocol(versionNegotiator);
         HttpRemoteSiteListener.getInstance().setupServerProtocol(serverProtocol);
         serverProtocol.setNodeInformant(clusterManager);
         serverProtocol.handshake(peer);
@@ -526,18 +501,6 @@ public class SiteToSiteResource extends ApplicationResource {
         String peerUrl = "nifi://" + clientHostName + ":" + clientPort;
         String clusterUrl = "nifi://localhost:" + req.getLocalPort();
         return new Peer(peerDescription, commSession, peerUrl, clusterUrl);
-    }
-
-    private RootGroupPort getRootGroupPort(String id, boolean input) {
-        RootGroupPort port = null;
-        for(RootGroupPort p : input ? controllerFacade.getInputPorts() : controllerFacade.getOutputPorts()){
-            if(p.getIdentifier().equals(id)){
-                port = p;
-                break;
-            }
-        }
-
-        return port;
     }
 
     @DELETE
@@ -601,12 +564,16 @@ public class SiteToSiteResource extends ApplicationResource {
             return responseCreator.badRequestResponse(e);
         }
 
+        if(!transactionManager.isTransactionActive(transactionId)) {
+            return responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
+        }
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
 
         TransactionResultEntity entity = new TransactionResultEntity();
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, context, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
             int flowFileSent = serverProtocol.commitTransferTransaction(peer, checksum);
             entity.setResponseCode(ResponseCode.CONFIRM_TRANSACTION.getCode());
             entity.setFlowFileSent(flowFileSent);
@@ -694,12 +661,16 @@ public class SiteToSiteResource extends ApplicationResource {
             return responseCreator.badRequestResponse(e);
         }
 
+        if(!transactionManager.isTransactionActive(transactionId)) {
+            return responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
+        }
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
 
         TransactionResultEntity entity = new TransactionResultEntity();
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, context, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
             HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
             // Pass the response code sent from the client.
             String inputErrMessage = null;
@@ -801,22 +772,16 @@ public class SiteToSiteResource extends ApplicationResource {
             return responseCreator.badRequestResponse(e);
         }
 
-        final ConcurrentMap<String, FlowFileTransaction> transactionOnHold =
-                (ConcurrentMap<String, FlowFileTransaction>)context.getAttribute(CONTEXT_ATTRIBUTE_TRANSACTION_ON_HOLD);
-
-        FlowFileTransaction transaction = transactionOnHold.remove(transactionId);
-        if(transaction == null) {
+        if(!transactionManager.isTransactionActive(transactionId)) {
             return responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
         }
-
-        String transferTransactionId = UUID.randomUUID().toString();
 
         // Before opening the real output stream for HTTP response,
         // use this temporary output stream to buffer handshake result.
         final ByteArrayOutputStream tempBos = new ByteArrayOutputStream();
-        final Peer peer = constructPeer(req, inputStream, tempBos, portId, transferTransactionId);
+        final Peer peer = constructPeer(req, inputStream, tempBos, portId, transactionId);
         try {
-            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transactionOnHold, transportProtocolVersion);
+            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
 
             StreamingOutput flowFileContent = new StreamingOutput() {
                 @Override
@@ -839,7 +804,7 @@ public class SiteToSiteResource extends ApplicationResource {
                 }
             };
 
-            return responseCreator.locationResponse(uriInfo, PORT_TYPE_OUTPUT, portId, transferTransactionId, flowFileContent, transportProtocolVersion);
+            return responseCreator.acceptedResponse(flowFileContent, transportProtocolVersion);
 
         } catch (HandshakeException e) {
             return responseCreator.handshakeExceptionResponse(e);
@@ -958,6 +923,11 @@ public class SiteToSiteResource extends ApplicationResource {
                     statusCd = Response.Status.BAD_REQUEST;
             }
             return Response.status(statusCd).type(MediaType.APPLICATION_JSON_TYPE).entity(entity).build();
+        }
+
+        private Response acceptedResponse(Object entity, Integer protocolVersion) {
+            return noCache(protocolVersion(Response.status(Response.Status.ACCEPTED), protocolVersion))
+                    .entity(entity).build();
         }
 
         private Response locationResponse(UriInfo uriInfo, String portType, String portId, String transactionId, Object entity, Integer protocolVersion) {
