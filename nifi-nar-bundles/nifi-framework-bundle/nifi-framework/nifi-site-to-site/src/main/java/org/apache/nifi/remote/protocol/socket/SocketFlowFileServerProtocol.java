@@ -27,6 +27,7 @@ import org.apache.nifi.remote.protocol.AbstractFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.HandshakenProperties;
 import org.apache.nifi.remote.protocol.RequestType;
+import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.util.NiFiProperties;
 
 import java.io.DataInputStream;

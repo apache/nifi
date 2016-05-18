@@ -76,7 +76,7 @@ public class NodeProtocolSenderImplTest {
         mockServiceLocator = mock(ClusterServiceLocator.class);
         mockHandler = mock(ProtocolHandler.class);
 
-        nodeIdentifier = new NodeIdentifier("1", "localhost", 1234, "localhost", 5678, "localhost", 3821, false);
+        nodeIdentifier = new NodeIdentifier("1", "localhost", 1234, "localhost", 5678, "localhost", 3821, 80, false);
 
         ProtocolContext protocolContext = new JaxbProtocolContext(JaxbProtocolUtils.JAXB_CONTEXT);
 

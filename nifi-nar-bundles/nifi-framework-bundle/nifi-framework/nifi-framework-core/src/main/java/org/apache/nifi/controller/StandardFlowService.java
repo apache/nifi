@@ -206,7 +206,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             this.nodeId = new NodeIdentifier(nodeUuid,
                 nodeApiAddress.getHostName(), nodeApiAddress.getPort(),
                 nodeSocketAddress.getHostName(), nodeSocketAddress.getPort(),
-                properties.getRemoteInputHost(), properties.getRemoteInputPort(), properties.isSiteToSiteSecure());
+                properties.getRemoteInputHost(), properties.getRemoteInputPort(),
+                properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
 
         } else {
             this.configuredForClustering = false;

@@ -44,7 +44,7 @@ import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.socket.HandshakeProperty;
-import org.apache.nifi.remote.protocol.socket.ResponseCode;
+import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -54,7 +54,6 @@ import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.controller.ControllerFacade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,7 +118,6 @@ public class SiteToSiteResource extends ApplicationResource {
     private static final String PORT_TYPE_OUTPUT = "output-ports";
 
     private NiFiServiceFacade serviceFacade;
-    private ControllerFacade controllerFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
     private final ResponseCreator responseCreator = new ResponseCreator();
@@ -232,6 +230,9 @@ public class SiteToSiteResource extends ApplicationResource {
     @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
     @Context HttpServletRequest req) {
 
+        if (!properties.isSiteToSiteHttpEnabled()) {
+            return responseCreator.httpSiteToSiteIsNotEnabledResponse();
+        }
 
         final Integer transportProtocolVersion;
         try {
@@ -249,31 +250,25 @@ public class SiteToSiteResource extends ApplicationResource {
             final Collection<NodeInformation> nodeInfos = clusterNodeInfo.getNodeInformation();
             peers = new ArrayList<>(nodeInfos.size());
             for (NodeInformation nodeInfo : nodeInfos) {
-                if (nodeInfo.getSiteToSitePort() == null) {
+                if (nodeInfo.getSiteToSiteHttpApiPort() == null) {
                     continue;
                 }
                 PeerDTO peer = new PeerDTO();
-                // TODO: Need to set API host name instead?
                 peer.setHostname(nodeInfo.getSiteToSiteHostname());
-                // TODO: Determine which hostname:port to use based on isSiteToSiteSecure.
-                // This port is configured in a context of NiFi Cluster Manager's use,
-                // nodeInfo.getAPIPort() returns nifi.web.http.port or nifi.web.https.port
-                // based on nifi.cluster.protocol.is.secure.
-                peer.setPort(nodeInfo.getAPIPort());
+                peer.setPort(nodeInfo.getSiteToSiteHttpApiPort());
                 peer.setSecure(nodeInfo.isSiteToSiteSecure());
                 peer.setFlowFileCount(nodeInfo.getTotalFlowFiles());
                 peers.add(peer);
             }
         } else {
             // Standalone mode.
-            // If this request is sent via HTTPS, subsequent requests should be sent via HTTPS.
             PeerDTO peer = new PeerDTO();
             // req.getLocalName returns private IP address, that can't be accessed from client in some environments.
             // So, use the value defined in nifi.properties instead when it is defined.
             String remoteInputHost = properties.getRemoteInputHost();
             peer.setHostname(isEmpty(remoteInputHost) ? req.getLocalName() : remoteInputHost);
-            peer.setPort(req.getLocalPort());
-            peer.setSecure(req.isSecure());
+            peer.setPort(properties.getRemoteInputHttpPort());
+            peer.setSecure(properties.isSiteToSiteSecure());
             peer.setFlowFileCount(0);  // doesn't matter how many FlowFiles we have, because we're the only host.
 
             peers = new ArrayList<>(1);
@@ -326,26 +321,21 @@ public class SiteToSiteResource extends ApplicationResource {
             @Context UriInfo uriInfo,
             InputStream inputStream) {
 
-        logger.debug("createPortTransaction request: clientId={}, portType={}, portId={}", clientId.getClientId(), portType, portId);
-
-        if (properties.isClusterManager()) {
-            return responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");
-        }
-
-        final Integer transportProtocolVersion;
-        try {
-            transportProtocolVersion = negotiateTransportProtocolVersion(req);
-        } catch (BadRequestException e) {
-            return responseCreator.badRequestResponse(e);
+        final ValidateRequestResult validationResult = validateResult(req, clientId, portId);
+        if (validationResult.errResponse != null) {
+            return validationResult.errResponse;
         }
 
         if(!PORT_TYPE_INPUT.equals(portType) && !PORT_TYPE_OUTPUT.equals(portType)){
             return responseCreator.wrongPortTypeResponse(clientId, portType, portId);
         }
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        String transactionId = transactionManager.createTransaction();
-        Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
+        logger.debug("createPortTransaction request: clientId={}, portType={}, portId={}", clientId.getClientId(), portType, portId);
+
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final String transactionId = transactionManager.createTransaction();
+        final Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
+        final int transportProtocolVersion = validationResult.transportProtocolVersion;
 
         try {
             // Execute handshake.
@@ -368,7 +358,7 @@ public class SiteToSiteResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.TEXT_PLAIN)
-    @Path("input-ports/{portId}/transactions/{transactionId}")
+    @Path("input-ports/{portId}/transactions/{transactionId}/flow-files")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Transfer flow files to input port",
@@ -405,25 +395,16 @@ public class SiteToSiteResource extends ApplicationResource {
             @Context UriInfo uriInfo,
             InputStream inputStream) {
 
+        final ValidateRequestResult validationResult = validateResult(req, clientId, portId, transactionId);
+        if (validationResult.errResponse != null) {
+            return validationResult.errResponse;
+        }
+
         logger.debug("receiveFlowFiles request: clientId={}, portId={}", clientId.getClientId(), portId);
 
-        if (properties.isClusterManager()) {
-            return responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");
-        }
-
-        final Integer transportProtocolVersion;
-        try {
-            transportProtocolVersion = negotiateTransportProtocolVersion(req);
-        } catch (BadRequestException e) {
-            return responseCreator.badRequestResponse(e);
-        }
-
-        if(!transactionManager.isTransactionActive(transactionId)) {
-            return responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
-        }
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
+        final int transportProtocolVersion = validationResult.transportProtocolVersion;
 
         try {
             HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
@@ -551,27 +532,19 @@ public class SiteToSiteResource extends ApplicationResource {
             @Context ServletContext context,
             InputStream inputStream) {
 
+        final ValidateRequestResult validationResult = validateResult(req, clientId, portId, transactionId);
+        if (validationResult.errResponse != null) {
+            return validationResult.errResponse;
+        }
+
+
         logger.debug("commitOutputPortTransaction request: clientId={}, portId={}, transactionId={}", clientId, portId, transactionId);
 
-        if (properties.isClusterManager()) {
-            return responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");
-        }
+        final int transportProtocolVersion = validationResult.transportProtocolVersion;
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
 
-        final Integer transportProtocolVersion;
-        try {
-            transportProtocolVersion = negotiateTransportProtocolVersion(req);
-        } catch (BadRequestException e) {
-            return responseCreator.badRequestResponse(e);
-        }
-
-        if(!transactionManager.isTransactionActive(transactionId)) {
-            return responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
-        }
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
-
-        TransactionResultEntity entity = new TransactionResultEntity();
+        final TransactionResultEntity entity = new TransactionResultEntity();
         try {
             HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
             int flowFileSent = serverProtocol.commitTransferTransaction(peer, checksum);
@@ -647,28 +620,20 @@ public class SiteToSiteResource extends ApplicationResource {
             @Context ServletContext context,
             InputStream inputStream) {
 
+
+        final ValidateRequestResult validationResult = validateResult(req, clientId, portId, transactionId);
+        if (validationResult.errResponse != null) {
+            return validationResult.errResponse;
+        }
+
         logger.debug("commitInputPortTransaction request: clientId={}, portId={}, transactionId={}, responseCode={}",
                 clientId, portId, transactionId, responseCode);
 
-        if (properties.isClusterManager()) {
-            return responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");
-        }
+        final int transportProtocolVersion = validationResult.transportProtocolVersion;
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
 
-        final Integer transportProtocolVersion;
-        try {
-            transportProtocolVersion = negotiateTransportProtocolVersion(req);
-        } catch (BadRequestException e) {
-            return responseCreator.badRequestResponse(e);
-        }
-
-        if(!transactionManager.isTransactionActive(transactionId)) {
-            return responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
-        }
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Peer peer = constructPeer(req, inputStream, out, portId, transactionId);
-
-        TransactionResultEntity entity = new TransactionResultEntity();
+        final TransactionResultEntity entity = new TransactionResultEntity();
         try {
             HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
             HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
@@ -720,7 +685,7 @@ public class SiteToSiteResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    @Path("output-ports/{portId}/transactions/{transactionId}")
+    @Path("output-ports/{portId}/transactions/{transactionId}/flow-files")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Receive flow files from output port",
@@ -759,27 +724,18 @@ public class SiteToSiteResource extends ApplicationResource {
             @Context UriInfo uriInfo,
             InputStream inputStream) {
 
+        final ValidateRequestResult validationResult = validateResult(req, clientId, portId, transactionId);
+        if (validationResult.errResponse != null) {
+            return validationResult.errResponse;
+        }
+
         logger.debug("transferFlowFiles request: clientId={}, portId={}", clientId.getClientId(), portId);
-
-        if (properties.isClusterManager()) {
-            return responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");
-        }
-
-        final Integer transportProtocolVersion;
-        try {
-            transportProtocolVersion = negotiateTransportProtocolVersion(req);
-        } catch (BadRequestException e) {
-            return responseCreator.badRequestResponse(e);
-        }
-
-        if(!transactionManager.isTransactionActive(transactionId)) {
-            return responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
-        }
 
         // Before opening the real output stream for HTTP response,
         // use this temporary output stream to buffer handshake result.
         final ByteArrayOutputStream tempBos = new ByteArrayOutputStream();
         final Peer peer = constructPeer(req, inputStream, tempBos, portId, transactionId);
+        final int transportProtocolVersion = validationResult.transportProtocolVersion;
         try {
             final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
 
@@ -814,6 +770,42 @@ public class SiteToSiteResource extends ApplicationResource {
         }
     }
 
+    private class ValidateRequestResult {
+        private Integer transportProtocolVersion;
+        private Response errResponse;
+    }
+
+    private ValidateRequestResult validateResult(HttpServletRequest req, ClientIdParameter clientId, String portId) {
+        return validateResult(req, clientId, portId, null);
+    }
+
+    private ValidateRequestResult validateResult(HttpServletRequest req, ClientIdParameter clientId, String portId, String transactionId) {
+        ValidateRequestResult result = new ValidateRequestResult();
+        if(!properties.isSiteToSiteHttpEnabled()) {
+            result.errResponse = responseCreator.httpSiteToSiteIsNotEnabledResponse();
+            return result;
+        }
+
+        if (properties.isClusterManager()) {
+            result.errResponse = responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");
+            return result;
+        }
+
+        try {
+            result.transportProtocolVersion = negotiateTransportProtocolVersion(req);
+        } catch (BadRequestException e) {
+            result.errResponse = responseCreator.badRequestResponse(e);
+            return result;
+        }
+
+        if(!isEmpty(transactionId) && !transactionManager.isTransactionActive(transactionId)) {
+            result.errResponse = responseCreator.transactionNotFoundResponse(clientId, portId, transactionId);
+            return  result;
+        }
+
+        return result;
+    }
+
 
     // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
@@ -828,15 +820,14 @@ public class SiteToSiteResource extends ApplicationResource {
         this.properties = properties;
     }
 
-    public void setControllerFacade(ControllerFacade controllerFacade) {
-        this.controllerFacade = controllerFacade;
-    }
-
-
     private class ResponseCreator {
 
         private Response nodeTypeErrorResponse(String errMsg) {
             return noCache(Response.status(Response.Status.FORBIDDEN)).type(MediaType.TEXT_PLAIN).entity(errMsg).build();
+        }
+
+        private Response httpSiteToSiteIsNotEnabledResponse() {
+            return noCache(Response.status(Response.Status.FORBIDDEN)).type(MediaType.TEXT_PLAIN).entity("HTTP(S) Site-to-Site is not enabled on this host.").build();
         }
 
         private Response wrongPortTypeResponse(ClientIdParameter clientId, String portType, String portId) {

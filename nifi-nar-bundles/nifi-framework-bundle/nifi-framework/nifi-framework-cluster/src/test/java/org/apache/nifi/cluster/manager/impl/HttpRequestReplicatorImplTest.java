@@ -347,7 +347,7 @@ public class HttpRequestReplicatorImplTest {
     private Set<NodeIdentifier> createNodes(int num, String host, int apiPort) {
         Set<NodeIdentifier> result = new HashSet<>();
         for (int i = 0; i < num; i++) {
-            result.add(new NodeIdentifier(String.valueOf(i), host, apiPort, host, 1, "localhost", 1234, false));
+            result.add(new NodeIdentifier(String.valueOf(i), host, apiPort, host, 1, "localhost", 1234, null, false));
         }
         return result;
     }

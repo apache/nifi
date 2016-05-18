@@ -24,8 +24,8 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.SiteToSiteRestApiUtil;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
 import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
-import org.apache.nifi.remote.protocol.socket.Response;
-import org.apache.nifi.remote.protocol.socket.ResponseCode;
+import org.apache.nifi.remote.protocol.Response;
+import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
@@ -134,7 +134,7 @@ public class HttpClientTransaction extends AbstractTransaction {
                             logger.debug("{} BAD_CHECKSUM, The transaction is canceled on server properly.", this);
                             break;
                         default:
-                            logger.warn("{} BAD_CHECKSUM, Expected the transaction is canceled on server, but received {}.");
+                            logger.warn("{} BAD_CHECKSUM, Expected the transaction is canceled on server, but received {}.", this, badChecksumCancelResponse);
                             break;
                     }
                     break;

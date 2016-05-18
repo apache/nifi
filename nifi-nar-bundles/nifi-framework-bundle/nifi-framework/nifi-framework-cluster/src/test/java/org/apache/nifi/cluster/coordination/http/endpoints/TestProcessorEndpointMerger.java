@@ -36,14 +36,14 @@ public class TestProcessorEndpointMerger {
         final ProcessorEndpointMerger merger = new ProcessorEndpointMerger();
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
 
-        final NodeIdentifier nodeId1234 = new NodeIdentifier("1234", "localhost", 9000, "localhost", 9001, "localhost", 9002, false);
+        final NodeIdentifier nodeId1234 = new NodeIdentifier("1234", "localhost", 9000, "localhost", 9001, "localhost", 9002, 9003, false);
         final List<String> nodeValidationErrors1234 = new ArrayList<>();
         nodeValidationErrors1234.add("error 1");
         nodeValidationErrors1234.add("error 2");
 
         merger.mergeValidationErrors(validationErrorMap, nodeId1234, nodeValidationErrors1234);
 
-        final NodeIdentifier nodeXyz = new NodeIdentifier("xyz", "localhost", 8000, "localhost", 8001, "localhost", 8002, false);
+        final NodeIdentifier nodeXyz = new NodeIdentifier("xyz", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false);
         final List<String> nodeValidationErrorsXyz = new ArrayList<>();
         nodeValidationErrorsXyz.add("error 1");
 

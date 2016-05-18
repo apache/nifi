@@ -19,6 +19,8 @@ package org.apache.nifi.remote;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
 import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,10 +36,13 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.util.NiFiProperties.DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL;
+import static org.apache.nifi.util.NiFiProperties.SITE_TO_SITE_HTTP_TRANSACTION_TTL;
+
 public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpRemoteSiteListener.class);
-    private static final int TRANSACTION_TTL_SEC = 30;
+    private final int transactionTtlSec;
     private static HttpRemoteSiteListener instance;
 
     private final Map<String, FlowFileTransaction> transactions = new ConcurrentHashMap<>();
@@ -58,6 +63,19 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
                 return thread;
             }
         });
+
+        NiFiProperties properties = NiFiProperties.getInstance();
+        int txTtlSec;
+        try {
+            final String snapshotFrequency = properties.getProperty(SITE_TO_SITE_HTTP_TRANSACTION_TTL, DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL);
+            txTtlSec = (int) FormatUtils.getTimeDuration(snapshotFrequency, TimeUnit.SECONDS);
+        } catch (final Exception e) {
+            txTtlSec = (int) FormatUtils.getTimeDuration(DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL, TimeUnit.SECONDS);
+            logger.warn("Failed to parse {} due to {}, use default as {} secs.",
+                    SITE_TO_SITE_HTTP_TRANSACTION_TTL, e.getMessage(), txTtlSec);
+        }
+        transactionTtlSec = txTtlSec;
+
     }
 
     public static HttpRemoteSiteListener getInstance() {
@@ -112,7 +130,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
             }
             logger.info("Transaction maintenance task finished. originalSize={}, currentSize={}", originalSize, transactions.size());
 
-        }, 0, TRANSACTION_TTL_SEC / 2, TimeUnit.SECONDS);
+        }, 0, transactionTtlSec / 2, TimeUnit.SECONDS);
     }
 
     @Override
@@ -148,7 +166,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     private boolean isTransactionExpired(FlowFileTransaction transaction) {
         long elapsedSec = transaction.getStopWatch().getElapsed(TimeUnit.SECONDS);
-        if (elapsedSec >= TRANSACTION_TTL_SEC) {
+        if (elapsedSec >= transactionTtlSec) {
             return true;
         }
         return false;

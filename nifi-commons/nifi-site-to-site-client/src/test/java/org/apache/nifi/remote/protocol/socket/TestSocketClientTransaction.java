@@ -28,6 +28,8 @@ import org.apache.nifi.remote.io.socket.SocketChannelInput;
 import org.apache.nifi.remote.io.socket.SocketChannelOutput;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.RequestType;
+import org.apache.nifi.remote.protocol.Response;
+import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.junit.Test;

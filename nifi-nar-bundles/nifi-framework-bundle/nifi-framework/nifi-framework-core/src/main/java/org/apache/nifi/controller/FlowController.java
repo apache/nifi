@@ -283,6 +283,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final AtomicBoolean heartbeatsSuspended = new AtomicBoolean(false);
 
     private final Integer remoteInputSocketPort;
+    private final Integer remoteInputHttpPort;
     private final Boolean isSiteToSiteSecure;
     private Integer clusterManagerRemoteSitePort = null;
     private Boolean clusterManagerRemoteSiteCommsSecure = null;
@@ -469,6 +470,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         gracefulShutdownSeconds = shutdownSecs;
 
         remoteInputSocketPort = properties.getRemoteInputPort();
+        remoteInputHttpPort = properties.getRemoteInputHttpPort();
         isSiteToSiteSecure = properties.isSiteToSiteSecure();
 
         if (isSiteToSiteSecure && sslContext == null && remoteInputSocketPort != null) {
@@ -488,7 +490,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         controllerServiceProvider.setRootProcessGroup(rootGroup);
 
         if (remoteInputSocketPort == null) {
-            LOG.info("Not enabling Site-to-Site functionality because nifi.remote.input.socket.port is not set");
+            LOG.info("Not enabling RAW Socket Site-to-Site functionality because nifi.remote.input.socket.port is not set");
         } else if (isSiteToSiteSecure && sslContext == null) {
             LOG.error("Unable to create Secure Site-to-Site Listener because not all required Keystore/Truststore "
                 + "Properties are set. Site-to-Site functionality will be disabled until this problem is has been fixed.");
@@ -496,10 +498,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Register the SocketFlowFileServerProtocol as the appropriate resource for site-to-site Server Protocol
             RemoteResourceManager.setServerProtocolImplementation(SocketFlowFileServerProtocol.RESOURCE_NAME, SocketFlowFileServerProtocol.class);
             externalSiteListeners.add(new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null));
+        }
+
+        if (remoteInputHttpPort == null) {
+            LOG.info("Not enabling HTTP(S) Site-to-Site functionality because nifi.remote.input.html.enabled is not true");
+        } else {
             externalSiteListeners.add(HttpRemoteSiteListener.getInstance());
-            for(RemoteSiteListener listener : externalSiteListeners) {
-                listener.setRootGroup(rootGroup);
-            }
+        }
+
+        for(RemoteSiteListener listener : externalSiteListeners) {
+            listener.setRootGroup(rootGroup);
         }
 
         // Determine frequency for obtaining component status snapshots
