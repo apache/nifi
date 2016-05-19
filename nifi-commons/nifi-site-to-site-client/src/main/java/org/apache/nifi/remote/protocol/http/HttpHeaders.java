@@ -23,7 +23,9 @@ public class HttpHeaders {
     public static final String LOCATION_URI_INTENT_VALUE = "transaction-url";
 
     public static final String ACCEPT_ENCODING = "Accept-Encoding";
+    public static final String CONTENT_ENCODING = "Content-Encoding";
     public static final String PROTOCOL_VERSION = "x-nifi-site-to-site-protocol-version";
+    public static final String HANDSHAKE_PROPERTY_USE_COMPRESSION = "x-nifi-site-to-site-use-compression";
     public static final String HANDSHAKE_PROPERTY_REQUEST_EXPIRATION = "x-nifi-site-to-site-request-expiration";
     public static final String HANDSHAKE_PROPERTY_BATCH_COUNT = "x-nifi-site-to-site-batch-count";
     public static final String HANDSHAKE_PROPERTY_BATCH_SIZE = "x-nifi-site-to-site-batch-size";

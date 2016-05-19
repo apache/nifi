@@ -86,7 +86,7 @@ import java.util.Enumeration;
 
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.ACCEPT_ENCODING;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
@@ -450,13 +450,10 @@ public class SiteToSiteResource extends ApplicationResource {
 
         HttpServerCommunicationsSession commSession = new HttpServerCommunicationsSession(inputStream, outputStream, transactionId);
 
-        boolean gzip = false;
-        Enumeration<String> acceptEncoding = req.getHeaders(ACCEPT_ENCODING);
-        while (acceptEncoding.hasMoreElements()) {
-            if ("gzip".equalsIgnoreCase(acceptEncoding.nextElement())) {
-                gzip = true;
-                break;
-            }
+        boolean useCompression = false;
+        final String useCompressionStr = req.getHeader(HANDSHAKE_PROPERTY_USE_COMPRESSION);
+        if (!isEmpty(useCompressionStr) && Boolean.valueOf(useCompressionStr)) {
+            useCompression = true;
         }
 
         final String requestExpiration = req.getHeader(HANDSHAKE_PROPERTY_REQUEST_EXPIRATION);
@@ -465,7 +462,7 @@ public class SiteToSiteResource extends ApplicationResource {
         final String batchDuration = req.getHeader(HANDSHAKE_PROPERTY_BATCH_DURATION);
 
         commSession.putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, portId);
-        commSession.putHandshakeParam(HandshakeProperty.GZIP, String.valueOf(gzip));
+        commSession.putHandshakeParam(HandshakeProperty.GZIP, String.valueOf(useCompression));
 
         if (!isEmpty(requestExpiration)) commSession.putHandshakeParam(REQUEST_EXPIRATION_MILLIS, requestExpiration);
         if (!isEmpty(batchCount)) commSession.putHandshakeParam(BATCH_COUNT, batchCount);

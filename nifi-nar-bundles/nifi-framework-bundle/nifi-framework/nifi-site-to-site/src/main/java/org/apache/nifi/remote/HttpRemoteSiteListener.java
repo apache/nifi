@@ -103,7 +103,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         transactionMaintenanceTask = taskExecutor.scheduleWithFixedDelay(() -> {
 
             int originalSize = transactions.size();
-            logger.debug("Transaction maintenance task started.");
+            logger.trace("Transaction maintenance task started.");
             try {
                 Set<String> transactionIds = transactions.keySet().stream().collect(Collectors.toSet());
                 transactionIds.stream().filter(tid -> !isTransactionActive(tid))
@@ -128,7 +128,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
                 // Swallow exception so that this thread can keep working.
                 logger.error("An exception occurred while maintaining transactions", e);
             }
-            logger.info("Transaction maintenance task finished. originalSize={}, currentSize={}", originalSize, transactions.size());
+            logger.debug("Transaction maintenance task finished. originalSize={}, currentSize={}", originalSize, transactions.size());
 
         }, 0, transactionTtlSec / 2, TimeUnit.SECONDS);
     }

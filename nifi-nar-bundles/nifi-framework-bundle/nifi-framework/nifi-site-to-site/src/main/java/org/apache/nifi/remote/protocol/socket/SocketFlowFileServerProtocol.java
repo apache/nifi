@@ -52,7 +52,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
 
-        confirmed.setCommsIdentifier(dis.readUTF());;
+        confirmed.setCommsIdentifier(dis.readUTF());
 
         if (versionNegotiator.getVersion() >= 3) {
             String transitUriPrefix = dis.readUTF();
