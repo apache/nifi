@@ -24,7 +24,11 @@ package org.apache.nifi.logging;
  * ControllerService or a ReportingTask, so all of the methods were moved to a
  * higher interface named ComponentLog. However, we kept the ProcessorLog
  * interface around in order to maintain backward compatibility.
+ *
+ * @deprecated use the super interface {@link ComponentLog}
+ * @see ComponentLog
  */
+@Deprecated
 public interface ProcessorLog extends ComponentLog {
 
 }
