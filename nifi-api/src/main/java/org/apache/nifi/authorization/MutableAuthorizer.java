@@ -44,14 +44,13 @@ public interface MutableAuthorizer extends Authorizer {
     public Group getGroup(String identifier) throws AuthorizationAccessException;
 
     /**
-     * Updates the group with the given identifier based on the provided group.
+     * The group represented by the provided instance will be updated based on the provided instance.
      *
-     * @param identifier the id of the group to update
      * @param group an updated group instance
      * @return the updated group instance, or null if no matching group was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public Group updateGroup(String identifier, Group group) throws AuthorizationAccessException;
+    public Group updateGroup(Group group) throws AuthorizationAccessException;
 
     /**
      * Deletes the given group.
@@ -90,14 +89,13 @@ public interface MutableAuthorizer extends Authorizer {
     public User getUser(String identifier) throws AuthorizationAccessException;
 
     /**
-     * Updates the user with the given identifier based on the provided user.
+     * The user represented by the provided instance will be updated based on the provided instance.
      *
-     * @param identifier the identifier of the user to update
      * @param user an updated user instance
      * @return the updated user instance, or null if no matching user was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public User updateUser(String identifier, User user) throws AuthorizationAccessException;
+    public User updateUser(User user) throws AuthorizationAccessException;
 
     /**
      * Deletes the given user.
@@ -136,14 +134,13 @@ public interface MutableAuthorizer extends Authorizer {
     public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException;
 
     /**
-     * Updates the policy with the given identifier based on the provided policy.
+     * The policy represented by the provided instance will be updated based on the provided instance.
      *
-     * @param identifier the identifier of the policy to update
      * @param accessPolicy an updated policy
      * @return the updated policy, or null if no matching policy was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public AccessPolicy updateAccessPolicy(String identifier, AccessPolicy accessPolicy) throws AuthorizationAccessException;
+    public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException;
 
     /**
      * Deletes the given policy.

@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -33,35 +34,37 @@ public class AccessPolicy {
 
     private final Set<RequestAction> actions;
 
-    /**
-     * Constructs a new policy with the given resource, entities, and actions.
-     *
-     * @param identifier the identifier of the policy
-     * @param resource the resource for the policy
-     * @param entities the entity ids for the policy (i.e. user or group ids)
-     * @param actions the actions for the policy
-     */
-    public AccessPolicy(final String identifier, final Resource resource, final Set<String> entities, final Set<RequestAction> actions) {
-        if (identifier == null || identifier.trim().isEmpty()) {
+    private AccessPolicy(final AccessPolicyBuilder builder) {
+        this.identifier = builder.identifier;
+        this.resource = builder.resource;
+
+        Set<String> entities = new HashSet<>();
+        if (builder.entities != null) {
+            entities.addAll(builder.entities);
+        }
+        this.entities = Collections.unmodifiableSet(entities);
+
+        Set<RequestAction> actions = new HashSet<>();
+        if (builder.actions != null) {
+            actions.addAll(builder.actions);
+        }
+        this.actions = Collections.unmodifiableSet(actions);
+
+        if (this.identifier == null || this.identifier.trim().isEmpty()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
         }
 
-        if (resource == null) {
+        if (this.resource == null) {
             throw new IllegalArgumentException("Resource can not be null");
         }
 
-        if (entities == null || entities.isEmpty()) {
+        if (this.entities == null || this.entities.isEmpty()) {
             throw new IllegalArgumentException("Entities can not be null or empty");
         }
 
-        if (actions == null || actions.isEmpty()) {
+        if (this.actions == null || this.actions.isEmpty()) {
             throw new IllegalArgumentException("Actions can not be null or empty");
         }
-
-        this.identifier = identifier;
-        this.resource = resource;
-        this.entities = Collections.unmodifiableSet(entities);
-        this.actions = Collections.unmodifiableSet(actions);
     }
 
     /**
@@ -79,14 +82,14 @@ public class AccessPolicy {
     }
 
     /**
-     * @return the set of entity ids for this policy
+     * @return an unmodifiable set of entity ids for this policy
      */
     public Set<String> getEntities() {
         return entities;
     }
 
     /**
-     * @return the set of actions for this policy
+     * @return an unmodifiable set of actions for this policy
      */
     public Set<RequestAction> getActions() {
         return actions;
@@ -102,24 +105,187 @@ public class AccessPolicy {
         }
 
         final AccessPolicy other = (AccessPolicy) obj;
-
-        return this.identifier.equals(other.getIdentifier())
-                && this.resource.getIdentifier().equals(other.getResource().getIdentifier())
-                && this.entities.equals(other.entities)
-                && this.actions.equals(other.actions);
+        return Objects.equals(this.identifier, other.identifier);
     }
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = 53 * hash + Objects.hash(this.identifier, this.resource, this.entities, this.actions);
-        return hash;
+        return Objects.hashCode(this.identifier);
     }
 
     @Override
     public String toString() {
         return String.format("identifier[%s], resource[%s], entityId[%s], action[%s]",
                 getIdentifier(), getResource().getIdentifier(), getEntities(), getActions(), ", ");
+    }
+
+    /**
+     * Builder for Access Policies.
+     */
+    public static class AccessPolicyBuilder {
+
+        private String identifier;
+        private Resource resource;
+        private Set<String> entities = new HashSet<>();
+        private Set<RequestAction> actions = new HashSet<>();
+        private final boolean fromPolicy;
+
+        /**
+         * Default constructor for building a new AccessPolicy.
+         */
+        public AccessPolicyBuilder() {
+            this.fromPolicy = false;
+        }
+
+        /**
+         * Initializes the builder with the state of the provided policy. When using this constructor
+         * the identifier field of the builder can not be changed and will result in an IllegalStateException
+         * if attempting to do so.
+         *
+         * @param other the existing access policy to initialize from
+         */
+        public AccessPolicyBuilder(final AccessPolicy other) {
+            if (other == null) {
+                throw new IllegalArgumentException("Can not initialize builder with a null access policy");
+            }
+
+            this.identifier = other.getIdentifier();
+            this.resource = other.getResource();
+            this.entities.clear();
+            this.entities.addAll(other.getEntities());
+            this.actions.clear();
+            this.actions.addAll(other.getActions());
+            this.fromPolicy = true;
+        }
+
+        /**
+         * Sets the identifier of the builder.
+         *
+         * @param identifier the identifier to set
+         * @return the builder
+         * @throws IllegalStateException if this method is called when this builder was constructed from an existing Policy
+         */
+        public AccessPolicyBuilder identifier(final String identifier) {
+            if (fromPolicy) {
+                throw new IllegalStateException(
+                        "Identifier can not be changed when initialized from an existing policy");
+            }
+
+            this.identifier = identifier;
+            return this;
+        }
+
+        /**
+         * Sets the resource of the builder.
+         *
+         * @param resource the resource to set
+         * @return the builder
+         */
+        public AccessPolicyBuilder resource(final Resource resource) {
+            this.resource = resource;
+            return this;
+        }
+
+        /**
+         * Adds all the entities from the provided set to the builder's set of entities.
+         *
+         * @param entities the entities to add
+         * @return the builder
+         */
+        public AccessPolicyBuilder addEntities(final Set<String> entities) {
+            if (entities != null) {
+                this.entities.addAll(entities);
+            }
+            return this;
+        }
+
+        /**
+         * Adds the given entity to the builder's set of entities.
+         *
+         * @param entity the entity to add
+         * @return the builder
+         */
+        public AccessPolicyBuilder addEntity(final String entity) {
+            if (entity != null) {
+                this.entities.add(entity);
+            }
+            return this;
+        }
+
+        /**
+         * Removes all entities in the provided set from the builder's set of entities.
+         *
+         * @param entities the entities to remove
+         * @return the builder
+         */
+        public AccessPolicyBuilder removeEntities(final Set<String> entities) {
+            if (entities != null) {
+                this.entities.removeAll(entities);
+            }
+            return this;
+        }
+
+        /**
+         * Removes the provided entity from the builder's set of entities.
+         *
+         * @param entity the entity to remove
+         * @return the builder
+         */
+        public AccessPolicyBuilder removeEntity(final String entity) {
+            if (entity != null) {
+                this.entities.remove(entity);
+            }
+            return this;
+        }
+
+        /**
+         * Clears the builder's set of entities so that it is non-null and size == 0.
+         *
+         * @return the builder
+         */
+        public AccessPolicyBuilder clearEntities() {
+            this.entities.clear();
+            return this;
+        }
+
+        /**
+         * Adds the provided action to the builder's set of actions.
+         *
+         * @param action the action to add
+         * @return the builder
+         */
+        public AccessPolicyBuilder addAction(final RequestAction action) {
+            this.actions.add(action);
+            return this;
+        }
+
+        /**
+         * Removes the provided action from the builder's set of actions.
+         *
+         * @param action the action to remove
+         * @return the builder
+         */
+        public AccessPolicyBuilder removeAction(final RequestAction action) {
+            this.actions.remove(action);
+            return this;
+        }
+
+        /**
+         * Clears the builder's set of actions so that it is non-null and size == 0.
+         *
+         * @return the builder
+         */
+        public AccessPolicyBuilder clearActions() {
+            this.actions.clear();
+            return this;
+        }
+
+        /**
+         * @return a new AccessPolicy constructed from the state of the builder
+         */
+        public AccessPolicy build() {
+            return new AccessPolicy(this);
+        }
     }
 
 }

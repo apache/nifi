@@ -32,24 +32,16 @@ public class User {
 
     private final Set<String> groups;
 
-    /**
-     * Constructs a new user with the given identifier and identity, and no groups.
-     *
-     * @param identifier the unique identifier of the user
-     * @param identity the identity string of the user
-     */
-    public User(final String identifier, final String identity) {
-        this(identifier, identity, null);
-    }
+    private User(final UserBuilder builder) {
+        this.identifier = builder.identifier;
+        this.identity = builder.identity;
 
-    /**
-     * Constructs a new user with the given identifier, identity, and groups.
-     *
-     * @param identifier the unique identifier of the user
-     * @param identity the identity string of the user
-     * @param groups the ids of the groups the user belongs to
-     */
-    public User(final String identifier, final String identity, final Set<String> groups) {
+        Set<String> groups = new HashSet<>();
+        if (builder.groups != null) {
+            groups.addAll(builder.groups);
+        }
+        this.groups = Collections.unmodifiableSet(groups);
+
         if (identifier == null || identifier.trim().isEmpty()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
         }
@@ -58,9 +50,6 @@ public class User {
             throw new IllegalArgumentException("Identity can not be null or empty");
         }
 
-        this.identifier = identifier;
-        this.identity = identity;
-        this.groups = (groups == null ? Collections.unmodifiableSet(new HashSet<>()) : Collections.unmodifiableSet(groups));
     }
 
     /**
@@ -78,7 +67,7 @@ public class User {
     }
 
     /**
-     * @return the group ids of the user
+     * @return an unmodifiable set of group ids
      */
     public Set<String> getGroups() {
         return groups;
@@ -94,22 +83,152 @@ public class User {
         }
 
         final User other = (User) obj;
-        if (!Objects.equals(this.identifier, other.identifier)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.identifier, other.identifier);
     }
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = 53 * hash + Objects.hashCode(this.identifier);
-        return hash;
+        return Objects.hashCode(this.identifier);
     }
 
     @Override
     public String toString() {
         return String.format("identifier[%s], identity[%s]", getIdentifier(), getIdentity(), ", ");
+    }
+
+    /**
+     * Builder for Users.
+     */
+    public static class UserBuilder {
+
+        private String identifier;
+        private String identity;
+        private Set<String> groups = new HashSet<>();
+        private final boolean fromUser;
+
+        /**
+         * Default constructor for building a new User.
+         */
+        public UserBuilder() {
+            this.fromUser = false;
+        }
+
+        /**
+         * Initializes the builder with the state of the provided user. When using this constructor
+         * the identifier field of the builder can not be changed and will result in an IllegalStateException
+         * if attempting to do so.
+         *
+         * @param other the existing user to initialize from
+         */
+        public UserBuilder(final User other) {
+            if (other == null) {
+                throw new IllegalArgumentException("Provided user can not be null");
+            }
+
+            this.identifier = other.getIdentifier();
+            this.identity = other.getIdentity();
+            this.groups.clear();
+            this.groups.addAll(other.getGroups());
+            this.fromUser = true;
+        }
+
+        /**
+         * Sets the identifier of the builder.
+         *
+         * @param identifier the identifier to set
+         * @return the builder
+         * @throws IllegalStateException if this method is called when this builder was constructed from an existing User
+         */
+        public UserBuilder identifier(final String identifier) {
+            if (fromUser) {
+                throw new IllegalStateException(
+                        "Identifier can not be changed when initialized from an existing user");
+            }
+
+            this.identifier = identifier;
+            return this;
+        }
+
+        /**
+         * Sets the identity of the builder.
+         *
+         * @param identity the identity to set
+         * @return the builder
+         */
+        public UserBuilder identity(final String identity) {
+            this.identity = identity;
+            return this;
+        }
+
+        /**
+         * Adds all groups from the provided set to the builder's set of groups.
+         *
+         * @param groups the groups to add
+         * @return the builder
+         */
+        public UserBuilder addGroups(final Set<String> groups) {
+            if (groups != null) {
+                this.groups.addAll(groups);
+            }
+            return this;
+        }
+
+        /**
+         * Adds the provided group to the builder's set of groups.
+         *
+         * @param group the group to add
+         * @return the builder
+         */
+        public UserBuilder addGroup(final String group) {
+            if (group != null) {
+                this.groups.add(group);
+            }
+            return this;
+        }
+
+        /**
+         * Removes all groups in the provided set from the builder's set of groups.
+         *
+         * @param groups the groups to remove
+         * @return the builder
+         */
+        public UserBuilder removeGroups(final Set<String> groups) {
+            if (groups != null) {
+                this.groups.removeAll(groups);
+            }
+            return this;
+        }
+
+        /**
+         * Removes the provided group from the builder's set of groups.
+         *
+         * @param group the group to remove
+         * @return the builder
+         */
+        public UserBuilder removeGroup(final String group) {
+            if (group != null) {
+                this.groups.remove(group);
+            }
+            return this;
+        }
+
+        /**
+         * Clears the builder's set of groups so that groups is non-null with size == 0.
+         *
+         * @return the builder
+         */
+        public UserBuilder clearGroups() {
+            this.groups.clear();
+            return this;
+        }
+
+        /**
+         * @return a new User constructed from the state of the builder
+         */
+        public User build() {
+            return new User(this);
+        }
+
     }
 
 }
