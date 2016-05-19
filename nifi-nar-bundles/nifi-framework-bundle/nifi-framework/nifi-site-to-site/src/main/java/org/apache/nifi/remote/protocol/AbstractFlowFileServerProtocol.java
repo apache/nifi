@@ -107,7 +107,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
                         confirmed.setExpirationMillis(Long.parseLong(value));
                         break;
                     case BATCH_COUNT:
-                        confirmed.setBatchBytes(Integer.parseInt(value));
+                        confirmed.setBatchCount(Integer.parseInt(value));
                         break;
                     case BATCH_SIZE:
                         confirmed.setBatchBytes(Long.parseLong(value));
