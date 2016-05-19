@@ -66,6 +66,7 @@ public class HttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
         HandshakenProperties confirmed = new HandshakenProperties();
 
         HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        confirmed.setCommsIdentifier(commsSession.getTransactionId());
         validateHandshakeRequest(confirmed, peer, commsSession.getHandshakeParams());
 
         logger.debug("{} Done handshake, confirmed={}", this, confirmed);

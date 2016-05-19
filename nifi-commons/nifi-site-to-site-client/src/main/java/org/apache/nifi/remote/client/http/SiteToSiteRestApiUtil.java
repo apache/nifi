@@ -46,11 +46,11 @@ import java.net.Proxy;
 import java.util.Collection;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.ACCEPT_ENCODING;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
@@ -90,7 +90,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
     }
 
     private String initiateTransaction(String portType, String portId) throws IOException {
-        logger.debug("initiateTransaction handshaking portType={}, portId={}", portId);
+        logger.debug("initiateTransaction handshaking portType={}, portId={}", portType, portId);
         urlConnection = getConnection("/site-to-site/" + portType + "/" + portId + "/transactions");
         urlConnection.setDoOutput(false);
         urlConnection.setRequestMethod("POST");
@@ -142,7 +142,7 @@ public class SiteToSiteRestApiUtil extends NiFiRestApiUtil {
     }
 
     private void setHandshakeProperties() {
-        if(compress) urlConnection.setRequestProperty(ACCEPT_ENCODING, "gzip");
+        if(compress) urlConnection.setRequestProperty(HANDSHAKE_PROPERTY_USE_COMPRESSION, "true");
         if(requestExpirationMillis > 0) urlConnection.setRequestProperty(HANDSHAKE_PROPERTY_REQUEST_EXPIRATION, String.valueOf(requestExpirationMillis));
         if(batchCount > 0) urlConnection.setRequestProperty(HANDSHAKE_PROPERTY_BATCH_COUNT, String.valueOf(batchCount));
         if(batchSize > 0) urlConnection.setRequestProperty(HANDSHAKE_PROPERTY_BATCH_SIZE, String.valueOf(batchSize));
