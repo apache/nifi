@@ -20,7 +20,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.documentation.ConfigurableComponentInitializer;
 import org.apache.nifi.documentation.mock.MockConfigurationContext;
-import org.apache.nifi.documentation.mock.MockProcessorLogger;
+import org.apache.nifi.documentation.mock.MockComponentLogger;
 import org.apache.nifi.documentation.mock.MockReportingInitializationContext;
 import org.apache.nifi.documentation.util.ReflectionUtils;
 import org.apache.nifi.nar.NarCloseable;
@@ -48,7 +48,7 @@ public class ReportingTaskingInitializer implements ConfigurableComponentInitial
         try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
 
             final MockConfigurationContext context = new MockConfigurationContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, reportingTask, new MockProcessorLogger(), context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, reportingTask, new MockComponentLogger(), context);
         }
     }
 }

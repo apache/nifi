@@ -22,14 +22,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Stubs out the functionality of a ProcessorLog/ComponentLog so that it can
+ * Stubs out the functionality of a ComponentLog so that it can
  * be used during initialization of a component.
  *
  */
-public class MockProcessorLogger implements ComponentLog {
+public class MockComponentLogger implements ComponentLog {
 
     private static final Logger logger = LoggerFactory
-            .getLogger(MockProcessorLogger.class);
+            .getLogger(MockComponentLogger.class);
 
     @Override
     public void warn(String msg, Throwable t) {

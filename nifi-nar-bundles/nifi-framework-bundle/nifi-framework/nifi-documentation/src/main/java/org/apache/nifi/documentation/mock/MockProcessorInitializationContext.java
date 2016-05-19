@@ -35,7 +35,7 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
 
     @Override
     public ComponentLog getLogger() {
-        return new MockProcessorLogger();
+        return new MockComponentLogger();
     }
 
     @Override

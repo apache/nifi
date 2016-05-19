@@ -31,7 +31,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +48,7 @@ class KafkaPublisher implements Closeable {
 
     private volatile long ackWaitTime = 30000;
 
-    private volatile ProcessorLog processLog;
+    private volatile ComponentLog processLog;
 
     /**
      * Creates an instance of this class as well as the instance of the
@@ -177,10 +177,10 @@ class KafkaPublisher implements Closeable {
     }
 
     /**
-     * Will set {@link ProcessorLog} as an additional logger to forward log
+     * Will set {@link ComponentLog} as an additional logger to forward log
      * messages to NiFi bulletin
      */
-    void setProcessLog(ProcessorLog processLog) {
+    void setProcessLog(ComponentLog processLog) {
         this.processLog = processLog;
     }
 

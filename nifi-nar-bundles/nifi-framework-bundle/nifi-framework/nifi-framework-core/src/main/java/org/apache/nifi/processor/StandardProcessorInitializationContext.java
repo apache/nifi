@@ -26,9 +26,9 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
     private final ComponentLog logger;
     private final ControllerServiceProvider serviceProvider;
 
-    public StandardProcessorInitializationContext(final String identifier, final ComponentLog processorLog, final ControllerServiceProvider serviceProvider) {
+    public StandardProcessorInitializationContext(final String identifier, final ComponentLog componentLog, final ControllerServiceProvider serviceProvider) {
         this.identifier = identifier;
-        this.logger = processorLog;
+        this.logger = componentLog;
         this.serviceProvider = serviceProvider;
     }
 

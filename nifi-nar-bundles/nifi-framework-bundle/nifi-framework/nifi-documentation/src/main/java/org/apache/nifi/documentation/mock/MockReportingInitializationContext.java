@@ -62,6 +62,6 @@ public class MockReportingInitializationContext implements ReportingInitializati
 
     @Override
     public ComponentLog getLogger() {
-        return new MockProcessorLogger();
+        return new MockComponentLogger();
     }
 }

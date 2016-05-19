@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -50,7 +50,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-public class AbstractKafkaProcessorLifecycelTest {
+public class AbstractKafkaProcessorLifecycleTest {
 
     private final static Random random = new Random();
 
@@ -422,7 +422,7 @@ public class AbstractKafkaProcessorLifecycelTest {
             try {
                 Field loggerField = AbstractSessionFactoryProcessor.class.getDeclaredField("logger");
                 loggerField.setAccessible(true);
-                loggerField.set(this, mock(ProcessorLog.class));
+                loggerField.set(this, mock(ComponentLog.class));
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
