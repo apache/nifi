@@ -25,68 +25,23 @@
     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
 
-    <!-- cluster flow DAO -->
-    <bean id="dataFlowDao" class="org.apache.nifi.cluster.flow.impl.DataFlowDaoImpl">
-        <constructor-arg index="0">
-            <bean factory-bean="nifiProperties" factory-method="getFlowConfigurationFileDir"/>
-        </constructor-arg>
-        <constructor-arg index="1">
-            <bean factory-bean="nifiProperties" factory-method="getRestoreDirectory"/>
-        </constructor-arg>
-        <constructor-arg index="2">
-            <bean factory-bean="nifiProperties" factory-method="getAutoResumeState"/>
-        </constructor-arg>
-    </bean>
-    
-    <!-- dataflow management service -->
-    <bean id="dataFlowManagementService" class="org.apache.nifi.cluster.flow.impl.DataFlowManagementServiceImpl">
-        <constructor-arg ref="dataFlowDao"/>
-        <constructor-arg ref="clusterManagerProtocolSender"/>
-        <property name="retrievalDelay">
-            <bean factory-bean="nifiProperties" factory-method="getClusterManagerFlowRetrievalDelay"/>
-        </property>
-    </bean>
-
-    <!-- node event history manager -->
-    <bean id="nodeEventHistoryManager" class="org.apache.nifi.cluster.event.impl.EventManagerImpl">
-        <constructor-arg>
-            <bean factory-bean="nifiProperties" factory-method="getClusterManagerNodeEventHistorySize"/>
-        </constructor-arg>
-    </bean>
-
     <!-- cluster firewall -->
     <bean id="clusterFirewall" class="org.apache.nifi.cluster.spring.FileBasedClusterNodeFirewallFactoryBean">
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
-    <!-- cluster manager -->
-    <bean id="clusterManager" class="org.apache.nifi.cluster.spring.WebClusterManagerFactoryBean">
-        <property name="properties" ref="nifiProperties"/>
-        <property name="encryptor" ref="stringEncryptor"/>
-    </bean>
-    
-    <!-- discoverable services -->
-    
-    <!-- cluster manager protocol discoverable service -->
-    
-    <!-- service name for communicating with the cluster manager using sockets -->
-    <bean id="clusterManagerProtocolServiceName" class="java.lang.String">
-        <constructor-arg value="cluster-manager-protocol" />
-    </bean>
-    
-    <!-- cluster manager protocol service discovery -->
-    <bean id="clusterManagerProtocolServiceDiscovery" class="org.apache.nifi.cluster.protocol.impl.ClusterServiceDiscovery">
-        <constructor-arg ref="clusterManagerProtocolServiceName" index="0"/>
-        <constructor-arg index="1">
-            <bean factory-bean="nifiProperties" factory-method="getClusterProtocolMulticastAddress"/>
-        </constructor-arg>
-        <constructor-arg ref="protocolMulticastConfiguration" index="2"/>
-        <constructor-arg ref="protocolContext" index="3"/>
-    </bean>
-    
-    <!-- cluster manager protocol service locator -->
-    <bean id="clusterManagerProtocolServiceLocator" class="org.apache.nifi.cluster.spring.ClusterManagerProtocolServiceLocatorFactoryBean">
+    <!-- Request Replicator -->
+    <bean id="requestReplicator" class="org.apache.nifi.cluster.spring.ThreadPoolRequestReplicatorFactoryBean">
         <property name="properties" ref="nifiProperties"/>
     </bean>
-        
+
+    <!-- Cluster Coordinator -->
+    <bean id="clusterCoordinator" class="org.apache.nifi.cluster.spring.NodeClusterCoordinatorFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+    
+    <!-- Heartbeat Monitor -->
+    <bean id="heartbeatMonitor" class="org.apache.nifi.cluster.spring.HeartbeatMonitorFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
 </beans>

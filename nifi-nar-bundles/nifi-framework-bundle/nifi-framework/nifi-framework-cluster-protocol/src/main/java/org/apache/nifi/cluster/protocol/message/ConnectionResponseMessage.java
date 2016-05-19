@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.cluster.protocol.message;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "connectionResponseMessage")
 public class ConnectionResponseMessage extends ProtocolMessage {
 
     private ConnectionResponse connectionResponse;
-    private String clusterManagerDN;
+    private String coordinatorDN;
 
     public ConnectionResponseMessage() {
     }
@@ -35,24 +36,24 @@ public class ConnectionResponseMessage extends ProtocolMessage {
     public void setConnectionResponse(final ConnectionResponse connectionResponse) {
         this.connectionResponse = connectionResponse;
 
-        if (clusterManagerDN != null) {
-            this.connectionResponse.setClusterManagerDN(clusterManagerDN);
+        if (coordinatorDN != null) {
+            this.connectionResponse.setCoordinatorDN(coordinatorDN);
         }
     }
 
-    public void setClusterManagerDN(final String dn) {
+    public void setCoordinatorDN(final String dn) {
         if (connectionResponse != null) {
-            connectionResponse.setClusterManagerDN(dn);
+            connectionResponse.setCoordinatorDN(dn);
         }
-        this.clusterManagerDN = dn;
+        this.coordinatorDN = dn;
     }
 
     /**
-     * @return the DN of the NCM, if it is available or <code>null</code>
+     * @return the DN of the Coordinator, if it is available or <code>null</code>
      * otherwise
      */
-    public String getClusterManagerDN() {
-        return clusterManagerDN;
+    public String getCoordinatorDN() {
+        return coordinatorDN;
     }
 
     @Override

@@ -35,10 +35,6 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.NiFiProperties;
@@ -127,8 +123,6 @@ public class FlowResource extends ApplicationResource {
     private static final String RECURSIVE = "false";
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
     private Authorizer authorizer;
 
     @Context
@@ -333,6 +327,7 @@ public class FlowResource extends ApplicationResource {
      * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
      * @param groupId The id of the process group.
      * @return A processGroupEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -371,19 +366,17 @@ public class FlowResource extends ApplicationResource {
             value = "Whether the response should contain all encapsulated components or just the immediate children.",
             required = false
         )
-        @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive) {
+        @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive) throws InterruptedException {
 
         authorizeFlow();
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get this process group flow
         final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId, recursive);
         populateRemainingFlowContent(entity.getProcessGroupFlow());
-
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -420,9 +413,8 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getControllerServicesFromController() {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get all the controller services
@@ -441,6 +433,7 @@ public class FlowResource extends ApplicationResource {
      * Retrieves all the of controller services in this NiFi.
      *
      * @return A controllerServicesEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -469,12 +462,7 @@ public class FlowResource extends ApplicationResource {
             value = "The process group id.",
             required = true
         )
-        @PathParam("id") String groupId) {
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
+        @PathParam("id") String groupId) throws InterruptedException {
 
         // get all the controller services
         final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId);
@@ -529,9 +517,8 @@ public class FlowResource extends ApplicationResource {
         )
         @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get all the reporting tasks
@@ -653,8 +640,8 @@ public class FlowResource extends ApplicationResource {
             scheduleComponentsEntity.setComponents(componentsToSchedule);
         }
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), scheduleComponentsEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, scheduleComponentsEntity);
         }
 
         final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
@@ -692,6 +679,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param value Search string
      * @return A searchResultsEntity
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -715,13 +703,8 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response searchFlow(@QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
+    public Response searchFlow(@QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) throws InterruptedException {
         authorizeFlow();
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
 
         // query the controller
         final SearchResultsDTO results = serviceFacade.searchController(value);
@@ -738,6 +721,7 @@ public class FlowResource extends ApplicationResource {
      * Retrieves the status for this NiFi.
      *
      * @return A controllerStatusEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -761,12 +745,12 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getControllerStatus() {
+    public Response getControllerStatus() throws InterruptedException {
 
         authorizeFlow();
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         final ControllerStatusDTO controllerStatus = serviceFacade.getControllerStatus();
@@ -811,7 +795,7 @@ public class FlowResource extends ApplicationResource {
         authorizeFlow();
 
         // get the banner from the properties - will come from the NCM when clustered
-        final String bannerText = properties.getBannerText();
+        final String bannerText = getProperties().getBannerText();
 
         // create the DTO
         final BannerDTO bannerDTO = new BannerDTO();
@@ -830,6 +814,7 @@ public class FlowResource extends ApplicationResource {
      * Retrieves the types of processors that this NiFi supports.
      *
      * @return A processorTypesEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -853,14 +838,8 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getProcessorTypes() {
-
+    public Response getProcessorTypes() throws InterruptedException {
         authorizeFlow();
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
 
         // create response entity
         final ProcessorTypesEntity entity = new ProcessorTypesEntity();
@@ -875,6 +854,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param serviceType Returns only services that implement this type
      * @return A controllerServicesTypesEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -903,14 +883,8 @@ public class FlowResource extends ApplicationResource {
                     value = "If specified, will only return controller services of this type.",
                     required = false
             )
-            @QueryParam("serviceType") String serviceType) {
-
+        @QueryParam("serviceType") String serviceType) throws InterruptedException {
         authorizeFlow();
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
 
         // create response entity
         final ControllerServiceTypesEntity entity = new ControllerServiceTypesEntity();
@@ -924,6 +898,7 @@ public class FlowResource extends ApplicationResource {
      * Retrieves the types of reporting tasks that this NiFi supports.
      *
      * @return A controllerServicesTypesEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -947,14 +922,8 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getReportingTaskTypes() {
-
+    public Response getReportingTaskTypes() throws InterruptedException {
         authorizeFlow();
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
 
         // create response entity
         final ReportingTaskTypesEntity entity = new ReportingTaskTypesEntity();
@@ -968,6 +937,7 @@ public class FlowResource extends ApplicationResource {
      * Retrieves the types of prioritizers that this NiFi supports.
      *
      * @return A prioritizerTypesEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -991,14 +961,8 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getPrioritizers() {
-
+    public Response getPrioritizers() throws InterruptedException {
         authorizeFlow();
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
 
         // create response entity
         final PrioritizerTypesEntity entity = new PrioritizerTypesEntity();
@@ -1036,22 +1000,16 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getAboutInfo() {
-
         authorizeFlow();
-
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
 
         // create the about dto
         final AboutDTO aboutDTO = new AboutDTO();
         aboutDTO.setTitle("NiFi"); // TODO - where to load title from
-        aboutDTO.setVersion(properties.getUiTitle());
+        aboutDTO.setVersion(getProperties().getUiTitle());
         aboutDTO.setUri(generateResourceUri());
 
         // get the content viewer url
-        aboutDTO.setContentViewerUrl(properties.getProperty(NiFiProperties.CONTENT_VIEWER_URL));
+        aboutDTO.setContentViewerUrl(getProperties().getProperty(NiFiProperties.CONTENT_VIEWER_URL));
 
         // create the response entity
         final AboutEntity entity = new AboutEntity();
@@ -1069,13 +1027,14 @@ public class FlowResource extends ApplicationResource {
      * Retrieves all the of templates in this NiFi.
      *
      * @param after Supporting querying for bulletins after a particular
-     * bulletin id.
+     *            bulletin id.
      * @param limit The max number of bulletins to return.
      * @param sourceName Source name filter. Supports a regular expression.
      * @param message Message filter. Supports a regular expression.
      * @param sourceId Source id filter. Supports a regular expression.
      * @param groupId Group id filter. Supports a regular expression.
      * @return A bulletinBoardEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1129,13 +1088,13 @@ public class FlowResource extends ApplicationResource {
             value = "The number of bulletins to limit the response to.",
             required = false
         )
-        @QueryParam("limit") IntegerParameter limit) {
+        @QueryParam("limit") IntegerParameter limit) throws InterruptedException {
 
         authorizeFlow();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // build the bulletin query
@@ -1180,6 +1139,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param id The id of the processor history to retrieve.
      * @return A processorStatusEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1219,7 +1179,7 @@ public class FlowResource extends ApplicationResource {
             value = "The processor id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") String id) throws InterruptedException {
 
         authorizeFlow();
 
@@ -1228,10 +1188,10 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
         }
 
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
+                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
                 final ProcessorStatusEntity entity = (ProcessorStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1241,17 +1201,7 @@ public class FlowResource extends ApplicationResource {
 
                 return nodeResponse.getResponse();
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -1271,6 +1221,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param id The id of the processor history to retrieve.
      * @return A portStatusEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1310,7 +1261,7 @@ public class FlowResource extends ApplicationResource {
             value = "The input port id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") String id) throws InterruptedException {
 
         authorizeFlow();
 
@@ -1319,10 +1270,10 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
         }
 
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
+                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
                 final PortStatusEntity entity = (PortStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1332,17 +1283,7 @@ public class FlowResource extends ApplicationResource {
 
                 return nodeResponse.getResponse();
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -1362,6 +1303,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param id The id of the processor history to retrieve.
      * @return A portStatusEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1401,7 +1343,7 @@ public class FlowResource extends ApplicationResource {
             value = "The output port id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") String id) throws InterruptedException {
 
         authorizeFlow();
 
@@ -1410,10 +1352,10 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
         }
 
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
+                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
                 final PortStatusEntity entity = (PortStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1423,17 +1365,7 @@ public class FlowResource extends ApplicationResource {
 
                 return nodeResponse.getResponse();
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -1453,6 +1385,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param id The id of the processor history to retrieve.
      * @return A remoteProcessGroupStatusEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1492,7 +1425,7 @@ public class FlowResource extends ApplicationResource {
             value = "The remote process group id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") String id) throws InterruptedException {
 
         authorizeFlow();
 
@@ -1501,10 +1434,10 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
         }
 
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
+                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
                 final RemoteProcessGroupStatusEntity entity = (RemoteProcessGroupStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1514,17 +1447,7 @@ public class FlowResource extends ApplicationResource {
 
                 return nodeResponse.getResponse();
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -1545,6 +1468,7 @@ public class FlowResource extends ApplicationResource {
      * @param recursive Optional recursive flag that defaults to false. If set to true, all descendant groups and the status of their content will be included.
      * @param groupId The group id
      * @return A processGroupStatusEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1592,7 +1516,7 @@ public class FlowResource extends ApplicationResource {
             value = "The process group id.",
             required = true
         )
-        @PathParam("id") String groupId) {
+        @PathParam("id") String groupId) throws InterruptedException {
 
         authorizeFlow();
 
@@ -1601,10 +1525,10 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
         }
 
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
+                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
                 final ProcessGroupStatusEntity entity = (ProcessGroupStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1614,17 +1538,7 @@ public class FlowResource extends ApplicationResource {
 
                 return nodeResponse.getResponse();
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -1665,6 +1579,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param id The id of the connection history to retrieve.
      * @return A connectionStatusEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1704,7 +1619,7 @@ public class FlowResource extends ApplicationResource {
             value = "The connection id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") String id) throws InterruptedException {
 
         authorizeFlow();
 
@@ -1713,10 +1628,10 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
         }
 
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
+                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
                 final ConnectionStatusEntity entity = (ConnectionStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1726,17 +1641,7 @@ public class FlowResource extends ApplicationResource {
 
                 return nodeResponse.getResponse();
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -1760,6 +1665,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param id The id of the processor history to retrieve.
      * @return A statusHistoryEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1789,13 +1695,13 @@ public class FlowResource extends ApplicationResource {
             value = "The processor id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") String id) throws InterruptedException {
 
         authorizeFlow();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get the specified processor status history
@@ -1814,6 +1720,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param groupId The group id
      * @return A processorEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1843,13 +1750,13 @@ public class FlowResource extends ApplicationResource {
             value = "The process group id.",
             required = true
         )
-        @PathParam("id") String groupId) {
+        @PathParam("id") String groupId) throws InterruptedException {
 
         authorizeFlow();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get the specified processor status history
@@ -1868,6 +1775,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param id The id of the remote process group to retrieve the status fow.
      * @return A statusHistoryEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1897,13 +1805,13 @@ public class FlowResource extends ApplicationResource {
             value = "The remote process group id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") String id) throws InterruptedException {
 
         authorizeFlow();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get the specified processor status history
@@ -1922,6 +1830,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param id The id of the connection to retrieve.
      * @return A statusHistoryEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1951,13 +1860,13 @@ public class FlowResource extends ApplicationResource {
             value = "The connection id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") String id) throws InterruptedException {
 
         authorizeFlow();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get the specified processor status history
@@ -1974,10 +1883,6 @@ public class FlowResource extends ApplicationResource {
     // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
-    }
-
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
     }
 
     public void setProcessorResource(ProcessorResource processorResource) {
@@ -2027,9 +1932,4 @@ public class FlowResource extends ApplicationResource {
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-
 }

@@ -18,12 +18,13 @@ package org.apache.nifi.spring;
 
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -41,34 +42,33 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private KeyService keyService;
     private AuditService auditService;
     private StringEncryptor encryptor;
+    private BulletinRepository bulletinRepository;
 
     @Override
     public Object getObject() throws Exception {
-        /*
-         * If configured for the cluster manager, then the flow controller is never used.
-         */
-        if (properties.isClusterManager()) {
-            return null;
-        } else if (flowController == null) {
-
+        if (flowController == null) {
             final FlowFileEventRepository flowFileEventRepository = applicationContext.getBean("flowFileEventRepository", FlowFileEventRepository.class);
 
             if (properties.isNode()) {
                 final NodeProtocolSender nodeProtocolSender = applicationContext.getBean("nodeProtocolSender", NodeProtocolSender.class);
+                final HeartbeatMonitor heartbeatMonitor = applicationContext.getBean("heartbeatMonitor", HeartbeatMonitor.class);
                 flowController = FlowController.createClusteredInstance(
-                        flowFileEventRepository,
-                        properties,
+                    flowFileEventRepository,
+                    properties,
                     keyService,
-                        auditService,
-                        encryptor,
-                        nodeProtocolSender);
+                    auditService,
+                    encryptor,
+                    nodeProtocolSender,
+                    bulletinRepository,
+                    heartbeatMonitor);
             } else {
                 flowController = FlowController.createStandaloneInstance(
-                        flowFileEventRepository,
-                        properties,
+                    flowFileEventRepository,
+                    properties,
                     keyService,
-                        auditService,
-                        encryptor);
+                    auditService,
+                    encryptor,
+                    bulletinRepository);
             }
 
         }
@@ -106,4 +106,9 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     public void setAuditService(final AuditService auditService) {
         this.auditService = auditService;
     }
+
+    public void setBulletinRepository(final BulletinRepository bulletinRepository) {
+        this.bulletinRepository = bulletinRepository;
+    }
+
 }

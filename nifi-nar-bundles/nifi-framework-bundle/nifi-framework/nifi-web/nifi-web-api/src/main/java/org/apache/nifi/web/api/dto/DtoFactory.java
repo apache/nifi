@@ -16,6 +16,32 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
@@ -39,9 +65,9 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
-import org.apache.nifi.cluster.event.Event;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.StatusMerger;
-import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -136,31 +162,6 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
-
-import javax.ws.rs.WebApplicationException;
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public final class DtoFactory {
 
@@ -1510,7 +1511,7 @@ public final class DtoFactory {
                 () -> groupStatus.getConnectionStatus().stream().filter(connectionStatus -> connection.getId().equals(connectionStatus.getId())).findFirst().orElse(null),
                 connectionStatus -> createConnectionStatusDto(connectionStatus)
             );
-            flow.getConnections().add(entityFactory.createConnectionEntity(connection, null, accessPolicy, status));
+            flow.getConnections().add(entityFactory.createConnectionEntity(connection, revision, accessPolicy, status));
         }
 
         for (final FunnelDTO funnel : snippet.getFunnels()) {
@@ -2794,18 +2795,19 @@ public final class DtoFactory {
         return dto;
     }
 
-    public NodeDTO createNodeDTO(Node node, NodeHeartbeat nodeHeartbeat, List<Event> events, boolean primary) {
+    public NodeDTO createNodeDTO(NodeIdentifier nodeId, NodeConnectionStatus status, NodeHeartbeat nodeHeartbeat, List<NodeEvent> events, boolean primary) {
         final NodeDTO nodeDto = new NodeDTO();
 
         // populate node dto
-        final NodeIdentifier nodeId = node.getNodeId();
         nodeDto.setNodeId(nodeId.getId());
         nodeDto.setAddress(nodeId.getApiAddress());
         nodeDto.setApiPort(nodeId.getApiPort());
-        nodeDto.setStatus(node.getStatus().name());
+        nodeDto.setStatus(status.getState().name());
         nodeDto.setPrimary(primary);
-        final Date connectionRequested = new Date(node.getConnectionRequestedTimestamp());
-        nodeDto.setConnectionRequested(connectionRequested);
+        if (status.getConnectionRequestTime() != null) {
+            final Date connectionRequested = new Date(status.getConnectionRequestTime());
+            nodeDto.setConnectionRequested(connectionRequested);
+        }
 
         // only connected nodes have heartbeats
         if (nodeHeartbeat != null) {
@@ -2817,30 +2819,31 @@ public final class DtoFactory {
         }
 
         // populate node events
-        final List<Event> nodeEvents = new ArrayList<>(events);
-        Collections.sort(nodeEvents, new Comparator<Event>() {
+        final List<NodeEvent> nodeEvents = new ArrayList<>(events);
+        Collections.sort(nodeEvents, new Comparator<NodeEvent>() {
             @Override
-            public int compare(Event event1, Event event2) {
+            public int compare(NodeEvent event1, NodeEvent event2) {
                 return new Date(event2.getTimestamp()).compareTo(new Date(event1.getTimestamp()));
             }
         });
 
         // create the node event dtos
         final List<NodeEventDTO> nodeEventDtos = new ArrayList<>();
-        for (final Event event : nodeEvents) {
+        for (final NodeEvent event : nodeEvents) {
             // create node event dto
             final NodeEventDTO nodeEventDto = new NodeEventDTO();
             nodeEventDtos.add(nodeEventDto);
 
             // populate node event dto
             nodeEventDto.setMessage(event.getMessage());
-            nodeEventDto.setCategory(event.getCategory().name());
+            nodeEventDto.setCategory(event.getSeverity().name());
             nodeEventDto.setTimestamp(new Date(event.getTimestamp()));
         }
         nodeDto.setEvents(nodeEventDtos);
 
         return nodeDto;
     }
+
 
     /* setters */
     public void setControllerServiceProvider(ControllerServiceProvider controllerServiceProvider) {

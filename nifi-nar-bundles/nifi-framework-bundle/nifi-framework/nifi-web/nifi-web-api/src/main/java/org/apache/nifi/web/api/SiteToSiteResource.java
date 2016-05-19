@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.ControllerDTO;
-import org.apache.nifi.web.api.entity.ControllerEntity;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
@@ -36,6 +24,17 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.ControllerDTO;
+import org.apache.nifi.web.api.entity.ControllerEntity;
+
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -48,8 +47,6 @@ import javax.ws.rs.core.Response;
 public class SiteToSiteResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
 
     @Context
     private ResourceContext resourceContext;
@@ -78,8 +75,8 @@ public class SiteToSiteResource extends ApplicationResource {
     )
     public Response getController() {
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get the controller dto
@@ -97,13 +94,4 @@ public class SiteToSiteResource extends ApplicationResource {
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
-
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-
 }

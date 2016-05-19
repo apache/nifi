@@ -150,22 +150,16 @@ public class NiFiProperties extends Properties {
     // cluster common properties
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "nifi.cluster.protocol.heartbeat.interval";
     public static final String CLUSTER_PROTOCOL_IS_SECURE = "nifi.cluster.protocol.is.secure";
-    public static final String CLUSTER_PROTOCOL_SOCKET_TIMEOUT = "nifi.cluster.protocol.socket.timeout";
-    public static final String CLUSTER_PROTOCOL_CONNECTION_HANDSHAKE_TIMEOUT = "nifi.cluster.protocol.connection.handshake.timeout";
-    public static final String CLUSTER_PROTOCOL_USE_MULTICAST = "nifi.cluster.protocol.use.multicast";
-    public static final String CLUSTER_PROTOCOL_MULTICAST_ADDRESS = "nifi.cluster.protocol.multicast.address";
-    public static final String CLUSTER_PROTOCOL_MULTICAST_PORT = "nifi.cluster.protocol.multicast.port";
-    public static final String CLUSTER_PROTOCOL_MULTICAST_SERVICE_BROADCAST_DELAY = "nifi.cluster.protocol.multicast.service.broadcast.delay";
-    public static final String CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS = "nifi.cluster.protocol.multicast.service.locator.attempts";
-    public static final String CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY = "nifi.cluster.protocol.multicast.service.locator.attempts.delay";
 
     // cluster node properties
     public static final String CLUSTER_IS_NODE = "nifi.cluster.is.node";
     public static final String CLUSTER_NODE_ADDRESS = "nifi.cluster.node.address";
     public static final String CLUSTER_NODE_PROTOCOL_PORT = "nifi.cluster.node.protocol.port";
     public static final String CLUSTER_NODE_PROTOCOL_THREADS = "nifi.cluster.node.protocol.threads";
-    public static final String CLUSTER_NODE_UNICAST_MANAGER_ADDRESS = "nifi.cluster.node.unicast.manager.address";
-    public static final String CLUSTER_NODE_UNICAST_MANAGER_PROTOCOL_PORT = "nifi.cluster.node.unicast.manager.protocol.port";
+    public static final String REQUEST_REPLICATION_CLAIM_TIMEOUT = "nifi.cluster.request.replication.claim.timeout";
+    public static final String CLUSTER_NODE_CONNECTION_TIMEOUT = "nifi.cluster.node.connection.timeout";
+    public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
+    public static final String CLUSTER_FIREWALL_FILE = "nifi.cluster.firewall.file";
 
     // zookeeper properties
     public static final String ZOOKEEPER_CONNECT_STRING = "nifi.zookeeper.connect.string";
@@ -173,20 +167,6 @@ public class NiFiProperties extends Properties {
     public static final String ZOOKEEPER_SESSION_TIMEOUT = "nifi.zookeeper.session.timeout";
     public static final String ZOOKEEPER_ROOT_NODE = "nifi.zookeeper.root.node";
 
-    // cluster manager properties
-    public static final String CLUSTER_IS_MANAGER = "nifi.cluster.is.manager";
-    public static final String CLUSTER_MANAGER_ADDRESS = "nifi.cluster.manager.address";
-    public static final String CLUSTER_MANAGER_PROTOCOL_PORT = "nifi.cluster.manager.protocol.port";
-    public static final String CLUSTER_MANAGER_NODE_FIREWALL_FILE = "nifi.cluster.manager.node.firewall.file";
-    public static final String CLUSTER_MANAGER_NODE_EVENT_HISTORY_SIZE = "nifi.cluster.manager.node.event.history.size";
-    public static final String CLUSTER_MANAGER_NODE_API_CONNECTION_TIMEOUT = "nifi.cluster.manager.node.api.connection.timeout";
-    public static final String CLUSTER_MANAGER_NODE_API_READ_TIMEOUT = "nifi.cluster.manager.node.api.read.timeout";
-    public static final String CLUSTER_MANAGER_NODE_API_REQUEST_THREADS = "nifi.cluster.manager.node.api.request.threads";
-    public static final String CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY = "nifi.cluster.manager.flow.retrieval.delay";
-    public static final String CLUSTER_MANAGER_PROTOCOL_THREADS = "nifi.cluster.manager.protocol.threads";
-    public static final String CLUSTER_MANAGER_SAFEMODE_DURATION = "nifi.cluster.manager.safemode.duration";
-
-    public static final String REQUEST_REPLICATION_CLAIM_TIMEOUT = "nifi.cluster.request.replication.claim.timeout";
 
     // kerberos properties
     public static final String KERBEROS_KRB5_FILE = "nifi.kerberos.krb5.file";
@@ -236,22 +216,12 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_BROADCAST_DELAY = "500 ms";
     public static final int DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS = 3;
     public static final String DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY = "1 sec";
-    public static final String DEFAULT_CLUSTER_PROTOCOL_SOCKET_TIMEOUT = "30 sec";
-    public static final String DEFAULT_CLUSTER_PROTOCOL_CONNECTION_HANDSHAKE_TIMEOUT = "45 sec";
+    public static final String DEFAULT_CLUSTER_NODE_READ_TIMEOUT = "5 sec";
+    public static final String DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT = "5 sec";
 
     // cluster node defaults
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 2;
-
-    // cluster manager defaults
-    public static final int DEFAULT_CLUSTER_MANAGER_NODE_EVENT_HISTORY_SIZE = 10;
-    public static final String DEFAULT_CLUSTER_MANAGER_NODE_API_CONNECTION_TIMEOUT = "30 sec";
-    public static final String DEFAULT_CLUSTER_MANAGER_NODE_API_READ_TIMEOUT = "30 sec";
-    public static final int DEFAULT_CLUSTER_MANAGER_NODE_API_NUM_REQUEST_THREADS = 10;
-    public static final String DEFAULT_CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY = "5 sec";
-    public static final int DEFAULT_CLUSTER_MANAGER_PROTOCOL_THREADS = 10;
-    public static final String DEFAULT_CLUSTER_MANAGER_SAFEMODE_DURATION = "0 sec";
-
-    public static final String DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT = "1 min";
+    public static final String DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT = "15 secs";
 
     // state management defaults
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
@@ -643,31 +613,13 @@ public class NiFiProperties extends Properties {
         return getClusterProtocolHeartbeatInterval();
     }
 
-    public String getClusterProtocolSocketTimeout() {
-        return getProperty(CLUSTER_PROTOCOL_SOCKET_TIMEOUT, DEFAULT_CLUSTER_PROTOCOL_SOCKET_TIMEOUT);
+    public String getClusterNodeReadTimeout() {
+        return getProperty(CLUSTER_NODE_READ_TIMEOUT, DEFAULT_CLUSTER_NODE_READ_TIMEOUT);
     }
 
-    public String getClusterProtocolConnectionHandshakeTimeout() {
-        return getProperty(CLUSTER_PROTOCOL_CONNECTION_HANDSHAKE_TIMEOUT,
-                DEFAULT_CLUSTER_PROTOCOL_CONNECTION_HANDSHAKE_TIMEOUT);
-    }
-
-    public boolean getClusterProtocolUseMulticast() {
-        return Boolean.parseBoolean(getProperty(CLUSTER_PROTOCOL_USE_MULTICAST));
-    }
-
-    public InetSocketAddress getClusterProtocolMulticastAddress() {
-        try {
-            String multicastAddress = getProperty(CLUSTER_PROTOCOL_MULTICAST_ADDRESS);
-            int multicastPort = Integer.parseInt(getProperty(CLUSTER_PROTOCOL_MULTICAST_PORT));
-            return new InetSocketAddress(multicastAddress, multicastPort);
-        } catch (Exception ex) {
-            throw new RuntimeException("Invalid multicast address/port due to: " + ex, ex);
-        }
-    }
-
-    public String getClusterProtocolMulticastServiceBroadcastDelay() {
-        return getProperty(CLUSTER_PROTOCOL_MULTICAST_SERVICE_BROADCAST_DELAY);
+    public String getClusterNodeConnectionTimeout() {
+        return getProperty(CLUSTER_NODE_CONNECTION_TIMEOUT,
+                DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT);
     }
 
     public File getPersistentStateDirectory() {
@@ -680,19 +632,6 @@ public class NiFiProperties extends Properties {
         return file;
     }
 
-    public int getClusterProtocolMulticastServiceLocatorAttempts() {
-        try {
-            return Integer
-                    .parseInt(getProperty(CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS));
-        } catch (NumberFormatException nfe) {
-            return DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS;
-        }
-    }
-
-    public String getClusterProtocolMulticastServiceLocatorAttemptsDelay() {
-        return getProperty(CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY,
-                DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY);
-    }
 
     // getters for cluster node properties //
     public boolean isNode() {
@@ -728,97 +667,18 @@ public class NiFiProperties extends Properties {
         }
     }
 
-    public InetSocketAddress getClusterNodeUnicastManagerProtocolAddress() {
-        try {
-            String socketAddress = getProperty(CLUSTER_NODE_UNICAST_MANAGER_ADDRESS);
-            if (StringUtils.isBlank(socketAddress)) {
-                socketAddress = "localhost";
-            }
-            int socketPort = Integer
-                    .parseInt(getProperty(CLUSTER_NODE_UNICAST_MANAGER_PROTOCOL_PORT));
-            return InetSocketAddress.createUnresolved(socketAddress, socketPort);
-        } catch (Exception ex) {
-            throw new RuntimeException("Invalid unicast manager address/port due to: " + ex, ex);
-        }
+
+    public boolean isClustered() {
+        return Boolean.parseBoolean(getProperty(CLUSTER_IS_NODE));
     }
 
-    // getters for cluster manager properties //
-    public boolean isClusterManager() {
-        return Boolean.parseBoolean(getProperty(CLUSTER_IS_MANAGER));
-    }
-
-    public InetSocketAddress getClusterManagerProtocolAddress() {
-        try {
-            String socketAddress = getProperty(CLUSTER_MANAGER_ADDRESS);
-            if (StringUtils.isBlank(socketAddress)) {
-                socketAddress = "localhost";
-            }
-            int socketPort = getClusterManagerProtocolPort();
-            return InetSocketAddress.createUnresolved(socketAddress, socketPort);
-        } catch (Exception ex) {
-            throw new RuntimeException("Invalid manager protocol address/port due to: " + ex, ex);
-        }
-    }
-
-    public Integer getClusterManagerProtocolPort() {
-        try {
-            return Integer.parseInt(getProperty(CLUSTER_MANAGER_PROTOCOL_PORT));
-        } catch (NumberFormatException nfe) {
-            return null;
-        }
-    }
-
-    public File getClusterManagerNodeFirewallFile() {
-        final String firewallFile = getProperty(CLUSTER_MANAGER_NODE_FIREWALL_FILE);
+    public File getClusterNodeFirewallFile() {
+        final String firewallFile = getProperty(CLUSTER_FIREWALL_FILE);
         if (StringUtils.isBlank(firewallFile)) {
             return null;
         } else {
             return new File(firewallFile);
         }
-    }
-
-    public int getClusterManagerNodeEventHistorySize() {
-        try {
-            return Integer.parseInt(getProperty(CLUSTER_MANAGER_NODE_EVENT_HISTORY_SIZE));
-        } catch (NumberFormatException nfe) {
-            return DEFAULT_CLUSTER_MANAGER_NODE_EVENT_HISTORY_SIZE;
-        }
-    }
-
-    public String getClusterManagerNodeApiConnectionTimeout() {
-        return getProperty(CLUSTER_MANAGER_NODE_API_CONNECTION_TIMEOUT,
-                DEFAULT_CLUSTER_MANAGER_NODE_API_CONNECTION_TIMEOUT);
-    }
-
-    public String getClusterManagerNodeApiReadTimeout() {
-        return getProperty(CLUSTER_MANAGER_NODE_API_READ_TIMEOUT,
-                DEFAULT_CLUSTER_MANAGER_NODE_API_READ_TIMEOUT);
-    }
-
-    public int getClusterManagerNodeApiRequestThreads() {
-        try {
-            return Integer.parseInt(getProperty(CLUSTER_MANAGER_NODE_API_REQUEST_THREADS));
-        } catch (NumberFormatException nfe) {
-            return DEFAULT_CLUSTER_MANAGER_NODE_API_NUM_REQUEST_THREADS;
-        }
-    }
-
-    public String getClusterManagerFlowRetrievalDelay() {
-        return getProperty(CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY,
-                DEFAULT_CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY);
-    }
-
-    public int getClusterManagerProtocolThreads() {
-        try {
-            return Integer.parseInt(getProperty(CLUSTER_MANAGER_PROTOCOL_THREADS));
-        } catch (NumberFormatException nfe) {
-            return DEFAULT_CLUSTER_MANAGER_PROTOCOL_THREADS;
-        }
-    }
-
-    public String getClusterManagerSafeModeDuration() {
-        return getProperty(CLUSTER_MANAGER_SAFEMODE_DURATION,
-                DEFAULT_CLUSTER_MANAGER_SAFEMODE_DURATION);
     }
 
     public String getClusterProtocolManagerToNodeApiScheme() {

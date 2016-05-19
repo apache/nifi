@@ -38,47 +38,30 @@
         <property name="properties" ref="nifiProperties"/>
     </bean>
     
-    <!-- multicast configuration -->
-    <bean id="protocolMulticastConfiguration" class="org.apache.nifi.cluster.protocol.spring.MulticastConfigurationFactoryBean">
-        <property name="properties" ref="nifiProperties"/>
-    </bean>
-
     <!-- cluster manager protocol sender -->
-    <bean id="clusterManagerProtocolSender" class="org.apache.nifi.cluster.protocol.impl.ClusterManagerProtocolSenderImpl">
+    <bean id="clusterCoordinationProtocolSender" class="org.apache.nifi.cluster.protocol.impl.StandardClusterCoordinationProtocolSender">
         <constructor-arg ref="protocolSocketConfiguration"/>
         <constructor-arg ref="protocolContext"/>
         <property name="handshakeTimeout">
-            <bean factory-bean="nifiProperties" factory-method="getClusterProtocolConnectionHandshakeTimeout"/>
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeConnectionTimeout"/>
         </property>
     </bean>
     
-    <!-- cluster manager protocol listener -->
-    <bean id="clusterManagerProtocolListener" class="org.apache.nifi.cluster.protocol.impl.SocketProtocolListener">
-        <constructor-arg index="0">
-            <bean factory-bean="nifiProperties" factory-method="getClusterManagerProtocolThreads"/>
-        </constructor-arg>
-        <constructor-arg index="1">
-            <bean factory-bean="nifiProperties" factory-method="getClusterManagerProtocolPort"/>
-        </constructor-arg>
-        <constructor-arg ref="protocolServerSocketConfiguration" index="2"/>
-        <constructor-arg ref="protocolContext" index="3"/>
-    </bean>
-    
     <!-- cluster manager sender/listener -->
-    <bean id="clusterManagerProtocolSenderListener" class="org.apache.nifi.cluster.protocol.impl.ClusterManagerProtocolSenderListener">
-        <constructor-arg ref="clusterManagerProtocolSender"/>
-        <constructor-arg ref="clusterManagerProtocolListener"/>
+    <bean id="clusterCoordinationProtocolSenderListener" class="org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener">
+        <constructor-arg ref="clusterCoordinationProtocolSender"/>
+        <constructor-arg ref="protocolListener"/>
     </bean>
     
     <!-- node protocol sender -->
-    <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderImpl">
-        <constructor-arg ref="clusterManagerProtocolServiceLocator"/>
+    <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.coordination.node.CuratorNodeProtocolSender">
         <constructor-arg ref="protocolSocketConfiguration"/>
         <constructor-arg ref="protocolContext"/>
+        <constructor-arg ref="nifiProperties"/>
     </bean>
     
-    <!-- node protocol listener -->
-    <bean id="nodeProtocolListener" class="org.apache.nifi.cluster.protocol.impl.SocketProtocolListener">
+    <!-- protocol listener -->
+    <bean id="protocolListener" class="org.apache.nifi.cluster.protocol.impl.SocketProtocolListener">
         <constructor-arg index="0">
             <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolThreads"/>
         </constructor-arg>
@@ -92,19 +75,6 @@
     <!-- node sender/listener -->
     <bean id="nodeProtocolSenderListener" class="org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener">
         <constructor-arg ref="nodeProtocolSender"/>
-        <constructor-arg ref="nodeProtocolListener"/>
+        <constructor-arg ref="protocolListener"/>
     </bean>
-    
-    <!-- cluster services broadcaster -->
-    <bean id="clusterServicesBroadcaster" class="org.apache.nifi.cluster.protocol.impl.ClusterServicesBroadcaster">
-        <constructor-arg index="0">
-            <bean factory-bean="nifiProperties" factory-method="getClusterProtocolMulticastAddress"/>
-        </constructor-arg>
-        <constructor-arg ref="protocolMulticastConfiguration" index="1"/>
-        <constructor-arg ref="protocolContext" index="2"/>
-        <constructor-arg index="3">
-            <bean factory-bean="nifiProperties" factory-method="getClusterProtocolMulticastServiceBroadcastDelay"/>
-        </constructor-arg>
-    </bean>
- 
 </beans>

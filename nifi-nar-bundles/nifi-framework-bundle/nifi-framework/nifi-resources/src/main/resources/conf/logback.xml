@@ -93,6 +93,7 @@
     <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR" />
     <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR" />
     <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
     <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
     
     <!-- Logger for managing logging statements for nifi clusters. -->

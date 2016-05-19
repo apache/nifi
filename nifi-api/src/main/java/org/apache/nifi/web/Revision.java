@@ -27,6 +27,7 @@ import java.util.Objects;
  * @Threadsafe
  */
 public class Revision implements Serializable {
+    private static final long serialVersionUID = 988658790374170022L;
 
     /**
      * the version number

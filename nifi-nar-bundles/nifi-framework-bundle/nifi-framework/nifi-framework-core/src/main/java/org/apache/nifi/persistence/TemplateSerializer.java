@@ -16,19 +16,23 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.web.api.dto.TemplateDTO;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-
-import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.web.api.dto.TemplateDTO;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public final class TemplateSerializer {
 
     public static byte[] serialize(final TemplateDTO dto) {
+        final ClassLoader currentCl = Thread.currentThread().getContextClassLoader();
+        final ClassLoader cl = NarClassLoaders.getFrameworkClassLoader();
+        Thread.currentThread().setContextClassLoader(cl);
         try {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final BufferedOutputStream bos = new BufferedOutputStream(baos);
@@ -42,6 +46,10 @@ public final class TemplateSerializer {
             return baos.toByteArray();
         } catch (final IOException | JAXBException e) {
             throw new FlowSerializationException(e);
+        } finally {
+            if (currentCl != null) {
+                Thread.currentThread().setContextClassLoader(currentCl);
+            }
         }
     }
 

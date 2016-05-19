@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoint<ControllerServiceEntity, ControllerServiceDTO> {
+public class ControllerServiceEndpointMerger extends AbstractSingleDTOEndpoint<ControllerServiceEntity, ControllerServiceDTO> {
     public static final String CONTROLLER_SERVICES_URI = "/nifi-api/controller-services/node";
     public static final Pattern CONTROLLER_SERVICE_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/node/[a-f0-9\\-]{36}");
 

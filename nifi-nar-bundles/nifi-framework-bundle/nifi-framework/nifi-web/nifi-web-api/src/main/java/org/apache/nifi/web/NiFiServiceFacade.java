@@ -140,6 +140,24 @@ public interface NiFiServiceFacade {
     void cancelRevisions(Set<Revision> revisions) throws InvalidRevisionException;
 
     /**
+     * Releases the claim that is held on the given revision by the given user
+     *
+     * @param revision the revision
+     * @param user the user
+     * @throws InvalidRevisionException if the revision is invalid
+     */
+    void releaseRevisionClaim(Revision revision, NiFiUser user) throws InvalidRevisionException;
+
+    /**
+     * Releases the claim that is held on the given revisions by the given user
+     *
+     * @param revisions the revisions
+     * @param user the user
+     * @throws InvalidRevisionException if the revision is invalid
+     */
+    void releaseRevisionClaims(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
+
+    /**
      * Gets the current revisions for the components based on the specified function.
      *
      * @param groupId group

@@ -447,37 +447,18 @@ language governing permissions and limitations under the License. -->
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
         <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
-        <nifi.cluster.protocol.socket.timeout>30 sec</nifi.cluster.protocol.socket.timeout>
-        <nifi.cluster.protocol.connection.handshake.timeout>45 sec</nifi.cluster.protocol.connection.handshake.timeout>
-        <nifi.cluster.protocol.use.multicast>false</nifi.cluster.protocol.use.multicast>
-        <nifi.cluster.protocol.multicast.address />
-        <nifi.cluster.protocol.multicast.port />
-        <nifi.cluster.protocol.multicast.service.broadcast.delay>500 ms</nifi.cluster.protocol.multicast.service.broadcast.delay>
-        <nifi.cluster.protocol.multicast.service.locator.attempts>3</nifi.cluster.protocol.multicast.service.locator.attempts>
-        <nifi.cluster.protocol.multicast.service.locator.attempts.delay>1 sec</nifi.cluster.protocol.multicast.service.locator.attempts.delay>
 
         <!-- nifi.properties: cluster node properties (only configure for cluster nodes) -->
         <nifi.cluster.is.node>false</nifi.cluster.is.node>
         <nifi.cluster.node.address />
         <nifi.cluster.node.protocol.port />
-        <nifi.cluster.node.protocol.threads>2</nifi.cluster.node.protocol.threads>
-        <nifi.cluster.node.unicast.manager.address />
-        <nifi.cluster.node.unicast.manager.protocol.port />
-
-        <!-- nifi.properties: cluster manager properties (only configure for cluster manager) -->
-        <nifi.cluster.is.manager>false</nifi.cluster.is.manager>
-        <nifi.cluster.manager.address />
-        <nifi.cluster.manager.protocol.port />
-        <nifi.cluster.manager.node.firewall.file />
-        <nifi.cluster.manager.node.event.history.size>10</nifi.cluster.manager.node.event.history.size>
-        <nifi.cluster.manager.node.api.connection.timeout>30 sec</nifi.cluster.manager.node.api.connection.timeout>
-        <nifi.cluster.manager.node.api.read.timeout>30 sec</nifi.cluster.manager.node.api.read.timeout>
-        <nifi.cluster.manager.node.api.request.threads>10</nifi.cluster.manager.node.api.request.threads>
-        <nifi.cluster.manager.flow.retrieval.delay>5 sec</nifi.cluster.manager.flow.retrieval.delay>
-        <nifi.cluster.manager.protocol.threads>10</nifi.cluster.manager.protocol.threads>
-        <nifi.cluster.manager.safemode.duration>0 sec</nifi.cluster.manager.safemode.duration>
-
-        <nifi.cluster.request.replication.claim.timeout>1 min</nifi.cluster.request.replication.claim.timeout>
+        <nifi.cluster.node.protocol.threads>10</nifi.cluster.node.protocol.threads>
+        <nifi.cluster.node.event.history.size>25</nifi.cluster.node.event.history.size>
+        <nifi.cluster.node.connection.timeout>5 sec</nifi.cluster.node.connection.timeout>
+        <nifi.cluster.node.read.timeout>5 sec</nifi.cluster.node.read.timeout>
+        <nifi.cluster.firewall.file />
+        
+        <nifi.cluster.request.replication.claim.timeout>15 secs</nifi.cluster.request.replication.claim.timeout>
 
         <!--  nifi.properties: zookeeper properties -->
         <nifi.zookeeper.connect.string></nifi.zookeeper.connect.string>

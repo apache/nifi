@@ -34,6 +34,8 @@ public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionRespo
             aCr.setManagerRemoteInputPort(cr.getManagerRemoteInputPort());
             aCr.setManagerRemoteCommsSecure(cr.isManagerRemoteCommsSecure());
             aCr.setInstanceId(cr.getInstanceId());
+            aCr.setNodeConnectionStatuses(cr.getNodeConnectionStatuses());
+            aCr.setComponentRevisions(cr.getComponentRevisions());
         }
         return aCr;
     }
@@ -46,7 +48,8 @@ public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionRespo
             return ConnectionResponse.createRejectionResponse(aCr.getRejectionReason());
         } else {
             return new ConnectionResponse(aCr.getNodeIdentifier(), aCr.getDataFlow(),
-                aCr.getManagerRemoteInputPort(), aCr.isManagerRemoteCommsSecure(), aCr.getInstanceId());
+                aCr.getManagerRemoteInputPort(), aCr.isManagerRemoteCommsSecure(),
+                aCr.getInstanceId(), aCr.getNodeConnectionStatuses(), aCr.getComponentRevisions());
         }
     }
 

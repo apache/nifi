@@ -16,9 +16,13 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.jaxb.message.ConnectionResponseAdapter;
+
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The cluster manager's response to a node's connection request. If the manager
@@ -34,15 +38,19 @@ public class ConnectionResponse {
     private final String rejectionReason;
     private final int tryLaterSeconds;
     private final NodeIdentifier nodeIdentifier;
-    private final StandardDataFlow dataFlow;
+    private final DataFlow dataFlow;
     private final Integer managerRemoteInputPort;
     private final Boolean managerRemoteCommsSecure;
     private final String instanceId;
+    private final List<NodeConnectionStatus> nodeStatuses;
+    private final List<ComponentRevision> componentRevisions;
 
-    private volatile String clusterManagerDN;
+    private volatile String coordinatorDN;
 
-    public ConnectionResponse(final NodeIdentifier nodeIdentifier, final StandardDataFlow dataFlow,
-        final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
+    public ConnectionResponse(final NodeIdentifier nodeIdentifier, final DataFlow dataFlow,
+        final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId,
+        final List<NodeConnectionStatus> nodeStatuses, final List<ComponentRevision> componentRevisions) {
+
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
         } else if (dataFlow == null) {
@@ -55,6 +63,8 @@ public class ConnectionResponse {
         this.managerRemoteInputPort = managerRemoteInputPort;
         this.managerRemoteCommsSecure = managerRemoteCommsSecure;
         this.instanceId = instanceId;
+        this.nodeStatuses = Collections.unmodifiableList(new ArrayList<>(nodeStatuses));
+        this.componentRevisions = componentRevisions == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(componentRevisions));
     }
 
     public ConnectionResponse(final int tryLaterSeconds) {
@@ -68,6 +78,8 @@ public class ConnectionResponse {
         this.managerRemoteInputPort = null;
         this.managerRemoteCommsSecure = null;
         this.instanceId = null;
+        this.nodeStatuses = null;
+        this.componentRevisions = null;
     }
 
     private ConnectionResponse(final String rejectionReason) {
@@ -78,6 +90,8 @@ public class ConnectionResponse {
         this.managerRemoteInputPort = null;
         this.managerRemoteCommsSecure = null;
         this.instanceId = null;
+        this.nodeStatuses = null;
+        this.componentRevisions = null;
     }
 
     public static ConnectionResponse createBlockedByFirewallResponse() {
@@ -104,7 +118,7 @@ public class ConnectionResponse {
         return tryLaterSeconds;
     }
 
-    public StandardDataFlow getDataFlow() {
+    public DataFlow getDataFlow() {
         return dataFlow;
     }
 
@@ -124,15 +138,23 @@ public class ConnectionResponse {
         return instanceId;
     }
 
-    public void setClusterManagerDN(final String dn) {
-        this.clusterManagerDN = dn;
+    public void setCoordinatorDN(final String dn) {
+        this.coordinatorDN = dn;
+    }
+
+    public List<NodeConnectionStatus> getNodeConnectionStatuses() {
+        return nodeStatuses;
+    }
+
+    public List<ComponentRevision> getComponentRevisions() {
+        return componentRevisions;
     }
 
     /**
-     * @return the DN of the NCM, if it is available or <code>null</code>
+     * @return the DN of the Coordinator, if it is available or <code>null</code>
      * otherwise
      */
-    public String getClusterManagerDN() {
-        return clusterManagerDN;
+    public String getCoordinatorDN() {
+        return coordinatorDN;
     }
 }

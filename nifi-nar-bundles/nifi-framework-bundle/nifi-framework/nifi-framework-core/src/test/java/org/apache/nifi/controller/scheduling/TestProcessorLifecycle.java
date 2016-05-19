@@ -56,6 +56,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -712,7 +713,7 @@ public class TestProcessorLifecycle {
         properties.setProperty("nifi.remote.input.secure", "");
 
         return FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), properties,
-                mock(KeyService.class), mock(AuditService.class), null);
+            mock(KeyService.class), mock(AuditService.class), null, new VolatileBulletinRepository());
     }
 
     /**

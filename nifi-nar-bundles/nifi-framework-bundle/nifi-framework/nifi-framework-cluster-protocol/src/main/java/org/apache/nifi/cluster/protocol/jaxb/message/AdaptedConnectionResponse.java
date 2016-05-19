@@ -16,32 +16,38 @@
  */
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
+import java.util.List;
+
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.protocol.ComponentRevision;
+import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.cluster.protocol.StandardDataFlow;
 
 /**
  */
 public class AdaptedConnectionResponse {
 
-    private StandardDataFlow dataFlow;
+    private DataFlow dataFlow;
     private NodeIdentifier nodeIdentifier;
     private String rejectionReason;
     private int tryLaterSeconds;
     private Integer managerRemoteInputPort;
     private Boolean managerRemoteCommsSecure;
     private String instanceId;
+    private List<NodeConnectionStatus> nodeStatuses;
+    private List<ComponentRevision> componentRevisions;
 
     public AdaptedConnectionResponse() {
     }
 
     @XmlJavaTypeAdapter(DataFlowAdapter.class)
-    public StandardDataFlow getDataFlow() {
+    public DataFlow getDataFlow() {
         return dataFlow;
     }
 
-    public void setDataFlow(StandardDataFlow dataFlow) {
+    public void setDataFlow(DataFlow dataFlow) {
         this.dataFlow = dataFlow;
     }
 
@@ -96,5 +102,21 @@ public class AdaptedConnectionResponse {
 
     public String getInstanceId() {
         return instanceId;
+    }
+
+    public void setNodeConnectionStatuses(List<NodeConnectionStatus> connectionStatuses) {
+        this.nodeStatuses = connectionStatuses;
+    }
+
+    public List<NodeConnectionStatus> getNodeConnectionStatuses() {
+        return this.nodeStatuses;
+    }
+
+    public List<ComponentRevision> getComponentRevisions() {
+        return componentRevisions;
+    }
+
+    public void setComponentRevisions(List<ComponentRevision> componentRevisions) {
+        this.componentRevisions = componentRevisions;
     }
 }

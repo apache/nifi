@@ -33,14 +33,12 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.CounterDTO;
@@ -68,7 +66,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -82,12 +80,11 @@ import java.util.Set;
 public class ControllerResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
     private Authorizer authorizer;
 
     private ReportingTaskResource reportingTaskResource;
     private ControllerServiceResource controllerServiceResource;
+    private ClusterCoordinator clusterCoordinator;
 
     @Context
     private ResourceContext resourceContext;
@@ -148,10 +145,8 @@ public class ControllerResource extends ApplicationResource {
     )
     public Response createArchive(@Context HttpServletRequest httpServletRequest) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            // don't need to convert from POST to PUT because no resource ID exists on the nodes
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -172,6 +167,7 @@ public class ControllerResource extends ApplicationResource {
      * Retrieves the counters report for this NiFi.
      *
      * @return A countersEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -205,18 +201,18 @@ public class ControllerResource extends ApplicationResource {
                 value = "The id of the node where to get the status.",
                 required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId) {
+        @QueryParam("clusterNodeId") String clusterNodeId) throws InterruptedException {
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        // replicate if necessary
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
+                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
                 final CountersEntity entity = (CountersEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -227,16 +223,15 @@ public class ControllerResource extends ApplicationResource {
                 return nodeResponse.getResponse();
             } else {
                 // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
+                final NodeIdentifier targetNode = clusterCoordinator.getNodeIdentifier(clusterNodeId);
                 if (targetNode == null) {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
 
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
+                final Set<NodeIdentifier> targetNodes = Collections.singleton(targetNode);
 
                 // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return getRequestReplicator().replicate(targetNodes, HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse().getResponse();
             }
         }
 
@@ -282,9 +277,8 @@ public class ControllerResource extends ApplicationResource {
             @Context HttpServletRequest httpServletRequest,
             @PathParam("id") String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -336,9 +330,8 @@ public class ControllerResource extends ApplicationResource {
         // TODO
 //        authorizeController(RequestAction.READ);
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         final ControllerConfigurationEntity entity = serviceFacade.getControllerConfiguration();
@@ -387,9 +380,8 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), configEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, configEntity);
         }
 
         final Revision revision = getRevision(configEntity.getRevision(), FlowController.class.getSimpleName());
@@ -457,8 +449,8 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("The type of reporting task to create must be specified.");
         }
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), reportingTaskEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, reportingTaskEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -528,8 +520,8 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("The type of controller service to create must be specified.");
         }
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), controllerServiceEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -560,8 +552,9 @@ public class ControllerResource extends ApplicationResource {
         this.serviceFacade = serviceFacade;
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
+    @Override
+    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+        this.clusterCoordinator = clusterCoordinator;
     }
 
     public void setReportingTaskResource(ReportingTaskResource reportingTaskResource) {
@@ -570,10 +563,6 @@ public class ControllerResource extends ApplicationResource {
 
     public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     public void setAuthorizer(Authorizer authorizer) {

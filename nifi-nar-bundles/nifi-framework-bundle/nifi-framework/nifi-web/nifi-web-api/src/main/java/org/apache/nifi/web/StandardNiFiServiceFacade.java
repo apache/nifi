@@ -16,6 +16,28 @@
  */
 package org.apache.nifi.web;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -30,10 +52,14 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
+import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -168,27 +194,6 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
  */
@@ -215,13 +220,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private ControllerServiceDAO controllerServiceDAO;
     private ReportingTaskDAO reportingTaskDAO;
     private TemplateDAO templateDAO;
+    private ClusterCoordinator clusterCoordinator;
+    private HeartbeatMonitor heartbeatMonitor;
 
     // administrative services
     private AuditService auditService;
     private KeyService keyService;
-
-    // cluster manager
-    private WebClusterManager clusterManager;
 
     // properties
     private NiFiProperties properties;
@@ -334,6 +338,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     // Synchronization methods
     // -----------------------------------------
 
+    @Override
     public void authorizeAccess(AuthorizeAccess authorizeAccess) {
         authorizeAccess.authorize(authorizableLookup);
     }
@@ -356,6 +361,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void cancelRevisions(Set<Revision> revisions) {
         revisionManager.cancelClaims(revisions);
+    }
+
+    @Override
+    public void releaseRevisionClaim(Revision revision, NiFiUser user) throws InvalidRevisionException {
+        revisionManager.releaseClaim(new StandardRevisionClaim(revision), user);
+    }
+
+    @Override
+    public void releaseRevisionClaims(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException {
+        revisionManager.releaseClaim(new StandardRevisionClaim(revisions), user);
     }
 
     @Override
@@ -912,24 +927,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
         final String userDn = user.getIdentity();
 
-        if (Node.Status.CONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
-            clusterManager.requestReconnection(nodeDTO.getNodeId(), userDn);
-        } else if (Node.Status.DISCONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
-            clusterManager.requestDisconnection(nodeDTO.getNodeId(), userDn);
+        final NodeIdentifier nodeId = clusterCoordinator.getNodeIdentifier(nodeDTO.getNodeId());
+        if (nodeId == null) {
+            throw new UnknownNodeException("No node exists with ID " + nodeDTO.getNodeId());
         }
 
-        final String nodeId = nodeDTO.getNodeId();
 
-        NodeIdentifier nodeIdentifier = null;
-        for (final Node node : clusterManager.getNodes()) {
-            if (node.getNodeId().getId().equals(nodeId)) {
-                nodeIdentifier = node.getNodeId();
-                break;
-            }
+        if (NodeConnectionState.CONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
+            clusterCoordinator.requestNodeConnect(nodeId, userDn);
+        } else if (NodeConnectionState.DISCONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
+            clusterCoordinator.requestNodeDisconnect(nodeId, DisconnectionCode.USER_DISCONNECTED,
+                "User " + userDn + " requested that node be disconnected from cluster");
         }
 
-        final NodeHeartbeat nodeHeartbeat = nodeIdentifier == null ? null : clusterManager.getLatestHeartbeat(nodeIdentifier);
-        return dtoFactory.createNodeDTO(clusterManager.getNode(nodeId), nodeHeartbeat, clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId));
+        return getNode(nodeId);
     }
 
     @Override
@@ -1368,10 +1379,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return flowEntity;
     }
 
-    private <T> ConfigurationSnapshot<T> createConfigSnapshot(final RevisionUpdate<T> update) {
-        return new ConfigurationSnapshot<>(update.getLastModification().getRevision().getVersion(), update.getComponent());
-    }
-
     @Override
     public SnippetEntity createSnippet(final SnippetDTO snippetDTO) {
         final String groupId = snippetDTO.getParentGroupId();
@@ -1759,7 +1766,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final ConfiguredComponent refComponent : referencingComponents) {
             AccessPolicyDTO accessPolicy = null;
             if (refComponent instanceof Authorizable) {
-                accessPolicy = dtoFactory.createAccessPolicyDto((Authorizable) refComponent);
+                accessPolicy = dtoFactory.createAccessPolicyDto(refComponent);
             }
 
             final Revision revision = revisions.get(refComponent.getIdentifier());
@@ -2205,12 +2212,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .limit(query.getLimit());
 
         // get the bulletin repository
-        final BulletinRepository bulletinRepository;
-        if (properties.isClusterManager()) {
-            bulletinRepository = clusterManager.getBulletinRepository();
-        } else {
-            bulletinRepository = controllerFacade.getBulletinRepository();
-        }
+        final BulletinRepository bulletinRepository = controllerFacade.getBulletinRepository();
 
         // perform the query
         final List<Bulletin> results = bulletinRepository.findBulletins(queryBuilder.build());
@@ -2816,10 +2818,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // create node dtos
         final Collection<NodeDTO> nodeDtos = new ArrayList<>();
         clusterDto.setNodes(nodeDtos);
-        for (final Node node : clusterManager.getNodes()) {
-            // create and add node dto
-            final String nodeId = node.getNodeId().getId();
-            nodeDtos.add(dtoFactory.createNodeDTO(node, clusterManager.getLatestHeartbeat(node.getNodeId()), clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId)));
+        final NodeIdentifier primaryNode = clusterCoordinator.getPrimaryNode();
+        for (final NodeIdentifier nodeId : clusterCoordinator.getNodeIdentifiers()) {
+            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
+            if (status == null) {
+                continue;
+            }
+
+            final List<NodeEvent> events = clusterCoordinator.getNodeEvents(nodeId);
+            final boolean primary = primaryNode != null && primaryNode.equals(nodeId);
+            final NodeHeartbeat heartbeat = heartbeatMonitor.getLatestHeartbeat(nodeId);
+            nodeDtos.add(dtoFactory.createNodeDTO(nodeId, status, heartbeat, events, primary));
         }
 
         return clusterDto;
@@ -2827,12 +2836,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public NodeDTO getNode(String nodeId) {
-        final Node node = clusterManager.getNode(nodeId);
-        if (node == null) {
-            throw new UnknownNodeException("Node does not exist.");
-        } else {
-            return dtoFactory.createNodeDTO(node, clusterManager.getLatestHeartbeat(node.getNodeId()), clusterManager.getNodeEvents(nodeId), isPrimaryNode(nodeId));
-        }
+        final NodeIdentifier nodeIdentifier = clusterCoordinator.getNodeIdentifier(nodeId);
+        return getNode(nodeIdentifier);
+    }
+
+    private NodeDTO getNode(NodeIdentifier nodeId) {
+        final NodeConnectionStatus nodeStatus = clusterCoordinator.getConnectionStatus(nodeId);
+        final List<NodeEvent> events = clusterCoordinator.getNodeEvents(nodeId);
+        final boolean primary = nodeId.equals(clusterCoordinator.getPrimaryNode());
+        final NodeHeartbeat heartbeat = heartbeatMonitor.getLatestHeartbeat(nodeId);
+        return dtoFactory.createNodeDTO(nodeId, nodeStatus, heartbeat, events, primary);
     }
 
     @Override
@@ -2843,7 +2856,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final String userDn = user.getIdentity();
-        clusterManager.deleteNode(nodeId, userDn);
+        final NodeIdentifier nodeIdentifier = clusterCoordinator.getNodeIdentifier(nodeId);
+        if (nodeIdentifier == null) {
+            throw new UnknownNodeException("Cannot remove Node with ID " + nodeId + " because it is not part of the cluster");
+        }
+
+        clusterCoordinator.removeNode(nodeIdentifier, userDn);
+        heartbeatMonitor.removeHeartbeat(nodeIdentifier);
     }
 
     /* setters */
@@ -2891,10 +2910,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.revisionManager = revisionManager;
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
     public void setDtoFactory(DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }
@@ -2935,15 +2950,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.authorizer = authorizer;
     }
 
-    private boolean isPrimaryNode(String nodeId) {
-        final Node primaryNode = clusterManager.getPrimaryNode();
-        return (primaryNode != null && primaryNode.getNodeId().getId().equals(nodeId));
+    public void setClusterCoordinator(ClusterCoordinator coordinator) {
+        this.clusterCoordinator = coordinator;
     }
 
-    private AccessPolicyDTO allAccess() {
-        final AccessPolicyDTO dto = new AccessPolicyDTO();
-        dto.setCanRead(true);
-        dto.setCanWrite(true);
-        return dto;
+    public void setHeartbeatMonitor(HeartbeatMonitor heartbeatMonitor) {
+        this.heartbeatMonitor = heartbeatMonitor;
     }
 }

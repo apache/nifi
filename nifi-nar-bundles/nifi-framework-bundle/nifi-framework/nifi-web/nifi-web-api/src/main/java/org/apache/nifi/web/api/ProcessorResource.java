@@ -16,38 +16,9 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.ui.extension.UiExtension;
-import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.UpdateResult;
-import org.apache.nifi.web.api.dto.ComponentStateDTO;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
-import org.apache.nifi.web.api.entity.ComponentStateEntity;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.LongParameter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.net.URI;
+import java.util.List;
+import java.util.Set;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -65,10 +36,33 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.UpdateResult;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Processor.
@@ -79,13 +73,7 @@ import java.util.Set;
     description = "Endpoint for managing a Processor."
 )
 public class ProcessorResource extends ApplicationResource {
-    private static final Logger logger = LoggerFactory.getLogger(ProcessorResource.class);
-
-    private static final List<Long> POSSIBLE_RUN_DURATIONS = Arrays.asList(0L, 25L, 50L, 100L, 250L, 500L, 1000L, 2000L);
-
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
     private Authorizer authorizer;
 
     @Context
@@ -168,6 +156,7 @@ public class ProcessorResource extends ApplicationResource {
      *
      * @param id The id of the processor to retrieve.
      * @return A processorEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -197,11 +186,10 @@ public class ProcessorResource extends ApplicationResource {
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") final String id) {
+        @PathParam("id") final String id) throws InterruptedException {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -224,6 +212,7 @@ public class ProcessorResource extends ApplicationResource {
      * @param id The id of the processor
      * @param propertyName The property
      * @return a propertyDescriptorEntity
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -263,16 +252,15 @@ public class ProcessorResource extends ApplicationResource {
                     value = "The property name.",
                     required = true
             )
-            @QueryParam("propertyName") final String propertyName) {
+        @QueryParam("propertyName") final String propertyName) throws InterruptedException {
 
         // ensure the property name is specified
         if (propertyName == null) {
             throw new IllegalArgumentException("The property name must be specified.");
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -297,6 +285,7 @@ public class ProcessorResource extends ApplicationResource {
      *
      * @param id The id of the processor
      * @return a componentStateEntity
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -324,11 +313,10 @@ public class ProcessorResource extends ApplicationResource {
             value = "The processor id.",
             required = true
         )
-        @PathParam("id") final String id) {
+        @PathParam("id") final String id) throws InterruptedException {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -355,6 +343,7 @@ public class ProcessorResource extends ApplicationResource {
      * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
      * @param id The id of the processor
      * @return a componentStateEntity
+     * @throws InterruptedException if interrupted
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -387,16 +376,15 @@ public class ProcessorResource extends ApplicationResource {
             value = "The processor id.",
             required = true
         )
-        @PathParam("id") final String id) {
+        @PathParam("id") final String id) throws InterruptedException {
 
         // ensure the revision was specified
         if (revisionEntity == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, revisionEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -427,6 +415,7 @@ public class ProcessorResource extends ApplicationResource {
      * @param id The id of the processor to update.
      * @param processorEntity A processorEntity.
      * @return A processorEntity.
+     * @throws InterruptedException if interrupted
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
@@ -459,7 +448,7 @@ public class ProcessorResource extends ApplicationResource {
             @ApiParam(
                     value = "The processor configuration details.",
                     required = true
-            ) final ProcessorEntity processorEntity) {
+        ) final ProcessorEntity processorEntity) throws InterruptedException {
 
         if (processorEntity == null || processorEntity.getComponent() == null) {
             throw new IllegalArgumentException("Processor details must be specified.");
@@ -476,19 +465,8 @@ public class ProcessorResource extends ApplicationResource {
                     + "not equal the processor id of the requested resource (%s).", requestProcessorDTO.getId(), id));
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            // the run on primary mode cannot change when there is a disconnected primary
-            final ProcessorConfigDTO config = requestProcessorDTO.getConfig();
-            if (config != null && SchedulingStrategy.PRIMARY_NODE_ONLY.name().equals(config.getSchedulingStrategy())) {
-                Node primaryNode = clusterManager.getPrimaryNode();
-                if (primaryNode != null && primaryNode.getStatus() != Node.Status.CONNECTED) {
-                    throw new IllegalClusterStateException("Unable to update processor because primary node is not connected.");
-                }
-            }
-
-            // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), processorEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, processorEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -524,6 +502,7 @@ public class ProcessorResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor to remove.
      * @return A processorEntity.
+     * @throws InterruptedException if interrupted
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
@@ -562,11 +541,10 @@ public class ProcessorResource extends ApplicationResource {
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") final String id) {
+        @PathParam("id") final String id) throws InterruptedException {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
         }
 
         final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
@@ -591,14 +569,6 @@ public class ProcessorResource extends ApplicationResource {
     // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
-    }
-
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     public void setAuthorizer(Authorizer authorizer) {

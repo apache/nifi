@@ -46,5 +46,11 @@ public enum NodeConnectionState {
      * A node that is not connected to the cluster.
      * A DISCONNECTED node can transition to CONNECTING.
      */
-    DISCONNECTED
+    DISCONNECTED,
+
+    /**
+     * A NodeConnectionState of REMOVED indicates that the node was removed from the cluster
+     * and is used in order to notify other nodes in the cluster.
+     */
+    REMOVED;
 }

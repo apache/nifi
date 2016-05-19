@@ -16,21 +16,41 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.sun.jersey.multipart.FormDataParam;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.AuthorizableLookup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
@@ -68,34 +88,14 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import com.sun.jersey.api.core.ResourceContext;
+import com.sun.jersey.multipart.FormDataParam;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -115,8 +115,6 @@ public class ProcessGroupResource extends ApplicationResource {
     private ResourceContext resourceContext;
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
     private Authorizer authorizer;
 
     private ProcessorResource processorResource;
@@ -235,9 +233,8 @@ public class ProcessGroupResource extends ApplicationResource {
             )
             @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -313,8 +310,8 @@ public class ProcessGroupResource extends ApplicationResource {
                     + "not equal the process group id of the requested resource (%s).", requestProcessGroupDTO.getId(), id));
         }
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), processGroupEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, processGroupEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -391,8 +388,8 @@ public class ProcessGroupResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -470,8 +467,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         processGroupEntity.getComponent().setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), processGroupEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, processGroupEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -534,9 +531,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -626,8 +622,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         processorEntity.getComponent().setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), processorEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, processorEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -691,9 +687,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -772,8 +767,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         portEntity.getComponent().setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), portEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, portEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -835,9 +830,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -915,8 +909,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         portEntity.getComponent().setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), portEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, portEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -978,9 +972,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -1059,8 +1052,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         funnelEntity.getComponent().setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), funnelEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, funnelEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1122,9 +1115,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -1203,8 +1195,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         labelEntity.getComponent().setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), labelEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, labelEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1266,9 +1258,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -1353,8 +1344,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         requestProcessGroupDTO.setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), remoteProcessGroupEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, remoteProcessGroupEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1447,9 +1438,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -1537,8 +1527,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         connectionEntity.getComponent().setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), connectionEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, connectionEntity);
         }
 
         // get the connection
@@ -1605,9 +1595,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -1684,9 +1673,8 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("The snippet id must be specified.");
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), copySnippetEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, copySnippetEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1773,9 +1761,8 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("The  origin position (x, y) must be specified");
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), instantiateTemplateRequestEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, instantiateTemplateRequestEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1859,9 +1846,8 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -1926,9 +1912,8 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("The snippet identifier must be specified.");
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), createTemplateRequestEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, createTemplateRequestEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -1961,10 +1946,11 @@ public class ProcessGroupResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     *            new one will be generated. This value (whether specified or generated) is
+     *            included in the response.
      * @param in The template stream
      * @return A templateEntity or an errorResponse XML snippet.
+     * @throws InterruptedException if interrupted
      */
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -1979,7 +1965,7 @@ public class ProcessGroupResource extends ApplicationResource {
         )
         @PathParam("id") final String groupId,
         @FormDataParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-        @FormDataParam("template") final InputStream in) {
+        @FormDataParam("template") final InputStream in) throws InterruptedException {
 
         // unmarshal the template
         final TemplateDTO template;
@@ -2007,8 +1993,7 @@ public class ProcessGroupResource extends ApplicationResource {
         TemplateEntity entity = new TemplateEntity();
         entity.setTemplate(template);
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // convert request accordingly
             URI importUri = null;
             try {
@@ -2022,7 +2007,7 @@ public class ProcessGroupResource extends ApplicationResource {
             headersToOverride.put("content-type", MediaType.APPLICATION_XML);
 
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.POST, importUri, entity, getHeaders(headersToOverride)).getResponse();
+            return getRequestReplicator().replicate(HttpMethod.POST, importUri, entity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
         }
 
         // otherwise import the template locally
@@ -2050,9 +2035,8 @@ public class ProcessGroupResource extends ApplicationResource {
         @PathParam("id") final String groupId,
         final TemplateEntity templateEntity) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), templateEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, templateEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2157,8 +2141,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         controllerServiceEntity.getComponent().setParentGroupId(groupId);
 
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), controllerServiceEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, controllerServiceEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -2188,10 +2172,6 @@ public class ProcessGroupResource extends ApplicationResource {
     // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
-    }
-
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
     }
 
     public void setProcessorResource(ProcessorResource processorResource) {
@@ -2228,10 +2208,6 @@ public class ProcessGroupResource extends ApplicationResource {
 
     public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     public void setAuthorizer(Authorizer authorizer) {

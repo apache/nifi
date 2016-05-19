@@ -1,4 +1,5 @@
 /*
+
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -26,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +44,7 @@ import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.Revision;
 import org.junit.Assert;
 import org.junit.Test;
+
 
 public class TestNaiveRevisionManager {
     private static final String CLIENT_1 = "client-1";
@@ -82,6 +85,22 @@ public class TestNaiveRevisionManager {
         assertEquals(originalRevision.getClientId(), updatedRevision.getClientId());
         assertEquals(originalRevision.getComponentId(), updatedRevision.getComponentId());
         assertEquals(1L, updatedRevision.getVersion().longValue());
+    }
+
+    @Test
+    public void testTypicalFlowWithLargeRevisionVersion() throws ExpiredRevisionClaimException {
+        final RevisionManager revisionManager = new NaiveRevisionManager();
+        final Revision originalRevision = new Revision(1000L, CLIENT_1, COMPONENT_1);
+        final RevisionClaim claim = revisionManager.requestClaim(originalRevision, USER_1);
+        assertNotNull(claim);
+
+        revisionManager.updateRevision(claim, USER_1, () -> components(new Revision(1001L, CLIENT_1, COMPONENT_1)));
+
+        final Revision updatedRevision = revisionManager.getRevision(originalRevision.getComponentId());
+        assertNotNull(updatedRevision);
+        assertEquals(originalRevision.getClientId(), updatedRevision.getClientId());
+        assertEquals(originalRevision.getComponentId(), updatedRevision.getComponentId());
+        assertEquals(1001L, updatedRevision.getVersion().longValue());
     }
 
     @Test
@@ -505,5 +524,95 @@ public class TestNaiveRevisionManager {
         final RevisionClaim thirdClaim = revisionManager.requestClaim(Arrays.asList(component1V2, component2V1), USER_1);
         assertNotNull(thirdClaim);
         revisionManager.updateRevision(thirdClaim, USER_1, () -> new StandardRevisionUpdate<>(null, new FlowModification(component1V3, "unit test")));
+    }
+
+    @Test(timeout = 5000)
+    public void testResetWithoutClaimedRevisions() {
+        final RevisionManager revisionManager = new NaiveRevisionManager(10, TimeUnit.MINUTES);
+        final Revision component1V1 = new Revision(1L, CLIENT_1, COMPONENT_1);
+        final Revision component1V2 = new Revision(2L, CLIENT_1, COMPONENT_1);
+
+        final RevisionClaim claim = revisionManager.requestClaim(component1V1, USER_1);
+        revisionManager.updateRevision(claim, USER_1, () -> new StandardRevisionUpdate<>(COMPONENT_1, new FlowModification(component1V2, "unit test")));
+
+        final Revision retrievedRevision = revisionManager.getRevision(COMPONENT_1);
+        assertNotNull(retrievedRevision);
+        assertEquals(component1V2, retrievedRevision);
+
+        revisionManager.reset(Collections.singleton(new Revision(88L, CLIENT_1, COMPONENT_1)));
+
+        final Revision retrievedAfterClear = revisionManager.getRevision(COMPONENT_1);
+        assertNotNull(retrievedAfterClear);
+        assertEquals(88L, retrievedAfterClear.getVersion().longValue());
+
+        final Revision component1V500 = new Revision(500L, "new client id", COMPONENT_1);
+
+        try {
+            revisionManager.requestClaim(component1V500, USER_1);
+            Assert.fail("Expected InvalidRevisionException was but able to claim revision with wrong version");
+        } catch (final InvalidRevisionException ire) {
+            // Expected
+        }
+    }
+
+    @Test(timeout = 5000)
+    public void testResetWithClaimedRevisions() {
+        final RevisionManager revisionManager = new NaiveRevisionManager(2, TimeUnit.SECONDS);
+        final Revision component1V1 = new Revision(1L, CLIENT_1, COMPONENT_1);
+
+        final RevisionClaim claim = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim);
+
+        revisionManager.reset(Collections.singleton(new Revision(88L, CLIENT_1, COMPONENT_1)));
+
+        final Revision retrievedAfterClear = revisionManager.getRevision(COMPONENT_1);
+        assertNotNull(retrievedAfterClear);
+        assertEquals(88L, retrievedAfterClear.getVersion().longValue());
+
+        // Should now be able to claim any version that I want
+        final Revision component1V500 = new Revision(500L, "new client id", COMPONENT_1);
+        try {
+            revisionManager.requestClaim(component1V500, USER_1);
+            Assert.fail("Expected InvalidRevisionException was but able to claim revision with wrong version");
+        } catch (final InvalidRevisionException ire) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testGetAllRevisions() {
+        final RevisionManager revisionManager = new NaiveRevisionManager(2, TimeUnit.SECONDS);
+        final Revision component1V1 = new Revision(1L, CLIENT_1, COMPONENT_1);
+        final Revision component1V2 = new Revision(2L, CLIENT_1, COMPONENT_1);
+
+        final Revision component2V1 = new Revision(1L, "client-2", "component-2");
+
+        final RevisionClaim claim1 = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim1);
+
+        revisionManager.updateRevision(claim1, USER_1, () -> new StandardRevisionUpdate<>(COMPONENT_1, new FlowModification(component1V2, "unit test")));
+
+        assertNotNull(revisionManager.requestClaim(component2V1, USER_1));
+
+        final List<Revision> revisions = revisionManager.getAllRevisions();
+        assertNotNull(revisions);
+        assertEquals(2, revisions.size());
+
+        boolean component1Seen = false, component2Seen = false;
+        for (final Revision revision : revisions) {
+            final String componentId = revision.getComponentId();
+            if (componentId.equals(COMPONENT_1)) {
+                assertEquals(component1V2, revision);
+                component1Seen = true;
+            } else if (componentId.equals("component-2")) {
+                assertEquals(component2V1, revision);
+                component2Seen = true;
+            } else {
+                Assert.fail("Got revision for unexpected component: " + revision);
+            }
+        }
+
+        assertTrue(component1Seen);
+        assertTrue(component2Seen);
     }
 }

@@ -220,12 +220,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             logger.info("{} This node has been elected Leader for Role '{}'", this, roleName);
 
             if (listener != null) {
-                leaderElectionMonitorEngine.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        listener.onLeaderElection();
-                    }
-                });
+                listener.onLeaderElection();
             }
 
             // Curator API states that we lose the leadership election when we return from this method,
@@ -233,7 +228,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             try {
                 while (!isStopped()) {
                     try {
-                        Thread.sleep(1000L);
+                        Thread.sleep(100L);
                     } catch (final InterruptedException ie) {
                         logger.info("{} has been interrupted; no longer leader for role '{}'", this, roleName);
                         Thread.currentThread().interrupt();
@@ -245,12 +240,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                 logger.info("{} This node is no longer leader for role '{}'", this, roleName);
 
                 if (listener != null) {
-                    leaderElectionMonitorEngine.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            listener.onLeaderRelinquish();
-                        }
-                    });
+                    listener.onLeaderRelinquish();
                 }
             }
         }
