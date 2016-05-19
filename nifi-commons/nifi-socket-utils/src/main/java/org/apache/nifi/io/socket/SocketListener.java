@@ -33,8 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.nifi.logging.NiFiLog;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public abstract class SocketListener {
 
     private static final int DEFAULT_SHUTDOWN_LISTENER_SECONDS = 5;
-    private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(SocketListener.class));
+    private static final Logger logger = LoggerFactory.getLogger(SocketListener.class);
     private volatile ExecutorService executorService;  // volatile to guarantee most current value is visible
     private volatile ServerSocket serverSocket;        // volatile to guarantee most current value is visible
     private final int numThreads;
@@ -96,7 +94,7 @@ public abstract class SocketListener {
             @Override
             public Thread newThread(final Runnable r) {
                 final Thread newThread = defaultThreadFactory.newThread(r);
-                newThread.setName("Process NCM Request-" + threadCounter.incrementAndGet());
+                newThread.setName("Process Cluster Protocol Request-" + threadCounter.incrementAndGet());
                 return newThread;
             }
         });
@@ -152,6 +150,8 @@ public abstract class SocketListener {
         });
         t.setName("Cluster Socket Listener");
         t.start();
+
+        logger.info("Now listening for connections from nodes on port " + port);
     }
 
     public boolean isRunning() {

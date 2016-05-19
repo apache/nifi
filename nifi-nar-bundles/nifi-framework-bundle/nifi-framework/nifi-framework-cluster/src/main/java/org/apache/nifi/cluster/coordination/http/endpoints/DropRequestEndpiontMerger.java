@@ -29,7 +29,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 
-public class DropRequestEndpiontMerger extends AbstractSingleEntityEndpoint<DropRequestEntity, DropRequestDTO> {
+public class DropRequestEndpiontMerger extends AbstractSingleDTOEndpoint<DropRequestEntity, DropRequestDTO> {
     public static final Pattern DROP_REQUESTS_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/drop-requests");
     public static final Pattern DROP_REQUEST_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/drop-requests/[a-f0-9\\-]{36}");
 

@@ -16,33 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.DownloadableContent;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.DropRequestDTO;
-import org.apache.nifi.web.api.dto.FlowFileDTO;
-import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
-import org.apache.nifi.web.api.dto.ListingRequestDTO;
-import org.apache.nifi.web.api.entity.DropRequestEntity;
-import org.apache.nifi.web.api.entity.FlowFileEntity;
-import org.apache.nifi.web.api.entity.ListingRequestEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.Collections;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -61,12 +40,33 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.HashSet;
-import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.web.DownloadableContent;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
+import org.apache.nifi.web.api.dto.FlowFileDTO;
+import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
+import org.apache.nifi.web.api.dto.ListingRequestDTO;
+import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.FlowFileEntity;
+import org.apache.nifi.web.api.entity.ListingRequestEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a flowfile queue.
@@ -79,9 +79,8 @@ import java.util.Set;
 public class FlowFileQueueResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
     private Authorizer authorizer;
+    private ClusterCoordinator clusterCoordinator;
 
     /**
      * Populate the URIs for the specified flowfile listing.
@@ -122,6 +121,7 @@ public class FlowFileQueueResource extends ApplicationResource {
      * @param flowFileUuid The flowfile uuid
      * @param clusterNodeId The cluster node id where the flowfile resides
      * @return a flowFileDTO
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -158,25 +158,24 @@ public class FlowFileQueueResource extends ApplicationResource {
                 value = "The id of the node where the content exists if clustered.",
                 required = false
             )
-            @QueryParam("clusterNodeId") final String clusterNodeId) {
+        @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
                 throw new IllegalArgumentException("The id of the node in the cluster is required.");
             } else {
                 // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
+                final NodeIdentifier targetNode = clusterCoordinator.getNodeIdentifier(clusterNodeId);
                 if (targetNode == null) {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
 
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
+                final Set<NodeIdentifier> targetNodes = Collections.singleton(targetNode);
 
                 // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return getRequestReplicator().replicate(targetNodes, HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse().getResponse();
             }
         }
 
@@ -205,6 +204,7 @@ public class FlowFileQueueResource extends ApplicationResource {
      * @param flowFileUuid The flowfile uuid
      * @param clusterNodeId The cluster node id
      * @return The content stream
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -246,25 +246,24 @@ public class FlowFileQueueResource extends ApplicationResource {
                 value = "The id of the node where the content exists if clustered.",
                 required = false
             )
-            @QueryParam("clusterNodeId") final String clusterNodeId) {
+        @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
                 throw new IllegalArgumentException("The id of the node in the cluster is required.");
             } else {
                 // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
+                final NodeIdentifier targetNode = clusterCoordinator.getNodeIdentifier(clusterNodeId);
                 if (targetNode == null) {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
 
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
+                final Set<NodeIdentifier> targetNodes = Collections.singleton(targetNode);
 
                 // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return getRequestReplicator().replicate(targetNodes, HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse().getResponse();
             }
         }
 
@@ -340,9 +339,8 @@ public class FlowFileQueueResource extends ApplicationResource {
             )
             @PathParam("connection-id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
         }
 
         // authorize access
@@ -414,9 +412,8 @@ public class FlowFileQueueResource extends ApplicationResource {
             )
             @PathParam("listing-request-id") final String listingRequestId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -478,9 +475,8 @@ public class FlowFileQueueResource extends ApplicationResource {
             )
             @PathParam("listing-request-id") final String listingRequestId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -548,9 +544,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         )
         @PathParam("connection-id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
         }
 
         // authorize access
@@ -621,9 +616,8 @@ public class FlowFileQueueResource extends ApplicationResource {
             )
             @PathParam("drop-request-id") final String dropRequestId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access
@@ -685,9 +679,8 @@ public class FlowFileQueueResource extends ApplicationResource {
             )
             @PathParam("drop-request-id") final String dropRequestId) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
         }
 
         // authorize access
@@ -718,12 +711,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         this.serviceFacade = serviceFacade;
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
+    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+        this.clusterCoordinator = clusterCoordinator;
     }
 
     public void setAuthorizer(Authorizer authorizer) {

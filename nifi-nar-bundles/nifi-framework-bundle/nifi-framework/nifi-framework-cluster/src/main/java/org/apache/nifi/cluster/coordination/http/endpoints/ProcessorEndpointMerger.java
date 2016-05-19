@@ -25,11 +25,12 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 
-public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<ProcessorEntity, ProcessorDTO> implements EndpointResponseMerger {
+public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<ProcessorEntity> implements EndpointResponseMerger {
     public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/processors");
     public static final Pattern PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}");
     public static final Pattern CLUSTER_PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/cluster/processors/[a-f0-9\\-]{36}");
@@ -51,12 +52,7 @@ public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<Proces
         return ProcessorEntity.class;
     }
 
-    @Override
-    protected ProcessorDTO getDto(final ProcessorEntity entity) {
-        return entity.getComponent();
-    }
 
-    @Override
     protected void mergeResponses(final ProcessorDTO clientDto, final Map<NodeIdentifier, ProcessorDTO> dtoMap, final Set<NodeResponse> successfulResponses,
         final Set<NodeResponse> problematicResponses) {
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
@@ -73,6 +69,7 @@ public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<Proces
         clientDto.setValidationErrors(normalizedMergedValidationErrors(validationErrorMap, dtoMap.size()));
     }
 
+    @Override
     protected void mergeResponses(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap, final Set<NodeResponse> successfulResponses,
         final Set<NodeResponse> problematicResponses) {
 
@@ -82,6 +79,14 @@ public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<Proces
             final ProcessorEntity nodeProcEntity = entry.getValue();
             final ProcessorDTO nodeProcDto = nodeProcEntity.getComponent();
             dtoMap.put(entry.getKey(), nodeProcDto);
+        }
+
+        for (final Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
+            final NodeIdentifier nodeId = entry.getKey();
+            final ProcessorEntity entity = entry.getValue();
+            if (entity != clientEntity) {
+                StatusMerger.merge(clientEntity.getStatus(), entity.getStatus(), nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
+            }
         }
 
         mergeResponses(clientDto, dtoMap, successfulResponses, problematicResponses);

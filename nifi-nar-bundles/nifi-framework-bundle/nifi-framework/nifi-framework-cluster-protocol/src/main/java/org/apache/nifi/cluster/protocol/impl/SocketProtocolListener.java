@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
@@ -35,7 +36,6 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketListener;
-import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.security.util.CertificateUtils;
@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SocketProtocolListener extends SocketListener implements ProtocolListener {
 
-    private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(SocketProtocolListener.class));
+    private static final Logger logger = LoggerFactory.getLogger(SocketProtocolListener.class);
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final Collection<ProtocolHandler> handlers = new CopyOnWriteArrayList<>();
     private volatile BulletinRepository bulletinRepository;
@@ -122,7 +122,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             final StopWatch stopWatch = new StopWatch(true);
             hostname = socket.getInetAddress().getHostName();
             final String requestId = UUID.randomUUID().toString();
-            logger.info("Received request {} from {}", requestId, hostname);
+            logger.debug("Received request {} from {}", requestId, hostname);
 
             String requestorDn = getRequestorDN(socket);
 
@@ -130,20 +130,23 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
             final InputStream inStream = socket.getInputStream();
             final CopyingInputStream copyingInputStream = new CopyingInputStream(inStream, maxMsgBuffer); // don't copy more than 1 MB
-            logger.debug("Request {} has a message length of {}", requestId, copyingInputStream.getNumberOfBytesCopied());
 
             final ProtocolMessage request;
             try {
                 request = unmarshaller.unmarshal(copyingInputStream);
             } finally {
                 receivedMessage = copyingInputStream.getBytesRead();
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Received message: " + new String(receivedMessage));
+                }
             }
 
             request.setRequestorDN(requestorDn);
 
             // dispatch message to handler
             ProtocolHandler desiredHandler = null;
-            for (final ProtocolHandler handler : getHandlers()) {
+            final Collection<ProtocolHandler> handlers = getHandlers();
+            for (final ProtocolHandler handler : handlers) {
                 if (handler.canHandle(request)) {
                     desiredHandler = handler;
                     break;
@@ -152,6 +155,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
 
             // if no handler found, throw exception; otherwise handle request
             if (desiredHandler == null) {
+                logger.error("Received request of type {} but none of the following Protocol Handlers were able to process the request: {}", request.getType(), handlers);
                 throw new ProtocolException("No handler assigned to handle message type: " + request.getType());
             } else {
                 final ProtocolMessage response = desiredHandler.handle(request);
@@ -169,7 +173,8 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             }
 
             stopWatch.stop();
-            logger.info("Finished processing request {} (type={}, length={} bytes) in {} millis", requestId, request.getType(), receivedMessage.length, stopWatch.getDuration(TimeUnit.MILLISECONDS));
+            logger.info("Finished processing request {} (type={}, length={} bytes) from {} in {} millis",
+                requestId, request.getType(), receivedMessage.length, hostname, stopWatch.getDuration(TimeUnit.MILLISECONDS));
         } catch (final IOException | ProtocolException e) {
             logger.warn("Failed processing protocol message from " + hostname + " due to " + e, e);
 

@@ -784,6 +784,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             connections.put(connection.getIdentifier(), connection);
+            connection.setProcessGroup(this);
         } finally {
             writeLock.unlock();
         }

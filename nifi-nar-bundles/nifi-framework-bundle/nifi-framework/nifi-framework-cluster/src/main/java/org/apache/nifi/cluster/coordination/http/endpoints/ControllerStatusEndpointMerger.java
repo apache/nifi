@@ -29,7 +29,7 @@ import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 
-public class ControllerStatusEndpointMerger extends AbstractSingleEntityEndpoint<ControllerStatusEntity, ControllerStatusDTO> {
+public class ControllerStatusEndpointMerger extends AbstractSingleDTOEndpoint<ControllerStatusEntity, ControllerStatusDTO> {
     public static final Pattern CONTROLLER_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/status");
 
     @Override
@@ -71,13 +71,6 @@ public class ControllerStatusEndpointMerger extends AbstractSingleEntityEndpoint
 
             StatusMerger.merge(mergedStatus, nodeStatus);
         }
-
-        final int totalNodeCount = successfulResponses.size() + problematicResponses.size();
-        final int connectedNodeCount = successfulResponses.size(); // all nodes that responded successfully must be connected. Those that did not will be disconnected.
-
-        mergedStatus.setConnectedNodeCount(connectedNodeCount);
-        mergedStatus.setTotalNodeCount(totalNodeCount);
-        StatusMerger.updatePrettyPrintedFields(mergedStatus);
     }
 
 }

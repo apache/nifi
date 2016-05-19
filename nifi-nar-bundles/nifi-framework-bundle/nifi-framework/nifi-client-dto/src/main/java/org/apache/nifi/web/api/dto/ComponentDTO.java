@@ -91,4 +91,22 @@ public class ComponentDTO {
     public void setPosition(final PositionDTO position) {
         this.position = position;
     }
+
+    @Override
+    public int hashCode() {
+        return id == null ? 187 : 187 * id.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+
+        if (obj.getClass() != getClass()) {
+            return false;
+        }
+
+        return id.equals(((ComponentDTO) obj).getId());
+    }
 }

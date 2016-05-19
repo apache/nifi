@@ -78,6 +78,11 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
     @Override
     public synchronized void load(final OutputStream os) throws IOException {
+        final File file = flowXmlPath.toFile();
+        if (!file.exists() || file.length() == 0) {
+            return;
+        }
+
         try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
                 final InputStream gzipIn = new GZIPInputStream(inStream)) {
             FileUtils.copy(gzipIn, os);
