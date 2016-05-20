@@ -572,58 +572,7 @@ public interface SiteToSiteClient extends Closeable {
          * @return the SSL Context that is configured for this builder
          */
         public SSLContext getSslContext() {
-            if (sslContext != null) {
-                return sslContext;
-            }
-
-            final KeyManagerFactory keyManagerFactory;
-            if (keystoreFilename != null && keystorePass != null && keystoreType != null) {
-                try {
-                    // prepare the keystore
-                    final KeyStore keyStore = KeyStore.getInstance(getKeystoreType().name());
-                    try (final InputStream keyStoreStream = new FileInputStream(new File(getKeystoreFilename()))) {
-                        keyStore.load(keyStoreStream, getKeystorePass().toCharArray());
-                    }
-                    keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                    keyManagerFactory.init(keyStore, getKeystorePass().toCharArray());
-                } catch (final Exception e) {
-                    throw new RuntimeException("Failed to load Keystore", e);
-                }
-            } else {
-                keyManagerFactory = null;
-            }
-
-            final TrustManagerFactory trustManagerFactory;
-            if (truststoreFilename != null && truststorePass != null && truststoreType != null) {
-                try {
-                    // prepare the truststore
-                    final KeyStore trustStore = KeyStore.getInstance(getTruststoreType().name());
-                    try (final InputStream trustStoreStream = new FileInputStream(new File(getTruststoreFilename()))) {
-                        trustStore.load(trustStoreStream, getTruststorePass().toCharArray());
-                    }
-                    trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                    trustManagerFactory.init(trustStore);
-                } catch (final Exception e) {
-                    throw new RuntimeException("Failed to load Truststore", e);
-                }
-            } else {
-                trustManagerFactory = null;
-            }
-
-            if (keyManagerFactory != null && trustManagerFactory != null) {
-                try {
-                    // initialize the ssl context
-                    final SSLContext sslContext = SSLContext.getInstance("TLS");
-                    sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
-                    sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
-
-                    return sslContext;
-                } catch (final Exception e) {
-                    throw new RuntimeException("Created keystore and truststore but failed to initialize SSLContext");
-                }
-            } else {
-                return null;
-            }
+            return sslContext;
         }
 
         /**
@@ -758,7 +707,58 @@ public interface SiteToSiteClient extends Closeable {
 
         @Override
         public SSLContext getSslContext() {
-            return sslContext;
+            if (sslContext != null) {
+                return sslContext;
+            }
+
+            final KeyManagerFactory keyManagerFactory;
+            if (keystoreFilename != null && keystorePass != null && keystoreType != null) {
+                try {
+                    // prepare the keystore
+                    final KeyStore keyStore = KeyStore.getInstance(getKeystoreType().name());
+                    try (final InputStream keyStoreStream = new FileInputStream(new File(getKeystoreFilename()))) {
+                        keyStore.load(keyStoreStream, keystorePass.toCharArray());
+                    }
+                    keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                    keyManagerFactory.init(keyStore, keystorePass.toCharArray());
+                } catch (final Exception e) {
+                    throw new IllegalStateException("Failed to load Keystore", e);
+                }
+            } else {
+                keyManagerFactory = null;
+            }
+
+            final TrustManagerFactory trustManagerFactory;
+            if (truststoreFilename != null && truststorePass != null && truststoreType != null) {
+                try {
+                    // prepare the truststore
+                    final KeyStore trustStore = KeyStore.getInstance(getTruststoreType().name());
+                    try (final InputStream trustStoreStream = new FileInputStream(new File(getTruststoreFilename()))) {
+                        trustStore.load(trustStoreStream, truststorePass.toCharArray());
+                    }
+                    trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    trustManagerFactory.init(trustStore);
+                } catch (final Exception e) {
+                    throw new IllegalStateException("Failed to load Truststore", e);
+                }
+            } else {
+                trustManagerFactory = null;
+            }
+
+            if (keyManagerFactory != null && trustManagerFactory != null) {
+                try {
+                    // initialize the ssl context
+                    final SSLContext sslContext = SSLContext.getInstance("TLS");
+                    sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
+                    sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
+
+                    return sslContext;
+                } catch (final Exception e) {
+                    throw new IllegalStateException("Created keystore and truststore but failed to initialize SSLContext", e);
+                }
+            } else {
+                return null;
+            }
         }
 
         @Override

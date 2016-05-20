@@ -54,6 +54,7 @@ public interface SiteToSiteClientConfig extends Serializable {
 
     /**
      * @return the SSL Context that is configured for this builder
+     * @throws IllegalStateException if an SSLContext is being constructed and an error occurs doing so
      */
     SSLContext getSslContext();
 
