@@ -592,10 +592,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Connection connectionNode = connectionDAO.getConnection(connectionDTO.getId());
 
         final RevisionUpdate<ConnectionDTO> snapshot = updateComponent(
-            revision,
-            connectionNode,
-            () -> connectionDAO.updateConnection(connectionDTO),
-            connection -> dtoFactory.createConnectionDto(connection));
+                revision,
+                connectionNode,
+                () -> connectionDAO.updateConnection(connectionDTO),
+                connection -> dtoFactory.createConnectionDto(connection));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(connectionNode);
         final ConnectionStatusDTO status = dtoFactory.createConnectionStatusDto(controllerFacade.getConnectionStatus(connectionNode.getIdentifier()));
@@ -612,9 +612,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // get the component, ensure we have access to it, and perform the update request
         final ProcessorNode processorNode = processorDAO.getProcessor(processorDTO.getId());
         final RevisionUpdate<ProcessorDTO> snapshot = updateComponent(revision,
-            processorNode,
-            () -> processorDAO.updateProcessor(processorDTO),
-            proc -> dtoFactory.createProcessorDto(proc));
+                processorNode,
+                () -> processorDAO.updateProcessor(processorDTO),
+                proc -> dtoFactory.createProcessorDto(proc));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processorNode);
         final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processorNode.getIdentifier()));
@@ -630,9 +630,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Label labelNode = labelDAO.getLabel(labelDTO.getId());
         final RevisionUpdate<LabelDTO> snapshot = updateComponent(revision,
-            labelNode,
-            () -> labelDAO.updateLabel(labelDTO),
-            label -> dtoFactory.createLabelDto(label));
+                labelNode,
+                () -> labelDAO.updateLabel(labelDTO),
+                label -> dtoFactory.createLabelDto(label));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(labelNode);
         return new UpdateResult<>(entityFactory.createLabelEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
@@ -647,9 +647,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Funnel funnelNode = funnelDAO.getFunnel(funnelDTO.getId());
         final RevisionUpdate<FunnelDTO> snapshot = updateComponent(revision,
-            funnelNode,
-            () -> funnelDAO.updateFunnel(funnelDTO),
-            funnel -> dtoFactory.createFunnelDto(funnel));
+                funnelNode,
+                () -> funnelDAO.updateFunnel(funnelDTO),
+                funnel -> dtoFactory.createFunnelDto(funnel));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(funnelNode);
         return new UpdateResult<>(entityFactory.createFunnelEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
@@ -660,13 +660,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * Updates a component with the given revision, using the provided supplier to call
      * into the appropriate DAO and the provided function to convert the component into a DTO.
      *
-     * @param revision the current revision
-     * @param daoUpdate a Supplier that will update the component via the appropriate DAO
+     * @param revision    the current revision
+     * @param daoUpdate   a Supplier that will update the component via the appropriate DAO
      * @param dtoCreation a Function to convert a component into a dao
-     *
-     * @param <D> the DTO Type of the updated component
-     * @param <C> the Component Type of the updated component
-     *
+     * @param <D>         the DTO Type of the updated component
+     * @param <C>         the Component Type of the updated component
      * @return A RevisionUpdate that represents the new configuration
      */
     private <D, C> RevisionUpdate<D> updateComponent(final Revision revision, final Authorizable authorizable, final Supplier<C> daoUpdate, final Function<C, D> dtoCreation) {
@@ -753,9 +751,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Port inputPortNode = inputPortDAO.getPort(inputPortDTO.getId());
         final RevisionUpdate<PortDTO> snapshot = updateComponent(revision,
-            inputPortNode,
-            () -> inputPortDAO.updatePort(inputPortDTO),
-            port -> dtoFactory.createPortDto(port));
+                inputPortNode,
+                () -> inputPortDAO.updatePort(inputPortDTO),
+                port -> dtoFactory.createPortDto(port));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(inputPortNode);
         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(inputPortNode.getIdentifier()));
@@ -771,9 +769,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Port outputPortNode = outputPortDAO.getPort(outputPortDTO.getId());
         final RevisionUpdate<PortDTO> snapshot = updateComponent(revision,
-            outputPortNode,
-            () -> outputPortDAO.updatePort(outputPortDTO),
-            port -> dtoFactory.createPortDto(port));
+                outputPortNode,
+                () -> outputPortDAO.updatePort(outputPortDTO),
+                port -> dtoFactory.createPortDto(port));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(outputPortNode);
         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(outputPortNode.getIdentifier()));
@@ -789,10 +787,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final RemoteProcessGroup remoteProcessGroupNode = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupDTO.getId());
         final RevisionUpdate<RemoteProcessGroupDTO> snapshot = updateComponent(
-            revision,
-            remoteProcessGroupNode,
-            () -> remoteProcessGroupDAO.updateRemoteProcessGroup(remoteProcessGroupDTO),
-            remoteProcessGroup -> dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
+                revision,
+                remoteProcessGroupNode,
+                () -> remoteProcessGroupDAO.updateRemoteProcessGroup(remoteProcessGroupDTO),
+                remoteProcessGroup -> dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(remoteProcessGroupNode);
         final RevisionDTO updateRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
@@ -806,10 +804,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final RemoteProcessGroup remoteProcessGroupNode = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupPortDTO.getGroupId());
         final RevisionUpdate<RemoteProcessGroupPortDTO> snapshot = updateComponent(
-            revision,
-            remoteProcessGroupNode,
-            () -> remoteProcessGroupDAO.updateRemoteProcessGroupInputPort(remoteProcessGroupId, remoteProcessGroupPortDTO),
-            remoteGroupPort -> dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort));
+                revision,
+                remoteProcessGroupNode,
+                () -> remoteProcessGroupDAO.updateRemoteProcessGroupInputPort(remoteProcessGroupId, remoteProcessGroupPortDTO),
+                remoteGroupPort -> dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(remoteProcessGroupNode);
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
@@ -822,10 +820,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final RemoteProcessGroup remoteProcessGroupNode = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupPortDTO.getGroupId());
         final RevisionUpdate<RemoteProcessGroupPortDTO> snapshot = updateComponent(
-            revision,
-            remoteProcessGroupNode,
-            () -> remoteProcessGroupDAO.updateRemoteProcessGroupOutputPort(remoteProcessGroupId, remoteProcessGroupPortDTO),
-            remoteGroupPort -> dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort));
+                revision,
+                remoteProcessGroupNode,
+                () -> remoteProcessGroupDAO.updateRemoteProcessGroupOutputPort(remoteProcessGroupId, remoteProcessGroupPortDTO),
+                remoteGroupPort -> dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(remoteProcessGroupNode);
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
@@ -845,9 +843,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(processGroupDTO.getId());
         final RevisionUpdate<ProcessGroupDTO> snapshot = updateComponent(revision,
-            processGroupNode,
-            () -> processGroupDAO.updateProcessGroup(processGroupDTO),
-            processGroup -> dtoFactory.createProcessGroupDto(processGroup));
+                processGroupNode,
+                () -> processGroupDAO.updateProcessGroup(processGroupDTO),
+                processGroup -> dtoFactory.createProcessGroupDto(processGroup));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processGroupNode);
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
@@ -859,27 +857,27 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ScheduleComponentsEntity scheduleComponents(final String processGroupId, final ScheduledState state, final Map<String, Revision> componentRevisions) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionUpdate<ScheduleComponentsEntity> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(componentRevisions.values()), user, new
-            UpdateRevisionTask<ScheduleComponentsEntity>() {
-            @Override
-            public RevisionUpdate<ScheduleComponentsEntity> update() {
-                // schedule the components
-                processGroupDAO.scheduleComponents(processGroupId, state, componentRevisions.keySet());
+                UpdateRevisionTask<ScheduleComponentsEntity>() {
+                    @Override
+                    public RevisionUpdate<ScheduleComponentsEntity> update() {
+                        // schedule the components
+                        processGroupDAO.scheduleComponents(processGroupId, state, componentRevisions.keySet());
 
-                // update the revisions
-                final Map<String, Revision> updatedRevisions = new HashMap<>();
-                for (final Revision revision : componentRevisions.values()) {
-                    final Revision currentRevision = revisionManager.getRevision(revision.getComponentId());
-                    final Revision updatedRevision = incrementRevision(currentRevision);
-                    updatedRevisions.put(revision.getComponentId(), updatedRevision);
-                }
+                        // update the revisions
+                        final Map<String, Revision> updatedRevisions = new HashMap<>();
+                        for (final Revision revision : componentRevisions.values()) {
+                            final Revision currentRevision = revisionManager.getRevision(revision.getComponentId());
+                            final Revision updatedRevision = incrementRevision(currentRevision);
+                            updatedRevisions.put(revision.getComponentId(), updatedRevision);
+                        }
 
-                // gather details for response
-                final ScheduleComponentsEntity entity = new ScheduleComponentsEntity();
-                entity.setId(processGroupId);
-                entity.setState(state.name());
-                return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
-            }
-        });
+                        // gather details for response
+                        final ScheduleComponentsEntity entity = new ScheduleComponentsEntity();
+                        entity.setId(processGroupId);
+                        entity.setState(state.name());
+                        return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
+                    }
+                });
 
         return updatedComponent.getComponent();
     }
@@ -995,10 +993,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConnectionEntity deleteConnection(final Revision revision, final String connectionId) {
         final Connection connection = connectionDAO.getConnection(connectionId);
         final ConnectionDTO snapshot = deleteComponent(
-            revision,
-            connection,
-            () -> connectionDAO.deleteConnection(connectionId),
-            dtoFactory.createConnectionDto(connection));
+                revision,
+                connection,
+                () -> connectionDAO.deleteConnection(connectionId),
+                dtoFactory.createConnectionDto(connection));
 
         return entityFactory.createConnectionEntity(snapshot, null, null, null);
     }
@@ -1033,10 +1031,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ProcessorEntity deleteProcessor(final Revision revision, final String processorId) {
         final ProcessorNode processor = processorDAO.getProcessor(processorId);
         final ProcessorDTO snapshot = deleteComponent(
-            revision,
-            processor,
-            () -> processorDAO.deleteProcessor(processorId),
-            dtoFactory.createProcessorDto(processor));
+                revision,
+                processor,
+                () -> processorDAO.deleteProcessor(processorId),
+                dtoFactory.createProcessorDto(processor));
 
         return entityFactory.createProcessorEntity(snapshot, null, null, null);
     }
@@ -1045,10 +1043,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public LabelEntity deleteLabel(final Revision revision, final String labelId) {
         final Label label = labelDAO.getLabel(labelId);
         final LabelDTO snapshot = deleteComponent(
-            revision,
-            label,
-            () -> labelDAO.deleteLabel(labelId),
-            dtoFactory.createLabelDto(label));
+                revision,
+                label,
+                () -> labelDAO.deleteLabel(labelId),
+                dtoFactory.createLabelDto(label));
 
         return entityFactory.createLabelEntity(snapshot, null, null);
     }
@@ -1057,10 +1055,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public FunnelEntity deleteFunnel(final Revision revision, final String funnelId) {
         final Funnel funnel = funnelDAO.getFunnel(funnelId);
         final FunnelDTO snapshot = deleteComponent(
-            revision,
-            funnel,
-            () -> funnelDAO.deleteFunnel(funnelId),
-            dtoFactory.createFunnelDto(funnel));
+                revision,
+                funnel,
+                () -> funnelDAO.deleteFunnel(funnelId),
+                dtoFactory.createFunnelDto(funnel));
 
         return entityFactory.createFunnelEntity(snapshot, null, null);
     }
@@ -1068,7 +1066,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     /**
      * Deletes a component using the Optimistic Locking Manager
      *
-     * @param revision the current revision
+     * @param revision     the current revision
      * @param deleteAction the action that deletes the component via the appropriate DAO object
      * @return a dto that represents the new configuration
      */
@@ -1132,10 +1130,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public PortEntity deleteInputPort(final Revision revision, final String inputPortId) {
         final Port port = inputPortDAO.getPort(inputPortId);
         final PortDTO snapshot = deleteComponent(
-            revision,
-            port,
-            () -> inputPortDAO.deletePort(inputPortId),
-            dtoFactory.createPortDto(port));
+                revision,
+                port,
+                () -> inputPortDAO.deletePort(inputPortId),
+                dtoFactory.createPortDto(port));
 
         return entityFactory.createPortEntity(snapshot, null, null, null);
     }
@@ -1144,10 +1142,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public PortEntity deleteOutputPort(final Revision revision, final String outputPortId) {
         final Port port = outputPortDAO.getPort(outputPortId);
         final PortDTO snapshot = deleteComponent(
-            revision,
-            port,
-            () -> outputPortDAO.deletePort(outputPortId),
-            dtoFactory.createPortDto(port));
+                revision,
+                port,
+                () -> outputPortDAO.deletePort(outputPortId),
+                dtoFactory.createPortDto(port));
 
         return entityFactory.createPortEntity(snapshot, null, null, null);
     }
@@ -1156,10 +1154,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ProcessGroupEntity deleteProcessGroup(final Revision revision, final String groupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         final ProcessGroupDTO snapshot = deleteComponent(
-            revision,
-            processGroup,
-            () -> processGroupDAO.deleteProcessGroup(groupId),
-            dtoFactory.createProcessGroupDto(processGroup));
+                revision,
+                processGroup,
+                () -> processGroupDAO.deleteProcessGroup(groupId),
+                dtoFactory.createProcessGroupDto(processGroup));
 
         return entityFactory.createProcessGroupEntity(snapshot, null, null, null);
     }
@@ -1168,10 +1166,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public RemoteProcessGroupEntity deleteRemoteProcessGroup(final Revision revision, final String remoteProcessGroupId) {
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
         final RemoteProcessGroupDTO snapshot = deleteComponent(
-            revision,
-            remoteProcessGroup,
-            () -> remoteProcessGroupDAO.deleteRemoteProcessGroup(remoteProcessGroupId),
-            dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
+                revision,
+                remoteProcessGroup,
+                () -> remoteProcessGroupDAO.deleteRemoteProcessGroup(remoteProcessGroupId),
+                dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
 
         return entityFactory.createRemoteProcessGroupEntity(snapshot, null, null, null);
     }
@@ -1185,9 +1183,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ConnectionEntity createConnection(final String groupId, final ConnectionDTO connectionDTO) {
         final RevisionUpdate<ConnectionDTO> snapshot = createComponent(
-            connectionDTO,
-            () -> connectionDAO.createConnection(groupId, connectionDTO),
-            connection -> dtoFactory.createConnectionDto(connection));
+                connectionDTO,
+                () -> connectionDAO.createConnection(groupId, connectionDTO),
+                connection -> dtoFactory.createConnectionDto(connection));
 
         final Connection connection = connectionDAO.getConnection(connectionDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(connection);
@@ -1224,9 +1222,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ProcessorEntity createProcessor(final String groupId, final ProcessorDTO processorDTO) {
         final RevisionUpdate<ProcessorDTO> snapshot = createComponent(
-            processorDTO,
-            () -> processorDAO.createProcessor(groupId, processorDTO),
-            processor -> dtoFactory.createProcessorDto(processor));
+                processorDTO,
+                () -> processorDAO.createProcessor(groupId, processorDTO),
+                processor -> dtoFactory.createProcessorDto(processor));
 
         final ProcessorNode processor = processorDAO.getProcessor(processorDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processor);
@@ -1237,9 +1235,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public LabelEntity createLabel(final String groupId, final LabelDTO labelDTO) {
         final RevisionUpdate<LabelDTO> snapshot = createComponent(
-            labelDTO,
-            () -> labelDAO.createLabel(groupId, labelDTO),
-            label -> dtoFactory.createLabelDto(label));
+                labelDTO,
+                () -> labelDAO.createLabel(groupId, labelDTO),
+                label -> dtoFactory.createLabelDto(label));
 
         final Label label = labelDAO.getLabel(labelDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(label);
@@ -1250,12 +1248,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * Creates a component using the optimistic locking manager.
      *
      * @param componentDto the DTO that will be used to create the component
-     * @param daoCreation A Supplier that will create the NiFi Component to use
-     * @param dtoCreation a Function that will convert the NiFi Component into a corresponding DTO
-     *
-     * @param <D> the DTO Type
-     * @param <C> the NiFi Component Type
-     *
+     * @param daoCreation  A Supplier that will create the NiFi Component to use
+     * @param dtoCreation  a Function that will convert the NiFi Component into a corresponding DTO
+     * @param <D>          the DTO Type
+     * @param <C>          the NiFi Component Type
      * @return a RevisionUpdate that represents the updated configuration
      */
     private <D, C> RevisionUpdate<D> createComponent(final ComponentDTO componentDto, final Supplier<C> daoCreation, final Function<C, D> dtoCreation) {
@@ -1281,13 +1277,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
 
-
     @Override
     public FunnelEntity createFunnel(final String groupId, final FunnelDTO funnelDTO) {
         final RevisionUpdate<FunnelDTO> snapshot = createComponent(
-            funnelDTO,
-            () -> funnelDAO.createFunnel(groupId, funnelDTO),
-            funnel -> dtoFactory.createFunnelDto(funnel));
+                funnelDTO,
+                () -> funnelDAO.createFunnel(groupId, funnelDTO),
+                funnel -> dtoFactory.createFunnelDto(funnel));
 
         final Funnel funnel = funnelDAO.getFunnel(funnelDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(funnel);
@@ -1342,7 +1337,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (flow.getRemoteProcessGroups() != null) {
             for (final RemoteProcessGroupDTO remoteProcessGroupDTO : flow.getRemoteProcessGroups()) {
                 final RemoteProcessGroup remoteProcessGroup = revisionManager.get(
-                    remoteProcessGroupDTO.getId(), rev -> remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupDTO.getId()));
+                        remoteProcessGroupDTO.getId(), rev -> remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupDTO.getId()));
 
                 if (remoteProcessGroup.getAuthorizationIssue() != null) {
                     remoteProcessGroupDTO.setAuthorizationIssues(Arrays.asList(remoteProcessGroup.getAuthorizationIssue()));
@@ -1354,55 +1349,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public FlowEntity copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY, final String idGenerationSeed) {
         final FlowDTO flowDto = revisionManager.get(groupId,
-            rev -> {
-                // create the new snippet
-                final FlowSnippetDTO snippet = snippetDAO.copySnippet(groupId, snippetId, originX, originY, idGenerationSeed);
+                rev -> {
+                    // create the new snippet
+                    final FlowSnippetDTO snippet = snippetDAO.copySnippet(groupId, snippetId, originX, originY, idGenerationSeed);
 
-                // validate the new snippet
-                validateSnippetContents(snippet);
+                    // save the flow
+                    controllerFacade.save();
 
-                // save the flow
-                controllerFacade.save();
+                    // drop the snippet
+                    snippetDAO.dropSnippet(snippetId);
 
-                // drop the snippet
-                snippetDAO.dropSnippet(snippetId);
-
-                // identify all components added
-                final Set<String> identifiers = new HashSet<>();
-                snippet.getProcessors().stream()
-                    .map(proc -> proc.getId())
-                    .forEach(id -> identifiers.add(id));
-                snippet.getConnections().stream()
-                    .map(conn -> conn.getId())
-                    .forEach(id -> identifiers.add(id));
-                snippet.getInputPorts().stream()
-                    .map(port -> port.getId())
-                    .forEach(id -> identifiers.add(id));
-                snippet.getOutputPorts().stream()
-                    .map(port -> port.getId())
-                    .forEach(id -> identifiers.add(id));
-                snippet.getProcessGroups().stream()
-                    .map(group -> group.getId())
-                    .forEach(id -> identifiers.add(id));
-                snippet.getRemoteProcessGroups().stream()
-                    .map(remoteGroup -> remoteGroup.getId())
-                    .forEach(id -> identifiers.add(id));
-                snippet.getRemoteProcessGroups().stream()
-                    .flatMap(remoteGroup -> remoteGroup.getContents().getInputPorts().stream())
-                    .map(remoteInputPort -> remoteInputPort.getId())
-                    .forEach(id -> identifiers.add(id));
-                snippet.getRemoteProcessGroups().stream()
-                    .flatMap(remoteGroup -> remoteGroup.getContents().getOutputPorts().stream())
-                    .map(remoteOutputPort -> remoteOutputPort.getId())
-                    .forEach(id -> identifiers.add(id));
-
-                final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-                return revisionManager.get(identifiers,
-                    () -> {
-                        final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
-                        return dtoFactory.createFlowDto(processGroup, groupStatus, snippet, revisionManager);
-                    });
-            });
+                    // post process new flow snippet
+                    return postProcessNewFlowSnippet(groupId, snippet);
+                });
 
         final FlowEntity flowEntity = new FlowEntity();
         flowEntity.setFlow(flowDto);
@@ -1433,9 +1392,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public PortEntity createInputPort(final String groupId, final PortDTO inputPortDTO) {
         final RevisionUpdate<PortDTO> snapshot = createComponent(
-            inputPortDTO,
-            () -> inputPortDAO.createPort(groupId, inputPortDTO),
-            port -> dtoFactory.createPortDto(port));
+                inputPortDTO,
+                () -> inputPortDAO.createPort(groupId, inputPortDTO),
+                port -> dtoFactory.createPortDto(port));
 
         final Port port = inputPortDAO.getPort(inputPortDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
@@ -1446,9 +1405,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public PortEntity createOutputPort(final String groupId, final PortDTO outputPortDTO) {
         final RevisionUpdate<PortDTO> snapshot = createComponent(
-            outputPortDTO,
-            () -> outputPortDAO.createPort(groupId, outputPortDTO),
-            port -> dtoFactory.createPortDto(port));
+                outputPortDTO,
+                () -> outputPortDAO.createPort(groupId, outputPortDTO),
+                port -> dtoFactory.createPortDto(port));
 
         final Port port = outputPortDAO.getPort(outputPortDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
@@ -1459,9 +1418,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ProcessGroupEntity createProcessGroup(final String parentGroupId, final ProcessGroupDTO processGroupDTO) {
         final RevisionUpdate<ProcessGroupDTO> snapshot = createComponent(
-            processGroupDTO,
-            () -> processGroupDAO.createProcessGroup(parentGroupId, processGroupDTO),
-            processGroup -> dtoFactory.createProcessGroupDto(processGroup));
+                processGroupDTO,
+                () -> processGroupDAO.createProcessGroup(parentGroupId, processGroupDTO),
+                processGroup -> dtoFactory.createProcessGroupDto(processGroup));
 
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processGroup);
@@ -1472,9 +1431,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public RemoteProcessGroupEntity createRemoteProcessGroup(final String groupId, final RemoteProcessGroupDTO remoteProcessGroupDTO) {
         final RevisionUpdate<RemoteProcessGroupDTO> snapshot = createComponent(
-            remoteProcessGroupDTO,
-            () -> remoteProcessGroupDAO.createRemoteProcessGroup(groupId, remoteProcessGroupDTO),
-            remoteProcessGroup -> dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
+                remoteProcessGroupDTO,
+                () -> remoteProcessGroupDAO.createRemoteProcessGroup(groupId, remoteProcessGroupDTO),
+                remoteProcessGroup -> dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
 
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(remoteProcessGroup);
@@ -1493,6 +1452,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         templateDTO.setDescription(description);
         templateDTO.setTimestamp(new Date());
         templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true));
+        templateDTO.setEncodingVersion(TemplateDTO.MAX_ENCODING_VERSION);
 
         // set the id based on the specified seed
         final String uuid = idGenerationSeed.isPresent() ? (UUID.nameUUIDFromBytes(idGenerationSeed.get().getBytes(StandardCharsets.UTF_8))).toString() : UUID.randomUUID().toString();
@@ -1523,6 +1483,59 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return dtoFactory.createTemplateDTO(template);
     }
 
+    /**
+     * Post processes a new flow snippet including validation, removing the snippet, and DTO conversion.
+     *
+     * @param groupId group id
+     * @param snippet snippet
+     * @return flow dto
+     */
+    private FlowDTO postProcessNewFlowSnippet(final String groupId, final FlowSnippetDTO snippet) {
+        // validate the new snippet
+        validateSnippetContents(snippet);
+
+        // identify all components added
+        final Set<String> identifiers = new HashSet<>();
+        snippet.getProcessors().stream()
+                .map(proc -> proc.getId())
+                .forEach(id -> identifiers.add(id));
+        snippet.getConnections().stream()
+                .map(conn -> conn.getId())
+                .forEach(id -> identifiers.add(id));
+        snippet.getInputPorts().stream()
+                .map(port -> port.getId())
+                .forEach(id -> identifiers.add(id));
+        snippet.getOutputPorts().stream()
+                .map(port -> port.getId())
+                .forEach(id -> identifiers.add(id));
+        snippet.getProcessGroups().stream()
+                .map(group -> group.getId())
+                .forEach(id -> identifiers.add(id));
+        snippet.getRemoteProcessGroups().stream()
+                .map(remoteGroup -> remoteGroup.getId())
+                .forEach(id -> identifiers.add(id));
+        snippet.getRemoteProcessGroups().stream()
+                .filter(remoteGroup -> remoteGroup.getContents() != null && remoteGroup.getContents().getInputPorts() != null)
+                .flatMap(remoteGroup -> remoteGroup.getContents().getInputPorts().stream())
+                .map(remoteInputPort -> remoteInputPort.getId())
+                .forEach(id -> identifiers.add(id));
+        snippet.getRemoteProcessGroups().stream()
+                .filter(remoteGroup -> remoteGroup.getContents() != null && remoteGroup.getContents().getOutputPorts() != null)
+                .flatMap(remoteGroup -> remoteGroup.getContents().getOutputPorts().stream())
+                .map(remoteOutputPort -> remoteOutputPort.getId())
+                .forEach(id -> identifiers.add(id));
+        snippet.getLabels().stream()
+                .map(label -> label.getId())
+                .forEach(id -> identifiers.add(id));
+
+        return revisionManager.get(identifiers,
+                () -> {
+                    final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+                    final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
+                    return dtoFactory.createFlowDto(group, groupStatus, snippet, revisionManager);
+                });
+    }
+
     @Override
     public FlowEntity createTemplateInstance(final String groupId, final Double originX, final Double originY, final String templateId, final String idGenerationSeed) {
         final FlowDTO flowDto = revisionManager.get(groupId, rev -> {
@@ -1530,47 +1543,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             // was copied and this dto is only used to instantiate it's components (which as already completed)
             final FlowSnippetDTO snippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateId, idGenerationSeed);
 
-            // validate the new snippet
-            validateSnippetContents(snippet);
-
             // save the flow
             controllerFacade.save();
 
-            // identify all components added
-            final Set<String> identifiers = new HashSet<>();
-            snippet.getProcessors().stream()
-                .map(proc -> proc.getId())
-                .forEach(id -> identifiers.add(id));
-            snippet.getConnections().stream()
-                .map(conn -> conn.getId())
-                .forEach(id -> identifiers.add(id));
-            snippet.getInputPorts().stream()
-                .map(port -> port.getId())
-                .forEach(id -> identifiers.add(id));
-            snippet.getOutputPorts().stream()
-                .map(port -> port.getId())
-                .forEach(id -> identifiers.add(id));
-            snippet.getProcessGroups().stream()
-                .map(group -> group.getId())
-                .forEach(id -> identifiers.add(id));
-            snippet.getRemoteProcessGroups().stream()
-                .map(remoteGroup -> remoteGroup.getId())
-                .forEach(id -> identifiers.add(id));
-            snippet.getRemoteProcessGroups().stream()
-                .flatMap(remoteGroup -> remoteGroup.getContents().getInputPorts().stream())
-                .map(remoteInputPort -> remoteInputPort.getId())
-                .forEach(id -> identifiers.add(id));
-            snippet.getRemoteProcessGroups().stream()
-                .flatMap(remoteGroup -> remoteGroup.getContents().getOutputPorts().stream())
-                .map(remoteOutputPort -> remoteOutputPort.getId())
-                .forEach(id -> identifiers.add(id));
-
-            return revisionManager.get(identifiers,
-                () -> {
-                    final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
-                    final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
-                    return dtoFactory.createFlowDto(group, groupStatus, snippet, revisionManager);
-                });
+            // post process the new flow snippet
+            return postProcessNewFlowSnippet(groupId, snippet);
         });
 
         final FlowEntity flowEntity = new FlowEntity();
@@ -1632,10 +1609,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         controllerServiceDTO.setParentGroupId(normalizedGroupId);
 
         final RevisionUpdate<ControllerServiceDTO> snapshot = createComponent(
-            controllerServiceDTO,
-            () -> {
-                // create the controller service
-                final ControllerServiceNode controllerService = controllerServiceDAO.createControllerService(controllerServiceDTO);
+                controllerServiceDTO,
+                () -> {
+                    // create the controller service
+                    final ControllerServiceNode controllerService = controllerServiceDAO.createControllerService(controllerServiceDTO);
 
                 // TODO - this logic should be part of the controllerServiceDAO
                 final ProcessGroup group = processGroupDAO.getProcessGroup(normalizedGroupId);
@@ -1659,9 +1636,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // get the component, ensure we have access to it, and perform the update request
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceDTO.getId());
         final RevisionUpdate<ControllerServiceDTO> snapshot = updateComponent(revision,
-            controllerService,
-            () -> controllerServiceDAO.updateControllerService(controllerServiceDTO),
-            cs -> dtoFactory.createControllerServiceDto(cs));
+                controllerService,
+                () -> controllerServiceDAO.updateControllerService(controllerServiceDTO),
+                cs -> dtoFactory.createControllerServiceDto(cs));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(controllerService);
         return new UpdateResult<>(entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
@@ -1669,42 +1646,42 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ControllerServiceReferencingComponentsEntity updateControllerServiceReferencingComponents(
-        final Map<String, Revision> referenceRevisions, final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
+            final Map<String, Revision> referenceRevisions, final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
 
         final RevisionClaim claim = new StandardRevisionClaim(referenceRevisions.values());
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionUpdate<ControllerServiceReferencingComponentsEntity> update = revisionManager.updateRevision(claim, user,
-            new UpdateRevisionTask<ControllerServiceReferencingComponentsEntity>() {
-                @Override
-                public RevisionUpdate<ControllerServiceReferencingComponentsEntity> update() {
-                    final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
-                    final ControllerServiceReference reference = controllerService.getReferences();
-                    for (final ConfiguredComponent component : reference.getReferencingComponents()) {
-                        if (component instanceof Authorizable) {
-                            // ensure we can write the referencing components
-                            ((Authorizable) component).authorize(authorizer, RequestAction.WRITE);
+                new UpdateRevisionTask<ControllerServiceReferencingComponentsEntity>() {
+                    @Override
+                    public RevisionUpdate<ControllerServiceReferencingComponentsEntity> update() {
+                        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+                        final ControllerServiceReference reference = controllerService.getReferences();
+                        for (final ConfiguredComponent component : reference.getReferencingComponents()) {
+                            if (component instanceof Authorizable) {
+                                // ensure we can write the referencing components
+                                ((Authorizable) component).authorize(authorizer, RequestAction.WRITE);
+                            }
                         }
+
+                        final Set<ConfiguredComponent> updated = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
+                        final ControllerServiceReference updatedReference = controllerServiceDAO.getControllerService(controllerServiceId).getReferences();
+
+                        final Map<String, Revision> updatedRevisions = new HashMap<>();
+                        for (final Revision refRevision : referenceRevisions.values()) {
+                            updatedRevisions.put(refRevision.getComponentId(), refRevision);
+                        }
+
+                        for (final ConfiguredComponent component : updated) {
+                            final Revision currentRevision = revisionManager.getRevision(component.getIdentifier());
+                            final Revision updatedRevision = incrementRevision(currentRevision);
+                            updatedRevisions.put(component.getIdentifier(), updatedRevision);
+                        }
+
+                        final ControllerServiceReferencingComponentsEntity entity = createControllerServiceReferencingComponentsEntity(updatedReference, updatedRevisions);
+                        return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
                     }
-
-                    final Set<ConfiguredComponent> updated = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
-                    final ControllerServiceReference updatedReference = controllerServiceDAO.getControllerService(controllerServiceId).getReferences();
-
-                    final Map<String, Revision> updatedRevisions = new HashMap<>();
-                    for (final Revision refRevision : referenceRevisions.values()) {
-                        updatedRevisions.put(refRevision.getComponentId(), refRevision);
-                    }
-
-                    for (final ConfiguredComponent component : updated) {
-                        final Revision currentRevision = revisionManager.getRevision(component.getIdentifier());
-                        final Revision updatedRevision = incrementRevision(currentRevision);
-                        updatedRevisions.put(component.getIdentifier(), updatedRevision);
-                    }
-
-                    final ControllerServiceReferencingComponentsEntity entity = createControllerServiceReferencingComponentsEntity(updatedReference, updatedRevisions);
-                    return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
-                }
-            });
+                });
 
         return update.getComponent();
     }
@@ -1712,9 +1689,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     /**
      * Finds the identifiers for all components referencing a ControllerService.
      *
-     * @param reference         ControllerServiceReference
-     * @param referencingIds    Collection of identifiers
-     * @param visited           ControllerServices we've already visited
+     * @param reference      ControllerServiceReference
+     * @param referencingIds Collection of identifiers
+     * @param visited        ControllerServices we've already visited
      */
     private void findControllerServiceReferencingComponentIdentifiers(final ControllerServiceReference reference, final Set<String> referencingIds, final Set<ControllerServiceNode> visited) {
         for (final ConfiguredComponent component : reference.getReferencingComponents()) {
@@ -1734,8 +1711,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     /**
      * Creates entities for components referencing a ControllerService using their current revision.
      *
-     * @param reference         ControllerServiceReference
-     * @return                  The entity
+     * @param reference ControllerServiceReference
+     * @return The entity
      */
     private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(final ControllerServiceReference reference) {
         final Set<String> referencingIds = new HashSet<>();
@@ -1755,25 +1732,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     /**
      * Creates entities for components referencing a ControllerService using the specified revisions.
      *
-     * @param reference         ControllerServiceReference
-     * @param revisions         The revisions
-     * @return                  The entity
+     * @param reference ControllerServiceReference
+     * @param revisions The revisions
+     * @return The entity
      */
     private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(
-        final ControllerServiceReference reference, final Map<String, Revision> revisions) {
+            final ControllerServiceReference reference, final Map<String, Revision> revisions) {
         return createControllerServiceReferencingComponentsEntity(reference, revisions, new HashSet<>());
     }
 
     /**
      * Creates entities for compnents referencing a ControllerServcie using the specified revisions.
      *
-     * @param reference         ControllerServiceReference
-     * @param revisions         The revisions
-     * @param visited           Which services we've already considered (in case of cycle)
-     * @return                  The entity
+     * @param reference ControllerServiceReference
+     * @param revisions The revisions
+     * @param visited   Which services we've already considered (in case of cycle)
+     * @return The entity
      */
     private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(
-        final ControllerServiceReference reference, final Map<String, Revision> revisions, final Set<ControllerServiceNode> visited) {
+            final ControllerServiceReference reference, final Map<String, Revision> revisions, final Set<ControllerServiceNode> visited) {
 
         final String modifier = NiFiUserUtils.getNiFiUserName();
         final Set<ConfiguredComponent> referencingComponents = reference.getReferencingComponents();
@@ -1818,10 +1795,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ControllerServiceEntity deleteControllerService(final Revision revision, final String controllerServiceId) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceDTO snapshot = deleteComponent(
-            revision,
-            controllerService,
-            () -> controllerServiceDAO.deleteControllerService(controllerServiceId),
-            dtoFactory.createControllerServiceDto(controllerService));
+                revision,
+                controllerService,
+                () -> controllerServiceDAO.deleteControllerService(controllerServiceId),
+                dtoFactory.createControllerServiceDto(controllerService));
 
         return entityFactory.createControllerServiceEntity(snapshot, null, null);
     }
@@ -1863,9 +1840,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // get the component, ensure we have access to it, and perform the update request
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskDTO.getId());
         final RevisionUpdate<ReportingTaskDTO> snapshot = updateComponent(revision,
-            reportingTask,
-            () -> reportingTaskDAO.updateReportingTask(reportingTaskDTO),
-            rt -> dtoFactory.createReportingTaskDto(rt));
+                reportingTask,
+                () -> reportingTaskDAO.updateReportingTask(reportingTaskDTO),
+                rt -> dtoFactory.createReportingTaskDto(rt));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
         return new UpdateResult<>(entityFactory.createReportingTaskEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
@@ -1875,10 +1852,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ReportingTaskEntity deleteReportingTask(final Revision revision, final String reportingTaskId) {
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
         final ReportingTaskDTO snapshot = deleteComponent(
-            revision,
-            reportingTask,
-            () -> reportingTaskDAO.deleteReportingTask(reportingTaskId),
-            dtoFactory.createReportingTaskDto(reportingTask));
+                revision,
+                reportingTask,
+                () -> reportingTaskDAO.deleteReportingTask(reportingTaskId),
+                dtoFactory.createReportingTaskDto(reportingTask));
 
         return entityFactory.createReportingTaskEntity(snapshot, null, null);
     }
@@ -2054,13 +2031,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final Set<String> connectionIds = connections.stream().map(connection -> connection.getIdentifier()).collect(Collectors.toSet());
             return revisionManager.get(connectionIds, () -> {
                 return connections.stream()
-                    .map(connection -> {
-                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(connection.getIdentifier()));
-                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(connection);
-                        final ConnectionStatusDTO status = dtoFactory.createConnectionStatusDto(controllerFacade.getConnectionStatus(connection.getIdentifier()));
-                        return entityFactory.createConnectionEntity(dtoFactory.createConnectionDto(connection), revision, accessPolicy, status);
-                    })
-                    .collect(Collectors.toSet());
+                        .map(connection -> {
+                            final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(connection.getIdentifier()));
+                            final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(connection);
+                            final ConnectionStatusDTO status = dtoFactory.createConnectionStatusDto(controllerFacade.getConnectionStatus(connection.getIdentifier()));
+                            return entityFactory.createConnectionEntity(dtoFactory.createConnectionDto(connection), revision, accessPolicy, status);
+                        })
+                        .collect(Collectors.toSet());
             });
         });
     }
@@ -2127,13 +2104,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<String> ids = processors.stream().map(proc -> proc.getIdentifier()).collect(Collectors.toSet());
         return revisionManager.get(ids, () -> {
             return processors.stream()
-                .map(processor -> {
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processor.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processor);
-                    final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
-                    return entityFactory.createProcessorEntity(dtoFactory.createProcessorDto(processor), revision, accessPolicy, status);
-                })
-                .collect(Collectors.toSet());
+                    .map(processor -> {
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processor.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processor);
+                        final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
+                        return entityFactory.createProcessorEntity(dtoFactory.createProcessorDto(processor), revision, accessPolicy, status);
+                    })
+                    .collect(Collectors.toSet());
         });
     }
 
@@ -2242,7 +2219,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // getting the most recent results by ordering by timestamp desc above. this gets the
         // exact results we want but in reverse order
         final List<BulletinDTO> bulletins = new ArrayList<>();
-        for (final ListIterator<Bulletin> bulletinIter = results.listIterator(results.size()); bulletinIter.hasPrevious();) {
+        for (final ListIterator<Bulletin> bulletinIter = results.listIterator(results.size()); bulletinIter.hasPrevious(); ) {
             bulletins.add(dtoFactory.createBulletinDto(bulletinIter.previous()));
         }
 
@@ -2383,12 +2360,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<String> ids = labels.stream().map(label -> label.getIdentifier()).collect(Collectors.toSet());
         return revisionManager.get(ids, () -> {
             return labels.stream()
-                .map(label -> {
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(label.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(label);
-                    return entityFactory.createLabelEntity(dtoFactory.createLabelDto(label), revision, accessPolicy);
-                })
-                .collect(Collectors.toSet());
+                    .map(label -> {
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(label.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(label);
+                        return entityFactory.createLabelEntity(dtoFactory.createLabelDto(label), revision, accessPolicy);
+                    })
+                    .collect(Collectors.toSet());
         });
     }
 
@@ -2413,12 +2390,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<String> funnelIds = funnels.stream().map(funnel -> funnel.getIdentifier()).collect(Collectors.toSet());
         return revisionManager.get(funnelIds, () -> {
             return funnels.stream()
-                .map(funnel -> {
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(funnel.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(funnel);
-                    return entityFactory.createFunnelEntity(dtoFactory.createFunnelDto(funnel), revision, accessPolicy);
-                })
-                .collect(Collectors.toSet());
+                    .map(funnel -> {
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(funnel.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(funnel);
+                        return entityFactory.createFunnelEntity(dtoFactory.createFunnelDto(funnel), revision, accessPolicy);
+                    })
+                    .collect(Collectors.toSet());
         });
     }
 
@@ -2443,14 +2420,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<String> portIds = inputPorts.stream().map(port -> port.getIdentifier()).collect(Collectors.toSet());
         return revisionManager.get(portIds, () -> {
             return inputPorts.stream()
-                .map(port -> {
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(port.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
-                    final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(port.getIdentifier()));
-                    return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status);
-                })
-                .collect(Collectors.toSet());
-            });
+                    .map(port -> {
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(port.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
+                        final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(port.getIdentifier()));
+                        return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status);
+                    })
+                    .collect(Collectors.toSet());
+        });
     }
 
     @Override
@@ -2463,13 +2440,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return revisionManager.get(ids, () -> {
             return ports.stream()
-                .map(port -> {
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(port.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
-                    final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(port.getIdentifier()));
-                    return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status);
-                })
-                .collect(Collectors.toSet());
+                    .map(port -> {
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(port.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
+                        final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(port.getIdentifier()));
+                        return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status);
+                    })
+                    .collect(Collectors.toSet());
         });
     }
 
@@ -2482,13 +2459,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<String> ids = groups.stream().map(group -> group.getIdentifier()).collect(Collectors.toSet());
         return revisionManager.get(ids, () -> {
             return groups.stream()
-                .map(group -> {
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(group.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(group);
-                    final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(group.getIdentifier()));
-                    return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group), revision, accessPolicy, status);
-                })
-                .collect(Collectors.toSet());
+                    .map(group -> {
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(group.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(group);
+                        final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(group.getIdentifier()));
+                        return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group), revision, accessPolicy, status);
+                    })
+                    .collect(Collectors.toSet());
         });
     }
 
@@ -2502,13 +2479,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return revisionManager.get(ids, () -> {
             return rpgs.stream()
-                .map(rpg -> {
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(rpg.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(rpg);
-                    final RemoteProcessGroupStatusDTO status = dtoFactory.createRemoteProcessGroupStatusDto(controllerFacade.getRemoteProcessGroupStatus(rpg.getIdentifier()));
-                    return entityFactory.createRemoteProcessGroupEntity(dtoFactory.createRemoteProcessGroupDto(rpg), revision, accessPolicy, status);
-                })
-                .collect(Collectors.toSet());
+                    .map(rpg -> {
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(rpg.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(rpg);
+                        final RemoteProcessGroupStatusDTO status = dtoFactory.createRemoteProcessGroupStatusDto(controllerFacade.getRemoteProcessGroupStatus(rpg.getIdentifier()));
+                        return entityFactory.createRemoteProcessGroupEntity(dtoFactory.createRemoteProcessGroupDto(rpg), revision, accessPolicy, status);
+                    })
+                    .collect(Collectors.toSet());
         });
     }
 
@@ -2574,45 +2551,45 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ProcessGroupFlowEntity getProcessGroupFlow(String groupId, boolean recurse) {
         return revisionManager.get(groupId,
-            rev -> {
-                // get all identifiers for every child component
-                final Set<String> identifiers = new HashSet<>();
-                final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-                processGroup.getProcessors().stream()
-                    .map(proc -> proc.getIdentifier())
-                    .forEach(id -> identifiers.add(id));
-                processGroup.getConnections().stream()
-                    .map(conn -> conn.getIdentifier())
-                    .forEach(id -> identifiers.add(id));
-                processGroup.getInputPorts().stream()
-                    .map(port -> port.getIdentifier())
-                    .forEach(id -> identifiers.add(id));
-                processGroup.getOutputPorts().stream()
-                    .map(port -> port.getIdentifier())
-                    .forEach(id -> identifiers.add(id));
-                processGroup.getProcessGroups().stream()
-                    .map(group -> group.getIdentifier())
-                    .forEach(id -> identifiers.add(id));
-                processGroup.getRemoteProcessGroups().stream()
-                    .map(remoteGroup -> remoteGroup.getIdentifier())
-                    .forEach(id -> identifiers.add(id));
-                processGroup.getRemoteProcessGroups().stream()
-                    .flatMap(remoteGroup -> remoteGroup.getInputPorts().stream())
-                    .map(remoteInputPort -> remoteInputPort.getIdentifier())
-                    .forEach(id -> identifiers.add(id));
-                processGroup.getRemoteProcessGroups().stream()
-                    .flatMap(remoteGroup -> remoteGroup.getOutputPorts().stream())
-                    .map(remoteOutputPort -> remoteOutputPort.getIdentifier())
-                    .forEach(id -> identifiers.add(id));
+                rev -> {
+                    // get all identifiers for every child component
+                    final Set<String> identifiers = new HashSet<>();
+                    final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+                    processGroup.getProcessors().stream()
+                            .map(proc -> proc.getIdentifier())
+                            .forEach(id -> identifiers.add(id));
+                    processGroup.getConnections().stream()
+                            .map(conn -> conn.getIdentifier())
+                            .forEach(id -> identifiers.add(id));
+                    processGroup.getInputPorts().stream()
+                            .map(port -> port.getIdentifier())
+                            .forEach(id -> identifiers.add(id));
+                    processGroup.getOutputPorts().stream()
+                            .map(port -> port.getIdentifier())
+                            .forEach(id -> identifiers.add(id));
+                    processGroup.getProcessGroups().stream()
+                            .map(group -> group.getIdentifier())
+                            .forEach(id -> identifiers.add(id));
+                    processGroup.getRemoteProcessGroups().stream()
+                            .map(remoteGroup -> remoteGroup.getIdentifier())
+                            .forEach(id -> identifiers.add(id));
+                    processGroup.getRemoteProcessGroups().stream()
+                            .flatMap(remoteGroup -> remoteGroup.getInputPorts().stream())
+                            .map(remoteInputPort -> remoteInputPort.getIdentifier())
+                            .forEach(id -> identifiers.add(id));
+                    processGroup.getRemoteProcessGroups().stream()
+                            .flatMap(remoteGroup -> remoteGroup.getOutputPorts().stream())
+                            .map(remoteOutputPort -> remoteOutputPort.getIdentifier())
+                            .forEach(id -> identifiers.add(id));
 
-                // read lock on every component being accessed in the dto conversion
-                return revisionManager.get(identifiers,
-                    () -> {
-                        final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
-                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processGroup);
-                        return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus, revisionManager), accessPolicy);
-                    });
-            });
+                    // read lock on every component being accessed in the dto conversion
+                    return revisionManager.get(identifiers,
+                            () -> {
+                                final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
+                                final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processGroup);
+                                return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus, revisionManager), accessPolicy);
+                            });
+                });
     }
 
     @Override
@@ -2646,18 +2623,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return revisionManager.get(serviceIds, () -> {
             return serviceNodes.stream()
-                .map(serviceNode -> {
-                    final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(serviceNode);
+                    .map(serviceNode -> {
+                        final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(serviceNode);
 
-                    final ControllerServiceReference ref = serviceNode.getReferences();
-                    final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
-                    dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
+                        final ControllerServiceReference ref = serviceNode.getReferences();
+                        final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
+                        dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
 
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(serviceNode);
-                    return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy);
-                })
-                .collect(Collectors.toSet());
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(serviceNode);
+                        return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy);
+                    })
+                    .collect(Collectors.toSet());
         });
     }
 
@@ -2710,12 +2687,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return revisionManager.get(ids, () -> {
             return reportingTasks.stream()
-                .map(reportingTask -> {
-                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(reportingTask.getIdentifier()));
-                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
-                    return entityFactory.createReportingTaskEntity(dtoFactory.createReportingTaskDto(reportingTask), revision, accessPolicy);
-                })
-                .collect(Collectors.toSet());
+                    .map(reportingTask -> {
+                        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(reportingTask.getIdentifier()));
+                        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
+                        return entityFactory.createReportingTaskEntity(dtoFactory.createReportingTaskDto(reportingTask), revision, accessPolicy);
+                    })
+                    .collect(Collectors.toSet());
         });
     }
 
