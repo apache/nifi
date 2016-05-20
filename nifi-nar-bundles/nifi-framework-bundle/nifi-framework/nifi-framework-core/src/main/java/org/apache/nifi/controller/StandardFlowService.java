@@ -453,7 +453,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
                     // set node as clustered, since it is trying to connect to a cluster
                     controller.setClustered(true, null);
-                    controller.setClusterManagerRemoteSiteInfo(null, null);
+                    controller.setClusterManagerRemoteSiteInfo(null, null, null);
                     controller.setConnectionStatus(new NodeConnectionStatus(DisconnectionCode.NOT_YET_CONNECTED));
 
                     /*
@@ -554,7 +554,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // reconnect
             final ConnectionResponse connectionResponse = new ConnectionResponse(nodeId, request.getDataFlow(),
-                request.getManagerRemoteSiteListeningPort(), request.isManagerRemoteSiteCommsSecure(), request.getInstanceId());
+                request.getManagerRemoteSiteListeningPort(), request.getManagerRemoteSiteListeningHttpPort(),
+                request.isManagerRemoteSiteCommsSecure(), request.getInstanceId());
             connectionResponse.setClusterManagerDN(request.getRequestorDN());
             loadFromConnectionResponse(connectionResponse);
 
@@ -814,7 +815,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // mark the node as clustered
             controller.setClustered(true, response.getInstanceId(), response.getClusterManagerDN());
-            controller.setClusterManagerRemoteSiteInfo(response.getManagerRemoteInputPort(), response.isManagerRemoteCommsSecure());
+            controller.setClusterManagerRemoteSiteInfo(response.getManagerRemoteInputPort(), response.getManagerRemoteInputHttpPort(), response.isManagerRemoteCommsSecure());
 
             controller.setConnectionStatus(new NodeConnectionStatus(NodeConnectionState.CONNECTED));
 

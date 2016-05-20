@@ -246,7 +246,9 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(element, "transmitting", String.valueOf(remoteRef.isTransmitting()));
         addTextElement(element, "transportProtocol", remoteRef.getTransportProtocol().name());
         addTextElement(element, "proxyHost", remoteRef.getProxyHost());
-        addTextElement(element, "proxyPort", remoteRef.getProxyPort());
+        if (remoteRef.getProxyPort() != null) {
+            addTextElement(element, "proxyPort", remoteRef.getProxyPort());
+        }
 
         for (final RemoteGroupPort port : remoteRef.getInputPorts()) {
             if (port.hasIncomingConnection()) {

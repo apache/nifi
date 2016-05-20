@@ -44,6 +44,7 @@ public class SiteInfoProvider {
     private final Lock remoteInfoReadLock = listeningPortRWLock.readLock();
     private final Lock remoteInfoWriteLock = listeningPortRWLock.writeLock();
     private Integer siteToSitePort;
+    private Integer siteToSiteHttpPort;
     private Boolean siteToSiteSecure;
     private long remoteRefreshTime;
     private Proxy proxy;
@@ -67,6 +68,7 @@ public class SiteInfoProvider {
         remoteInfoWriteLock.lock();
         try {
             this.siteToSitePort = controller.getRemoteSiteListeningPort();
+            this.siteToSiteHttpPort = controller.getRemoteSiteHttpListeningPort();
             this.siteToSiteSecure = controller.isSiteToSiteSecure();
 
             inputPortMap.clear();
@@ -93,7 +95,7 @@ public class SiteInfoProvider {
 
     /**
      * @return the port that the remote instance is listening on for
-     * site-to-site communication, or <code>null</code> if the remote instance
+     * RAW Socket site-to-site communication, or <code>null</code> if the remote instance
      * is not configured to allow site-to-site communications.
      *
      * @throws IOException if unable to communicate with the remote instance
@@ -114,6 +116,31 @@ public class SiteInfoProvider {
         listeningPort = controller.getRemoteSiteListeningPort();
 
         return listeningPort;
+    }
+
+    /**
+     * @return the port that the remote instance is listening on for
+     * HTTP(S) site-to-site communication, or <code>null</code> if the remote instance
+     * is not configured to allow site-to-site communications.
+     *
+     * @throws IOException if unable to communicate with the remote instance
+     */
+    public Integer getSiteToSiteHttpPort() throws IOException {
+        Integer listeningHttpPort;
+        remoteInfoReadLock.lock();
+        try {
+            listeningHttpPort = this.siteToSiteHttpPort;
+            if (listeningHttpPort != null && this.remoteRefreshTime > System.currentTimeMillis() - REMOTE_REFRESH_MILLIS) {
+                return listeningHttpPort;
+            }
+        } finally {
+            remoteInfoReadLock.unlock();
+        }
+
+        final ControllerDTO controller = refreshRemoteInfo();
+        listeningHttpPort = controller.getRemoteSiteHttpListeningPort();
+
+        return listeningHttpPort;
     }
 
     /**

@@ -328,11 +328,11 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
         if (isNotNull(transportProtocol)) {
             remoteProcessGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol.toUpperCase()));
-        }
-        if (isNotNull(proxyHost)) {
+            // No null check because these proxy settings have to be clear if not specified.
+            // But when user Enable/Disable transmission, only isTransmitting is sent.
+            // To prevent specified values to be cleared in that case,
+            // these are in this block assuming UI sends transportProtocol always for update.
             remoteProcessGroup.setProxyHost(proxyHost);
-        }
-        if (isNotNull(proxyPort)) {
             remoteProcessGroup.setProxyPort(proxyPort);
         }
 

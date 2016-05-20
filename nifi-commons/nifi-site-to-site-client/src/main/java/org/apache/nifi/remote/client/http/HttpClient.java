@@ -38,6 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -82,16 +84,22 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
     @Override
     public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
-        String clusterUrl = config.getUrl();
+        final String scheme = siteInfoProvider.isSecure() ? "https" : "http";
+        final URI clusterUrl;
+        try {
+            clusterUrl = new URI(config.getUrl());
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Specified clusterUrl was: " + config.getUrl(), e);
+        }
         SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext(), config.getProxy());
-        String clusterApiUri = apiUtil.resolveBaseUrl(clusterUrl);
+        String clusterApiUrl = apiUtil.resolveBaseUrl(scheme, clusterUrl.getHost(), siteInfoProvider.getSiteToSiteHttpPort());
 
         int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
         apiUtil.setConnectTimeoutMillis(timeoutMillis);
         apiUtil.setReadTimeoutMillis(timeoutMillis);
         Collection<PeerDTO> peers = apiUtil.getPeers();
         if(peers == null || peers.size() == 0){
-            throw new IOException("Couldn't get any peer to communicate with. " + clusterApiUri + " returned zero peers.");
+            throw new IOException("Couldn't get any peer to communicate with. " + clusterApiUrl + " returned zero peers.");
         }
 
         return peers.stream().map(p -> new PeerStatus(new PeerDescription(p.getHostname(), p.getPort(), p.isSecure()), p.getFlowFileCount())).collect(Collectors.toSet());
@@ -102,44 +110,61 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
         int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
 
-        final PeerStatus peerStatus = peerSelector.getNextPeerStatus(direction);
-        logger.debug("peerStatus={}", peerStatus);
-        if(peerStatus == null) {
-            return null;
+        PeerStatus peerStatus;
+        while ((peerStatus = peerSelector.getNextPeerStatus(direction)) != null) {
+            logger.debug("peerStatus={}", peerStatus);
+
+            CommunicationsSession commSession = new HttpCommunicationsSession();
+            String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
+            commSession.setUri(nodeApiUrl);
+            String clusterUrl = config.getUrl();
+            Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
+
+            int penaltyMillis = (int) config.getPenalizationPeriod(TimeUnit.MILLISECONDS);
+            String portId = config.getPortIdentifier();
+            if (StringUtils.isEmpty(portId)) {
+                portId = siteInfoProvider.getPortIdentifier(config.getPortName(), direction);
+            }
+
+            SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext(), config.getProxy());
+
+            apiUtil.setBaseUrl(peer.getUrl());
+            apiUtil.setConnectTimeoutMillis(timeoutMillis);
+            apiUtil.setReadTimeoutMillis(timeoutMillis);
+
+            apiUtil.setCompress(config.isUseCompression());
+            apiUtil.setRequestExpirationMillis(timeoutMillis);
+            apiUtil.setBatchCount(config.getPreferredBatchCount());
+            apiUtil.setBatchSize(config.getPreferredBatchSize());
+            apiUtil.setBatchDurationMillis(config.getPreferredBatchDuration(TimeUnit.MILLISECONDS));
+
+            final String transactionUrl;
+            try {
+                transactionUrl = apiUtil.initiateTransaction(direction, portId);
+            } catch (Exception e) {
+                logger.debug("Penalizing a peer due to {}", e.getMessage());
+                peerSelector.penalize(peer, penaltyMillis);
+
+                if (e instanceof UnknownPortException || e instanceof PortNotRunningException) {
+                    throw e;
+                }
+
+                logger.debug("Continue trying other peers...");
+                continue;
+            }
+
+            // We found a valid peer to communicate with.
+            Integer transactionProtocolVersion = apiUtil.getTransactionProtocolVersion();
+            HttpClientTransaction transaction = new HttpClientTransaction(transactionProtocolVersion, peer, direction,
+                    config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
+            transaction.initialize(apiUtil, transactionUrl);
+
+            return transaction;
         }
 
-        CommunicationsSession commSession = new HttpCommunicationsSession();
-        String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
-        commSession.setUri(nodeApiUrl);
-        String clusterUrl = config.getUrl();
-        Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
+        logger.info("Couldn't find a valid peer to communicate with.");
+        return null;
 
-        int penaltyMillis = (int)config.getPenalizationPeriod(TimeUnit.MILLISECONDS);
-        String portId = config.getPortIdentifier();
-        if(StringUtils.isEmpty(portId)){
-            portId = siteInfoProvider.getPortIdentifier(config.getPortName(), direction);
-        }
-
-        SiteToSiteRestApiUtil apiUtil = new SiteToSiteRestApiUtil(config.getSslContext(), config.getProxy());
-
-        apiUtil.setBaseUrl(peer.getUrl());
-        apiUtil.setConnectTimeoutMillis(timeoutMillis);
-        apiUtil.setReadTimeoutMillis(timeoutMillis);
-
-        apiUtil.setCompress(config.isUseCompression());
-        apiUtil.setRequestExpirationMillis(timeoutMillis);
-        apiUtil.setBatchCount(config.getPreferredBatchCount());
-        apiUtil.setBatchSize(config.getPreferredBatchSize());
-        apiUtil.setBatchDurationMillis(config.getPreferredBatchDuration(TimeUnit.MILLISECONDS));
-
-        String transactionUrl = apiUtil.initiateTransaction(direction, portId);
-        Integer transactionProtocolVersion = apiUtil.getTransactionProtocolVersion();
-
-        HttpClientTransaction transaction = new HttpClientTransaction(transactionProtocolVersion, peer, direction,
-                config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
-        transaction.initialize(apiUtil, transactionUrl);
-
-        return transaction;
     }
 
     private String resolveNodeApiUrl(PeerDescription description) {
