@@ -132,6 +132,8 @@ public class ExecuteProcess extends AbstractProcessor {
     .description("All created FlowFiles are routed to this relationship")
     .build();
 
+    private volatile Process externalProcess;
+
     private volatile ExecutorService executor;
     private Future<?> longRunningProcess;
     private AtomicBoolean failure = new AtomicBoolean(false);
@@ -181,7 +183,14 @@ public class ExecuteProcess extends AbstractProcessor {
 
     @OnUnscheduled
     public void shutdownExecutor() {
-        executor.shutdown();
+        try {
+            executor.shutdown();
+        } finally {
+            if (this.externalProcess.isAlive()) {
+                this.getLogger().info("Process hasn't terminated, forcing the interrupt");
+                this.externalProcess.destroyForcibly();
+            }
+        }
     }
 
     @Override
@@ -299,14 +308,14 @@ public class ExecuteProcess extends AbstractProcessor {
         }
 
         getLogger().info("Start creating new Process > {} ", new Object[] { commandStrings });
-        final Process newProcess = builder.redirectErrorStream(redirectErrorStream).start();
+        this.externalProcess = builder.redirectErrorStream(redirectErrorStream).start();
 
         // Submit task to read error stream from process
         if (!redirectErrorStream) {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(newProcess.getErrorStream()))) {
+                    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(externalProcess.getErrorStream()))) {
                         while (reader.read() >= 0) {
                         }
                     } catch (final IOException ioe) {
@@ -324,7 +333,7 @@ public class ExecuteProcess extends AbstractProcessor {
                     if (batchNanos == null) {
                         // if we aren't batching, just copy the stream from the
                         // process to the flowfile.
-                        try (final BufferedInputStream bufferedIn = new BufferedInputStream(newProcess.getInputStream())) {
+                        try (final BufferedInputStream bufferedIn = new BufferedInputStream(externalProcess.getInputStream())) {
                             final byte[] buffer = new byte[4096];
                             int len;
                             while ((len = bufferedIn.read(buffer)) > 0) {
@@ -351,7 +360,7 @@ public class ExecuteProcess extends AbstractProcessor {
                         // Also, we don't want that text to get split up in the
                         // middle of a line, so we use BufferedReader
                         // to read lines of text and write them as lines of text.
-                        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(newProcess.getInputStream()))) {
+                        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(externalProcess.getInputStream()))) {
                             String line;
 
                             while ((line = reader.readLine()) != null) {
@@ -367,13 +376,15 @@ public class ExecuteProcess extends AbstractProcessor {
                     failure.set(true);
                     throw ioe;
                 } finally {
-                    int exitCode;
                     try {
-                        exitCode = newProcess.exitValue();
-                    } catch (final Exception e) {
-                        exitCode = -99999;
+                        // Since we are going to exit anyway, one sec gives it an extra chance to exit gracefully.
+                        // In the future consider exposing it via configuration.
+                        boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
+                        int exitCode = terminated ? externalProcess.exitValue() : -9999;
+                        getLogger().info("Process finished with exit code {} ", new Object[] { exitCode });
+                    } catch (InterruptedException e1) {
+                        Thread.currentThread().interrupt();
                     }
-                    getLogger().info("Process finished with exit code {} ", new Object[] { exitCode });
                 }
 
                 return null;
@@ -412,6 +423,7 @@ public class ExecuteProcess extends AbstractProcessor {
             try {
                 Thread.sleep(millis);
             } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
             }
         }
 
