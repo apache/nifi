@@ -74,7 +74,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -2149,7 +2148,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         positionables.addAll(findAllConnectables(this, true));
         List<ProcessGroup> allProcessGroups = findAllProcessGroups();
         positionables.addAll(allProcessGroups);
-        positionables.addAll(allProcessGroups.stream().flatMap(processGroup -> processGroup.findAllPositionables().stream()).collect(Collectors.toSet()));
         positionables.addAll(findAllRemoteProcessGroups());
         positionables.addAll(findAllLabels());
         return positionables;
