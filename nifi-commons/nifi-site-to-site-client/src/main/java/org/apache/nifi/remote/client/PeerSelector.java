@@ -328,7 +328,7 @@ public class PeerSelector {
             peerStatusCache = new PeerStatusCache(statuses);
             logger.info("{} Successfully refreshed Peer Status; remote instance consists of {} peers", this, statuses.size());
         } catch (Exception e) {
-            warn(logger, eventReporter, "{} Unable to refresh Remote Group's peers due to {}", this, e);
+            warn(logger, eventReporter, "{} Unable to refresh Remote Group's peers due to {}", this, e.getMessage());
             if (logger.isDebugEnabled()) {
                 logger.debug("", e);
             }

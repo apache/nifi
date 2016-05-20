@@ -268,6 +268,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     private final RemoteSiteListener remoteSiteListener;
     private final Integer remoteInputPort;
+    private final Integer remoteInputHttpPort;
     private final Boolean remoteCommsSecure;
     private final BulletinRepository bulletinRepository;
     private final String instanceId;
@@ -301,13 +302,19 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         senderListener.setBulletinRepository(bulletinRepository);
 
         remoteInputPort = properties.getRemoteInputPort();
+        remoteInputHttpPort = properties.getRemoteInputHttpPort();
+
+        if (remoteInputPort == null && remoteInputHttpPort == null) {
+            remoteCommsSecure = null;
+        } else {
+            remoteCommsSecure = properties.isSiteToSiteSecure();
+        }
+
         if (remoteInputPort == null) {
             remoteSiteListener = null;
-            remoteCommsSecure = null;
         } else {
             // Register the ClusterManagerServerProtocol as the appropriate resource for site-to-site Server Protocol
             RemoteResourceManager.setServerProtocolImplementation(ClusterManagerServerProtocol.RESOURCE_NAME, ClusterManagerServerProtocol.class);
-            remoteCommsSecure = properties.isSiteToSiteSecure();
             if (remoteCommsSecure) {
                 final SSLContext sslContext = SslContextFactory.createSslContext(properties, false);
 
@@ -605,7 +612,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     primaryNodeId = clusterDataFlow.getPrimaryNodeId();
                 }
 
-                return new ConnectionResponse(node.getNodeId(), cachedDataFlow, remoteInputPort, remoteCommsSecure, instanceId);
+                return new ConnectionResponse(node.getNodeId(), cachedDataFlow, remoteInputPort, remoteInputHttpPort, remoteCommsSecure, instanceId);
             }
 
             /*
@@ -746,6 +753,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                             request.setPrimary(primaryRole);
                             request.setManagerRemoteSiteCommsSecure(remoteCommsSecure);
                             request.setManagerRemoteSiteListeningPort(remoteInputPort);
+                            request.setManagerRemoteSiteListeningHttpPort(remoteInputHttpPort);
                             request.setInstanceId(instanceId);
                         } finally {
                             readLock.unlock("Reconnect " + node.getNodeId());

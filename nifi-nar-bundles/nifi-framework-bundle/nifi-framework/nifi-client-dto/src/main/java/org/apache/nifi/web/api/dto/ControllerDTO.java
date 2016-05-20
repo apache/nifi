@@ -41,6 +41,7 @@ public class ControllerDTO {
     private Integer outputPortCount;
 
     private Integer remoteSiteListeningPort;
+    private Integer remoteSiteHttpListeningPort;
     private Boolean siteToSiteSecure;
     private String instanceId;
     private Set<PortDTO> inputPorts;
@@ -147,6 +148,23 @@ public class ControllerDTO {
 
     public void setRemoteSiteListeningPort(final Integer port) {
         this.remoteSiteListeningPort = port;
+    }
+
+    /**
+     * The HTTP(S) Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote instances, this will be null.
+     *
+     * @return a integer between 1 and 65535, or null, if not configured for remote transfer
+     */
+    @ApiModelProperty(
+            value = "The HTTP(S) Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote "
+                    + "instances, this will be null."
+    )
+    public Integer getRemoteSiteHttpListeningPort() {
+        return remoteSiteHttpListeningPort;
+    }
+
+    public void setRemoteSiteHttpListeningPort(Integer remoteSiteHttpListeningPort) {
+        this.remoteSiteHttpListeningPort = remoteSiteHttpListeningPort;
     }
 
     /**
@@ -274,4 +292,5 @@ public class ControllerDTO {
     public void setOutputPortCount(Integer outputPortCount) {
         this.outputPortCount = outputPortCount;
     }
+
 }

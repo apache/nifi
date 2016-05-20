@@ -164,7 +164,15 @@ public class NiFiRestApiUtil {
         if (urlPath.endsWith("/")) {
             urlPath = urlPath.substring(0, urlPath.length() - 1);
         }
-        String baseUri = clusterUrl.getScheme() + "://" + clusterUrl.getHost() + ":" + clusterUrl.getPort() + urlPath + "-api";
+        return resolveBaseUrl(clusterUrl.getScheme(), clusterUrl.getHost(), clusterUrl.getPort(), urlPath + "-api");
+    }
+
+    public String resolveBaseUrl(final String scheme, final String host, final int port) {
+        return resolveBaseUrl(scheme, host, port, "/nifi-api");
+    }
+
+    public String resolveBaseUrl(final String scheme, final String host, final int port, String path) {
+        String baseUri = scheme + "://" + host + ":" + port + path;
         this.setBaseUrl(baseUri);
         return baseUri;
     }

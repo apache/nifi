@@ -282,6 +282,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final Integer remoteInputHttpPort;
     private final Boolean isSiteToSiteSecure;
     private Integer clusterManagerRemoteSitePort = null;
+    private Integer clusterManagerRemoteSiteHttpPort = null;
     private Boolean clusterManagerRemoteSiteCommsSecure = null;
 
     private ProcessGroup rootGroup;
@@ -383,7 +384,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             /* configuredForClustering */ true,
             /* NodeProtocolSender */ protocolSender);
 
-        flowController.setClusterManagerRemoteSiteInfo(properties.getRemoteInputPort(), properties.isSiteToSiteSecure());
+        flowController.setClusterManagerRemoteSiteInfo(properties.getRemoteInputPort(), properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
 
         return flowController;
     }
@@ -3803,10 +3804,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return new ArrayList<>(history.getActions());
     }
 
-    public void setClusterManagerRemoteSiteInfo(final Integer managerListeningPort, final Boolean commsSecure) {
+    public void setClusterManagerRemoteSiteInfo(final Integer managerListeningPort, final Integer managerListeningHttpPort, final Boolean commsSecure) {
         writeLock.lock();
         try {
             clusterManagerRemoteSitePort = managerListeningPort;
+            clusterManagerRemoteSiteHttpPort = managerListeningHttpPort;
             clusterManagerRemoteSiteCommsSecure = commsSecure;
         } finally {
             writeLock.unlock();
@@ -3817,6 +3819,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         readLock.lock();
         try {
             return clusterManagerRemoteSitePort;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+
+    public Integer getClusterManagerRemoteSiteListeningHttpPort() {
+        readLock.lock();
+        try {
+            return clusterManagerRemoteSiteHttpPort;
         } finally {
             readLock.unlock();
         }
@@ -3833,6 +3845,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public Integer getRemoteSiteListeningPort() {
         return remoteInputSocketPort;
+    }
+
+    public Integer getRemoteSiteListeningHttpPort() {
+        return remoteInputHttpPort;
     }
 
     public Boolean isRemoteSiteCommsSecure() {

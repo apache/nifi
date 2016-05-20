@@ -36,13 +36,14 @@ public class ConnectionResponse {
     private final NodeIdentifier nodeIdentifier;
     private final StandardDataFlow dataFlow;
     private final Integer managerRemoteInputPort;
+    private final Integer managerRemoteInputHttpPort;
     private final Boolean managerRemoteCommsSecure;
     private final String instanceId;
 
     private volatile String clusterManagerDN;
 
     public ConnectionResponse(final NodeIdentifier nodeIdentifier, final StandardDataFlow dataFlow,
-        final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
+        final Integer managerRemoteInputPort, final Integer managerRemoteInputHttpPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
         } else if (dataFlow == null) {
@@ -53,6 +54,7 @@ public class ConnectionResponse {
         this.tryLaterSeconds = 0;
         this.rejectionReason = null;
         this.managerRemoteInputPort = managerRemoteInputPort;
+        this.managerRemoteInputHttpPort = managerRemoteInputHttpPort;
         this.managerRemoteCommsSecure = managerRemoteCommsSecure;
         this.instanceId = instanceId;
     }
@@ -66,6 +68,7 @@ public class ConnectionResponse {
         this.tryLaterSeconds = tryLaterSeconds;
         this.rejectionReason = null;
         this.managerRemoteInputPort = null;
+        this.managerRemoteInputHttpPort = null;
         this.managerRemoteCommsSecure = null;
         this.instanceId = null;
     }
@@ -76,6 +79,7 @@ public class ConnectionResponse {
         this.tryLaterSeconds = 0;
         this.rejectionReason = rejectionReason;
         this.managerRemoteInputPort = null;
+        this.managerRemoteInputHttpPort = null;
         this.managerRemoteCommsSecure = null;
         this.instanceId = null;
     }
@@ -114,6 +118,10 @@ public class ConnectionResponse {
 
     public Integer getManagerRemoteInputPort() {
         return managerRemoteInputPort;
+    }
+
+    public Integer getManagerRemoteInputHttpPort() {
+        return managerRemoteInputHttpPort;
     }
 
     public Boolean isManagerRemoteCommsSecure() {

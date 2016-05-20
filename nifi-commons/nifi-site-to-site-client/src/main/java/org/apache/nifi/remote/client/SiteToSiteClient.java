@@ -169,7 +169,7 @@ public interface SiteToSiteClient extends Closeable {
         private long batchNanos;
         private SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
         private String proxyHost;
-        private int proxyPort;
+        private Integer proxyPort;
 
         /**
          * Populates the builder with values from the provided config
@@ -714,11 +714,11 @@ public interface SiteToSiteClient extends Closeable {
             return this;
         }
 
-        public int getProxyPort() {
+        public Integer getProxyPort() {
             return proxyPort;
         }
 
-        public Builder proxyPort(int proxyPort) {
+        public Builder proxyPort(Integer proxyPort) {
             this.proxyPort = proxyPort;
             return this;
         }
@@ -750,7 +750,7 @@ public interface SiteToSiteClient extends Closeable {
         private final long batchSize;
         private final long batchNanos;
         private final String proxyHost;
-        private final int proxyPort;
+        private final Integer proxyPort;
 
         // some serialization frameworks require a default constructor
         private StandardSiteToSiteClientConfig() {
@@ -775,7 +775,7 @@ public interface SiteToSiteClient extends Closeable {
             this.batchNanos = 0;
             this.transportProtocol = null;
             this.proxyHost = null;
-            this.proxyPort = 80;
+            this.proxyPort = null;
         }
 
         private StandardSiteToSiteClientConfig(final SiteToSiteClient.Builder builder) {
@@ -906,7 +906,7 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public Proxy getProxy() {
             if(!StringUtils.isEmpty(proxyHost)) {
-                InetSocketAddress proxyAddress = new InetSocketAddress(proxyHost, proxyPort);
+                InetSocketAddress proxyAddress = new InetSocketAddress(proxyHost, proxyPort == null ? 80 : proxyPort);
                 Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddress);
                 return proxy;
             }
