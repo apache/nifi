@@ -362,7 +362,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         final String hostname = clusterUrl.getHost();
         final Integer port = siteInfoProvider.getSiteToSitePort();
         if (port == null) {
-            throw new IOException("Remote instance of NiFi is not configured to allow site-to-site communications");
+            throw new IOException("Remote instance of NiFi is not configured to allow RAW Socket site-to-site communications");
         }
 
         final PeerDescription clusterPeerDescription = new PeerDescription(hostname, port, clusterUrl.toString().startsWith("https://"));

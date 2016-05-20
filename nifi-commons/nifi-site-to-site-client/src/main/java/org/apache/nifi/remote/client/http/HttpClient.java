@@ -84,6 +84,10 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
     @Override
     public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
+        if (siteInfoProvider.getSiteToSiteHttpPort() == null) {
+            throw new IOException("Remote instance of NiFi is not configured to allow HTTP site-to-site communications");
+        }
+
         final String scheme = siteInfoProvider.isSecure() ? "https" : "http";
         final URI clusterUrl;
         try {
