@@ -35,12 +35,7 @@ public class User {
     private User(final UserBuilder builder) {
         this.identifier = builder.identifier;
         this.identity = builder.identity;
-
-        Set<String> groups = new HashSet<>();
-        if (builder.groups != null) {
-            groups.addAll(builder.groups);
-        }
-        this.groups = Collections.unmodifiableSet(groups);
+        this.groups = Collections.unmodifiableSet(new HashSet<>(builder.groups));
 
         if (identifier == null || identifier.trim().isEmpty()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
@@ -93,7 +88,7 @@ public class User {
 
     @Override
     public String toString() {
-        return String.format("identifier[%s], identity[%s]", getIdentifier(), getIdentity(), ", ");
+        return String.format("identifier[%s], identity[%s]", getIdentifier(), getIdentity());
     }
 
     /**

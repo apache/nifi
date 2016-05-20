@@ -35,12 +35,7 @@ public class Group {
     private Group(final GroupBuilder builder) {
         this.identifier = builder.identifier;
         this.name = builder.name;
-
-        Set<String> users = new HashSet<>();
-        if (builder.users != null) {
-            users.addAll(builder.users);
-        }
-        this.users = Collections.unmodifiableSet(users);
+        this.users = Collections.unmodifiableSet(new HashSet<>(builder.users));
 
         if (this.identifier == null || this.identifier.trim().isEmpty()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
@@ -92,7 +87,7 @@ public class Group {
 
     @Override
     public String toString() {
-        return String.format("identifier[%s], name[%s]", getIdentifier(), getName(), ", ");
+        return String.format("identifier[%s], name[%s]", getIdentifier(), getName());
     }
 
 

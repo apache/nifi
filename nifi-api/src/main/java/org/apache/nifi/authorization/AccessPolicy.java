@@ -37,18 +37,8 @@ public class AccessPolicy {
     private AccessPolicy(final AccessPolicyBuilder builder) {
         this.identifier = builder.identifier;
         this.resource = builder.resource;
-
-        Set<String> entities = new HashSet<>();
-        if (builder.entities != null) {
-            entities.addAll(builder.entities);
-        }
-        this.entities = Collections.unmodifiableSet(entities);
-
-        Set<RequestAction> actions = new HashSet<>();
-        if (builder.actions != null) {
-            actions.addAll(builder.actions);
-        }
-        this.actions = Collections.unmodifiableSet(actions);
+        this.entities = Collections.unmodifiableSet(new HashSet<>(builder.entities));
+        this.actions = Collections.unmodifiableSet(new HashSet<>(builder.actions));
 
         if (this.identifier == null || this.identifier.trim().isEmpty()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
@@ -116,7 +106,7 @@ public class AccessPolicy {
     @Override
     public String toString() {
         return String.format("identifier[%s], resource[%s], entityId[%s], action[%s]",
-                getIdentifier(), getResource().getIdentifier(), getEntities(), getActions(), ", ");
+                getIdentifier(), getResource().getIdentifier(), getEntities(), getActions());
     }
 
     /**
