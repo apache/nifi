@@ -22,7 +22,7 @@
     position: absolute;
     overflow: hidden;
     width: 400px;
-    height: 315px;
+    height: 475px;
     font-size: 10px;
     z-index: 1201;
     display: none;
@@ -32,7 +32,7 @@
     position: absolute;
     overflow: hidden;
     width: 400px;
-    height: 315px;
+    height: 475px;
     font-size: 10px;
     z-index: 1201;
     display: none;
@@ -46,6 +46,12 @@
     font-size: 10px;
     z-index: 1201;
     display: none;
+}
+
+#remote-process-group-transport-protocol-combo {
+    width: 130px;
+    height: 18px;
+    line-height: 18px;
 }
 
 /* remote process group settings */

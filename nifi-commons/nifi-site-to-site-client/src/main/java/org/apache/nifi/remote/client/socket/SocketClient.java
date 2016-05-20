@@ -16,27 +16,26 @@
  */
 package org.apache.nifi.remote.client.socket;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.remote.Communicant;
 import org.apache.nifi.remote.RemoteDestination;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransactionCompletion;
 import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.remote.client.AbstractSiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.protocol.DataPacket;
-import org.apache.nifi.util.ObjectHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SocketClient implements SiteToSiteClient {
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+public class SocketClient extends AbstractSiteToSiteClient {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
 
-    private final SiteToSiteClientConfig config;
     private final EndpointConnectionPool pool;
     private final boolean compress;
     private final String portName;
@@ -45,13 +44,17 @@ public class SocketClient implements SiteToSiteClient {
     private volatile boolean closed = false;
 
     public SocketClient(final SiteToSiteClientConfig config) {
-        pool = new EndpointConnectionPool(config.getUrl(),
-                createRemoteDestination(config.getPortIdentifier(), config.getPortName()),
-                (int) config.getTimeout(TimeUnit.MILLISECONDS),
-                (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
-                config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile());
+        super(config);
 
-        this.config = config;
+        final int commsTimeout = (int) config.getTimeout(TimeUnit.MILLISECONDS);
+        pool = new EndpointConnectionPool(clusterUrl,
+                createRemoteDestination(config.getPortIdentifier(), config.getPortName()),
+                commsTimeout,
+                (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
+                config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile(),
+                siteInfoProvider
+        );
+
         this.compress = config.isUseCompression();
         this.portIdentifier = config.getPortIdentifier();
         this.portName = config.getPortName();
@@ -59,13 +62,8 @@ public class SocketClient implements SiteToSiteClient {
     }
 
     @Override
-    public SiteToSiteClientConfig getConfig() {
-        return config;
-    }
-
-    @Override
     public boolean isSecure() throws IOException {
-        return pool.isSecure();
+        return siteInfoProvider.isSecure();
     }
 
     private String getPortIdentifier(final TransferDirection direction) throws IOException {
@@ -76,9 +74,9 @@ public class SocketClient implements SiteToSiteClient {
 
         final String portId;
         if (direction == TransferDirection.SEND) {
-            portId = pool.getInputPortIdentifier(this.portName);
+            portId = siteInfoProvider.getInputPortIdentifier(this.portName);
         } else {
-            portId = pool.getOutputPortIdentifier(this.portName);
+            portId = siteInfoProvider.getOutputPortIdentifier(this.portName);
         }
 
         if (portId == null) {
@@ -142,7 +140,7 @@ public class SocketClient implements SiteToSiteClient {
 
         // Wrap the transaction in a new one that will return the EndpointConnectionState back to the pool whenever
         // the transaction is either completed or canceled.
-        final ObjectHolder<EndpointConnection> connectionStateRef = new ObjectHolder<>(connectionState);
+        final AtomicReference<EndpointConnection> connectionStateRef = new AtomicReference<>(connectionState);
         return new Transaction() {
             @Override
             public void confirm() throws IOException {

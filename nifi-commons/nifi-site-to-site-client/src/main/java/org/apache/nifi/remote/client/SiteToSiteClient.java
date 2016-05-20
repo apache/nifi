@@ -16,29 +16,33 @@
  */
 package org.apache.nifi.remote.client;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.client.http.HttpClient;
 import org.apache.nifi.remote.client.socket.SocketClient;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.protocol.DataPacket;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -163,6 +167,9 @@ public interface SiteToSiteClient extends Closeable {
         private int batchCount;
         private long batchSize;
         private long batchNanos;
+        private SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
+        private String proxyHost;
+        private Integer proxyPort;
 
         /**
          * Populates the builder with values from the provided config
@@ -185,11 +192,18 @@ public interface SiteToSiteClient extends Closeable {
             this.eventReporter = config.getEventReporter();
             this.peerPersistenceFile = config.getPeerPersistenceFile();
             this.useCompression = config.isUseCompression();
+            this.transportProtocol = config.getTransportProtocol();
             this.portName = config.getPortName();
             this.portIdentifier = config.getPortIdentifier();
             this.batchCount = config.getPreferredBatchCount();
             this.batchSize = config.getPreferredBatchSize();
             this.batchNanos = config.getPreferredBatchDuration(TimeUnit.NANOSECONDS);
+            Proxy proxy = config.getProxy();
+            if (proxy != null && proxy.type() != Proxy.Type.DIRECT) {
+                InetSocketAddress address = (InetSocketAddress) proxy.address();
+                this.proxyHost = address.getHostName();
+                this.proxyPort = address.getPort();
+            }
 
             return this;
         }
@@ -441,6 +455,16 @@ public interface SiteToSiteClient extends Closeable {
         }
 
         /**
+         * Specifies the protocol to use for site to site data transport.
+         * @param transportProtocol transport protocol
+         * @return the builder
+         */
+        public Builder transportProtocol(final SiteToSiteTransportProtocol transportProtocol) {
+            this.transportProtocol = transportProtocol;
+            return this;
+        }
+
+        /**
          * Specifies the name of the port to communicate with. Either the port
          * name or the port identifier must be specified.
          *
@@ -521,7 +545,8 @@ public interface SiteToSiteClient extends Closeable {
          *         data with remote instances of NiFi
          *
          * @throws IllegalStateException if either the url is not set or neither
-         *             the port name nor port identifier is set.
+         *             the port name nor port identifier is set,
+         *             or if the transport protocol is not supported.
          */
         public SiteToSiteClient build() {
             if (url == null) {
@@ -532,7 +557,14 @@ public interface SiteToSiteClient extends Closeable {
                 throw new IllegalStateException("Must specify either Port Name or Port Identifier to build Site-to-Site client");
             }
 
-            return new SocketClient(buildConfig());
+            switch (transportProtocol){
+                case RAW:
+                    return new SocketClient(buildConfig());
+                case HTTP:
+                    return new HttpClient(buildConfig());
+                default:
+                    throw new IllegalStateException("Transport protocol '" + transportProtocol + "' is not supported.");
+            }
         }
 
         /**
@@ -651,6 +683,13 @@ public interface SiteToSiteClient extends Closeable {
         }
 
         /**
+         * @return the transport protocol to use, defaults to RAW
+         */
+        public SiteToSiteTransportProtocol getTransportProtocol(){
+            return transportProtocol;
+        }
+
+        /**
          * @return the name of the port that the client is to communicate with
          */
         public String getPortName() {
@@ -663,6 +702,25 @@ public interface SiteToSiteClient extends Closeable {
          */
         public String getPortIdentifier() {
             return portIdentifier;
+        }
+
+
+        public String getProxyHost() {
+            return proxyHost;
+        }
+
+        public Builder proxyHost(String proxyHost) {
+            this.proxyHost = proxyHost;
+            return this;
+        }
+
+        public Integer getProxyPort() {
+            return proxyPort;
+        }
+
+        public Builder proxyPort(Integer proxyPort) {
+            this.proxyPort = proxyPort;
+            return this;
         }
     }
 
@@ -685,11 +743,14 @@ public interface SiteToSiteClient extends Closeable {
         private final EventReporter eventReporter;
         private final File peerPersistenceFile;
         private final boolean useCompression;
+        private final SiteToSiteTransportProtocol transportProtocol;
         private final String portName;
         private final String portIdentifier;
         private final int batchCount;
         private final long batchSize;
         private final long batchNanos;
+        private final String proxyHost;
+        private final Integer proxyPort;
 
         // some serialization frameworks require a default constructor
         private StandardSiteToSiteClientConfig() {
@@ -712,6 +773,9 @@ public interface SiteToSiteClient extends Closeable {
             this.batchCount = 0;
             this.batchSize = 0;
             this.batchNanos = 0;
+            this.transportProtocol = null;
+            this.proxyHost = null;
+            this.proxyPort = null;
         }
 
         private StandardSiteToSiteClientConfig(final SiteToSiteClient.Builder builder) {
@@ -734,6 +798,9 @@ public interface SiteToSiteClient extends Closeable {
             this.batchCount = builder.batchCount;
             this.batchSize = builder.batchSize;
             this.batchNanos = builder.batchNanos;
+            this.transportProtocol = builder.getTransportProtocol();
+            this.proxyHost = builder.getProxyHost();
+            this.proxyPort = builder.getProxyPort();
         }
 
         @Override
@@ -830,5 +897,21 @@ public interface SiteToSiteClient extends Closeable {
         public KeystoreType getTruststoreType() {
             return truststoreType;
         }
+
+        @Override
+        public SiteToSiteTransportProtocol getTransportProtocol() {
+            return transportProtocol;
+        }
+
+        @Override
+        public Proxy getProxy() {
+            if(!StringUtils.isEmpty(proxyHost)) {
+                InetSocketAddress proxyAddress = new InetSocketAddress(proxyHost, proxyPort == null ? 80 : proxyPort);
+                Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddress);
+                return proxy;
+            }
+            return null;
+        }
+
     }
 }

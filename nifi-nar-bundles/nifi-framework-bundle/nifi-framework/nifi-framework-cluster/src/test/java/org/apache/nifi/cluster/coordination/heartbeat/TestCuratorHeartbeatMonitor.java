@@ -53,7 +53,7 @@ public class TestCuratorHeartbeatMonitor {
     public void setup() throws Exception {
         zkServer = new TestingServer(true);
         zkServer.start();
-        nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", null, false);
+        nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", null, null, false);
     }
 
     @After

@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.protocol.socket;
+package org.apache.nifi.remote;
 
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.remote.TransactionCompletion;
 
-public class SocketClientTransactionCompletion implements TransactionCompletion {
+public class ClientTransactionCompletion implements TransactionCompletion {
 
     private final boolean backoff;
     private final int dataPacketsTransferred;
     private final long bytesTransferred;
     private final long durationNanos;
 
-    public SocketClientTransactionCompletion(final boolean backoff, final int dataPacketsTransferred, final long bytesTransferred, final long durationNanos) {
+    public ClientTransactionCompletion(final boolean backoff, final int dataPacketsTransferred, final long bytesTransferred, final long durationNanos) {
         this.backoff = backoff;
         this.dataPacketsTransferred = dataPacketsTransferred;
         this.bytesTransferred = bytesTransferred;

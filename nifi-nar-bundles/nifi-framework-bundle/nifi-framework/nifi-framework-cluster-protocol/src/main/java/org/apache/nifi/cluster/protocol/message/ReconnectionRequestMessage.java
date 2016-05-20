@@ -32,6 +32,7 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
     private StandardDataFlow dataFlow;
     private boolean primary;
     private Integer managerRemoteSiteListeningPort;
+    private Integer managerRemoteSiteListeningHttpPort;
     private Boolean managerRemoteSiteCommsSecure;
     private String instanceId;
 
@@ -74,6 +75,14 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
 
     public Integer getManagerRemoteSiteListeningPort() {
         return managerRemoteSiteListeningPort;
+    }
+
+    public void setManagerRemoteSiteListeningHttpPort(Integer managerRemoteSiteListeningHttpPort) {
+        this.managerRemoteSiteListeningHttpPort = managerRemoteSiteListeningHttpPort;
+    }
+
+    public Integer getManagerRemoteSiteListeningHttpPort() {
+        return managerRemoteSiteListeningHttpPort;
     }
 
     public void setManagerRemoteSiteCommsSecure(final Boolean remoteSiteCommsSecure) {

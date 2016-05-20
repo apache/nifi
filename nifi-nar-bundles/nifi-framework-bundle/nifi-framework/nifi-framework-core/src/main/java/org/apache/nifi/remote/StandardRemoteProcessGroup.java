@@ -39,6 +39,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
@@ -112,6 +113,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private volatile String communicationsTimeout = "30 sec";
     private volatile String targetId;
     private volatile String yieldDuration = "10 sec";
+    private volatile SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
+    private volatile String proxyHost;
+    private volatile Integer proxyPort;
+
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -127,6 +132,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private Long refreshContentsTimestamp = null;
     private Boolean destinationSecure;
     private Integer listeningPort;
+    private Integer listeningHttpPort;
 
     private volatile String authorizationIssue;
 
@@ -233,6 +239,36 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     public void setTargetId(final String targetId) {
         this.targetId = targetId;
+    }
+
+    @Override
+    public void setTransportProtocol(final SiteToSiteTransportProtocol transportProtocol) {
+        this.transportProtocol = transportProtocol;
+    }
+
+    @Override
+    public SiteToSiteTransportProtocol getTransportProtocol() {
+        return transportProtocol;
+    }
+
+    @Override
+    public String getProxyHost() {
+        return proxyHost;
+    }
+
+    @Override
+    public void setProxyHost(String proxyHost) {
+        this.proxyHost = proxyHost;
+    }
+
+    @Override
+    public Integer getProxyPort() {
+        return proxyPort;
+    }
+
+    @Override
+    public void setProxyPort(Integer proxyPort) {
+        this.proxyPort = proxyPort;
     }
 
     /**
@@ -725,6 +761,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             final NiFiProperties props = NiFiProperties.getInstance();
             this.destinationSecure = props.isSiteToSiteSecure();
             this.listeningPort = props.getRemoteInputPort();
+            this.listeningHttpPort = props.getRemoteInputHttpPort();
 
             refreshContentsTimestamp = System.currentTimeMillis();
         } finally {
@@ -853,6 +890,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 }
 
                 this.listeningPort = dto.getRemoteSiteListeningPort();
+                this.listeningHttpPort = dto.getRemoteSiteHttpListeningPort();
                 this.destinationSecure = dto.isSiteToSiteSecure();
 
                 final ProcessGroupCounts newCounts = new ProcessGroupCounts(inputPortCount, outputPortCount,
@@ -1075,7 +1113,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public boolean isSiteToSiteEnabled() {
         readLock.lock();
         try {
-            return this.listeningPort != null;
+            return (this.listeningPort != null || this.listeningHttpPort != null);
         } finally {
             readLock.unlock();
         }
@@ -1100,8 +1138,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     final ControllerEntity entity = response.getEntity(ControllerEntity.class);
                     final ControllerDTO dto = entity.getController();
 
-                    if (dto.getRemoteSiteListeningPort() == null) {
-                        authorizationIssue = "Remote instance is not configured to allow Site-to-Site communications at this time.";
+                    if (dto.getRemoteSiteListeningPort() == null && SiteToSiteTransportProtocol.RAW.equals(transportProtocol)) {
+                        authorizationIssue = "Remote instance is not configured to allow RAW Site-to-Site communications at this time.";
+                    } else if (dto.getRemoteSiteHttpListeningPort() == null && SiteToSiteTransportProtocol.HTTP.equals(transportProtocol)) {
+                        authorizationIssue = "Remote instance is not configured to allow HTTP Site-to-Site communications at this time.";
                     } else {
                         authorizationIssue = null;
                     }
@@ -1109,6 +1149,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     writeLock.lock();
                     try {
                         listeningPort = dto.getRemoteSiteListeningPort();
+                        listeningHttpPort = dto.getRemoteSiteHttpListeningPort();
                         destinationSecure = dto.isSiteToSiteSecure();
                     } finally {
                         writeLock.unlock();

@@ -1373,6 +1373,9 @@ public final class DtoFactory {
         dto.setTargetUri(group.getTargetUri().toString());
         dto.setFlowRefreshed(group.getLastRefreshTime());
         dto.setContents(contents);
+        dto.setTransportProtocol(group.getTransportProtocol().name());
+        dto.setProxyHost(group.getProxyHost());
+        dto.setProxyPort(group.getProxyPort());
 
         // only specify the secure flag if we know the target system has site to site enabled
         if (group.isSiteToSiteEnabled()) {
@@ -2567,6 +2570,9 @@ public final class DtoFactory {
         copy.setInactiveRemoteOutputPortCount(original.getInactiveRemoteOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setTargetUri(original.getTargetUri());
+        copy.setTransportProtocol(original.getTransportProtocol());
+        copy.setProxyHost(original.getProxyHost());
+        copy.setProxyPort(original.getProxyPort());
 
         copy.setContents(copyContents);
 

@@ -141,6 +141,9 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             .peerPersistenceFile(getPeerPersistenceFile(getIdentifier()))
             .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
             .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+            .transportProtocol(remoteGroup.getTransportProtocol())
+            .proxyHost(remoteGroup.getProxyHost())
+            .proxyPort(remoteGroup.getProxyPort())
             .build();
         clientRef.set(client);
     }

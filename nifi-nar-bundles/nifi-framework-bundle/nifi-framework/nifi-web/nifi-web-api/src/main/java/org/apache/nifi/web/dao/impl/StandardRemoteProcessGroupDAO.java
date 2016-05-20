@@ -21,6 +21,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -306,6 +307,9 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final String comments = remoteProcessGroupDTO.getComments();
         final String communicationsTimeout = remoteProcessGroupDTO.getCommunicationsTimeout();
         final String yieldDuration = remoteProcessGroupDTO.getYieldDuration();
+        final String proxyHost = remoteProcessGroupDTO.getProxyHost();
+        final Integer proxyPort = remoteProcessGroupDTO.getProxyPort();
+        String transportProtocol = remoteProcessGroupDTO.getTransportProtocol();
 
         if (isNotNull(name)) {
             remoteProcessGroup.setName(name);
@@ -321,6 +325,15 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
         if (isNotNull(remoteProcessGroupDTO.getPosition())) {
             remoteProcessGroup.setPosition(new Position(remoteProcessGroupDTO.getPosition().getX(), remoteProcessGroupDTO.getPosition().getY()));
+        }
+        if (isNotNull(transportProtocol)) {
+            remoteProcessGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol.toUpperCase()));
+            // No null check because these proxy settings have to be clear if not specified.
+            // But when user Enable/Disable transmission, only isTransmitting is sent.
+            // To prevent specified values to be cleared in that case,
+            // these are in this block assuming UI sends transportProtocol always for update.
+            remoteProcessGroup.setProxyHost(proxyHost);
+            remoteProcessGroup.setProxyPort(proxyPort);
         }
 
         final Boolean isTransmitting = remoteProcessGroupDTO.isTransmitting();
