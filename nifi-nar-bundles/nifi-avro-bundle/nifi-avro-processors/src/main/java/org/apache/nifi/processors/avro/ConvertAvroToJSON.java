@@ -103,7 +103,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         .build();
 
     private List<PropertyDescriptor> properties;
-    private Schema schema = null;
+    private volatile Schema schema = null;
 
     @Override
     protected void init(ProcessorInitializationContext context) {
@@ -148,6 +148,8 @@ public class ConvertAvroToJSON extends AbstractProcessor {
             flowFile = session.write(flowFile, new StreamCallback() {
                 @Override
                 public void process(final InputStream rawIn, final OutputStream rawOut) throws IOException {
+                    final GenericData genericData = GenericData.get();
+
                     if (schemaLess) {
                         if (schema == null) {
                             schema = new Schema.Parser().parse(stringSchema);
@@ -164,7 +166,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                                 out.write('[');
                             }
 
-                            final byte[] outputBytes = (record == null) ? EMPTY_JSON_OBJECT : record.toString().getBytes(StandardCharsets.UTF_8);
+                            final byte[] outputBytes = (record == null) ? EMPTY_JSON_OBJECT : genericData.toString(record).getBytes(StandardCharsets.UTF_8);
                             out.write(outputBytes);
 
                             if (useContainer && wrapSingleRecord) {
@@ -175,8 +177,6 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                         try (final InputStream in = new BufferedInputStream(rawIn);
                              final OutputStream out = new BufferedOutputStream(rawOut);
                              final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
-
-                            final GenericData genericData = GenericData.get();
 
                             int recordCount = 0;
                             GenericRecord currRecord = null;
