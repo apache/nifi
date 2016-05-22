@@ -184,9 +184,9 @@ public class StreamDemarcatorTest {
 
     @Test
     public void validateWithComplexDelimiter() {
-        String data = "THIS IS MY TEXT<MYDEIMITER>THIS IS MY NEW TEXT<MYDEIMITER>THIS IS MY NEWEST TEXT";
+        String data = "THIS IS MY TEXT<MYDELIMITER>THIS IS MY NEW TEXT<MYDELIMITER>THIS IS MY NEWEST TEXT";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes());
-        StreamDemarcator scanner = new StreamDemarcator(is, "<MYDEIMITER>".getBytes(StandardCharsets.UTF_8), 1000);
+        StreamDemarcator scanner = new StreamDemarcator(is, "<MYDELIMITER>".getBytes(StandardCharsets.UTF_8), 1000);
         assertEquals("THIS IS MY TEXT", new String(scanner.nextToken(), StandardCharsets.UTF_8));
         assertEquals("THIS IS MY NEW TEXT", new String(scanner.nextToken(), StandardCharsets.UTF_8));
         assertEquals("THIS IS MY NEWEST TEXT", new String(scanner.nextToken(), StandardCharsets.UTF_8));
@@ -195,9 +195,9 @@ public class StreamDemarcatorTest {
 
     @Test(expected = IllegalStateException.class)
     public void validateMaxBufferSize() {
-        String data = "THIS IS MY TEXT<MY DEIMITER>THIS IS MY NEW TEXT<MY DEIMITER>THIS IS MY NEWEST TEXT";
+        String data = "THIS IS MY TEXT<MY DELIMITER>THIS IS MY NEW TEXT<MY DELIMITER>THIS IS MY NEWEST TEXT";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes());
-        StreamDemarcator scanner = new StreamDemarcator(is, "<MY DEIMITER>".getBytes(StandardCharsets.UTF_8), 20);
+        StreamDemarcator scanner = new StreamDemarcator(is, "<MY DELIMITER>".getBytes(StandardCharsets.UTF_8), 20);
         scanner.nextToken();
     }
 
