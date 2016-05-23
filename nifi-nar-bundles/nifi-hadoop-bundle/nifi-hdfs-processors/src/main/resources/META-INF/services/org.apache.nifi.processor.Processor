@@ -16,5 +16,6 @@ org.apache.nifi.processors.hadoop.CreateHadoopSequenceFile
 org.apache.nifi.processors.hadoop.FetchHDFS
 org.apache.nifi.processors.hadoop.GetHDFS
 org.apache.nifi.processors.hadoop.GetHDFSSequenceFile
+org.apache.nifi.processors.hadoop.inotify.GetHDFSEvents
 org.apache.nifi.processors.hadoop.ListHDFS
 org.apache.nifi.processors.hadoop.PutHDFS
