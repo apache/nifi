@@ -283,38 +283,21 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void startProcessing() {
         readLock.lock();
         try {
-            for (final ProcessorNode node : processors.values()) {
+            findAllProcessors().stream().filter(SCHEDULABLE_PROCESSORS).forEach(node -> {
                 try {
-                    if (!node.isRunning() && node.getScheduledState() != ScheduledState.DISABLED) {
-                        startProcessor(node);
-                    }
+                    node.getProcessGroup().startProcessor(node);
                 } catch (final Throwable t) {
                     LOG.error("Unable to start {} due to {}", new Object[]{node, t});
                 }
-            }
+            });
 
-            for (final Port inputPort : getInputPorts()) {
-                if (inputPort.getScheduledState() != ScheduledState.DISABLED) {
-                    startInputPort(inputPort);
-                }
-            }
+            findAllInputPorts().stream().filter(SCHEDULABLE_PORTS).forEach(port -> {
+                port.getProcessGroup().startInputPort(port);
+            });
 
-            for (final Port outputPort : getOutputPorts()) {
-                if (outputPort.getScheduledState() != ScheduledState.DISABLED) {
-                    startOutputPort(outputPort);
-                }
-            }
-
-            for (final Funnel funnel : getFunnels()) {
-                if (funnel.getScheduledState() != ScheduledState.DISABLED) {
-                    startFunnel(funnel);
-                }
-            }
-
-            // Recursively start child groups.
-            for (final ProcessGroup group : processGroups.values()) {
-                group.startProcessing();
-            }
+            findAllOutputPorts().stream().filter(SCHEDULABLE_PORTS).forEach(port -> {
+                port.getProcessGroup().startOutputPort(port);
+            });
         } finally {
             readLock.unlock();
         }
@@ -324,32 +307,21 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void stopProcessing() {
         readLock.lock();
         try {
-            for (final ProcessorNode node : processors.values()) {
+            findAllProcessors().stream().filter(UNSCHEDULABLE_PROCESSORS).forEach(node -> {
                 try {
-                    if (node.isRunning()) {
-                        stopProcessor(node);
-                    }
+                    node.getProcessGroup().stopProcessor(node);
                 } catch (final Throwable t) {
                     LOG.error("Unable to stop {} due to {}", new Object[]{node, t});
                 }
-            }
+            });
 
-            for (final Port inputPort : getInputPorts()) {
-                if (inputPort.getScheduledState() == ScheduledState.RUNNING) {
-                    stopInputPort(inputPort);
-                }
-            }
+            findAllInputPorts().stream().filter(UNSCHEDULABLE_PORTS).forEach(port -> {
+                port.getProcessGroup().stopInputPort(port);
+            });
 
-            for (final Port outputPort : getOutputPorts()) {
-                if (outputPort.getScheduledState() == ScheduledState.RUNNING) {
-                    stopOutputPort(outputPort);
-                }
-            }
-
-            // Recursively stop child groups.
-            for (final ProcessGroup group : processGroups.values()) {
-                group.stopProcessing();
-            }
+            findAllOutputPorts().stream().filter(UNSCHEDULABLE_PORTS).forEach(port -> {
+                port.getProcessGroup().stopOutputPort(port);
+            });
         } finally {
             readLock.unlock();
         }
@@ -2292,7 +2264,27 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanStop(Connectable connectable) {
+    }
+
+    @Override
     public void verifyCanStop() {
+    }
+
+    @Override
+    public void verifyCanStart(Connectable connectable) {
+        readLock.lock();
+        try {
+            if (connectable.getScheduledState() == ScheduledState.STOPPED) {
+                if (scheduler.getActiveThreadCount(connectable) > 0) {
+                    throw new IllegalStateException("Cannot start " + connectable + " because it is currently stopping");
+                }
+
+                connectable.verifyCanStart();
+            }
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
@@ -2300,13 +2292,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         readLock.lock();
         try {
             for (final Connectable connectable : findAllConnectables(this, false)) {
-                if (connectable.getScheduledState() == ScheduledState.STOPPED) {
-                    if (scheduler.getActiveThreadCount(connectable) > 0) {
-                        throw new IllegalStateException("Cannot start " + connectable + " because it is currently stopping");
-                    }
-
-                    connectable.verifyCanStart();
-                }
+                verifyCanStart(connectable);
             }
         } finally {
             readLock.unlock();

@@ -23,6 +23,9 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
@@ -83,6 +86,7 @@ public class ProcessorResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     @Context
     private ServletContext servletContext;
@@ -193,12 +197,18 @@ public class ProcessorResource extends ApplicationResource {
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processor = lookup.getProcessor(id);
+            processor.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the specified processor
         final ProcessorEntity entity = serviceFacade.getProcessor(id);
@@ -243,17 +253,17 @@ public class ProcessorResource extends ApplicationResource {
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The property name.",
                     required = true
             )
-            @QueryParam("propertyName") String propertyName) {
+            @QueryParam("propertyName") final String propertyName) {
 
         // ensure the property name is specified
         if (propertyName == null) {
@@ -264,6 +274,12 @@ public class ProcessorResource extends ApplicationResource {
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processor = lookup.getProcessor(id);
+            processor.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(id, propertyName);
@@ -308,12 +324,18 @@ public class ProcessorResource extends ApplicationResource {
             value = "The processor id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processor = lookup.getProcessor(id);
+            processor.authorize(authorizer, RequestAction.WRITE);
+        });
 
         // get the component state
         final ComponentStateDTO state = serviceFacade.getProcessorState(id);
@@ -356,17 +378,16 @@ public class ProcessorResource extends ApplicationResource {
         }
     )
     public Response clearState(
-        @Context HttpServletRequest httpServletRequest,
+        @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The revision used to verify the client is working with the latest version of the flow.",
             required = true
-        )
-        ComponentStateEntity revisionEntity,
+        ) final ComponentStateEntity revisionEntity,
         @ApiParam(
             value = "The processor id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") final String id) {
 
         // ensure the revision was specified
         if (revisionEntity == null) {
@@ -380,6 +401,11 @@ public class ProcessorResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         if (isValidationPhase(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable processor = lookup.getProcessor(id);
+                processor.authorize(authorizer, RequestAction.WRITE);
+            });
             serviceFacade.verifyCanClearProcessorState(id);
             return generateContinueResponse().build();
         }
@@ -424,17 +450,16 @@ public class ProcessorResource extends ApplicationResource {
             }
     )
     public Response updateProcessor(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The processor configuration details.",
                     required = true
-            )
-            ProcessorEntity processorEntity) {
+            ) final ProcessorEntity processorEntity) {
 
         if (processorEntity == null || processorEntity.getComponent() == null) {
             throw new IllegalArgumentException("Processor details must be specified.");
@@ -468,41 +493,27 @@ public class ProcessorResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision revision = getRevision(processorEntity, id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
-        final String requestId = getHeaders().get("X-RequestTransactionId");
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable processor = lookup.getProcessor(id);
+                processor.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
+            () -> {
+                // update the processor
+                final UpdateResult<ProcessorEntity> result = serviceFacade.updateProcessor(revision, requestProcessorDTO);
+                final ProcessorEntity entity = result.getResult();
+                populateRemainingProcessorEntityContent(entity);
 
-        logger.debug("For Update Processor, Validation Phase = {}, Two-phase request = {}, Request ID = {}", validationPhase, twoPhaseRequest, requestId);
-        if (validationPhase || !twoPhaseRequest) {
-            serviceFacade.claimRevision(revision);
-            logger.debug("Claimed Revision {}", revision);
-        }
-        if (validationPhase) {
-            serviceFacade.verifyUpdateProcessor(requestProcessorDTO);
-            logger.debug("Verified Update of Processor");
-            return generateContinueResponse().build();
-        }
-
-        // update the processor
-        final UpdateResult<ProcessorEntity> result;
-        try {
-            logger.debug("Updating Processor with Revision {}", revision);
-            result = serviceFacade.updateProcessor(revision, requestProcessorDTO);
-            logger.debug("Updated Processor with Revision {}", revision);
-        } catch (final Exception e) {
-            final boolean tpr = isTwoPhaseRequest(httpServletRequest);
-            logger.error("Got Exception trying to update processor. two-phase request = {}, validation phase = {}, revision = {}", tpr, validationPhase, revision);
-            logger.error("", e);
-            throw e;
-        }
-        final ProcessorEntity entity = result.getResult();
-        populateRemainingProcessorEntityContent(entity);
-
-        if (result.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                if (result.isNew()) {
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+                } else {
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+            }
+        );
     }
 
     /**
@@ -536,22 +547,22 @@ public class ProcessorResource extends ApplicationResource {
             }
     )
     public Response deleteProcessor(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
                     required = false
             )
-            @QueryParam(VERSION) LongParameter version,
+            @QueryParam(VERSION) final LongParameter version,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -559,25 +570,22 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable processor = lookup.getProcessor(id);
+                processor.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyDeleteProcessor(id),
+            () -> {
+                // delete the processor
+                final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, id);
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-
-        // We need to claim the revision for the Processor if either this is the first phase of a two-phase
-        // request, or if this is not a two-phase request.
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
-        if (validationPhase) {
-            serviceFacade.verifyDeleteProcessor(id);
-            return generateContinueResponse().build();
-        }
-
-        // delete the processor
-        final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, id);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                // generate the response
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     // setters
@@ -591,5 +599,9 @@ public class ProcessorResource extends ApplicationResource {
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

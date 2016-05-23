@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
@@ -51,7 +53,6 @@ import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
-import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
@@ -72,10 +73,12 @@ import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 
 import java.util.Date;
@@ -83,6 +86,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -92,7 +96,64 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     // Synchronization methods
     // ----------------------------------------
-    void claimRevision(Revision revision) throws InvalidRevisionException;
+
+    /**
+     * Authorizes access to the service facade.
+     *
+     * @param authorizeAccess authorize access callback
+     */
+    void authorizeAccess(AuthorizeAccess authorizeAccess);
+
+    /**
+     * Claims the specified revision for the specified user.
+     *
+     * @param revision revision
+     * @param user user
+     * @throws InvalidRevisionException invalid revision
+     */
+    void claimRevision(Revision revision, NiFiUser user) throws InvalidRevisionException;
+
+    /**
+     * Claims the specified revisions for the specified user.
+     *
+     * @param revisions revisions
+     * @param user user
+     * @throws InvalidRevisionException invalid revision
+     */
+    void claimRevisions(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
+
+    /**
+     * Cancels the specified revision. Cancellation is only supported based on the current thread.
+     *
+     * @param revision revision
+     * @throws InvalidRevisionException invalid revision
+     */
+    void cancelRevision(Revision revision) throws InvalidRevisionException;
+
+    /**
+     * Cancels the specified revisions. Cancellation is only supported based on the current thread.
+     *
+     * @param revisions revision
+     * @throws InvalidRevisionException invalid revision
+     */
+    void cancelRevisions(Set<Revision> revisions) throws InvalidRevisionException;
+
+    /**
+     * Gets the current revisions for the components based on the specified function.
+     *
+     * @param groupId group
+     * @param getComponents callback
+     * @return component revisions
+     */
+    Set<Revision> getRevisionsFromGroup(String groupId, Function<ProcessGroup, Set<String>> getComponents);
+
+    /**
+     * Gets the revisions from the specified snippet.
+     *
+     * @param snippetId snippet
+     * @return component revisions from the snippet
+     */
+    Set<Revision> getRevisionsFromSnippet(String snippetId);
 
     // ----------------------------------------
     // Controller methods
@@ -754,7 +815,7 @@ public interface NiFiServiceFacade {
      * @param recurse recurse
      * @return the flow
      */
-    ConfigurationSnapshot<ProcessGroupFlowDTO> getProcessGroupFlow(String groupId, boolean recurse);
+    ProcessGroupFlowEntity getProcessGroupFlow(String groupId, boolean recurse);
 
     // ----------------------------------------
     // ProcessGroup methods
@@ -785,11 +846,23 @@ public interface NiFiServiceFacade {
     Set<ProcessGroupEntity> getProcessGroups(String parentGroupId);
 
     /**
-     * Verifies the specified process group can be updated.
+     * Verifies the contents of the specified process group can be scheduled or unscheduled.
      *
-     * @param processGroupDTO The ProcessGroupDTO
+     * @param processGroupId The ProcessGroup id
+     * @param componentIds the components
+     * @param state scheduled state
      */
-    void verifyUpdateProcessGroup(ProcessGroupDTO processGroupDTO);
+    void verifyScheduleComponents(String processGroupId, ScheduledState state, Set<String> componentIds);
+
+    /**
+     * Schedules all applicable components under the specified ProcessGroup.
+     *
+     * @param processGroupId The ProcessGroup id
+     * @param state schedule state
+     * @param componentRevisions components and their revision
+     * @return snapshot
+     */
+    ScheduleComponentsEntity scheduleComponents(String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions);
 
     /**
      * Updates the specified process group.
@@ -1320,44 +1393,37 @@ public interface NiFiServiceFacade {
     SnippetEntity createSnippet(SnippetDTO snippet);
 
     /**
-     * Gets the specified snippet.
-     *
-     * @param snippetId id
-     * @return snippet
-     */
-    SnippetEntity getSnippet(String snippetId);
-
-    /**
      * Determines if this snippet can be updated.
      *
      * @param snippetDto snippet
      */
-    void verifyUpdateSnippet(SnippetDTO snippetDto);
+    void verifyUpdateSnippet(SnippetDTO snippetDto, Set<String> affectedComponentIds);
 
     /**
      * If group id is specified, moves the specified snippet to the specified group.
      *
-     * @param revision revision
+     * @param revisions revisions
      * @param snippetDto snippet
      * @return snapshot
      */
-    UpdateResult<SnippetEntity> updateSnippet(Revision revision, SnippetDTO snippetDto);
+    SnippetEntity updateSnippet(Set<Revision> revisions, SnippetDTO snippetDto);
 
     /**
      * Determines if this snippet can be removed.
      *
      * @param id id
+     * @param affectedComponentIds affected components
      */
-    void verifyDeleteSnippet(String id);
+    void verifyDeleteSnippet(String id, Set<String> affectedComponentIds);
 
     /**
      * Removes the specified snippet.
      *
-     * @param revision revision
+     * @param revisions revisions
      * @param snippetId snippet
      * @return snapshot
      */
-    SnippetEntity deleteSnippet(Revision revision, String snippetId);
+    SnippetEntity deleteSnippet(Set<Revision> revisions, String snippetId);
 
     // ----------------------------------------
     // Cluster methods

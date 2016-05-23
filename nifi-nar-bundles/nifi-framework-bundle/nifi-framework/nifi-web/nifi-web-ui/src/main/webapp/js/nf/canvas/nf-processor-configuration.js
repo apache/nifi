@@ -378,7 +378,7 @@ nf.ProcessorConfiguration = (function () {
         $.each(connections, function (_, connection) {
             if (connection.accessPolicy.canRead) {
                 if (connection.sourceId === processor.id) {
-                    nf.Connection.reload(connection);
+                    nf.Connection.reload(connection.component);
                 }
             }
         });

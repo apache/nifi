@@ -32,7 +32,6 @@ public class SnippetDTO {
     private String id;
     private String uri;
     private String parentGroupId;
-    private Boolean linked;
 
     // when specified these are only considered during creation
     private Map<String, RevisionDTO> processGroups = new HashMap<>();
@@ -84,22 +83,6 @@ public class SnippetDTO {
 
     public void setParentGroupId(String parentGroupId) {
         this.parentGroupId = parentGroupId;
-    }
-
-    /**
-     * @return whether or not this snippet is linked to the underlying data flow
-     */
-    @ApiModelProperty(
-            value = "Whether or not the snippet is linked to the underlying data flow. For instance if linked was set to true and the snippet was deleted "
-                    + "it would also deleted the components in the snippet. If the snippet was not linked, deleting the snippet would only remove the "
-                    + "snippet and leave the component intact."
-    )
-    public Boolean isLinked() {
-        return linked;
-    }
-
-    public void setLinked(Boolean linked) {
-        this.linked = linked;
     }
 
     /**

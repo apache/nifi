@@ -87,7 +87,7 @@ nf.ContextMenu = (function () {
             return false;
         }
         
-        return nf.CanvasUtils.isDeletable(selection);
+        return nf.CanvasUtils.areDeletable(selection);
     };
 
     /**

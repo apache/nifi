@@ -16,10 +16,25 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -35,24 +50,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.apache.nifi.web.api.entity.PortEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.LongParameter;
-
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import java.net.URI;
+import java.util.Set;
 
 /**
  * RESTful endpoint for managing an Input Port.
@@ -67,6 +66,7 @@ public class InputPortResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     /**
      * Populates the uri for the specified input ports.
@@ -150,12 +150,18 @@ public class InputPortResource extends ApplicationResource {
                     value = "The input port id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable inputPort = lookup.getInputPort(id);
+            inputPort.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the port
         final PortEntity entity = serviceFacade.getInputPort(id);
@@ -199,11 +205,11 @@ public class InputPortResource extends ApplicationResource {
                     value = "The input port id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The input port configuration details.",
                     required = true
-            ) PortEntity portEntity) {
+            ) final PortEntity portEntity) {
 
         if (portEntity == null || portEntity.getComponent() == null) {
             throw new IllegalArgumentException("Input port details must be specified.");
@@ -222,37 +228,34 @@ public class InputPortResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), portEntity, getHeaders(headersToOverride)).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), portEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
         final Revision revision = getRevision(portEntity, id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
-        if (validationPhase) {
-            serviceFacade.verifyUpdateInputPort(requestPortDTO);
-            return generateContinueResponse().build();
-        }
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable inputPort = lookup.getInputPort(id);
+                inputPort.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyUpdateInputPort(requestPortDTO),
+            () -> {
+                // update the input port
+                final UpdateResult<PortEntity> updateResult = serviceFacade.updateInputPort(revision, requestPortDTO);
 
-        // update the input port
-        final UpdateResult<PortEntity> updateResult = serviceFacade.updateInputPort(revision, requestPortDTO);
+                // build the response entity
+                final PortEntity entity = updateResult.getResult();
+                populateRemainingInputPortEntityContent(entity);
 
-        // build the response entity
-        final PortEntity entity = updateResult.getResult();
-        populateRemainingInputPortEntityContent(entity);
-
-        if (updateResult.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                if (updateResult.isNew()) {
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+                } else {
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+            }
+        );
     }
 
     /**
@@ -291,17 +294,17 @@ public class InputPortResource extends ApplicationResource {
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
                     required = false
             )
-            @QueryParam(VERSION) LongParameter version,
+            @QueryParam(VERSION) final LongParameter version,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The input port id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -310,18 +313,20 @@ public class InputPortResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
-        if (validationPhase) {
-            serviceFacade.verifyDeleteInputPort(id);
-            return generateContinueResponse().build();
-        }
-
-        // delete the specified input port
-        final PortEntity entity = serviceFacade.deleteInputPort(revision, id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable inputPort = lookup.getInputPort(id);
+                inputPort.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyDeleteInputPort(id),
+            () -> {
+                // delete the specified input port
+                final PortEntity entity = serviceFacade.deleteInputPort(revision, id);
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     // setters
@@ -335,5 +340,9 @@ public class InputPortResource extends ApplicationResource {
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

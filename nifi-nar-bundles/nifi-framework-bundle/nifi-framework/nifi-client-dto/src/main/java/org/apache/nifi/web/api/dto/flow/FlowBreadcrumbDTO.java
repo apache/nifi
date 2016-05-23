@@ -28,7 +28,6 @@ public class FlowBreadcrumbDTO {
 
     private String id;
     private String name;
-    private FlowBreadcrumbDTO parentBreadcrumb;
 
     /**
      * The id for this group.
@@ -60,21 +59,5 @@ public class FlowBreadcrumbDTO {
 
     public void setName(final String name) {
         this.name = name;
-    }
-
-    /**
-     * The parent breadcrumb for this breadcrumb.
-     *
-     * @return The parent breadcrumb for this breadcrumb
-     */
-    @ApiModelProperty(
-        value = "The parent breadcrumb for this breadcrumb."
-    )
-    public FlowBreadcrumbDTO getParentBreadcrumb() {
-        return parentBreadcrumb;
-    }
-
-    public void setParentBreadcrumb(FlowBreadcrumbDTO parentBreadcrumb) {
-        this.parentBreadcrumb = parentBreadcrumb;
     }
 }

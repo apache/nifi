@@ -27,7 +27,6 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     private String name;
     private String comments;
-    private Boolean running;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -129,20 +128,6 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setOutputPortCount(Integer outputPortCount) {
         this.outputPortCount = outputPortCount;
-    }
-
-    /**
-     * @return Used in requests, indicates whether this process group should be running
-     */
-    @ApiModelProperty(
-            value = "Used in requests, indicates whether the process group should be running."
-    )
-    public Boolean isRunning() {
-        return running;
-    }
-
-    public void setRunning(Boolean running) {
-        this.running = running;
     }
 
     /**

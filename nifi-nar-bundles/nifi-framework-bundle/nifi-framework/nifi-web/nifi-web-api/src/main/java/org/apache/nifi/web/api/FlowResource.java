@@ -16,22 +16,13 @@
  */
 package org.apache.nifi.web.api;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -39,6 +30,7 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -47,9 +39,11 @@ import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
@@ -88,6 +82,7 @@ import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
+import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
@@ -95,13 +90,26 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Flow.
@@ -254,20 +262,11 @@ public class FlowResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        // get this process group contents
-        final ConfigurationSnapshot<ProcessGroupFlowDTO> controllerResponse = serviceFacade.getProcessGroupFlow(groupId, recursive);
-        final ProcessGroupFlowDTO flow = controllerResponse.getConfiguration();
+        // get this process group flow
+        final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId, recursive);
+        populateRemainingFlowContent(entity.getProcessGroupFlow());
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // create the response entity
-        final ProcessGroupFlowEntity processGroupEntity = new ProcessGroupFlowEntity();
-        processGroupEntity.setProcessGroupFlow(populateRemainingFlowContent(flow));
-
-        return clusterContext(generateOkResponse(processGroupEntity)).build();
+        return clusterContext(generateOkResponse(entity)).build();
     }
 
     /**
@@ -319,6 +318,142 @@ public class FlowResource extends ApplicationResource {
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**
+     * Updates the specified process group.
+     *
+     * @param httpServletRequest request
+     * @param id The id of the process group.
+     * @param scheduleComponentsEntity A scheduleComponentsEntity.
+     * @return A processGroupEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Updates a process group",
+        response = ScheduleComponentsEntity.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response scheduleComponents(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String id,
+        ScheduleComponentsEntity scheduleComponentsEntity) {
+
+        authorizeFlow();
+
+        // ensure the same id is being used
+        if (!id.equals(scheduleComponentsEntity.getId())) {
+            throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
+                + "not equal the process group id of the requested resource (%s).", scheduleComponentsEntity.getId(), id));
+        }
+
+        final ScheduledState state;
+        if (scheduleComponentsEntity.getState() == null) {
+            throw new IllegalArgumentException("The scheduled state must be specified.");
+        } else {
+            try {
+                state = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+            } catch (final IllegalArgumentException iae) {
+                throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
+            }
+        }
+
+        // ensure its a supported scheduled state
+        if (ScheduledState.DISABLED.equals(state) || ScheduledState.STARTING.equals(state) || ScheduledState.STOPPING.equals(state)) {
+            throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
+        }
+
+        // if the components are not specified, gather all components and their current revision
+        if (scheduleComponentsEntity.getComponents() == null) {
+            // TODO - this will break while clustered until nodes are able to process/replicate requests
+            // get the current revisions for the components being updated
+            final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, group -> {
+                final Set<String> componentIds = new HashSet<>();
+
+                // ensure authorized for each processor we will attempt to schedule
+                group.findAllProcessors().stream()
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PROCESSORS : ProcessGroup.UNSCHEDULABLE_PROCESSORS)
+                    .filter(processor -> processor.isAuthorized(authorizer, RequestAction.WRITE))
+                    .forEach(processor -> {
+                        componentIds.add(processor.getIdentifier());
+                    });
+
+                // ensure authorized for each input port we will attempt to schedule
+                group.findAllInputPorts().stream()
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                    .filter(inputPort -> inputPort.isAuthorized(authorizer, RequestAction.WRITE))
+                    .forEach(inputPort -> {
+                        componentIds.add(inputPort.getIdentifier());
+                    });
+
+                // ensure authorized for each output port we will attempt to schedule
+                group.findAllOutputPorts().stream()
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                    .filter(outputPort -> outputPort.isAuthorized(authorizer, RequestAction.WRITE))
+                    .forEach(outputPort -> {
+                        componentIds.add(outputPort.getIdentifier());
+                    });
+
+                return componentIds;
+            });
+
+            // build the component mapping
+            final Map<String, RevisionDTO> componentsToSchedule = new HashMap<>();
+            revisions.forEach(revision -> {
+                final RevisionDTO dto = new RevisionDTO();
+                dto.setClientId(revision.getClientId());
+                dto.setVersion(revision.getVersion());
+                componentsToSchedule.put(revision.getComponentId(), dto);
+            });
+
+            // set the components and their current revision
+            scheduleComponentsEntity.setComponents(componentsToSchedule);
+        }
+
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), scheduleComponentsEntity, getHeaders()).getResponse();
+        }
+
+        final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
+        final Map<String, Revision> componentRevisions = componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+        final Set<Revision> revisions = new HashSet<>(componentRevisions.values());
+
+        return withWriteLock(
+            serviceFacade,
+            revisions,
+            lookup -> {
+                // ensure access to every component being scheduled
+                componentsToSchedule.keySet().forEach(componentId -> {
+                    final Authorizable connectable = lookup.getConnectable(componentId);
+                    connectable.authorize(authorizer, RequestAction.WRITE);
+                });
+            },
+            () -> serviceFacade.verifyScheduleComponents(id, state, componentRevisions.keySet()),
+            () -> {
+                // update the process group
+                final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, state, componentRevisions);
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     @GET

@@ -18,7 +18,6 @@ package org.apache.nifi.web.api.dto.flow;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
-import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
@@ -44,7 +43,6 @@ public class FlowDTO {
     private Set<ConnectionEntity> connections = new LinkedHashSet<>();
     private Set<LabelEntity> labels = new LinkedHashSet<>();
     private Set<FunnelEntity> funnels = new LinkedHashSet<>();
-    private Set<ControllerServiceEntity> controllerServices = new LinkedHashSet<>();
 
     /**
      * @return connections in this flow
@@ -158,17 +156,4 @@ public class FlowDTO {
         this.remoteProcessGroups = remoteProcessGroups;
     }
 
-    /**
-     * @return the Controller Services in this flow
-     */
-    @ApiModelProperty(
-            value = "The controller services in this flow."
-    )
-    public Set<ControllerServiceEntity> getControllerServices() {
-        return controllerServices;
-    }
-
-    public void setControllerServices(Set<ControllerServiceEntity> controllerServices) {
-        this.controllerServices = controllerServices;
-    }
 }

@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.controller.service;
 
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.groups.ProcessGroup;
 
-public interface ControllerServiceNode extends ConfiguredComponent, Authorizable {
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+
+public interface ControllerServiceNode extends ConfiguredComponent {
 
     /**
      * @return the Process Group that this Controller Service belongs to, or <code>null</code> if the Controller Service

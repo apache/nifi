@@ -33,7 +33,6 @@ public class StandardSnippet implements Snippet {
 
     private String id;
     private String parentGroupId;
-    private Boolean linked;
 
     private Map<String, Revision> processGroups = new HashMap<>();
     private Map<String, Revision> remoteProcessGroups = new HashMap<>();
@@ -51,19 +50,6 @@ public class StandardSnippet implements Snippet {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    @Override
-    public boolean isLinked() {
-        if (linked == null) {
-            return false;
-        } else {
-            return linked;
-        }
-    }
-
-    public void setLinked(Boolean linked) {
-        this.linked = linked;
     }
 
     @Override

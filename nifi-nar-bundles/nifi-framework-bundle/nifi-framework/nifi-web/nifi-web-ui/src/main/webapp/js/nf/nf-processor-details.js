@@ -211,7 +211,7 @@ nf.ProcessorDetails = (function () {
             // show the dialog once we have the processor and its history
             $.when(getProcessor, getProcessorHistory).done(function (processorResponse, historyResponse) {
                 var processorResponse = processorResponse[0];
-                var processor = processorResponse.processor;
+                var processor = processorResponse.component;
                 var historyResponse = historyResponse[0];
                 var history = historyResponse.componentHistory;
 

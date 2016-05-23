@@ -550,14 +550,14 @@ public class NaiveRevisionManager implements RevisionManager {
         public boolean releaseClaimIfCurrentThread(final Revision revision) {
             threadLock.writeLock().lock();
             try {
-                if (revision != null && !getRevision().equals(revision)) {
-                    throw new InvalidRevisionException("Cannot release claim because the provided Revision is not valid");
-                }
-
                 final LockStamp stamp = lockStamp.get();
                 if (stamp == null) {
                     logger.debug("Cannot cancel claim for {} because there is no claim held", getRevision());
                     return false;
+                }
+
+                if (revision != null && !getRevision().equals(revision)) {
+                    throw new InvalidRevisionException("Cannot release claim because the provided Revision is not valid");
                 }
 
                 if (stamp.isObtainedByCurrentThread()) {

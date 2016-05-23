@@ -74,6 +74,7 @@ div.graph-control {
 div.graph-control button {
     height: 24px;
     width: 24px;
+    line-height: 19px;
     border-radius: 2px;
     border: 1px solid #CCDADB; /*tint link-color 80%*/
     background-color: rgba(249, 250, 251, 0.97);
